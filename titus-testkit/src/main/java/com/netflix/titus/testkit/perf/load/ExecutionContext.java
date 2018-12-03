@@ -16,7 +16,9 @@
 
 package com.netflix.titus.testkit.perf.load;
 
-import java.util.Date;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -34,6 +36,8 @@ public class ExecutionContext {
 
     public static final String LABEL_SESSION = "titus.load.session";
 
+    private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMddHHmmss").withZone(ZoneId.systemDefault());
+
     private final String sessionId;
     private final RxGrpcJobManagementService jobManagementClient;
     private final JobManagementServiceBlockingStub jobManagementClientBlocking;
@@ -48,7 +52,7 @@ public class ExecutionContext {
                 grpcClientAdapterFactory,
                 EvictionServiceGrpc.newStub(titusGrpcChannel)
         );
-        this.sessionId = "startedAt=" + new Date();
+        this.sessionId = "session$" + TIMESTAMP_FORMATTER.format(Instant.now());
     }
 
     public RxGrpcJobManagementService getJobManagementClient() {

@@ -18,21 +18,21 @@ package com.netflix.titus.testkit.perf.load.catalog;
 
 import java.util.concurrent.TimeUnit;
 
-import com.netflix.titus.testkit.perf.load.plan.ExecutionPlan;
+import com.netflix.titus.testkit.perf.load.plan.JobExecutionPlan;
 
 public final class ExecutionPlanCatalog {
 
     private ExecutionPlanCatalog() {
     }
 
-    public static ExecutionPlan uninterruptedJob() {
-        return ExecutionPlan.newBuilder()
+    public static JobExecutionPlan uninterruptedJob() {
+        return JobExecutionPlan.newBuilder()
                 .awaitCompletion()
                 .build();
     }
 
-    public static ExecutionPlan serviceWithKilledTasks() {
-        return ExecutionPlan.newBuilder()
+    public static JobExecutionPlan serviceWithKilledTasks() {
+        return JobExecutionPlan.newBuilder()
                 .label("start")
                 .killRandomTask()
                 .delay(30, TimeUnit.SECONDS)
@@ -40,8 +40,8 @@ public final class ExecutionPlanCatalog {
                 .build();
     }
 
-    public static ExecutionPlan autoScalingService() {
-        return ExecutionPlan.newBuilder()
+    public static JobExecutionPlan autoScalingService() {
+        return JobExecutionPlan.newBuilder()
                 .label("start")
                 .scaleUp(50)
                 .scaleUp(40)
@@ -53,8 +53,8 @@ public final class ExecutionPlanCatalog {
                 .build();
     }
 
-    public static ExecutionPlan terminateAndShrinkAutoScalingService() {
-        return ExecutionPlan.newBuilder()
+    public static JobExecutionPlan terminateAndShrinkAutoScalingService() {
+        return JobExecutionPlan.newBuilder()
                 .scaleUp(5)
                 .label("start")
                 .scaleUp(10)
@@ -70,8 +70,8 @@ public final class ExecutionPlanCatalog {
                 .build();
     }
 
-    public static ExecutionPlan eviction() {
-        return ExecutionPlan.newBuilder()
+    public static JobExecutionPlan eviction() {
+        return JobExecutionPlan.newBuilder()
                 .label("start")
                 .evictRandomTask()
                 .delay(30, TimeUnit.SECONDS)

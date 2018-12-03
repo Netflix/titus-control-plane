@@ -17,14 +17,12 @@
 package com.netflix.titus.testkit.perf.load;
 
 import java.io.PrintWriter;
-import java.util.Map;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.inject.AbstractModule;
-import com.google.inject.Guice;
-import com.google.inject.Injector;
 import com.netflix.archaius.config.MapConfig;
 import com.netflix.archaius.guice.ArchaiusModule;
+import com.netflix.governator.InjectorBuilder;
+import com.netflix.governator.LifecycleInjector;
 import com.netflix.governator.guice.jersey.GovernatorJerseySupportModule;
 import com.netflix.governator.guice.jetty.Archaius2JettyModule;
 import com.netflix.titus.testkit.perf.load.rest.LoadJerseyModule;
@@ -41,6 +39,7 @@ import org.apache.commons.cli.ParseException;
 import org.apache.log4j.PropertyConfigurator;
 
 /**
+ *
  */
 public class LoadGenerator {
 
@@ -48,21 +47,15 @@ public class LoadGenerator {
         PropertyConfigurator.configure(LoadGenerator.class.getClassLoader().getResource("load-log4j.properties"));
     }
 
-    private final Injector injector;
+    private final LifecycleInjector injector;
 
     public LoadGenerator(String[] args) throws Exception {
         CommandLine cli = parseOptions(args);
 
         String hostName = cli.getOptionValue('H');
         int port = getIntOpt(cli, 'p', 8090);
-        boolean clean = getOptions().hasOption("c");
-        int scaleFactor = getIntOpt(cli, 's', 1);
-        Map<String, String> config = ImmutableMap.<String, String>builder()
-                .put("titus.load.scaleFactor", Integer.toString(scaleFactor))
-                .put("titus.load.clean", Boolean.toString(clean))
-                .build();
 
-        this.injector = Guice.createInjector(new AbstractModule() {
+        this.injector = InjectorBuilder.fromModules(new AbstractModule() {
             @Override
             protected void configure() {
                 install(new ArchaiusModule() {
@@ -72,8 +65,6 @@ public class LoadGenerator {
                                 .put("governator.jetty.embedded.port", "8999")
                                 .put("governator.jetty.embedded.webAppResourceBase", "/")
                                 .build());
-
-                        bindConfigReader().toInstance(MapConfig.from(config));
                     }
                 });
 
@@ -90,14 +81,14 @@ public class LoadGenerator {
                         .negotiationType(NegotiationType.PLAINTEXT)
                         .build();
             }
-        });
+        }).createInjector();
     }
 
     private void tearDown() {
     }
 
-    void run() {
-        injector.getInstance(Orchestrator.class).awaitTermination();
+    void run() throws InterruptedException {
+        injector.awaitTermination();
     }
 
     private static int getIntOpt(CommandLine cli, char opt, long defaultValue) throws ParseException {
@@ -111,12 +102,6 @@ public class LoadGenerator {
                 .build());
         options.addOption(Option.builder("p").longOpt("port").argName("port_number").hasArg().type(Number.class)
                 .desc("TitusMaster port number (default 7001)")
-                .build());
-        options.addOption(Option.builder("c").longOpt("clean")
-                .desc("Remove jobs from previous sessions")
-                .build());
-        options.addOption(Option.builder("s").longOpt("scale").argName("number").hasArg().type(Number.class)
-                .desc("Scale factor")
                 .build());
         return options;
     }

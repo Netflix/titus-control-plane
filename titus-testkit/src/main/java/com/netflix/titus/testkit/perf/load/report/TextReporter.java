@@ -26,9 +26,7 @@ import rx.Subscription;
 
 public class TextReporter {
 
-    private static final String LINE_FORMAT = "%-10d | %-12d | %-14d | %-14d | %-10d | %-10d | %-15d | %-10d | %-10d";
-    private static final String HEADER_FORMAT = "%-10s | %-12s | %-14s | %-14s | %-10s | %-10s | %-15s | %-10s | %-10s";
-    private static final String[] HEADERS = {"AllJobs", "ActiveJobs", "PendingIncons", "TotalIncons", "Accepted", "Launched", "StartInitiated", "Started", "KillInitiated"};
+    private static final String LINE_FORMAT = "allJobs=%-10d activeJobs=%-12d pendingIncons=%-14d totalIncons=%-14d accepted=%-10d launched=%-10d startInitiated=%-15d started=%-10d killInitiated=%-10d";
 
     private final MetricsCollector metricsCollector;
     private final Scheduler scheduler;
@@ -41,7 +39,6 @@ public class TextReporter {
     }
 
     public void start() {
-        System.out.format(HEADER_FORMAT, (Object[]) HEADERS);
         System.out.println();
         this.subscription = Observable.interval(0, 5, TimeUnit.SECONDS, scheduler).subscribe(
                 tick -> {

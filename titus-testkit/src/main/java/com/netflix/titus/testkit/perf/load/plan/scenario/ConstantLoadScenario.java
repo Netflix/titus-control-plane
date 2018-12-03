@@ -18,7 +18,7 @@ package com.netflix.titus.testkit.perf.load.plan.scenario;
 
 import com.google.common.base.Preconditions;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import com.netflix.titus.testkit.perf.load.plan.ExecutionPlan;
+import com.netflix.titus.testkit.perf.load.plan.JobExecutionPlan;
 import com.netflix.titus.testkit.perf.load.plan.ExecutionScenario;
 import rx.Observable;
 import rx.Subscriber;
@@ -31,7 +31,7 @@ public class ConstantLoadScenario extends ExecutionScenario {
 
     private volatile Subscriber<? super Executable> scenarioSubscriber;
 
-    public ConstantLoadScenario(String owner, JobDescriptor<?> jobSpec, ExecutionPlan plan, int size) {
+    public ConstantLoadScenario(String owner, JobDescriptor<?> jobSpec, JobExecutionPlan plan, int size) {
         this.executable = new Executable(owner, jobSpec, plan);
         this.size = size;
     }

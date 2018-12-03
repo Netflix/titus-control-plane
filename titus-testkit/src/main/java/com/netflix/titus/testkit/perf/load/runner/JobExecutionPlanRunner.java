@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.testkit.perf.load.job.JobExecutor;
-import com.netflix.titus.testkit.perf.load.plan.ExecutionPlan;
+import com.netflix.titus.testkit.perf.load.plan.JobExecutionPlan;
 import com.netflix.titus.testkit.perf.load.plan.ExecutionStep;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,9 +33,9 @@ import rx.Completable;
 import rx.Observable;
 import rx.Scheduler;
 
-public class ExecutionPlanRunner {
+public class JobExecutionPlanRunner {
 
-    private final static Logger logger = LoggerFactory.getLogger(ExecutionPlanRunner.class);
+    private final static Logger logger = LoggerFactory.getLogger(JobExecutionPlanRunner.class);
 
     private static final Random random = new Random();
 
@@ -43,11 +43,11 @@ public class ExecutionPlanRunner {
     private final Scheduler.Worker worker;
     private final Iterator<ExecutionStep> planIterator;
 
-    public ExecutionPlanRunner(JobExecutor jobExecutor,
-                               ExecutionPlan executionPlan,
-                               Scheduler scheduler) {
+    public JobExecutionPlanRunner(JobExecutor jobExecutor,
+                                  JobExecutionPlan jobExecutionPlan,
+                                  Scheduler scheduler) {
         this.executor = jobExecutor;
-        this.planIterator = executionPlan.newInstance();
+        this.planIterator = jobExecutionPlan.newInstance();
 
         this.worker = scheduler.createWorker();
     }

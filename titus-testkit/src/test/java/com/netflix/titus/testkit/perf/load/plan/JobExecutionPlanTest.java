@@ -23,11 +23,11 @@ import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class ExecutionPlanTest {
+public class JobExecutionPlanTest {
 
     @Test
     public void testSimplePlan() {
-        ExecutionPlan plan = ExecutionPlan.newBuilder()
+        JobExecutionPlan plan = JobExecutionPlan.newBuilder()
                 .label("start")
                 .delay(5, TimeUnit.SECONDS)
                 .scaleUp(5)

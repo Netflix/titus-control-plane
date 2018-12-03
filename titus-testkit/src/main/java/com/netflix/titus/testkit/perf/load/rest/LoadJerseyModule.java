@@ -42,7 +42,7 @@ public class LoadJerseyModule extends JerseyServletModule {
             config.getClasses().add(JsonMessageReaderWriter.class);
 
             // Resources
-            config.getClasses().add(ReportResource.class);
+            config.getClasses().add(ScenarioResource.class);
             return config;
         };
     }

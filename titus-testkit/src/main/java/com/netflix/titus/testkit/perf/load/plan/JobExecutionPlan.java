@@ -26,11 +26,11 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Preconditions;
 
-public class ExecutionPlan {
+public class JobExecutionPlan {
 
     private final List<ExecutionStep> steps;
 
-    public ExecutionPlan(List<ExecutionStep> steps) {
+    public JobExecutionPlan(List<ExecutionStep> steps) {
         this.steps = steps;
     }
 
@@ -102,11 +102,11 @@ public class ExecutionPlan {
             return this;
         }
 
-        public ExecutionPlan build() {
+        public JobExecutionPlan build() {
             if (steps.get(steps.size() - 1) != ExecutionStep.terminate()) {
                 steps.add(ExecutionStep.terminate());
             }
-            return new ExecutionPlan(steps);
+            return new JobExecutionPlan(steps);
         }
     }
 

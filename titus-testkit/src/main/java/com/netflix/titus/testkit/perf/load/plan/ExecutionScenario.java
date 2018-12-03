@@ -29,12 +29,12 @@ public abstract class ExecutionScenario {
     public static class Executable {
         private final String owner;
         private final JobDescriptor<?> jobSpec;
-        private final ExecutionPlan executionPlan;
+        private final JobExecutionPlan jobExecutionPlan;
 
-        public Executable(String owner, JobDescriptor<?> jobSpec, ExecutionPlan executionPlan) {
+        public Executable(String owner, JobDescriptor<?> jobSpec, JobExecutionPlan executionPlan) {
             this.owner = owner;
             this.jobSpec = jobSpec;
-            this.executionPlan = executionPlan;
+            this.jobExecutionPlan = executionPlan;
         }
 
         public String getOwner() {
@@ -45,8 +45,8 @@ public abstract class ExecutionScenario {
             return jobSpec;
         }
 
-        public ExecutionPlan getExecutionPlan() {
-            return executionPlan;
+        public JobExecutionPlan getJobExecutionPlan() {
+            return jobExecutionPlan;
         }
     }
 
@@ -62,7 +62,7 @@ public abstract class ExecutionScenario {
 
         private final List<ExecutionScenario> scenarios = new ArrayList<>();
 
-        public ExecutionScenarioBuilder constantLoad(JobDescriptor<?> jobSpec, ExecutionPlan plan, int instances) {
+        public ExecutionScenarioBuilder constantLoad(JobDescriptor<?> jobSpec, JobExecutionPlan plan, int instances) {
             scenarios.add(new ConstantLoadScenario("scenario#" + scenarios.size(), jobSpec, plan, instances));
             return this;
         }
