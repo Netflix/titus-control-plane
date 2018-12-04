@@ -87,13 +87,12 @@ public class TaskRelocationPlanPredicate implements Predicate<TaskRelocationPlan
     }
 
     private Optional<Predicate<TaskRelocationPlan>> newJobIdsPredicate(String jobIds) {
-        List<String> idList = StringExt.splitByComma(jobIds);
-        if (idList.isEmpty()) {
+        Set<String> ids = StringExt.splitByCommaIntoSet(jobIds);
+        if (ids.isEmpty()) {
             return Optional.empty();
         }
-        Set<String> idSet = new HashSet<>(idList);
 
-        return Optional.of(newJobPredicate(job -> idSet.contains(job.getId())));
+        return Optional.of(newJobPredicate(job -> ids.contains(job.getId())));
     }
 
     private Optional<Predicate<TaskRelocationPlan>> newTaskIdsPredicate(String taskIds) {

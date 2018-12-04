@@ -46,7 +46,7 @@
         <column>
             <table_schema>relocation</table_schema>
             <table_name>relocation_plan</table_name>
-            <column_name>reason</column_name>
+            <column_name>reason_code</column_name>
             <data_type>VARCHAR</data_type>
             <character_maximum_length>64</character_maximum_length>
             <is_nullable>false</is_nullable>
@@ -56,14 +56,14 @@
             <table_name>relocation_plan</table_name>
             <column_name>reason_message</column_name>
             <data_type>VARCHAR</data_type>
-            <character_maximum_length>1024</character_maximum_length>
+            <character_maximum_length>2048</character_maximum_length>
             <is_nullable>false</is_nullable>
         </column>
         <column>
             <table_schema>relocation</table_schema>
             <table_name>relocation_plan</table_name>
             <column_name>relocation_time</column_name>
-            <data_type>BIGINT</data_type>
+            <data_type>TIMESTAMP</data_type>
             <is_nullable>false</is_nullable>
         </column>
 
@@ -81,7 +81,7 @@
             <table_name>relocation_status</table_name>
             <column_name>relocation_state</column_name>
             <data_type>VARCHAR</data_type>
-            <character_maximum_length>16</character_maximum_length>
+            <character_maximum_length>64</character_maximum_length>
             <is_nullable>false</is_nullable>
         </column>
         <column>
@@ -97,7 +97,7 @@
             <table_name>relocation_status</table_name>
             <column_name>status_message</column_name>
             <data_type>VARCHAR</data_type>
-            <character_maximum_length>1024</character_maximum_length>
+            <character_maximum_length>2048</character_maximum_length>
             <is_nullable>false</is_nullable>
         </column>
         <column>
@@ -113,14 +113,21 @@
             <table_name>relocation_status</table_name>
             <column_name>reason_message</column_name>
             <data_type>VARCHAR</data_type>
-            <character_maximum_length>1024</character_maximum_length>
+            <character_maximum_length>2048</character_maximum_length>
             <is_nullable>false</is_nullable>
         </column>
         <column>
             <table_schema>relocation</table_schema>
             <table_name>relocation_status</table_name>
-            <column_name>relocation_time</column_name>
-            <data_type>BIGINT</data_type>
+            <column_name>relocation_plan_time</column_name>
+            <data_type>TIMESTAMP</data_type>
+            <is_nullable>false</is_nullable>
+        </column>
+        <column>
+            <table_schema>relocation</table_schema>
+            <table_name>relocation_status</table_name>
+            <column_name>relocation_execution_time</column_name>
+            <data_type>TIMESTAMP</data_type>
             <is_nullable>false</is_nullable>
         </column>
     </columns>

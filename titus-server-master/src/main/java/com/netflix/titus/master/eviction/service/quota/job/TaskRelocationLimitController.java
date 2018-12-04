@@ -96,7 +96,7 @@ public class TaskRelocationLimitController implements QuotaController<Job<?>> {
 
         return quota > 0
                 ? quotaBuilder.withQuota(quota).withMessage("Per task limit is %s", perTaskLimit).build()
-                : quotaBuilder.withQuota(0).withMessage("All tasks of the job reached its maximum eviction limit %s", perTaskLimit).build();
+                : quotaBuilder.withQuota(0).withMessage("Each task of the job reached its maximum eviction limit %s", perTaskLimit).build();
     }
 
     private EvictionQuota getTaskQuota(Reference taskReference) {

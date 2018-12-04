@@ -16,7 +16,9 @@
 
 package com.netflix.titus.ext.jooq.relocation;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -39,16 +41,13 @@ public class JooqTaskRelocationStoreTest {
         this.store = newStore();
     }
 
-    private JooqTaskRelocationStore newStore() {
-        return new JooqTaskRelocationStore(jooqResource.getDslContext());
-    }
-
     @Test
     public void testRelocationPlanStoreCrud() {
-        TaskRelocationPlan plan = newRelocationPlan();
+        List<TaskRelocationPlan> plans = newRelocationPlans(1);
+        TaskRelocationPlan plan = plans.get(0);
 
         // Create
-        Map<String, Optional<Throwable>> result = store.createOrUpdateTaskRelocationPlans(Collections.singletonList(plan)).block();
+        Map<String, Optional<Throwable>> result = store.createOrUpdateTaskRelocationPlans(plans).block();
         assertThat(result).hasSize(1);
         assertThat(result.get(plan.getTaskId())).isEmpty();
 
@@ -74,12 +73,36 @@ public class JooqTaskRelocationStoreTest {
         assertThat(store.getAllTaskRelocationPlans().block()).hasSize(0);
     }
 
-    private TaskRelocationPlan newRelocationPlan() {
-        return TaskRelocationPlan.newBuilder()
-                .withTaskId("task1")
-                .withReason(TaskRelocationPlan.TaskRelocationReason.TaskMigration)
-                .withReasonMessage("Test...")
-                .withRelocationTime(123)
-                .build();
+    @Test
+    public void testStoringLargeAmountOfPlans() {
+        List<TaskRelocationPlan> plans = newRelocationPlans(10_000);
+
+        // Create
+        Map<String, Optional<Throwable>> result = store.createOrUpdateTaskRelocationPlans(plans).block();
+        assertThat(result).hasSize(plans.size());
+        long failures = result.values().stream().filter(Optional::isPresent).count();
+        assertThat(failures).isZero();
+
+        // Reboot
+        this.store = newStore();
+        assertThat(store.getAllTaskRelocationPlans().block()).hasSize(10_000);
+    }
+
+    private JooqTaskRelocationStore newStore() {
+        return new JooqTaskRelocationStore(jooqResource.getDslContext());
+    }
+
+    private List<TaskRelocationPlan> newRelocationPlans(int count) {
+        List<TaskRelocationPlan> plans = new ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            plans.add(TaskRelocationPlan.newBuilder()
+                    .withTaskId("task" + i)
+                    .withReason(TaskRelocationPlan.TaskRelocationReason.TaskMigration)
+                    .withReasonMessage("Test...")
+                    .withRelocationTime(123)
+                    .build()
+            );
+        }
+        return plans;
     }
 }

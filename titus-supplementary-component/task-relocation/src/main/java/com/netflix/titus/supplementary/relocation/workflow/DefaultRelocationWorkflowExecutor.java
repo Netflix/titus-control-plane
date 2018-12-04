@@ -64,6 +64,9 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
 
     private static final long STALENESS_THRESHOLD_MS = 30_000;
 
+    /**
+     * A marker object (do not optimize by changing the value to {@link Collections#emptyList()}).
+     */
     private static final Map<String, TaskRelocationPlan> PLANS_NOT_READY = new HashMap<>();
 
     private final RelocationConfiguration configuration;
@@ -165,7 +168,7 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
 
     @Override
     public Map<String, TaskRelocationPlan> getPlannedRelocations() {
-        if(lastRelocationPlan == PLANS_NOT_READY) {
+        if (lastRelocationPlan == PLANS_NOT_READY) {
             throw RelocationWorkflowException.notReady();
         }
         return lastRelocationPlan;
@@ -183,7 +186,7 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
 
     private void nextRelocationStep(ExecutionContext executionContext) {
         long count = executionContext.getExecutionId().getTotal();
-        boolean descheduling = lastDeschedulingTimestamp + configuration.getDeschedulingIntervalMs() <= titusRuntime.getClock().wallTime();
+        boolean descheduling = titusRuntime.getClock().isPast(lastDeschedulingTimestamp + configuration.getDeschedulingIntervalMs());
 
         logger.info("Starting task relocation iteration {} (descheduling={})...", count, descheduling);
 

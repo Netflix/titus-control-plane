@@ -16,6 +16,7 @@
 
 package com.netflix.titus.ext.jooq.relocation;
 
+import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -62,7 +63,7 @@ public class JooqTaskRelocationStore implements TaskRelocationStore {
         dslContext.createSchemaIfNotExists(JRelocation.RELOCATION).execute();
         dslContext.createTableIfNotExists(RELOCATION_PLAN)
                 .column(RELOCATION_PLAN.TASK_ID)
-                .column(RELOCATION_PLAN.REASON)
+                .column(RELOCATION_PLAN.REASON_CODE)
                 .column(RELOCATION_PLAN.REASON_MESSAGE)
                 .column(RELOCATION_PLAN.RELOCATION_TIME)
                 .constraint(DSL.constraint("pk_relocation_plan_task_id").primaryKey(RELOCATION_PLAN.TASK_ID))
@@ -76,9 +77,9 @@ public class JooqTaskRelocationStore implements TaskRelocationStore {
                     record.getTaskId(),
                     TaskRelocationPlan.newBuilder()
                             .withTaskId(record.getTaskId())
-                            .withReason(TaskRelocationReason.valueOf(record.getReason()))
+                            .withReason(TaskRelocationReason.valueOf(record.getReasonCode()))
                             .withReasonMessage(record.getReasonMessage())
-                            .withRelocationTime(record.getRelocationTime())
+                            .withRelocationTime(record.getRelocationTime().getTime())
                             .build()
             );
         }
@@ -168,9 +169,9 @@ public class JooqTaskRelocationStore implements TaskRelocationStore {
             storeQuery.addValue(RELOCATION_PLAN.TASK_ID, relocationPlan.getTaskId());
         }
 
-        storeQuery.addValue(RELOCATION_PLAN.REASON, relocationPlan.getReason().name());
+        storeQuery.addValue(RELOCATION_PLAN.REASON_CODE, relocationPlan.getReason().name());
         storeQuery.addValue(RELOCATION_PLAN.REASON_MESSAGE, relocationPlan.getReasonMessage());
-        storeQuery.addValue(RELOCATION_PLAN.RELOCATION_TIME, relocationPlan.getRelocationTime());
+        storeQuery.addValue(RELOCATION_PLAN.RELOCATION_TIME, new Timestamp(relocationPlan.getRelocationTime()));
 
         return storeQuery;
     }

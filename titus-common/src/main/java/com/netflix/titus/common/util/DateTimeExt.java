@@ -117,7 +117,7 @@ public final class DateTimeExt {
 
     /**
      * Given an interval, and a number of items generated per interval, create string representation of the
-     * corresponding rate. For example, interval=10sec, itemsPerInterval=5 gives rate="0.5 ???/sec".
+     * corresponding rate. For example, interval=10sec, itemsPerInterval=5 gives rate="0.5 items/sec".
      */
     public static String toRateString(long interval, long itemsPerInterval, TimeUnit timeUnit, String rateType) {
         TimeUnit matchedTimeUnit = timeUnit;

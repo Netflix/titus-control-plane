@@ -16,6 +16,7 @@
 
 package com.netflix.titus.ext.jooq.relocation;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -45,16 +46,13 @@ public class JooqTaskRelocationResultStoreTest {
         this.store = newStore();
     }
 
-    private JooqTaskRelocationResultStore newStore() {
-        return new JooqTaskRelocationResultStore(jooqResource.getDslContext(), titusRuntime);
-    }
-
     @Test
     public void testRelocationStatusStoreCrud() {
-        TaskRelocationStatus status = newRelocationStatus();
+        List<TaskRelocationStatus> statusList = newRelocationStatuses(1);
+        TaskRelocationStatus status = statusList.get(0);
 
         // Create
-        Map<String, Optional<Throwable>> result = store.createTaskRelocationStatuses(Collections.singletonList(status)).block();
+        Map<String, Optional<Throwable>> result = store.createTaskRelocationStatuses(statusList).block();
         assertThat(result).hasSize(1);
         assertThat(result.get(status.getTaskId())).isEmpty();
 
@@ -62,9 +60,9 @@ public class JooqTaskRelocationResultStoreTest {
         this.store = newStore();
 
         // Read
-        List<TaskRelocationStatus> statusList = store.getTaskRelocationStatusList(status.getTaskId()).block();
-        assertThat(statusList).hasSize(1);
-        assertThat(statusList.get(0)).isEqualTo(status);
+        List<TaskRelocationStatus> statusListRead = store.getTaskRelocationStatusList(status.getTaskId()).block();
+        assertThat(statusListRead).hasSize(1);
+        assertThat(statusListRead.get(0)).isEqualTo(status);
 
         // Update
         TaskRelocationStatus updatedStatus = status.toBuilder().withStatusMessage("Updated...").build();
@@ -79,19 +77,39 @@ public class JooqTaskRelocationResultStoreTest {
         assertThat(store.getTaskRelocationStatusList(status.getTaskId()).block().get(0)).isEqualTo(updatedStatus);
     }
 
-    private TaskRelocationStatus newRelocationStatus() {
-        return TaskRelocationStatus.newBuilder()
-                .withTaskId("task1")
-                .withState(TaskRelocationStatus.TaskRelocationState.Success)
-                .withStatusCode("status123")
-                .withStatusMessage("statusMessage123")
-                .withTaskRelocationPlan(TaskRelocationPlan.newBuilder()
-                        .withTaskId("task1")
-                        .withReason(TaskRelocationPlan.TaskRelocationReason.TaskMigration)
-                        .withReasonMessage("Test...")
-                        .withRelocationTime(123)
-                        .build()
-                )
-                .build();
+    @Test
+    public void testStoringLargeAmountOfStatuses() {
+        List<TaskRelocationStatus> statusList = newRelocationStatuses(10_000);
+
+        // Create
+        Map<String, Optional<Throwable>> result = store.createTaskRelocationStatuses(statusList).block();
+        assertThat(result).hasSize(statusList.size());
+        long failures = result.values().stream().filter(Optional::isPresent).count();
+        assertThat(failures).isZero();
+    }
+
+    private JooqTaskRelocationResultStore newStore() {
+        return new JooqTaskRelocationResultStore(jooqResource.getDslContext(), titusRuntime);
+    }
+
+    private List<TaskRelocationStatus> newRelocationStatuses(int count) {
+        List<TaskRelocationStatus> result = new ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            result.add(TaskRelocationStatus.newBuilder()
+                    .withTaskId("task" + i)
+                    .withState(TaskRelocationStatus.TaskRelocationState.Success)
+                    .withStatusCode("status123")
+                    .withStatusMessage("statusMessage123")
+                    .withTaskRelocationPlan(TaskRelocationPlan.newBuilder()
+                            .withTaskId("task" + i)
+                            .withReason(TaskRelocationPlan.TaskRelocationReason.TaskMigration)
+                            .withReasonMessage("Test...")
+                            .withRelocationTime(123)
+                            .build()
+                    )
+                    .build()
+            );
+        }
+        return result;
     }
 }

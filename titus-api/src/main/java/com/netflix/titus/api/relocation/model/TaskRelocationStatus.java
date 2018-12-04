@@ -52,13 +52,15 @@ public class TaskRelocationStatus {
     private final String statusCode;
     private final String statusMessage;
     private final TaskRelocationPlan taskRelocationPlan;
+    private final long timestamp;
 
-    public TaskRelocationStatus(String taskId, TaskRelocationState state, String statusCode, String statusMessage, TaskRelocationPlan taskRelocationPlan) {
+    public TaskRelocationStatus(String taskId, TaskRelocationState state, String statusCode, String statusMessage, TaskRelocationPlan taskRelocationPlan, long timestamp) {
         this.taskId = taskId;
         this.state = state;
         this.statusCode = statusCode;
         this.statusMessage = statusMessage;
         this.taskRelocationPlan = taskRelocationPlan;
+        this.timestamp = timestamp;
     }
 
     public String getTaskId() {
@@ -81,6 +83,10 @@ public class TaskRelocationStatus {
         return taskRelocationPlan;
     }
 
+    public long getTimestamp() {
+        return timestamp;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -90,7 +96,8 @@ public class TaskRelocationStatus {
             return false;
         }
         TaskRelocationStatus that = (TaskRelocationStatus) o;
-        return Objects.equals(taskId, that.taskId) &&
+        return timestamp == that.timestamp &&
+                Objects.equals(taskId, that.taskId) &&
                 state == that.state &&
                 Objects.equals(statusCode, that.statusCode) &&
                 Objects.equals(statusMessage, that.statusMessage) &&
@@ -99,7 +106,7 @@ public class TaskRelocationStatus {
 
     @Override
     public int hashCode() {
-        return Objects.hash(taskId, state, statusCode, statusMessage, taskRelocationPlan);
+        return Objects.hash(taskId, state, statusCode, statusMessage, taskRelocationPlan, timestamp);
     }
 
     @Override
@@ -110,6 +117,7 @@ public class TaskRelocationStatus {
                 ", statusCode='" + statusCode + '\'' +
                 ", statusMessage='" + statusMessage + '\'' +
                 ", taskRelocationPlan=" + taskRelocationPlan +
+                ", timestamp=" + timestamp +
                 '}';
     }
 
@@ -127,6 +135,7 @@ public class TaskRelocationStatus {
         private String statusCode;
         private TaskRelocationPlan taskRelocationPlan;
         private String statusMessage;
+        private long timestamp;
 
         private Builder() {
         }
@@ -156,13 +165,18 @@ public class TaskRelocationStatus {
             return this;
         }
 
+        public Builder withTimestamp(long timestamp) {
+            this.timestamp = timestamp;
+            return this;
+        }
+
         public TaskRelocationStatus build() {
             Preconditions.checkNotNull(taskId, "Task id cannot be null");
             Preconditions.checkNotNull(state, "Task state cannot be null");
             Preconditions.checkNotNull(statusCode, "Status code cannot be null");
             Preconditions.checkNotNull(statusMessage, "Status message cannot be null");
             Preconditions.checkNotNull(taskRelocationPlan, "Task relocation plan cannot be null");
-            return new TaskRelocationStatus(taskId, state, statusCode, statusMessage, taskRelocationPlan);
+            return new TaskRelocationStatus(taskId, state, statusCode, statusMessage, taskRelocationPlan, timestamp);
         }
     }
 }

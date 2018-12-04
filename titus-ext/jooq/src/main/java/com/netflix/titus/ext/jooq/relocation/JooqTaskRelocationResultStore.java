@@ -16,6 +16,7 @@
 
 package com.netflix.titus.ext.jooq.relocation;
 
+import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -48,6 +49,8 @@ import static com.netflix.titus.ext.jooq.relocation.schema.tables.JRelocationSta
 @Singleton
 public class JooqTaskRelocationResultStore implements TaskRelocationResultStore {
 
+    private static final int MAX_TEXT_LENGTH = 2048;
+
     private final DSLContext dslContext;
 
     private final Cache<String, TaskRelocationStatus> statusesByTaskId;
@@ -72,7 +75,8 @@ public class JooqTaskRelocationResultStore implements TaskRelocationResultStore 
                 .column(RELOCATION_STATUS.STATUS_MESSAGE)
                 .column(RELOCATION_STATUS.REASON_CODE)
                 .column(RELOCATION_STATUS.REASON_MESSAGE)
-                .column(RELOCATION_STATUS.RELOCATION_TIME)
+                .column(RELOCATION_STATUS.RELOCATION_PLAN_TIME)
+                .column(RELOCATION_STATUS.RELOCATION_EXECUTION_TIME)
                 .constraint(DSL.constraint("pk_relocation_status_task_id").primaryKey(RELOCATION_STATUS.TASK_ID))
                 .execute();
     }
@@ -160,9 +164,10 @@ public class JooqTaskRelocationResultStore implements TaskRelocationResultStore 
                                         .withTaskId(record.getTaskId())
                                         .withReason(TaskRelocationPlan.TaskRelocationReason.valueOf(record.getReasonCode()))
                                         .withReasonMessage(record.getReasonMessage())
-                                        .withRelocationTime(record.getRelocationTime())
+                                        .withRelocationTime(record.getRelocationPlanTime().getTime())
                                         .build()
                                 )
+                                .withTimestamp(record.getRelocationExecutionTime().getTime())
                                 .build()
                 ));
     }
@@ -179,11 +184,16 @@ public class JooqTaskRelocationResultStore implements TaskRelocationResultStore 
 
         storeQuery.addValue(RELOCATION_STATUS.RELOCATION_STATE, relocationStatus.getState().name());
         storeQuery.addValue(RELOCATION_STATUS.STATUS_CODE, relocationStatus.getStatusCode());
-        storeQuery.addValue(RELOCATION_STATUS.STATUS_MESSAGE, relocationStatus.getStatusMessage());
+        storeQuery.addValue(RELOCATION_STATUS.STATUS_MESSAGE, toLengthLimitedVarchar(relocationStatus.getStatusMessage()));
         storeQuery.addValue(RELOCATION_STATUS.REASON_CODE, relocationStatus.getTaskRelocationPlan().getReason().name());
-        storeQuery.addValue(RELOCATION_STATUS.REASON_MESSAGE, relocationStatus.getTaskRelocationPlan().getReasonMessage());
-        storeQuery.addValue(RELOCATION_STATUS.RELOCATION_TIME, relocationStatus.getTaskRelocationPlan().getRelocationTime());
+        storeQuery.addValue(RELOCATION_STATUS.REASON_MESSAGE, toLengthLimitedVarchar(relocationStatus.getTaskRelocationPlan().getReasonMessage()));
+        storeQuery.addValue(RELOCATION_STATUS.RELOCATION_PLAN_TIME, new Timestamp(relocationStatus.getTaskRelocationPlan().getRelocationTime()));
+        storeQuery.addValue(RELOCATION_STATUS.RELOCATION_EXECUTION_TIME, new Timestamp(relocationStatus.getTimestamp()));
 
         return storeQuery;
+    }
+
+    private String toLengthLimitedVarchar(String text) {
+        return text.length() <= MAX_TEXT_LENGTH ? text : text.substring(0, MAX_TEXT_LENGTH);
     }
 }

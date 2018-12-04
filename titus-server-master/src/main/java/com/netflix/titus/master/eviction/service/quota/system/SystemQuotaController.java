@@ -97,7 +97,7 @@ public class SystemQuotaController implements QuotaController<Void> {
         this.disruptionBudget = newDisruptionBudget;
         this.systemTokenBucket = newTokenBucket(newDisruptionBudget);
         this.inTimeWindowPredicate = TimeWindowFunctions.isInTimeWindowPredicate(titusRuntime, disruptionBudget.getTimeWindows());
-        this.quotaMessage = String.format("System quota token bucket: capacity=%s, refillRate=%s",
+        this.quotaMessage = String.format("System quota token bucket: capacity=%s, refillStrategy=%s",
                 systemTokenBucket.getCapacity(),
                 systemTokenBucket.getRefillStrategy()
         );
