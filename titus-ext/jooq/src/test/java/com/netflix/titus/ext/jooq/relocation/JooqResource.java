@@ -32,13 +32,14 @@ public class JooqResource extends ExternalResource {
 
     @Override
     protected void before() throws Throwable {
-        this.connection = DriverManager.getConnection("jdbc:hsqldb:mem:mymemdb", "SA", "");
+        this.connection = DriverManager.getConnection("jdbc:hsqldb:mem:junit" + System.currentTimeMillis(), "SA", "");
         this.dslContext = new DefaultDSLContext(new DefaultConnectionProvider(connection), SQLDialect.POSTGRES_9_5);
     }
 
     @Override
     protected void after() {
         if (dslContext != null) {
+            dslContext.execute("SHUTDOWN");
             dslContext.close();
         }
         if (connection != null) {
