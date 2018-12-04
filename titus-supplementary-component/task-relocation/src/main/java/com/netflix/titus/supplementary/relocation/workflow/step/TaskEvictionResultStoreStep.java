@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 import com.google.common.base.Stopwatch;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.api.relocation.model.TaskRelocationStatus;
-import com.netflix.titus.supplementary.relocation.store.TaskRelocationArchiveStore;
+import com.netflix.titus.supplementary.relocation.store.TaskRelocationResultStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,11 +40,11 @@ public class TaskEvictionResultStoreStep {
 
     private static final String STEP_NAME = "taskEvictionResultStoreStep";
 
-    private final TaskRelocationArchiveStore store;
+    private final TaskRelocationResultStore store;
     private final RelocationTransactionLogger transactionLog;
     private final StepMetrics metrics;
 
-    public TaskEvictionResultStoreStep(TaskRelocationArchiveStore store, RelocationTransactionLogger transactionLog, TitusRuntime titusRuntime) {
+    public TaskEvictionResultStoreStep(TaskRelocationResultStore store, RelocationTransactionLogger transactionLog, TitusRuntime titusRuntime) {
         this.store = store;
         this.transactionLog = transactionLog;
         this.metrics = new StepMetrics(STEP_NAME, titusRuntime);

@@ -201,7 +201,7 @@ public class JobSnapshot {
         if (task == null) {
             return Optional.empty();
         }
-        Job<?> job = jobsById.get(task.getId());
+        Job<?> job = jobsById.get(task.getJobId());
         // If this happens, we have a bug in the code.
         if (job == null) {
             return Optional.empty();

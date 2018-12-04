@@ -26,10 +26,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Stopwatch;
-import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.api.relocation.model.RelocationFunctions;
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.supplementary.relocation.store.TaskRelocationStore;
 import com.netflix.titus.supplementary.relocation.workflow.RelocationWorkflowException;
 import org.slf4j.Logger;
@@ -59,11 +60,12 @@ public class MustBeRelocatedTaskStoreUpdateStep {
         this.metrics = new StepMetrics(STEP_NAME, titusRuntime);
     }
 
-    public void persistChangesInStore(Map<String, TaskRelocationPlan> mustBeRelocatedTasks) {
+    public Map<String, TaskRelocationPlan> persistChangesInStore(Map<String, TaskRelocationPlan> mustBeRelocatedTasks) {
         Stopwatch stopwatch = Stopwatch.createStarted();
         try {
-            int updates = execute(mustBeRelocatedTasks);
-            metrics.onSuccess(updates, stopwatch.elapsed(TimeUnit.MILLISECONDS));
+            Pair<Integer, Map<String, TaskRelocationPlan>> updatePair = execute(mustBeRelocatedTasks);
+            metrics.onSuccess(updatePair.getLeft(), stopwatch.elapsed(TimeUnit.MILLISECONDS));
+            return updatePair.getRight();
         } catch (Exception e) {
             logger.error("Step processing error", e);
             metrics.onError(stopwatch.elapsed(TimeUnit.MILLISECONDS));
@@ -71,7 +73,7 @@ public class MustBeRelocatedTaskStoreUpdateStep {
         }
     }
 
-    private int execute(Map<String, TaskRelocationPlan> mustBeRelocatedTasks) {
+    private Pair<Integer, Map<String, TaskRelocationPlan>> execute(Map<String, TaskRelocationPlan> mustBeRelocatedTasks) {
         Set<String> toRemove = CollectionsExt.copyAndRemove(relocationsPlanInStore.keySet(), mustBeRelocatedTasks.keySet());
 
         List<TaskRelocationPlan> toUpdate = mustBeRelocatedTasks.values().stream()
@@ -87,7 +89,10 @@ public class MustBeRelocatedTaskStoreUpdateStep {
         relocationsPlanInStore.keySet().removeAll(toRemove);
         toUpdate.forEach(plan -> relocationsPlanInStore.put(plan.getTaskId(), plan));
 
-        return toRemove.size() + toUpdate.size();
+        return Pair.of(
+                toRemove.size() + toUpdate.size(),
+                new HashMap<>(relocationsPlanInStore)
+        );
     }
 
     private Map<String, TaskRelocationPlan> loadPlanFromStore() {

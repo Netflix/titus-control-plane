@@ -21,6 +21,7 @@ import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.patterns.PolledMeter;
 import com.netflix.titus.api.model.FixedIntervalTokenBucketRefillPolicy;
 import com.netflix.titus.api.model.TokenBucketRefillPolicy;
+import com.netflix.titus.api.model.reference.Reference;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.master.MetricConstants;
 
@@ -56,7 +57,7 @@ class SystemQuotaMetrics {
         this.quotaLevelId = registry.createId(ROOT_NAME + "available");
         PolledMeter.using(registry)
                 .withId(quotaLevelId)
-                .monitorValue(systemQuotaController, sqc -> systemQuotaController.getQuota());
+                .monitorValue(systemQuotaController, sqc -> systemQuotaController.getQuota(Reference.system()).getQuota());
     }
 
     void shutdown() {

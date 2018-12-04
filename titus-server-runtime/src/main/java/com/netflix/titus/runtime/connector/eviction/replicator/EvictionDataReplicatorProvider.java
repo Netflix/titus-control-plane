@@ -68,6 +68,7 @@ public class EvictionDataReplicatorProvider implements Provider<EvictionDataRepl
         );
 
         return new RetryableReplicatorEventStream<>(
+                EvictionDataSnapshot.empty(),
                 grpcEventStream,
                 new DataReplicatorMetrics(EVICTION_REPLICATOR_RETRYABLE_STREAM, titusRuntime),
                 titusRuntime,

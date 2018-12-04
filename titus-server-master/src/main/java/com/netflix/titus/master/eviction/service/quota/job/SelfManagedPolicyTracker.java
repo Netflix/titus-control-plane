@@ -16,8 +16,8 @@
 
 package com.netflix.titus.master.eviction.service.quota.job;
 
-import java.util.Optional;
-
+import com.netflix.titus.api.eviction.model.EvictionQuota;
+import com.netflix.titus.api.model.reference.Reference;
 import com.netflix.titus.master.eviction.service.quota.QuotaTracker;
 
 /**
@@ -28,13 +28,8 @@ public class SelfManagedPolicyTracker implements QuotaTracker {
     private static final SelfManagedPolicyTracker INSTANCE = new SelfManagedPolicyTracker();
 
     @Override
-    public long getQuota() {
-        return Long.MAX_VALUE / 2;
-    }
-
-    @Override
-    public Optional<String> explainRestrictions(String taskId) {
-        return Optional.empty();
+    public EvictionQuota getQuota(Reference reference) {
+        return EvictionQuota.unlimited(reference);
     }
 
     public static SelfManagedPolicyTracker getInstance() {

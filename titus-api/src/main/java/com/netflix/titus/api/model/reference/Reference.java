@@ -67,4 +67,8 @@ public abstract class Reference {
     public static Reference job(String jobId) {
         return new JobReference(jobId);
     }
+
+    public static Reference task(String taskId) {
+        return new TaskReference(taskId);
+    }
 }

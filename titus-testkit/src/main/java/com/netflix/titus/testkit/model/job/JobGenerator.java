@@ -167,8 +167,11 @@ public class JobGenerator {
         );
     }
 
+    public static Job<BatchJobExt> oneBatchJob() {
+        return batchJobs(JobDescriptorGenerator.oneTaskBatchJobDescriptor()).getValue();
+    }
+
     public static BatchJobTask oneBatchTask() {
-        Job<BatchJobExt> job = batchJobs(JobDescriptorGenerator.oneTaskBatchJobDescriptor()).getValue();
-        return JobGenerator.batchTasks(job).getValue();
+        return JobGenerator.batchTasks(oneBatchJob()).getValue();
     }
 }

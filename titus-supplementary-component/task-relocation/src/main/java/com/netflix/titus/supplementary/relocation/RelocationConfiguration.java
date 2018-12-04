@@ -22,8 +22,19 @@ import com.netflix.archaius.api.annotations.DefaultValue;
 @Configuration(prefix = "titus.relocation")
 public interface RelocationConfiguration {
 
-    @DefaultValue("" + 5 * 60_000)
+    /**
+     * Interval at which the relocation workflow is triggered. This interval should be reasonably short, so the
+     * relocation plans are up to date.
+     */
+    @DefaultValue("" + 30_000)
     long getRelocationScheduleIntervalMs();
+
+    /**
+     * Interval at which descheduling, and task eviction is executed. This interval must be aligned with
+     * {@link #getRelocationScheduleIntervalMs()} interval, and should be a multiplication of the latter.
+     */
+    @DefaultValue("" + 5 * 60_000)
+    long getDeschedulingIntervalMs();
 
     @DefaultValue("" + 5 * 60_000)
     long getRelocationTimeoutMs();

@@ -34,20 +34,21 @@ public class RetryableReplicatorEventStream<D> implements ReplicatorEventStream<
 
     private static final Logger logger = LoggerFactory.getLogger(RetryableReplicatorEventStream.class);
 
-    private static final ReplicatorEvent<Object> UNINITIALIZED = new ReplicatorEvent<>(new Object(), 0);
-
     static final long INITIAL_RETRY_DELAY_MS = 500;
     static final long MAX_RETRY_DELAY_MS = 2_000;
 
+    private final ReplicatorEvent<D> initialEvent;
     private final ReplicatorEventStream<D> delegate;
     private final DataReplicatorMetrics metrics;
     private final TitusRuntime titusRuntime;
     private final Scheduler scheduler;
 
-    public RetryableReplicatorEventStream(ReplicatorEventStream<D> delegate,
+    public RetryableReplicatorEventStream(D initialData,
+                                          ReplicatorEventStream<D> delegate,
                                           DataReplicatorMetrics metrics,
                                           TitusRuntime titusRuntime,
                                           Scheduler scheduler) {
+        this.initialEvent = new ReplicatorEvent<>(initialData, 0);
         this.delegate = delegate;
         this.metrics = metrics;
         this.titusRuntime = titusRuntime;
@@ -56,7 +57,7 @@ public class RetryableReplicatorEventStream<D> implements ReplicatorEventStream<
 
     @Override
     public Flux<ReplicatorEvent<D>> connect() {
-        return connectInternal((ReplicatorEvent<D>) UNINITIALIZED);
+        return connectInternal(initialEvent);
     }
 
     private Flux<ReplicatorEvent<D>> connectInternal(ReplicatorEvent<D> lastReplicatorEvent) {

@@ -19,6 +19,7 @@ package com.netflix.titus.api.eviction.service;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
+import com.netflix.titus.api.model.reference.Reference;
 import com.netflix.titus.common.util.StringExt;
 
 public class EvictionException extends RuntimeException {
@@ -65,6 +66,10 @@ public class EvictionException extends RuntimeException {
 
     public static EvictionException taskNotScheduledYet(Task task) {
         return new EvictionException(ErrorCode.TaskNotScheduledYet, "Task not scheduled yet: " + task.getId());
+    }
+
+    public static EvictionException noQuotaFound(Reference reference) {
+        return new EvictionException(ErrorCode.NoQuota, String.format("Eviction quota not found for %s=%s", reference.getLevel(), reference.getName()));
     }
 
     public static EvictionException noAvailableJobQuota(Job<?> job, String quotaRestrictions) {

@@ -25,6 +25,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.netflix.titus.api.containerhealth.model.ContainerHealthState;
 import com.netflix.titus.api.containerhealth.model.ContainerHealthStatus;
 import com.netflix.titus.api.containerhealth.service.ContainerHealthService;
+import com.netflix.titus.api.eviction.model.EvictionQuota;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
@@ -33,6 +34,7 @@ import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.AvailabilityP
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.UnhealthyTasksLimitDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
+import com.netflix.titus.api.model.reference.Reference;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.eviction.service.quota.QuotaTracker;
 
@@ -59,20 +61,22 @@ public class UnhealthyTasksLimitTracker implements QuotaTracker {
     }
 
     @Override
-    public long getQuota() {
-        return Math.max(0, countHealthy().getLeft() - minimumHealthyCount);
-    }
-
-    @Override
-    public Optional<String> explainRestrictions(String taskId) {
-        Pair<Integer, String> healthyPair = countHealthy();
-        int healthy = healthyPair.getLeft();
-
-        if (healthy > minimumHealthyCount) {
-            return Optional.empty();
+    public EvictionQuota getQuota(Reference reference) {
+        int healthyCount = countHealthy().getLeft();
+        long quota = Math.max(0, healthyCount - minimumHealthyCount);
+        if (quota > 0) {
+            return EvictionQuota.newBuilder()
+                    .withReference(reference)
+                    .withQuota(quota)
+                    .withMessage("Found %s healthy containers, and the required minimum is %s", healthyCount, minimumHealthyCount)
+                    .build();
         }
 
-        return Optional.of(healthyPair.getRight());
+        return EvictionQuota.newBuilder()
+                .withReference(reference)
+                .withQuota(0)
+                .withMessage("Not enough healthy containers. Found %s and the required minimum is %s", healthyCount, minimumHealthyCount)
+                .build();
     }
 
     private Pair<Integer, String> countHealthy() {

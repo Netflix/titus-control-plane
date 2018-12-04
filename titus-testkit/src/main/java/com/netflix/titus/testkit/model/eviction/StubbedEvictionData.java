@@ -23,47 +23,61 @@ import java.util.stream.Collectors;
 
 import com.netflix.titus.api.eviction.model.EvictionQuota;
 import com.netflix.titus.api.eviction.model.event.EvictionEvent;
-import com.netflix.titus.api.model.Tier;
+import com.netflix.titus.api.eviction.service.EvictionException;
 import com.netflix.titus.api.model.reference.Reference;
 import reactor.core.publisher.EmitterProcessor;
 import reactor.core.publisher.Flux;
 
 class StubbedEvictionData {
 
-    private static final EvictionQuota SYSTEM_EVICTION_QUOTA = EvictionQuota.newBuilder()
-            .withQuota(Long.MAX_VALUE / 2)
-            .withReference(Reference.system())
-            .build();
+    private static final EvictionQuota SYSTEM_EVICTION_QUOTA = EvictionQuota.unlimited(Reference.system());
 
     private EvictionQuota systemQuota = SYSTEM_EVICTION_QUOTA;
-    private final ConcurrentMap<String, Long> jobQuota = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, EvictionQuota> jobQuota = new ConcurrentHashMap<>();
 
     private final EmitterProcessor<EvictionEvent> eventProcessor = EmitterProcessor.create();
 
-    EvictionQuota getSystemEvictionQuota() {
-        return systemQuota;
+    EvictionQuota getEvictionQuota(Reference reference) {
+        switch (reference.getLevel()) {
+            case System:
+                return systemQuota;
+            case Tier:
+            case CapacityGroup:
+                return SYSTEM_EVICTION_QUOTA;
+            case Job:
+            case Task:
+                return findJobQuota(reference.getName())
+                        .map(quota -> quota.toBuilder().withReference(reference).build())
+                        .orElseThrow(() -> EvictionException.noQuotaFound(reference));
+        }
+        throw new IllegalStateException("Unknown reference type: " + reference.getLevel());
     }
 
-    EvictionQuota getTierEvictionQuota(Tier tier) {
-        return SYSTEM_EVICTION_QUOTA;
+    Optional<EvictionQuota> findEvictionQuota(Reference reference) {
+        switch (reference.getLevel()) {
+            case System:
+            case Tier:
+            case CapacityGroup:
+                return Optional.of(getEvictionQuota(reference));
+            case Job:
+            case Task:
+                return findJobQuota(reference.getName()).map(quota -> quota.toBuilder().withReference(reference).build());
+        }
+        throw new IllegalStateException("Unknown reference type: " + reference.getLevel());
     }
 
-    EvictionQuota getCapacityGroupEvictionQuota(String capacityGroupName) {
-        return SYSTEM_EVICTION_QUOTA;
-    }
-
-    Optional<Long> findJobQuota(String jobId) {
+    private Optional<EvictionQuota> findJobQuota(String jobId) {
         return Optional.ofNullable(jobQuota.get(jobId));
     }
 
     void setSystemQuota(int quota) {
-        systemQuota = EvictionQuota.systemQuota(quota);
+        systemQuota = EvictionQuota.systemQuota(quota, "Stubbed");
         eventProcessor.onNext(EvictionEvent.newQuotaEvent(systemQuota));
     }
 
     void setJobQuota(String jobId, long quota) {
-        jobQuota.put(jobId, quota);
-        eventProcessor.onNext(EvictionEvent.newQuotaEvent(EvictionQuota.jobQuota(jobId, quota)));
+        jobQuota.put(jobId, EvictionQuota.jobQuota(jobId, quota, "Stubbed"));
+        eventProcessor.onNext(EvictionEvent.newQuotaEvent(EvictionQuota.jobQuota(jobId, quota, "Stubbed")));
     }
 
     Flux<EvictionEvent> events(boolean includeSnapshot) {
@@ -71,7 +85,7 @@ class StubbedEvictionData {
             return eventProcessor;
         }
         return Flux.concat(
-                Flux.just(EvictionEvent.newQuotaEvent(getSystemEvictionQuota())),
+                Flux.just(EvictionEvent.newQuotaEvent(getEvictionQuota(Reference.system()))),
                 newJobEvictionEventSnapshot(),
                 Flux.just(EvictionEvent.newSnapshotEndEvent()),
                 eventProcessor
@@ -81,7 +95,7 @@ class StubbedEvictionData {
     private Flux<EvictionEvent> newJobEvictionEventSnapshot() {
         return Flux
                 .fromIterable(jobQuota.entrySet().stream()
-                        .map(entry -> EvictionEvent.newQuotaEvent(EvictionQuota.jobQuota(entry.getKey(), entry.getValue())))
+                        .map(entry -> EvictionEvent.newQuotaEvent(entry.getValue()))
                         .collect(Collectors.toList())
                 )
                 .cast(EvictionEvent.class);

@@ -68,6 +68,7 @@ public class AgentDataReplicatorProvider implements Provider<AgentDataReplicator
         );
 
         return new RetryableReplicatorEventStream<>(
+                AgentSnapshot.empty(),
                 grpcEventStream,
                 new DataReplicatorMetrics(AGENT_REPLICATOR_RETRYABLE_STREAM, titusRuntime),
                 titusRuntime,

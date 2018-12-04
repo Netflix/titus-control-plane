@@ -28,15 +28,12 @@ import com.netflix.titus.api.eviction.model.event.EvictionEvent;
 import com.netflix.titus.api.eviction.service.EvictionException;
 import com.netflix.titus.api.eviction.service.EvictionOperations;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
-import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.api.model.reference.Reference;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.master.eviction.service.quota.QuotaEventEmitter;
 import com.netflix.titus.master.eviction.service.quota.TitusQuotasManager;
-import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
-import com.netflix.titus.master.service.management.ManagementSubsystemInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -50,7 +47,6 @@ public class DefaultEvictionOperations implements EvictionOperations {
     private static final Logger logger = LoggerFactory.getLogger(DefaultEvictionOperations.class);
 
     private final V3JobOperations jobOperations;
-    private final ApplicationSlaManagementService capacityGroupService;
     private final TitusQuotasManager quotaManager;
     private final TitusRuntime titusRuntime;
     private final Scheduler scheduler;
@@ -62,13 +58,10 @@ public class DefaultEvictionOperations implements EvictionOperations {
     @Inject
     public DefaultEvictionOperations(EvictionServiceConfiguration configuration,
                                      V3JobOperations jobOperations,
-                                     ApplicationSlaManagementService capacityGroupService,
                                      TitusQuotasManager quotaManager,
-                                     TitusRuntime titusRuntime,
-                                     ManagementSubsystemInitializer capacityGroupServiceInitializer) { // To enforce correct initialization order
+                                     TitusRuntime titusRuntime) {
         this.configuration = configuration;
         this.jobOperations = jobOperations;
-        this.capacityGroupService = capacityGroupService;
         this.quotaManager = quotaManager;
         this.titusRuntime = titusRuntime;
 
@@ -101,26 +94,13 @@ public class DefaultEvictionOperations implements EvictionOperations {
     }
 
     @Override
-    public EvictionQuota getSystemEvictionQuota() {
-        return quotaManager.getSystemEvictionQuota();
+    public EvictionQuota getEvictionQuota(Reference reference) {
+        return quotaManager.findEvictionQuota(reference).orElseThrow(() -> EvictionException.noQuotaFound(reference));
     }
 
     @Override
-    public EvictionQuota getTierEvictionQuota(Tier tier) {
-        return toVeryHighQuota(Reference.tier(tier));
-    }
-
-    @Override
-    public EvictionQuota getCapacityGroupEvictionQuota(String capacityGroupName) {
-        if (capacityGroupService.getApplicationSLA(capacityGroupName) == null) {
-            throw EvictionException.capacityGroupNotFound(capacityGroupName);
-        }
-        return toVeryHighQuota(Reference.capacityGroup(capacityGroupName));
-    }
-
-    @Override
-    public Optional<EvictionQuota> findJobEvictionQuota(String jobId) {
-        return quotaManager.findJobEvictionQuota(jobId);
+    public Optional<EvictionQuota> findEvictionQuota(Reference reference) {
+        return quotaManager.findEvictionQuota(reference);
     }
 
     @Override
