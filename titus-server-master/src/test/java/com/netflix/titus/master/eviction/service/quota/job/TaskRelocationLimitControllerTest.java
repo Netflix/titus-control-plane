@@ -23,6 +23,7 @@ import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
+import com.netflix.titus.api.model.reference.Reference;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.testkit.model.job.JobComponentStub;
@@ -53,19 +54,23 @@ public class TaskRelocationLimitControllerTest {
     public void testQuota() {
         Job<BatchJobExt> job = createBatchJob(2);
         Task task = jobOperations.getTasks(job.getId()).get(0);
+        Reference jobReference = Reference.job(job.getId());
+        Reference taskReference = Reference.task(task.getId());
 
         TaskRelocationLimitController quotaController = new TaskRelocationLimitController(job, jobOperations);
-        assertThat(quotaController.getQuota()).isEqualTo(10);
+        assertThat(quotaController.getQuota(jobReference).getQuota()).isEqualTo(10);
+        assertThat(quotaController.getQuota(taskReference).getQuota()).isEqualTo(1);
 
         // Now consume quotas for the first task
         assertThat(quotaController.consume(task.getId()).isApproved()).isTrue();
-        assertThat(quotaController.getQuota()).isEqualTo(10);
+        assertThat(quotaController.getQuota(taskReference).getQuota()).isEqualTo(1);
 
         jobComponentStub.moveTaskToState(task, TaskState.Finished);
         Task replacement1 = jobComponentStub.createDesiredTasks(job).get(0);
 
         assertThat(quotaController.consume(replacement1.getId()).isApproved()).isTrue();
-        assertThat(quotaController.getQuota()).isEqualTo(9);
+        assertThat(quotaController.getQuota(jobReference).getQuota()).isEqualTo(9);
+        assertThat(quotaController.getQuota(taskReference).getQuota()).isEqualTo(0);
 
         jobComponentStub.moveTaskToState(replacement1, TaskState.Finished);
         Task replacement2 = jobComponentStub.createDesiredTasks(job).get(0);
@@ -77,6 +82,7 @@ public class TaskRelocationLimitControllerTest {
     public void testJobUpdate() {
         Job<BatchJobExt> job = createBatchJob(1);
         Task task = jobOperations.getTasks(job.getId()).get(0);
+        Reference jobReference = Reference.job(job.getId());
 
         // Consume in first instance of the controller
         TaskRelocationLimitController firstController = new TaskRelocationLimitController(job, jobOperations);
@@ -93,7 +99,7 @@ public class TaskRelocationLimitControllerTest {
         jobComponentStub.createDesiredTasks(updatedJob);
 
         TaskRelocationLimitController updatedController = firstController.update(updatedJob);
-        assertThat(updatedController.getQuota()).isEqualTo(20);
+        assertThat(updatedController.getQuota(jobReference).getQuota()).isEqualTo(20);
 
         // Consume again, after limit increase
         assertThat(updatedController.consume(replacement1.getId()).isApproved()).isTrue();
@@ -102,7 +108,7 @@ public class TaskRelocationLimitControllerTest {
         Task replacement2 = jobComponentStub.createDesiredTasks(job).get(0);
 
         assertThat(updatedController.consume(replacement2.getId()).isApproved()).isFalse();
-        assertThat(updatedController.getQuota()).isEqualTo(19);
+        assertThat(updatedController.getQuota(jobReference).getQuota()).isEqualTo(19);
     }
 
     private Job<BatchJobExt> createBatchJob(int limit) {

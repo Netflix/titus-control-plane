@@ -68,6 +68,8 @@ public class JobDataReplicatorProvider implements Provider<JobDataReplicator> {
                 Schedulers.parallel()
         );
         return new RetryableReplicatorEventStream<>(
+                JobSnapshot.empty(),
+                JobManagerEvent.snapshotMarker(),
                 grpcEventStream,
                 new DataReplicatorMetrics(JOB_REPLICATOR_RETRYABLE_STREAM, titusRuntime),
                 titusRuntime,

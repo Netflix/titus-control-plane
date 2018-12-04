@@ -93,9 +93,9 @@ public class RelocationTransactionLogger {
                 action,
                 status.getState() == TaskRelocationState.Success ? "success" : "failure",
                 String.format(
-                        "Details: reasonCode=%s, reasonMessage=%s, plan=%s",
-                        status.getReasonCode(),
-                        status.getReasonMessage(),
+                        "Details: statusCode=%s, statusMessage=%s, plan=%s",
+                        status.getStatusCode(),
+                        status.getStatusMessage(),
                         RelocationUtil.doFormat(status.getTaskRelocationPlan())
                 )
         );
@@ -109,9 +109,9 @@ public class RelocationTransactionLogger {
                 "storeUpdate",
                 "failure",
                 String.format(
-                        "Details: reasonCode=%s, reasonMessage=%s, plan=%s, storeError=%s",
-                        status.getReasonCode(),
-                        status.getReasonMessage(),
+                        "Details: statusCode=%s, statusMessage=%s, plan=%s, storeError=%s",
+                        status.getStatusCode(),
+                        status.getStatusMessage(),
                         RelocationUtil.doFormat(status.getTaskRelocationPlan()),
                         ExceptionExt.toMessageChain(error)
                 )

@@ -34,20 +34,22 @@ public class RetryableReplicatorEventStream<SNAPSHOT, TRIGGER> implements Replic
 
     private static final Logger logger = LoggerFactory.getLogger(RetryableReplicatorEventStream.class);
 
-    private static final ReplicatorEvent<Object, Object> UNINITIALIZED = new ReplicatorEvent<>(new Object(), new Object(), 0);
-
     static final long INITIAL_RETRY_DELAY_MS = 500;
     static final long MAX_RETRY_DELAY_MS = 2_000;
 
+    private final ReplicatorEvent<SNAPSHOT, TRIGGER> initialEvent;
     private final ReplicatorEventStream<SNAPSHOT, TRIGGER> delegate;
     private final DataReplicatorMetrics metrics;
     private final TitusRuntime titusRuntime;
     private final Scheduler scheduler;
 
-    public RetryableReplicatorEventStream(ReplicatorEventStream<SNAPSHOT, TRIGGER> delegate,
+    public RetryableReplicatorEventStream(SNAPSHOT initialSnapshot,
+                                          TRIGGER initialTrigger,
+                                          ReplicatorEventStream<SNAPSHOT, TRIGGER> delegate,
                                           DataReplicatorMetrics metrics,
                                           TitusRuntime titusRuntime,
                                           Scheduler scheduler) {
+        this.initialEvent = new ReplicatorEvent<>(initialSnapshot, initialTrigger, 0);
         this.delegate = delegate;
         this.metrics = metrics;
         this.titusRuntime = titusRuntime;
@@ -56,7 +58,7 @@ public class RetryableReplicatorEventStream<SNAPSHOT, TRIGGER> implements Replic
 
     @Override
     public Flux<ReplicatorEvent<SNAPSHOT, TRIGGER>> connect() {
-        return connectInternal((ReplicatorEvent<SNAPSHOT, TRIGGER>) UNINITIALIZED);
+        return connectInternal(initialEvent);
     }
 
     private Flux<ReplicatorEvent<SNAPSHOT, TRIGGER>> connectInternal(ReplicatorEvent<SNAPSHOT, TRIGGER> lastReplicatorEvent) {

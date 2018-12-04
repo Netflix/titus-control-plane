@@ -16,11 +16,15 @@
 
 package com.netflix.titus.runtime.connector.eviction;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 
 import com.netflix.titus.api.eviction.model.EvictionQuota;
+import com.netflix.titus.api.eviction.service.EvictionException;
+import com.netflix.titus.api.eviction.service.ReadOnlyEvictionOperations;
 import com.netflix.titus.api.model.Tier;
+import com.netflix.titus.api.model.reference.Reference;
 import com.netflix.titus.api.model.reference.TierReference;
 import com.netflix.titus.common.util.CollectionsExt;
 
@@ -31,7 +35,16 @@ import static com.netflix.titus.common.util.CollectionsExt.copyAndAdd;
  */
 public class EvictionDataSnapshot {
 
+    private static final EvictionDataSnapshot EMPTY = new EvictionDataSnapshot(
+            "empty",
+            EvictionQuota.systemQuota(0, "Empty"),
+            Collections.emptyMap(),
+            Collections.emptyMap(),
+            Collections.emptyMap()
+    );
+
     private final String snapshotId;
+
     private final EvictionQuota systemEvictionQuota;
     private final Map<Tier, EvictionQuota> tierEvictionQuotas;
     private final Map<String, EvictionQuota> capacityGroupEvictionQuotas;
@@ -57,16 +70,43 @@ public class EvictionDataSnapshot {
         return systemEvictionQuota;
     }
 
-    public EvictionQuota getTierEvictionQuota(Tier tier) {
-        return tierEvictionQuotas.get(tier);
+    public EvictionQuota getEvictionQuota(Reference reference) {
+        switch (reference.getLevel()) {
+            case System:
+                return systemEvictionQuota;
+            case Tier:
+                return tierEvictionQuotas.get(Tier.valueOf(reference.getName()));
+            case CapacityGroup:
+                return capacityGroupEvictionQuotas.computeIfAbsent(reference.getName(), c -> EvictionQuota.newBuilder()
+                        .withReference(Reference.capacityGroup(c))
+                        .withQuota(ReadOnlyEvictionOperations.VERY_HIGH_QUOTA)
+                        .withMessage("Not supported yet")
+                        .build()
+                );
+            case Job:
+                EvictionQuota jobEvictionQuota = jobEvictionQuotas.get(reference.getName());
+                if (jobEvictionQuota == null) {
+                    throw EvictionException.noQuotaFound(reference);
+                }
+                return jobEvictionQuota;
+            case Task:
+                throw new IllegalStateException("not implemented yet");
+        }
+        throw new IllegalStateException("Unknown reference type: " + reference.getLevel());
     }
 
-    public Optional<EvictionQuota> findCapacityGroupEvictionQuota(String capacityGroupName) {
-        return Optional.ofNullable(capacityGroupEvictionQuotas.get(capacityGroupName));
-    }
-
-    public Optional<EvictionQuota> findJobEvictionQuota(String jobId) {
-        return Optional.ofNullable(jobEvictionQuotas.get(jobId));
+    public Optional<EvictionQuota> findEvictionQuota(Reference reference) {
+        switch (reference.getLevel()) {
+            case System:
+            case Tier:
+            case CapacityGroup:
+                return Optional.of(getEvictionQuota(reference));
+            case Job:
+                return Optional.ofNullable(jobEvictionQuotas.get(reference.getName()));
+            case Task:
+                throw new IllegalStateException("not implemented yet");
+        }
+        throw new IllegalStateException("Unknown reference type: " + reference.getLevel());
     }
 
     public Optional<EvictionDataSnapshot> updateEvictionQuota(EvictionQuota quota) {
@@ -116,5 +156,9 @@ public class EvictionDataSnapshot {
                 ", capacityGroupEvictionQuotas=" + capacityGroupEvictionQuotas +
                 ", jobEvictionQuotas=" + jobEvictionQuotas +
                 '}';
+    }
+
+    public static EvictionDataSnapshot empty() {
+        return EMPTY;
     }
 }

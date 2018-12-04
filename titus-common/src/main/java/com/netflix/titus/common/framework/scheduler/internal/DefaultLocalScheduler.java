@@ -223,7 +223,7 @@ public class DefaultLocalScheduler implements LocalScheduler {
                     .withId(scheduleId)
                     .withStatus(SchedulingStatus.newBuilder()
                             .withState(SchedulingState.Waiting)
-                            .withExpectedStartTime(clock.wallTime() + descriptor.getInterval().toMillis())
+                            .withExpectedStartTime(clock.wallTime() + descriptor.getInitialDelay().toMillis())
                             .withTimestamp(clock.wallTime())
                             .build()
                     )

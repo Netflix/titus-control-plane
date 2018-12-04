@@ -22,6 +22,7 @@ import java.util.Map;
 import com.netflix.titus.api.eviction.model.EvictionQuota;
 import com.netflix.titus.api.eviction.service.ReadOnlyEvictionOperations;
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.model.reference.Reference;
 
 class EvictionQuotaTracker {
 
@@ -29,9 +30,9 @@ class EvictionQuotaTracker {
     private long systemEvictionQuota;
 
     EvictionQuotaTracker(ReadOnlyEvictionOperations evictionOperations, Map<String, Job<?>> jobs) {
-        this.systemEvictionQuota = evictionOperations.getSystemEvictionQuota().getQuota();
+        this.systemEvictionQuota = evictionOperations.getEvictionQuota(Reference.system()).getQuota();
         jobs.forEach((id, job) ->
-                jobEvictionQuotas.put(id, evictionOperations.findJobEvictionQuota(id).map(EvictionQuota::getQuota).orElse(0L))
+                jobEvictionQuotas.put(id, evictionOperations.findEvictionQuota(Reference.job(id)).map(EvictionQuota::getQuota).orElse(0L))
         );
     }
 

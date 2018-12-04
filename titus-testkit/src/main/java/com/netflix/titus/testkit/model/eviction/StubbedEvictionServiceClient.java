@@ -19,10 +19,8 @@ package com.netflix.titus.testkit.model.eviction;
 import com.netflix.titus.api.eviction.model.EvictionQuota;
 import com.netflix.titus.api.eviction.model.event.EvictionEvent;
 import com.netflix.titus.api.eviction.service.EvictionOperations;
-import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.api.model.reference.Reference;
 import com.netflix.titus.runtime.connector.eviction.EvictionServiceClient;
-import com.netflix.titus.runtime.endpoint.metadata.CallMetadataUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -36,25 +34,7 @@ class StubbedEvictionServiceClient implements EvictionServiceClient {
 
     @Override
     public Mono<EvictionQuota> getEvictionQuota(Reference reference) {
-        EvictionQuota quota;
-        switch (reference.getLevel()) {
-            case System:
-                quota = evictionOperations.getSystemEvictionQuota();
-                break;
-            case Tier:
-                quota = evictionOperations.getTierEvictionQuota(Tier.valueOf(reference.getName()));
-                break;
-            case CapacityGroup:
-                quota = evictionOperations.getCapacityGroupEvictionQuota(reference.getName());
-                break;
-            case Job:
-                quota = evictionOperations.findJobEvictionQuota(reference.getName()).orElseGet(() -> EvictionQuota.emptyQuota(reference));
-                break;
-            case Task:
-            default:
-                quota = EvictionQuota.emptyQuota(reference);
-        }
-        return Mono.just(quota);
+        return Mono.just(evictionOperations.findEvictionQuota(reference).orElseGet(() -> EvictionQuota.emptyQuota(reference)));
     }
 
     @Override

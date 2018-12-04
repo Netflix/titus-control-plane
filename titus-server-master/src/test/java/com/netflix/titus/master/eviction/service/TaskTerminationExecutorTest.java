@@ -28,6 +28,7 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
+import com.netflix.titus.api.model.reference.Reference;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.tuple.Pair;
@@ -66,7 +67,7 @@ public class TaskTerminationExecutorTest {
         Job<?> job = jobAndTask.getLeft();
         Task task = jobAndTask.getRight().get(0);
 
-        when(quotasManager.findJobEvictionQuota(job.getId())).thenReturn(Optional.of(EvictionQuota.jobQuota(job.getId(), 1)));
+        when(quotasManager.findEvictionQuota(Reference.job(job.getId()))).thenReturn(Optional.of(EvictionQuota.jobQuota(job.getId(), 1, "Test")));
         when(quotasManager.tryConsumeQuota(job, task)).thenReturn(ConsumptionResult.approved());
 
         StepVerifier.withVirtualTime(

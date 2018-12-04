@@ -16,9 +16,11 @@
 
 package com.netflix.titus.master.eviction.service.quota.job;
 
+import com.netflix.titus.api.eviction.model.EvictionQuota;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.PercentagePerHourDisruptionBudgetRate;
+import com.netflix.titus.api.model.reference.Reference;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.histogram.RollingCount;
 import com.netflix.titus.master.eviction.service.quota.ConsumptionResult;
@@ -52,8 +54,11 @@ public class JobPercentagePerHourRelocationRateController implements QuotaContro
     }
 
     @Override
-    public long getQuota() {
-        return getQuota(titusRuntime.getClock().wallTime());
+    public EvictionQuota getQuota(Reference reference) {
+        long quota = getQuota(titusRuntime.getClock().wallTime());
+        return quota > 0
+                ? EvictionQuota.newBuilder().withReference(reference).withQuota(quota).withMessage("Per hour limit %s", limitPerHour).build()
+                : EvictionQuota.newBuilder().withReference(reference).withQuota(0).withMessage(rejectionResult.getRejectionReason().get()).build();
     }
 
     @Override

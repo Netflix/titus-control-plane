@@ -25,6 +25,7 @@ import com.jayway.awaitility.Awaitility;
 import com.netflix.titus.api.eviction.model.SystemDisruptionBudget;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.Day;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.TimeWindow;
+import com.netflix.titus.api.model.reference.Reference;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.time.Clocks;
@@ -61,7 +62,7 @@ public class SystemQuotaControllerTest {
         budgetEmitter.onNext(SystemDisruptionBudget.newBasicSystemDisruptionBudget(1, 1));
         quotaController = newSystemQuotaController();
 
-        assertThat(quotaController.getQuota()).isEqualTo(1);
+        assertThat(quotaController.getQuota(Reference.system()).getQuota()).isEqualTo(1);
         assertThat(quotaController.consume("someTaskId").isApproved()).isTrue();
     }
 
@@ -78,12 +79,12 @@ public class SystemQuotaControllerTest {
 
         // Outside time window
         quotaController = newSystemQuotaController();
-        assertThat(quotaController.getQuota()).isEqualTo(0);
+        assertThat(quotaController.getQuota(Reference.system()).getQuota()).isEqualTo(0);
         assertThat(quotaController.consume("someTaskId").isApproved()).isFalse();
 
         // In time window
         clock.resetTime(10, 0, 0);
-        assertThat(quotaController.getQuota()).isEqualTo(1);
+        assertThat(quotaController.getQuota(Reference.system()).getQuota()).isEqualTo(1);
         assertThat(quotaController.consume("someTaskId").isApproved()).isTrue();
     }
 
@@ -92,11 +93,11 @@ public class SystemQuotaControllerTest {
         // Large quota
         budgetEmitter.onNext(SystemDisruptionBudget.newBasicSystemDisruptionBudget(5, 5));
         quotaController = newSystemQuotaController();
-        assertThat(quotaController.getQuota()).isEqualTo(5);
+        assertThat(quotaController.getQuota(Reference.system()).getQuota()).isEqualTo(5);
 
         // Small quota
         budgetEmitter.onNext(SystemDisruptionBudget.newBasicSystemDisruptionBudget(1, 1));
-        assertThat(quotaController.getQuota()).isEqualTo(1);
+        assertThat(quotaController.getQuota(Reference.system()).getQuota()).isEqualTo(1);
         assertThat(quotaController.consume("someTaskId").isApproved()).isTrue();
         assertThat(quotaController.consume("someTaskId").isApproved()).isFalse();
     }
@@ -109,7 +110,7 @@ public class SystemQuotaControllerTest {
         // Emit error
         budgetEmitter.onError(new RuntimeException("Simulated error"));
         budgetEmitter.onNext(SystemDisruptionBudget.newBasicSystemDisruptionBudget(5, 5));
-        Awaitility.await().timeout(5, TimeUnit.SECONDS).until(() -> quotaController.getQuota() == 5);
+        Awaitility.await().timeout(5, TimeUnit.SECONDS).until(() -> quotaController.getQuota(Reference.system()).getQuota() == 5);
     }
 
     private SystemQuotaController newSystemQuotaController() {

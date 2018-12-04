@@ -99,6 +99,17 @@ public class EvictionResource {
         );
     }
 
+    @ApiOperation("Return a task eviction quota")
+    @Path("quotas/tasks/{id}")
+    @GET
+    public EvictionQuota getTaskEvictionQuota(@PathParam("id") String taskId) {
+        return Responses.fromMono(
+                evictionServiceClient
+                        .getEvictionQuota(Reference.task(taskId))
+                        .map(GrpcEvictionModelConverters::toGrpcEvictionQuota)
+        );
+    }
+
     @ApiOperation("Terminate a task using the eviction service")
     @Path("tasks/{id}")
     @DELETE

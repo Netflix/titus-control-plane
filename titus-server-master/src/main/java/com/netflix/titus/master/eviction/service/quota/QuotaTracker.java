@@ -16,7 +16,8 @@
 
 package com.netflix.titus.master.eviction.service.quota;
 
-import java.util.Optional;
+import com.netflix.titus.api.eviction.model.EvictionQuota;
+import com.netflix.titus.api.model.reference.Reference;
 
 /**
  * {@link QuotaTracker} provides information about the available quota. If the quota counter is managed explicitly,
@@ -27,14 +28,7 @@ import java.util.Optional;
 public interface QuotaTracker {
 
     /**
-     * TODO Add task id as parameter, as in the future we will need it for some quota trackers (not needed now).
+     * Returns current quota.
      */
-    long getQuota();
-
-    /**
-     * Explains the restrictions that may prevent a given task from being evicted.
-     *
-     * @return {@link Optional#empty()} if a task can be evicted.
-     */
-    Optional<String> explainRestrictions(String taskId);
+    EvictionQuota getQuota(Reference reference);
 }

@@ -26,4 +26,11 @@ public interface Clock {
      * Current time in milliseconds, equivalent to {@link System#currentTimeMillis()}.
      */
     long wallTime();
+
+    /**
+     * Returns true, of the current time is past the given timestamp.
+     */
+    default boolean isPast(long timestamp) {
+        return wallTime() > timestamp;
+    }
 }

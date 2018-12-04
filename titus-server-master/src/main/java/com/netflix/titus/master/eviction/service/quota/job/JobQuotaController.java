@@ -19,11 +19,11 @@ package com.netflix.titus.master.eviction.service.quota.job;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.function.Supplier;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.netflix.titus.api.containerhealth.service.ContainerHealthService;
+import com.netflix.titus.api.eviction.model.EvictionQuota;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.AvailabilityPercentageLimitDisruptionBudgetPolicy;
@@ -35,6 +35,7 @@ import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.RelocationLim
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.SelfManagedDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.UnhealthyTasksLimitDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
+import com.netflix.titus.api.model.reference.Reference;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.master.eviction.service.quota.ConsumptionResult;
 import com.netflix.titus.master.eviction.service.quota.QuotaController;
@@ -94,16 +95,11 @@ public class JobQuotaController implements QuotaController<Job<?>> {
     }
 
     @Override
-    public long getQuota() {
+    public EvictionQuota getQuota(Reference reference) {
         if (isLegacy()) {
-            return 0;
+            return EvictionQuota.newBuilder().withReference(reference).withQuota(0).withMessage("Legacy job").build();
         }
-        return getMinSubQuota();
-    }
-
-    @Override
-    public Optional<String> explainRestrictions(String taskId) {
-        return Optional.empty();
+        return getMinSubQuota(reference);
     }
 
     @Override
@@ -112,15 +108,16 @@ public class JobQuotaController implements QuotaController<Job<?>> {
             return LEGACY;
         }
 
+        Reference taskReference = Reference.task(taskId);
         StringBuilder rejectionResponseBuilder = new StringBuilder("MissingQuotas[");
 
         // Check quota trackers first
         boolean noQuota = false;
         for (QuotaTracker tracker : quotaTrackers) {
-            if (tracker.getQuota() <= 0) {
+            EvictionQuota quotaStatus = tracker.getQuota(taskReference);
+            if (quotaStatus.getQuota() <= 0) {
                 noQuota = true;
-                String restrictions = tracker.explainRestrictions(taskId).orElse("no quota");
-                rejectionResponseBuilder.append(tracker.getClass().getSimpleName()).append('=').append(restrictions).append(", ");
+                rejectionResponseBuilder.append(tracker.getClass().getSimpleName()).append('=').append(quotaStatus.getMessage()).append(", ");
             }
         }
         if (noQuota) {
@@ -180,16 +177,22 @@ public class JobQuotaController implements QuotaController<Job<?>> {
         return quotaTrackers.isEmpty() && quotaControllers.isEmpty();
     }
 
-    private long getMinSubQuota() {
-        return Math.min(getMinSubQuota(quotaTrackers), getMinSubQuota(quotaControllers));
+    private EvictionQuota getMinSubQuota(Reference reference) {
+        EvictionQuota minTrackers = getMinSubQuota(quotaTrackers, reference);
+        EvictionQuota minControllers = getMinSubQuota(quotaControllers, reference);
+        return minTrackers.getQuota() <= minControllers.getQuota() ? minTrackers : minControllers;
     }
 
-    private long getMinSubQuota(List<? extends QuotaTracker> quotaTrackers) {
-        long result = Long.MAX_VALUE / 2;
+    private EvictionQuota getMinSubQuota(List<? extends QuotaTracker> quotaTrackers, Reference reference) {
+        EvictionQuota minQuota = null;
+
         for (QuotaTracker quotaTracker : quotaTrackers) {
-            result = Math.min(result, quotaTracker.getQuota());
+            EvictionQuota next = quotaTracker.getQuota(reference);
+            if (minQuota == null || next.getQuota() < minQuota.getQuota()) {
+                minQuota = next;
+            }
         }
-        return result;
+        return minQuota == null ? EvictionQuota.unlimited(reference) : minQuota;
     }
 
     @VisibleForTesting

@@ -24,9 +24,11 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.netflix.titus.api.eviction.model.EvictionQuota;
 import com.netflix.titus.api.eviction.model.SystemDisruptionBudget;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.TimeWindowFunctions;
 import com.netflix.titus.api.model.TokenBucketPolicies;
+import com.netflix.titus.api.model.reference.Reference;
 import com.netflix.titus.common.runtime.SystemLogEvent;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.limiter.tokenbucket.TokenBucket;
@@ -58,6 +60,7 @@ public class SystemQuotaController implements QuotaController<Void> {
     private final Disposable resolverDisposable;
 
     private volatile SystemDisruptionBudget disruptionBudget;
+    private volatile String quotaMessage;
 
     private volatile Supplier<Boolean> inTimeWindowPredicate;
     private volatile TokenBucket systemTokenBucket;
@@ -94,6 +97,10 @@ public class SystemQuotaController implements QuotaController<Void> {
         this.disruptionBudget = newDisruptionBudget;
         this.systemTokenBucket = newTokenBucket(newDisruptionBudget);
         this.inTimeWindowPredicate = TimeWindowFunctions.isInTimeWindowPredicate(titusRuntime, disruptionBudget.getTimeWindows());
+        this.quotaMessage = String.format("System quota token bucket: capacity=%s, refillStrategy=%s",
+                systemTokenBucket.getCapacity(),
+                systemTokenBucket.getRefillStrategy()
+        );
     }
 
     @PreDestroy
@@ -122,11 +129,15 @@ public class SystemQuotaController implements QuotaController<Void> {
     }
 
     @Override
-    public long getQuota() {
+    public EvictionQuota getQuota(Reference reference) {
+        EvictionQuota.Builder quotaBuilder = EvictionQuota.newBuilder().withReference(reference);
         if (!inTimeWindowPredicate.get()) {
-            return 0;
+            return quotaBuilder.withQuota(0).withMessage(OUTSIDE_SYSTEM_TIME_WINDOW.getRejectionReason().get()).build();
         }
-        return systemTokenBucket.getNumberOfTokens();
+        if (systemTokenBucket.getNumberOfTokens() <= 0) {
+            return quotaBuilder.withQuota(0).withMessage(QUOTA_LIMIT_EXCEEDED.getRejectionReason().get()).build();
+        }
+        return quotaBuilder.withQuota(systemTokenBucket.getNumberOfTokens()).withMessage(quotaMessage).build();
     }
 
     /**

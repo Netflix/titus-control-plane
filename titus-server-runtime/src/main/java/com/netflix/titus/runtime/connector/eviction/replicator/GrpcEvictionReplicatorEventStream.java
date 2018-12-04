@@ -118,8 +118,8 @@ public class GrpcEvictionReplicatorEventStream extends AbstractReplicatorEventSt
             snapshotEvents.clear();
 
             checkNotNull(systemEvictionQuota, "System eviction quota missing");
-            tierEvictionQuotas.computeIfAbsent(Tier.Flex, tier -> EvictionQuota.tierQuota(tier, ReadOnlyEvictionOperations.VERY_HIGH_QUOTA));
-            tierEvictionQuotas.computeIfAbsent(Tier.Critical, tier -> EvictionQuota.tierQuota(tier, ReadOnlyEvictionOperations.VERY_HIGH_QUOTA));
+            tierEvictionQuotas.computeIfAbsent(Tier.Flex, tier -> EvictionQuota.tierQuota(tier, ReadOnlyEvictionOperations.VERY_HIGH_QUOTA, "Not supported yet"));
+            tierEvictionQuotas.computeIfAbsent(Tier.Critical, tier -> EvictionQuota.tierQuota(tier, ReadOnlyEvictionOperations.VERY_HIGH_QUOTA, "Not supported yet"));
 
             EvictionDataSnapshot initialSnapshot = new EvictionDataSnapshot(
                     UUID.randomUUID().toString(),

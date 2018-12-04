@@ -27,11 +27,11 @@ import java.util.concurrent.ConcurrentMap;
 import javax.inject.Singleton;
 
 import com.netflix.titus.api.relocation.model.TaskRelocationStatus;
-import com.netflix.titus.supplementary.relocation.store.TaskRelocationArchiveStore;
+import com.netflix.titus.supplementary.relocation.store.TaskRelocationResultStore;
 import reactor.core.publisher.Mono;
 
 @Singleton
-public class InMemoryTaskRelocationArchiveStore implements TaskRelocationArchiveStore {
+public class InMemoryTaskRelocationResultStore implements TaskRelocationResultStore {
 
     private final ConcurrentMap<String, List<TaskRelocationStatus>> taskRelocationStatusesByTaskId = new ConcurrentHashMap<>();
 

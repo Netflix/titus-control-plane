@@ -36,8 +36,8 @@ public class TaskRelocationPlanGenerator {
         return TaskRelocationStatus.newBuilder()
                 .withTaskId("task1")
                 .withState(TaskRelocationState.Success)
-                .withReasonCode(TaskRelocationStatus.REASON_CODE_TERMINATED)
-                .withReasonMessage("Successfully terminated")
+                .withStatusCode(TaskRelocationStatus.STATUS_CODE_TERMINATED)
+                .withStatusMessage("Successfully terminated")
                 .withTaskRelocationPlan(oneMigrationPlan())
                 .build();
     }

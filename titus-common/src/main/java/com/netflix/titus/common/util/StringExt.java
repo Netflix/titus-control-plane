@@ -266,6 +266,17 @@ public final class StringExt {
     }
 
     /**
+     * See {@link #splitByComma(String)}.
+     */
+    public static Set<String> splitByCommaIntoSet(String value) {
+        if (!isNotEmpty(value)) {
+            return Collections.emptySet();
+        }
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? Collections.emptySet() : CollectionsExt.asSet(COMMA_SPLIT_RE.split(trimmed));
+    }
+
+    /**
      * Returns a list of dot separated values from the parameter. The white space characters around each value
      * is removed as well.
      */

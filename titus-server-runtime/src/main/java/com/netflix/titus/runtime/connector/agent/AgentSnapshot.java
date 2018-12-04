@@ -36,7 +36,14 @@ import static java.util.Collections.unmodifiableMap;
 
 public class AgentSnapshot {
 
+    private static final AgentSnapshot EMPTY = new AgentSnapshot(
+            "empty",
+            Collections.emptyMap(),
+            Collections.emptyMap()
+    );
+
     private final String snapshotId;
+
     private final Map<String, AgentInstanceGroup> instanceGroupsById;
     private final List<AgentInstanceGroup> instanceGroupList;
 
@@ -191,5 +198,9 @@ public class AgentSnapshot {
         List<AgentInstance> result = new ArrayList<>();
         instances.forEach(i -> result.add(i.getId().equals(instance.getId()) ? instance : i));
         return unmodifiableList(result);
+    }
+
+    public static AgentSnapshot empty() {
+        return EMPTY;
     }
 }

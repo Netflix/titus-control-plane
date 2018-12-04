@@ -140,6 +140,8 @@ public class JobQuotaControllerTest {
     public void testMergePercentagePerHourDisruptionBudgetRateQuotaController() {
         // First version
         Job<BatchJobExt> job = newBatchJob(10, budget(perTaskRelocationLimitPolicy(3), hourlyRatePercentage(50), Collections.emptyList()));
+        com.netflix.titus.api.model.reference.Reference jobReference = com.netflix.titus.api.model.reference.Reference.job(job.getId());
+
         scheduleJob(job, 10);
 
         List<QuotaController<Job<?>>> controllers = buildQuotaControllers(job, jobOperations, titusRuntime);
@@ -147,14 +149,14 @@ public class JobQuotaControllerTest {
 
         Task task = jobOperations.getTasks(job.getId()).get(0);
         assertThat(controller.consume(task.getId()).isApproved()).isTrue();
-        assertThat(controller.getQuota()).isEqualTo(4);
+        assertThat(controller.getQuota(jobReference).getQuota()).isEqualTo(4);
 
         // Change job descriptor and consume some quota
         Job<BatchJobExt> updatedJob = jobComponentStub.changeJob(exceptRate(job, hourlyRatePercentage(80)));
         List<QuotaController<Job<?>>> merged = mergeQuotaControllers(controllers, updatedJob, jobOperations, titusRuntime);
         JobPercentagePerHourRelocationRateController updatedController = (JobPercentagePerHourRelocationRateController) merged.get(0);
 
-        assertThat(updatedController.getQuota()).isEqualTo(7);
+        assertThat(updatedController.getQuota(jobReference).getQuota()).isEqualTo(7);
     }
 
     @Test
@@ -183,37 +185,43 @@ public class JobQuotaControllerTest {
     @Test
     public void testJobWithNoDisruptionBudgetHasZeroQuota() {
         Job<BatchJobExt> job = newBatchJob(10, DisruptionBudget.none());
+        com.netflix.titus.api.model.reference.Reference jobReference = com.netflix.titus.api.model.reference.Reference.job(job.getId());
+
         scheduleJob(job, 10);
         JobQuotaController jobController = new JobQuotaController(job, jobOperations, containerHealthService, titusRuntime);
 
-        assertThat(jobController.getQuota()).isEqualTo(0);
+        assertThat(jobController.getQuota(jobReference).getQuota()).isEqualTo(0);
     }
 
     @Test
     public void testGetQuota() {
         Job<BatchJobExt> job = newBatchJob(10, budget(percentageOfHealthyPolicy(80.0), hourlyRatePercentage(50), singletonList(officeHourTimeWindow())));
+        com.netflix.titus.api.model.reference.Reference jobReference = com.netflix.titus.api.model.reference.Reference.job(job.getId());
+
         scheduleJob(job, 10);
         JobQuotaController jobController = new JobQuotaController(job, jobOperations, containerHealthService, titusRuntime);
 
-        assertThat(jobController.getQuota()).isEqualTo(2);
+        assertThat(jobController.getQuota(jobReference).getQuota()).isEqualTo(2);
 
         clock.jumpForwardTo(DayOfWeek.SATURDAY);
-        assertThat(jobController.getQuota()).isEqualTo(0);
+        assertThat(jobController.getQuota(jobReference).getQuota()).isEqualTo(0);
     }
 
     @Test
     public void testConsume() {
         Job<BatchJobExt> job = newBatchJob(10, budget(percentageOfHealthyPolicy(80.0), hourlyRatePercentage(20), Collections.emptyList()));
+        com.netflix.titus.api.model.reference.Reference jobReference = com.netflix.titus.api.model.reference.Reference.job(job.getId());
+
         scheduleJob(job, 10);
         JobQuotaController jobController = new JobQuotaController(job, jobOperations, containerHealthService, titusRuntime);
 
-        assertThat(jobController.getQuota()).isEqualTo(2);
+        assertThat(jobController.getQuota(jobReference).getQuota()).isEqualTo(2);
 
         Task task = jobOperations.getTasks(job.getId()).get(0);
         assertThat(jobController.consume(task.getId()).isApproved()).isTrue();
         assertThat(jobController.consume(task.getId()).isApproved()).isTrue();
 
-        assertThat(jobController.getQuota()).isEqualTo(0);
+        assertThat(jobController.getQuota(jobReference).getQuota()).isEqualTo(0);
         ConsumptionResult failure = jobController.consume(task.getId());
         assertThat(failure.isApproved()).isFalse();
         assertThat(failure.getRejectionReason().get()).contains("JobPercentagePerHourRelocationRateController");
@@ -222,15 +230,17 @@ public class JobQuotaControllerTest {
     @Test
     public void testUpdate() {
         Job<BatchJobExt> job = newBatchJob(10, budget(perTaskRelocationLimitPolicy(2), hourlyRatePercentage(20), Collections.emptyList()));
+        com.netflix.titus.api.model.reference.Reference jobReference = com.netflix.titus.api.model.reference.Reference.job(job.getId());
+
         scheduleJob(job, 10);
         JobQuotaController jobController = new JobQuotaController(job, jobOperations, containerHealthService, titusRuntime);
 
-        assertThat(jobController.getQuota()).isEqualTo(2);
+        assertThat(jobController.getQuota(jobReference).getQuota()).isEqualTo(2);
 
         Task task = jobOperations.getTasks(job.getId()).get(0);
         assertThat(jobController.consume(task.getId()).isApproved()).isTrue();
         assertThat(jobController.consume(task.getId()).isApproved()).isTrue();
-        assertThat(jobController.getQuota()).isEqualTo(0);
+        assertThat(jobController.getQuota(jobReference).getQuota()).isEqualTo(0);
 
         // Now bump up the limit by 1
         Job<BatchJobExt> updatedJob = jobComponentStub.changeJob(
@@ -240,14 +250,14 @@ public class JobQuotaControllerTest {
 
         assertThat(updatedController.consume(task.getId()).isApproved()).isTrue();
         assertThat(updatedController.consume(task.getId()).isApproved()).isFalse();
-        assertThat(updatedController.getQuota()).isEqualTo(5); // 3 task killed out of 8 allowed in an hour
+        assertThat(updatedController.getQuota(jobReference).getQuota()).isEqualTo(5); // 3 task killed out of 8 allowed in an hour
 
         // Now increase job size
         Job<BatchJobExt> scaledJob = jobComponentStub.changeJob(JobFunctions.changeBatchJobSize(updatedJob, 20));
         jobComponentStub.createDesiredTasks(scaledJob);
 
         JobQuotaController updatedController2 = jobController.update(scaledJob);
-        assertThat(updatedController2.getQuota()).isEqualTo(13); // 3 task kills out of 16 allowed in an hour
+        assertThat(updatedController2.getQuota(jobReference).getQuota()).isEqualTo(13); // 3 task kills out of 16 allowed in an hour
     }
 
     private void checkContains(List<? extends QuotaTracker> trackers, Class<?>... expectedTypes) {
