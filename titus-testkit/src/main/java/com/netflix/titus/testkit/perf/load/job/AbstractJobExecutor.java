@@ -30,7 +30,7 @@ import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.common.util.rx.RetryHandlerBuilder;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobChangeNotification.NotificationCase;
-import com.netflix.titus.grpc.protogen.JobId;
+import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import com.netflix.titus.testkit.perf.load.ExecutionContext;
 import io.grpc.Status;
@@ -100,7 +100,7 @@ public abstract class AbstractJobExecutor<E extends JobDescriptor.JobDescriptorE
             if (!observeSubscription.isUnsubscribed()) {
                 this.activeTasks = Collections.emptyList();
                 observeSubscription.unsubscribe();
-                Throwable error = context.getJobManagementClient().killJob(jobId).toCompletable().get();
+                Throwable error = context.getJobManagementClient().killJob(jobId).get();
                 if (error != null) {
                     logger.debug("Job {} cleanup failure", jobId, error);
                 }
@@ -109,7 +109,7 @@ public abstract class AbstractJobExecutor<E extends JobDescriptor.JobDescriptorE
     }
 
     private Subscription observeJob() {
-        return Observable.defer(() -> context.getJobManagementClient().observeJob(JobId.newBuilder().setId(jobId).build()))
+        return Observable.defer(() -> context.getJobManagementClient().observeJob(jobId))
                 .doOnNext(event -> {
                     if (event.getNotificationCase() == NotificationCase.TASKUPDATE) {
                         com.netflix.titus.grpc.protogen.Task task = event.getTaskUpdate().getTask();
@@ -161,6 +161,8 @@ public abstract class AbstractJobExecutor<E extends JobDescriptor.JobDescriptorE
 
         return context.getJobManagementClient()
                 .killJob(jobId)
+                .toObservable()
+                .cast(Void.class)
                 .onErrorResumeNext(e -> Observable.error(new IOException("Failed to kill job " + name, e)))
                 .doOnCompleted(() -> logger.info("Killed job {}", jobId));
     }
@@ -171,7 +173,9 @@ public abstract class AbstractJobExecutor<E extends JobDescriptor.JobDescriptorE
         Preconditions.checkNotNull(jobId);
 
         return context.getJobManagementClient()
-                .killTask(taskId, false)
+                .killTask(TaskKillRequest.newBuilder().setTaskId(taskId).setShrink(false).build())
+                .toObservable()
+                .cast(Void.class)
                 .onErrorResumeNext(e -> Observable.error(new IOException(String.format("Failed to kill task %s  of job %s: error=%s", taskId, name, e.getMessage()), e)))
                 .doOnCompleted(() -> logger.info("Killed task {}", taskId));
     }

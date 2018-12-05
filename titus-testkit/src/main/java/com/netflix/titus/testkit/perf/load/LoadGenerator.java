@@ -17,14 +17,20 @@
 package com.netflix.titus.testkit.perf.load;
 
 import java.io.PrintWriter;
+import javax.inject.Singleton;
 
 import com.google.inject.AbstractModule;
+import com.google.inject.Provides;
 import com.netflix.archaius.config.MapConfig;
 import com.netflix.archaius.guice.ArchaiusModule;
 import com.netflix.governator.InjectorBuilder;
 import com.netflix.governator.LifecycleInjector;
 import com.netflix.governator.guice.jersey.GovernatorJerseySupportModule;
 import com.netflix.governator.guice.jetty.Archaius2JettyModule;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.runtime.TitusRuntimes;
+import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
+import com.netflix.titus.runtime.connector.jobmanager.JobManagerConnectorModule;
 import com.netflix.titus.testkit.perf.load.rest.LoadJerseyModule;
 import io.grpc.ManagedChannel;
 import io.grpc.netty.shaded.io.grpc.netty.NegotiationType;
@@ -68,15 +74,23 @@ public class LoadGenerator {
                     }
                 });
 
+                bind(TitusRuntime.class).toInstance(TitusRuntimes.internal());
                 bind(ManagedChannel.class).toInstance(newManagedChannel(hostName, port));
 
                 install(new LoadModule());
                 install(new LoadJerseyModule());
                 install(new Archaius2JettyModule());
                 install(new GovernatorJerseySupportModule());
+                install(new JobManagerConnectorModule());
             }
 
-            protected ManagedChannel newManagedChannel(String hostName, int port) {
+            @Provides
+            @Singleton
+            JobManagementServiceGrpc.JobManagementServiceStub jobManagementClient(ManagedChannel channel) {
+                return JobManagementServiceGrpc.newStub(channel);
+            }
+
+            ManagedChannel newManagedChannel(String hostName, int port) {
                 return NettyChannelBuilder.forAddress(hostName, port)
                         .negotiationType(NegotiationType.PLAINTEXT)
                         .build();

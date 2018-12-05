@@ -33,6 +33,7 @@ import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
 import com.netflix.titus.common.util.rx.RetryHandlerBuilder;
+import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
 import com.netflix.titus.testkit.client.V3ClientUtils;
 import com.netflix.titus.testkit.perf.load.ExecutionContext;
 import org.slf4j.Logger;
@@ -88,7 +89,7 @@ public class MetricsCollector {
     public void watch(ExecutionContext context) {
         Preconditions.checkState(subscription == null);
 
-        this.subscription = Observable.defer(() -> V3ClientUtils.observeJobs(context.getJobManagementClient().observeJobs()))
+        this.subscription = Observable.defer(() -> V3ClientUtils.observeJobs(context.getJobManagementClient().observeJobs(ObserveJobsQuery.getDefaultInstance())))
                 .doOnNext(event -> {
                     if (event instanceof JobUpdateEvent) {
                         JobUpdateEvent jobUpdate = (JobUpdateEvent) event;

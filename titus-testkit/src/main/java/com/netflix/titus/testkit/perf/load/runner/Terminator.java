@@ -24,7 +24,6 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.google.protobuf.Empty;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
@@ -71,6 +70,8 @@ public class Terminator {
             List<Observable<Void>> killActions = jobIdsToRemove.stream()
                     .map(jid -> context.getJobManagementClient()
                             .killJob(jid)
+                            .toObservable()
+                            .cast(Void.class)
                             .onErrorResumeNext(e -> {
                                 StatusRuntimeException ex = (StatusRuntimeException) e;
                                 return ex.getStatus().getCode() == Status.Code.NOT_FOUND
