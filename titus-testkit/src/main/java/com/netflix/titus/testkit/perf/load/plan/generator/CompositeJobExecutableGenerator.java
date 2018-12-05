@@ -14,24 +14,24 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.testkit.perf.load.plan.scenario;
+package com.netflix.titus.testkit.perf.load.plan.generator;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.netflix.titus.testkit.perf.load.plan.ExecutionScenario;
+import com.netflix.titus.testkit.perf.load.plan.JobExecutableGenerator;
 import rx.Observable;
 
-public class MultipleScenarios extends ExecutionScenario {
+public class CompositeJobExecutableGenerator extends JobExecutableGenerator {
 
     private final Observable<Executable> mergedPlans;
-    private final List<ExecutionScenario> executionScenarios;
+    private final List<JobExecutableGenerator> jobExecutableGenerators;
 
-    public MultipleScenarios(List<ExecutionScenario> executionScenarios) {
+    public CompositeJobExecutableGenerator(List<JobExecutableGenerator> jobExecutableGenerators) {
         this.mergedPlans = Observable.merge(
-                executionScenarios.stream().map(ExecutionScenario::executionPlans).collect(Collectors.toList())
+                jobExecutableGenerators.stream().map(JobExecutableGenerator::executionPlans).collect(Collectors.toList())
         );
-        this.executionScenarios = executionScenarios;
+        this.jobExecutableGenerators = jobExecutableGenerators;
     }
 
     @Override
@@ -41,6 +41,6 @@ public class MultipleScenarios extends ExecutionScenario {
 
     @Override
     public void completed(Executable executable) {
-        executionScenarios.forEach(s -> s.completed(executable));
+        jobExecutableGenerators.forEach(s -> s.completed(executable));
     }
 }

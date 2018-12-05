@@ -25,7 +25,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.netflix.titus.testkit.perf.load.ExecutionContext;
-import com.netflix.titus.testkit.perf.load.plan.ExecutionScenario;
+import com.netflix.titus.testkit.perf.load.plan.JobExecutableGenerator;
 import com.netflix.titus.testkit.perf.load.report.MetricsCollector;
 import com.netflix.titus.testkit.perf.load.report.TextReporter;
 import org.slf4j.Logger;
@@ -67,11 +67,11 @@ public class Orchestrator {
         return metricsCollector;
     }
 
-    public ScenarioRunner startScenario(ExecutionScenario executionScenario, Map<String, Object> requestContext) {
-        logger.info("Starting new scenario: " + executionScenario);
+    public ScenarioRunner startScenario(JobExecutableGenerator jobExecutableGenerator, Map<String, Object> requestContext) {
+        logger.info("Starting new scenario: " + jobExecutableGenerator);
 
         String id = this.context.getSessionId() + '$' + nextSequenceId.getAndIncrement();
-        ScenarioRunner scenarioRunner = new ScenarioRunner(id, requestContext, executionScenario, context);
+        ScenarioRunner scenarioRunner = new ScenarioRunner(id, requestContext, jobExecutableGenerator, context);
         scenarioRunners.put(id, scenarioRunner);
         return scenarioRunner;
     }

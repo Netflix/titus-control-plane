@@ -20,11 +20,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import com.netflix.titus.testkit.perf.load.plan.scenario.ConstantLoadScenario;
-import com.netflix.titus.testkit.perf.load.plan.scenario.MultipleScenarios;
+import com.netflix.titus.testkit.perf.load.plan.generator.ConstantLoadJobExecutableGenerator;
+import com.netflix.titus.testkit.perf.load.plan.generator.CompositeJobExecutableGenerator;
 import rx.Observable;
 
-public abstract class ExecutionScenario {
+public abstract class JobExecutableGenerator {
 
     public static class Executable {
         private final String owner;
@@ -60,15 +60,15 @@ public abstract class ExecutionScenario {
 
     public static class ExecutionScenarioBuilder {
 
-        private final List<ExecutionScenario> scenarios = new ArrayList<>();
+        private final List<JobExecutableGenerator> scenarios = new ArrayList<>();
 
         public ExecutionScenarioBuilder constantLoad(JobDescriptor<?> jobSpec, JobExecutionPlan plan, int instances) {
-            scenarios.add(new ConstantLoadScenario("scenario#" + scenarios.size(), jobSpec, plan, instances));
+            scenarios.add(new ConstantLoadJobExecutableGenerator("scenario#" + scenarios.size(), jobSpec, plan, instances));
             return this;
         }
 
-        public ExecutionScenario build() {
-            return new MultipleScenarios(new ArrayList<>(scenarios));
+        public JobExecutableGenerator build() {
+            return new CompositeJobExecutableGenerator(new ArrayList<>(scenarios));
         }
     }
 }

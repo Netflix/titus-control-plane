@@ -23,9 +23,9 @@ import java.util.concurrent.TimeUnit;
 
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.common.util.rx.ReactorExt;
-import com.netflix.titus.testkit.perf.load.job.JobExecutor;
+import com.netflix.titus.testkit.perf.load.runner.job.JobExecutor;
 import com.netflix.titus.testkit.perf.load.plan.JobExecutionPlan;
-import com.netflix.titus.testkit.perf.load.plan.ExecutionStep;
+import com.netflix.titus.testkit.perf.load.plan.JobExecutionStep;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
@@ -41,7 +41,7 @@ public class JobExecutionPlanRunner {
 
     private final JobExecutor executor;
     private final Scheduler.Worker worker;
-    private final Iterator<ExecutionStep> planIterator;
+    private final Iterator<JobExecutionStep> planIterator;
 
     public JobExecutionPlanRunner(JobExecutor jobExecutor,
                                   JobExecutionPlan jobExecutionPlan,
@@ -65,28 +65,28 @@ public class JobExecutionPlanRunner {
     }
 
     private void runNext() {
-        ExecutionStep step = planIterator.next();
+        JobExecutionStep step = planIterator.next();
         logger.info("Executing step {}", step);
 
-        if (step instanceof ExecutionStep.TerminateStep) {
+        if (step instanceof JobExecutionStep.TerminateStep) {
             terminateJob();
             return;
         }
 
         Observable<Void> action;
-        if (step instanceof ExecutionStep.ScaleUpStep) {
-            action = doScaleUp((ExecutionStep.ScaleUpStep) step);
-        } else if (step instanceof ExecutionStep.ScaleDownStep) {
-            action = doScaleDown((ExecutionStep.ScaleDownStep) step);
-        } else if (step instanceof ExecutionStep.KillRandomTaskStep) {
+        if (step instanceof JobExecutionStep.ScaleUpStep) {
+            action = doScaleUp((JobExecutionStep.ScaleUpStep) step);
+        } else if (step instanceof JobExecutionStep.ScaleDownStep) {
+            action = doScaleDown((JobExecutionStep.ScaleDownStep) step);
+        } else if (step instanceof JobExecutionStep.KillRandomTaskStep) {
             action = doKillRandomTask();
-        } else if (step instanceof ExecutionStep.EvictRandomTaskStep) {
+        } else if (step instanceof JobExecutionStep.EvictRandomTaskStep) {
             action = ReactorExt.toObservable(doEvictRandomTask());
-        } else if (step instanceof ExecutionStep.TerminateAndShrinkRandomTaskStep) {
+        } else if (step instanceof JobExecutionStep.TerminateAndShrinkRandomTaskStep) {
             action = doTerminateAndShrinkRandomTask();
-        } else if (step instanceof ExecutionStep.DelayStep) {
-            action = doDelay((ExecutionStep.DelayStep) step);
-        } else if (step instanceof ExecutionStep.AwaitCompletionStep) {
+        } else if (step instanceof JobExecutionStep.DelayStep) {
+            action = doDelay((JobExecutionStep.DelayStep) step);
+        } else if (step instanceof JobExecutionStep.AwaitCompletionStep) {
             action = doAwaitCompletion();
         } else {
             throw new IllegalStateException("Unknown execution step " + step);
@@ -107,11 +107,11 @@ public class JobExecutionPlanRunner {
         );
     }
 
-    private Observable<Void> doScaleUp(ExecutionStep.ScaleUpStep step) {
+    private Observable<Void> doScaleUp(JobExecutionStep.ScaleUpStep step) {
         return executor.scaleUp(step.getDelta());
     }
 
-    private Observable<Void> doScaleDown(ExecutionStep.ScaleDownStep step) {
+    private Observable<Void> doScaleDown(JobExecutionStep.ScaleDownStep step) {
         return executor.scaleDown(step.getDelta());
     }
 
@@ -145,7 +145,7 @@ public class JobExecutionPlanRunner {
         return executor.terminateAndShrink(task.getId());
     }
 
-    private Observable<Void> doDelay(ExecutionStep.DelayStep delayStep) {
+    private Observable<Void> doDelay(JobExecutionStep.DelayStep delayStep) {
         return Observable.timer(delayStep.getDelayMs(), TimeUnit.MILLISECONDS).ignoreElements().cast(Void.class);
     }
 

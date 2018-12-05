@@ -37,14 +37,14 @@ public class JobExecutionPlanTest {
                 .loop("start", 1)
                 .build();
 
-        Iterator<ExecutionStep> planIterator = plan.newInstance();
+        Iterator<JobExecutionStep> planIterator = plan.newInstance();
 
         for (int i = 0; i < 4; i++) {
-            assertThat(planIterator.next()).isEqualTo(ExecutionStep.delayStep(5, TimeUnit.SECONDS));
-            assertThat(planIterator.next()).isEqualTo(ExecutionStep.scaleUp(5));
-            assertThat(planIterator.next()).isEqualTo(ExecutionStep.delayStep(5, TimeUnit.SECONDS));
-            assertThat(planIterator.next()).isEqualTo(ExecutionStep.scaleDown(5));
+            assertThat(planIterator.next()).isEqualTo(JobExecutionStep.delayStep(5, TimeUnit.SECONDS));
+            assertThat(planIterator.next()).isEqualTo(JobExecutionStep.scaleUp(5));
+            assertThat(planIterator.next()).isEqualTo(JobExecutionStep.delayStep(5, TimeUnit.SECONDS));
+            assertThat(planIterator.next()).isEqualTo(JobExecutionStep.scaleDown(5));
         }
-        assertThat(planIterator.next()).isEqualTo(ExecutionStep.terminate());
+        assertThat(planIterator.next()).isEqualTo(JobExecutionStep.terminate());
     }
 }

@@ -35,8 +35,8 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 
 import com.google.common.collect.ImmutableMap;
-import com.netflix.titus.testkit.perf.load.catalog.ExecutionScenarioCatalog;
-import com.netflix.titus.testkit.perf.load.plan.ExecutionScenario;
+import com.netflix.titus.testkit.perf.load.plan.catalog.JobExecutableGeneratorCatalog;
+import com.netflix.titus.testkit.perf.load.plan.JobExecutableGenerator;
 import com.netflix.titus.testkit.perf.load.report.MetricsCollector;
 import com.netflix.titus.testkit.perf.load.rest.representation.ScenarioExecutionRepresentation;
 import com.netflix.titus.testkit.perf.load.rest.representation.ScenarioRepresentation;
@@ -94,14 +94,14 @@ public class ScenarioResource {
     @Path("/executions")
     public Response startScenario(StartScenarioRequest request) throws URISyntaxException {
         String name = request.getName();
-        ExecutionScenario executionScenario;
+        JobExecutableGenerator jobExecutableGenerator;
 
         if (name.equals("mixedLoad")) {
-            executionScenario = ExecutionScenarioCatalog.mixedLoad(request.getScaleFactor());
+            jobExecutableGenerator = JobExecutableGeneratorCatalog.mixedLoad(request.getScaleFactor());
         } else if (name.equals("batchJobs")) {
-            executionScenario = ExecutionScenarioCatalog.batchJobs(request.getJobSize(), request.getScaleFactor());
+            jobExecutableGenerator = JobExecutableGeneratorCatalog.batchJobs(request.getJobSize(), request.getScaleFactor());
         } else if (name.equals("evictions")) {
-            executionScenario = ExecutionScenarioCatalog.evictions(request.getJobSize(), request.getScaleFactor());
+            jobExecutableGenerator = JobExecutableGeneratorCatalog.evictions(request.getJobSize(), request.getScaleFactor());
         } else {
             throw new WebApplicationException(Response.Status.BAD_REQUEST);
         }
@@ -110,7 +110,7 @@ public class ScenarioResource {
         context.put("jobSize", request.getJobSize());
         context.put("scaleFactor", request.getScaleFactor());
 
-        ScenarioRunner runner = orchestrator.startScenario(executionScenario, context);
+        ScenarioRunner runner = orchestrator.startScenario(jobExecutableGenerator, context);
         return Response.created(new URI((runner.getScenarioExecutionId()))).build();
     }
 

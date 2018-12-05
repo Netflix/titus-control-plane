@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.testkit.perf.load.catalog;
+package com.netflix.titus.testkit.perf.load.plan.catalog;
 
 import java.util.concurrent.TimeUnit;
 
 import com.netflix.titus.testkit.perf.load.plan.JobExecutionPlan;
 
-public final class ExecutionPlanCatalog {
+public final class JobExecutionPlanCatalog {
 
-    private ExecutionPlanCatalog() {
+    private JobExecutionPlanCatalog() {
     }
 
     public static JobExecutionPlan uninterruptedJob() {

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.testkit.perf.load.catalog;
+package com.netflix.titus.testkit.perf.load.plan.catalog;
 
 import java.util.concurrent.TimeUnit;
 
@@ -29,12 +29,12 @@ import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 /**
  * Set of predefined job profiles.
  */
-public final class JobCatalog {
+public final class JobDescriptorCatalog {
     public enum JobSize {
         Small, Medium, Large
     }
 
-    private JobCatalog() {
+    private JobDescriptorCatalog() {
     }
 
     public static JobDescriptor<BatchJobExt> batchJob(JobSize jobSize, int instances, long duration, TimeUnit timeUnit) {

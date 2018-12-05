@@ -28,13 +28,13 @@ import com.google.common.base.Preconditions;
 
 public class JobExecutionPlan {
 
-    private final List<ExecutionStep> steps;
+    private final List<JobExecutionStep> steps;
 
-    public JobExecutionPlan(List<ExecutionStep> steps) {
+    public JobExecutionPlan(List<JobExecutionStep> steps) {
         this.steps = steps;
     }
 
-    public Iterator<ExecutionStep> newInstance() {
+    public Iterator<JobExecutionStep> newInstance() {
         return new PlanIterator();
     }
 
@@ -44,7 +44,7 @@ public class JobExecutionPlan {
 
     public static class ExecutionPlanBuilder {
 
-        private final List<ExecutionStep> steps = new ArrayList<>();
+        private final List<JobExecutionStep> steps = new ArrayList<>();
         private final Map<String, Integer> labelPos = new HashMap<>();
 
         public ExecutionPlanBuilder label(String name) {
@@ -53,27 +53,27 @@ public class JobExecutionPlan {
         }
 
         public ExecutionPlanBuilder killRandomTask() {
-            steps.add(ExecutionStep.killRandomTask());
+            steps.add(JobExecutionStep.killRandomTask());
             return this;
         }
 
         public ExecutionPlanBuilder evictRandomTask() {
-            steps.add(ExecutionStep.evictRandomTask());
+            steps.add(JobExecutionStep.evictRandomTask());
             return this;
         }
 
         public ExecutionPlanBuilder terminateAndShrinkRandomTask() {
-            steps.add(ExecutionStep.terminateAndShrinkRandomTask());
+            steps.add(JobExecutionStep.terminateAndShrinkRandomTask());
             return this;
         }
 
         public ExecutionPlanBuilder scaleUp(int delta) {
-            steps.add(ExecutionStep.scaleUp(delta));
+            steps.add(JobExecutionStep.scaleUp(delta));
             return this;
         }
 
         public ExecutionPlanBuilder scaleDown(int delta) {
-            steps.add(ExecutionStep.scaleDown(delta));
+            steps.add(JobExecutionStep.scaleDown(delta));
             return this;
         }
 
@@ -83,34 +83,34 @@ public class JobExecutionPlan {
 
         public ExecutionPlanBuilder loop(String label, int times) {
             Preconditions.checkArgument(labelPos.containsKey(label), "Execution plan has no label " + label);
-            steps.add(ExecutionStep.loop(labelPos.get(label), times));
+            steps.add(JobExecutionStep.loop(labelPos.get(label), times));
             return this;
         }
 
         public ExecutionPlanBuilder delay(long duration, TimeUnit timeUnit) {
-            steps.add(ExecutionStep.delayStep(duration, timeUnit));
+            steps.add(JobExecutionStep.delayStep(duration, timeUnit));
             return this;
         }
 
         public ExecutionPlanBuilder awaitCompletion() {
-            steps.add(ExecutionStep.awaitCompletion());
+            steps.add(JobExecutionStep.awaitCompletion());
             return this;
         }
 
         public ExecutionPlanBuilder terminate() {
-            steps.add(ExecutionStep.terminate());
+            steps.add(JobExecutionStep.terminate());
             return this;
         }
 
         public JobExecutionPlan build() {
-            if (steps.get(steps.size() - 1) != ExecutionStep.terminate()) {
-                steps.add(ExecutionStep.terminate());
+            if (steps.get(steps.size() - 1) != JobExecutionStep.terminate()) {
+                steps.add(JobExecutionStep.terminate());
             }
             return new JobExecutionPlan(steps);
         }
     }
 
-    private class PlanIterator implements Iterator<ExecutionStep> {
+    private class PlanIterator implements Iterator<JobExecutionStep> {
 
         private final int[] counters;
         private int nextIdx;
@@ -125,14 +125,14 @@ public class JobExecutionPlan {
         }
 
         @Override
-        public ExecutionStep next() {
+        public JobExecutionStep next() {
             if (!hasNext()) {
                 throw new NoSuchElementException();
             }
-            ExecutionStep step = steps.get(nextIdx);
+            JobExecutionStep step = steps.get(nextIdx);
 
-            if (step instanceof ExecutionStep.LoopStep) {
-                ExecutionStep.LoopStep loopStep = (ExecutionStep.LoopStep) step;
+            if (step instanceof JobExecutionStep.LoopStep) {
+                JobExecutionStep.LoopStep loopStep = (JobExecutionStep.LoopStep) step;
                 if (loopStep.getTimes() < 0) {
                     nextIdx = loopStep.getPosition();
                 } else if (loopStep.getTimes() > counters[nextIdx]) {

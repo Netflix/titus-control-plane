@@ -30,10 +30,10 @@ import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.rx.ObservableExt;
 import com.netflix.titus.common.util.rx.RetryHandlerBuilder;
 import com.netflix.titus.testkit.perf.load.ExecutionContext;
-import com.netflix.titus.testkit.perf.load.job.BatchJobExecutor;
-import com.netflix.titus.testkit.perf.load.job.JobExecutor;
-import com.netflix.titus.testkit.perf.load.job.ServiceJobExecutor;
-import com.netflix.titus.testkit.perf.load.plan.ExecutionScenario;
+import com.netflix.titus.testkit.perf.load.runner.job.BatchJobExecutor;
+import com.netflix.titus.testkit.perf.load.runner.job.JobExecutor;
+import com.netflix.titus.testkit.perf.load.runner.job.ServiceJobExecutor;
+import com.netflix.titus.testkit.perf.load.plan.JobExecutableGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;
@@ -53,11 +53,11 @@ public class ScenarioRunner {
 
     public ScenarioRunner(String scenarioExecutionId,
                           Map<String, Object> requestContext,
-                          ExecutionScenario executionScenario,
+                          JobExecutableGenerator jobExecutableGenerator,
                           ExecutionContext context) {
         this.scenarioExecutionId = scenarioExecutionId;
         this.requestContext = requestContext;
-        this.scenarioSubscription = startExecutionScenario(executionScenario, context).subscribe(
+        this.scenarioSubscription = startExecutionScenario(jobExecutableGenerator, context).subscribe(
                 () -> logger.info("Orchestrator's scenario subscription completed"),
                 e -> logger.error("Orchestrator's scenario subscription terminated with an error", e)
         );
@@ -76,8 +76,8 @@ public class ScenarioRunner {
         return requestContext;
     }
 
-    private Completable startExecutionScenario(ExecutionScenario executionScenario, ExecutionContext context) {
-        return executionScenario.executionPlans()
+    private Completable startExecutionScenario(JobExecutableGenerator jobExecutableGenerator, ExecutionContext context) {
+        return jobExecutableGenerator.executionPlans()
                 .flatMap(executable -> {
                     JobDescriptor<?> jobSpec = tagged(newJobDescriptor(executable));
                     Observable<? extends JobExecutor> executorObservable = JobFunctions.isBatchJob(jobSpec)
@@ -97,14 +97,14 @@ public class ScenarioRunner {
                                                 .doOnUnsubscribe(() -> {
                                                     logger.info("Creating new replacement job...");
                                                     runner.stop();
-                                                    executionScenario.completed(executable);
+                                                    jobExecutableGenerator.completed(executable);
                                                 }).toObservable();
                                     }
                             );
                 }).toCompletable();
     }
 
-    private JobDescriptor<?> newJobDescriptor(ExecutionScenario.Executable executable) {
+    private JobDescriptor<?> newJobDescriptor(JobExecutableGenerator.Executable executable) {
         JobDescriptor<?> jobDescriptor = executable.getJobSpec();
         if (JobFunctions.isBatchJob(jobDescriptor)) {
             return jobDescriptor;

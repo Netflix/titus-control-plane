@@ -19,30 +19,30 @@ package com.netflix.titus.testkit.perf.load.plan;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import com.netflix.titus.testkit.perf.load.catalog.ExecutionPlanCatalog;
-import com.netflix.titus.testkit.perf.load.catalog.JobCatalog;
-import com.netflix.titus.testkit.perf.load.plan.ExecutionScenario.Executable;
+import com.netflix.titus.testkit.perf.load.plan.catalog.JobExecutionPlanCatalog;
+import com.netflix.titus.testkit.perf.load.plan.catalog.JobDescriptorCatalog;
+import com.netflix.titus.testkit.perf.load.plan.JobExecutableGenerator.Executable;
 import com.netflix.titus.testkit.rx.ExtTestSubscriber;
 import org.assertj.core.api.Assertions;
 import org.junit.Test;
 
-public class ExecutionScenarioTest {
+public class JobExecutableGeneratorTest {
 
     private final ExtTestSubscriber<Executable> testSubscriber = new ExtTestSubscriber<>();
 
     @Test
     public void testSimpleScenario() {
-        ExecutionScenario scenario = ExecutionScenario.newBuilder()
+        JobExecutableGenerator scenario = JobExecutableGenerator.newBuilder()
                 .constantLoad(
-                        JobCatalog.batchJob(JobCatalog.JobSize.Small, 1, 1, TimeUnit.HOURS),
-                        ExecutionPlanCatalog.uninterruptedJob(),
+                        JobDescriptorCatalog.batchJob(JobDescriptorCatalog.JobSize.Small, 1, 1, TimeUnit.HOURS),
+                        JobExecutionPlanCatalog.uninterruptedJob(),
                         2
                 ).build();
 
         scenario.executionPlans().subscribe(testSubscriber);
 
         // We expect only two jobs first
-        List<ExecutionScenario.Executable> executables = testSubscriber.takeNext(2);
+        List<JobExecutableGenerator.Executable> executables = testSubscriber.takeNext(2);
         Assertions.assertThat(testSubscriber.takeNext()).isNull();
 
         // Now return single job

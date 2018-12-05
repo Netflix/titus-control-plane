@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.testkit.perf.load.job;
+package com.netflix.titus.testkit.perf.load.runner.job;
 
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;

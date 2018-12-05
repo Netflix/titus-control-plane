@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.testkit.perf.load.job;
+package com.netflix.titus.testkit.perf.load.runner.job;
 
 import java.io.IOException;
 import java.util.ArrayList;
