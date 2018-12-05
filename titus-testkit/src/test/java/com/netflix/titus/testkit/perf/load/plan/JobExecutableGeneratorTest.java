@@ -16,12 +16,12 @@
 
 package com.netflix.titus.testkit.perf.load.plan;
 
+import java.time.Duration;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
-import com.netflix.titus.testkit.perf.load.plan.catalog.JobExecutionPlanCatalog;
-import com.netflix.titus.testkit.perf.load.plan.catalog.JobDescriptorCatalog;
 import com.netflix.titus.testkit.perf.load.plan.JobExecutableGenerator.Executable;
+import com.netflix.titus.testkit.perf.load.plan.catalog.JobDescriptorCatalog;
+import com.netflix.titus.testkit.perf.load.plan.catalog.JobExecutionPlanCatalog;
 import com.netflix.titus.testkit.rx.ExtTestSubscriber;
 import org.assertj.core.api.Assertions;
 import org.junit.Test;
@@ -34,7 +34,7 @@ public class JobExecutableGeneratorTest {
     public void testSimpleScenario() {
         JobExecutableGenerator scenario = JobExecutableGenerator.newBuilder()
                 .constantLoad(
-                        JobDescriptorCatalog.batchJob(JobDescriptorCatalog.JobSize.Small, 1, 1, TimeUnit.HOURS),
+                        JobDescriptorCatalog.batchJob(JobDescriptorCatalog.ContainerResourceAllocation.Small, 1, Duration.ofHours(1)),
                         JobExecutionPlanCatalog.uninterruptedJob(),
                         2
                 ).build();

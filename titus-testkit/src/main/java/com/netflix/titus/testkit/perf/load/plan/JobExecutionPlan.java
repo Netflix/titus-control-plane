@@ -16,6 +16,7 @@
 
 package com.netflix.titus.testkit.perf.load.plan;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -28,10 +29,16 @@ import com.google.common.base.Preconditions;
 
 public class JobExecutionPlan {
 
+    private final Duration totalRunningTime;
     private final List<JobExecutionStep> steps;
 
-    public JobExecutionPlan(List<JobExecutionStep> steps) {
+    public JobExecutionPlan(Duration totalRunningTime, List<JobExecutionStep> steps) {
+        this.totalRunningTime = totalRunningTime;
         this.steps = steps;
+    }
+
+    public Duration getTotalRunningTime() {
+        return totalRunningTime;
     }
 
     public Iterator<JobExecutionStep> newInstance() {
@@ -44,11 +51,27 @@ public class JobExecutionPlan {
 
     public static class ExecutionPlanBuilder {
 
+        private Duration totalRunningTime = Duration.ofDays(30);
         private final List<JobExecutionStep> steps = new ArrayList<>();
         private final Map<String, Integer> labelPos = new HashMap<>();
 
+        public ExecutionPlanBuilder totalRunningTime(Duration totalRunningTime) {
+            this.totalRunningTime = totalRunningTime;
+            return this;
+        }
+
         public ExecutionPlanBuilder label(String name) {
             labelPos.put(name, steps.size());
+            return this;
+        }
+
+        public ExecutionPlanBuilder findOwnJob() {
+            steps.add(JobExecutionStep.findOwnJob());
+            return this;
+        }
+
+        public ExecutionPlanBuilder findOwnTasks() {
+            steps.add(JobExecutionStep.findOwnTasks());
             return this;
         }
 
@@ -92,6 +115,11 @@ public class JobExecutionPlan {
             return this;
         }
 
+        public ExecutionPlanBuilder delay(Duration duration) {
+            steps.add(JobExecutionStep.delayStep(duration.toMillis(), TimeUnit.MILLISECONDS));
+            return this;
+        }
+
         public ExecutionPlanBuilder awaitCompletion() {
             steps.add(JobExecutionStep.awaitCompletion());
             return this;
@@ -106,7 +134,7 @@ public class JobExecutionPlan {
             if (steps.get(steps.size() - 1) != JobExecutionStep.terminate()) {
                 steps.add(JobExecutionStep.terminate());
             }
-            return new JobExecutionPlan(steps);
+            return new JobExecutionPlan(totalRunningTime, steps);
         }
     }
 

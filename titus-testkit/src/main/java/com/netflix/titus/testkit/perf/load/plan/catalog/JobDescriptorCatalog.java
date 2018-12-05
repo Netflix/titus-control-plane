@@ -16,11 +16,15 @@
 
 package com.netflix.titus.testkit.perf.load.plan.catalog;
 
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
+import java.util.Collections;
 
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.RelocationLimitDisruptionBudgetPolicy;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.UnlimitedDisruptionBudgetRate;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.common.util.CollectionsExt;
@@ -30,16 +34,24 @@ import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
  * Set of predefined job profiles.
  */
 public final class JobDescriptorCatalog {
-    public enum JobSize {
+
+    private static final DisruptionBudget EASY_TO_MIGRATE_DISRUPTION_BUDGET = DisruptionBudget.newBuilder()
+            .withDisruptionBudgetPolicy(RelocationLimitDisruptionBudgetPolicy.newBuilder().withLimit(Integer.MAX_VALUE / 2).build())
+            .withDisruptionBudgetRate(UnlimitedDisruptionBudgetRate.newBuilder().build())
+            .withContainerHealthProviders(Collections.emptyList())
+            .withTimeWindows(Collections.emptyList())
+            .build();
+
+    public enum ContainerResourceAllocation {
         Small, Medium, Large
     }
 
     private JobDescriptorCatalog() {
     }
 
-    public static JobDescriptor<BatchJobExt> batchJob(JobSize jobSize, int instances, long duration, TimeUnit timeUnit) {
+    public static JobDescriptor<BatchJobExt> batchJob(ContainerResourceAllocation containerResourceAllocation, int instances, Duration duration) {
         int factor = 1;
-        switch (jobSize) {
+        switch (containerResourceAllocation) {
             case Small:
                 factor = 1;
                 break;
@@ -57,7 +69,7 @@ public final class JobDescriptorCatalog {
 
         String script = String.format(
                 "launched: delay=1s; startInitiated: delay=1s; started: delay=%ss; killInitiated: delay=1s",
-                timeUnit.toSeconds(duration)
+                duration.getSeconds()
         );
 
         return JobDescriptorGenerator.oneTaskBatchJobDescriptor()
@@ -77,13 +89,19 @@ public final class JobDescriptorCatalog {
                 )
                 .but(jd -> jd.getExtensions().toBuilder()
                         .withSize(instances)
-                        .withRuntimeLimitMs(Math.max(60_000, timeUnit.toMillis(duration) + 5_000))
+                        .withRuntimeLimitMs(Math.max(60_000, duration.toMillis() + 5_000))
                 );
     }
 
-    public static JobDescriptor<ServiceJobExt> serviceJob(JobSize jobSize, int min, int desired, int max) {
+    public static JobDescriptor<BatchJobExt> batchJobEasyToMigrate(ContainerResourceAllocation containerResourceAllocation, int instances, Duration duration) {
+        return batchJob(containerResourceAllocation, instances, duration).toBuilder()
+                .withDisruptionBudget(EASY_TO_MIGRATE_DISRUPTION_BUDGET)
+                .build();
+    }
+
+    public static JobDescriptor<ServiceJobExt> serviceJob(ContainerResourceAllocation containerResourceAllocation, int min, int desired, int max) {
         int factor = 1;
-        switch (jobSize) {
+        switch (containerResourceAllocation) {
             case Small:
                 factor = 1;
                 break;
@@ -118,5 +136,11 @@ public final class JobDescriptorCatalog {
                         .withCapacity(Capacity.newBuilder().withMin(min).withDesired(desired).withMax(max).build())
                         .build()
                 );
+    }
+
+    public static JobDescriptor<ServiceJobExt> serviceJobEasyToMigrate(ContainerResourceAllocation containerResourceAllocation, int min, int desired, int max) {
+        return serviceJob(containerResourceAllocation, min, desired, max).toBuilder()
+                .withDisruptionBudget(EASY_TO_MIGRATE_DISRUPTION_BUDGET)
+                .build();
     }
 }

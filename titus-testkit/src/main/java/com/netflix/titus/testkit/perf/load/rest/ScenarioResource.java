@@ -35,8 +35,8 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 
 import com.google.common.collect.ImmutableMap;
-import com.netflix.titus.testkit.perf.load.plan.catalog.JobExecutableGeneratorCatalog;
 import com.netflix.titus.testkit.perf.load.plan.JobExecutableGenerator;
+import com.netflix.titus.testkit.perf.load.plan.catalog.JobExecutableGeneratorCatalog;
 import com.netflix.titus.testkit.perf.load.report.MetricsCollector;
 import com.netflix.titus.testkit.perf.load.rest.representation.ScenarioExecutionRepresentation;
 import com.netflix.titus.testkit.perf.load.rest.representation.ScenarioRepresentation;
@@ -53,6 +53,10 @@ public class ScenarioResource {
             .put("mixedLoad", new ScenarioRepresentation(
                     "mixedLoad",
                     "Includes all system actions (job management, agent deployment and migration, etc)"
+            ))
+            .put("perfLoad", new ScenarioRepresentation(
+                    "perfLoad",
+                    "Load test scenario for performance testing"
             ))
             .put("batchJobs", new ScenarioRepresentation(
                     "batchJobs",
@@ -98,10 +102,12 @@ public class ScenarioResource {
 
         if (name.equals("mixedLoad")) {
             jobExecutableGenerator = JobExecutableGeneratorCatalog.mixedLoad(request.getScaleFactor());
+        } else if (name.equals("perfLoad")) {
+            jobExecutableGenerator = JobExecutableGeneratorCatalog.perfLoad(request.getScaleFactor());
         } else if (name.equals("batchJobs")) {
-            jobExecutableGenerator = JobExecutableGeneratorCatalog.batchJobs(request.getJobSize(), request.getScaleFactor());
+            jobExecutableGenerator = JobExecutableGeneratorCatalog.batchJobs(request.getJobSize(), (int) request.getScaleFactor());
         } else if (name.equals("evictions")) {
-            jobExecutableGenerator = JobExecutableGeneratorCatalog.evictions(request.getJobSize(), request.getScaleFactor());
+            jobExecutableGenerator = JobExecutableGeneratorCatalog.evictions(request.getJobSize(), (int) request.getScaleFactor());
         } else {
             throw new WebApplicationException(Response.Status.BAD_REQUEST);
         }

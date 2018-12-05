@@ -21,6 +21,8 @@ import java.util.concurrent.TimeUnit;
 public abstract class JobExecutionStep {
 
     private static final JobExecutionStep TERMINATE_STEP = new TerminateStep();
+    private static final JobExecutionStep FIND_OWN_JOB_STEP = new FindOwnJobStep();
+    private static final JobExecutionStep FIND_OWN_TASKS_STEP = new FindOwnTasksStep();
     private static final JobExecutionStep KILL_RANDOM_TASK_STEP = new KillRandomTaskStep();
     private static final JobExecutionStep EVICT_RANDOM_TASK_STEP = new EvictRandomTaskStep();
     private static final JobExecutionStep TERMINATE_AND_SHRINK_RANDOM_TASK_STEP = new TerminateAndShrinkRandomTaskStep();
@@ -82,6 +84,12 @@ public abstract class JobExecutionStep {
     }
 
     public static class TerminateStep extends JobExecutionStep {
+    }
+
+    public static class FindOwnJobStep extends JobExecutionStep {
+    }
+
+    public static class FindOwnTasksStep extends JobExecutionStep {
     }
 
     public static class KillRandomTaskStep extends JobExecutionStep {
@@ -216,6 +224,14 @@ public abstract class JobExecutionStep {
 
     public static LoopStep loop(int position, int times) {
         return new LoopStep(position, times);
+    }
+
+    public static JobExecutionStep findOwnJob() {
+        return FIND_OWN_JOB_STEP;
+    }
+
+    public static JobExecutionStep findOwnTasks() {
+        return FIND_OWN_TASKS_STEP;
     }
 
     public static JobExecutionStep killRandomTask() {

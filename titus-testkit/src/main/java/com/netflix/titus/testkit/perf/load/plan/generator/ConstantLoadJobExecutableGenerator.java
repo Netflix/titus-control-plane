@@ -27,13 +27,13 @@ import rx.observers.SerializedSubscriber;
 public class ConstantLoadJobExecutableGenerator extends JobExecutableGenerator {
 
     private final Executable executable;
-    private final int size;
+    private final int numberOfJobs;
 
     private volatile Subscriber<? super Executable> scenarioSubscriber;
 
-    public ConstantLoadJobExecutableGenerator(String owner, JobDescriptor<?> jobSpec, JobExecutionPlan plan, int size) {
+    public ConstantLoadJobExecutableGenerator(String owner, JobDescriptor<?> jobSpec, JobExecutionPlan plan, int numberOfJobs) {
         this.executable = new Executable(owner, jobSpec, plan);
-        this.size = size;
+        this.numberOfJobs = numberOfJobs;
     }
 
     @Override
@@ -42,7 +42,7 @@ public class ConstantLoadJobExecutableGenerator extends JobExecutableGenerator {
             // FIXME This is prone to race conditions.
             Preconditions.checkState(scenarioSubscriber == null, "Expected single subscription");
             scenarioSubscriber = new SerializedSubscriber<>(subscriber);
-            for (int i = 0; i < size; i++) {
+            for (int i = 0; i < numberOfJobs; i++) {
                 subscriber.onNext(executable);
             }
         });

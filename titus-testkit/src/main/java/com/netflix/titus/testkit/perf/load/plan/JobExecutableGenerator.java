@@ -62,8 +62,8 @@ public abstract class JobExecutableGenerator {
 
         private final List<JobExecutableGenerator> scenarios = new ArrayList<>();
 
-        public ExecutionScenarioBuilder constantLoad(JobDescriptor<?> jobSpec, JobExecutionPlan plan, int instances) {
-            scenarios.add(new ConstantLoadJobExecutableGenerator("scenario#" + scenarios.size(), jobSpec, plan, instances));
+        public ExecutionScenarioBuilder constantLoad(JobDescriptor<?> jobSpec, JobExecutionPlan plan, int numberOfJobs) {
+            scenarios.add(new ConstantLoadJobExecutableGenerator("scenario#" + scenarios.size(), jobSpec, plan, numberOfJobs));
             return this;
         }
 

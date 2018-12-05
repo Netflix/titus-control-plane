@@ -16,6 +16,7 @@
 
 package com.netflix.titus.testkit.perf.load.plan.catalog;
 
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 import com.netflix.titus.testkit.perf.load.plan.JobExecutionPlan;
@@ -28,6 +29,35 @@ public final class JobExecutionPlanCatalog {
     public static JobExecutionPlan uninterruptedJob() {
         return JobExecutionPlan.newBuilder()
                 .awaitCompletion()
+                .build();
+    }
+
+    public static JobExecutionPlan monitoredBatchJob() {
+        return JobExecutionPlan.newBuilder()
+                .label("start")
+                .delay(Duration.ofSeconds(30))
+                .findOwnJob()
+                .findOwnTasks()
+                .loop("start")
+                .build();
+    }
+
+    public static JobExecutionPlan monitoredServiceJob(Duration duration) {
+        return JobExecutionPlan.newBuilder()
+                .label("start")
+                .totalRunningTime(duration)
+                .findOwnJob()
+                .findOwnTasks()
+                .loop("start")
+                .build();
+    }
+
+    public static JobExecutionPlan batchWithKilledTasks() {
+        return JobExecutionPlan.newBuilder()
+                .label("start")
+                .killRandomTask()
+                .delay(30, TimeUnit.SECONDS)
+                .loop("start")
                 .build();
     }
 
@@ -53,8 +83,9 @@ public final class JobExecutionPlanCatalog {
                 .build();
     }
 
-    public static JobExecutionPlan terminateAndShrinkAutoScalingService() {
+    public static JobExecutionPlan terminateAndShrinkAutoScalingService(Duration duration) {
         return JobExecutionPlan.newBuilder()
+                .totalRunningTime(duration)
                 .scaleUp(5)
                 .label("start")
                 .scaleUp(10)

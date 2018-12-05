@@ -16,9 +16,10 @@
 
 package com.netflix.titus.testkit.perf.load.plan.catalog;
 
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
 
 import com.netflix.titus.testkit.perf.load.plan.JobExecutableGenerator;
+import com.netflix.titus.testkit.perf.load.plan.catalog.JobDescriptorCatalog.ContainerResourceAllocation;
 
 public final class JobExecutableGeneratorCatalog {
 
@@ -31,59 +32,84 @@ public final class JobExecutableGeneratorCatalog {
     public static JobExecutableGenerator mixedLoad(double sizeFactor) {
         return JobExecutableGenerator.newBuilder()
                 .constantLoad(
-                        JobDescriptorCatalog.batchJob(JobDescriptorCatalog.JobSize.Small, 1, 5, TimeUnit.MINUTES),
+                        JobDescriptorCatalog.batchJob(ContainerResourceAllocation.Small, 1, Duration.ofMinutes(5)),
                         JobExecutionPlanCatalog.uninterruptedJob(),
                         (int) sizeFactor * 100
                 )
                 .constantLoad(
-                        JobDescriptorCatalog.batchJob(JobDescriptorCatalog.JobSize.Large, 5, 30, TimeUnit.MINUTES),
+                        JobDescriptorCatalog.batchJob(ContainerResourceAllocation.Large, 5, Duration.ofMinutes(30)),
                         JobExecutionPlanCatalog.uninterruptedJob(),
                         (int) sizeFactor * 20
                 )
                 .constantLoad(
-                        JobDescriptorCatalog.serviceJob(JobDescriptorCatalog.JobSize.Medium, 0, 25, 50),
+                        JobDescriptorCatalog.serviceJob(ContainerResourceAllocation.Medium, 0, 25, 200),
                         JobExecutionPlanCatalog.autoScalingService(),
                         (int) sizeFactor * 50
                 )
                 .build();
     }
 
-    public static JobExecutableGenerator batchJobs(int jobSize, double sizeFactor) {
+    /**
+     * A mix of service/batch jobs for system performance testing with the wide functional area coverage.
+     */
+    public static JobExecutableGenerator perfLoad(double sizeFactor) {
+        return JobExecutableGenerator.newBuilder()
+                // Batch
+                .constantLoad(
+                        JobDescriptorCatalog.batchJobEasyToMigrate(ContainerResourceAllocation.Small, 1, Duration.ofMinutes(5)),
+                        JobExecutionPlanCatalog.batchWithKilledTasks(),
+                        (int) sizeFactor * 100
+                )
+                .constantLoad(
+                        JobDescriptorCatalog.batchJobEasyToMigrate(ContainerResourceAllocation.Medium, 10, Duration.ofMinutes(10)),
+                        JobExecutionPlanCatalog.monitoredBatchJob(),
+                        (int) sizeFactor * 50
+                )
+                .constantLoad(
+                        JobDescriptorCatalog.batchJobEasyToMigrate(ContainerResourceAllocation.Large, 5, Duration.ofMinutes(30)),
+                        JobExecutionPlanCatalog.batchWithKilledTasks(),
+                        (int) sizeFactor * 20
+                )
+                // Service
+                .constantLoad(
+                        JobDescriptorCatalog.serviceJobEasyToMigrate(ContainerResourceAllocation.Small, 0, 5, 5),
+                        JobExecutionPlanCatalog.monitoredServiceJob(Duration.ofMinutes(10)),
+                        (int) sizeFactor * 100
+                )
+                .constantLoad(
+                        JobDescriptorCatalog.serviceJobEasyToMigrate(ContainerResourceAllocation.Medium, 0, 10, 100),
+                        JobExecutionPlanCatalog.terminateAndShrinkAutoScalingService(Duration.ofMinutes(10)),
+                        (int) sizeFactor * 50
+                )
+                .constantLoad(
+                        JobDescriptorCatalog.serviceJobEasyToMigrate(ContainerResourceAllocation.Large, 5, 10, 100),
+                        JobExecutionPlanCatalog.terminateAndShrinkAutoScalingService(Duration.ofMinutes(30)),
+                        (int) sizeFactor * 20
+                )
+                .constantLoad(
+                        JobDescriptorCatalog.serviceJobEasyToMigrate(ContainerResourceAllocation.Large, 5, 500, 1000),
+                        JobExecutionPlanCatalog.monitoredServiceJob(Duration.ofMinutes(60)),
+                        (int) sizeFactor * 2
+                )
+                .build();
+    }
+
+    public static JobExecutableGenerator batchJobs(int jobSize, int numberOfJobs) {
         return JobExecutableGenerator.newBuilder()
                 .constantLoad(
-                        JobDescriptorCatalog.batchJob(JobDescriptorCatalog.JobSize.Small, jobSize, 60, TimeUnit.SECONDS),
+                        JobDescriptorCatalog.batchJob(ContainerResourceAllocation.Small, jobSize, Duration.ofSeconds(60)),
                         JobExecutionPlanCatalog.uninterruptedJob(),
-                        (int) sizeFactor
+                        numberOfJobs
                 )
                 .build();
     }
 
-    public static JobExecutableGenerator evictions(int jobSize, double sizeFactor) {
+    public static JobExecutableGenerator evictions(int jobSize, int numberOfJobs) {
         return JobExecutableGenerator.newBuilder()
                 .constantLoad(
-                        JobDescriptorCatalog.serviceJob(JobDescriptorCatalog.JobSize.Small, 0, jobSize, jobSize),
+                        JobDescriptorCatalog.serviceJob(ContainerResourceAllocation.Small, 0, jobSize, jobSize),
                         JobExecutionPlanCatalog.eviction(),
-                        (int) sizeFactor
-                )
-                .build();
-    }
-
-    public static JobExecutableGenerator oneAutoScalingService(double sizeFactor) {
-        return JobExecutableGenerator.newBuilder()
-                .constantLoad(
-                        JobDescriptorCatalog.serviceJob(JobDescriptorCatalog.JobSize.Small, 0, 1, 100),
-                        JobExecutionPlanCatalog.autoScalingService(),
-                        (int) sizeFactor
-                )
-                .build();
-    }
-
-    public static JobExecutableGenerator oneScalingServiceWihTerminateAndShrink(double sizeFactor) {
-        return JobExecutableGenerator.newBuilder()
-                .constantLoad(
-                        JobDescriptorCatalog.serviceJob(JobDescriptorCatalog.JobSize.Small, 0, 1, 100),
-                        JobExecutionPlanCatalog.terminateAndShrinkAutoScalingService(),
-                        (int) sizeFactor
+                        numberOfJobs
                 )
                 .build();
     }

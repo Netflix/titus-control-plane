@@ -23,9 +23,13 @@ import java.util.concurrent.TimeUnit;
 
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.common.util.rx.ReactorExt;
-import com.netflix.titus.testkit.perf.load.runner.job.JobExecutor;
+import com.netflix.titus.grpc.protogen.JobQuery;
+import com.netflix.titus.grpc.protogen.Page;
+import com.netflix.titus.grpc.protogen.TaskQuery;
+import com.netflix.titus.testkit.perf.load.ExecutionContext;
 import com.netflix.titus.testkit.perf.load.plan.JobExecutionPlan;
 import com.netflix.titus.testkit.perf.load.plan.JobExecutionStep;
+import com.netflix.titus.testkit.perf.load.runner.job.JobExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
@@ -39,15 +43,22 @@ public class JobExecutionPlanRunner {
 
     private static final Random random = new Random();
 
+    private static final Page PAGE_OF_500_ITEMS = Page.newBuilder().setPageSize(500).build();
+
     private final JobExecutor executor;
+    private final ExecutionContext context;
     private final Scheduler.Worker worker;
+    private final long executionDeadline;
     private final Iterator<JobExecutionStep> planIterator;
 
     public JobExecutionPlanRunner(JobExecutor jobExecutor,
                                   JobExecutionPlan jobExecutionPlan,
+                                  ExecutionContext context,
                                   Scheduler scheduler) {
         this.executor = jobExecutor;
+        this.executionDeadline = System.currentTimeMillis() + jobExecutionPlan.getTotalRunningTime().toMillis();
         this.planIterator = jobExecutionPlan.newInstance();
+        this.context = context;
 
         this.worker = scheduler.createWorker();
     }
@@ -68,7 +79,7 @@ public class JobExecutionPlanRunner {
         JobExecutionStep step = planIterator.next();
         logger.info("Executing step {}", step);
 
-        if (step instanceof JobExecutionStep.TerminateStep) {
+        if (step instanceof JobExecutionStep.TerminateStep || executionDeadline < System.currentTimeMillis()) {
             terminateJob();
             return;
         }
@@ -78,6 +89,10 @@ public class JobExecutionPlanRunner {
             action = doScaleUp((JobExecutionStep.ScaleUpStep) step);
         } else if (step instanceof JobExecutionStep.ScaleDownStep) {
             action = doScaleDown((JobExecutionStep.ScaleDownStep) step);
+        } else if (step instanceof JobExecutionStep.FindOwnJobStep) {
+            action = doFindOwnJob();
+        } else if (step instanceof JobExecutionStep.FindOwnTasksStep) {
+            action = doFindOwnTasks();
         } else if (step instanceof JobExecutionStep.KillRandomTaskStep) {
             action = doKillRandomTask();
         } else if (step instanceof JobExecutionStep.EvictRandomTaskStep) {
@@ -113,6 +128,28 @@ public class JobExecutionPlanRunner {
 
     private Observable<Void> doScaleDown(JobExecutionStep.ScaleDownStep step) {
         return executor.scaleDown(step.getDelta());
+    }
+
+    private Observable<Void> doFindOwnJob() {
+        return context.getJobManagementClient()
+                .findJobs(JobQuery.newBuilder()
+                        .putFilteringCriteria("jobIds", executor.getJobId())
+                        .setPage(PAGE_OF_500_ITEMS)
+                        .build()
+                )
+                .ignoreElements()
+                .cast(Void.class);
+    }
+
+    private Observable<Void> doFindOwnTasks() {
+        return context.getJobManagementClient()
+                .findTasks(TaskQuery.newBuilder()
+                        .putFilteringCriteria("jobIds", executor.getJobId())
+                        .setPage(PAGE_OF_500_ITEMS)
+                        .build()
+                )
+                .ignoreElements()
+                .cast(Void.class);
     }
 
     private Observable<Void> doKillRandomTask() {

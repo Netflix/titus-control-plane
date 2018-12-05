@@ -30,10 +30,10 @@ import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.rx.ObservableExt;
 import com.netflix.titus.common.util.rx.RetryHandlerBuilder;
 import com.netflix.titus.testkit.perf.load.ExecutionContext;
+import com.netflix.titus.testkit.perf.load.plan.JobExecutableGenerator;
 import com.netflix.titus.testkit.perf.load.runner.job.BatchJobExecutor;
 import com.netflix.titus.testkit.perf.load.runner.job.JobExecutor;
 import com.netflix.titus.testkit.perf.load.runner.job.ServiceJobExecutor;
-import com.netflix.titus.testkit.perf.load.plan.JobExecutableGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;
@@ -91,7 +91,7 @@ public class ScenarioRunner {
                                     .buildExponentialBackoff()
                             )
                             .flatMap(executor -> {
-                                        JobExecutionPlanRunner runner = new JobExecutionPlanRunner(executor, executable.getJobExecutionPlan(), Schedulers.computation());
+                                        JobExecutionPlanRunner runner = new JobExecutionPlanRunner(executor, executable.getJobExecutionPlan(), context, Schedulers.computation());
                                         return runner.awaitJobCompletion()
                                                 .doOnSubscribe(subscription -> runner.start())
                                                 .doOnUnsubscribe(() -> {
