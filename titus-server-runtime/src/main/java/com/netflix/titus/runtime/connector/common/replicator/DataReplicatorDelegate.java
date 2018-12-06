@@ -16,18 +16,19 @@
 
 package com.netflix.titus.runtime.connector.common.replicator;
 
+import com.netflix.titus.common.util.tuple.Pair;
 import reactor.core.publisher.Flux;
 
-public class DataReplicatorDelegate<D> implements DataReplicator<D> {
+public class DataReplicatorDelegate<SNAPSHOT, TRIGGER> implements DataReplicator<SNAPSHOT, TRIGGER> {
 
-    private DataReplicator<D> delegate;
+    private DataReplicator<SNAPSHOT, TRIGGER> delegate;
 
-    public DataReplicatorDelegate(DataReplicator<D> delegate) {
+    public DataReplicatorDelegate(DataReplicator<SNAPSHOT, TRIGGER> delegate) {
         this.delegate = delegate;
     }
 
     @Override
-    public D getCurrent() {
+    public SNAPSHOT getCurrent() {
         return delegate.getCurrent();
     }
 
@@ -39,5 +40,10 @@ public class DataReplicatorDelegate<D> implements DataReplicator<D> {
     @Override
     public Flux<Long> observeDataStalenessMs() {
         return delegate.observeDataStalenessMs();
+    }
+
+    @Override
+    public Flux<Pair<SNAPSHOT, TRIGGER>> events() {
+        return delegate.events();
     }
 }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.testkit.perf.load.job;
+package com.netflix.titus.testkit.perf.load.runner.job;
 
 import java.io.IOException;
 
@@ -23,6 +23,8 @@ import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
+import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import com.netflix.titus.testkit.perf.load.ExecutionContext;
 import org.slf4j.Logger;
@@ -45,7 +47,9 @@ public class ServiceJobExecutor extends AbstractJobExecutor<ServiceJobExt> {
         Preconditions.checkState(doRun, "Job executor shut down already");
         Preconditions.checkNotNull(jobId);
 
-        return context.getJobManagementClient().killTask(taskId, true)
+        return context.getJobManagementClient().killTask(TaskKillRequest.newBuilder().setTaskId(taskId).setShrink(true).build())
+                .toObservable()
+                .cast(Void.class)
                 .onErrorResumeNext(e -> Observable.error(new IOException("Failed to terminate and shrink task " + taskId + " of job " + name, e)))
                 .doOnCompleted(() -> {
                     logger.info("Terminate and shrink succeeded for task {}", taskId);
@@ -59,7 +63,19 @@ public class ServiceJobExecutor extends AbstractJobExecutor<ServiceJobExt> {
         Preconditions.checkState(doRun, "Job executor shut down already");
         Preconditions.checkNotNull(jobId);
 
-        return context.getJobManagementClient().updateJobSize(jobId, min, desired, max)
+        return context.getJobManagementClient()
+                .updateJobCapacity(JobCapacityUpdate.newBuilder()
+                        .setJobId(jobId)
+                        .setCapacity(
+                                com.netflix.titus.grpc.protogen.Capacity.newBuilder()
+                                        .setMin(min)
+                                        .setDesired(desired)
+                                        .setMax(max)
+                                        .build()
+                        ).build()
+                )
+                .toObservable()
+                .cast(Void.class)
                 .onErrorResumeNext(e -> Observable.error(
                         new IOException("Failed to change instance count to min=" + min + ", desired=" + desired + ", max=" + max + " of job " + name, e)))
                 .doOnCompleted(() -> {

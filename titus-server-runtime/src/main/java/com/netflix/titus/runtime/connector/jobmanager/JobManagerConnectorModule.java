@@ -16,9 +16,17 @@
 
 package com.netflix.titus.runtime.connector.jobmanager;
 
-import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
-import com.netflix.titus.runtime.connector.common.replicator.DataReplicator;
+import com.google.inject.AbstractModule;
+import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
+import com.netflix.titus.runtime.connector.jobmanager.client.GrpcJobManagementClient;
+import com.netflix.titus.runtime.connector.jobmanager.replicator.JobDataReplicatorProvider;
 
-
-public interface JobDataReplicator extends DataReplicator<JobSnapshot, JobManagerEvent<?>> {
+public class JobManagerConnectorModule extends AbstractModule {
+    @Override
+    protected void configure() {
+        bind(JobManagementClient.class).to(GrpcJobManagementClient.class);
+        
+        bind(JobDataReplicator.class).toProvider(JobDataReplicatorProvider.class);
+        bind(ReadOnlyJobOperations.class).to(CachedReadOnlyJobOperations.class);
+    }
 }

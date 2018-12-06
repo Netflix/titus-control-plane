@@ -21,6 +21,8 @@ import javax.inject.Inject;
 import javax.inject.Provider;
 import javax.inject.Singleton;
 
+import com.netflix.titus.api.agent.model.event.AgentEvent;
+import com.netflix.titus.api.agent.model.event.AgentSnapshotEndEvent;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.runtime.connector.agent.AgentDataReplicator;
 import com.netflix.titus.runtime.connector.agent.AgentManagementClient;
@@ -45,7 +47,7 @@ public class AgentDataReplicatorProvider implements Provider<AgentDataReplicator
 
     @Inject
     public AgentDataReplicatorProvider(AgentManagementClient client, TitusRuntime titusRuntime) {
-        StreamDataReplicator<AgentSnapshot> original = StreamDataReplicator.newStreamDataReplicator(
+        StreamDataReplicator<AgentSnapshot, AgentEvent> original = StreamDataReplicator.newStreamDataReplicator(
                 newReplicatorEventStream(client, titusRuntime),
                 new DataReplicatorMetrics(AGENT_REPLICATOR, titusRuntime),
                 titusRuntime
@@ -59,7 +61,7 @@ public class AgentDataReplicatorProvider implements Provider<AgentDataReplicator
         return replicator;
     }
 
-    private static RetryableReplicatorEventStream<AgentSnapshot> newReplicatorEventStream(AgentManagementClient client, TitusRuntime titusRuntime) {
+    private static RetryableReplicatorEventStream<AgentSnapshot, AgentEvent> newReplicatorEventStream(AgentManagementClient client, TitusRuntime titusRuntime) {
         GrpcAgentReplicatorEventStream grpcEventStream = new GrpcAgentReplicatorEventStream(
                 client,
                 new DataReplicatorMetrics(AGENT_REPLICATOR_GRPC_STREAM, titusRuntime),
@@ -69,6 +71,7 @@ public class AgentDataReplicatorProvider implements Provider<AgentDataReplicator
 
         return new RetryableReplicatorEventStream<>(
                 AgentSnapshot.empty(),
+                AgentSnapshotEndEvent.snapshotEnd(),
                 grpcEventStream,
                 new DataReplicatorMetrics(AGENT_REPLICATOR_RETRYABLE_STREAM, titusRuntime),
                 titusRuntime,
@@ -76,8 +79,8 @@ public class AgentDataReplicatorProvider implements Provider<AgentDataReplicator
         );
     }
 
-    private static class AgentDataReplicatorImpl extends DataReplicatorDelegate<AgentSnapshot> implements AgentDataReplicator {
-        AgentDataReplicatorImpl(DataReplicator<AgentSnapshot> delegate) {
+    private static class AgentDataReplicatorImpl extends DataReplicatorDelegate<AgentSnapshot, AgentEvent> implements AgentDataReplicator {
+        AgentDataReplicatorImpl(DataReplicator<AgentSnapshot, AgentEvent> delegate) {
             super(delegate);
         }
     }

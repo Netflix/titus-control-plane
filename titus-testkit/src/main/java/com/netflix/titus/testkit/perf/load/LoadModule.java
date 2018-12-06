@@ -16,11 +16,7 @@
 
 package com.netflix.titus.testkit.perf.load;
 
-import javax.inject.Singleton;
-
 import com.google.inject.AbstractModule;
-import com.google.inject.Provides;
-import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
 import com.netflix.titus.runtime.endpoint.common.grpc.DefaultReactorGrpcClientAdapterFactory;
 import com.netflix.titus.runtime.endpoint.common.grpc.ReactorGrpcClientAdapterFactory;
@@ -53,11 +49,5 @@ public class LoadModule extends AbstractModule {
             }
         });
         bind(CallMetadataResolver.class).to(AnonymousCallMetadataResolver.class);
-    }
-
-    @Provides
-    @Singleton
-    public LoadConfiguration getLoadConfiguration(ConfigProxyFactory factory) {
-        return factory.newProxy(LoadConfiguration.class);
     }
 }

@@ -16,17 +16,11 @@
 
 package com.netflix.titus.runtime.connector.jobmanager.client;
 
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
-import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.google.protobuf.Empty;
-import com.netflix.titus.api.jobmanager.model.job.Capacity;
-import com.netflix.titus.api.service.TitusServiceException;
-import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
-import com.netflix.titus.common.model.validator.ValidationError;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
@@ -47,13 +41,11 @@ import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
-import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import io.grpc.stub.StreamObserver;
 import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
 
-import static com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_STRICT_SANITIZER;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createMonoVoidRequest;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createRequestCompletable;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createRequestObservable;
@@ -68,37 +60,19 @@ public class GrpcJobManagementClient implements JobManagementClient {
 
     private final JobManagementServiceGrpc.JobManagementServiceStub client;
     private final CallMetadataResolver callMetadataResolver;
-    private final EntitySanitizer entitySanitizer;
     private final GrpcClientConfiguration configuration;
 
     @Inject
     public GrpcJobManagementClient(JobManagementServiceGrpc.JobManagementServiceStub client,
                                    CallMetadataResolver callMetadataResolver,
-                                   @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer,
                                    GrpcClientConfiguration configuration) {
         this.client = client;
         this.callMetadataResolver = callMetadataResolver;
-        this.entitySanitizer = entitySanitizer;
         this.configuration = configuration;
     }
 
     @Override
     public Observable<String> createJob(JobDescriptor jobDescriptor) {
-        com.netflix.titus.api.jobmanager.model.job.JobDescriptor coreJobDescriptor;
-        try {
-            coreJobDescriptor = V3GrpcModelConverters.toCoreJobDescriptor(jobDescriptor);
-        } catch (Exception e) {
-            return Observable.error(TitusServiceException.invalidArgument(e));
-        }
-        com.netflix.titus.api.jobmanager.model.job.JobDescriptor sanitizedCoreJobDescriptor = entitySanitizer.sanitize(coreJobDescriptor).orElse(coreJobDescriptor);
-
-        Set<ValidationError> violations = entitySanitizer.validate(sanitizedCoreJobDescriptor);
-        if (!violations.isEmpty()) {
-            return Observable.error(TitusServiceException.invalidArgument(violations));
-        }
-
-        JobDescriptor effectiveJobDescriptor = V3GrpcModelConverters.toGrpcJobDescriptor(sanitizedCoreJobDescriptor);
-
         return createRequestObservable(emitter -> {
             StreamObserver<JobId> streamObserver = GrpcUtil.createClientResponseObserver(
                     emitter,
@@ -106,17 +80,12 @@ public class GrpcJobManagementClient implements JobManagementClient {
                     emitter::onError,
                     emitter::onCompleted
             );
-            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).createJob(effectiveJobDescriptor, streamObserver);
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).createJob(jobDescriptor, streamObserver);
         }, configuration.getRequestTimeout());
     }
 
     @Override
     public Completable updateJobCapacity(JobCapacityUpdate jobCapacityUpdate) {
-        Capacity newCapacity = V3GrpcModelConverters.toCoreCapacity(jobCapacityUpdate.getCapacity());
-        Set<ValidationError> violations = entitySanitizer.validate(newCapacity);
-        if (!violations.isEmpty()) {
-            return Completable.error(TitusServiceException.invalidArgument(violations));
-        }
         return createRequestCompletable(emitter -> {
             StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
             createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).updateJobCapacity(jobCapacityUpdate, streamObserver);

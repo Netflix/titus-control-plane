@@ -18,20 +18,22 @@ package com.netflix.titus.testkit.perf.load.plan;
 
 import java.util.concurrent.TimeUnit;
 
-public abstract class ExecutionStep {
+public abstract class JobExecutionStep {
 
-    private static final ExecutionStep TERMINATE_STEP = new TerminateStep();
-    private static final ExecutionStep KILL_RANDOM_TASK_STEP = new KillRandomTaskStep();
-    private static final ExecutionStep EVICT_RANDOM_TASK_STEP = new EvictRandomTaskStep();
-    private static final ExecutionStep TERMINATE_AND_SHRINK_RANDOM_TASK_STEP = new TerminateAndShrinkRandomTaskStep();
-    private static final ExecutionStep AWAIT_COMPLETION_STEP = new AwaitCompletionStep();
+    private static final JobExecutionStep TERMINATE_STEP = new TerminateStep();
+    private static final JobExecutionStep FIND_OWN_JOB_STEP = new FindOwnJobStep();
+    private static final JobExecutionStep FIND_OWN_TASKS_STEP = new FindOwnTasksStep();
+    private static final JobExecutionStep KILL_RANDOM_TASK_STEP = new KillRandomTaskStep();
+    private static final JobExecutionStep EVICT_RANDOM_TASK_STEP = new EvictRandomTaskStep();
+    private static final JobExecutionStep TERMINATE_AND_SHRINK_RANDOM_TASK_STEP = new TerminateAndShrinkRandomTaskStep();
+    private static final JobExecutionStep AWAIT_COMPLETION_STEP = new AwaitCompletionStep();
 
     @Override
     public String toString() {
         return getClass().getSimpleName() + "{}";
     }
 
-    public static class LoopStep extends ExecutionStep {
+    public static class LoopStep extends JobExecutionStep {
         private final int position;
         private final int times;
 
@@ -81,22 +83,28 @@ public abstract class ExecutionStep {
         }
     }
 
-    public static class TerminateStep extends ExecutionStep {
+    public static class TerminateStep extends JobExecutionStep {
     }
 
-    public static class KillRandomTaskStep extends ExecutionStep {
+    public static class FindOwnJobStep extends JobExecutionStep {
     }
 
-    public static class EvictRandomTaskStep extends ExecutionStep {
+    public static class FindOwnTasksStep extends JobExecutionStep {
     }
 
-    public static class TerminateAndShrinkRandomTaskStep extends ExecutionStep {
+    public static class KillRandomTaskStep extends JobExecutionStep {
     }
 
-    public static class AwaitCompletionStep extends ExecutionStep {
+    public static class EvictRandomTaskStep extends JobExecutionStep {
     }
 
-    public static class ScaleUpStep extends ExecutionStep {
+    public static class TerminateAndShrinkRandomTaskStep extends JobExecutionStep {
+    }
+
+    public static class AwaitCompletionStep extends JobExecutionStep {
+    }
+
+    public static class ScaleUpStep extends JobExecutionStep {
         private final int delta;
 
         public ScaleUpStep(int delta) {
@@ -134,7 +142,7 @@ public abstract class ExecutionStep {
         }
     }
 
-    public static class ScaleDownStep extends ExecutionStep {
+    public static class ScaleDownStep extends JobExecutionStep {
         private final int delta;
 
         public ScaleDownStep(int delta) {
@@ -172,7 +180,7 @@ public abstract class ExecutionStep {
         }
     }
 
-    public static class DelayStep extends ExecutionStep {
+    public static class DelayStep extends JobExecutionStep {
         private final long delayMs;
 
         public DelayStep(long delayMs) {
@@ -210,7 +218,7 @@ public abstract class ExecutionStep {
         }
     }
 
-    public static ExecutionStep terminate() {
+    public static JobExecutionStep terminate() {
         return TERMINATE_STEP;
     }
 
@@ -218,27 +226,35 @@ public abstract class ExecutionStep {
         return new LoopStep(position, times);
     }
 
-    public static ExecutionStep killRandomTask() {
+    public static JobExecutionStep findOwnJob() {
+        return FIND_OWN_JOB_STEP;
+    }
+
+    public static JobExecutionStep findOwnTasks() {
+        return FIND_OWN_TASKS_STEP;
+    }
+
+    public static JobExecutionStep killRandomTask() {
         return KILL_RANDOM_TASK_STEP;
     }
 
-    public static ExecutionStep evictRandomTask() {
+    public static JobExecutionStep evictRandomTask() {
         return EVICT_RANDOM_TASK_STEP;
     }
 
-    public static ExecutionStep terminateAndShrinkRandomTask() {
+    public static JobExecutionStep terminateAndShrinkRandomTask() {
         return TERMINATE_AND_SHRINK_RANDOM_TASK_STEP;
     }
 
-    public static ExecutionStep awaitCompletion() {
+    public static JobExecutionStep awaitCompletion() {
         return AWAIT_COMPLETION_STEP;
     }
 
-    public static ExecutionStep scaleUp(int delta) {
+    public static JobExecutionStep scaleUp(int delta) {
         return new ScaleUpStep(delta);
     }
 
-    public static ExecutionStep scaleDown(int delta) {
+    public static JobExecutionStep scaleDown(int delta) {
         return new ScaleDownStep(delta);
     }
 

@@ -20,14 +20,14 @@ import java.util.Optional;
 
 class DataReplicatorException extends RuntimeException {
 
-    private final Optional<ReplicatorEventStream.ReplicatorEvent<?>> lastCacheEvent;
+    private final Optional<ReplicatorEvent<?, ?>> lastCacheEvent;
 
-    DataReplicatorException(Optional<ReplicatorEventStream.ReplicatorEvent<?>> lastCacheEvent, Throwable cause) {
+    DataReplicatorException(Optional<ReplicatorEvent<?, ?>> lastCacheEvent, Throwable cause) {
         super(cause);
         this.lastCacheEvent = lastCacheEvent;
     }
 
-    Optional<ReplicatorEventStream.ReplicatorEvent<?>> getLastCacheEvent() {
+    Optional<ReplicatorEvent<?, ?>> getLastCacheEvent() {
         return lastCacheEvent;
     }
 }

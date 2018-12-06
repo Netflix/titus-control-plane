@@ -14,26 +14,26 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.testkit.perf.load.plan.scenario;
+package com.netflix.titus.testkit.perf.load.plan.generator;
 
 import com.google.common.base.Preconditions;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import com.netflix.titus.testkit.perf.load.plan.ExecutionPlan;
-import com.netflix.titus.testkit.perf.load.plan.ExecutionScenario;
+import com.netflix.titus.testkit.perf.load.plan.JobExecutionPlan;
+import com.netflix.titus.testkit.perf.load.plan.JobExecutableGenerator;
 import rx.Observable;
 import rx.Subscriber;
 import rx.observers.SerializedSubscriber;
 
-public class ConstantLoadScenario extends ExecutionScenario {
+public class ConstantLoadJobExecutableGenerator extends JobExecutableGenerator {
 
     private final Executable executable;
-    private final int size;
+    private final int numberOfJobs;
 
     private volatile Subscriber<? super Executable> scenarioSubscriber;
 
-    public ConstantLoadScenario(String owner, JobDescriptor<?> jobSpec, ExecutionPlan plan, int size) {
+    public ConstantLoadJobExecutableGenerator(String owner, JobDescriptor<?> jobSpec, JobExecutionPlan plan, int numberOfJobs) {
         this.executable = new Executable(owner, jobSpec, plan);
-        this.size = size;
+        this.numberOfJobs = numberOfJobs;
     }
 
     @Override
@@ -42,7 +42,7 @@ public class ConstantLoadScenario extends ExecutionScenario {
             // FIXME This is prone to race conditions.
             Preconditions.checkState(scenarioSubscriber == null, "Expected single subscription");
             scenarioSubscriber = new SerializedSubscriber<>(subscriber);
-            for (int i = 0; i < size; i++) {
+            for (int i = 0; i < numberOfJobs; i++) {
                 subscriber.onNext(executable);
             }
         });

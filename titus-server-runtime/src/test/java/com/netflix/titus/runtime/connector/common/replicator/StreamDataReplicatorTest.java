@@ -20,7 +20,6 @@ import java.time.Duration;
 
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
-import com.netflix.titus.runtime.connector.common.replicator.ReplicatorEventStream.ReplicatorEvent;
 import org.junit.Test;
 import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
@@ -36,7 +35,7 @@ public class StreamDataReplicatorTest {
 
     private final DataReplicatorMetrics metrics = new DataReplicatorMetrics("test", titusRuntime);
 
-    private final DirectProcessor<ReplicatorEvent<String>> eventPublisher = DirectProcessor.create();
+    private final DirectProcessor<ReplicatorEvent<String, String>> eventPublisher = DirectProcessor.create();
 
     @Test
     public void testBootstrap() {
@@ -45,19 +44,19 @@ public class StreamDataReplicatorTest {
                 .expectSubscription()
                 .expectNoEvent(Duration.ofSeconds(1))
 
-                .then(() -> eventPublisher.onNext(new ReplicatorEvent<>("firstUpdate", 0)))
+                .then(() -> eventPublisher.onNext(new ReplicatorEvent<>("firstUpdate", "firstTrigger", 0)))
                 .assertNext(replicator -> {
                     assertThat(replicator.getCurrent()).isEqualTo("firstUpdate");
                 })
-                
+
                 .thenCancel()
                 .verify();
     }
 
-    private class ReplicatorEventStreamStub implements ReplicatorEventStream<String> {
+    private class ReplicatorEventStreamStub implements ReplicatorEventStream<String, String> {
 
         @Override
-        public Flux<ReplicatorEvent<String>> connect() {
+        public Flux<ReplicatorEvent<String, String>> connect() {
             return eventPublisher;
         }
     }

@@ -40,7 +40,10 @@ import rx.Observable;
 
 /**
  * Rx wrapper for {@link com.netflix.titus.grpc.protogen.JobManagementServiceGrpc}.
+ *
+ * @deprecated Use {@link com.netflix.titus.runtime.connector.jobmanager.JobManagementClient} and {@link com.netflix.titus.runtime.connector.jobmanager.CachedReadOnlyJobOperations} instead.
  */
+@Deprecated
 public class RxGrpcJobManagementService {
     private final ManagedChannel channel;
 

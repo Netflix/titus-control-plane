@@ -18,11 +18,12 @@ package com.netflix.titus.runtime.connector.eviction.replicator;
 
 import java.time.Duration;
 
+import com.netflix.titus.api.eviction.model.event.EvictionEvent;
 import com.netflix.titus.api.model.reference.Reference;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.runtime.connector.common.replicator.DataReplicatorMetrics;
-import com.netflix.titus.runtime.connector.common.replicator.ReplicatorEventStream.ReplicatorEvent;
+import com.netflix.titus.runtime.connector.common.replicator.ReplicatorEvent;
 import com.netflix.titus.runtime.connector.eviction.EvictionDataSnapshot;
 import com.netflix.titus.runtime.connector.eviction.EvictionServiceClient;
 import com.netflix.titus.runtime.connector.jobmanager.replicator.GrpcJobReplicatorEventStream;
@@ -56,7 +57,7 @@ public class GrpcEvictionReplicatorEventStreamTest {
                 .assertNext(initialReplicatorEvent -> {
                     assertThat(initialReplicatorEvent).isNotNull();
 
-                    EvictionDataSnapshot cache = initialReplicatorEvent.getData();
+                    EvictionDataSnapshot cache = initialReplicatorEvent.getSnapshot();
                     assertThat(cache.getSystemEvictionQuota().getQuota()).isEqualTo(25);
                     assertThat(cache.findEvictionQuota(Reference.job("job1")).get().getQuota()).isEqualTo(5);
                 })
@@ -69,10 +70,10 @@ public class GrpcEvictionReplicatorEventStreamTest {
     public void testSystemQuotaUpdate() {
         evictionComponentStub.setSystemQuota(25);
         newConnectVerifier()
-                .assertNext(next -> assertThat(next.getData().getSystemEvictionQuota().getQuota()).isEqualTo(25))
+                .assertNext(next -> assertThat(next.getSnapshot().getSystemEvictionQuota().getQuota()).isEqualTo(25))
                 .then(() -> evictionComponentStub.setSystemQuota(50))
                 .thenConsumeWhile(next -> !isSystemQuotaUpdate(next, 50))
-                .assertNext(next -> assertThat(next.getData().getSystemEvictionQuota().getQuota()).isEqualTo(50))
+                .assertNext(next -> assertThat(next.getSnapshot().getSystemEvictionQuota().getQuota()).isEqualTo(50))
                 .thenCancel()
                 .verify();
     }
@@ -81,10 +82,10 @@ public class GrpcEvictionReplicatorEventStreamTest {
     public void testJobQuotaUpdate() {
         evictionComponentStub.setJobQuota("job1", 1);
         newConnectVerifier()
-                .assertNext(next -> assertThat(next.getData().findEvictionQuota(Reference.job("job1")).get().getQuota()).isEqualTo(1))
+                .assertNext(next -> assertThat(next.getSnapshot().findEvictionQuota(Reference.job("job1")).get().getQuota()).isEqualTo(1))
                 .then(() -> evictionComponentStub.setJobQuota("job1", 5))
                 .thenConsumeWhile(next -> !isJobQuotaUpdate(next, "job1", 5))
-                .assertNext(next -> assertThat(next.getData().findEvictionQuota(Reference.job("job1")).get().getQuota()).isEqualTo(5))
+                .assertNext(next -> assertThat(next.getSnapshot().findEvictionQuota(Reference.job("job1")).get().getQuota()).isEqualTo(5))
                 .thenCancel()
                 .verify();
     }
@@ -104,15 +105,15 @@ public class GrpcEvictionReplicatorEventStreamTest {
         return new GrpcEvictionReplicatorEventStream(client, new DataReplicatorMetrics("test", titusRuntime), titusRuntime, Schedulers.parallel());
     }
 
-    private StepVerifier.FirstStep<ReplicatorEvent<EvictionDataSnapshot>> newConnectVerifier() {
+    private StepVerifier.FirstStep<ReplicatorEvent<EvictionDataSnapshot, EvictionEvent>> newConnectVerifier() {
         return StepVerifier.withVirtualTime(() -> newStream().connect().log());
     }
 
-    private boolean isSystemQuotaUpdate(ReplicatorEvent<EvictionDataSnapshot> event, int expectedSystemQuota) {
-        return event.getData().getSystemEvictionQuota().getQuota() == expectedSystemQuota;
+    private boolean isSystemQuotaUpdate(ReplicatorEvent<EvictionDataSnapshot, EvictionEvent> event, int expectedSystemQuota) {
+        return event.getSnapshot().getSystemEvictionQuota().getQuota() == expectedSystemQuota;
     }
 
-    private boolean isJobQuotaUpdate(ReplicatorEvent<EvictionDataSnapshot> event, String jobId, int expectedJobQuota) {
-        return event.getData().findEvictionQuota(Reference.job(jobId)).map(q -> q.getQuota() == expectedJobQuota).orElse(false);
+    private boolean isJobQuotaUpdate(ReplicatorEvent<EvictionDataSnapshot, EvictionEvent> event, String jobId, int expectedJobQuota) {
+        return event.getSnapshot().findEvictionQuota(Reference.job(jobId)).map(q -> q.getQuota() == expectedJobQuota).orElse(false);
     }
 }

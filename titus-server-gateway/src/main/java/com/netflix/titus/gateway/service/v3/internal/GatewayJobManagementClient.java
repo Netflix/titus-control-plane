@@ -61,6 +61,7 @@ import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.runtime.connector.jobmanager.client.GrpcJobManagementClient;
 import com.netflix.titus.runtime.connector.jobmanager.client.JobManagementClientDelegate;
+import com.netflix.titus.runtime.connector.jobmanager.client.SanitizingJobManagementClient;
 import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
@@ -110,11 +111,14 @@ public class GatewayJobManagementClient extends JobManagementClientDelegate {
                                       @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer,
                                       EntityValidator<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> validator,
                                       TitusRuntime titusRuntime) {
-        super(new GrpcJobManagementClient(
-                client,
-                callMetadataResolver,
-                new ExtendedJobSanitizer(jobManagerConfiguration, entitySanitizer),
-                configuration
+        super(new SanitizingJobManagementClient(
+                new GrpcJobManagementClient(
+                        client,
+                        callMetadataResolver,
+
+                        configuration
+                ),
+                new ExtendedJobSanitizer(jobManagerConfiguration, entitySanitizer)
         ));
         this.configuration = configuration;
         this.client = client;

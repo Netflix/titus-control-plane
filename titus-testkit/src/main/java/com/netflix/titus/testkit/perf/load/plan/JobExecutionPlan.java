@@ -16,6 +16,7 @@
 
 package com.netflix.titus.testkit.perf.load.plan;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -26,15 +27,21 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Preconditions;
 
-public class ExecutionPlan {
+public class JobExecutionPlan {
 
-    private final List<ExecutionStep> steps;
+    private final Duration totalRunningTime;
+    private final List<JobExecutionStep> steps;
 
-    public ExecutionPlan(List<ExecutionStep> steps) {
+    public JobExecutionPlan(Duration totalRunningTime, List<JobExecutionStep> steps) {
+        this.totalRunningTime = totalRunningTime;
         this.steps = steps;
     }
 
-    public Iterator<ExecutionStep> newInstance() {
+    public Duration getTotalRunningTime() {
+        return totalRunningTime;
+    }
+
+    public Iterator<JobExecutionStep> newInstance() {
         return new PlanIterator();
     }
 
@@ -44,36 +51,52 @@ public class ExecutionPlan {
 
     public static class ExecutionPlanBuilder {
 
-        private final List<ExecutionStep> steps = new ArrayList<>();
+        private Duration totalRunningTime = Duration.ofDays(30);
+        private final List<JobExecutionStep> steps = new ArrayList<>();
         private final Map<String, Integer> labelPos = new HashMap<>();
+
+        public ExecutionPlanBuilder totalRunningTime(Duration totalRunningTime) {
+            this.totalRunningTime = totalRunningTime;
+            return this;
+        }
 
         public ExecutionPlanBuilder label(String name) {
             labelPos.put(name, steps.size());
             return this;
         }
 
+        public ExecutionPlanBuilder findOwnJob() {
+            steps.add(JobExecutionStep.findOwnJob());
+            return this;
+        }
+
+        public ExecutionPlanBuilder findOwnTasks() {
+            steps.add(JobExecutionStep.findOwnTasks());
+            return this;
+        }
+
         public ExecutionPlanBuilder killRandomTask() {
-            steps.add(ExecutionStep.killRandomTask());
+            steps.add(JobExecutionStep.killRandomTask());
             return this;
         }
 
         public ExecutionPlanBuilder evictRandomTask() {
-            steps.add(ExecutionStep.evictRandomTask());
+            steps.add(JobExecutionStep.evictRandomTask());
             return this;
         }
 
         public ExecutionPlanBuilder terminateAndShrinkRandomTask() {
-            steps.add(ExecutionStep.terminateAndShrinkRandomTask());
+            steps.add(JobExecutionStep.terminateAndShrinkRandomTask());
             return this;
         }
 
         public ExecutionPlanBuilder scaleUp(int delta) {
-            steps.add(ExecutionStep.scaleUp(delta));
+            steps.add(JobExecutionStep.scaleUp(delta));
             return this;
         }
 
         public ExecutionPlanBuilder scaleDown(int delta) {
-            steps.add(ExecutionStep.scaleDown(delta));
+            steps.add(JobExecutionStep.scaleDown(delta));
             return this;
         }
 
@@ -83,34 +106,39 @@ public class ExecutionPlan {
 
         public ExecutionPlanBuilder loop(String label, int times) {
             Preconditions.checkArgument(labelPos.containsKey(label), "Execution plan has no label " + label);
-            steps.add(ExecutionStep.loop(labelPos.get(label), times));
+            steps.add(JobExecutionStep.loop(labelPos.get(label), times));
             return this;
         }
 
         public ExecutionPlanBuilder delay(long duration, TimeUnit timeUnit) {
-            steps.add(ExecutionStep.delayStep(duration, timeUnit));
+            steps.add(JobExecutionStep.delayStep(duration, timeUnit));
+            return this;
+        }
+
+        public ExecutionPlanBuilder delay(Duration duration) {
+            steps.add(JobExecutionStep.delayStep(duration.toMillis(), TimeUnit.MILLISECONDS));
             return this;
         }
 
         public ExecutionPlanBuilder awaitCompletion() {
-            steps.add(ExecutionStep.awaitCompletion());
+            steps.add(JobExecutionStep.awaitCompletion());
             return this;
         }
 
         public ExecutionPlanBuilder terminate() {
-            steps.add(ExecutionStep.terminate());
+            steps.add(JobExecutionStep.terminate());
             return this;
         }
 
-        public ExecutionPlan build() {
-            if (steps.get(steps.size() - 1) != ExecutionStep.terminate()) {
-                steps.add(ExecutionStep.terminate());
+        public JobExecutionPlan build() {
+            if (steps.get(steps.size() - 1) != JobExecutionStep.terminate()) {
+                steps.add(JobExecutionStep.terminate());
             }
-            return new ExecutionPlan(steps);
+            return new JobExecutionPlan(totalRunningTime, steps);
         }
     }
 
-    private class PlanIterator implements Iterator<ExecutionStep> {
+    private class PlanIterator implements Iterator<JobExecutionStep> {
 
         private final int[] counters;
         private int nextIdx;
@@ -125,14 +153,14 @@ public class ExecutionPlan {
         }
 
         @Override
-        public ExecutionStep next() {
+        public JobExecutionStep next() {
             if (!hasNext()) {
                 throw new NoSuchElementException();
             }
-            ExecutionStep step = steps.get(nextIdx);
+            JobExecutionStep step = steps.get(nextIdx);
 
-            if (step instanceof ExecutionStep.LoopStep) {
-                ExecutionStep.LoopStep loopStep = (ExecutionStep.LoopStep) step;
+            if (step instanceof JobExecutionStep.LoopStep) {
+                JobExecutionStep.LoopStep loopStep = (JobExecutionStep.LoopStep) step;
                 if (loopStep.getTimes() < 0) {
                     nextIdx = loopStep.getPosition();
                 } else if (loopStep.getTimes() > counters[nextIdx]) {

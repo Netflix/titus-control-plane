@@ -232,6 +232,13 @@ public final class ReactorExt {
     }
 
     /**
+     * {@link Flux} bridge to RxJava {@link Observable}.
+     */
+    public static <T> Observable<T> toObservable(Flux<T> flux) {
+        return RxJavaInterop.toV1Observable(flux);
+    }
+
+    /**
      * {@link Mono} bridge to RxJava {@link Observable}.
      */
     public static <T> Observable<T> toObservable(Mono<T> mono) {

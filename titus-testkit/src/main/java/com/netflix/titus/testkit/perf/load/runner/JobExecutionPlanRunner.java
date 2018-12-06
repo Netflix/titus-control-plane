@@ -23,9 +23,13 @@ import java.util.concurrent.TimeUnit;
 
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.common.util.rx.ReactorExt;
-import com.netflix.titus.testkit.perf.load.job.JobExecutor;
-import com.netflix.titus.testkit.perf.load.plan.ExecutionPlan;
-import com.netflix.titus.testkit.perf.load.plan.ExecutionStep;
+import com.netflix.titus.grpc.protogen.JobQuery;
+import com.netflix.titus.grpc.protogen.Page;
+import com.netflix.titus.grpc.protogen.TaskQuery;
+import com.netflix.titus.testkit.perf.load.ExecutionContext;
+import com.netflix.titus.testkit.perf.load.plan.JobExecutionPlan;
+import com.netflix.titus.testkit.perf.load.plan.JobExecutionStep;
+import com.netflix.titus.testkit.perf.load.runner.job.JobExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
@@ -33,21 +37,28 @@ import rx.Completable;
 import rx.Observable;
 import rx.Scheduler;
 
-public class ExecutionPlanRunner {
+public class JobExecutionPlanRunner {
 
-    private final static Logger logger = LoggerFactory.getLogger(ExecutionPlanRunner.class);
+    private final static Logger logger = LoggerFactory.getLogger(JobExecutionPlanRunner.class);
 
     private static final Random random = new Random();
 
-    private final JobExecutor executor;
-    private final Scheduler.Worker worker;
-    private final Iterator<ExecutionStep> planIterator;
+    private static final Page PAGE_OF_500_ITEMS = Page.newBuilder().setPageSize(500).build();
 
-    public ExecutionPlanRunner(JobExecutor jobExecutor,
-                               ExecutionPlan executionPlan,
-                               Scheduler scheduler) {
+    private final JobExecutor executor;
+    private final ExecutionContext context;
+    private final Scheduler.Worker worker;
+    private final long executionDeadline;
+    private final Iterator<JobExecutionStep> planIterator;
+
+    public JobExecutionPlanRunner(JobExecutor jobExecutor,
+                                  JobExecutionPlan jobExecutionPlan,
+                                  ExecutionContext context,
+                                  Scheduler scheduler) {
         this.executor = jobExecutor;
-        this.planIterator = executionPlan.newInstance();
+        this.executionDeadline = System.currentTimeMillis() + jobExecutionPlan.getTotalRunningTime().toMillis();
+        this.planIterator = jobExecutionPlan.newInstance();
+        this.context = context;
 
         this.worker = scheduler.createWorker();
     }
@@ -65,28 +76,32 @@ public class ExecutionPlanRunner {
     }
 
     private void runNext() {
-        ExecutionStep step = planIterator.next();
+        JobExecutionStep step = planIterator.next();
         logger.info("Executing step {}", step);
 
-        if (step instanceof ExecutionStep.TerminateStep) {
+        if (step instanceof JobExecutionStep.TerminateStep || executionDeadline < System.currentTimeMillis()) {
             terminateJob();
             return;
         }
 
         Observable<Void> action;
-        if (step instanceof ExecutionStep.ScaleUpStep) {
-            action = doScaleUp((ExecutionStep.ScaleUpStep) step);
-        } else if (step instanceof ExecutionStep.ScaleDownStep) {
-            action = doScaleDown((ExecutionStep.ScaleDownStep) step);
-        } else if (step instanceof ExecutionStep.KillRandomTaskStep) {
+        if (step instanceof JobExecutionStep.ScaleUpStep) {
+            action = doScaleUp((JobExecutionStep.ScaleUpStep) step);
+        } else if (step instanceof JobExecutionStep.ScaleDownStep) {
+            action = doScaleDown((JobExecutionStep.ScaleDownStep) step);
+        } else if (step instanceof JobExecutionStep.FindOwnJobStep) {
+            action = doFindOwnJob();
+        } else if (step instanceof JobExecutionStep.FindOwnTasksStep) {
+            action = doFindOwnTasks();
+        } else if (step instanceof JobExecutionStep.KillRandomTaskStep) {
             action = doKillRandomTask();
-        } else if (step instanceof ExecutionStep.EvictRandomTaskStep) {
+        } else if (step instanceof JobExecutionStep.EvictRandomTaskStep) {
             action = ReactorExt.toObservable(doEvictRandomTask());
-        } else if (step instanceof ExecutionStep.TerminateAndShrinkRandomTaskStep) {
+        } else if (step instanceof JobExecutionStep.TerminateAndShrinkRandomTaskStep) {
             action = doTerminateAndShrinkRandomTask();
-        } else if (step instanceof ExecutionStep.DelayStep) {
-            action = doDelay((ExecutionStep.DelayStep) step);
-        } else if (step instanceof ExecutionStep.AwaitCompletionStep) {
+        } else if (step instanceof JobExecutionStep.DelayStep) {
+            action = doDelay((JobExecutionStep.DelayStep) step);
+        } else if (step instanceof JobExecutionStep.AwaitCompletionStep) {
             action = doAwaitCompletion();
         } else {
             throw new IllegalStateException("Unknown execution step " + step);
@@ -107,12 +122,34 @@ public class ExecutionPlanRunner {
         );
     }
 
-    private Observable<Void> doScaleUp(ExecutionStep.ScaleUpStep step) {
+    private Observable<Void> doScaleUp(JobExecutionStep.ScaleUpStep step) {
         return executor.scaleUp(step.getDelta());
     }
 
-    private Observable<Void> doScaleDown(ExecutionStep.ScaleDownStep step) {
+    private Observable<Void> doScaleDown(JobExecutionStep.ScaleDownStep step) {
         return executor.scaleDown(step.getDelta());
+    }
+
+    private Observable<Void> doFindOwnJob() {
+        return context.getJobManagementClient()
+                .findJobs(JobQuery.newBuilder()
+                        .putFilteringCriteria("jobIds", executor.getJobId())
+                        .setPage(PAGE_OF_500_ITEMS)
+                        .build()
+                )
+                .ignoreElements()
+                .cast(Void.class);
+    }
+
+    private Observable<Void> doFindOwnTasks() {
+        return context.getJobManagementClient()
+                .findTasks(TaskQuery.newBuilder()
+                        .putFilteringCriteria("jobIds", executor.getJobId())
+                        .setPage(PAGE_OF_500_ITEMS)
+                        .build()
+                )
+                .ignoreElements()
+                .cast(Void.class);
     }
 
     private Observable<Void> doKillRandomTask() {
@@ -145,7 +182,7 @@ public class ExecutionPlanRunner {
         return executor.terminateAndShrink(task.getId());
     }
 
-    private Observable<Void> doDelay(ExecutionStep.DelayStep delayStep) {
+    private Observable<Void> doDelay(JobExecutionStep.DelayStep delayStep) {
         return Observable.timer(delayStep.getDelayMs(), TimeUnit.MILLISECONDS).ignoreElements().cast(Void.class);
     }
 

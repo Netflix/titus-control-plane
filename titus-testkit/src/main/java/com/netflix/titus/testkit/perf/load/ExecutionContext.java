@@ -16,17 +16,20 @@
 
 package com.netflix.titus.testkit.perf.load;
 
-import java.util.Date;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.grpc.protogen.EvictionServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceBlockingStub;
 import com.netflix.titus.runtime.connector.eviction.EvictionServiceClient;
 import com.netflix.titus.runtime.connector.eviction.client.GrpcEvictionServiceClient;
+import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.runtime.endpoint.common.grpc.ReactorGrpcClientAdapterFactory;
-import com.netflix.titus.testkit.rx.RxGrpcJobManagementService;
 import io.grpc.ManagedChannel;
 
 @Singleton
@@ -34,25 +37,37 @@ public class ExecutionContext {
 
     public static final String LABEL_SESSION = "titus.load.session";
 
+    private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMddHHmmss").withZone(ZoneId.systemDefault());
+
     private final String sessionId;
-    private final RxGrpcJobManagementService jobManagementClient;
+
+    private final JobManagementClient jobManagementClient;
+    private final ReadOnlyJobOperations cachedJobManagementClient;
+
     private final JobManagementServiceBlockingStub jobManagementClientBlocking;
     private final GrpcEvictionServiceClient evictionServiceClient;
 
     @Inject
-    public ExecutionContext(ManagedChannel titusGrpcChannel,
+    public ExecutionContext(JobManagementClient jobManagementClient,
+                            ReadOnlyJobOperations cachedJobManagementClient,
+                            ManagedChannel titusGrpcChannel,
                             ReactorGrpcClientAdapterFactory grpcClientAdapterFactory) {
-        this.jobManagementClient = new RxGrpcJobManagementService(titusGrpcChannel);
+        this.jobManagementClient = jobManagementClient;
+        this.cachedJobManagementClient = cachedJobManagementClient;
         this.jobManagementClientBlocking = JobManagementServiceGrpc.newBlockingStub(titusGrpcChannel);
         this.evictionServiceClient = new GrpcEvictionServiceClient(
                 grpcClientAdapterFactory,
                 EvictionServiceGrpc.newStub(titusGrpcChannel)
         );
-        this.sessionId = "startedAt=" + new Date();
+        this.sessionId = "session$" + TIMESTAMP_FORMATTER.format(Instant.now());
     }
 
-    public RxGrpcJobManagementService getJobManagementClient() {
+    public JobManagementClient getJobManagementClient() {
         return jobManagementClient;
+    }
+
+    public ReadOnlyJobOperations getCachedJobManagementClient() {
+        return cachedJobManagementClient;
     }
 
     public EvictionServiceClient getEvictionServiceClient() {
