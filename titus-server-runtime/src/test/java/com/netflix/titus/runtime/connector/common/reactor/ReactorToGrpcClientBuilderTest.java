@@ -46,14 +46,18 @@ public class ReactorToGrpcClientBuilderTest {
 
     private static final Duration TIMEOUT_DURATION = Duration.ofSeconds(30);
 
+    private static final SampleContainer HELLO = SampleContainer.newBuilder().setStringValue("Hello").build();
+
     private ManagedChannel channel;
     private Server server;
+    private SampleServiceImpl sampleService;
     private SampleServiceReactApi client;
 
     @Before
     public void setUp() throws Exception {
+        this.sampleService = new SampleServiceImpl();
         this.server = NettyServerBuilder.forPort(0)
-                .addService(ServerInterceptors.intercept(new SampleServiceImpl(), new V3HeaderInterceptor()))
+                .addService(ServerInterceptors.intercept(sampleService, new V3HeaderInterceptor()))
                 .build()
                 .start();
         this.channel = NettyChannelBuilder.forTarget("localhost:" + server.getPort())
@@ -73,8 +77,14 @@ public class ReactorToGrpcClientBuilderTest {
     }
 
     @Test(timeout = 30_000)
-    public void testMono() {
+    public void testMonoGet() {
         assertThat(client.getOneValue().block().getStringValue()).isEqualTo("Hello");
+    }
+
+    @Test(timeout = 30_000)
+    public void testMonoSet() {
+        assertThat(client.setOneValue(HELLO).block()).isNull();
+        assertThat(sampleService.lastSet).isEqualTo(HELLO);
     }
 
     @Test(timeout = 30_000)
@@ -93,6 +103,8 @@ public class ReactorToGrpcClientBuilderTest {
 
         Mono<SampleContainer> getOneValue();
 
+        Mono<Void> setOneValue(SampleContainer value);
+
         Flux<SampleContainer> stream();
     }
 
@@ -100,13 +112,20 @@ public class ReactorToGrpcClientBuilderTest {
 
         private final SimpleGrpcCallMetadataResolver metadataResolver = new SimpleGrpcCallMetadataResolver();
 
+        private SampleContainer lastSet;
+
         @Override
         public void getOneValue(Empty request, StreamObserver<SampleContainer> responseObserver) {
             checkMetadata();
-            responseObserver.onNext(SampleContainer.newBuilder()
-                    .setStringValue("Hello")
-                    .build()
-            );
+            responseObserver.onNext(HELLO);
+        }
+
+        @Override
+        public void setOneValue(SampleContainer request, StreamObserver<Empty> responseObserver) {
+            checkMetadata();
+            this.lastSet = request;
+            responseObserver.onNext(Empty.getDefaultInstance());
+            responseObserver.onCompleted();
         }
 
         @Override

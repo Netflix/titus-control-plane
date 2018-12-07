@@ -19,6 +19,7 @@ package com.netflix.titus.testkit.perf.load.rest;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,21 +36,29 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 
 import com.google.common.collect.ImmutableMap;
+import com.netflix.titus.common.util.StringExt;
+import com.netflix.titus.testkit.perf.load.plan.ExecutionPlan;
 import com.netflix.titus.testkit.perf.load.plan.JobExecutableGenerator;
+import com.netflix.titus.testkit.perf.load.plan.catalog.AgentExecutableGeneratorCatalog;
 import com.netflix.titus.testkit.perf.load.plan.catalog.JobExecutableGeneratorCatalog;
 import com.netflix.titus.testkit.perf.load.report.MetricsCollector;
 import com.netflix.titus.testkit.perf.load.rest.representation.ScenarioExecutionRepresentation;
 import com.netflix.titus.testkit.perf.load.rest.representation.ScenarioRepresentation;
 import com.netflix.titus.testkit.perf.load.rest.representation.StartScenarioRequest;
+import com.netflix.titus.testkit.perf.load.runner.AgentTerminator;
+import com.netflix.titus.testkit.perf.load.runner.JobTerminator;
 import com.netflix.titus.testkit.perf.load.runner.Orchestrator;
 import com.netflix.titus.testkit.perf.load.runner.ScenarioRunner;
-import com.netflix.titus.testkit.perf.load.runner.Terminator;
 
 @Path("/")
 @Singleton
 public class ScenarioResource {
 
     private static final Map<String, ScenarioRepresentation> SCENARIOS = ImmutableMap.<String, ScenarioRepresentation>builder()
+            .put("empty", new ScenarioRepresentation(
+                    "empty",
+                    "Job execution scenario that does not create any job"
+            ))
             .put("mixedLoad", new ScenarioRepresentation(
                     "mixedLoad",
                     "Includes all system actions (job management, agent deployment and migration, etc)"
@@ -69,13 +78,16 @@ public class ScenarioResource {
             .build();
 
     private final Orchestrator orchestrator;
-    private final Terminator terminator;
+    private final AgentTerminator agentTerminator;
+    private final JobTerminator jobTerminator;
 
     @Inject
     public ScenarioResource(Orchestrator orchestrator,
-                            Terminator terminator) {
+                            AgentTerminator agentTerminator,
+                            JobTerminator jobTerminator) {
         this.orchestrator = orchestrator;
-        this.terminator = terminator;
+        this.agentTerminator = agentTerminator;
+        this.jobTerminator = jobTerminator;
     }
 
     @GET
@@ -97,17 +109,29 @@ public class ScenarioResource {
     @POST
     @Path("/executions")
     public Response startScenario(StartScenarioRequest request) throws URISyntaxException {
-        String name = request.getName();
+        String jobPlan = request.getJobPlan();
         JobExecutableGenerator jobExecutableGenerator;
 
-        if (name.equals("mixedLoad")) {
+        if (StringExt.isEmpty(jobPlan) || jobPlan.equals("empty")) {
+            jobExecutableGenerator = JobExecutableGeneratorCatalog.empty();
+        } else if (jobPlan.equals("mixedLoad")) {
             jobExecutableGenerator = JobExecutableGeneratorCatalog.mixedLoad(request.getScaleFactor());
-        } else if (name.equals("perfLoad")) {
+        } else if (jobPlan.equals("perfLoad")) {
             jobExecutableGenerator = JobExecutableGeneratorCatalog.perfLoad(request.getScaleFactor());
-        } else if (name.equals("batchJobs")) {
+        } else if (jobPlan.equals("batchJobs")) {
             jobExecutableGenerator = JobExecutableGeneratorCatalog.batchJobs(request.getJobSize(), (int) request.getScaleFactor());
-        } else if (name.equals("evictions")) {
+        } else if (jobPlan.equals("evictions")) {
             jobExecutableGenerator = JobExecutableGeneratorCatalog.evictions(request.getJobSize(), (int) request.getScaleFactor());
+        } else {
+            throw new WebApplicationException(Response.Status.BAD_REQUEST);
+        }
+
+        String agentPlan = request.getAgentPlan();
+        List<ExecutionPlan> agentExecutionPlans;
+        if (StringExt.isEmpty(agentPlan) || agentPlan.equals("empty")) {
+            agentExecutionPlans = Collections.emptyList();
+        } else if (agentPlan.equals("perfLoad")) {
+            agentExecutionPlans = AgentExecutableGeneratorCatalog.perfLoad((int) request.getScaleFactor());
         } else {
             throw new WebApplicationException(Response.Status.BAD_REQUEST);
         }
@@ -116,7 +140,7 @@ public class ScenarioResource {
         context.put("jobSize", request.getJobSize());
         context.put("scaleFactor", request.getScaleFactor());
 
-        ScenarioRunner runner = orchestrator.startScenario(jobExecutableGenerator, context);
+        ScenarioRunner runner = orchestrator.startScenario(jobExecutableGenerator, agentExecutionPlans, context);
         return Response.created(new URI((runner.getScenarioExecutionId()))).build();
     }
 
@@ -154,8 +178,15 @@ public class ScenarioResource {
     public Response stopAllScenarios(@QueryParam("orphaned") boolean orphaned) {
         orchestrator.getScenarioRunners().forEach((id, runner) -> orchestrator.stopScenarioExecution(id));
         if (orphaned) {
-            terminator.doClean();
+            jobTerminator.doClean();
         }
+        return Response.noContent().build();
+    }
+
+    @DELETE
+    @Path("/agents")
+    public Response removeAllAgents() {
+        agentTerminator.doClean();
         return Response.noContent().build();
     }
 

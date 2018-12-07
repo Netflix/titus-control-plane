@@ -115,6 +115,7 @@ public class EmbeddedTitusMaster {
     private int apiPort;
     private int grpcPort;
     private final boolean enableREST;
+    private final boolean enableDisruptionBudget;
     private final String cellName;
     private final MasterDescription masterDescription;
 
@@ -140,6 +141,7 @@ public class EmbeddedTitusMaster {
         this.apiPort = builder.apiPort;
         this.grpcPort = builder.grpcPort;
         this.enableREST = builder.enableREST;
+        this.enableDisruptionBudget = builder.enableDisruptionBudget;
         this.cellName = builder.cellName;
         this.masterDescription = new MasterDescription(
                 "embedded_titus_master", "192.168.0.1", builder.apiPort, "api/postjobstatus",
@@ -154,6 +156,10 @@ public class EmbeddedTitusMaster {
         Properties embeddedProperties = new Properties();
         embeddedProperties.put("governator.jetty.embedded.webAppResourceBase", resourceDir);
         embeddedProperties.put("titus.master.cellName", cellName);
+        if (enableDisruptionBudget) {
+            embeddedProperties.put("titusMaster.jobManager.features.disruptionBudget.featureEnabled", "true");
+            embeddedProperties.put("titusMaster.jobManager.features.disruptionBudget.whiteList", ".*");
+        }
         config.setProperties(embeddedProperties);
 
         if (builder.remoteCloud == null) {
@@ -407,6 +413,7 @@ public class EmbeddedTitusMaster {
                 .withCellName(cellName)
                 .withSimulatedCloud(simulatedCloud)
                 .withProperties(properties)
+                .withEnableDisruptionBudget(enableDisruptionBudget)
                 .withV3JobStore(jobStore);
 
         if (remoteCloud != null) {
@@ -424,6 +431,7 @@ public class EmbeddedTitusMaster {
         private int apiPort;
         private int grpcPort;
         private boolean enableREST = true;
+        private boolean enableDisruptionBudget;
 
         private JobStore v3JobStore;
         private boolean cassandraJobStore;
@@ -454,6 +462,11 @@ public class EmbeddedTitusMaster {
 
         public Builder withEnableREST(boolean enableREST) {
             this.enableREST = enableREST;
+            return this;
+        }
+
+        public Builder withEnableDisruptionBudget(boolean enableDisruptionBudget) {
+            this.enableDisruptionBudget = enableDisruptionBudget;
             return this;
         }
 

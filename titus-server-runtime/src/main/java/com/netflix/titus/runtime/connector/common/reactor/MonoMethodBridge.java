@@ -33,11 +33,13 @@ import reactor.core.publisher.MonoSink;
 class MonoMethodBridge<GRPC_STUB extends AbstractStub<GRPC_STUB>> implements Function<Object[], Publisher> {
 
     private final Method grpcMethod;
+    private final boolean emptyToVoidReply;
     private final Supplier<GRPC_STUB> grpcStubFactory;
     private final Duration reactorTimeout;
 
-    MonoMethodBridge(Method grpcMethod, Supplier<GRPC_STUB> grpcStubFactory, Duration reactorTimeout) {
+    MonoMethodBridge(Method reactMethod, Method grpcMethod, Supplier<GRPC_STUB> grpcStubFactory, Duration reactorTimeout) {
         this.grpcMethod = grpcMethod;
+        this.emptyToVoidReply = GrpcToReactUtil.isEmptyToVoidResult(reactMethod, grpcMethod);
         this.grpcStubFactory = grpcStubFactory;
         this.reactorTimeout = reactorTimeout;
     }
@@ -58,7 +60,11 @@ class MonoMethodBridge<GRPC_STUB extends AbstractStub<GRPC_STUB>> implements Fun
 
                 @Override
                 public void onNext(Object value) {
-                    sink.success(value);
+                    if (emptyToVoidReply) {
+                        sink.success();
+                    } else {
+                        sink.success(value);
+                    }
                 }
 
                 @Override

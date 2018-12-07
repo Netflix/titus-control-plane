@@ -17,6 +17,7 @@
 package com.netflix.titus.testkit.perf.load;
 
 import java.io.PrintWriter;
+import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.google.inject.AbstractModule;
@@ -29,7 +30,9 @@ import com.netflix.governator.guice.jersey.GovernatorJerseySupportModule;
 import com.netflix.governator.guice.jetty.Archaius2JettyModule;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
+import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
+import com.netflix.titus.runtime.connector.agent.AgentManagerConnectorModule;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagerConnectorModule;
 import com.netflix.titus.testkit.perf.load.rest.LoadJerseyModule;
 import io.grpc.ManagedChannel;
@@ -75,23 +78,49 @@ public class LoadGenerator {
                 });
 
                 bind(TitusRuntime.class).toInstance(TitusRuntimes.internal());
-                bind(ManagedChannel.class).toInstance(newManagedChannel(hostName, port));
 
                 install(new LoadModule());
                 install(new LoadJerseyModule());
                 install(new Archaius2JettyModule());
                 install(new GovernatorJerseySupportModule());
                 install(new JobManagerConnectorModule());
+                install(new AgentManagerConnectorModule());
             }
 
             @Provides
             @Singleton
-            JobManagementServiceGrpc.JobManagementServiceStub jobManagementClient(ManagedChannel channel) {
+            JobManagementServiceGrpc.JobManagementServiceStub getJobManagementClient(ManagedChannel channel) {
                 return JobManagementServiceGrpc.newStub(channel);
             }
 
-            ManagedChannel newManagedChannel(String hostName, int port) {
+            @Provides
+            @Singleton
+            AgentManagementServiceGrpc.AgentManagementServiceStub getAgentManagementClient(ManagedChannel channel) {
+                return AgentManagementServiceGrpc.newStub(channel);
+            }
+
+            @Provides
+            @Singleton
+            ManagedChannel getManagedChannel() {
                 return NettyChannelBuilder.forAddress(hostName, port)
+                        .negotiationType(NegotiationType.PLAINTEXT)
+                        .build();
+            }
+
+            @Provides
+            @Singleton
+            @Named(ExecutionContext.CLOUD_SIMULATOR)
+            ManagedChannel getSimulatorManagedChannel() {
+                String simulatorHost;
+                int simulatorPort;
+                if (cli.hasOption('P')) {
+                    simulatorHost = cli.getOptionValue('P');
+                    simulatorPort = getIntOpt(cli, 'p', 7006);
+                } else {
+                    simulatorHost = "localhost";
+                    simulatorPort = 7006;
+                }
+                return NettyChannelBuilder.forAddress(simulatorHost, simulatorPort)
                         .negotiationType(NegotiationType.PLAINTEXT)
                         .build();
             }
@@ -105,8 +134,12 @@ public class LoadGenerator {
         injector.awaitTermination();
     }
 
-    private static int getIntOpt(CommandLine cli, char opt, long defaultValue) throws ParseException {
-        return (int) (cli.hasOption(opt) ? (long) cli.getParsedOptionValue(Character.toString(opt)) : defaultValue);
+    private static int getIntOpt(CommandLine cli, char opt, long defaultValue) {
+        try {
+            return (int) (cli.hasOption(opt) ? (long) cli.getParsedOptionValue(Character.toString(opt)) : defaultValue);
+        } catch (ParseException e) {
+            throw new IllegalArgumentException(e);
+        }
     }
 
     private static Options getOptions() {
@@ -116,6 +149,13 @@ public class LoadGenerator {
                 .build());
         options.addOption(Option.builder("p").longOpt("port").argName("port_number").hasArg().type(Number.class)
                 .desc("TitusMaster port number (default 7001)")
+                .build());
+        options.addOption(Option.builder("S").longOpt("simulator-host").argName("simulator_host_name").hasArg().required(false)
+                .desc("Cloud simulator host name")
+                .build());
+        options.addOption(Option.builder("r").longOpt("simulator-port").argName("simulator_port_number").hasArg().required(false)
+                .type(Number.class)
+                .desc("Cloud simulator port number")
                 .build());
         return options;
     }

@@ -40,14 +40,14 @@ import rx.Observable;
  * Removes running jobs belonging to past sessions.
  */
 @Singleton
-public class Terminator {
+public class JobTerminator {
 
-    private static final Logger logger = LoggerFactory.getLogger(Terminator.class);
+    private static final Logger logger = LoggerFactory.getLogger(JobTerminator.class);
 
     private final ExecutionContext context;
 
     @Inject
-    public Terminator(ExecutionContext context) {
+    public JobTerminator(ExecutionContext context) {
         this.context = context;
     }
 
