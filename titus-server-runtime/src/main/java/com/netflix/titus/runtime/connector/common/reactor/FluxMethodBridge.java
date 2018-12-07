@@ -21,6 +21,7 @@ import java.time.Duration;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import com.google.common.base.Preconditions;
 import com.google.protobuf.Empty;
 import io.grpc.stub.AbstractStub;
 import io.grpc.stub.ClientCallStreamObserver;
@@ -36,9 +37,14 @@ class FluxMethodBridge<GRPC_STUB extends AbstractStub<GRPC_STUB>> implements Fun
     private final Supplier<GRPC_STUB> grpcStubSupplier;
     private final Duration reactorTimeout;
 
-    FluxMethodBridge(Method grpcMethod,
+    FluxMethodBridge(Method reactMethod,
+                     Method grpcMethod,
                      Supplier<GRPC_STUB> grpcStubSupplier,
                      Duration reactorTimeout) {
+        Preconditions.checkArgument(
+                !GrpcToReactUtil.isEmptyToVoidResult(reactMethod, grpcMethod),
+                "Empty GRPC reply to Flux<Mono> mapping not supported (use Mono<Void> in API definition instead)"
+        );
         this.grpcMethod = grpcMethod;
         this.grpcStubSupplier = grpcStubSupplier;
         this.reactorTimeout = reactorTimeout;

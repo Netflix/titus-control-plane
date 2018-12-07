@@ -22,6 +22,9 @@ service SampleService {
     rpc GetOneValue (google.protobuf.Empty) returns (SampleContainer) {
     }
 
-    rpc Stream(google.protobuf.Empty) returns (stream SampleContainer) {
+    rpc SetOneValue (SampleContainer) returns (google.protobuf.Empty) {
+    }
+
+    rpc Stream (google.protobuf.Empty) returns (stream SampleContainer) {
     }
 }

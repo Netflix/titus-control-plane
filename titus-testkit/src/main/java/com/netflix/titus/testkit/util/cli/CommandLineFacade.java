@@ -52,7 +52,7 @@ public class CommandLineFacade {
 
     public String getString(String optionName) {
         String value = apacheCli.getOptionValue(optionName);
-        if (value == null) {
+        if (value == null && defaults.get(optionName) != null) {
             return defaults.get(optionName).toString();
         }
         return value;

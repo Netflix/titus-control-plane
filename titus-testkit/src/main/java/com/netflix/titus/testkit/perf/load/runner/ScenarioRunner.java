@@ -16,9 +16,11 @@
 
 package com.netflix.titus.testkit.perf.load.runner;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 import javax.annotation.PreDestroy;
 
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -30,6 +32,7 @@ import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.rx.ObservableExt;
 import com.netflix.titus.common.util.rx.RetryHandlerBuilder;
 import com.netflix.titus.testkit.perf.load.ExecutionContext;
+import com.netflix.titus.testkit.perf.load.plan.ExecutionPlan;
 import com.netflix.titus.testkit.perf.load.plan.JobExecutableGenerator;
 import com.netflix.titus.testkit.perf.load.runner.job.BatchJobExecutor;
 import com.netflix.titus.testkit.perf.load.runner.job.JobExecutor;
@@ -45,7 +48,8 @@ public class ScenarioRunner {
 
     private static final Logger logger = LoggerFactory.getLogger(Orchestrator.class);
 
-    private final Subscription scenarioSubscription;
+    private final Subscription jobScenarioSubscription;
+    private final Subscription agentScenarioSubscription;
 
     private final AtomicInteger nextSequenceId = new AtomicInteger();
     private final String scenarioExecutionId;
@@ -54,18 +58,23 @@ public class ScenarioRunner {
     public ScenarioRunner(String scenarioExecutionId,
                           Map<String, Object> requestContext,
                           JobExecutableGenerator jobExecutableGenerator,
+                          List<ExecutionPlan> agentExecutionPlans,
                           ExecutionContext context) {
         this.scenarioExecutionId = scenarioExecutionId;
         this.requestContext = requestContext;
-        this.scenarioSubscription = startExecutionScenario(jobExecutableGenerator, context).subscribe(
-                () -> logger.info("Orchestrator's scenario subscription completed"),
-                e -> logger.error("Orchestrator's scenario subscription terminated with an error", e)
+        this.agentScenarioSubscription = startAgentExecutionScenario(agentExecutionPlans, context).subscribe(
+                () -> logger.info("Agent scenario subscription completed"),
+                e -> logger.error("Agent scenario subscription terminated with an error", e)
+        );
+        this.jobScenarioSubscription = startJobExecutionScenario(jobExecutableGenerator, context).subscribe(
+                () -> logger.info("Job scenario subscription completed"),
+                e -> logger.error("Job scenario subscription terminated with an error", e)
         );
     }
 
     @PreDestroy
     public void shutdown() {
-        ObservableExt.safeUnsubscribe(scenarioSubscription);
+        ObservableExt.safeUnsubscribe(agentScenarioSubscription, jobScenarioSubscription);
     }
 
     public String getScenarioExecutionId() {
@@ -76,7 +85,23 @@ public class ScenarioRunner {
         return requestContext;
     }
 
-    private Completable startExecutionScenario(JobExecutableGenerator jobExecutableGenerator, ExecutionContext context) {
+    private Completable startAgentExecutionScenario(List<ExecutionPlan> agentExecutionPlans, ExecutionContext context) {
+        if (agentExecutionPlans.isEmpty()) {
+            return Completable.complete();
+        }
+
+        List<AgentExecutionPlanRunner> runners = agentExecutionPlans.stream()
+                .map(plan -> new AgentExecutionPlanRunner(plan, context, Schedulers.computation()))
+                .collect(Collectors.toList());
+
+        List<Completable> actions = runners.stream().map(AgentExecutionPlanRunner::awaitJobCompletion).collect(Collectors.toList());
+
+        return Completable.merge(actions)
+                .doOnSubscribe(subscription -> runners.forEach(AgentExecutionPlanRunner::start))
+                .doOnUnsubscribe(() -> runners.forEach(AgentExecutionPlanRunner::stop));
+    }
+
+    private Completable startJobExecutionScenario(JobExecutableGenerator jobExecutableGenerator, ExecutionContext context) {
         return jobExecutableGenerator.executionPlans()
                 .flatMap(executable -> {
                     JobDescriptor<?> jobSpec = tagged(newJobDescriptor(executable));

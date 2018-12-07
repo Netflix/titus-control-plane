@@ -18,7 +18,7 @@ package com.netflix.titus.testkit.perf.load.plan.generator;
 
 import com.google.common.base.Preconditions;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import com.netflix.titus.testkit.perf.load.plan.JobExecutionPlan;
+import com.netflix.titus.testkit.perf.load.plan.ExecutionPlan;
 import com.netflix.titus.testkit.perf.load.plan.JobExecutableGenerator;
 import rx.Observable;
 import rx.Subscriber;
@@ -31,7 +31,7 @@ public class ConstantLoadJobExecutableGenerator extends JobExecutableGenerator {
 
     private volatile Subscriber<? super Executable> scenarioSubscriber;
 
-    public ConstantLoadJobExecutableGenerator(String owner, JobDescriptor<?> jobSpec, JobExecutionPlan plan, int numberOfJobs) {
+    public ConstantLoadJobExecutableGenerator(String owner, JobDescriptor<?> jobSpec, ExecutionPlan plan, int numberOfJobs) {
         this.executable = new Executable(owner, jobSpec, plan);
         this.numberOfJobs = numberOfJobs;
     }

@@ -20,8 +20,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import com.netflix.titus.testkit.perf.load.plan.generator.ConstantLoadJobExecutableGenerator;
 import com.netflix.titus.testkit.perf.load.plan.generator.CompositeJobExecutableGenerator;
+import com.netflix.titus.testkit.perf.load.plan.generator.ConstantLoadJobExecutableGenerator;
 import rx.Observable;
 
 public abstract class JobExecutableGenerator {
@@ -29,9 +29,9 @@ public abstract class JobExecutableGenerator {
     public static class Executable {
         private final String owner;
         private final JobDescriptor<?> jobSpec;
-        private final JobExecutionPlan jobExecutionPlan;
+        private final ExecutionPlan jobExecutionPlan;
 
-        public Executable(String owner, JobDescriptor<?> jobSpec, JobExecutionPlan executionPlan) {
+        public Executable(String owner, JobDescriptor<?> jobSpec, ExecutionPlan executionPlan) {
             this.owner = owner;
             this.jobSpec = jobSpec;
             this.jobExecutionPlan = executionPlan;
@@ -45,7 +45,7 @@ public abstract class JobExecutableGenerator {
             return jobSpec;
         }
 
-        public JobExecutionPlan getJobExecutionPlan() {
+        public ExecutionPlan getJobExecutionPlan() {
             return jobExecutionPlan;
         }
     }
@@ -62,7 +62,7 @@ public abstract class JobExecutableGenerator {
 
         private final List<JobExecutableGenerator> scenarios = new ArrayList<>();
 
-        public ExecutionScenarioBuilder constantLoad(JobDescriptor<?> jobSpec, JobExecutionPlan plan, int numberOfJobs) {
+        public ExecutionScenarioBuilder constantLoad(JobDescriptor<?> jobSpec, ExecutionPlan plan, int numberOfJobs) {
             scenarios.add(new ConstantLoadJobExecutableGenerator("scenario#" + scenarios.size(), jobSpec, plan, numberOfJobs));
             return this;
         }

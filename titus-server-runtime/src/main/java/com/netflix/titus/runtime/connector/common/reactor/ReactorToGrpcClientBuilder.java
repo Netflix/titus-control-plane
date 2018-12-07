@@ -26,6 +26,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import com.google.common.base.Preconditions;
+import com.netflix.titus.runtime.endpoint.metadata.AnonymousCallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor;
 import io.grpc.Deadline;
@@ -78,7 +79,20 @@ public class ReactorToGrpcClientBuilder<REACT_API, GRPC_STUB extends AbstractStu
         return new ReactorToGrpcClientBuilder<>(reactApi, grpcStub, grpcServiceDescriptor);
     }
 
+    public static <REACT_API, GRPC_STUB extends AbstractStub<GRPC_STUB>> ReactorToGrpcClientBuilder<REACT_API, GRPC_STUB> newBuilderWithDefaults(
+            Class<REACT_API> reactApi,
+            GRPC_STUB grpcStub,
+            ServiceDescriptor grpcServiceDescriptor) {
+        Preconditions.checkArgument(reactApi.isInterface(), "Interface type required");
+        return new ReactorToGrpcClientBuilder<>(reactApi, grpcStub, grpcServiceDescriptor)
+                .withTimeout(Duration.ofSeconds(10))
+                .withCallMetadataResolver(AnonymousCallMetadataResolver.getInstance());
+    }
+
     public REACT_API build() {
+        Preconditions.checkNotNull(timeout, "GRPC request timeout not set");
+        Preconditions.checkNotNull(callMetadataResolver, "Call metadata resolver not set");
+
         Map<Method, Function<Object[], Publisher>> methodMap = buildMethodMap();
         return (REACT_API) Proxy.newProxyInstance(
                 Thread.currentThread().getContextClassLoader(),
@@ -116,13 +130,13 @@ public class ReactorToGrpcClientBuilder<REACT_API, GRPC_STUB extends AbstractStu
                                                            Supplier<GRPC_STUB> grpcStreamingStubSupplier) {
         Method grpcMethod = GrpcToReactUtil.getGrpcMethod(grpcStub, reactMethod);
         if (reactMethod.getReturnType().isAssignableFrom(Mono.class)) {
-            return new MonoMethodBridge<>(grpcMethod, grpcRequestResponseStubSupplier, reactorTimeout);
+            return new MonoMethodBridge<>(reactMethod, grpcMethod, grpcRequestResponseStubSupplier, reactorTimeout);
         }
         boolean streamingResponse = grpcServiceDescriptor.getMethods().stream()
                 .filter(m -> toMethodNameFromFullName(m.getFullMethodName()).equals(reactMethod.getName()))
                 .findFirst()
                 .map(m -> m.getType() == MethodDescriptor.MethodType.SERVER_STREAMING)
                 .orElse(false);
-        return new FluxMethodBridge<>(grpcMethod, streamingResponse ? grpcStreamingStubSupplier : grpcRequestResponseStubSupplier, reactorTimeout);
+        return new FluxMethodBridge<>(reactMethod, grpcMethod, streamingResponse ? grpcStreamingStubSupplier : grpcRequestResponseStubSupplier, reactorTimeout);
     }
 }

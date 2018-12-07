@@ -22,6 +22,7 @@ import javax.inject.Singleton;
 @Singleton
 public class AnonymousCallMetadataResolver implements CallMetadataResolver {
 
+    private static final AnonymousCallMetadataResolver INSTANCE = new AnonymousCallMetadataResolver();
     private static final CallMetadata ANONYMOUS = CallMetadata.newBuilder().withCallerId("anonymous").build();
 
     private static final Optional<CallMetadata> ANONYMOUS_OPTIONAL = Optional.of(ANONYMOUS);
@@ -29,5 +30,9 @@ public class AnonymousCallMetadataResolver implements CallMetadataResolver {
     @Override
     public Optional<CallMetadata> resolve() {
         return ANONYMOUS_OPTIONAL;
+    }
+
+    public static AnonymousCallMetadataResolver getInstance() {
+        return INSTANCE;
     }
 }

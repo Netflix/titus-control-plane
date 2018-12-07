@@ -17,6 +17,8 @@
 package com.netflix.titus.runtime.connector.common.reactor;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 
 import com.google.common.base.Preconditions;
 import com.google.protobuf.Empty;
@@ -52,5 +54,26 @@ class GrpcToReactUtil {
         Preconditions.checkState(begin + 1 < fullName.length(), "Not GRPC full name: " + fullName);
 
         return Character.toLowerCase(fullName.charAt(begin + 1)) + fullName.substring(begin + 2);
+    }
+
+    static boolean isEmptyToVoidResult(Method reactMethod, Method grpcMethod) {
+        Preconditions.checkArgument(reactMethod.getReturnType().isAssignableFrom(Mono.class) || reactMethod.getReturnType().isAssignableFrom(Flux.class));
+
+        return hasTypeParameter(reactMethod.getGenericReturnType(), 0, Void.class)
+                && hasTypeParameter(grpcMethod.getGenericParameterTypes()[1], 0, Empty.class);
+    }
+
+    private static boolean hasTypeParameter(Type type, int position, Class<?> parameterClass) {
+        if (!(type instanceof ParameterizedType)) {
+            return false;
+        }
+
+        ParameterizedType ptype = (ParameterizedType) type;
+        Type[] typeArguments = ptype.getActualTypeArguments();
+        if (position >= typeArguments.length) {
+            return false;
+        }
+        Type parameterType = typeArguments[position];
+        return parameterClass.isAssignableFrom((Class<?>) parameterType);
     }
 }

@@ -18,16 +18,16 @@ package com.netflix.titus.testkit.perf.load.runner;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.Random;
-import java.util.concurrent.TimeUnit;
 
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.grpc.protogen.JobQuery;
-import com.netflix.titus.grpc.protogen.Page;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.testkit.perf.load.ExecutionContext;
-import com.netflix.titus.testkit.perf.load.plan.JobExecutionPlan;
+import com.netflix.titus.testkit.perf.load.plan.ExecutionPlan;
+import com.netflix.titus.testkit.perf.load.plan.ExecutionStep;
 import com.netflix.titus.testkit.perf.load.plan.JobExecutionStep;
 import com.netflix.titus.testkit.perf.load.runner.job.JobExecutor;
 import org.slf4j.Logger;
@@ -37,22 +37,20 @@ import rx.Completable;
 import rx.Observable;
 import rx.Scheduler;
 
-public class JobExecutionPlanRunner {
+public class JobExecutionPlanRunner extends ExecutionPlanRunner {
 
     private final static Logger logger = LoggerFactory.getLogger(JobExecutionPlanRunner.class);
 
     private static final Random random = new Random();
 
-    private static final Page PAGE_OF_500_ITEMS = Page.newBuilder().setPageSize(500).build();
-
     private final JobExecutor executor;
     private final ExecutionContext context;
     private final Scheduler.Worker worker;
     private final long executionDeadline;
-    private final Iterator<JobExecutionStep> planIterator;
+    private final Iterator<ExecutionStep> planIterator;
 
     public JobExecutionPlanRunner(JobExecutor jobExecutor,
-                                  JobExecutionPlan jobExecutionPlan,
+                                  ExecutionPlan jobExecutionPlan,
                                   ExecutionContext context,
                                   Scheduler scheduler) {
         this.executor = jobExecutor;
@@ -69,43 +67,32 @@ public class JobExecutionPlanRunner {
 
     public void stop() {
         executor.shutdown();
+        worker.unsubscribe();
     }
 
     public Completable awaitJobCompletion() {
         return executor.awaitJobCompletion();
     }
 
+
     private void runNext() {
-        JobExecutionStep step = planIterator.next();
+        ExecutionStep step = planIterator.next();
         logger.info("Executing step {}", step);
 
-        if (step instanceof JobExecutionStep.TerminateStep || executionDeadline < System.currentTimeMillis()) {
+        if (executionDeadline < System.currentTimeMillis()) {
+            logger.info("Job execution time limit passed; terminating: jobId={}", executor.getJobId());
+            terminateJob();
+            return;
+        }
+        if (step.getName().equals(JobExecutionStep.NAME_TERMINATE)) {
             terminateJob();
             return;
         }
 
-        Observable<Void> action;
-        if (step instanceof JobExecutionStep.ScaleUpStep) {
-            action = doScaleUp((JobExecutionStep.ScaleUpStep) step);
-        } else if (step instanceof JobExecutionStep.ScaleDownStep) {
-            action = doScaleDown((JobExecutionStep.ScaleDownStep) step);
-        } else if (step instanceof JobExecutionStep.FindOwnJobStep) {
-            action = doFindOwnJob();
-        } else if (step instanceof JobExecutionStep.FindOwnTasksStep) {
-            action = doFindOwnTasks();
-        } else if (step instanceof JobExecutionStep.KillRandomTaskStep) {
-            action = doKillRandomTask();
-        } else if (step instanceof JobExecutionStep.EvictRandomTaskStep) {
-            action = ReactorExt.toObservable(doEvictRandomTask());
-        } else if (step instanceof JobExecutionStep.TerminateAndShrinkRandomTaskStep) {
-            action = doTerminateAndShrinkRandomTask();
-        } else if (step instanceof JobExecutionStep.DelayStep) {
-            action = doDelay((JobExecutionStep.DelayStep) step);
-        } else if (step instanceof JobExecutionStep.AwaitCompletionStep) {
-            action = doAwaitCompletion();
-        } else {
-            throw new IllegalStateException("Unknown execution step " + step);
-        }
+        Observable<Void> action = toCommonAction(step)
+                .orElseGet(() -> toJobAction(step).orElseThrow(
+                        () -> new IllegalStateException("Unknown execution step " + step))
+                );
 
         long startTime = worker.now();
         action.subscribe(
@@ -120,6 +107,28 @@ public class JobExecutionPlanRunner {
                     worker.schedule(this::runNext);
                 }
         );
+    }
+
+    private Optional<Observable<Void>> toJobAction(ExecutionStep step) {
+        switch (step.getName()) {
+            case JobExecutionStep.NAME_SCALE_UP:
+                return Optional.ofNullable(doScaleUp((JobExecutionStep.ScaleUpStep) step));
+            case JobExecutionStep.NAME_SCALE_DOWN:
+                return Optional.ofNullable(doScaleDown((JobExecutionStep.ScaleDownStep) step));
+            case JobExecutionStep.NAME_FIND_OWN_JOB:
+                return Optional.of(doFindOwnJob());
+            case JobExecutionStep.NAME_FIND_OWN_TASK:
+                return Optional.of(doFindOwnTasks());
+            case JobExecutionStep.NAME_KILL_RANDOM_TASK:
+                return Optional.ofNullable(doKillRandomTask());
+            case JobExecutionStep.NAME_EVICT_RANDOM_TASK:
+                return Optional.of(ReactorExt.toObservable(doEvictRandomTask()));
+            case JobExecutionStep.NAME_TERMINATE_AND_SHRINK_RANDOM_TASK:
+                return Optional.ofNullable(doTerminateAndShrinkRandomTask());
+            case JobExecutionStep.NAME_AWAIT_COMPLETION:
+                return Optional.ofNullable(doAwaitCompletion());
+        }
+        return Optional.empty();
     }
 
     private Observable<Void> doScaleUp(JobExecutionStep.ScaleUpStep step) {
@@ -180,10 +189,6 @@ public class JobExecutionPlanRunner {
 
         Task task = activeTasks.get(random.nextInt(activeTasks.size()));
         return executor.terminateAndShrink(task.getId());
-    }
-
-    private Observable<Void> doDelay(JobExecutionStep.DelayStep delayStep) {
-        return Observable.timer(delayStep.getDelayMs(), TimeUnit.MILLISECONDS).ignoreElements().cast(Void.class);
     }
 
     private Observable<Void> doAwaitCompletion() {

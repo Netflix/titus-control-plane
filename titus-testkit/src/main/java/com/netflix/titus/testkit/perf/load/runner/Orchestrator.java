@@ -16,6 +16,7 @@
 
 package com.netflix.titus.testkit.perf.load.runner;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -25,6 +26,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.netflix.titus.testkit.perf.load.ExecutionContext;
+import com.netflix.titus.testkit.perf.load.plan.ExecutionPlan;
 import com.netflix.titus.testkit.perf.load.plan.JobExecutableGenerator;
 import com.netflix.titus.testkit.perf.load.report.MetricsCollector;
 import com.netflix.titus.testkit.perf.load.report.TextReporter;
@@ -67,11 +69,11 @@ public class Orchestrator {
         return metricsCollector;
     }
 
-    public ScenarioRunner startScenario(JobExecutableGenerator jobExecutableGenerator, Map<String, Object> requestContext) {
+    public ScenarioRunner startScenario(JobExecutableGenerator jobExecutableGenerator, List<ExecutionPlan> agentExecutionPlans, Map<String, Object> requestContext) {
         logger.info("Starting new scenario: " + jobExecutableGenerator);
 
         String id = this.context.getSessionId() + '$' + nextSequenceId.getAndIncrement();
-        ScenarioRunner scenarioRunner = new ScenarioRunner(id, requestContext, jobExecutableGenerator, context);
+        ScenarioRunner scenarioRunner = new ScenarioRunner(id, requestContext, jobExecutableGenerator, agentExecutionPlans, context);
         scenarioRunners.put(id, scenarioRunner);
         return scenarioRunner;
     }

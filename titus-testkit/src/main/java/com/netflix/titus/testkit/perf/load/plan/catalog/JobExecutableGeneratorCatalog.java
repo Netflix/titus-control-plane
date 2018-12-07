@@ -20,10 +20,29 @@ import java.time.Duration;
 
 import com.netflix.titus.testkit.perf.load.plan.JobExecutableGenerator;
 import com.netflix.titus.testkit.perf.load.plan.catalog.JobDescriptorCatalog.ContainerResourceAllocation;
+import rx.Observable;
 
 public final class JobExecutableGeneratorCatalog {
 
+    private static final JobExecutableGenerator EMPTY = new JobExecutableGenerator() {
+        @Override
+        public Observable<Executable> executionPlans() {
+            return Observable.never();
+        }
+
+        @Override
+        public void completed(Executable executable) {
+        }
+    };
+
     private JobExecutableGeneratorCatalog() {
+    }
+
+    /**
+     * Job execution scenario that does not create any job
+     */
+    public static JobExecutableGenerator empty() {
+        return EMPTY;
     }
 
     /**
@@ -58,38 +77,38 @@ public final class JobExecutableGeneratorCatalog {
                 .constantLoad(
                         JobDescriptorCatalog.batchJobEasyToMigrate(ContainerResourceAllocation.Small, 1, Duration.ofMinutes(5)),
                         JobExecutionPlanCatalog.batchWithKilledTasks(),
-                        (int) sizeFactor * 100
+                        (int) sizeFactor * 20
                 )
                 .constantLoad(
                         JobDescriptorCatalog.batchJobEasyToMigrate(ContainerResourceAllocation.Medium, 10, Duration.ofMinutes(10)),
                         JobExecutionPlanCatalog.monitoredBatchJob(),
-                        (int) sizeFactor * 50
+                        (int) sizeFactor * 10
                 )
                 .constantLoad(
                         JobDescriptorCatalog.batchJobEasyToMigrate(ContainerResourceAllocation.Large, 5, Duration.ofMinutes(30)),
                         JobExecutionPlanCatalog.batchWithKilledTasks(),
-                        (int) sizeFactor * 20
+                        (int) sizeFactor * 3
                 )
                 // Service
                 .constantLoad(
                         JobDescriptorCatalog.serviceJobEasyToMigrate(ContainerResourceAllocation.Small, 0, 5, 5),
                         JobExecutionPlanCatalog.monitoredServiceJob(Duration.ofMinutes(10)),
-                        (int) sizeFactor * 100
+                        (int) sizeFactor * 20
                 )
                 .constantLoad(
                         JobDescriptorCatalog.serviceJobEasyToMigrate(ContainerResourceAllocation.Medium, 0, 10, 100),
                         JobExecutionPlanCatalog.terminateAndShrinkAutoScalingService(Duration.ofMinutes(10)),
-                        (int) sizeFactor * 50
+                        (int) sizeFactor * 10
                 )
                 .constantLoad(
                         JobDescriptorCatalog.serviceJobEasyToMigrate(ContainerResourceAllocation.Large, 5, 10, 100),
                         JobExecutionPlanCatalog.terminateAndShrinkAutoScalingService(Duration.ofMinutes(30)),
-                        (int) sizeFactor * 20
+                        (int) sizeFactor * 10
                 )
                 .constantLoad(
                         JobDescriptorCatalog.serviceJobEasyToMigrate(ContainerResourceAllocation.Large, 5, 500, 1000),
                         JobExecutionPlanCatalog.monitoredServiceJob(Duration.ofMinutes(60)),
-                        (int) sizeFactor * 2
+                        (int) sizeFactor * 1
                 )
                 .build();
     }

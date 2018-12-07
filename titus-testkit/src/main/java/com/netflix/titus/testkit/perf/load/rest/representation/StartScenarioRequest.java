@@ -21,21 +21,28 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class StartScenarioRequest {
 
-    private final String name;
+    private final String jobPlan;
+    private final String agentPlan;
     private final int jobSize;
     private final double scaleFactor;
 
     @JsonCreator
-    public StartScenarioRequest(@JsonProperty("name") String name,
+    public StartScenarioRequest(@JsonProperty("jobPlan") String jobPlan,
                                 @JsonProperty("jobSize") int jobSize,
+                                @JsonProperty("agentPlan") String agentPlan,
                                 @JsonProperty("scaleFactor") double scaleFactor) {
-        this.name = name;
+        this.jobPlan = jobPlan;
+        this.agentPlan = agentPlan;
         this.jobSize = jobSize;
         this.scaleFactor = scaleFactor;
     }
 
-    public String getName() {
-        return name;
+    public String getJobPlan() {
+        return jobPlan;
+    }
+
+    public String getAgentPlan() {
+        return agentPlan;
     }
 
     public int getJobSize() {

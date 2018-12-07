@@ -27,7 +27,7 @@ public class JobExecutionPlanTest {
 
     @Test
     public void testSimplePlan() {
-        JobExecutionPlan plan = JobExecutionPlan.newBuilder()
+        ExecutionPlan plan = ExecutionPlan.jobExecutionPlan()
                 .label("start")
                 .delay(5, TimeUnit.SECONDS)
                 .scaleUp(5)
@@ -37,12 +37,12 @@ public class JobExecutionPlanTest {
                 .loop("start", 1)
                 .build();
 
-        Iterator<JobExecutionStep> planIterator = plan.newInstance();
+        Iterator<ExecutionStep> planIterator = plan.newInstance();
 
         for (int i = 0; i < 4; i++) {
-            assertThat(planIterator.next()).isEqualTo(JobExecutionStep.delayStep(5, TimeUnit.SECONDS));
+            assertThat(planIterator.next()).isEqualTo(JobExecutionStep.delay(5, TimeUnit.SECONDS));
             assertThat(planIterator.next()).isEqualTo(JobExecutionStep.scaleUp(5));
-            assertThat(planIterator.next()).isEqualTo(JobExecutionStep.delayStep(5, TimeUnit.SECONDS));
+            assertThat(planIterator.next()).isEqualTo(JobExecutionStep.delay(5, TimeUnit.SECONDS));
             assertThat(planIterator.next()).isEqualTo(JobExecutionStep.scaleDown(5));
         }
         assertThat(planIterator.next()).isEqualTo(JobExecutionStep.terminate());

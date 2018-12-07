@@ -19,21 +19,21 @@ package com.netflix.titus.testkit.perf.load.plan.catalog;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
-import com.netflix.titus.testkit.perf.load.plan.JobExecutionPlan;
+import com.netflix.titus.testkit.perf.load.plan.ExecutionPlan;
 
 public final class JobExecutionPlanCatalog {
 
     private JobExecutionPlanCatalog() {
     }
 
-    public static JobExecutionPlan uninterruptedJob() {
-        return JobExecutionPlan.newBuilder()
+    public static ExecutionPlan uninterruptedJob() {
+        return ExecutionPlan.jobExecutionPlan()
                 .awaitCompletion()
                 .build();
     }
 
-    public static JobExecutionPlan monitoredBatchJob() {
-        return JobExecutionPlan.newBuilder()
+    public static ExecutionPlan monitoredBatchJob() {
+        return ExecutionPlan.jobExecutionPlan()
                 .label("start")
                 .delay(Duration.ofSeconds(30))
                 .findOwnJob()
@@ -42,8 +42,8 @@ public final class JobExecutionPlanCatalog {
                 .build();
     }
 
-    public static JobExecutionPlan monitoredServiceJob(Duration duration) {
-        return JobExecutionPlan.newBuilder()
+    public static ExecutionPlan monitoredServiceJob(Duration duration) {
+        return ExecutionPlan.jobExecutionPlan()
                 .label("start")
                 .totalRunningTime(duration)
                 .findOwnJob()
@@ -52,8 +52,8 @@ public final class JobExecutionPlanCatalog {
                 .build();
     }
 
-    public static JobExecutionPlan batchWithKilledTasks() {
-        return JobExecutionPlan.newBuilder()
+    public static ExecutionPlan batchWithKilledTasks() {
+        return ExecutionPlan.jobExecutionPlan()
                 .label("start")
                 .killRandomTask()
                 .delay(30, TimeUnit.SECONDS)
@@ -61,8 +61,8 @@ public final class JobExecutionPlanCatalog {
                 .build();
     }
 
-    public static JobExecutionPlan serviceWithKilledTasks() {
-        return JobExecutionPlan.newBuilder()
+    public static ExecutionPlan serviceWithKilledTasks() {
+        return ExecutionPlan.jobExecutionPlan()
                 .label("start")
                 .killRandomTask()
                 .delay(30, TimeUnit.SECONDS)
@@ -70,8 +70,8 @@ public final class JobExecutionPlanCatalog {
                 .build();
     }
 
-    public static JobExecutionPlan autoScalingService() {
-        return JobExecutionPlan.newBuilder()
+    public static ExecutionPlan autoScalingService() {
+        return ExecutionPlan.jobExecutionPlan()
                 .label("start")
                 .scaleUp(50)
                 .scaleUp(40)
@@ -83,8 +83,8 @@ public final class JobExecutionPlanCatalog {
                 .build();
     }
 
-    public static JobExecutionPlan terminateAndShrinkAutoScalingService(Duration duration) {
-        return JobExecutionPlan.newBuilder()
+    public static ExecutionPlan terminateAndShrinkAutoScalingService(Duration duration) {
+        return ExecutionPlan.jobExecutionPlan()
                 .totalRunningTime(duration)
                 .scaleUp(5)
                 .label("start")
@@ -101,8 +101,8 @@ public final class JobExecutionPlanCatalog {
                 .build();
     }
 
-    public static JobExecutionPlan eviction() {
-        return JobExecutionPlan.newBuilder()
+    public static ExecutionPlan eviction() {
+        return ExecutionPlan.jobExecutionPlan()
                 .label("start")
                 .evictRandomTask()
                 .delay(30, TimeUnit.SECONDS)
