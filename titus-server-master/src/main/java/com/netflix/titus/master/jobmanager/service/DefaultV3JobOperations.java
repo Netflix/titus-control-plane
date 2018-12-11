@@ -428,6 +428,8 @@ public class DefaultV3JobOperations implements V3JobOperations {
                 throw JobManagerException.sameJobs(jobFrom.getId());
             }
 
+            // TODO(fabio): validate that source and destination jobs are compatible (same container specs)
+
             ReconciliationEngine<JobManagerReconcilerEvent> engineTo =
                     reconciliationFramework.findEngineByRootId(targetJobId).orElseThrow(() -> JobManagerException.jobNotFound(targetJobId));
             Job<ServiceJobExt> jobTo = engineTo.getReferenceView().getEntity();
