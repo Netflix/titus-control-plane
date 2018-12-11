@@ -132,7 +132,7 @@ public class JobManagerException extends RuntimeException {
     }
 
     public static JobManagerException notServiceJobDescriptor(JobDescriptor<?> jobDescriptor) {
-        return new JobManagerException(ErrorCode.NotServiceJob, format("Operation restricted to service job descriptors, but got: %s", jobDescriptor));
+        return new JobManagerException(ErrorCode.NotServiceJobDescriptor, format("Operation restricted to service job descriptors, but got: %s", jobDescriptor));
     }
 
     public static JobManagerException notServiceJob(String jobId) {
@@ -140,7 +140,7 @@ public class JobManagerException extends RuntimeException {
     }
 
     public static JobManagerException notBatchJobDescriptor(JobDescriptor<?> jobDescriptor) {
-        return new JobManagerException(ErrorCode.NotBatchJob, format("Operation restricted to batch job descriptors, but got: %s", jobDescriptor));
+        return new JobManagerException(ErrorCode.NotBatchJobDescriptor, format("Operation restricted to batch job descriptors, but got: %s", jobDescriptor));
     }
 
     public static JobManagerException notBatchJob(String jobId) {

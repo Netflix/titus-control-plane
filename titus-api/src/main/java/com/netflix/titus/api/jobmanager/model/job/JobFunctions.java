@@ -119,7 +119,7 @@ public final class JobFunctions {
     }
 
     public static JobDescriptor<ServiceJobExt> asServiceJob(JobDescriptor<?> jobDescriptor) {
-        if (isBatchJob(jobDescriptor)) {
+        if (isServiceJob(jobDescriptor)) {
             return (JobDescriptor<ServiceJobExt>) jobDescriptor;
         }
         throw JobManagerException.notServiceJobDescriptor(jobDescriptor);
