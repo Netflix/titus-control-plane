@@ -80,9 +80,11 @@ public class JobManagerException extends RuntimeException {
         switch (((JobManagerException) error).getErrorCode()) {
             case JobCreateLimited:
             case JobNotFound:
+            case TaskNotFound:
             case NotServiceJobDescriptor:
             case NotServiceJob:
-            case TaskNotFound:
+            case NotBatchJobDescriptor:
+            case NotBatchJob:
             case JobTerminating:
             case TaskTerminating:
             case InvalidContainerResources:
@@ -93,10 +95,6 @@ public class JobManagerException extends RuntimeException {
             case TaskJobMismatch:
             case NotEnabled:
                 return true;
-            case NotBatchJobDescriptor:
-                break;
-            case NotBatchJob:
-                break;
             case UnexpectedJobState:
             case UnexpectedTaskState:
                 return false;

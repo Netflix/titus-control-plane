@@ -167,12 +167,20 @@ public final class ErrorResponses {
                     return Status.NOT_FOUND;
                 case JobTerminating:
                 case TaskTerminating:
-                case NotServiceJob:
                 case UnexpectedJobState:
                 case UnexpectedTaskState:
+                case NotEnabled:
                     return Status.FAILED_PRECONDITION;
                 case InvalidContainerResources:
                 case InvalidDesiredCapacity:
+                case NotServiceJob:
+                case NotServiceJobDescriptor:
+                case NotBatchJob:
+                case NotBatchJobDescriptor:
+                case BelowMinCapacity:
+                case AboveMaxCapacity:
+                case TaskJobMismatch:
+                case SameJobIds:
                     return Status.INVALID_ARGUMENT;
             }
         } else if (cause instanceof EvictionException) {
