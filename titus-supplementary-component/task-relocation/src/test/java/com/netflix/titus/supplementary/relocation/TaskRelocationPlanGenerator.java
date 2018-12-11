@@ -16,10 +16,10 @@
 
 package com.netflix.titus.supplementary.relocation;
 
-import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan;
-import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan.TaskRelocationReason;
-import com.netflix.titus.supplementary.relocation.model.TaskRelocationStatus;
-import com.netflix.titus.supplementary.relocation.model.TaskRelocationStatus.TaskRelocationState;
+import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
+import com.netflix.titus.api.relocation.model.TaskRelocationPlan.TaskRelocationReason;
+import com.netflix.titus.api.relocation.model.TaskRelocationStatus;
+import com.netflix.titus.api.relocation.model.TaskRelocationStatus.TaskRelocationState;
 
 public class TaskRelocationPlanGenerator {
 
@@ -36,8 +36,8 @@ public class TaskRelocationPlanGenerator {
         return TaskRelocationStatus.newBuilder()
                 .withTaskId("task1")
                 .withState(TaskRelocationState.Success)
-                .withReasonCode(TaskRelocationStatus.REASON_CODE_TERMINATED)
-                .withReasonMessage("Successfully terminated")
+                .withStatusCode(TaskRelocationStatus.STATUS_CODE_TERMINATED)
+                .withStatusMessage("Successfully terminated")
                 .withTaskRelocationPlan(oneMigrationPlan())
                 .build();
     }

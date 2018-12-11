@@ -52,6 +52,7 @@ import rx.Completable;
 import rx.Observable;
 import rx.schedulers.Schedulers;
 
+import static com.jayway.awaitility.Awaitility.await;
 import static java.util.Arrays.asList;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -245,7 +246,7 @@ public class DefaultAppScaleManagerTest {
     }
 
     @Test
-    public void checkBulkPolicyCreations() throws InterruptedException {
+    public void checkBulkPolicyCreations() {
         AutoScalingPolicyTests.MockAlarmClient mockAlarmClient = new AutoScalingPolicyTests.MockAlarmClient();
         AutoScalingPolicyTests.MockAppAutoScalingClient mockAppAutoScalingClient = new AutoScalingPolicyTests.MockAppAutoScalingClient();
         InMemoryPolicyStore policyStore = new InMemoryPolicyStore();
@@ -272,9 +273,7 @@ public class DefaultAppScaleManagerTest {
             });
         }
 
-        latch.await(10, TimeUnit.SECONDS);
-        Thread.sleep(2000);
-        Assertions.assertThat(mockAppAutoScalingClient.getNumPolicies()).isEqualTo(totalJobs);
+        await().timeout(30, TimeUnit.SECONDS).until(() -> mockAppAutoScalingClient.getNumPolicies() == totalJobs);
     }
 
     public static class AppScaleClientWithScalingPolicyConstraints extends AutoScalingPolicyTests.MockAppAutoScalingClient {

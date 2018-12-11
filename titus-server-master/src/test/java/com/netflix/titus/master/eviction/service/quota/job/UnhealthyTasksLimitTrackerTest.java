@@ -23,6 +23,7 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
+import com.netflix.titus.api.model.reference.Reference;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.testkit.model.job.JobComponentStub;
@@ -63,54 +64,37 @@ public class UnhealthyTasksLimitTrackerTest {
 
     @Test
     public void testPercentageBasedQuota() {
+        Job<BatchJobExt> job = newBatchJobWithPercentageLimit(10, 80);
         UnhealthyTasksLimitTracker tracker = UnhealthyTasksLimitTracker.percentageLimit(
-                newBatchJobWithPercentageLimit(10, 80),
+                job,
                 jobOperations,
                 jobComponentStub.getContainerHealthService()
         );
-        testQuota(tracker);
+        testQuota(tracker, Reference.job(job.getId()));
     }
 
     @Test
     public void testAbsoluteLimitBasedQuota() {
+        Job<?> job = newBatchJobWithAbsoluteLimit(10, 2);
         UnhealthyTasksLimitTracker tracker = UnhealthyTasksLimitTracker.absoluteLimit(
-                newBatchJobWithAbsoluteLimit(10, 2),
+                job,
                 jobOperations,
                 jobComponentStub.getContainerHealthService()
         );
-        testQuota(tracker);
+        testQuota(tracker, Reference.job(job.getId()));
     }
 
-    private void testQuota(UnhealthyTasksLimitTracker tracker) {
+    private void testQuota(UnhealthyTasksLimitTracker tracker, Reference jobReference) {
         // No tasks are started yet
-        assertThat(tracker.getQuota()).isEqualTo(0);
+        assertThat(tracker.getQuota(jobReference).getQuota()).isEqualTo(0);
 
         // Start all of them
         jobOperations.getTasks().forEach(task -> jobComponentStub.moveTaskToState(task, TaskState.Started));
-        assertThat(tracker.getQuota()).isEqualTo(2);
+        assertThat(tracker.getQuota(jobReference).getQuota()).isEqualTo(2);
 
         // Now make one unhealthy
         jobComponentStub.changeContainerHealth(jobOperations.getTasks().get(0).getId(), ContainerHealthState.Unhealthy);
-        assertThat(tracker.getQuota()).isEqualTo(1);
-    }
-
-    @Test
-    public void testExplainRestrictions() {
-        UnhealthyTasksLimitTracker tracker = UnhealthyTasksLimitTracker.absoluteLimit(
-                newBatchJobWithAbsoluteLimit(10, 1),
-                jobOperations,
-                jobComponentStub.getContainerHealthService()
-        );
-
-        assertThat(tracker.explainRestrictions("notUsed").get()).contains("started=0");
-
-        // Now start all of them and make one unhealthy
-        jobOperations.getTasks().forEach(task -> jobComponentStub.moveTaskToState(task, TaskState.Started));
-
-        String taskId = jobOperations.getTasks().get(0).getId();
-        jobComponentStub.changeContainerHealth(taskId, ContainerHealthState.Unhealthy);
-
-        assertThat(tracker.explainRestrictions("notUsed").get()).contains(taskId);
+        assertThat(tracker.getQuota(jobReference).getQuota()).isEqualTo(1);
     }
 
     private Job<BatchJobExt> newBatchJobWithPercentageLimit(int desired, int percentage) {

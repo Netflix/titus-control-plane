@@ -36,6 +36,7 @@ import com.netflix.titus.common.util.ProtobufCopy;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.concurrency.CallbackCountDownLatch;
 import com.netflix.titus.common.util.rx.EmitterWithMultipleSubscriptions;
+import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.federation.startup.GrpcConfiguration;
 import com.netflix.titus.federation.startup.TitusFederationConfiguration;
@@ -45,6 +46,7 @@ import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobChangeNotification.JobUpdate;
 import com.netflix.titus.grpc.protogen.JobChangeNotification.TaskUpdate;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
+import com.netflix.titus.grpc.protogen.JobDisruptionBudgetUpdate;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
@@ -62,11 +64,14 @@ import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadata;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
+import com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor;
 import com.netflix.titus.runtime.jobmanager.JobManagerCursors;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Emitter;
 import rx.Observable;
@@ -116,6 +121,8 @@ public class AggregatingJobManagementClient implements JobManagementClient {
 
     @Override
     public Observable<String> createJob(JobDescriptor jobDescriptor) {
+        Optional<CallMetadata> context = callMetadataResolver.resolve();
+
         String routeKey = CellRouterUtil.getRouteKeyFromJob(jobDescriptor);
         Cell cell = router.routeKey(routeKey);
         logger.debug("Routing JobDescriptor {} to Cell {} with key {}", jobDescriptor, cell, routeKey);
@@ -134,35 +141,52 @@ public class AggregatingJobManagementClient implements JobManagementClient {
                     emitter::onError,
                     emitter::onCompleted
             );
-            client.createJob(withStackName, streamObserver);
+            wrap(context, client).createJob(withStackName, streamObserver);
         }, grpcConfiguration.getRequestTimeoutMs());
     }
 
     @Override
     public Completable updateJobCapacity(JobCapacityUpdate request) {
+        Optional<CallMetadata> context = callMetadataResolver.resolve();
+
         Observable<Empty> result = jobManagementServiceHelper.findJobInAllCells(request.getJobId())
                 .flatMap(response -> singleCellCall(response.getCell(),
-                        (client, streamObserver) -> client.updateJobCapacity(request, streamObserver))
+                        (client, streamObserver) -> wrap(context, client).updateJobCapacity(request, streamObserver))
                 );
         return result.toCompletable();
     }
 
     @Override
     public Completable updateJobProcesses(JobProcessesUpdate request) {
+        Optional<CallMetadata> context = callMetadataResolver.resolve();
+
         Observable<Empty> result = jobManagementServiceHelper.findJobInAllCells(request.getJobId())
                 .flatMap(response -> singleCellCall(response.getCell(),
-                        (client, streamObserver) -> client.updateJobProcesses(request, streamObserver))
+                        (client, streamObserver) -> wrap(context, client).updateJobProcesses(request, streamObserver))
                 );
         return result.toCompletable();
     }
 
     @Override
     public Completable updateJobStatus(JobStatusUpdate request) {
+        Optional<CallMetadata> context = callMetadataResolver.resolve();
+
         Observable<Empty> result = jobManagementServiceHelper.findJobInAllCells(request.getId())
                 .flatMap(response -> singleCellCall(response.getCell(),
-                        (client, streamObserver) -> client.updateJobStatus(request, streamObserver))
+                        (client, streamObserver) -> wrap(context, client).updateJobStatus(request, streamObserver))
                 );
         return result.toCompletable();
+    }
+
+    @Override
+    public Mono<Void> updateJobDisruptionBudget(JobDisruptionBudgetUpdate request) {
+        Optional<CallMetadata> context = callMetadataResolver.resolve();
+
+        Mono<Empty> result = jobManagementServiceHelper.findJobInAllCellsReact(request.getJobId())
+                .flatMap(response -> singleCellCallReact(response.getCell(),
+                        (client, streamObserver) -> wrap(context, client).updateJobDisruptionBudget(request, streamObserver))
+                );
+        return result.ignoreElement().cast(Void.class);
     }
 
     @Override
@@ -265,10 +289,12 @@ public class AggregatingJobManagementClient implements JobManagementClient {
 
     @Override
     public Completable killJob(String jobId) {
+        Optional<CallMetadata> context = callMetadataResolver.resolve();
+
         JobId id = JobId.newBuilder().setId(jobId).build();
         Observable<Empty> result = jobManagementServiceHelper.findJobInAllCells(jobId)
                 .flatMap(response -> singleCellCall(response.getCell(),
-                        (client, streamObserver) -> client.killJob(id, streamObserver))
+                        (client, streamObserver) -> wrap(context, client).killJob(id, streamObserver))
                 );
         return result.toCompletable();
     }
@@ -360,9 +386,11 @@ public class AggregatingJobManagementClient implements JobManagementClient {
 
     @Override
     public Completable killTask(TaskKillRequest request) {
+        Optional<CallMetadata> context = callMetadataResolver.resolve();
+
         Observable<Empty> result = findTaskInAllCells(request.getTaskId())
                 .flatMap(response -> singleCellCall(response.getCell(),
-                        (client, streamObserver) -> client.killTask(request, streamObserver))
+                        (client, streamObserver) -> wrap(context, client).killTask(request, streamObserver))
                 );
         return result.toCompletable();
     }
@@ -422,6 +450,10 @@ public class AggregatingJobManagementClient implements JobManagementClient {
         return JobChangeNotification.newBuilder().setSnapshotEnd(marker).build();
     }
 
+    private JobManagementServiceStub wrap(Optional<CallMetadata> context, JobManagementServiceStub client) {
+        return context.map(c -> V3HeaderInterceptor.attachCallMetadata(client, c)).orElse(client);
+    }
+
     private JobManagementServiceStub wrap(JobManagementServiceStub client) {
         return createWrappedStub(client, callMetadataResolver, grpcConfiguration.getRequestTimeoutMs());
     }
@@ -433,6 +465,10 @@ public class AggregatingJobManagementClient implements JobManagementClient {
     private <T> Observable<T> singleCellCall(Cell cell, ClientCall<T> clientCall) {
         return callToCell(cell, connector, JobManagementServiceGrpc::newStub,
                 (client, streamObserver) -> clientCall.accept(wrap(client), streamObserver));
+    }
+
+    private <T> Mono<T> singleCellCallReact(Cell cell, ClientCall<T> clientCall) {
+        return ReactorExt.toMono(singleCellCall(cell, clientCall).toSingle());
     }
 
     private <T> Observable<T> singleCellCallWithNoDeadline(Cell cell, ClientCall<T> clientCall) {

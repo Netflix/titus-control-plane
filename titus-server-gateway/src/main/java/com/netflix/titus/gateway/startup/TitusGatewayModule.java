@@ -24,6 +24,7 @@ import com.google.inject.TypeLiteral;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.spectator.api.Registry;
+import com.netflix.titus.api.FeatureFlagModule;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.common.runtime.SystemAbortListener;
 import com.netflix.titus.common.runtime.SystemLogService;
@@ -42,6 +43,8 @@ import com.netflix.titus.gateway.service.v3.V3ServiceModule;
 import com.netflix.titus.gateway.store.StoreModule;
 import com.netflix.titus.runtime.TitusEntitySanitizerModule;
 import com.netflix.titus.runtime.connector.registry.TitusContainerRegistryModule;
+import com.netflix.titus.runtime.connector.relocation.RelocationClientModule;
+import com.netflix.titus.runtime.connector.relocation.RelocationClientTransportModule;
 import com.netflix.titus.runtime.connector.titusmaster.TitusMasterConnectorModule;
 import com.netflix.titus.runtime.endpoint.common.EmptyLogStorageInfo;
 import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
@@ -84,8 +87,17 @@ public final class TitusGatewayModule extends AbstractModule {
         install(new TitusEntitySanitizerModule());
         install(new TitusValidatorModule());
 
+        // Feature flags
+        install(new FeatureFlagModule());
+
         install(new GatewayEndpointModule(enableREST));
         install(new TitusMasterConnectorModule());
+
+        // Integration with the task relocation service is required, as we have to inject a migration plan
+        // into GRPC Task object context. This is needed to preserve the API compatibility with the legacy
+        // task migration API.
+        install(new RelocationClientTransportModule());
+        install(new RelocationClientModule());
 
         bind(V3_LOG_STORAGE_INFO).toInstance(EmptyLogStorageInfo.INSTANCE);
         install(new V3ServiceModule());

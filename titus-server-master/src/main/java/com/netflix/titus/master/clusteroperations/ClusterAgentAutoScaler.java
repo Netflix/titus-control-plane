@@ -66,7 +66,6 @@ import com.netflix.titus.common.util.rx.ObservableExt;
 import com.netflix.titus.common.util.rx.SchedulerExt;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.master.agent.AgentAttributes;
 import com.netflix.titus.master.scheduler.SchedulingService;
 import com.netflix.titus.master.scheduler.TaskPlacementFailure;
 import com.netflix.titus.master.scheduler.TaskPlacementFailure.FailureKind;
@@ -77,6 +76,8 @@ import rx.Scheduler;
 import rx.Subscription;
 
 import static com.netflix.titus.master.MetricConstants.METRIC_CLUSTER_OPERATIONS;
+import static com.netflix.titus.master.agent.AgentAttributes.NOT_REMOVABLE;
+import static com.netflix.titus.master.agent.AgentAttributes.REMOVABLE;
 import static com.netflix.titus.master.clusteroperations.ClusterOperationFunctions.canFit;
 import static com.netflix.titus.master.clusteroperations.ClusterOperationFunctions.getNumberOfTasksOnAgents;
 import static com.netflix.titus.master.clusteroperations.ClusterOperationFunctions.hasTimeElapsed;
@@ -342,7 +343,7 @@ public class ClusterAgentAutoScaler {
                                                                      long elapsed) {
         return instancesForActiveInstanceGroups.entrySet().stream()
                 .flatMap(e -> e.getValue().stream().filter(i -> {
-                    String removableTimestampValue = i.getAttributes().get(AgentAttributes.REMOVABLE);
+                    String removableTimestampValue = i.getAttributes().get(REMOVABLE);
                     if (!Strings.isNullOrEmpty(removableTimestampValue)) {
                         Long parsedRemovableTimestamp = Longs.tryParse(removableTimestampValue);
                         long removableTimestamp = parsedRemovableTimestamp == null ? 0L : parsedRemovableTimestamp;
@@ -362,14 +363,16 @@ public class ClusterAgentAutoScaler {
         return instancesForActiveInstanceGroups.entrySet().stream()
                 .filter(e -> {
                     AgentInstanceGroup instanceGroup = e.getKey();
-                    return instanceGroup.getTier() == tier && instanceGroup.getInstanceType().equals(primaryInstanceType);
+                    return instanceGroup.getTier() == tier &&
+                            instanceGroup.getInstanceType().equals(primaryInstanceType) &&
+                            !instanceGroup.getAttributes().containsKey(NOT_REMOVABLE);
                 })
                 .flatMap(e -> e.getValue().stream().filter(i -> {
                     InstanceLifecycleStatus lifecycleStatus = i.getLifecycleStatus();
                     return lifecycleStatus.getState() == InstanceLifecycleState.Started &&
                             hasTimeElapsed(lifecycleStatus.getLaunchTimestamp(), finished, elapsed) &&
-                            !i.getAttributes().containsKey(AgentAttributes.NOT_REMOVABLE) &&
-                            !i.getAttributes().containsKey(AgentAttributes.REMOVABLE) &&
+                            !i.getAttributes().containsKey(NOT_REMOVABLE) &&
+                            !i.getAttributes().containsKey(REMOVABLE) &&
                             numberOfTasksOnAgent.getOrDefault(i.getId(), 0L) <= 0;
                 }))
                 .collect(Collectors.toList());
@@ -426,7 +429,7 @@ public class ClusterAgentAutoScaler {
 
             List<AgentInstance> removableInstancesInInstanceGroup = instancesForActiveInstanceGroupsById.getOrDefault(instanceGroup.getId(), emptyList())
                     .stream()
-                    .filter(i -> i.getAttributes().containsKey(AgentAttributes.REMOVABLE))
+                    .filter(i -> i.getAttributes().containsKey(REMOVABLE))
                     .collect(Collectors.toList());
 
             List<AgentInstance> agentsEligibleToRemoveInInstanceGroup = idleInstancesByInstanceGroup.getOrDefault(instanceGroup.getId(), emptyList());
@@ -436,7 +439,7 @@ public class ClusterAgentAutoScaler {
                 AgentInstance agentInstance = agentsEligibleToRemoveInInstanceGroup.get(i);
                 Map<String, String> updatedAttributes = CollectionsExt.merge(
                         agentInstance.getAttributes(),
-                        Collections.singletonMap(AgentAttributes.REMOVABLE, String.valueOf(clock.wallTime()))
+                        Collections.singletonMap(REMOVABLE, String.valueOf(clock.wallTime()))
                 );
                 Completable completable = agentManagementService.updateAgentInstanceAttributes(agentInstance.getId(), updatedAttributes);
                 actions.add(completable);
@@ -449,7 +452,7 @@ public class ClusterAgentAutoScaler {
     private Completable createResetOverrideStatusesCompletable(List<AgentInstance> removableInstances) {
         List<Completable> actions = new ArrayList<>();
         for (AgentInstance agentInstance : removableInstances) {
-            Map<String, String> updatedAttributes = CollectionsExt.copyAndRemove(agentInstance.getAttributes(), AgentAttributes.REMOVABLE);
+            Map<String, String> updatedAttributes = CollectionsExt.copyAndRemove(agentInstance.getAttributes(), REMOVABLE);
             Completable completable = agentManagementService.updateAgentInstanceAttributes(agentInstance.getId(), updatedAttributes);
             actions.add(completable);
         }

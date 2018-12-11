@@ -26,18 +26,12 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
-import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.api.model.reference.Reference;
 import com.netflix.titus.common.util.tuple.Pair;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 class StubbedEvictionOperations implements EvictionOperations {
-
-    private static final EvictionQuota SYSTEM_EVICTION_QUOTA = EvictionQuota.newBuilder()
-            .withQuota(Long.MAX_VALUE / 2)
-            .withReference(Reference.system())
-            .build();
 
     private final StubbedEvictionData stubbedEvictionData;
     private final V3JobOperations jobOperations;
@@ -53,44 +47,29 @@ class StubbedEvictionOperations implements EvictionOperations {
             Pair<Job<?>, Task> jobTaskPair = jobOperations.findTaskById(taskId).orElseThrow(() -> JobManagerException.taskNotFound(taskId));
             Job<?> job = jobTaskPair.getLeft();
 
-            long quota = stubbedEvictionData.findJobQuota(job.getId()).orElse(0L);
+            long quota = stubbedEvictionData.findEvictionQuota(Reference.job(job.getId())).map(EvictionQuota::getQuota).orElse(0L);
             if (quota <= 0) {
                 throw EvictionException.noAvailableJobQuota(job, "No quota");
             }
 
             jobOperations.killTask(taskId, false, "Eviction");
-            stubbedEvictionData.setQuota(job.getId(), quota - 1);
+            stubbedEvictionData.setJobQuota(job.getId(), quota - 1);
         });
     }
 
     @Override
-    public EvictionQuota getSystemEvictionQuota() {
-        return SYSTEM_EVICTION_QUOTA;
+    public EvictionQuota getEvictionQuota(Reference reference) {
+        return stubbedEvictionData.getEvictionQuota(reference);
     }
 
     @Override
-    public EvictionQuota getTierEvictionQuota(Tier tier) {
-        return SYSTEM_EVICTION_QUOTA;
-    }
-
-    @Override
-    public EvictionQuota getCapacityGroupEvictionQuota(String capacityGroupName) {
-        return SYSTEM_EVICTION_QUOTA;
-    }
-
-    @Override
-    public Optional<EvictionQuota> findJobEvictionQuota(String jobId) {
-        return stubbedEvictionData.findJobQuota(jobId).map(quota ->
-                EvictionQuota.newBuilder()
-                        .withReference(Reference.job(jobId))
-                        .withQuota(quota)
-                        .build()
-        );
+    public Optional<EvictionQuota> findEvictionQuota(Reference reference) {
+        return stubbedEvictionData.findEvictionQuota(reference);
     }
 
     @Override
     public Flux<EvictionEvent> events(boolean includeSnapshot) {
-        return Flux.error(new RuntimeException("Not implemented yet"));
+        return stubbedEvictionData.events(includeSnapshot);
     }
 
     private Mono<Void> deferMono(Runnable action) {

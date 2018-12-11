@@ -27,7 +27,6 @@ import com.netflix.titus.api.service.TitusServiceException;
 import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
-import rx.Single;
 
 public class Responses {
 
@@ -43,7 +42,16 @@ public class Responses {
 
     public static <T> T fromMono(Mono<T> mono) {
         try {
-            return  mono.timeout(REST_TIMEOUT_DURATION).block();
+            return mono.timeout(REST_TIMEOUT_DURATION).block();
+        } catch (Exception e) {
+            throw fromException(e);
+        }
+    }
+
+    public static Response fromVoidMono(Mono<Void> mono) {
+        try {
+            mono.timeout(REST_TIMEOUT_DURATION).ignoreElement().block();
+            return Response.status(Response.Status.OK).build();
         } catch (Exception e) {
             throw fromException(e);
         }
@@ -56,25 +64,6 @@ public class Responses {
         }
 
         return (T) result.get(0);
-    }
-
-    public static <T> T fromSingle(Single<?> single) {
-        T value;
-        try {
-            value = (T) single.toBlocking().value();
-        } catch (Exception e) {
-            throw fromException(e);
-        }
-        if (value == null) {
-            throw new WebApplicationException(Response.Status.NOT_FOUND);
-        }
-
-        return value;
-    }
-
-    public static Response fromVoidObservable(Observable<Void> observable, Response.Status statusCode) {
-        fromObservable(observable);
-        return Response.status(statusCode).build();
     }
 
     public static Response fromCompletable(Completable completable) {

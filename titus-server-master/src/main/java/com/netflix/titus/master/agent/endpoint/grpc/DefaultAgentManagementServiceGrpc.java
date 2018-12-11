@@ -33,6 +33,7 @@ import com.netflix.titus.api.agent.service.AgentStatusMonitor;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.grpc.protogen.AgentChangeEvent;
 import com.netflix.titus.grpc.protogen.AgentInstance;
+import com.netflix.titus.grpc.protogen.AgentInstanceAttributesUpdate;
 import com.netflix.titus.grpc.protogen.AgentInstanceGroup;
 import com.netflix.titus.grpc.protogen.AgentInstanceGroups;
 import com.netflix.titus.grpc.protogen.AgentInstances;
@@ -146,6 +147,17 @@ public class DefaultAgentManagementServiceGrpc extends AgentManagementServiceImp
     @Override
     public void updateInstanceGroupAttributes(InstanceGroupAttributesUpdate request, StreamObserver<Empty> responseObserver) {
         agentManagementService.updateInstanceGroupAttributes(request.getInstanceGroupId(), request.getAttributesMap()).subscribe(
+                () -> {
+                    responseObserver.onNext(Empty.getDefaultInstance());
+                    responseObserver.onCompleted();
+                },
+                responseObserver::onError
+        );
+    }
+
+    @Override
+    public void updateAgentInstanceAttributes(AgentInstanceAttributesUpdate request, StreamObserver<Empty> responseObserver) {
+        agentManagementService.updateAgentInstanceAttributes(request.getAgentInstanceId(), request.getAttributesMap()).subscribe(
                 () -> {
                     responseObserver.onNext(Empty.getDefaultInstance());
                     responseObserver.onCompleted();

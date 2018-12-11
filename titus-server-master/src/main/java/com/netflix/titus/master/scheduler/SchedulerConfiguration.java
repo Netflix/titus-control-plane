@@ -118,6 +118,6 @@ public interface SchedulerConfiguration {
     /**
      * Whether to spread based on job in the Critical tier.
      */
-    @DefaultValue("false")
+    @DefaultValue("true")
     boolean isCriticalTierJobSpreadingEnabled();
 }

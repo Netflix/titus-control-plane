@@ -22,6 +22,7 @@ import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
+import com.netflix.titus.grpc.protogen.JobDisruptionBudgetUpdate;
 import com.netflix.titus.grpc.protogen.JobProcessesUpdate;
 import com.netflix.titus.grpc.protogen.JobQuery;
 import com.netflix.titus.grpc.protogen.JobQueryResult;
@@ -32,6 +33,7 @@ import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskMoveRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
+import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
 
@@ -53,6 +55,8 @@ public interface JobManagementClient {
     Completable updateJobProcesses(JobProcessesUpdate jobProcessesUpdate);
 
     Completable updateJobStatus(JobStatusUpdate statusUpdate);
+
+    Mono<Void> updateJobDisruptionBudget(JobDisruptionBudgetUpdate request);
 
     Observable<Job> findJob(String jobId);
 

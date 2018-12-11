@@ -35,6 +35,7 @@ import com.netflix.titus.api.connector.cloud.InstanceCloudConnector;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.data.generator.DataGenerator;
+import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.tuple.Either;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.agent.ServerInfo;
@@ -92,6 +93,9 @@ public class DefaultAgentManagementServiceTest {
         when(agentCache.getInstanceGroup(instanceGroups.get(1).getId())).thenReturn(instanceGroups.get(1));
         when(agentCache.getAgentInstances(instanceGroups.get(0).getId())).thenReturn(new HashSet<>(instanceSet0));
         when(agentCache.getAgentInstances(instanceGroups.get(1).getId())).thenReturn(new HashSet<>(instanceSet1));
+        for (AgentInstance instance : CollectionsExt.merge(instanceSet0, instanceSet1)) {
+            when(agentCache.getAgentInstance(instance.getId())).thenReturn(instance);
+        }
         when(agentCache.events()).thenReturn(agentCacheEventSubject);
 
         when(connector.updateCapacity(any(), any(), any())).thenReturn(Completable.complete());
@@ -151,7 +155,7 @@ public class DefaultAgentManagementServiceTest {
     }
 
     @Test
-    public void testUpdateAttributes() {
+    public void testUpdateInstanceGroupAttributes() {
         ExtTestSubscriber<Object> testSubscriber = new ExtTestSubscriber<>();
         AgentInstanceGroup instanceGroup = instanceGroups.get(0);
         assertThat(instanceGroup.getAttributes()).isEmpty();
@@ -159,6 +163,18 @@ public class DefaultAgentManagementServiceTest {
 
         ArgumentCaptor<AgentInstanceGroup> captor = ArgumentCaptor.forClass(AgentInstanceGroup.class);
         verify(agentCache, times(1)).updateInstanceGroupStore(captor.capture());
+        assertThat(captor.getValue().getAttributes()).containsOnlyKeys("a").containsValue("1");
+    }
+
+    @Test
+    public void testUpdateAgentInstanceAttributes() {
+        ExtTestSubscriber<Object> testSubscriber = new ExtTestSubscriber<>();
+        AgentInstance agentInstance = instanceSet0.get(0);
+        assertThat(agentInstance.getAttributes()).isEmpty();
+        service.updateAgentInstanceAttributes(agentInstance.getId(), Collections.singletonMap("a", "1")).toObservable().subscribe(testSubscriber);
+
+        ArgumentCaptor<AgentInstance> captor = ArgumentCaptor.forClass(AgentInstance.class);
+        verify(agentCache, times(1)).updateAgentInstanceStore(captor.capture());
         assertThat(captor.getValue().getAttributes()).containsOnlyKeys("a").containsValue("1");
     }
 

@@ -37,8 +37,12 @@ public class EvictionComponentStub {
         return evictionOperations;
     }
 
-    public void setQuota(String jobId, int quota) {
-        stubbedEvictionData.setQuota(jobId, quota);
+    public void setSystemQuota(int quota) {
+        stubbedEvictionData.setSystemQuota(quota);
+    }
+
+    public void setJobQuota(String jobId, int quota) {
+        stubbedEvictionData.setJobQuota(jobId, quota);
     }
 
     public EvictionServiceClient getEvictionServiceClient() {

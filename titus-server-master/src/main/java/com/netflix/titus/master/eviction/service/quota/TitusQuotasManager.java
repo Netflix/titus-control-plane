@@ -31,6 +31,7 @@ import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
+import com.netflix.titus.api.model.reference.Reference;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.rx.ReactorExt;
@@ -40,6 +41,8 @@ import com.netflix.titus.master.eviction.service.quota.system.SystemQuotaControl
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
+
+import static com.netflix.titus.api.eviction.service.ReadOnlyEvictionOperations.VERY_HIGH_QUOTA;
 
 @Singleton
 public class TitusQuotasManager {
@@ -95,33 +98,51 @@ public class TitusQuotasManager {
             return UNKNOWN_JOB;
         }
 
+        String taskId = task.getId();
+
         synchronized (lock) {
-            if (systemQuotaController.getQuota() < 1) {
-                ConsumptionResult systemResult = systemQuotaController.consume(task.getId());
-                return systemResult.isApproved()
-                        ? jobQuotaController.consume(task.getId())
-                        : systemResult;
+            ConsumptionResult systemResult = systemQuotaController.consume(taskId);
+            ConsumptionResult jobResult = jobQuotaController.consume(taskId);
+
+            if (systemResult.isApproved() && jobResult.isApproved()) {
+                return jobResult;
             }
 
-            if (jobQuotaController.getQuota() < 1) {
-                ConsumptionResult jobResult = jobQuotaController.consume(task.getId());
-                return jobResult.isApproved()
-                        ? systemQuotaController.consume(task.getId())
-                        : jobResult;
+            if (!systemResult.isApproved() && !jobResult.isApproved()) {
+                return ConsumptionResult.rejected(String.format(
+                        "No job and system quota: {systemQuota=%s, jobQuota=%s}",
+                        systemResult.getRejectionReason().get(), jobResult.getRejectionReason().get()
+                ));
             }
 
-            ConsumptionResult systemResult = systemQuotaController.consume(task.getId());
-            return systemResult.isApproved() ? jobQuotaController.consume(task.getId()) : systemResult;
+            if (systemResult.isApproved()) {
+                systemQuotaController.giveBackConsumedQuota(taskId);
+                return jobResult;
+            }
+
+            jobQuotaController.giveBackConsumedQuota(taskId);
+            return systemResult;
         }
     }
 
-    public EvictionQuota getSystemEvictionQuota() {
-        return EvictionQuota.systemQuota(systemQuotaController.getQuota());
-    }
-
-    public Optional<EvictionQuota> findJobEvictionQuota(String jobId) {
-        JobQuotaController jobQuotaController = jobQuotaControllersByJobId.get(jobId);
-        return jobQuotaController == null ? Optional.empty() : Optional.of(EvictionQuota.jobQuota(jobId, jobQuotaController.getQuota()));
+    public Optional<EvictionQuota> findEvictionQuota(Reference reference) {
+        switch (reference.getLevel()) {
+            case System:
+                return Optional.of(systemQuotaController.getQuota(Reference.system()));
+            case Tier:
+            case CapacityGroup:
+                return Optional.of(EvictionQuota.newBuilder().withQuota(VERY_HIGH_QUOTA).withReference(reference).withMessage("Not supported yet").build());
+            case Job:
+                JobQuotaController jobQuotaController = jobQuotaControllersByJobId.get(reference.getName());
+                return jobQuotaController == null ? Optional.empty() : Optional.of(jobQuotaController.getQuota(reference));
+            case Task:
+                return jobOperations.findTaskById(reference.getName())
+                        .flatMap(jobTaskPair -> {
+                            JobQuotaController taskQuotaController = jobQuotaControllersByJobId.get(jobTaskPair.getLeft().getId());
+                            return taskQuotaController == null ? Optional.empty() : Optional.of(taskQuotaController.getQuota(reference));
+                        });
+        }
+        return Optional.empty();
     }
 
     private void updateJobController(Job newJob) {

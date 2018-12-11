@@ -36,6 +36,14 @@ import static java.util.Collections.unmodifiableMap;
 
 public class AgentSnapshot {
 
+    private static final AgentSnapshot EMPTY = new AgentSnapshot(
+            "empty",
+            Collections.emptyMap(),
+            Collections.emptyMap()
+    );
+
+    private final String snapshotId;
+
     private final Map<String, AgentInstanceGroup> instanceGroupsById;
     private final List<AgentInstanceGroup> instanceGroupList;
 
@@ -44,7 +52,8 @@ public class AgentSnapshot {
     private final Map<String, List<AgentInstance>> instancesByInstanceGroupId;
 
 
-    public AgentSnapshot(Map<String, AgentInstanceGroup> instanceGroupsById, Map<String, List<AgentInstance>> instancesByInstanceGroupId) {
+    public AgentSnapshot(String snapshotId, Map<String, AgentInstanceGroup> instanceGroupsById, Map<String, List<AgentInstance>> instancesByInstanceGroupId) {
+        this.snapshotId = snapshotId;
         this.instanceGroupsById = instanceGroupsById;
         this.instanceGroupList = Collections.unmodifiableList(new ArrayList<>(instanceGroupsById.values()));
         this.instancesByInstanceGroupId = asUnmodifiable(instancesByInstanceGroupId);
@@ -53,6 +62,7 @@ public class AgentSnapshot {
     }
 
     public AgentSnapshot(AgentSnapshot previous, AgentInstanceGroup instanceGroup, boolean remove) {
+        this.snapshotId = previous.getSnapshotId();
         if (remove) {
             this.instanceGroupsById = unmodifiableMap(copyAndRemove(previous.instanceGroupsById, instanceGroup.getId()));
             this.instancesById = unmodifiableMap(copyAndRemoveByValue(previous.instancesById, instance -> instance.getInstanceGroupId().equals(instanceGroup.getId())));
@@ -69,6 +79,8 @@ public class AgentSnapshot {
     }
 
     public AgentSnapshot(AgentSnapshot previous, AgentInstance instance, boolean remove) {
+        this.snapshotId = previous.getSnapshotId();
+
         String instanceGroupId = instance.getInstanceGroupId();
 
         AgentInstanceGroup currentInstanceGroup = previous.instanceGroupsById.get(instanceGroupId);
@@ -91,6 +103,10 @@ public class AgentSnapshot {
         AgentInstanceGroup newInstanceGroup = currentInstanceGroup.toBuilder().withCurrent(instancesByInstanceGroupId.get(instanceGroupId).size()).build();
         this.instanceGroupsById = CollectionsExt.copyAndAdd(previous.instanceGroupsById, instanceGroupId, newInstanceGroup);
         this.instanceGroupList = Collections.unmodifiableList(new ArrayList<>(instanceGroupsById.values()));
+    }
+
+    public String getSnapshotId() {
+        return snapshotId;
     }
 
     public List<AgentInstanceGroup> getInstanceGroups() {
@@ -139,7 +155,7 @@ public class AgentSnapshot {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder("AgentSnapshot{instanceGroups=");
+        StringBuilder sb = new StringBuilder("AgentSnapshot{snapshotId=").append(snapshotId).append(", instanceGroups=");
 
         instanceGroupList.forEach(ig -> sb.append(ig.getId()).append('=').append(ig.getCurrent()).append(','));
         sb.setLength(sb.length() - 1);
@@ -182,5 +198,9 @@ public class AgentSnapshot {
         List<AgentInstance> result = new ArrayList<>();
         instances.forEach(i -> result.add(i.getId().equals(instance.getId()) ? instance : i));
         return unmodifiableList(result);
+    }
+
+    public static AgentSnapshot empty() {
+        return EMPTY;
     }
 }

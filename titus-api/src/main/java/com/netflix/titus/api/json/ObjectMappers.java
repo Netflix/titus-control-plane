@@ -80,8 +80,18 @@ import com.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.model.job.TwoLevelResource;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.AvailabilityPercentageLimitDisruptionBudgetPolicy;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.ContainerHealthProvider;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudgetPolicy;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudgetRate;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.HourlyTimeWindow;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.PercentagePerHourDisruptionBudgetRate;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.RelocationLimitDisruptionBudgetPolicy;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.SelfManagedDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.TimeWindow;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.UnhealthyTasksLimitDisruptionBudgetPolicy;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.UnlimitedDisruptionBudgetRate;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.model.job.migration.MigrationDetails;
@@ -92,12 +102,17 @@ import com.netflix.titus.api.jobmanager.model.job.retry.DelayedRetryPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.ExponentialBackoffRetryPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.ImmediateRetryPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
+import com.netflix.titus.api.jobmanager.store.mixin.AvailabilityPercentageLimitDisruptionBudgetPolicyMixIn;
 import com.netflix.titus.api.jobmanager.store.mixin.BatchJobExtMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.BatchJobTaskMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.CapacityMixin;
+import com.netflix.titus.api.jobmanager.store.mixin.ContainerHealthProviderMixIn;
 import com.netflix.titus.api.jobmanager.store.mixin.ContainerMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.ContainerResourcesMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.DelayedRetryPolicyMixin;
+import com.netflix.titus.api.jobmanager.store.mixin.DisruptionBudgetMixIn;
+import com.netflix.titus.api.jobmanager.store.mixin.DisruptionBudgetPolicyMixIn;
+import com.netflix.titus.api.jobmanager.store.mixin.DisruptionBudgetRateMixIn;
 import com.netflix.titus.api.jobmanager.store.mixin.ExponentialBackoffRetryPolicyMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.HourlyTimeWindowMixIn;
 import com.netflix.titus.api.jobmanager.store.mixin.ImageMixin;
@@ -110,8 +125,11 @@ import com.netflix.titus.api.jobmanager.store.mixin.JobStatusMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.MigrationDetailsMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.MigrationPolicyMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.OwnerMixin;
+import com.netflix.titus.api.jobmanager.store.mixin.PercentagePerHourDisruptionBudgetRateMixIn;
+import com.netflix.titus.api.jobmanager.store.mixin.RelocationLimitDisruptionBudgetPolicyMixIn;
 import com.netflix.titus.api.jobmanager.store.mixin.RetryPolicyMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.SecurityProfileMixin;
+import com.netflix.titus.api.jobmanager.store.mixin.SelfManagedDisruptionBudgetPolicyMixIn;
 import com.netflix.titus.api.jobmanager.store.mixin.SelfManagedMigrationPolicyMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.ServiceJobExtMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.ServiceJobProcessesMixin;
@@ -122,6 +140,8 @@ import com.netflix.titus.api.jobmanager.store.mixin.TaskMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.TaskStatusMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.TimeWindowMixIn;
 import com.netflix.titus.api.jobmanager.store.mixin.TwoLevelResourceMixIn;
+import com.netflix.titus.api.jobmanager.store.mixin.UnhealthyTasksLimitDisruptionBudgetPolicyMixIn;
+import com.netflix.titus.api.jobmanager.store.mixin.UnlimitedDisruptionBudgetRateMixIn;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.scheduler.model.Match;
 import com.netflix.titus.api.scheduler.model.Must;
@@ -347,8 +367,6 @@ public class ObjectMappers {
         objectMapper.addMixIn(SystemDefaultMigrationPolicy.class, SystemDefaultMigrationPolicyMixin.class);
         objectMapper.addMixIn(SelfManagedMigrationPolicy.class, SelfManagedMigrationPolicyMixin.class);
         objectMapper.addMixIn(MigrationDetails.class, MigrationDetailsMixin.class);
-        objectMapper.addMixIn(TimeWindow.class, TimeWindowMixIn.class);
-        objectMapper.addMixIn(HourlyTimeWindow.class, HourlyTimeWindowMixIn.class);
         objectMapper.addMixIn(Task.class, TaskMixin.class);
         objectMapper.addMixIn(TwoLevelResource.class, TwoLevelResourceMixIn.class);
         objectMapper.addMixIn(BatchJobTask.class, BatchJobTaskMixin.class);
@@ -361,6 +379,23 @@ public class ObjectMappers {
         objectMapper.addMixIn(Container.class, ContainerMixin.class);
         objectMapper.addMixIn(Image.class, ImageMixin.class);
         objectMapper.addMixIn(ServiceJobProcesses.class, ServiceJobProcessesMixin.class);
+
+        objectMapper.addMixIn(DisruptionBudget.class, DisruptionBudgetMixIn.class);
+
+        objectMapper.addMixIn(DisruptionBudgetPolicy.class, DisruptionBudgetPolicyMixIn.class);
+        objectMapper.addMixIn(AvailabilityPercentageLimitDisruptionBudgetPolicy.class, AvailabilityPercentageLimitDisruptionBudgetPolicyMixIn.class);
+        objectMapper.addMixIn(SelfManagedDisruptionBudgetPolicy.class, SelfManagedDisruptionBudgetPolicyMixIn.class);
+        objectMapper.addMixIn(UnhealthyTasksLimitDisruptionBudgetPolicy.class, UnhealthyTasksLimitDisruptionBudgetPolicyMixIn.class);
+        objectMapper.addMixIn(RelocationLimitDisruptionBudgetPolicy.class, RelocationLimitDisruptionBudgetPolicyMixIn.class);
+
+        objectMapper.addMixIn(DisruptionBudgetRate.class, DisruptionBudgetRateMixIn.class);
+        objectMapper.addMixIn(PercentagePerHourDisruptionBudgetRate.class, PercentagePerHourDisruptionBudgetRateMixIn.class);
+        objectMapper.addMixIn(UnlimitedDisruptionBudgetRate.class, UnlimitedDisruptionBudgetRateMixIn.class);
+
+        objectMapper.addMixIn(ContainerHealthProvider.class, ContainerHealthProviderMixIn.class);
+
+        objectMapper.addMixIn(TimeWindow.class, TimeWindowMixIn.class);
+        objectMapper.addMixIn(HourlyTimeWindow.class, HourlyTimeWindowMixIn.class);
 
         // Scheduler
         objectMapper.addMixIn(Match.class, MatchMixin.class);

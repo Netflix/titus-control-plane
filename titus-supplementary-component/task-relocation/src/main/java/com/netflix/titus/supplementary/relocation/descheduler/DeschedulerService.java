@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.netflix.titus.supplementary.relocation.model.DeschedulingResult;
-import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan;
+import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 
 public interface DeschedulerService {
 

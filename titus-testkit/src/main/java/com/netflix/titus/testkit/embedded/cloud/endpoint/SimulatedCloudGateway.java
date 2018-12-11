@@ -60,6 +60,10 @@ public class SimulatedCloudGateway {
         simulatedCloud.createAgentInstanceGroups(SimulatedAgentGroupDescriptor.awsInstanceGroup(id, instanceType, min, desired, max));
     }
 
+    public void removeInstanceGroup(String instanceGroupId) {
+        simulatedCloud.removeInstanceGroup(instanceGroupId);
+    }
+
     public List<SimulatedInstance> getInstances(String instanceGroupId) {
         return simulatedCloud.getAgentInstanceGroup(instanceGroupId).getAgents().stream()
                 .map(this::toSimulatedInstance)

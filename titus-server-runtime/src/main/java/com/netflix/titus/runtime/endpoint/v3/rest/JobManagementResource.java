@@ -39,6 +39,8 @@ import com.netflix.titus.grpc.protogen.Capacity;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
+import com.netflix.titus.grpc.protogen.JobDisruptionBudget;
+import com.netflix.titus.grpc.protogen.JobDisruptionBudgetUpdate;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.JobProcessesUpdate;
 import com.netflix.titus.grpc.protogen.JobQuery;
@@ -109,6 +111,18 @@ public class JobManagementResource {
                 .setServiceJobProcesses(jobProcesses)
                 .build();
         return Responses.fromCompletable(jobManagementClient.updateJobProcesses(jobProcessesUpdate));
+    }
+
+    @PUT
+    @ApiOperation("Update job's disruption budget")
+    @Path("/jobs/{jobId}/disruptionBudget")
+    public Response setJobDisruptionBudget(@PathParam("jobId") String jobId,
+                                           JobDisruptionBudget jobDisruptionBudget) {
+        JobDisruptionBudgetUpdate request = JobDisruptionBudgetUpdate.newBuilder()
+                .setJobId(jobId)
+                .setDisruptionBudget(jobDisruptionBudget)
+                .build();
+        return Responses.fromVoidMono(jobManagementClient.updateJobDisruptionBudget(request));
     }
 
     @POST

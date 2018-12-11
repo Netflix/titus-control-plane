@@ -24,8 +24,8 @@ import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.supplementary.relocation.AbstractTaskRelocationTest;
 import com.netflix.titus.supplementary.relocation.TestDataFactory;
-import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan;
-import com.netflix.titus.supplementary.relocation.model.TaskRelocationStatus;
+import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
+import com.netflix.titus.api.relocation.model.TaskRelocationStatus;
 import org.junit.Before;
 import org.junit.Test;
 import reactor.core.scheduler.Schedulers;
@@ -65,7 +65,7 @@ public class TaskEvictionStepTest extends AbstractTaskRelocationTest {
 
         TaskRelocationStatus relocationStatus = result.get(task.getId());
         assertThat(relocationStatus.getTaskId()).isEqualTo(task.getId());
-        assertThat(relocationStatus.getReasonCode()).isEqualTo(TaskRelocationStatus.REASON_CODE_TERMINATED);
+        assertThat(relocationStatus.getStatusCode()).isEqualTo(TaskRelocationStatus.STATUS_CODE_TERMINATED);
         assertThat(relocationStatus.getTaskRelocationPlan()).isEqualTo(taskRelocationPlan);
     }
 
@@ -78,7 +78,7 @@ public class TaskEvictionStepTest extends AbstractTaskRelocationTest {
 
         TaskRelocationStatus relocationStatus = result.get("nonExistingTaskId");
         assertThat(relocationStatus.getTaskId()).isEqualTo("nonExistingTaskId");
-        assertThat(relocationStatus.getReasonCode()).isEqualTo(TaskRelocationStatus.REASON_EVICTION_ERROR);
+        assertThat(relocationStatus.getStatusCode()).isEqualTo(TaskRelocationStatus.STATUS_EVICTION_ERROR);
         assertThat(relocationStatus.getTaskRelocationPlan()).isEqualTo(taskRelocationPlan);
     }
 }

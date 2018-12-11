@@ -24,9 +24,9 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static com.netflix.titus.common.util.DateTimeExt.toRateString;
+import static com.netflix.titus.common.util.DateTimeExt.toTimeUnitString;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class DateTimeExtTest {
 
@@ -36,33 +36,39 @@ public class DateTimeExtTest {
         String expected = DateTimeFormatter.ISO_LOCAL_DATE_TIME.withZone(ZoneId.of("UTC")).format(now) + 'Z';
 
         String actual = DateTimeExt.toUtcDateTimeString(Instant.from(now).toEpochMilli());
-        assertThat(actual, is(equalTo(expected)));
+        assertThat(actual).isEqualTo(expected);
     }
 
     @Test
-    public void testTime() throws Exception {
+    public void testTime() {
         long msDuration = 123;
-        assertThat(DateTimeExt.toTimeUnitString(msDuration), is(equalTo("123ms")));
+        assertThat(toTimeUnitString(msDuration)).isEqualTo("123ms");
 
         long secDuration = 3 * 1000 + 123;
-        assertThat(DateTimeExt.toTimeUnitString(secDuration), is(equalTo("3s 123ms")));
+        assertThat(toTimeUnitString(secDuration)).isEqualTo("3s 123ms");
 
         long minDuration = (2 * 60 + 3) * 1000 + 123;
-        assertThat(DateTimeExt.toTimeUnitString(minDuration), is(equalTo("2min 3s 123ms")));
+        assertThat(toTimeUnitString(minDuration)).isEqualTo("2min 3s 123ms");
 
         long hourDuration = ((1 * 60 + 2) * 60 + 3) * 1000 + 123;
-        assertThat(DateTimeExt.toTimeUnitString(hourDuration), is(equalTo("1h 2min 3s 123ms")));
+        assertThat(toTimeUnitString(hourDuration)).isEqualTo("1h 2min 3s 123ms");
 
         long oneSecond = 1 * 1000;
-        assertThat(DateTimeExt.toTimeUnitString(oneSecond), is(equalTo("1s")));
+        assertThat(toTimeUnitString(oneSecond)).isEqualTo("1s");
 
         long oneMillis = 1;
-        assertThat(DateTimeExt.toTimeUnitString(oneMillis), is(equalTo("1ms")));
+        assertThat(toTimeUnitString(oneMillis)).isEqualTo("1ms");
 
         long zeroMillis = 0;
-        assertThat(DateTimeExt.toTimeUnitString(zeroMillis), is(equalTo("0ms")));
+        assertThat(toTimeUnitString(zeroMillis)).isEqualTo("0ms");
 
         long twoDays = TimeUnit.DAYS.toMillis(2);
-        assertThat(DateTimeExt.toTimeUnitString(twoDays), is(equalTo("2d")));
+        assertThat(toTimeUnitString(twoDays)).isEqualTo("2d");
+    }
+
+    @Test
+    public void testToRateString() {
+        assertThat(toRateString(1, 1, TimeUnit.MILLISECONDS, "action")).isEqualTo("1.00 action/ms");
+        assertThat(toRateString(60, 5, TimeUnit.SECONDS, "action")).isEqualTo("5.00 action/min");
     }
 }

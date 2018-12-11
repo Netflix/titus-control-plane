@@ -375,7 +375,7 @@
     },
     "protobuf": {
         "com.netflix.titus:titus-api-definitions": {
-            "locked": "0.0.1-rc46",
+            "locked": "0.0.1-rc51",
             "requested": "0.0.1-rc+"
         }
     },
@@ -711,13 +711,13 @@
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.1.11.RELEASE",
+            "locked": "3.1.12.RELEASE",
             "transitive": [
                 "io.projectreactor:reactor-test"
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.1.11.RELEASE",
+            "locked": "3.1.12.RELEASE",
             "requested": "3.1.+"
         },
         "junit:junit-dep": {
@@ -725,13 +725,13 @@
             "requested": "4.10"
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.9.0",
+            "locked": "1.9.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.9.0",
+            "locked": "1.9.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -756,7 +756,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.23.0",
+            "locked": "2.23.4",
             "requested": "2.+"
         },
         "org.objenesis:objenesis": {
@@ -879,13 +879,13 @@
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.1.11.RELEASE",
+            "locked": "3.1.12.RELEASE",
             "transitive": [
                 "io.projectreactor:reactor-test"
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.1.11.RELEASE",
+            "locked": "3.1.12.RELEASE",
             "requested": "3.1.+"
         },
         "junit:junit-dep": {
@@ -893,13 +893,13 @@
             "requested": "4.10"
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.9.0",
+            "locked": "1.9.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.9.0",
+            "locked": "1.9.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -924,7 +924,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.23.0",
+            "locked": "2.23.4",
             "requested": "2.+"
         },
         "org.objenesis:objenesis": {
@@ -1047,13 +1047,13 @@
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.1.11.RELEASE",
+            "locked": "3.1.12.RELEASE",
             "transitive": [
                 "io.projectreactor:reactor-test"
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.1.11.RELEASE",
+            "locked": "3.1.12.RELEASE",
             "requested": "3.1.+"
         },
         "junit:junit-dep": {
@@ -1067,13 +1067,13 @@
             ]
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.9.0",
+            "locked": "1.9.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.9.0",
+            "locked": "1.9.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -1098,7 +1098,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.23.0",
+            "locked": "2.23.4",
             "requested": "2.+"
         },
         "org.objenesis:objenesis": {
@@ -1228,13 +1228,13 @@
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.1.11.RELEASE",
+            "locked": "3.1.12.RELEASE",
             "transitive": [
                 "io.projectreactor:reactor-test"
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.1.11.RELEASE",
+            "locked": "3.1.12.RELEASE",
             "requested": "3.1.+"
         },
         "junit:junit-dep": {
@@ -1248,13 +1248,13 @@
             ]
         },
         "net.bytebuddy:byte-buddy": {
-            "locked": "1.9.0",
+            "locked": "1.9.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
         },
         "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.9.0",
+            "locked": "1.9.3",
             "transitive": [
                 "org.mockito:mockito-core"
             ]
@@ -1279,7 +1279,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.23.0",
+            "locked": "2.23.4",
             "requested": "2.+"
         },
         "org.objenesis:objenesis": {

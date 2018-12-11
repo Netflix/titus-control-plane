@@ -37,6 +37,7 @@ import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
 import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
@@ -55,6 +56,7 @@ import com.netflix.titus.common.util.guice.ProxyType;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.guice.annotation.ProxyConfiguration;
 import com.netflix.titus.common.util.rx.ObservableExt;
+import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.VirtualMachineMasterService;
 import com.netflix.titus.master.jobmanager.service.common.action.JobEntityHolders;
@@ -72,6 +74,7 @@ import com.netflix.titus.master.jobmanager.service.service.action.MoveTaskBetwee
 import com.netflix.titus.master.service.management.ManagementSubsystemInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
 import rx.Subscription;
@@ -345,6 +348,16 @@ public class DefaultV3JobOperations implements V3JobOperations {
                 return Observable.empty();
             }
             return engine.changeReferenceModel(BasicServiceJobActions.updateJobEnableStatus(engine, enabled, store));
+        });
+    }
+
+    @Override
+    public Mono<Void> updateJobDisruptionBudget(String jobId, DisruptionBudget disruptionBudget) {
+        return Mono.fromCallable(() ->
+                reconciliationFramework.findEngineByRootId(jobId).orElseThrow(() -> JobManagerException.jobNotFound(jobId))
+        ).flatMap(engine -> {
+            Observable<Void> observableAction = engine.changeReferenceModel(BasicJobActions.updateJobDisruptionBudget(engine, disruptionBudget, store));
+            return ReactorExt.toMono(observableAction);
         });
     }
 

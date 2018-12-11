@@ -24,10 +24,16 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
+import com.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
+import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
+import com.netflix.titus.common.annotation.Experimental;
+import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.tuple.Pair;
+import reactor.core.publisher.Flux;
 import rx.Observable;
 
 @Singleton
@@ -95,13 +101,44 @@ public class CachedReadOnlyJobOperations implements ReadOnlyJobOperations {
         return replicator.getCurrent().findTaskById(taskId);
     }
 
+    /**
+     * TODO Emit snapshot on subscription
+     * TODO Handle failover scenarios (onError or make full snapshot diff)
+     */
     @Override
+    @Experimental(deadline = "03/2019")
     public Observable<JobManagerEvent<?>> observeJobs(Predicate<Pair<Job<?>, List<Task>>> jobsPredicate, Predicate<Pair<Job<?>, Task>> tasksPredicate) {
-        throw new IllegalStateException("method not implemented yet");
+        Flux<JobManagerEvent<?>> fluxStream = replicator.events()
+                .filter(event -> {
+                    if (event.getRight() instanceof JobUpdateEvent) {
+                        JobUpdateEvent jobUpdateEvent = (JobUpdateEvent) event.getRight();
+                        Job<?> job = jobUpdateEvent.getCurrent();
+                        List<Task> tasks = replicator.getCurrent().getTasks(job.getId());
+                        return jobsPredicate.test(Pair.of(job, tasks));
+                    }
+                    if (event.getRight() instanceof TaskUpdateEvent) {
+                        TaskUpdateEvent taskUpdateEvent = (TaskUpdateEvent) event.getRight();
+                        return tasksPredicate.test(Pair.of(taskUpdateEvent.getCurrentJob(), taskUpdateEvent.getCurrentTask()));
+                    }
+                    return false;
+                })
+                .map(Pair::getRight);
+        return ReactorExt.toObservable(fluxStream);
     }
 
+    /**
+     * TODO Handle case when job is not found or there is a reconnect during which time the job is terminated.
+     */
     @Override
+    @Experimental(deadline = "03/2019")
     public Observable<JobManagerEvent<?>> observeJob(String jobId) {
-        throw new IllegalStateException("method not implemented yet");
+        return observeJobs(jobTasks -> jobTasks.getLeft().getId().equals(jobId), jobTask -> jobTask.getLeft().getId().equals(jobId))
+                .takeUntil(event -> {
+                    if (event instanceof JobUpdateEvent) {
+                        JobUpdateEvent jobUpdateEvent = (JobUpdateEvent) event;
+                        return jobUpdateEvent.getCurrent().getStatus().getState() == JobState.Finished;
+                    }
+                    return false;
+                });
     }
 }

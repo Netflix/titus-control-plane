@@ -31,6 +31,7 @@ public class ScheduleDescriptor {
 
     private final String name;
     private final String description;
+    private final Duration initialDelay;
     private final Duration interval;
     private final Supplier<Retryer> retryerSupplier;
     private final Duration timeout;
@@ -39,6 +40,7 @@ public class ScheduleDescriptor {
 
     private ScheduleDescriptor(String name,
                                String description,
+                               Duration initialDelay,
                                Duration interval,
                                Duration timeout,
                                Supplier<Retryer> retryerSupplier,
@@ -46,6 +48,7 @@ public class ScheduleDescriptor {
                                BiConsumer<ScheduledAction, Throwable> onErrorHandler) {
         this.name = name;
         this.description = description;
+        this.initialDelay = initialDelay;
         this.interval = interval;
         this.retryerSupplier = retryerSupplier;
         this.timeout = timeout;
@@ -63,6 +66,10 @@ public class ScheduleDescriptor {
 
     public Supplier<Retryer> getRetryerSupplier() {
         return retryerSupplier;
+    }
+
+    public Duration getInitialDelay() {
+        return initialDelay;
     }
 
     public Duration getInterval() {
@@ -92,6 +99,7 @@ public class ScheduleDescriptor {
         ScheduleDescriptor that = (ScheduleDescriptor) o;
         return Objects.equals(name, that.name) &&
                 Objects.equals(description, that.description) &&
+                Objects.equals(initialDelay, that.initialDelay) &&
                 Objects.equals(interval, that.interval) &&
                 Objects.equals(retryerSupplier, that.retryerSupplier) &&
                 Objects.equals(timeout, that.timeout) &&
@@ -101,7 +109,7 @@ public class ScheduleDescriptor {
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, description, interval, retryerSupplier, timeout, onSuccessHandler, onErrorHandler);
+        return Objects.hash(name, description, initialDelay, interval, retryerSupplier, timeout, onSuccessHandler, onErrorHandler);
     }
 
     @Override
@@ -109,6 +117,7 @@ public class ScheduleDescriptor {
         return "ScheduleDescriptor{" +
                 "name='" + name + '\'' +
                 ", description='" + description + '\'' +
+                ", initialDelay=" + initialDelay +
                 ", interval=" + interval +
                 ", retryerSupplier=" + retryerSupplier +
                 ", timeout=" + timeout +
@@ -135,6 +144,7 @@ public class ScheduleDescriptor {
     public static final class Builder {
         private String name;
         private String description;
+        private Duration initialDelay;
         private Duration interval;
         private Duration timeout;
 
@@ -159,7 +169,15 @@ public class ScheduleDescriptor {
             return this;
         }
 
+        public Builder withInitialDelay(Duration initialDelay) {
+            this.initialDelay = initialDelay;
+            return this;
+        }
+
         public Builder withInterval(Duration interval) {
+            if (initialDelay == null) {
+                this.initialDelay = interval;
+            }
             this.interval = interval;
             return this;
         }
@@ -187,13 +205,14 @@ public class ScheduleDescriptor {
         public ScheduleDescriptor build() {
             Preconditions.checkNotNull(name, "name cannot be null");
             Preconditions.checkNotNull(description, "description cannot be null");
+            Preconditions.checkNotNull(initialDelay, "initial delay cannot be null");
             Preconditions.checkNotNull(interval, "interval cannot be null");
             Preconditions.checkNotNull(timeout, "timeout cannot be null");
             Preconditions.checkNotNull(retryerSupplier, "retryerSupplier cannot be null");
             Preconditions.checkNotNull(onSuccessHandler, "onSuccessHandler cannot be null");
             Preconditions.checkNotNull(onErrorHandler, "onErrorHandler cannot be null");
 
-            return new ScheduleDescriptor(name, description, interval, timeout, retryerSupplier, onSuccessHandler, onErrorHandler);
+            return new ScheduleDescriptor(name, description, initialDelay, interval, timeout, retryerSupplier, onSuccessHandler, onErrorHandler);
         }
     }
 }

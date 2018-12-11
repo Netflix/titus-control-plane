@@ -40,8 +40,9 @@ import static java.util.Collections.unmodifiableMap;
  */
 public class JobSnapshot {
 
-    private static final JobSnapshot EMPTY = new JobSnapshot(Collections.emptyMap(), Collections.emptyMap());
+    private static final JobSnapshot EMPTY = new JobSnapshot("empty", Collections.emptyMap(), Collections.emptyMap());
 
+    private final String snapshotId;
     private final Map<String, Job<?>> jobsById;
     private final Map<String, List<Task>> tasksByJobId;
     private final List<Job<?>> allJobs;
@@ -49,7 +50,8 @@ public class JobSnapshot {
     private final List<Pair<Job<?>, List<Task>>> allJobsAndTasks;
     private final Map<String, Task> taskById;
 
-    public JobSnapshot(Map<String, Job<?>> jobsById, Map<String, List<Task>> tasksByJobId) {
+    public JobSnapshot(String snapshotId, Map<String, Job<?>> jobsById, Map<String, List<Task>> tasksByJobId) {
+        this.snapshotId = snapshotId;
         this.jobsById = jobsById;
 
         Map<String, List<Task>> immutableTasksByJobId = new HashMap<>();
@@ -70,6 +72,8 @@ public class JobSnapshot {
     }
 
     private JobSnapshot(JobSnapshot previousCache, Job<?> updatedJob) {
+        this.snapshotId = previousCache.getSnapshotId();
+
         Job<?> previousJob = previousCache.jobsById.get(updatedJob.getId());
 
         // We check this condition in the updateJob below.
@@ -135,6 +139,8 @@ public class JobSnapshot {
     }
 
     private JobSnapshot(JobSnapshot previousCache, Task updatedTask) {
+        this.snapshotId = previousCache.getSnapshotId();
+
         Task previousTask = previousCache.taskById.get(updatedTask.getId());
 
         // We check these conditions in the updateTask below.
@@ -179,6 +185,10 @@ public class JobSnapshot {
         }
     }
 
+    public String getSnapshotId() {
+        return snapshotId;
+    }
+
     public List<Job<?>> getJobs() {
         return allJobs;
     }
@@ -205,7 +215,7 @@ public class JobSnapshot {
         if (task == null) {
             return Optional.empty();
         }
-        Job<?> job = jobsById.get(task.getId());
+        Job<?> job = jobsById.get(task.getJobId());
         // If this happens, we have a bug in the code.
         if (job == null) {
             return Optional.empty();
@@ -236,7 +246,7 @@ public class JobSnapshot {
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder("JobSnapshot{jobs=");
+        StringBuilder sb = new StringBuilder("JobSnapshot{snapshotId=").append(snapshotId).append(", jobs=");
         jobsById.forEach((id, job) -> {
             List<Task> tasks = tasksByJobId.get(id);
             int tasksCount = tasks == null ? 0 : tasks.size();

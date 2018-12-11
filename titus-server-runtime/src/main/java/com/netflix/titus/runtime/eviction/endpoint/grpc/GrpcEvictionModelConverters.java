@@ -67,6 +67,7 @@ public final class GrpcEvictionModelConverters {
             case JOBID:
                 return com.netflix.titus.api.model.reference.Reference.job(grpcEntity.getJobId());
             case TASKID:
+                return com.netflix.titus.api.model.reference.Reference.task(grpcEntity.getTaskId());
             case REFERENCE_NOT_SET:
         }
         throw new IllegalArgumentException("No mapping for: " + grpcEntity);
@@ -81,14 +82,16 @@ public final class GrpcEvictionModelConverters {
             case Job:
                 return Reference.newBuilder().setJobId(coreReference.getName()).build();
             case Task:
+                return Reference.newBuilder().setTaskId(coreReference.getName()).build();
         }
         throw new IllegalArgumentException("No GRPC mapping for: " + coreReference);
     }
 
     public static com.netflix.titus.api.eviction.model.EvictionQuota toCoreEvictionQuota(EvictionQuota grpcEntity) {
         return com.netflix.titus.api.eviction.model.EvictionQuota.newBuilder()
-                .withQuota(grpcEntity.getQuota())
                 .withReference(toCoreReference(grpcEntity.getTarget()))
+                .withQuota(grpcEntity.getQuota())
+                .withMessage(grpcEntity.getMessage())
                 .build();
     }
 
@@ -96,6 +99,7 @@ public final class GrpcEvictionModelConverters {
         return EvictionQuota.newBuilder()
                 .setTarget(toGrpcReference(evictionQuota.getReference()))
                 .setQuota((int) evictionQuota.getQuota())
+                .setMessage(evictionQuota.getMessage())
                 .build();
     }
 

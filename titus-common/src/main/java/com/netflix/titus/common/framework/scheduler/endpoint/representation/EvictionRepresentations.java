@@ -43,6 +43,7 @@ public final class EvictionRepresentations {
         return new ScheduleDescriptorRepresentation(
                 descriptor.getName(),
                 descriptor.getDescription(),
+                DateTimeExt.toTimeUnitString(descriptor.getInitialDelay().toMillis()),
                 DateTimeExt.toTimeUnitString(descriptor.getInterval().toMillis()),
                 DateTimeExt.toTimeUnitString(descriptor.getTimeout().toMillis())
         );

@@ -19,16 +19,18 @@ import java.util.function.BiConsumer;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
+import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.federation.startup.GrpcConfiguration;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import io.grpc.stub.AbstractStub;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Mono;
 import rx.Observable;
 
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createWrappedStub;
@@ -62,6 +64,10 @@ public class AggregatingJobManagementServiceHelper {
                         .map(v -> Observable.just(CellResponse.ofValue(response)))
                         .onErrorGet(Observable::error)
                 );
+    }
+
+    public Mono<CellResponse<JobManagementServiceStub, Job>> findJobInAllCellsReact(String jobId) {
+        return ReactorExt.toMono(findJobInAllCells(jobId).toSingle());
     }
 
     public ClientCall<Job> findJobInCell(String jobId) {

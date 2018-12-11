@@ -37,7 +37,7 @@ import com.netflix.titus.grpc.protogen.TaskRelocationServiceGrpc.TaskRelocationS
 import com.netflix.titus.grpc.protogen.TaskRelocationStatus;
 import com.netflix.titus.supplementary.relocation.RelocationConnectorStubs;
 import com.netflix.titus.supplementary.relocation.TestDataFactory;
-import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan.TaskRelocationReason;
+import com.netflix.titus.api.relocation.model.TaskRelocationPlan.TaskRelocationReason;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
@@ -88,8 +88,8 @@ public class TaskRelocationIntegrationTest {
         // Wait for the relocation
         TaskRelocationStatus status = doTry(() -> findRelocationStatus(task.getId()));
         assertThat(status.getState()).isEqualTo(TaskRelocationStatus.TaskRelocationState.Success);
-        assertThat(status.getReasonCode()).isEqualTo(com.netflix.titus.supplementary.relocation.model.TaskRelocationStatus.REASON_CODE_TERMINATED);
-        assertThat(status.getReasonMessage()).isNotEmpty();
+        assertThat(status.getStatusCode()).isEqualTo(com.netflix.titus.api.relocation.model.TaskRelocationStatus.STATUS_CODE_TERMINATED);
+        assertThat(status.getStatusMessage()).isNotEmpty();
     }
 
     private Task placeTaskOnRemovableAgent() {

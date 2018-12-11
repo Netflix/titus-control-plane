@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableMap;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.runtime.SystemLogEvent;
 import com.netflix.titus.common.runtime.SystemLogService;
+import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.grpc.protogen.Page;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import io.grpc.stub.StreamObserver;
@@ -51,7 +52,7 @@ public class TitusPaginationUtils {
                                           String component,
                                           String apiName,
                                           Page page) {
-        if (page.getPageNumber() == 0) {
+        if (page.getPageNumber() == 0 || StringExt.isNotEmpty(page.getCursor())) {
             return;
         }
 

@@ -27,7 +27,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 import javax.inject.Singleton;
 
-import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan;
+import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.supplementary.relocation.store.TaskRelocationStore;
 import reactor.core.publisher.Mono;
 

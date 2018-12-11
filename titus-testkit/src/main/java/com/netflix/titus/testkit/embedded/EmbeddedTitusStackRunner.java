@@ -16,11 +16,15 @@
 
 package com.netflix.titus.testkit.embedded;
 
+import com.google.common.base.Preconditions;
 import com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCell;
 import com.netflix.titus.testkit.embedded.cell.gateway.EmbeddedTitusGateway;
 import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMaster;
 import com.netflix.titus.testkit.embedded.federation.EmbeddedTitusFederation;
 import com.netflix.titus.testkit.perf.load.LoadGenerator;
+import com.netflix.titus.testkit.util.cli.CommandLineBuilder;
+import com.netflix.titus.testkit.util.cli.CommandLineFacade;
+import org.apache.commons.cli.Option;
 import org.apache.log4j.PropertyConfigurator;
 
 public class EmbeddedTitusStackRunner {
@@ -30,20 +34,23 @@ public class EmbeddedTitusStackRunner {
     }
 
     public static void main(String[] args) throws InterruptedException {
+        CommandLineFacade cliFacade = buildCliFacade(args);
+
         EmbeddedTitusMaster.Builder masterBuilder = EmbeddedTitusMaster.aTitusMaster()
                 .withProperty("titus.scheduler.globalTaskLaunchingConstraintEvaluatorEnabled", "false")
                 .withApiPort(8080)
-                .withGrpcPort(8090);
+                .withGrpcPort(8090)
+                .withEnableDisruptionBudget(true);
 
-        if (args.length > 0) {
-            if (args.length != 2) {
-                System.err.println("Expected cloud simulator host and port number");
-                System.exit(-1);
-            }
-            masterBuilder.withRemoteCloud(args[0], Integer.parseInt(args[1]));
+        String cloudSimulatorHost = cliFacade.getString("H");
+        if (cloudSimulatorHost != null) {
+            int port = Preconditions.checkNotNull(cliFacade.getInt("p"), "cloud simulator port not provided (-p option) ");
+            masterBuilder.withRemoteCloud(cloudSimulatorHost, port);
         }
 
         EmbeddedTitusMaster titusMaster = masterBuilder.build();
+
+        boolean federationEnabled = cliFacade.isEnabled("f");
 
         EmbeddedTitusCell cell = EmbeddedTitusCell.aTitusCell()
                 .withMaster(titusMaster)
@@ -53,20 +60,40 @@ public class EmbeddedTitusStackRunner {
                                 .withHttpPort(8081)
                                 .withGrpcPort(8091)
                                 .build(),
-                        false
+                        !federationEnabled
                 )
                 .build();
 
-        EmbeddedTitusFederation stack = EmbeddedTitusFederation.aDefaultTitusFederation()
-                .withCell( ".*", cell)
-                .withHttpPort(8082)
-                .withGrpcPort(8092)
-                .build();
-
         cell.boot();
-        stack.boot();
+
+        if (federationEnabled) {
+            EmbeddedTitusFederation stack = EmbeddedTitusFederation.aDefaultTitusFederation()
+                    .withCell(".*", cell)
+                    .withHttpPort(8082)
+                    .withGrpcPort(8092)
+                    .build();
+
+            stack.boot();
+        }
 
         System.out.println("TitusStack started");
         Thread.sleep(24 * 60 * 60 * 1000L);
+    }
+
+    private static CommandLineFacade buildCliFacade(String[] args) {
+        CommandLineFacade cliFacade = CommandLineBuilder.newApacheCli()
+                .withHostAndPortOption("Simulator/GRPC")
+                .withOption(Option.builder("f").longOpt("federation").argName("federation_enabled").hasArg(false)
+                        .desc("Run TitusFederation")
+                        .build()
+                )
+                .build(args);
+
+        if (cliFacade.hasHelpOption()) {
+            cliFacade.printHelp("EmbeddedTitusStackRunner");
+            System.exit(-1);
+        }
+
+        return cliFacade;
     }
 }

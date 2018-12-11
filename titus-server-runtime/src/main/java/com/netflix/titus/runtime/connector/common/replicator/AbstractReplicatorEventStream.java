@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Scheduler;
 
-public abstract class AbstractReplicatorEventStream<D> implements ReplicatorEventStream<D> {
+public abstract class AbstractReplicatorEventStream<SNAPSHOT, TRIGGER> implements ReplicatorEventStream<SNAPSHOT, TRIGGER> {
 
     private static final Logger logger = LoggerFactory.getLogger(AbstractReplicatorEventStream.class);
 
@@ -40,13 +40,13 @@ public abstract class AbstractReplicatorEventStream<D> implements ReplicatorEven
     }
 
     @Override
-    public Flux<ReplicatorEvent<D>> connect() {
+    public Flux<ReplicatorEvent<SNAPSHOT, TRIGGER>> connect() {
 
         return newConnection()
                 .compose(ReactorExt.reEmitter(
                         // If there are no events in the stream, we will periodically emit the last cache instance
                         // with the updated cache update timestamp, so it does not look stale.
-                        cacheEvent -> new ReplicatorEvent<>(cacheEvent.getData(), titusRuntime.getClock().wallTime()),
+                        cacheEvent -> new ReplicatorEvent<>(cacheEvent.getSnapshot(), cacheEvent.getTrigger(), titusRuntime.getClock().wallTime()),
                         LATENCY_REPORT_INTERVAL_MS, TimeUnit.MILLISECONDS,
                         scheduler
                 ))
@@ -62,5 +62,5 @@ public abstract class AbstractReplicatorEventStream<D> implements ReplicatorEven
                 .doOnComplete(metrics::disconnected);
     }
 
-    protected abstract Flux<ReplicatorEvent<D>> newConnection();
+    protected abstract Flux<ReplicatorEvent<SNAPSHOT, TRIGGER>> newConnection();
 }

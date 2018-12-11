@@ -30,9 +30,9 @@ import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.code.CodeInvariants;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.runtime.connector.eviction.EvictionServiceClient;
-import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan;
-import com.netflix.titus.supplementary.relocation.model.TaskRelocationStatus;
-import com.netflix.titus.supplementary.relocation.model.TaskRelocationStatus.TaskRelocationState;
+import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
+import com.netflix.titus.api.relocation.model.TaskRelocationStatus;
+import com.netflix.titus.api.relocation.model.TaskRelocationStatus.TaskRelocationState;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
@@ -101,8 +101,8 @@ public class TaskEvictionStep {
             return taskToEvict.values().stream()
                     .map(p -> TaskRelocationStatus.newBuilder()
                             .withState(TaskRelocationState.Failure)
-                            .withReasonCode(TaskRelocationStatus.REASON_SYSTEM_ERROR)
-                            .withReasonMessage("Unexpected error: " + ExceptionExt.toMessageChain(e))
+                            .withStatusCode(TaskRelocationStatus.STATUS_SYSTEM_ERROR)
+                            .withStatusMessage("Unexpected error: " + ExceptionExt.toMessageChain(e))
                             .build()
                     )
                     .collect(Collectors.toMap(TaskRelocationStatus::getTaskId, s -> s));
@@ -118,16 +118,16 @@ public class TaskEvictionStep {
                     status = TaskRelocationStatus.newBuilder()
                             .withTaskId(taskId)
                             .withState(TaskRelocationState.Success)
-                            .withReasonCode(TaskRelocationStatus.REASON_CODE_TERMINATED)
-                            .withReasonMessage("Task terminated successfully")
+                            .withStatusCode(TaskRelocationStatus.STATUS_CODE_TERMINATED)
+                            .withStatusMessage("Task terminated successfully")
                             .withTaskRelocationPlan(plan)
                             .build();
                 } else {
                     status = TaskRelocationStatus.newBuilder()
                             .withTaskId(taskId)
                             .withState(TaskRelocationState.Failure)
-                            .withReasonCode(TaskRelocationStatus.REASON_EVICTION_ERROR)
-                            .withReasonMessage(evictionResult.get().getMessage())
+                            .withStatusCode(TaskRelocationStatus.STATUS_EVICTION_ERROR)
+                            .withStatusMessage(evictionResult.get().getMessage())
                             .withTaskRelocationPlan(plan)
                             .build();
                 }
@@ -137,8 +137,8 @@ public class TaskEvictionStep {
                 status = TaskRelocationStatus.newBuilder()
                         .withTaskId(taskId)
                         .withState(TaskRelocationState.Failure)
-                        .withReasonCode(TaskRelocationStatus.REASON_SYSTEM_ERROR)
-                        .withReasonMessage("Eviction result missing")
+                        .withStatusCode(TaskRelocationStatus.STATUS_SYSTEM_ERROR)
+                        .withStatusMessage("Eviction result missing")
                         .withTaskRelocationPlan(plan)
                         .build();
             }

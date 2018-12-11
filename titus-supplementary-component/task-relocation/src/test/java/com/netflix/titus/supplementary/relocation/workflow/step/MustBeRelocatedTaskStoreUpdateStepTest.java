@@ -17,19 +17,21 @@
 package com.netflix.titus.supplementary.relocation.workflow.step;
 
 import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
 
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
+import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.supplementary.relocation.AbstractTaskRelocationTest;
 import com.netflix.titus.supplementary.relocation.TestDataFactory;
-import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.supplementary.relocation.store.TaskRelocationStore;
 import org.junit.Test;
 import reactor.core.publisher.Mono;
 
 import static com.netflix.titus.supplementary.relocation.TaskRelocationPlanGenerator.oneMigrationPlan;
 import static com.netflix.titus.supplementary.relocation.TestDataFactory.newSelfManagedDisruptionBudget;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -58,16 +60,19 @@ public class MustBeRelocatedTaskStoreUpdateStepTest extends AbstractTaskRelocati
         when(store.createOrUpdateTaskRelocationPlans(anyList())).thenReturn(Mono.just(Collections.singletonMap("task1", Optional.empty())));
 
         TaskRelocationPlan taskRelocationPlan = oneMigrationPlan();
-        step.persistChangesInStore(
+        Map<String, TaskRelocationPlan> storeResult = step.persistChangesInStore(
                 Collections.singletonMap(taskRelocationPlan.getTaskId(), taskRelocationPlan)
         );
+        assertThat(storeResult).hasSize(1);
 
         verify(store, times(1)).createOrUpdateTaskRelocationPlans(Collections.singletonList(taskRelocationPlan));
 
         // No try again with the same data, and make sure no store update is executed
-        step.persistChangesInStore(
+        Map<String, TaskRelocationPlan> storeResultRepeated = step.persistChangesInStore(
                 Collections.singletonMap(taskRelocationPlan.getTaskId(), taskRelocationPlan)
         );
+        assertThat(storeResultRepeated).hasSize(1);
+
         verify(store, times(1)).createOrUpdateTaskRelocationPlans(Collections.singletonList(taskRelocationPlan));
     }
 

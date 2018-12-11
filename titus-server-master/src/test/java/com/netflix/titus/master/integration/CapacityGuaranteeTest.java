@@ -100,7 +100,7 @@ public class CapacityGuaranteeTest extends BaseIntegrationTest {
                 first();
     }
 
-    @Test
+    @Test(timeout = LONG_TEST_TIMEOUT_MS)
     public void testGuaranteesAreEnforcedInCriticalTier() throws Exception {
         JobDescriptor<BatchJobExt> c1Job = BATCH_JOB_8CPU.toBuilder().withCapacityGroup("c1").build();
         JobDescriptor<BatchJobExt> c2Job = BATCH_JOB_8CPU.toBuilder().withCapacityGroup("c2").build();

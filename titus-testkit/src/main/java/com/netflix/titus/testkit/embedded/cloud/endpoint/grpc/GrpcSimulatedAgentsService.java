@@ -21,6 +21,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.protobuf.Empty;
+import com.netflix.titus.common.aws.AwsInstanceType;
 import com.netflix.titus.simulator.SimulatedAgentServiceGrpc.SimulatedAgentServiceImplBase;
 import com.netflix.titus.simulator.TitusCloudSimulator;
 import com.netflix.titus.simulator.TitusCloudSimulator.CapacityUpdateRequest;
@@ -36,6 +37,34 @@ public class GrpcSimulatedAgentsService extends SimulatedAgentServiceImplBase {
     @Inject
     public GrpcSimulatedAgentsService(SimulatedCloudGateway gateway) {
         this.gateway = gateway;
+    }
+
+    @Override
+    public void addInstanceGroup(TitusCloudSimulator.AddInstanceGroupRequest request, StreamObserver<Empty> responseObserver) {
+        try {
+            gateway.addInstanceGroup(
+                    request.getId(),
+                    AwsInstanceType.withName(request.getInstanceType()),
+                    request.getMin(),
+                    request.getDesired(),
+                    request.getMax()
+            );
+            responseObserver.onNext(Empty.getDefaultInstance());
+            responseObserver.onCompleted();
+        } catch (Exception e) {
+            responseObserver.onError(e);
+        }
+    }
+
+    @Override
+    public void removeInstanceGroup(TitusCloudSimulator.Id request, StreamObserver<Empty> responseObserver) {
+        try {
+            gateway.removeInstanceGroup(request.getId());
+            responseObserver.onNext(Empty.getDefaultInstance());
+            responseObserver.onCompleted();
+        } catch (Exception e) {
+            responseObserver.onError(e);
+        }
     }
 
     @Override

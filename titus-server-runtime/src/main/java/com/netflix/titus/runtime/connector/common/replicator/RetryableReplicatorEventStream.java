@@ -30,24 +30,26 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Scheduler;
 
-public class RetryableReplicatorEventStream<D> implements ReplicatorEventStream<D> {
+public class RetryableReplicatorEventStream<SNAPSHOT, TRIGGER> implements ReplicatorEventStream<SNAPSHOT, TRIGGER> {
 
     private static final Logger logger = LoggerFactory.getLogger(RetryableReplicatorEventStream.class);
-
-    private static final ReplicatorEvent<Object> UNINITIALIZED = new ReplicatorEvent<>(new Object(), 0);
 
     static final long INITIAL_RETRY_DELAY_MS = 500;
     static final long MAX_RETRY_DELAY_MS = 2_000;
 
-    private final ReplicatorEventStream<D> delegate;
+    private final ReplicatorEvent<SNAPSHOT, TRIGGER> initialEvent;
+    private final ReplicatorEventStream<SNAPSHOT, TRIGGER> delegate;
     private final DataReplicatorMetrics metrics;
     private final TitusRuntime titusRuntime;
     private final Scheduler scheduler;
 
-    public RetryableReplicatorEventStream(ReplicatorEventStream<D> delegate,
+    public RetryableReplicatorEventStream(SNAPSHOT initialSnapshot,
+                                          TRIGGER initialTrigger,
+                                          ReplicatorEventStream<SNAPSHOT, TRIGGER> delegate,
                                           DataReplicatorMetrics metrics,
                                           TitusRuntime titusRuntime,
                                           Scheduler scheduler) {
+        this.initialEvent = new ReplicatorEvent<>(initialSnapshot, initialTrigger, 0);
         this.delegate = delegate;
         this.metrics = metrics;
         this.titusRuntime = titusRuntime;
@@ -55,11 +57,11 @@ public class RetryableReplicatorEventStream<D> implements ReplicatorEventStream<
     }
 
     @Override
-    public Flux<ReplicatorEvent<D>> connect() {
-        return connectInternal((ReplicatorEvent<D>) UNINITIALIZED);
+    public Flux<ReplicatorEvent<SNAPSHOT, TRIGGER>> connect() {
+        return connectInternal(initialEvent);
     }
 
-    private Flux<ReplicatorEvent<D>> connectInternal(ReplicatorEvent<D> lastReplicatorEvent) {
+    private Flux<ReplicatorEvent<SNAPSHOT, TRIGGER>> connectInternal(ReplicatorEvent<SNAPSHOT, TRIGGER> lastReplicatorEvent) {
         return createDelegateEmittingAtLeastOneItem(lastReplicatorEvent)
                 .onErrorResume(e -> {
                     metrics.disconnected();
@@ -69,7 +71,7 @@ public class RetryableReplicatorEventStream<D> implements ReplicatorEventStream<
                         if (cacheException.getLastCacheEvent().isPresent()) {
                             logger.info("Reconnecting after error: {}", e.getMessage());
                             logger.debug("Stack trace", e);
-                            return connectInternal((ReplicatorEvent<D>) cacheException.getLastCacheEvent().get());
+                            return connectInternal((ReplicatorEvent<SNAPSHOT, TRIGGER>) cacheException.getLastCacheEvent().get());
                         }
                     }
 
@@ -91,11 +93,11 @@ public class RetryableReplicatorEventStream<D> implements ReplicatorEventStream<
                 .doOnComplete(metrics::disconnected);
     }
 
-    private Flux<ReplicatorEvent<D>> createDelegateEmittingAtLeastOneItem(ReplicatorEvent<D> lastReplicatorEvent) {
+    private Flux<ReplicatorEvent<SNAPSHOT, TRIGGER>> createDelegateEmittingAtLeastOneItem(ReplicatorEvent<SNAPSHOT, TRIGGER> lastReplicatorEvent) {
         return Flux.defer(() -> {
-                    AtomicReference<ReplicatorEvent<D>> ref = new AtomicReference<>(lastReplicatorEvent);
+                    AtomicReference<ReplicatorEvent<SNAPSHOT, TRIGGER>> ref = new AtomicReference<>(lastReplicatorEvent);
 
-                    Flux<ReplicatorEvent<D>> staleCacheObservable = Flux
+                    Flux<ReplicatorEvent<SNAPSHOT, TRIGGER>> staleCacheObservable = Flux
                             .interval(
                                     Duration.ofMillis(LATENCY_REPORT_INTERVAL_MS),
                                     Duration.ofMillis(LATENCY_REPORT_INTERVAL_MS),
@@ -111,7 +113,7 @@ public class RetryableReplicatorEventStream<D> implements ReplicatorEventStream<
                             .withReactorScheduler(scheduler)
                             .buildReactorExponentialBackoff();
 
-                    Flux<ReplicatorEvent<D>> newCacheObservable = delegate.connect()
+                    Flux<ReplicatorEvent<SNAPSHOT, TRIGGER>> newCacheObservable = delegate.connect()
                             .doOnNext(ref::set)
                             .retryWhen(retryer)
                             .onErrorResume(e -> Flux.error(new DataReplicatorException(Optional.ofNullable(ref.get()), e)));

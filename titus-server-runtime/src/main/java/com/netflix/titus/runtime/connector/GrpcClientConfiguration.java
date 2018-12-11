@@ -23,6 +23,18 @@ import com.netflix.archaius.api.annotations.DefaultValue;
 public interface GrpcClientConfiguration {
 
     /**
+     * GRPC server hostname.
+     */
+    @DefaultValue("localhost")
+    String getHostname();
+
+    /**
+     * GRPC server port number.
+     */
+    @DefaultValue("7004")
+    int getGrpcPort();
+
+    /**
      * GRPC operation timeout.
      */
     @DefaultValue("10000")

@@ -32,13 +32,13 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
+import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
+import com.netflix.titus.api.relocation.model.TaskRelocationPlan.TaskRelocationReason;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.supplementary.relocation.model.DeschedulingFailure;
 import com.netflix.titus.supplementary.relocation.model.DeschedulingResult;
-import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan;
-import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan.TaskRelocationReason;
 
 /**
  * WARN This is a simple implementation focused on a single task migration use case.
@@ -119,8 +119,8 @@ public class DefaultDeschedulerService implements DeschedulerService {
                         relocationPlan = newImmediateRelocationPlan(task);
                     }
                 } else {
-                    failure = null;
-                    relocationPlan = newImmediateRelocationPlan(task);
+                    failure = DeschedulingFailure.legacyJobDeschedulingFailure();
+                    relocationPlan = newLegacyRelocationPlan(task);
                 }
 
                 AgentInstance agent = evacuatedAgentsAllocationTracker.getAgent(task);
@@ -148,6 +148,15 @@ public class DefaultDeschedulerService implements DeschedulerService {
                 .withTaskId(task.getId())
                 .withReason(TaskRelocationReason.TaskMigration)
                 .withReasonMessage("Immediate task migration, as no migration constraint defined for the job")
+                .withRelocationTime(clock.wallTime())
+                .build();
+    }
+
+    private TaskRelocationPlan newLegacyRelocationPlan(Task task) {
+        return TaskRelocationPlan.newBuilder()
+                .withTaskId(task.getId())
+                .withReason(TaskRelocationReason.TaskMigration)
+                .withReasonMessage("Attempted failed migration of a legacy job")
                 .withRelocationTime(clock.wallTime())
                 .build();
     }

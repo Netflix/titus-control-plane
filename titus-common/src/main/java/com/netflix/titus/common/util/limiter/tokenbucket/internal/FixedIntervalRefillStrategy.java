@@ -19,6 +19,7 @@ package com.netflix.titus.common.util.limiter.tokenbucket.internal;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Stopwatch;
+import com.netflix.titus.common.util.DateTimeExt;
 import com.netflix.titus.common.util.limiter.tokenbucket.RefillStrategy;
 
 public class FixedIntervalRefillStrategy implements RefillStrategy {
@@ -27,6 +28,7 @@ public class FixedIntervalRefillStrategy implements RefillStrategy {
     private final Stopwatch stopwatch;
     private final long numberOfTokensPerInterval;
     private final long intervalInNanos;
+    private final String toStringValue;
     private long lastRefillTime;
     private long nextRefillTime;
 
@@ -34,6 +36,7 @@ public class FixedIntervalRefillStrategy implements RefillStrategy {
         this.stopwatch = stopwatch;
         this.numberOfTokensPerInterval = numberOfTokensPerInterval;
         this.intervalInNanos = unit.toNanos(interval);
+        this.toStringValue = "FixedIntervalRefillStrategy{refillRate=" + DateTimeExt.toRateString(interval, numberOfTokensPerInterval, unit, "refill") + '}';
 
         this.lastRefillTime = -intervalInNanos;
         this.nextRefillTime = -intervalInNanos;
@@ -62,5 +65,10 @@ public class FixedIntervalRefillStrategy implements RefillStrategy {
     public long getTimeUntilNextRefill(TimeUnit unit) {
         long elapsed = stopwatch.elapsed(TimeUnit.NANOSECONDS);
         return unit.convert(Math.max(0, nextRefillTime - elapsed), TimeUnit.NANOSECONDS);
+    }
+
+    @Override
+    public String toString() {
+        return toStringValue;
     }
 }

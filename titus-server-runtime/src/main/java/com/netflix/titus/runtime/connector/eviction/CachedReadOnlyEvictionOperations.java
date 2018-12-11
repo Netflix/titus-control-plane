@@ -22,9 +22,8 @@ import javax.inject.Singleton;
 
 import com.netflix.titus.api.eviction.model.EvictionQuota;
 import com.netflix.titus.api.eviction.model.event.EvictionEvent;
-import com.netflix.titus.api.eviction.service.EvictionException;
 import com.netflix.titus.api.eviction.service.ReadOnlyEvictionOperations;
-import com.netflix.titus.api.model.Tier;
+import com.netflix.titus.api.model.reference.Reference;
 import reactor.core.publisher.Flux;
 
 @Singleton
@@ -38,25 +37,13 @@ public class CachedReadOnlyEvictionOperations implements ReadOnlyEvictionOperati
     }
 
     @Override
-    public EvictionQuota getSystemEvictionQuota() {
-        return replicator.getCurrent().getSystemEvictionQuota();
+    public EvictionQuota getEvictionQuota(Reference reference) {
+        return replicator.getCurrent().getEvictionQuota(reference);
     }
 
     @Override
-    public EvictionQuota getTierEvictionQuota(Tier tier) {
-        return replicator.getCurrent().getTierEvictionQuota(tier);
-    }
-
-    @Override
-    public EvictionQuota getCapacityGroupEvictionQuota(String capacityGroupName) {
-        return replicator.getCurrent()
-                .findCapacityGroupEvictionQuota(capacityGroupName)
-                .orElseThrow(() -> EvictionException.capacityGroupNotFound(capacityGroupName));
-    }
-
-    @Override
-    public Optional<EvictionQuota> findJobEvictionQuota(String jobId) {
-        throw new IllegalStateException("method not implemented yet");
+    public Optional<EvictionQuota> findEvictionQuota(Reference reference) {
+        return replicator.getCurrent().findEvictionQuota(reference);
     }
 
     @Override

@@ -18,6 +18,7 @@ package com.netflix.titus.master.supervisor.service.leader;
 
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
+import com.netflix.titus.master.supervisor.SupervisorConfiguration;
 import com.netflix.titus.master.supervisor.model.MasterInstance;
 import com.netflix.titus.master.supervisor.model.MasterState;
 import com.netflix.titus.master.supervisor.service.LeaderElector;
@@ -50,6 +51,8 @@ public class LeaderElectionOrchestratorTest {
 
     private final TitusRuntime titusRuntime = TitusRuntimes.test(testScheduler);
 
+    private final SupervisorConfiguration configuration = mock(SupervisorConfiguration.class);
+
     private final LocalMasterInstanceResolver localMasterInstanceResolver = mock(LocalMasterInstanceResolver.class);
     private final PublishSubject<MasterInstance> localMasterUpdates = PublishSubject.create();
 
@@ -70,6 +73,7 @@ public class LeaderElectionOrchestratorTest {
         resetMasterMonitor();
 
         orchestrator = new LeaderElectionOrchestrator(
+                configuration,
                 localMasterInstanceResolver,
                 masterMonitor,
                 leaderElector,
@@ -87,6 +91,23 @@ public class LeaderElectionOrchestratorTest {
         if (orchestrator != null) {
             orchestrator.shutdown();
         }
+    }
+
+    @Test
+    public void testForceLeaderElection() {
+        when(configuration.isForceLeaderElectionEnabled()).thenReturn(true);
+
+        orchestrator = new LeaderElectionOrchestrator(
+                configuration,
+                localMasterInstanceResolver,
+                masterMonitor,
+                leaderElector,
+                localMasterInstance,
+                titusRuntime,
+                testScheduler
+        );
+
+        verify(leaderElector, times(1)).join();
     }
 
     @Test

@@ -19,9 +19,9 @@ package com.netflix.titus.supplementary.relocation.workflow.step;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.supplementary.relocation.model.DeschedulingResult;
-import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan;
-import com.netflix.titus.supplementary.relocation.model.TaskRelocationStatus;
-import com.netflix.titus.supplementary.relocation.model.TaskRelocationStatus.TaskRelocationState;
+import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
+import com.netflix.titus.api.relocation.model.TaskRelocationStatus;
+import com.netflix.titus.api.relocation.model.TaskRelocationStatus.TaskRelocationState;
 import com.netflix.titus.supplementary.relocation.util.RelocationUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -93,9 +93,9 @@ public class RelocationTransactionLogger {
                 action,
                 status.getState() == TaskRelocationState.Success ? "success" : "failure",
                 String.format(
-                        "Details: reasonCode=%s, reasonMessage=%s, plan=%s",
-                        status.getReasonCode(),
-                        status.getReasonMessage(),
+                        "Details: statusCode=%s, statusMessage=%s, plan=%s",
+                        status.getStatusCode(),
+                        status.getStatusMessage(),
                         RelocationUtil.doFormat(status.getTaskRelocationPlan())
                 )
         );
@@ -109,9 +109,9 @@ public class RelocationTransactionLogger {
                 "storeUpdate",
                 "failure",
                 String.format(
-                        "Details: reasonCode=%s, reasonMessage=%s, plan=%s, storeError=%s",
-                        status.getReasonCode(),
-                        status.getReasonMessage(),
+                        "Details: statusCode=%s, statusMessage=%s, plan=%s, storeError=%s",
+                        status.getStatusCode(),
+                        status.getStatusMessage(),
                         RelocationUtil.doFormat(status.getTaskRelocationPlan()),
                         ExceptionExt.toMessageChain(error)
                 )

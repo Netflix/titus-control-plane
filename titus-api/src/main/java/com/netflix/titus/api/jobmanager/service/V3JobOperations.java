@@ -23,6 +23,8 @@ import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
+import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
 
@@ -45,6 +47,8 @@ public interface V3JobOperations extends ReadOnlyJobOperations {
     Observable<Void> updateServiceJobProcesses(String jobId, ServiceJobProcesses serviceJobProcesses);
 
     Observable<Void> updateJobStatus(String serviceJobId, boolean enabled);
+
+    Mono<Void> updateJobDisruptionBudget(String jobId, DisruptionBudget disruptionBudget);
 
     Observable<Void> killJob(String jobId);
 

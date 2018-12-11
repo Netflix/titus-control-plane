@@ -43,6 +43,7 @@ public final class EmbeddedTitusMasters {
                 .withProperty("titus.master.grpcServer.loadbalancer.enabled", "true")
                 .withProperty("titus.master.loadBalancer.engineEnabled", "true")
                 .withProperty("titusMaster.eviction.eventStreamQuotaUpdateIntervalMs", "100")
+                .withProperty("titusMaster.jobManager.features.disruptionBudget.whiteList", ".*")
                 .build();
     }
 }

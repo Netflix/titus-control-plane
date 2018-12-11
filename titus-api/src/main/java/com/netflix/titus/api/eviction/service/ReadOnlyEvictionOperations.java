@@ -20,7 +20,7 @@ import java.util.Optional;
 
 import com.netflix.titus.api.eviction.model.EvictionQuota;
 import com.netflix.titus.api.eviction.model.event.EvictionEvent;
-import com.netflix.titus.api.model.Tier;
+import com.netflix.titus.api.model.reference.Reference;
 import reactor.core.publisher.Flux;
 
 public interface ReadOnlyEvictionOperations {
@@ -30,13 +30,9 @@ public interface ReadOnlyEvictionOperations {
      */
     int VERY_HIGH_QUOTA = 1_000;
 
-    EvictionQuota getSystemEvictionQuota();
+    EvictionQuota getEvictionQuota(Reference reference);
 
-    EvictionQuota getTierEvictionQuota(Tier tier);
-
-    EvictionQuota getCapacityGroupEvictionQuota(String capacityGroupName);
-
-    Optional<EvictionQuota> findJobEvictionQuota(String jobId);
+    Optional<EvictionQuota> findEvictionQuota(Reference reference);
 
     Flux<EvictionEvent> events(boolean includeSnapshot);
 }

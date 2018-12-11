@@ -38,7 +38,7 @@ public class EurekaReverseProxyConfiguration {
         Config serviceConfig = config.getPrefixedView(PREFIX);
 
         Map<String, String> all = new HashMap<>();
-        serviceConfig.forEachProperty((k, v) -> all.put(k, v.toString()));
+        serviceConfig.getKeys().forEachRemaining(key -> all.put(key, serviceConfig.getString(key)));
 
         Map<String, Map<String, String>> serviceProperties = PropertiesExt.groupByRootName(all, 1);
 
@@ -74,8 +74,12 @@ public class EurekaReverseProxyConfiguration {
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
             EurekaServiceAddress that = (EurekaServiceAddress) o;
             return isSecure == that.isSecure &&
                     Objects.equals(vipAddress, that.vipAddress);

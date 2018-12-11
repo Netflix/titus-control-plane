@@ -25,7 +25,7 @@ import com.google.common.base.Stopwatch;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.supplementary.relocation.descheduler.DeschedulerService;
 import com.netflix.titus.supplementary.relocation.model.DeschedulingResult;
-import com.netflix.titus.supplementary.relocation.model.TaskRelocationPlan;
+import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

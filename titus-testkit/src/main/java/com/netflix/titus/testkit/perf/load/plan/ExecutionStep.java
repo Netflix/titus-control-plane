@@ -16,18 +16,70 @@
 
 package com.netflix.titus.testkit.perf.load.plan;
 
+import java.time.Duration;
+import java.util.Objects;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
-public abstract class ExecutionStep {
+import com.google.common.base.Preconditions;
 
-    private static final ExecutionStep TERMINATE_STEP = new TerminateStep();
-    private static final ExecutionStep KILL_RANDOM_TASK_STEP = new KillRandomTaskStep();
-    private static final ExecutionStep TERMINATE_AND_SHRINK_RANDOM_TASK_STEP = new TerminateAndShrinkRandomTaskStep();
-    private static final ExecutionStep AWAIT_COMPLETION_STEP = new AwaitCompletionStep();
+public class ExecutionStep {
+
+    public static final String NAME_LOOP = "loop";
+    public static final String NAME_DELAY = "delay";
+
+    private final String name;
+
+    public ExecutionStep(String name) {
+        this.name = name;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        ExecutionStep that = (ExecutionStep) o;
+        return Objects.equals(name, that.name);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(name);
+    }
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "{}";
+        return "ExecutionStep{" +
+                "name='" + name + '\'' +
+                '}';
+    }
+
+    public static ExecutionStep named(String name) {
+        return new ExecutionStep(name);
+    }
+
+    public static LoopStep loop(int position, int times) {
+        return new LoopStep(position, times);
+    }
+
+    public static DelayStep delay(long delay, TimeUnit timeUnit) {
+        return new DelayStep(timeUnit.toMillis(delay));
+    }
+
+    public static DelayStep delay(Duration delay) {
+        return new DelayStep(delay.toMillis());
+    }
+
+    public static ExecutionStep randomDelayStep(Duration lowerBound, Duration upperBound) {
+        return new DelayStep(lowerBound, upperBound);
     }
 
     public static class LoopStep extends ExecutionStep {
@@ -35,6 +87,7 @@ public abstract class ExecutionStep {
         private final int times;
 
         public LoopStep(int position, int times) {
+            super(NAME_LOOP);
             this.position = position;
             this.times = times;
         }
@@ -55,20 +108,14 @@ public abstract class ExecutionStep {
             if (o == null || getClass() != o.getClass()) {
                 return false;
             }
-
             LoopStep loopStep = (LoopStep) o;
-
-            if (position != loopStep.position) {
-                return false;
-            }
-            return times == loopStep.times;
+            return position == loopStep.position &&
+                    times == loopStep.times;
         }
 
         @Override
         public int hashCode() {
-            int result = position;
-            result = 31 * result + times;
-            return result;
+            return Objects.hash(position, times);
         }
 
         @Override
@@ -80,103 +127,30 @@ public abstract class ExecutionStep {
         }
     }
 
-    public static class TerminateStep extends ExecutionStep {
-    }
-
-    public static class KillRandomTaskStep extends ExecutionStep {
-    }
-
-    public static class TerminateAndShrinkRandomTaskStep extends ExecutionStep {
-    }
-
-    public static class AwaitCompletionStep extends ExecutionStep {
-    }
-
-    public static class ScaleUpStep extends ExecutionStep {
-        private final int delta;
-
-        public ScaleUpStep(int delta) {
-            this.delta = delta;
-        }
-
-        public int getDelta() {
-            return delta;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-
-            ScaleUpStep that = (ScaleUpStep) o;
-
-            return delta == that.delta;
-        }
-
-        @Override
-        public int hashCode() {
-            return delta;
-        }
-
-        @Override
-        public String toString() {
-            return "ScaleUpStep{" +
-                    "delta=" + delta +
-                    '}';
-        }
-    }
-
-    public static class ScaleDownStep extends ExecutionStep {
-        private final int delta;
-
-        public ScaleDownStep(int delta) {
-            this.delta = delta;
-        }
-
-        public int getDelta() {
-            return delta;
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-
-            ScaleDownStep that = (ScaleDownStep) o;
-
-            return delta == that.delta;
-        }
-
-        @Override
-        public int hashCode() {
-            return delta;
-        }
-
-        @Override
-        public String toString() {
-            return "ScaleDownStep{" +
-                    "delta=" + delta +
-                    '}';
-        }
-    }
-
     public static class DelayStep extends ExecutionStep {
-        private final long delayMs;
+
+        private final long lowerBoundMs;
+        private final int rangeMs;
+        private final Random random = new Random();
 
         public DelayStep(long delayMs) {
-            this.delayMs = delayMs;
+            super(NAME_DELAY);
+            this.lowerBoundMs = delayMs;
+            this.rangeMs = 0;
+        }
+
+        public DelayStep(Duration lowerBound, Duration upperBound) {
+            super(NAME_DELAY);
+            Preconditions.checkArgument(lowerBound.toMillis() <= upperBound.toMillis());
+
+            this.lowerBoundMs = lowerBound.toMillis();
+            this.rangeMs = (int) (upperBound.toMillis() - lowerBoundMs);
         }
 
         public long getDelayMs() {
-            return delayMs;
+            return rangeMs == 0
+                    ? lowerBoundMs
+                    : lowerBoundMs + random.nextInt(rangeMs);
         }
 
         @Override
@@ -187,54 +161,25 @@ public abstract class ExecutionStep {
             if (o == null || getClass() != o.getClass()) {
                 return false;
             }
-
+            if (!super.equals(o)) {
+                return false;
+            }
             DelayStep delayStep = (DelayStep) o;
-
-            return delayMs == delayStep.delayMs;
+            return lowerBoundMs == delayStep.lowerBoundMs &&
+                    rangeMs == delayStep.rangeMs;
         }
 
         @Override
         public int hashCode() {
-            return (int) (delayMs ^ (delayMs >>> 32));
+            return Objects.hash(super.hashCode(), lowerBoundMs, rangeMs);
         }
 
         @Override
         public String toString() {
             return "DelayStep{" +
-                    "delayMs=" + delayMs +
+                    "lowerBoundMs=" + lowerBoundMs +
+                    ", rangeMs=" + rangeMs +
                     '}';
         }
-    }
-
-    public static ExecutionStep terminate() {
-        return TERMINATE_STEP;
-    }
-
-    public static LoopStep loop(int position, int times) {
-        return new LoopStep(position, times);
-    }
-
-    public static ExecutionStep killRandomTask() {
-        return KILL_RANDOM_TASK_STEP;
-    }
-
-    public static ExecutionStep terminateAndShrinkRandomTask() {
-        return TERMINATE_AND_SHRINK_RANDOM_TASK_STEP;
-    }
-
-    public static ExecutionStep awaitCompletion() {
-        return AWAIT_COMPLETION_STEP;
-    }
-
-    public static ExecutionStep scaleUp(int delta) {
-        return new ScaleUpStep(delta);
-    }
-
-    public static ExecutionStep scaleDown(int delta) {
-        return new ScaleDownStep(delta);
-    }
-
-    public static DelayStep delayStep(long delay, TimeUnit timeUnit) {
-        return new DelayStep(timeUnit.toMillis(delay));
     }
 }

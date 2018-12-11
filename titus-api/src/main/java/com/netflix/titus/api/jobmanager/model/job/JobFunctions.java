@@ -298,6 +298,16 @@ public final class JobFunctions {
         };
     }
 
+    public static <E extends JobDescriptorExt> Function<JobDescriptor<E>, JobDescriptor<E>> withDisruptionBudget(DisruptionBudget disruptionBudget) {
+        return jobDescriptor -> jobDescriptor.toBuilder().withDisruptionBudget(disruptionBudget).build();
+    }
+
+    public static <E extends JobDescriptorExt> Function<Job<E>, Job<E>> withJobDisruptionBudget(DisruptionBudget disruptionBudget) {
+        return job -> job.toBuilder()
+                .withJobDescriptor(job.getJobDescriptor().toBuilder().withDisruptionBudget(disruptionBudget).build())
+                .build();
+    }
+
     private static Task.TaskBuilder taskStatusChangeBuilder(Task task, TaskStatus status) {
         TaskStatus currentStatus = task.getStatus();
         List<TaskStatus> statusHistory = new ArrayList<>(task.getStatusHistory());

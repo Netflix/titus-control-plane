@@ -61,6 +61,7 @@ import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.runtime.connector.jobmanager.client.GrpcJobManagementClient;
 import com.netflix.titus.runtime.connector.jobmanager.client.JobManagementClientDelegate;
+import com.netflix.titus.runtime.connector.jobmanager.client.SanitizingJobManagementClient;
 import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
@@ -84,6 +85,7 @@ import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createWrap
  */
 @Singleton
 public class GatewayJobManagementClient extends JobManagementClientDelegate {
+
     private static Logger logger = LoggerFactory.getLogger(GatewayJobManagementClient.class);
 
     private static final int MAX_CONCURRENT_JOBS_TO_RETRIEVE = 10;
@@ -93,6 +95,7 @@ public class GatewayJobManagementClient extends JobManagementClientDelegate {
     private final CallMetadataResolver callMetadataResolver;
     private final JobStore store;
     private final LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo;
+    private final TaskRelocationDataInjector taskRelocationDataInjector;
     private final EntityValidator<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> validator;
     private final Registry spectatorRegistry;
     private final Clock clock;
@@ -104,20 +107,25 @@ public class GatewayJobManagementClient extends JobManagementClientDelegate {
                                       CallMetadataResolver callMetadataResolver,
                                       JobStore store,
                                       LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo,
+                                      TaskRelocationDataInjector taskRelocationDataInjector,
                                       @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer,
                                       EntityValidator<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> validator,
                                       TitusRuntime titusRuntime) {
-        super(new GrpcJobManagementClient(
-                client,
-                callMetadataResolver,
-                new ExtendedJobSanitizer(jobManagerConfiguration, entitySanitizer),
-                configuration
+        super(new SanitizingJobManagementClient(
+                new GrpcJobManagementClient(
+                        client,
+                        callMetadataResolver,
+
+                        configuration
+                ),
+                new ExtendedJobSanitizer(jobManagerConfiguration, entitySanitizer)
         ));
         this.configuration = configuration;
         this.client = client;
         this.callMetadataResolver = callMetadataResolver;
         this.store = store;
         this.logStorageInfo = logStorageInfo;
+        this.taskRelocationDataInjector = taskRelocationDataInjector;
         this.validator = validator;
         this.spectatorRegistry = titusRuntime.getRegistry();
         this.clock = titusRuntime.getClock();
@@ -141,7 +149,7 @@ public class GatewayJobManagementClient extends JobManagementClientDelegate {
                                     reportErrorMetrics(errors, sanitizedCoreJobDescriptor);
 
                                     // Only emit an error on HARD validation errors
-                                    errors = errors.stream().filter(error -> error.isHard()).collect(Collectors.toSet());
+                                    errors = errors.stream().filter(ValidationError::isHard).collect(Collectors.toSet());
 
                                     if (!errors.isEmpty()) {
                                         return Observable.error(TitusServiceException.invalidJob(errors));
@@ -173,10 +181,14 @@ public class GatewayJobManagementClient extends JobManagementClientDelegate {
 
     @Override
     public Observable<Task> findTask(String taskId) {
-        Observable<Task> observable = createRequestObservable(emitter -> {
-            StreamObserver<Task> streamObserver = createSimpleClientResponseObserver(emitter);
-            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).findTask(TaskId.newBuilder().setId(taskId).build(), streamObserver);
-        }, configuration.getRequestTimeout());
+        Observable<Task> observable = createRequestObservable(
+                emitter -> {
+                    StreamObserver<Task> streamObserver = createSimpleClientResponseObserver(emitter);
+                    createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).findTask(TaskId.newBuilder().setId(taskId).build(), streamObserver);
+                },
+                configuration.getRequestTimeout()
+        );
+        observable = taskRelocationDataInjector.injectIntoTask(taskId, observable);
 
         observable = observable.onErrorResumeNext(e -> {
             if (e instanceof StatusRuntimeException &&
@@ -225,7 +237,7 @@ public class GatewayJobManagementClient extends JobManagementClientDelegate {
             }
         }
 
-        return observable.timeout(configuration.getRequestTimeout(), TimeUnit.MILLISECONDS);
+        return taskRelocationDataInjector.injectIntoTaskQueryResult(observable.timeout(configuration.getRequestTimeout(), TimeUnit.MILLISECONDS));
     }
 
     private Observable<TaskQueryResult> newActiveTaskQueryAction(TaskQuery taskQuery) {
