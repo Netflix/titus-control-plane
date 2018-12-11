@@ -131,8 +131,6 @@ public final class ErrorResponses {
                     return Status.NOT_FOUND;
                 case INVALID_ARGUMENT:
                     return Status.INVALID_ARGUMENT;
-                case JOB_UPDATE_NOT_ALLOWED:
-                    return Status.FAILED_PRECONDITION;
                 case UNSUPPORTED_JOB_TYPE:
                     return Status.UNIMPLEMENTED;
                 case INTERNAL:

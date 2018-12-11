@@ -174,13 +174,6 @@ public class TitusExceptionMapper implements ExceptionMapper<Throwable> {
             case TASK_NOT_FOUND:
                 errorBuilder.status(HttpServletResponse.SC_NOT_FOUND);
                 break;
-            case JOB_UPDATE_NOT_ALLOWED:
-                Throwable cause = e.getCause();
-                if (cause != null) {
-                    errorBuilder.message(cause.getMessage()).exceptionContext(cause);
-                }
-                errorBuilder.status(HttpServletResponse.SC_BAD_REQUEST);
-                break;
             case UNSUPPORTED_JOB_TYPE:
                 errorBuilder.status(HttpServletResponse.SC_BAD_REQUEST);
                 break;
