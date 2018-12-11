@@ -404,7 +404,7 @@ public class ObservableExt {
      * <li>if an output is subscribed to multiple times, all the subscriptions except the first one are terminated with an error</li>
      * </ul>
      */
-    public static <T> List<Observable<T>> demultiplex(Observable<T> source, int outputs) {
-        return Demultipex.create(source, outputs);
+    public static <T> List<Observable<T>> propagate(Observable<T> source, int outputs) {
+        return Propagator.create(source, outputs);
     }
 }

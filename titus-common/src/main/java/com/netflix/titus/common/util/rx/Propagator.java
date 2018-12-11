@@ -28,9 +28,9 @@ import rx.Observable;
 import rx.Subscription;
 
 /**
- * See {@link ObservableExt#demultiplex(Observable, int)} for more information.
+ * See {@link ObservableExt#propagate(Observable, int)} for more information.
  */
-class Demultipex<T> {
+class Propagator<T> {
 
     private final Observable<T> source;
     private final AtomicInteger remainingSubscriptions;
@@ -40,7 +40,7 @@ class Demultipex<T> {
     private volatile Subscription sourceSubscription;
     private volatile boolean sourceTerminated;
 
-    private Demultipex(Observable<T> source, int outputs) {
+    private Propagator(Observable<T> source, int outputs) {
         this.source = source;
         this.remainingSubscriptions = new AtomicInteger(outputs);
         this.outputs = Evaluators.evaluateTimes(outputs, this::newOutput);
@@ -53,7 +53,7 @@ class Demultipex<T> {
     private Observable<T> newOutput(int index) {
         return Observable.create(emitter -> {
             if (emittersByOutputIdx.putIfAbsent(index, emitter) != null) {
-                emitter.onError(new IllegalStateException(String.format("Demultiplex output %s already subscribed to", index)));
+                emitter.onError(new IllegalStateException(String.format("Propagator output %s already subscribed to", index)));
                 return;
             }
 
@@ -91,6 +91,6 @@ class Demultipex<T> {
     }
 
     public static <T> List<Observable<T>> create(Observable<T> source, int outputs) {
-        return new Demultipex<>(source, outputs).getOutputs();
+        return new Propagator<>(source, outputs).getOutputs();
     }
 }

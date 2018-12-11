@@ -232,7 +232,7 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
                 engines.add(engine);
             }
 
-            List<Observable<Map<String, List<ModelActionHolder>>>> outputs = ObservableExt.demultiplex(multiEngineChangeAction.apply(), engines.size());
+            List<Observable<Map<String, List<ModelActionHolder>>>> outputs = ObservableExt.propagate(multiEngineChangeAction.apply(), engines.size());
             List<Observable<Void>> engineActions = new ArrayList<>();
             for (int i = 0; i < engines.size(); i++) {
                 ReconciliationEngine<EVENT> engine = engines.get(i);

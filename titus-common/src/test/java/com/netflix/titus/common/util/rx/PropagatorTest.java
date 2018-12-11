@@ -30,7 +30,7 @@ import rx.Subscription;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class DemultipexTest {
+public class PropagatorTest {
 
     private final ExtTestSubscriber<String> subscriber1 = new ExtTestSubscriber<>();
     private final ExtTestSubscriber<String> subscriber2 = new ExtTestSubscriber<>();
@@ -38,7 +38,7 @@ public class DemultipexTest {
     @Test
     public void testTwoOutputs() {
         AtomicInteger counter = new AtomicInteger();
-        List<Observable<String>> outputs = ObservableExt.demultiplex(
+        List<Observable<String>> outputs = ObservableExt.propagate(
                 Observable.defer(() -> Observable.just("Subscription#" + counter.incrementAndGet())),
                 2
         );
@@ -59,7 +59,7 @@ public class DemultipexTest {
 
     @Test
     public void testCancellationOfOneOutput() {
-        List<Observable<String>> outputs = ObservableExt.demultiplex(Observable.never(), 2);
+        List<Observable<String>> outputs = ObservableExt.propagate(Observable.never(), 2);
 
         Subscription subscription1 = outputs.get(0).subscribe(subscriber1);
         outputs.get(1).subscribe(subscriber2);
@@ -73,7 +73,7 @@ public class DemultipexTest {
     @Test
     public void testSourceEmittingError() {
         RuntimeException error = new RuntimeException("simulated error");
-        List<Observable<String>> outputs = ObservableExt.demultiplex(
+        List<Observable<String>> outputs = ObservableExt.propagate(
                 Observable.error(error),
                 2
         );
@@ -86,7 +86,7 @@ public class DemultipexTest {
 
     @Test
     public void testSourceWithTimeout() {
-        List<Observable<String>> outputs = ObservableExt.demultiplex(
+        List<Observable<String>> outputs = ObservableExt.propagate(
                 Observable.<String>never().timeout(1, TimeUnit.MILLISECONDS),
                 2
         );
