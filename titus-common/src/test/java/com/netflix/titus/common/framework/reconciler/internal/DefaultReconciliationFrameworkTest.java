@@ -177,27 +177,18 @@ public class DefaultReconciliationFrameworkTest {
         framework.newEngine(root2).subscribe();
         testScheduler.triggerActions();
 
+        MultiEngineChangeAction multiEngineChangeAction = () -> Observable.just(ImmutableMap.of(
+                "myRoot1", ModelActionHolder.allModels(new SimpleModelUpdateAction(EntityHolder.newRoot("myRoot1", "myEntity1#v2"), true)),
+                "myRoot2", ModelActionHolder.allModels(new SimpleModelUpdateAction(EntityHolder.newRoot("myRoot2", "myEntity2#v2"), true))
+        ));
         Map<String, List<ModelActionHolder>> holders = new HashMap<>();
         Observable<Void> multiChangeObservable = framework.changeReferenceModel(
-                // Keep anonymous class instead of lambda for readability
-                new MultiEngineChangeAction() {
-                    @Override
-                    public Observable<Map<String, List<ModelActionHolder>>> apply() {
-                        return Observable.just(ImmutableMap.of(
-                                "myRoot1", ModelActionHolder.allModels(new SimpleModelUpdateAction(EntityHolder.newRoot("myRoot1", "myEntity1#v2"), true)),
-                                "myRoot2", ModelActionHolder.allModels(new SimpleModelUpdateAction(EntityHolder.newRoot("myRoot2", "myEntity2#v2"), true))
-                        ));
-                    }
+                multiEngineChangeAction,
+                (id, modelUpdates) -> {
+                    ChangeAction changeAction = () -> modelUpdates.doOnNext(next -> holders.put(id, next));
+                    return changeAction;
                 },
-                // Keep anonymous class instead of lambda for readability
-                (id, modelUpdates) -> new ChangeAction() {
-                    @Override
-                    public Observable<List<ModelActionHolder>> apply() {
-                        return modelUpdates.doOnNext(next -> holders.put(id, next));
-                    }
-                },
-                "myRoot1",
-                "myRoot2"
+                "myRoot1", "myRoot2"
         );
 
         verify(engine1, times(0)).changeReferenceModel(any());
@@ -210,10 +201,12 @@ public class DefaultReconciliationFrameworkTest {
         verify(engine1, times(1)).changeReferenceModel(any());
         verify(engine2, times(1)).changeReferenceModel(any());
 
+        // one action per view (Running, Store, Reference)
         assertThat(holders.get("myRoot1")).hasSize(3);
         SimpleModelUpdateAction modelAction1 = (SimpleModelUpdateAction) holders.get("myRoot1").get(0).getAction();
         assertThat((String) modelAction1.getEntityHolder().getEntity()).isEqualTo("myEntity1#v2");
 
+        // one action per view (Running, Store, Reference)
         assertThat(holders.get("myRoot2")).hasSize(3);
         SimpleModelUpdateAction modelAction2 = (SimpleModelUpdateAction) holders.get("myRoot2").get(0).getAction();
         assertThat((String) modelAction2.getEntityHolder().getEntity()).isEqualTo("myEntity2#v2");
