@@ -27,11 +27,12 @@ import java.util.Optional;
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudgetFunctions;
+import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.supplementary.relocation.model.DeschedulingFailure;
-import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 
 class TaskMigrationDescheduler {
 
@@ -147,6 +148,11 @@ class TaskMigrationDescheduler {
     }
 
     private boolean canTerminate(Task task) {
+        Job<?> job = jobsById.get(task.getJobId());
+        if (job == null || DisruptionBudgetFunctions.isLegacyJob(job)) {
+            return false;
+        }
+
         TaskRelocationPlan relocationPlan = plannedAheadTaskRelocationPlans.get(task.getId());
 
         // If no relocation plan is found, this means the disruption budget policy does not limit us here.

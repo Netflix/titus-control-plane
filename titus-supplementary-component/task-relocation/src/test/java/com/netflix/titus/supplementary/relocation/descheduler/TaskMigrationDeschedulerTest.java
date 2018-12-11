@@ -28,25 +28,31 @@ import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
 import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.api.model.Tier;
+import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.common.data.generator.MutableDataGenerator;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.supplementary.relocation.RelocationConnectorStubs;
 import com.netflix.titus.supplementary.relocation.model.DeschedulingFailure;
-import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import com.netflix.titus.testkit.model.job.JobTestFunctions;
 import org.junit.Test;
 
 import static com.netflix.titus.api.agent.model.AgentFunctions.withId;
 import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.ofServiceSize;
+import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.withDisruptionBudget;
+import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.withJobDisruptionBudget;
 import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.withJobId;
 import static com.netflix.titus.testkit.model.agent.AgentGenerator.agentServerGroups;
 import static com.netflix.titus.testkit.model.agent.AgentTestFunctions.inState;
+import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator.budget;
+import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator.selfManagedPolicy;
+import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator.unlimitedRate;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskServiceJobDescriptor;
 import static com.netflix.titus.testkit.model.job.JobTestFunctions.toTaskMap;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -58,7 +64,10 @@ public class TaskMigrationDeschedulerTest {
     private final MutableDataGenerator<AgentInstanceGroup> flexInstanceGroupGenerator = new MutableDataGenerator<>(agentServerGroups(Tier.Flex, 10));
 
     private final MutableDataGenerator<Job<ServiceJobExt>> jobGenerator = new MutableDataGenerator<>(
-            JobGenerator.serviceJobs(oneTaskServiceJobDescriptor().but(ofServiceSize(4)))
+            JobGenerator.serviceJobs(oneTaskServiceJobDescriptor().but(
+                    ofServiceSize(4),
+                    withDisruptionBudget(budget(selfManagedPolicy(30_000), unlimitedRate(), Collections.emptyList()))
+            ))
     );
 
     private final RelocationConnectorStubs dataGenerator = new RelocationConnectorStubs()
@@ -110,6 +119,17 @@ public class TaskMigrationDeschedulerTest {
 
         DeschedulingFailure failure = newDescheduler(Collections.emptyMap()).getDeschedulingFailure(job1Task0);
         assertThat(failure.getReasonMessage()).contains("job quota");
+    }
+
+    @Test
+    public void testLegacyJobs() {
+        dataGenerator.addJob(jobGenerator.getValue().but(withJobId("jobLegacy"), withJobDisruptionBudget(DisruptionBudget.none())));
+        Task task0 = jobOperations.getTasks("jobLegacy").get(0);
+        dataGenerator.place("removable1", task0);
+        dataGenerator.setQuota("jobLegacy", 1);
+
+        Optional<Pair<AgentInstance, List<Task>>> results = newDescheduler(Collections.emptyMap()).nextBestMatch();
+        assertThat(results).isEmpty();
     }
 
     private TaskMigrationDescheduler newDescheduler(Map<String, TaskRelocationPlan> plannedAheadTaskRelocationPlans) {
