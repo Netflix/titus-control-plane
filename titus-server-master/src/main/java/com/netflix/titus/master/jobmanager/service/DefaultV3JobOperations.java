@@ -390,7 +390,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
 
     @Override
     public Observable<Void> moveServiceTask(String sourceJobId, String targetJobId, String taskId) {
-        if(!jobManagerConfiguration.isMoveTaskApiEnabled()){
+        if (!jobManagerConfiguration.isMoveTaskApiEnabled()) {
             throw JobManagerException.notEnabled("Move task");
         }
         return Observable.defer(() -> {
@@ -406,12 +406,12 @@ public class DefaultV3JobOperations implements V3JobOperations {
             }
 
             // Validate that the task belongs to source job id
-            if(!jobFrom.getId().equals(sourceJobId)) {
+            if (!jobFrom.getId().equals(sourceJobId)) {
                 throw JobManagerException.taskJobMismatch(taskId, sourceJobId);
             }
 
             // Validate that we are moving across different jobs
-            if(jobFrom.getId().equals(targetJobId)) {
+            if (jobFrom.getId().equals(targetJobId)) {
                 throw JobManagerException.sameJobs(jobFrom.getId());
             }
 

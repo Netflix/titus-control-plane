@@ -61,11 +61,15 @@ public class MoveTaskBetweenJobsAction implements MultiEngineChangeAction {
     public Observable<Map<String, List<ModelActionHolder>>> apply() {
         return Observable.defer(() -> {
             // Validate data
-            EntityHolder taskFromReferenceHolder = engineFrom.getReferenceView().findChildById(taskId).orElseThrow(() -> JobManagerException.taskNotFound(taskId));
-
             Job<ServiceJobExt> jobFrom = engineFrom.getReferenceView().getEntity();
             Job<ServiceJobExt> jobTo = engineTo.getReferenceView().getEntity();
 
+            EntityHolder taskFromReferenceHolder = engineFrom.getReferenceView().findChildById(taskId)
+                    .orElseThrow(() -> JobManagerException.taskJobMismatch(taskId, jobFrom.getId()));
+
+            if (jobFrom.getStatus().getState() != JobState.Accepted) {
+                throw JobManagerException.unexpectedJobState(jobTo, JobState.Accepted);
+            }
             Capacity capacityFrom = jobFrom.getJobDescriptor().getExtensions().getCapacity();
             if (capacityFrom.getMin() >= capacityFrom.getDesired()) {
                 throw JobManagerException.belowMinCapacity(jobFrom, 1);
