@@ -16,7 +16,7 @@
 
 package com.netflix.titus.testkit.perf.load.plan.catalog;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 
 import com.netflix.titus.api.model.Tier;
@@ -27,6 +27,8 @@ import static com.netflix.titus.testkit.perf.load.plan.catalog.AgentExecutionPla
 
 public final class AgentExecutableGeneratorCatalog {
 
+    private static final int PARTITION_MAX_SIZE = 100;
+
     private AgentExecutableGeneratorCatalog() {
     }
 
@@ -34,9 +36,17 @@ public final class AgentExecutableGeneratorCatalog {
      * Agent setup counterpart for {@link JobExecutableGeneratorCatalog#perfLoad(double)}.
      */
     public static List<ExecutionPlan> perfLoad(int sizeFactor) {
-        return Arrays.asList(
-                periodicallyRedeployedPartition("perfCritical1", Tier.Critical, AwsInstanceType.R4_8XLarge, 0, 5 * sizeFactor, 10 * sizeFactor),
-                periodicallyRedeployedPartition("perfFlex1", Tier.Flex, AwsInstanceType.R4_8XLarge, 0, 5 * sizeFactor, 10 * sizeFactor)
-        );
+        int remained = 200 * sizeFactor;
+
+        List<ExecutionPlan> plans = new ArrayList<>();
+        int partitionIdx = 1;
+        while (remained > 0) {
+            int partitionSize = Math.min(PARTITION_MAX_SIZE, remained);
+            plans.add(periodicallyRedeployedPartition("perfCritical" + partitionIdx, Tier.Critical, AwsInstanceType.M4_16XLarge, 0, partitionSize / 2, partitionSize));
+            plans.add(periodicallyRedeployedPartition("perfFlex" + partitionIdx, Tier.Flex, AwsInstanceType.R4_16XLarge, 0, partitionSize / 2, partitionSize));
+            remained -= partitionSize;
+            partitionIdx++;
+        }
+        return plans;
     }
 }

@@ -32,8 +32,8 @@ public final class AgentExecutionPlanCatalog {
      * Creates two partitions, where always one is active and the other one inactive or removable. Periodically swaps them.
      */
     public static ExecutionPlan periodicallyRedeployedPartition(String baseName, Tier tier, AwsInstanceType awsInstanceType, int min, int desired, int max) {
-        String partition1 = baseName + "#1";
-        String partition2 = baseName + "#2";
+        String partition1 = baseName + "v1";
+        String partition2 = baseName + "v2";
 
         return ExecutionPlan.agentExecutionPlan()
                 // Create both partitions

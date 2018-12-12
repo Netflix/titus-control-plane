@@ -19,7 +19,6 @@ package com.netflix.titus.testkit.embedded.cloud.connector.remote;
 import com.google.inject.AbstractModule;
 import com.netflix.governator.InjectorBuilder;
 import com.netflix.governator.LifecycleInjector;
-import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedCloudConfiguration;
 import com.netflix.titus.testkit.embedded.cloud.endpoint.SimulatedCloudEndpointModule;
@@ -45,12 +44,6 @@ class RemoteConnectorUtil {
     static SimulatedCloudConfiguration newConfiguration(int grpcPort) {
         SimulatedCloudConfiguration mock = Mockito.mock(SimulatedCloudConfiguration.class);
         when(mock.getGrpcPort()).thenReturn(grpcPort);
-        return mock;
-    }
-
-    static CloudSimulatorResolver newConnectorConfiguration(int grpcPort) {
-        CloudSimulatorResolver mock = Mockito.mock(CloudSimulatorResolver.class);
-        when(mock.resolveGrpcEndpoint()).thenReturn(Pair.of("localhost", grpcPort));
         return mock;
     }
 }

@@ -19,9 +19,12 @@ package com.netflix.titus.testkit.embedded.cloud.connector.remote;
 import com.netflix.governator.LifecycleInjector;
 import com.netflix.titus.common.network.socket.UnusedSocketPortAllocator;
 import com.netflix.titus.common.runtime.TitusRuntimes;
+import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import com.netflix.titus.testkit.embedded.cloud.connector.AbstractSimulatedMesosSchedulerDriverTest;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
 import org.apache.mesos.Protos;
 import org.apache.mesos.Scheduler;
 import org.apache.mesos.SchedulerDriver;
@@ -34,23 +37,23 @@ public class SimulatedRemoteMesosSchedulerDriverTest extends AbstractSimulatedMe
     private LifecycleInjector injector;
 
     private SimulatedRemoteMesosSchedulerDriverFactory factory;
+    private ManagedChannel channel;
 
     @Override
     protected SchedulerDriver setup(SimulatedCloud cloud, Protos.FrameworkInfo framework, Scheduler callbackHandler) {
         int grpcPort = UnusedSocketPortAllocator.global().allocate();
         this.injector = RemoteConnectorUtil.createSimulatedCloudGrpcServer(cloud, grpcPort);
 
-        this.factory = new SimulatedRemoteMesosSchedulerDriverFactory(RemoteConnectorUtil.newConnectorConfiguration(grpcPort), TitusRuntimes.internal());
+        this.channel = ManagedChannelBuilder.forAddress("localhost", grpcPort)
+                .usePlaintext(true)
+                .build();
+        this.factory = new SimulatedRemoteMesosSchedulerDriverFactory(channel, TitusRuntimes.internal());
         return factory.createDriver(framework, "N/A", callbackHandler);
     }
 
     @After
     public void tearDown() {
-        if (factory != null) {
-            factory.shutdown();
-        }
-        if (injector != null) {
-            injector.close();
-        }
+        ExceptionExt.silent(channel, c -> channel.shutdownNow());
+        ExceptionExt.silent(injector, i -> injector.close());
     }
 }
