@@ -41,7 +41,9 @@ public class MoveTaskTest extends BaseIntegrationTest {
 
     private static final JobDescriptor<ServiceJobExt> ONE_TASK_SERVICE_JOB = oneTaskServiceJobDescriptor().toBuilder().withApplicationName(V3_ENGINE_APP_PREFIX).build();
 
-    private final TitusStackResource titusStackResource = new TitusStackResource(basicCell(2), false);
+    private final TitusStackResource titusStackResource = new TitusStackResource(basicCell(2).toMaster(master ->
+            master.withProperty("titusMaster.jobManager.moveTaskApiEnabled", "true")
+    ), true);
 
     private final JobsScenarioBuilder jobsScenarioBuilder = new JobsScenarioBuilder(titusStackResource);
 

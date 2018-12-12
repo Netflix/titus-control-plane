@@ -57,6 +57,7 @@ import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
 
 /**
+ *
  */
 public class TaskScenarioBuilder {
 
@@ -154,11 +155,16 @@ public class TaskScenarioBuilder {
 
     public TaskScenarioBuilder moveTask(String targetJobId) {
         String taskId = getTask().getId();
-        logger.info("[{}] Moving task to another job...", discoverActiveTest(), taskId, jobScenarioBuilder.getJobId());
+        logger.info("[{}] Moving task to another job...", discoverActiveTest(), taskId, jobScenarioBuilder.getJobId(), targetJobId);
         Stopwatch stopWatch = Stopwatch.createStarted();
 
         TestStreamObserver<Empty> responseObserver = new TestStreamObserver<>();
-        jobClient.moveTask(TaskMoveRequest.newBuilder().setTaskId(taskId).setTargetJobId(targetJobId).build(), responseObserver);
+        jobClient.moveTask(TaskMoveRequest.newBuilder()
+                        .setSourceJobId(jobScenarioBuilder.getJobId())
+                        .setTargetJobId(targetJobId)
+                        .setTaskId(taskId)
+                        .build(),
+                responseObserver);
         rethrow(() -> responseObserver.awaitDone(TIMEOUT_MS, TimeUnit.MILLISECONDS));
 
         logger.info("[{}] Task {} moved to job {} in {}[ms]", discoverActiveTest(), taskId, targetJobId, stopWatch.elapsed(TimeUnit.MILLISECONDS));

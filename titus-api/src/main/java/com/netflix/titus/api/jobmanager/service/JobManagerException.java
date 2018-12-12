@@ -211,7 +211,7 @@ public class JobManagerException extends RuntimeException {
     public static JobManagerException taskJobMismatch(String jobId, String taskId) {
         return new JobManagerException(
                 ErrorCode.TaskJobMismatch,
-                format("Operation requires task id to belong to the source job id. Task id %s does not belong to job id %s", taskId, jobId)
+                format("Operation requires task id to belong to the source job id. Task with id %s does not belong to job with id %s", taskId, jobId)
         );
     }
 
