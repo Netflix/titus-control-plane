@@ -30,6 +30,7 @@ import com.netflix.titus.grpc.protogen.EvictionServiceGrpc.EvictionServiceBlocki
 import com.netflix.titus.grpc.protogen.ObserverEventRequest;
 import com.netflix.titus.grpc.protogen.Reference;
 import com.netflix.titus.grpc.protogen.TaskStatus;
+import com.netflix.titus.master.eviction.service.quota.system.SystemDisruptionBudgetDescriptor;
 import com.netflix.titus.master.integration.BaseIntegrationTest;
 import com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates;
 import com.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
@@ -37,6 +38,9 @@ import com.netflix.titus.master.integration.v3.scenario.JobScenarioBuilder;
 import com.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
 import com.netflix.titus.master.integration.v3.scenario.ScenarioTemplates;
 import com.netflix.titus.master.integration.v3.scenario.TaskScenarioBuilder;
+import com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCell;
+import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMasters;
+import com.netflix.titus.testkit.embedded.cloud.SimulatedClouds;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import com.netflix.titus.testkit.junit.master.TitusStackResource;
 import org.junit.BeforeClass;
@@ -45,7 +49,6 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
-import static com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCells.basicCell;
 import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator.budget;
 import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator.hourlyRatePercentage;
 import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator.newBatchJobDescriptor;
@@ -60,7 +63,14 @@ public class EvictionComponentIntegrationTest extends BaseIntegrationTest {
             budget(percentageOfHealthyPolicy(50), hourlyRatePercentage(50), Collections.emptyList())
     );
 
-    private static final TitusStackResource titusStackResource = new TitusStackResource(basicCell(2), false);
+    private static final TitusStackResource titusStackResource = new TitusStackResource(EmbeddedTitusCell.aTitusCell()
+            .withMaster(EmbeddedTitusMasters.basicMaster(SimulatedClouds.basicCloud(2)).toBuilder()
+                    .withCellName("test")
+                    .withSystemDisruptionBudgetDescriptor(new SystemDisruptionBudgetDescriptor(10, 10, Collections.emptyList()))
+                    .build()
+            )
+            .withDefaultGateway()
+            .build(), false);
 
     private static final JobsScenarioBuilder jobsScenarioBuilder = new JobsScenarioBuilder(titusStackResource);
 

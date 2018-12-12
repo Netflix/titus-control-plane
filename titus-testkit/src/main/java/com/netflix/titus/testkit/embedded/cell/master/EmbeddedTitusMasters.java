@@ -18,8 +18,6 @@ package com.netflix.titus.testkit.embedded.cell.master;
 
 import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 
-import static com.netflix.titus.common.runtime.internal.DefaultTitusRuntime.LOCAL_SCHEDULER_LOGGING_DISABLED_PROPERTY;
-
 /**
  * A collection of preconfigured {@link EmbeddedTitusMaster} instances with different configuration tuning targets.
  */
@@ -31,7 +29,6 @@ public final class EmbeddedTitusMasters {
     public static EmbeddedTitusMaster basicMaster(SimulatedCloud simulatedCloud) {
         return EmbeddedTitusMaster.aTitusMaster()
                 .withSimulatedCloud(simulatedCloud)
-                .withProperty(LOCAL_SCHEDULER_LOGGING_DISABLED_PROPERTY, "true")
                 .withProperty("titus.agent.cacheRefreshIntervalMs", "500")
                 .withProperty("titus.agent.fullCacheRefreshIntervalMs", "500")
                 .withProperty("titus.master.capacityManagement.availableCapacityUpdateIntervalMs", "10")

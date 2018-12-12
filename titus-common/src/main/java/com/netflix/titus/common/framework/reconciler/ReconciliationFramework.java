@@ -18,6 +18,7 @@ package com.netflix.titus.common.framework.reconciler;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.function.BiFunction;
 
 import com.netflix.titus.common.util.tuple.Pair;
 import rx.Completable;
@@ -73,4 +74,12 @@ public interface ReconciliationFramework<EVENT> {
      * Removes an existing reconciliation engine.
      */
     Completable removeEngine(ReconciliationEngine<EVENT> engine);
+
+    /**
+     * Change reference entities for the provided list of the reconciliation engines. The returned observable completes
+     * successfully if the change action and the all model update actions completed successfully.
+     */
+    Observable<Void> changeReferenceModel(MultiEngineChangeAction multiEngineChangeAction,
+                                          BiFunction<String, Observable<List<ModelActionHolder>>, ChangeAction> engineChangeActionFactory,
+                                          String... rootEntityHolderIds);
 }

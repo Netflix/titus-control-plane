@@ -43,6 +43,11 @@ public final class TaskAttributes {
     public static final String TASK_ATTRIBUTES_EXECUTOR_URI_OVERRIDE = "task.executorUriOverride";
     public static final String TASK_ATTRIBUTES_TIER = "task.tier";
 
+    /**
+     * Task moved from one job to another.
+     */
+    public static final String TASK_ATTRIBUTES_MOVED_FROM_JOB = "task.movedFromJob";
+
     /*
      * Cell info.
      */

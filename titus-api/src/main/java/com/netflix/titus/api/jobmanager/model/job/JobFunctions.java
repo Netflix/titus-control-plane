@@ -119,7 +119,7 @@ public final class JobFunctions {
     }
 
     public static JobDescriptor<ServiceJobExt> asServiceJob(JobDescriptor<?> jobDescriptor) {
-        if (isBatchJob(jobDescriptor)) {
+        if (isServiceJob(jobDescriptor)) {
             return (JobDescriptor<ServiceJobExt>) jobDescriptor;
         }
         throw JobManagerException.notServiceJobDescriptor(jobDescriptor);
@@ -196,6 +196,21 @@ public final class JobFunctions {
 
     public static Job<ServiceJobExt> changeServiceJobCapacity(Job<ServiceJobExt> job, Capacity capacity) {
         return job.toBuilder().withJobDescriptor(changeServiceJobCapacity(job.getJobDescriptor(), capacity)).build();
+    }
+
+    public static <E extends JobDescriptorExt> JobDescriptor<E> incrementJobDescriptorSize(JobDescriptor<E> jobDescriptor, int delta) {
+        if (isServiceJob(jobDescriptor)) {
+            Capacity oldCapacity = ((ServiceJobExt) jobDescriptor.getExtensions()).getCapacity();
+            Capacity newCapacity = oldCapacity.toBuilder().withDesired(oldCapacity.getDesired() + delta).build();
+            return (JobDescriptor<E>) changeServiceJobCapacity((JobDescriptor<ServiceJobExt>) jobDescriptor, newCapacity);
+        }
+
+        JobDescriptor<BatchJobExt> batchDescriptor = (JobDescriptor<BatchJobExt>) jobDescriptor;
+        return (JobDescriptor<E>) changeBatchJobSize(batchDescriptor, batchDescriptor.getExtensions().getSize() + delta);
+    }
+
+    public static <E extends JobDescriptorExt> Job<E> incrementJobSize(Job<E> job, int delta) {
+        return job.toBuilder().withJobDescriptor(incrementJobDescriptorSize(job.getJobDescriptor(), delta)).build();
     }
 
     public static Job<ServiceJobExt> changeJobEnabledStatus(Job<ServiceJobExt> job, boolean enabled) {

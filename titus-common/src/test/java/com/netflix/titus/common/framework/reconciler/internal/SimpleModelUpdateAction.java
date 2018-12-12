@@ -35,6 +35,14 @@ public class SimpleModelUpdateAction implements ModelAction {
         this.isRoot = isRoot;
     }
 
+    public EntityHolder getEntityHolder() {
+        return entityHolder;
+    }
+
+    public boolean isRoot() {
+        return isRoot;
+    }
+
     @Override
     public Optional<Pair<EntityHolder, EntityHolder>> apply(EntityHolder rootHolder) {
         if (isRoot) {

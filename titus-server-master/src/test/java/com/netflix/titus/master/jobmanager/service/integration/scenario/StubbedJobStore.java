@@ -57,7 +57,11 @@ class StubbedJobStore implements JobStore {
         TaskUpdated,
     }
 
-    private boolean broken;
+    enum StoreState {
+        Normal,
+        Broken,
+        Slow,
+    }
 
     private final PublishSubject<Pair<StoreEvent, ?>> eventSubject = PublishSubject.create();
 
@@ -69,8 +73,10 @@ class StubbedJobStore implements JobStore {
 
     private final ConcurrentMap<String, ServiceTaskIndex> jobToServiceTaskIndex = new ConcurrentHashMap<>();
 
-    public void setBroken(boolean broken) {
-        this.broken = broken;
+    private StoreState storeState = StoreState.Normal;
+
+    void setStoreState(StoreState storeState) {
+        this.storeState = storeState;
     }
 
     public Observable<Pair<StoreEvent, ?>> events() {
@@ -312,6 +318,24 @@ class StubbedJobStore implements JobStore {
     }
 
     @Override
+    public Completable moveTask(Job jobFrom, Job jobTo, Task taskAfter) {
+        return beforeCompletable(() ->
+                Completable.fromAction(() -> {
+                    Preconditions.checkArgument(jobs.containsKey(jobFrom.getId()), "jobFrom=%s not found", jobFrom.getId());
+                    Preconditions.checkArgument(jobs.containsKey(jobTo.getId()), "jobTo=%s not found", jobTo.getId());
+                    Preconditions.checkArgument(tasks.containsKey(taskAfter.getId()), "task=%s not found", taskAfter.getId());
+
+                    jobs.put(jobFrom.getId(), jobFrom);
+                    jobs.put(jobTo.getId(), jobTo);
+                    tasks.put(taskAfter.getId(), taskAfter);
+                    eventSubject.onNext(Pair.of(StoreEvent.JobUpdated, jobFrom));
+                    eventSubject.onNext(Pair.of(StoreEvent.JobUpdated, jobTo));
+                    eventSubject.onNext(Pair.of(StoreEvent.TaskUpdated, taskAfter));
+                })
+        );
+    }
+
+    @Override
     public Completable deleteTask(Task task) {
         return beforeCompletable(() ->
                 Completable.fromAction(() -> {
@@ -342,14 +366,19 @@ class StubbedJobStore implements JobStore {
     }
 
     private Completable beforeCompletable(Supplier<Completable> action) {
-        if (broken) {
-            return Completable.error(new IOException("Store is broken"));
+        switch (storeState) {
+            case Normal:
+                return action.get();
+            case Broken:
+                return Completable.error(new IOException("Store is broken"));
+            case Slow:
+                return Completable.never();
         }
-        return action.get();
+        throw new IllegalStateException("Unrecognized store state: " + storeState);
     }
 
     private <R> Observable<R> beforeObservable(Supplier<Observable<R>> action) {
-        if (broken) {
+        if (storeState == StoreState.Broken) {
             return Observable.error(new IOException("Store is broken"));
         }
         return action.get();

@@ -131,6 +131,15 @@ public class InMemoryJobStore implements JobStore {
     }
 
     @Override
+    public Completable moveTask(Job jobFrom, Job jobTo, Task taskAfter) {
+        return Completable.fromAction(() -> {
+            jobs.put(jobFrom.getId(), jobFrom);
+            jobs.put(jobTo.getId(), jobTo);
+            tasks.put(taskAfter.getId(), taskAfter);
+        });
+    }
+
+    @Override
     public Completable deleteTask(Task task) {
         return Completable.fromAction(() -> {
             tasks.invalidate(task.getId());

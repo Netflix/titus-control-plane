@@ -103,6 +103,10 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         vmService.events().filter(pair -> jobOperations.findTaskById(pair.getRight()).isPresent()).subscribe(mesosEventsSubscriber);
     }
 
+    public String getJobId() {
+        return jobId;
+    }
+
     public JobScenarioBuilder<E> advance() {
         testScheduler.advanceTimeBy(RECONCILER_ACTIVE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
         return this;
@@ -147,6 +151,11 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
                 });
             }
         });
+        return this;
+    }
+
+    public JobScenarioBuilder<E> inTask(int taskIdx, int resubmit, Consumer<Task> consumer) {
+        consumer.accept(findTaskInActiveState(taskIdx, resubmit));
         return this;
     }
 
@@ -246,6 +255,17 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
 
     public JobScenarioBuilder<E> killTaskAndShrink(int taskIdx, int resubmit) {
         return killTaskAndShrink(findTaskInActiveState(taskIdx, resubmit));
+    }
+
+    public JobScenarioBuilder<E> moveTask(int taskIdx, int resubmit, String sourceJobId, String targetJobId) {
+        Task task = findTaskInActiveState(taskIdx, resubmit);
+
+        ExtTestSubscriber<Void> subscriber = new ExtTestSubscriber<>();
+        jobOperations.moveServiceTask(sourceJobId, targetJobId, task.getId()).subscribe(subscriber);
+
+        autoAdvanceUntilSuccessful(() -> checkOperationSubscriberAndThrowExceptionIfError(subscriber));
+
+        return this;
     }
 
     public JobScenarioBuilder<E> assertServiceJob(Consumer<Job<ServiceJobExt>> serviceJob) {
@@ -492,12 +512,17 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
     }
 
     public JobScenarioBuilder<E> breakStore() {
-        jobStore.setBroken(true);
+        jobStore.setStoreState(StubbedJobStore.StoreState.Broken);
+        return this;
+    }
+
+    public JobScenarioBuilder<E> slowStore() {
+        jobStore.setStoreState(StubbedJobStore.StoreState.Slow);
         return this;
     }
 
     public JobScenarioBuilder<E> enableStore() {
-        jobStore.setBroken(false);
+        jobStore.setStoreState(StubbedJobStore.StoreState.Normal);
         return this;
     }
 
@@ -588,10 +613,6 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
             advance();
         }
         action.run();
-    }
-
-    String getJobId() {
-        return jobId;
     }
 
     /**

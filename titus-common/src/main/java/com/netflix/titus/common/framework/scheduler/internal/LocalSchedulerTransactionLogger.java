@@ -46,7 +46,14 @@ class LocalSchedulerTransactionLogger {
         return localScheduler.events()
                 .retryWhen(error -> Flux.just(1).delayElements(RETRY_DELAY))
                 .subscribe(
-                        event -> logger.info(doFormat(event)),
+                        event -> {
+                            boolean failure = event.getSchedule().getCurrentAction().getStatus().getError().isPresent();
+                            if (failure) {
+                                logger.info(doFormat(event));
+                            } else {
+                                logger.debug(doFormat(event));
+                            }
+                        },
                         e -> logger.error("Event stream terminated with an error", e),
                         () -> logger.info("Event stream completed")
                 );

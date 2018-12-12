@@ -33,6 +33,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -40,7 +41,10 @@ import com.google.common.base.Preconditions;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.Timer;
 import com.netflix.spectator.api.patterns.PolledMeter;
+import com.netflix.titus.common.framework.reconciler.ChangeAction;
 import com.netflix.titus.common.framework.reconciler.EntityHolder;
+import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
+import com.netflix.titus.common.framework.reconciler.MultiEngineChangeAction;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import com.netflix.titus.common.framework.reconciler.ReconciliationFramework;
 import com.netflix.titus.common.util.ExceptionExt;
@@ -49,6 +53,7 @@ import com.netflix.titus.common.util.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;
+import rx.Emitter;
 import rx.Observable;
 import rx.Scheduler;
 import rx.Subscriber;
@@ -92,6 +97,8 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
     private final Timer loopExecutionTime;
     private volatile long lastFullCycleExecutionTimeMs; // Probed by a polled meter.
     private volatile long lastExecutionTimeMs; // Probed by a polled meter.
+
+    private final Object multiEngineChangeLock = new Object();
 
     public DefaultReconciliationFramework(List<InternalReconciliationEngine<EVENT>> bootstrapEngines,
                                           Function<EntityHolder, InternalReconciliationEngine<EVENT>> engineFactory,
@@ -207,6 +214,54 @@ public class DefaultReconciliationFramework<EVENT> implements ReconciliationFram
             }
             enginesToRemove.add(Pair.of((InternalReconciliationEngine<EVENT>) engine, (Subscriber<Void>) subscriber));
         }).toCompletable();
+    }
+
+    @Override
+    public Observable<Void> changeReferenceModel(MultiEngineChangeAction multiEngineChangeAction,
+                                                 BiFunction<String, Observable<List<ModelActionHolder>>, ChangeAction> engineChangeActionFactory,
+                                                 String... rootEntityHolderIds) {
+        Preconditions.checkArgument(rootEntityHolderIds.length > 1,
+                "Change action for multiple engines requested, but %s root id holders provided", rootEntityHolderIds.length
+        );
+
+        return Observable.create(emitter -> {
+
+            List<ReconciliationEngine<EVENT>> engines = new ArrayList<>();
+            for (String id : rootEntityHolderIds) {
+                ReconciliationEngine<EVENT> engine = findEngineByRootId(id).orElseThrow(() -> new IllegalArgumentException("Reconciliation engine not found: rootId=" + id));
+                engines.add(engine);
+            }
+
+            List<Observable<Map<String, List<ModelActionHolder>>>> outputs = ObservableExt.propagate(multiEngineChangeAction.apply(), engines.size());
+            List<Observable<Void>> engineActions = new ArrayList<>();
+            for (int i = 0; i < engines.size(); i++) {
+                ReconciliationEngine<EVENT> engine = engines.get(i);
+                String rootId = engine.getReferenceView().getId();
+                ChangeAction engineAction = engineChangeActionFactory.apply(rootId, outputs.get(i).map(r -> r.get(rootId)));
+                engineActions.add(engine.changeReferenceModel(engineAction));
+            }
+
+            // Synchronize on subscription to make sure that this operation is not interleaved with concurrent
+            // subscriptions for the same set or subset of the reconciliation engines. The interleaving might result
+            // in a deadlock. For example with two engines engineA and engineB:
+            // - multi-engine change action M1 for engineA and engineB is scheduled
+            // - M1/engineA is added to its queue
+            // - another multi-engine change action M2 for engineA and engineB is scheduled
+            // - M2/engineB is added to its queue
+            // - M1/engineB is added to its queue, and next M2/engineA
+            // Executing M1 requires that both M1/engineA and M1/engineB are at the top of the queue, but in this case
+            // M2/engineB is ahead of the M1/engineB. On the other hand, M1/engineA is ahead of M2/engineB. Because
+            // of that we have deadlock. Please, note that we can ignore here the regular (engine scoped) change actions.
+            Subscription subscription;
+            synchronized (multiEngineChangeLock) {
+                subscription = Observable.mergeDelayError(engineActions).subscribe(
+                        emitter::onNext,
+                        emitter::onError,
+                        emitter::onCompleted
+                );
+            }
+            emitter.setSubscription(subscription);
+        }, Emitter.BackpressureMode.NONE);
     }
 
     @Override

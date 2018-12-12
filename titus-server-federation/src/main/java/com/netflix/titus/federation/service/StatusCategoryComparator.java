@@ -76,9 +76,9 @@ class StatusCategoryComparator implements Comparator<Status> {
 
     private static final StatusCategoryComparator DEFAULT = new StatusCategoryComparator(
             // unexpected system errors first
-            Arrays.asList(UNKNOWN, FAILED_PRECONDITION, PERMISSION_DENIED, UNIMPLEMENTED, INTERNAL, DATA_LOSS, UNAUTHENTICATED),
+            Arrays.asList(UNKNOWN, PERMISSION_DENIED, UNIMPLEMENTED, INTERNAL, DATA_LOSS, UNAUTHENTICATED),
             // then errors where the entity existed somewhere
-            Arrays.asList(INVALID_ARGUMENT, ALREADY_EXISTS, OUT_OF_RANGE),
+            Arrays.asList(FAILED_PRECONDITION, INVALID_ARGUMENT, ALREADY_EXISTS, OUT_OF_RANGE),
             // then transient errors
             Arrays.asList(UNAVAILABLE, CANCELLED, DEADLINE_EXCEEDED, RESOURCE_EXHAUSTED, ABORTED),
             // NOT_FOUND for sure only if it came from everywhere

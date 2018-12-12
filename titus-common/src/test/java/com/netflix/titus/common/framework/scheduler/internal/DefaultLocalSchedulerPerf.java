@@ -42,7 +42,7 @@ public class DefaultLocalSchedulerPerf {
 
     private static final long ACTIVE_SCHEDULE_COUNT = 10;
 
-    private final LocalScheduler localScheduler = new DefaultLocalScheduler(LOOP_INTERVAL, Schedulers.parallel(), Clocks.system(), false, new DefaultRegistry());
+    private final LocalScheduler localScheduler = new DefaultLocalScheduler(LOOP_INTERVAL, Schedulers.parallel(), Clocks.system(), new DefaultRegistry());
 
     private final Set<ScheduleReference> activeReferences = new HashSet<>();
 

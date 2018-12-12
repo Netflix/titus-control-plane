@@ -37,7 +37,6 @@ public class TitusServiceException extends RuntimeException {
         INTERNAL,
         NO_CALLER_ID,
         JOB_NOT_FOUND,
-        JOB_UPDATE_NOT_ALLOWED,
         UNSUPPORTED_JOB_TYPE,
         TASK_NOT_FOUND,
         NOT_SUPPORTED,

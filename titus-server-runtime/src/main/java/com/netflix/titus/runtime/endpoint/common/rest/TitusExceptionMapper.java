@@ -174,13 +174,6 @@ public class TitusExceptionMapper implements ExceptionMapper<Throwable> {
             case TASK_NOT_FOUND:
                 errorBuilder.status(HttpServletResponse.SC_NOT_FOUND);
                 break;
-            case JOB_UPDATE_NOT_ALLOWED:
-                Throwable cause = e.getCause();
-                if (cause != null) {
-                    errorBuilder.message(cause.getMessage()).exceptionContext(cause);
-                }
-                errorBuilder.status(HttpServletResponse.SC_BAD_REQUEST);
-                break;
             case UNSUPPORTED_JOB_TYPE:
                 errorBuilder.status(HttpServletResponse.SC_BAD_REQUEST);
                 break;
@@ -226,9 +219,27 @@ public class TitusExceptionMapper implements ExceptionMapper<Throwable> {
             case TaskNotFound:
                 errorBuilder.status(HttpServletResponse.SC_NOT_FOUND);
                 break;
-            case NotServiceJob:
+            case JobTerminating:
+            case TaskTerminating:
+            case UnexpectedJobState:
             case UnexpectedTaskState:
+                errorBuilder.status(HttpServletResponse.SC_PRECONDITION_FAILED);
+                break;
+            case NotEnabled:
+                errorBuilder.status(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
+                break;
+            case InvalidContainerResources:
+            case InvalidDesiredCapacity:
+            case NotServiceJob:
+            case NotServiceJobDescriptor:
+            case NotBatchJob:
+            case NotBatchJobDescriptor:
+            case BelowMinCapacity:
+            case AboveMaxCapacity:
+            case TaskJobMismatch:
+            case SameJobIds:
                 errorBuilder.status(HttpServletResponse.SC_BAD_REQUEST);
+                break;
             default:
                 errorBuilder.status(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }

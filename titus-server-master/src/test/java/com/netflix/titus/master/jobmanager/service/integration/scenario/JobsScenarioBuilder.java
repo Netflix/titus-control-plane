@@ -54,6 +54,7 @@ import com.netflix.titus.testkit.rx.ExtTestSubscriber;
 import rx.schedulers.Schedulers;
 import rx.schedulers.TestScheduler;
 
+import static com.jayway.awaitility.Awaitility.await;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -98,6 +99,7 @@ public class JobsScenarioBuilder {
         when(configuration.getTaskInKillInitiatedStateTimeoutMs()).thenReturn(KILL_INITIATED_TIMEOUT_MS);
         when(configuration.getTaskRetryerResetTimeMs()).thenReturn(TimeUnit.MINUTES.toMillis(5));
         when(configuration.getTaskKillAttempts()).thenReturn(2L);
+        when(configuration.isMoveTaskApiEnabled()).thenReturn(true);
 
         jobStore.events().subscribe(storeEvents);
 
@@ -198,6 +200,14 @@ public class JobsScenarioBuilder {
         return v3JobOperations;
     }
 
+    public DefaultV3JobOperations getJobOperations() {
+        return jobOperations;
+    }
+
+    public TestScheduler getTestScheduler() {
+        return testScheduler;
+    }
+
     public TitusRuntime getTitusRuntime() {
         return titusRuntime;
     }
@@ -236,6 +246,10 @@ public class JobsScenarioBuilder {
         return (JobScenarioBuilder<E>) jobScenarioBuilders.get(idx);
     }
 
+    public List<JobScenarioBuilder<?>> getJobScenarios() {
+        return jobScenarioBuilders;
+    }
+
     public <E extends JobDescriptorExt> JobsScenarioBuilder inJob(int idx, Function<JobScenarioBuilder<E>, JobScenarioBuilder<E>> jobScenario) {
         JobScenarioBuilder<E> jobScenarioBuilder = getJobScenario(idx);
         if (jobScenarioBuilder == null) {
@@ -259,6 +273,13 @@ public class JobsScenarioBuilder {
 
         trigger();
 
+        await().timeout(5, TimeUnit.SECONDS).until(() -> {
+            if (jobIdRef.get() != null) {
+                return true;
+            }
+            advance();
+            return false;
+        });
         String jobId = jobIdRef.get();
         assertThat(jobId).describedAs("Job not created").isNotNull();
 

@@ -131,8 +131,6 @@ public final class ErrorResponses {
                     return Status.NOT_FOUND;
                 case INVALID_ARGUMENT:
                     return Status.INVALID_ARGUMENT;
-                case JOB_UPDATE_NOT_ALLOWED:
-                    return Status.FAILED_PRECONDITION;
                 case UNSUPPORTED_JOB_TYPE:
                     return Status.UNIMPLEMENTED;
                 case INTERNAL:
@@ -167,12 +165,21 @@ public final class ErrorResponses {
                     return Status.NOT_FOUND;
                 case JobTerminating:
                 case TaskTerminating:
-                case NotServiceJob:
                 case UnexpectedJobState:
                 case UnexpectedTaskState:
                     return Status.FAILED_PRECONDITION;
+                case NotEnabled:
+                    return Status.PERMISSION_DENIED;
                 case InvalidContainerResources:
                 case InvalidDesiredCapacity:
+                case NotServiceJob:
+                case NotServiceJobDescriptor:
+                case NotBatchJob:
+                case NotBatchJobDescriptor:
+                case BelowMinCapacity:
+                case AboveMaxCapacity:
+                case TaskJobMismatch:
+                case SameJobIds:
                     return Status.INVALID_ARGUMENT;
             }
         } else if (cause instanceof EvictionException) {

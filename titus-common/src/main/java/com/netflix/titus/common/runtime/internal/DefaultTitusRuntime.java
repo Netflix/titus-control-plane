@@ -53,7 +53,6 @@ public class DefaultTitusRuntime implements TitusRuntime {
     private static final Logger logger = LoggerFactory.getLogger(DefaultTitusRuntime.class);
 
     public static final String FIT_ACTIVATION_PROPERTY = "titus.runtime.fit.enabled";
-    public static final String LOCAL_SCHEDULER_LOGGING_DISABLED_PROPERTY = "titus.runtime.localSchedulerLogging.disabled";
 
     private static final String METRICS_RUNTIME_ROOT = "titus.system.";
     private static final String METRICS_PERSISTENT_STREAM = METRICS_RUNTIME_ROOT + "persistentStream";
@@ -86,8 +85,7 @@ public class DefaultTitusRuntime implements TitusRuntime {
                 systemAbortListener,
                 registry,
                 Clocks.system(),
-                "true".equals(System.getProperty(FIT_ACTIVATION_PROPERTY, "false")),
-                "true".equals(System.getProperty(LOCAL_SCHEDULER_LOGGING_DISABLED_PROPERTY, "false"))
+                "true".equals(System.getProperty(FIT_ACTIVATION_PROPERTY, "false"))
         );
     }
 
@@ -97,8 +95,7 @@ public class DefaultTitusRuntime implements TitusRuntime {
                                SystemAbortListener systemAbortListener,
                                Registry registry,
                                Clock clock,
-                               boolean isFitEnabled,
-                               boolean isLocalSchedulerLogDisabled) {
+                               boolean isFitEnabled) {
         this.codePointTracker = codePointTracker;
         this.codeInvariants = codeInvariants;
         this.systemLogService = systemLogService;
@@ -106,7 +103,7 @@ public class DefaultTitusRuntime implements TitusRuntime {
         this.registry = registry;
         this.clock = clock;
         this.fitFramework = isFitEnabled ? FitFramework.newFitFramework() : FitFramework.inactiveFitFramework();
-        this.localScheduler = new DefaultLocalScheduler(Duration.ofMillis(LOCAL_SCHEDULER_LOOP_INTERVAL_MS), Schedulers.parallel(), clock, isLocalSchedulerLogDisabled, registry);
+        this.localScheduler = new DefaultLocalScheduler(Duration.ofMillis(LOCAL_SCHEDULER_LOOP_INTERVAL_MS), Schedulers.parallel(), clock, registry);
     }
 
     @Override

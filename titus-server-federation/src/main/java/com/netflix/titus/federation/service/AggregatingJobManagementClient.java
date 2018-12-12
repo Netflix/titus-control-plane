@@ -59,6 +59,7 @@ import com.netflix.titus.grpc.protogen.Pagination;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskId;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
+import com.netflix.titus.grpc.protogen.TaskMoveRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
@@ -391,6 +392,14 @@ public class AggregatingJobManagementClient implements JobManagementClient {
                 .flatMap(response -> singleCellCall(response.getCell(),
                         (client, streamObserver) -> wrap(context, client).killTask(request, streamObserver))
                 );
+        return result.toCompletable();
+    }
+
+    @Override
+    public Completable moveTask(TaskMoveRequest taskMoveRequest) {
+        Observable<Empty> result = findTaskInAllCells(taskMoveRequest.getTaskId())
+                .flatMap(response -> singleCellCall(response.getCell(),
+                        (client, streamObserver) -> client.moveTask(taskMoveRequest, streamObserver)));
         return result.toCompletable();
     }
 

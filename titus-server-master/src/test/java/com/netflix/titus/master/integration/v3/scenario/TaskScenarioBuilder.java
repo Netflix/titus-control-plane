@@ -31,6 +31,7 @@ import com.netflix.titus.common.aws.AwsInstanceType;
 import com.netflix.titus.grpc.protogen.EvictionServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
+import com.netflix.titus.grpc.protogen.TaskMoveRequest;
 import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.grpc.protogen.TaskTerminateRequest;
 import com.netflix.titus.master.scheduler.SchedulingService;
@@ -56,6 +57,7 @@ import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
 
 /**
+ *
  */
 public class TaskScenarioBuilder {
 
@@ -148,6 +150,24 @@ public class TaskScenarioBuilder {
         evictionClient.terminateTask(TaskTerminateRequest.newBuilder().setTaskId(taskId).setReason("Test").build());
 
         logger.info("[{}] Task {} evicted in {}[ms]", discoverActiveTest(), taskId, stopWatch.elapsed(TimeUnit.MILLISECONDS));
+        return this;
+    }
+
+    public TaskScenarioBuilder moveTask(String targetJobId) {
+        String taskId = getTask().getId();
+        logger.info("[{}] Moving task to another job...", discoverActiveTest(), taskId, jobScenarioBuilder.getJobId(), targetJobId);
+        Stopwatch stopWatch = Stopwatch.createStarted();
+
+        TestStreamObserver<Empty> responseObserver = new TestStreamObserver<>();
+        jobClient.moveTask(TaskMoveRequest.newBuilder()
+                        .setSourceJobId(jobScenarioBuilder.getJobId())
+                        .setTargetJobId(targetJobId)
+                        .setTaskId(taskId)
+                        .build(),
+                responseObserver);
+        rethrow(() -> responseObserver.awaitDone(TIMEOUT_MS, TimeUnit.MILLISECONDS));
+
+        logger.info("[{}] Task {} moved to job {} in {}[ms]", discoverActiveTest(), taskId, targetJobId, stopWatch.elapsed(TimeUnit.MILLISECONDS));
         return this;
     }
 

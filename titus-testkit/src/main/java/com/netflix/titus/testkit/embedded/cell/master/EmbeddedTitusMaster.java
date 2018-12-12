@@ -46,6 +46,7 @@ import com.netflix.titus.api.connector.cloud.InstanceCloudConnector;
 import com.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import com.netflix.titus.api.connector.cloud.noop.NoOpLoadBalancerConnector;
 import com.netflix.titus.api.jobmanager.store.JobStore;
+import com.netflix.titus.api.json.ObjectMappers;
 import com.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerJobValidator;
 import com.netflix.titus.api.loadbalancer.model.sanitizer.NoOpLoadBalancerJobValidator;
 import com.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
@@ -73,6 +74,8 @@ import com.netflix.titus.master.TitusRuntimeModule;
 import com.netflix.titus.master.VirtualMachineMasterService;
 import com.netflix.titus.master.agent.store.InMemoryAgentStore;
 import com.netflix.titus.master.endpoint.grpc.TitusMasterGrpcServer;
+import com.netflix.titus.master.eviction.service.quota.system.ArchaiusSystemDisruptionBudgetResolver;
+import com.netflix.titus.master.eviction.service.quota.system.SystemDisruptionBudgetDescriptor;
 import com.netflix.titus.master.mesos.MesosSchedulerDriverFactory;
 import com.netflix.titus.master.supervisor.service.LeaderActivator;
 import com.netflix.titus.master.supervisor.service.MasterDescription;
@@ -439,6 +442,7 @@ public class EmbeddedTitusMaster {
         private List<SimulatedTitusAgentCluster> agentClusters = new ArrayList<>();
         private SimulatedCloud simulatedCloud;
         private Pair<String, Integer> remoteCloud;
+        private SystemDisruptionBudgetDescriptor systemDisruptionBudgetDescriptor;
 
         public Builder() {
             props.put("titusMaster.job.configuration.defaultSecurityGroups", "sg-12345,sg-34567");
@@ -477,6 +481,11 @@ public class EmbeddedTitusMaster {
 
         public Builder withProperties(Properties properties) {
             props.putAll(properties);
+            return this;
+        }
+
+        public Builder withSystemDisruptionBudgetDescriptor(SystemDisruptionBudgetDescriptor systemDisruptionBudgetDescriptor) {
+            this.systemDisruptionBudgetDescriptor = systemDisruptionBudgetDescriptor;
             return this;
         }
 
@@ -525,6 +534,17 @@ public class EmbeddedTitusMaster {
         }
 
         public EmbeddedTitusMaster build() {
+            if (systemDisruptionBudgetDescriptor != null) {
+                try {
+                    props.put(
+                            ArchaiusSystemDisruptionBudgetResolver.PROPERTY_KEY,
+                            ObjectMappers.storeMapper().writeValueAsString(systemDisruptionBudgetDescriptor)
+                    );
+                } catch (Exception e) {
+                    throw new IllegalArgumentException(e);
+                }
+            }
+
             props.put("titus.master.audit.auditLogFolder", "build/auditLogs");
             props.put("titus.master.apiport", Integer.toString(apiPort));
             props.put("titus.master.grpcServer.port", Integer.toString(grpcPort));

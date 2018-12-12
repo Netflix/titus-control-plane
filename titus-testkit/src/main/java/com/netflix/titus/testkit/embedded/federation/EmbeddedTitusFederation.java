@@ -49,8 +49,6 @@ import io.grpc.stub.MetadataUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.netflix.titus.common.runtime.internal.DefaultTitusRuntime.LOCAL_SCHEDULER_LOGGING_DISABLED_PROPERTY;
-
 /**
  * Run embedded version of TitusFederation.
  */
@@ -83,7 +81,6 @@ public class EmbeddedTitusFederation {
 
         String resourceDir = TitusMaster.class.getClassLoader().getResource("static").toExternalForm();
         Properties props = new Properties();
-        props.put(LOCAL_SCHEDULER_LOGGING_DISABLED_PROPERTY, "true");
         props.put("titus.federation.endpoint.grpcPort", grpcPort);
         props.put("titus.federation.routingRules", buildRoutingRules());
         props.put("governator.jetty.embedded.webAppResourceBase", resourceDir);

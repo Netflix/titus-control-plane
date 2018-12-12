@@ -30,6 +30,7 @@ import com.netflix.titus.grpc.protogen.JobStatusUpdate;
 import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
+import com.netflix.titus.grpc.protogen.TaskMoveRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import reactor.core.publisher.Mono;
@@ -72,4 +73,6 @@ public interface JobManagementClient {
     Observable<TaskQueryResult> findTasks(TaskQuery taskQuery);
 
     Completable killTask(TaskKillRequest taskKillRequest);
+
+    Completable moveTask(TaskMoveRequest taskMoveRequest);
 }
