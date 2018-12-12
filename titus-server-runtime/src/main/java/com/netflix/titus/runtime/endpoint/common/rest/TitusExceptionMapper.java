@@ -219,13 +219,14 @@ public class TitusExceptionMapper implements ExceptionMapper<Throwable> {
             case TaskNotFound:
                 errorBuilder.status(HttpServletResponse.SC_NOT_FOUND);
                 break;
-            // these below are mapped to Status.FAILED_PRECONDITION for gRPC calls
             case JobTerminating:
             case TaskTerminating:
             case UnexpectedJobState:
             case UnexpectedTaskState:
+                errorBuilder.status(HttpServletResponse.SC_PRECONDITION_FAILED);
+                break;
             case NotEnabled:
-                errorBuilder.status(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                errorBuilder.status(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
                 break;
             case InvalidContainerResources:
             case InvalidDesiredCapacity:

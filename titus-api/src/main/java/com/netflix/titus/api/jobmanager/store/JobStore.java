@@ -110,9 +110,13 @@ public interface JobStore {
     Completable replaceTask(Task oldTask, Task newTask);
 
     /**
+     * Move an existing task between two existing jobs.
      *
+     * @param jobFrom
+     * @param jobTo
+     * @param task    entity to be persisted in its final state after moved to jobTo
      */
-    Completable moveTask(Job jobFrom, Job jobTo, Task taskAfter);
+    Completable moveTask(Job jobFrom, Job jobTo, Task task);
 
     /**
      * Delete an existing task.

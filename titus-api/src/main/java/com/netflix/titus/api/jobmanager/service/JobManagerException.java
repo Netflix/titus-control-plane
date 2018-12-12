@@ -204,7 +204,7 @@ public class JobManagerException extends RuntimeException {
     public static JobManagerException sameJobs(String jobId) {
         return new JobManagerException(
                 ErrorCode.SameJobIds,
-                format("Operation requires two different job, but the same job provided as the source and target: %s", jobId)
+                format("Operation requires two different job, but the same job was provided as the source and target: %s", jobId)
         );
     }
 

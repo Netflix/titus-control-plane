@@ -167,8 +167,9 @@ public final class ErrorResponses {
                 case TaskTerminating:
                 case UnexpectedJobState:
                 case UnexpectedTaskState:
-                case NotEnabled:
                     return Status.FAILED_PRECONDITION;
+                case NotEnabled:
+                    return Status.PERMISSION_DENIED;
                 case InvalidContainerResources:
                 case InvalidDesiredCapacity:
                 case NotServiceJob:
