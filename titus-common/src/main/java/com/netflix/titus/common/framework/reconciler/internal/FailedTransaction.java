@@ -79,7 +79,7 @@ class FailedTransaction<EVENT> implements Transaction {
             try {
                 changeActionHolder.getSubscriber().onError(error);
             } catch (Exception e) {
-                logger.warn("Client subscriber onError handler thrown an exception: rootId={}, error={}", engine.getRunningView().getId(), e.getMessage());
+                logger.warn("Client subscriber onError handler threw an exception: rootId={}, error={}", engine.getRunningView().getId(), e.getMessage());
             }
             return true;
         }
