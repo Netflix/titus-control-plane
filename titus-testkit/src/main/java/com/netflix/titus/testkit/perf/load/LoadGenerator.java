@@ -34,6 +34,7 @@ import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.runtime.connector.agent.AgentManagerConnectorModule;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagerConnectorModule;
+import com.netflix.titus.testkit.embedded.cloud.connector.remote.SimulatedRemoteInstanceCloudConnector;
 import com.netflix.titus.testkit.perf.load.rest.LoadJerseyModule;
 import io.grpc.ManagedChannel;
 import io.grpc.netty.shaded.io.grpc.netty.NegotiationType;
@@ -109,7 +110,7 @@ public class LoadGenerator {
 
             @Provides
             @Singleton
-            @Named(ExecutionContext.CLOUD_SIMULATOR)
+            @Named(SimulatedRemoteInstanceCloudConnector.SIMULATED_CLOUD)
             ManagedChannel getSimulatorManagedChannel() {
                 String simulatorHost;
                 int simulatorPort;

@@ -27,13 +27,16 @@ import javax.inject.Singleton;
 
 import com.netflix.titus.gateway.endpoint.v3.grpc.TitusGatewayGrpcServer;
 import com.netflix.titus.runtime.endpoint.common.grpc.interceptor.ErrorCatchingServerInterceptor;
+import com.netflix.titus.simulator.SimulatedAgentServiceGrpc;
 import com.netflix.titus.simulator.SimulatedAgentServiceGrpc.SimulatedAgentServiceImplBase;
+import com.netflix.titus.simulator.SimulatedMesosServiceGrpc;
 import com.netflix.titus.simulator.SimulatedMesosServiceGrpc.SimulatedMesosServiceImplBase;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedCloudConfiguration;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.ServerInterceptor;
 import io.grpc.ServerInterceptors;
+import io.grpc.ServiceDescriptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,10 +64,10 @@ public class SimulatedCloudGrpcServer {
     @PostConstruct
     public void start() {
         if (!started.getAndSet(true)) {
-            ServerBuilder serverBuilder = ServerBuilder.forPort(configuration.getGrpcPort());
+            ServerBuilder serverBuilder = configure(ServerBuilder.forPort(configuration.getGrpcPort()));
             serverBuilder
-                    .addService(ServerInterceptors.intercept(simulatedAgentsService, createInterceptors()))
-                    .addService(ServerInterceptors.intercept(simulatedMesosService, createInterceptors()));
+                    .addService(ServerInterceptors.intercept(simulatedAgentsService, createInterceptors(SimulatedAgentServiceGrpc.getServiceDescriptor())))
+                    .addService(ServerInterceptors.intercept(simulatedMesosService, createInterceptors(SimulatedMesosServiceGrpc.getServiceDescriptor())));
             this.server = serverBuilder.build();
 
             logger.info("Starting gRPC server on port {}.", configuration.getGrpcPort());
@@ -84,7 +87,11 @@ public class SimulatedCloudGrpcServer {
         }
     }
 
-    private List<ServerInterceptor> createInterceptors() {
+    protected ServerBuilder configure(ServerBuilder serverBuilder) {
+        return serverBuilder;
+    }
+
+    protected List<ServerInterceptor> createInterceptors(ServiceDescriptor serviceDescriptor) {
         return Collections.singletonList(new ErrorCatchingServerInterceptor());
     }
 }

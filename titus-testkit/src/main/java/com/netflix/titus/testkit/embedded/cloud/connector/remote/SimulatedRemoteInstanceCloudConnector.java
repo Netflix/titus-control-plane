@@ -23,8 +23,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import javax.annotation.PreDestroy;
 import javax.inject.Inject;
+import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.netflix.titus.api.connector.cloud.Instance;
@@ -33,40 +33,31 @@ import com.netflix.titus.api.connector.cloud.InstanceGroup;
 import com.netflix.titus.api.connector.cloud.InstanceLaunchConfiguration;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.common.aws.AwsInstanceType;
-import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.rx.ObservableExt;
 import com.netflix.titus.common.util.tuple.Either;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.model.ResourceDimensions;
+import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.simulator.SimulatedAgentServiceGrpc;
 import com.netflix.titus.simulator.SimulatedAgentServiceGrpc.SimulatedAgentServiceStub;
 import com.netflix.titus.simulator.TitusCloudSimulator;
 import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedInstance;
 import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedInstanceGroup;
-import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
+import io.grpc.Channel;
 import rx.Completable;
 import rx.Observable;
 
 @Singleton
 public class SimulatedRemoteInstanceCloudConnector implements InstanceCloudConnector {
 
-    private final ManagedChannel channel;
+    public static final String SIMULATED_CLOUD = "simulatedCloud";
+
     private final SimulatedAgentServiceStub client;
 
     @Inject
-    public SimulatedRemoteInstanceCloudConnector(CloudSimulatorResolver cloudSimulatorResolver) {
-        Pair<String, Integer> cloudSimulatorAddress = cloudSimulatorResolver.resolveGrpcEndpoint();
-        this.channel = ManagedChannelBuilder.forAddress(cloudSimulatorAddress.getLeft(), cloudSimulatorAddress.getRight())
-                .usePlaintext(true)
-                .build();
+    public SimulatedRemoteInstanceCloudConnector(@Named(SIMULATED_CLOUD) Channel channel) {
         this.client = SimulatedAgentServiceGrpc.newStub(channel);
-    }
-
-    @PreDestroy
-    public void shutdown() {
-        channel.shutdown();
     }
 
     @Override

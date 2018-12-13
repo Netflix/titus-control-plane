@@ -22,6 +22,6 @@ import com.netflix.archaius.api.annotations.DefaultValue;
 @Configuration(prefix = "titus.simulatedCloud")
 public interface SimulatedCloudConfiguration {
 
-    @DefaultValue("7006")
+    @DefaultValue("7104")
     int getGrpcPort();
 }

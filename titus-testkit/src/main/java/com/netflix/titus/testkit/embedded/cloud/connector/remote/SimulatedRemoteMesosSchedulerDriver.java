@@ -49,7 +49,7 @@ import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedTask;
 import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedTaskStatus;
 import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedTaskStatus.SimulatedNetworkConfiguration;
 import com.netflix.titus.simulator.TitusCloudSimulator.TasksLaunchRequest;
-import io.grpc.ManagedChannel;
+import io.grpc.Channel;
 import io.grpc.stub.StreamObserver;
 import io.titanframework.messages.TitanProtos;
 import org.apache.mesos.Protos;
@@ -83,7 +83,7 @@ class SimulatedRemoteMesosSchedulerDriver implements SchedulerDriver {
     private final BlockingQueue<TasksLaunchRequest> launchQueue = new LinkedBlockingQueue<>();
     private Subscription queueDrainerSubscription;
 
-    SimulatedRemoteMesosSchedulerDriver(Protos.MasterInfo masterInfo, ManagedChannel channel, Scheduler callbackHandler, TitusRuntime titusRuntime) {
+    SimulatedRemoteMesosSchedulerDriver(Protos.MasterInfo masterInfo, Channel channel, Scheduler callbackHandler, TitusRuntime titusRuntime) {
         this.masterInfo = masterInfo;
         this.asyncClient = SimulatedMesosServiceGrpc.newStub(channel);
         this.blockingClient = SimulatedMesosServiceGrpc.newBlockingStub(channel);

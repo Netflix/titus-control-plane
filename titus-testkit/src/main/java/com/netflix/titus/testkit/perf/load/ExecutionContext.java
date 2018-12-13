@@ -37,7 +37,8 @@ import com.netflix.titus.runtime.endpoint.common.grpc.ReactorGrpcClientAdapterFa
 import com.netflix.titus.simulator.SimulatedAgentServiceGrpc;
 import com.netflix.titus.simulator.SimulatedAgentServiceGrpc.SimulatedAgentServiceStub;
 import com.netflix.titus.testkit.embedded.cloud.connector.remote.SimulatedAgentClient;
-import io.grpc.ManagedChannel;
+import com.netflix.titus.testkit.embedded.cloud.connector.remote.SimulatedRemoteInstanceCloudConnector;
+import io.grpc.Channel;
 
 @Singleton
 public class ExecutionContext {
@@ -45,8 +46,6 @@ public class ExecutionContext {
     public static final String LABEL_SESSION = "titus.load.session";
 
     private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMddHHmmss").withZone(ZoneId.systemDefault());
-
-    public static final String CLOUD_SIMULATOR = "cloudSimulator";
 
     private final String sessionId;
 
@@ -66,8 +65,8 @@ public class ExecutionContext {
                             ReadOnlyJobOperations cachedJobManagementClient,
                             AgentManagementClient agentManagementClient,
                             ReadOnlyAgentOperations cachedAgentManagementClient,
-                            ManagedChannel titusGrpcChannel,
-                            @Named(CLOUD_SIMULATOR) ManagedChannel cloudSimulatorGrpcChannel,
+                            Channel titusGrpcChannel,
+                            @Named(SimulatedRemoteInstanceCloudConnector.SIMULATED_CLOUD) Channel cloudSimulatorGrpcChannel,
                             ReactorGrpcClientAdapterFactory grpcClientAdapterFactory) {
         this.sessionId = "session$" + TIMESTAMP_FORMATTER.format(Instant.now());
 

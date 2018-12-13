@@ -19,9 +19,12 @@ package com.netflix.titus.testkit.embedded.cloud.connector.remote;
 import com.netflix.governator.LifecycleInjector;
 import com.netflix.titus.api.connector.cloud.InstanceCloudConnector;
 import com.netflix.titus.common.network.socket.UnusedSocketPortAllocator;
+import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import com.netflix.titus.testkit.embedded.cloud.connector.AbstractSimulatedInstanceCloudConnectorTest;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
 import org.junit.After;
 import org.junit.experimental.categories.Category;
 
@@ -29,18 +32,22 @@ import org.junit.experimental.categories.Category;
 public class SimulatedRemoteInstanceCloudConnectorTest extends AbstractSimulatedInstanceCloudConnectorTest {
 
     private LifecycleInjector injector;
+    private ManagedChannel channel;
 
     @Override
     protected InstanceCloudConnector setup(SimulatedCloud cloud) {
         int grpcPort = UnusedSocketPortAllocator.global().allocate();
         this.injector = RemoteConnectorUtil.createSimulatedCloudGrpcServer(cloud, grpcPort);
-        return new SimulatedRemoteInstanceCloudConnector(RemoteConnectorUtil.newConnectorConfiguration(grpcPort));
+
+        this.channel = ManagedChannelBuilder.forAddress("localhost", grpcPort)
+                .usePlaintext(true)
+                .build();
+        return new SimulatedRemoteInstanceCloudConnector(channel);
     }
 
     @After
     public void tearDown() {
-        if (injector != null) {
-            injector.close();
-        }
+        ExceptionExt.silent(channel, c -> channel.shutdownNow());
+        ExceptionExt.silent(injector, i -> injector.close());
     }
 }

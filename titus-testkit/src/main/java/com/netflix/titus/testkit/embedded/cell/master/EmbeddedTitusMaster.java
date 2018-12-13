@@ -94,7 +94,6 @@ import com.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
 import com.netflix.titus.testkit.embedded.cloud.connector.local.SimulatedLocalInstanceCloudConnector;
 import com.netflix.titus.testkit.embedded.cloud.connector.local.SimulatedLocalMesosSchedulerDriver;
 import com.netflix.titus.testkit.embedded.cloud.connector.local.SimulatedLocalMesosSchedulerDriverFactory;
-import com.netflix.titus.testkit.embedded.cloud.connector.remote.CloudSimulatorResolver;
 import com.netflix.titus.testkit.embedded.cloud.connector.remote.SimulatedRemoteInstanceCloudConnector;
 import com.netflix.titus.testkit.embedded.cloud.connector.remote.SimulatedRemoteMesosSchedulerDriverFactory;
 import com.netflix.titus.testkit.grpc.GrpcClientErrorUtils;
@@ -174,9 +173,11 @@ public class EmbeddedTitusMaster {
             this.simulatedCloud = null;
             this.remoteCloud = builder.remoteCloud;
 
-            CloudSimulatorResolver connectorConfiguration = () -> builder.remoteCloud;
-            this.cloudInstanceConnector = new SimulatedRemoteInstanceCloudConnector(connectorConfiguration);
-            this.mesosSchedulerDriverFactory = new SimulatedRemoteMesosSchedulerDriverFactory(connectorConfiguration, TitusRuntimes.internal());
+            ManagedChannel cloudChannel = ManagedChannelBuilder.forAddress(remoteCloud.getLeft(), remoteCloud.getRight())
+                    .usePlaintext(true)
+                    .build();
+            this.cloudInstanceConnector = new SimulatedRemoteInstanceCloudConnector(cloudChannel);
+            this.mesosSchedulerDriverFactory = new SimulatedRemoteMesosSchedulerDriverFactory(cloudChannel, TitusRuntimes.internal());
         }
         if (simulatedCloud != null) {
             builder.agentClusters.forEach(simulatedCloud::addInstanceGroup);
