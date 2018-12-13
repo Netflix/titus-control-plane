@@ -198,11 +198,19 @@ class SingleTransaction<EVENT> implements Transaction {
     @Override
     public boolean completeSubscribers() {
         if (transactionStep == TransactionStep.EventsEmitted) {
-            changeActionSubscriber.ifPresent(Observer::onCompleted);
+            try {
+                changeActionSubscriber.ifPresent(Observer::onCompleted);
+            } catch (Exception e) {
+                logger.warn("Client subscriber onCompleted handler thrown an exception: rootId={}, transactionId={}, error={}", engine.getRunningView().getId(), transactionId, e.getMessage());
+            }
             this.transactionStep = TransactionStep.SubscribersCompleted;
             return true;
         } else if (transactionStep == TransactionStep.ErrorEventsEmitted) {
-            changeActionSubscriber.ifPresent(subscriber -> subscriber.onError(changeActionError));
+            try {
+                changeActionSubscriber.ifPresent(subscriber -> subscriber.onError(changeActionError));
+            } catch (Exception e) {
+                logger.warn("Client subscriber onError handler thrown an exception: rootId={}, transactionId={}, error={}", engine.getRunningView().getId(), transactionId, e.getMessage());
+            }
             this.transactionStep = TransactionStep.SubscribersCompleted;
             return true;
         } else if (transactionStep == TransactionStep.ChangeActionUnsubscribed) {

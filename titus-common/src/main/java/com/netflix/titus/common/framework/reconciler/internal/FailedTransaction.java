@@ -18,7 +18,12 @@ package com.netflix.titus.common.framework.reconciler.internal;
 
 import java.util.Optional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 class FailedTransaction<EVENT> implements Transaction {
+
+    private static final Logger logger = LoggerFactory.getLogger(FailedTransaction.class);
 
     enum TransactionStep {
         ChangeActionFailed,
@@ -71,7 +76,11 @@ class FailedTransaction<EVENT> implements Transaction {
         if (transactionStep == TransactionStep.ErrorEventsEmitted) {
             this.transactionStep = TransactionStep.SubscribersCompleted;
 
-            changeActionHolder.getSubscriber().onError(error);
+            try {
+                changeActionHolder.getSubscriber().onError(error);
+            } catch (Exception e) {
+                logger.warn("Client subscriber onError handler thrown an exception: rootId={}, error={}", engine.getRunningView().getId(), e.getMessage());
+            }
             return true;
         }
         return false;

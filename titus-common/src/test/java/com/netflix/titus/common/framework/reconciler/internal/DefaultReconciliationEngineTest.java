@@ -17,6 +17,7 @@
 package com.netflix.titus.common.framework.reconciler.internal;
 
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -156,6 +157,44 @@ public class DefaultReconciliationEngineTest {
         assertThat(engine.closeFinishedTransactions()).isTrue();
 
         testSubscriber.assertOnError(expectedError);
+    }
+
+    @Test
+    public void testChangeActionSubscriberThrowingExceptionInOnCompleted() {
+        engine.changeReferenceModel(new RootChangeAction("rootUpdate")).subscribe(
+                next -> {
+                },
+                e -> {
+                },
+                () -> {
+                    throw new RuntimeException("Simulated event onComplete error");
+                }
+        );
+
+        engine.emitEvents();
+        assertThat(engine.triggerActions()).isTrue();
+        assertThat(engine.applyModelUpdates()).isTrue();
+        engine.emitEvents();
+        assertThat(engine.closeFinishedTransactions()).isTrue();
+    }
+
+    @Test
+    public void testChangeActionSubscriberThrowingExceptionInOnError() {
+        engine.changeReferenceModel(() -> Observable.error(new RuntimeException("Change action error"))).subscribe(
+                next -> {
+                },
+                e -> {
+                    throw new RuntimeException("Simulated event onError error");
+                },
+                () -> {
+                }
+        );
+
+        engine.emitEvents();
+        assertThat(engine.triggerActions()).isTrue();
+        assertThat(engine.applyModelUpdates()).isFalse();
+        engine.emitEvents();
+        assertThat(engine.closeFinishedTransactions()).isTrue();
     }
 
     @Test
