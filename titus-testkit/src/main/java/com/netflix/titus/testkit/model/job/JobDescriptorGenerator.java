@@ -167,7 +167,7 @@ public final class JobDescriptorGenerator {
 
     public static JobDescriptor<BatchJobExt> oneTaskBatchJobDescriptor() {
         JobDescriptor<BatchJobExt> jobDescriptor = batchJobDescriptors().getValue();
-        Image imageWithTag = JobModel.newImage().withName("titusops/echo").withTag("latest").build();
+        Image imageWithTag = JobModel.newImage().withName("titusops/echoservice").withTag("latest").build();
         return JobModel.newJobDescriptor(jobDescriptor)
                 .withContainer(JobModel.newContainer(jobDescriptor.getContainer()).withImage(imageWithTag).build())
                 .withExtensions(JobModel.newBatchJobExt(jobDescriptor.getExtensions())
@@ -180,7 +180,7 @@ public final class JobDescriptorGenerator {
 
     public static JobDescriptor<ServiceJobExt> oneTaskServiceJobDescriptor() {
         JobDescriptor<ServiceJobExt> jobDescriptor = serviceJobDescriptors().getValue();
-        Image imageWithTag = JobModel.newImage().withName("titusops/echo").withTag("latest").build();
+        Image imageWithTag = JobModel.newImage().withName("titusops/echoservice").withTag("latest").build();
         return JobModel.newJobDescriptor(jobDescriptor)
                 .withContainer(JobModel.newContainer(jobDescriptor.getContainer()).withImage(imageWithTag).build())
                 .withExtensions(JobModel.newServiceJobExt(jobDescriptor.getExtensions())
