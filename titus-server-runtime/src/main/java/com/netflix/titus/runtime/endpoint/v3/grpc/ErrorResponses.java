@@ -31,6 +31,7 @@ import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.util.tuple.Pair;
 import io.grpc.Metadata;
 import io.grpc.Status;
+import rx.exceptions.CompositeException;
 
 import static java.util.Arrays.stream;
 
@@ -50,7 +51,8 @@ public final class ErrorResponses {
     private ErrorResponses() {
     }
 
-    public static Pair<Status, Metadata> of(Exception exception, boolean debug) {
+    public static Pair<Status, Metadata> of(Throwable t, boolean debug) {
+        Throwable exception = unwrap(t);
         Status status = toGrpcStatus(exception)
                 .withDescription(getNonNullMessage(exception))
                 .withCause(exception);
@@ -62,7 +64,7 @@ public final class ErrorResponses {
     }
 
     public static Pair<Status, Metadata> of(Status status, Metadata trailers, boolean debug) {
-        Throwable cause = status.getCause();
+        Throwable cause = unwrap(status.getCause());
         if (cause == null) {
             return Pair.of(status, trailers);
         }
@@ -114,7 +116,8 @@ public final class ErrorResponses {
         return builder.build();
     }
 
-    private static Status toGrpcStatus(Throwable cause) {
+    private static Status toGrpcStatus(Throwable original) {
+        Throwable cause = unwrap(original);
         if (cause instanceof SocketException) {
             return Status.UNAVAILABLE;
         } else if (cause instanceof TimeoutException) {
@@ -211,9 +214,20 @@ public final class ErrorResponses {
         return Status.INTERNAL;
     }
 
-    private static String getNonNullMessage(Throwable e) {
+    private static String getNonNullMessage(Throwable t) {
+        Throwable e = unwrap(t);
         return e.getMessage() == null
                 ? e.getClass().getSimpleName() + " (no message)"
                 : e.getClass().getSimpleName() + ": " + e.getMessage();
+    }
+
+    private static Throwable unwrap(Throwable throwable) {
+        if (throwable instanceof CompositeException) {
+            CompositeException composite = (CompositeException) throwable;
+            if (composite.getExceptions().size() == 1) {
+                return composite.getExceptions().get(0);
+            }
+        }
+        return throwable;
     }
 }
