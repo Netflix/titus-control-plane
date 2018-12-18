@@ -8,7 +8,7 @@ include 'titus-api',\
         'titus-server-runtime',\
         'titus-testkit'
 
-['task-relocation'].each {
+['task-relocation', 'task-relocation-spring', 'task-relocation-springboot'].each {
     def projectName = "titus-supplementary-component-$it"
     include projectName
 

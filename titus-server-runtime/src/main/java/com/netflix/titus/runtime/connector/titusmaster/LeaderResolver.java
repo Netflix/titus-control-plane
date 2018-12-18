@@ -18,6 +18,8 @@ package com.netflix.titus.runtime.connector.titusmaster;
 
 import java.util.Optional;
 
+import com.netflix.titus.common.util.rx.ReactorExt;
+import reactor.core.publisher.Flux;
 import rx.Observable;
 
 public interface LeaderResolver {
@@ -30,6 +32,15 @@ public interface LeaderResolver {
     /**
      * @return a persistent observable that emits the {@link Address} of the leader at some interval. The consumer should be able to handle
      * duplicates.
+     * @deprecated Use {@link #observeLeaderFlux()} instead.
      */
+    @Deprecated
     Observable<Optional<Address>> observeLeader();
+
+    /**
+     * Spring-Reactor variant of {@link #observeLeader()}.
+     */
+    default Flux<Optional<Address>> observeLeaderFlux() {
+        return ReactorExt.toFlux(observeLeader());
+    }
 }
