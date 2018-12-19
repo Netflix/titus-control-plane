@@ -26,11 +26,8 @@ plugins {
 
 apply plugin: 'io.spring.dependency-management'
 
-configurations {
-    providedRuntime
-}
-
 configurations.all {
+    // We need to exclude logback as it clashes with other logging engines.
     exclude group: 'ch.qos.logback', module: 'logback-classic'
     exclude group: 'ch.qos.logback', module: 'logback-core'
 }

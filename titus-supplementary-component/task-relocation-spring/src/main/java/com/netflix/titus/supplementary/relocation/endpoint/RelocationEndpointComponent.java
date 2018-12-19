@@ -26,6 +26,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 
+import static com.netflix.titus.supplementary.relocation.endpoint.rest.TaskRelocationRestComponent.GRPC_RESOLVER;
 import static com.netflix.titus.supplementary.relocation.endpoint.rest.TaskRelocationRestComponent.HTTP_RESOLVER;
 import static java.util.Arrays.asList;
 
@@ -34,9 +35,10 @@ public class RelocationEndpointComponent {
 
     @Bean
     @Primary
-    public CallMetadataResolver getCallMetadataResolver(@Named(HTTP_RESOLVER) SimpleHttpCallMetadataResolver simpleHttpCallMetadataResolver) {
+    public CallMetadataResolver getCallMetadataResolver(@Named(HTTP_RESOLVER) SimpleHttpCallMetadataResolver simpleHttpCallMetadataResolver,
+                                                        @Named(GRPC_RESOLVER) SimpleGrpcCallMetadataResolver simpleGrpcCallMetadataResolver) {
         return new CompositeCallMetadataResolver(
-                asList(new SimpleGrpcCallMetadataResolver(), simpleHttpCallMetadataResolver)
+                asList(simpleGrpcCallMetadataResolver, simpleHttpCallMetadataResolver)
         );
     }
 }

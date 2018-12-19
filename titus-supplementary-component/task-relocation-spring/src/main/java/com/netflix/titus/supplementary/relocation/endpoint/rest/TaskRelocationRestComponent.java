@@ -16,6 +16,7 @@
 
 package com.netflix.titus.supplementary.relocation.endpoint.rest;
 
+import com.netflix.titus.runtime.endpoint.metadata.SimpleGrpcCallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.metadata.SimpleHttpCallMetadataResolver;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
@@ -26,10 +27,16 @@ import org.springframework.http.converter.protobuf.ProtobufHttpMessageConverter;
 public class TaskRelocationRestComponent {
 
     public static final String HTTP_RESOLVER = "http";
+    public static final String GRPC_RESOLVER = "grpc";
 
     @Bean(name = HTTP_RESOLVER)
     public SimpleHttpCallMetadataResolver getSimpleHttpCallMetadataResolver() {
         return new SimpleHttpCallMetadataResolver();
+    }
+
+    @Bean(name = GRPC_RESOLVER)
+    public SimpleGrpcCallMetadataResolver getSimpleGrpcCallMetadataResolver() {
+        return new SimpleGrpcCallMetadataResolver();
     }
 
     @Bean
