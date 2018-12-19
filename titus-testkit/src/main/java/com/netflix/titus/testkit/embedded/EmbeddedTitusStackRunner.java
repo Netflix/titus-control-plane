@@ -39,7 +39,7 @@ public class EmbeddedTitusStackRunner {
         EmbeddedTitusMaster.Builder masterBuilder = EmbeddedTitusMaster.aTitusMaster()
                 .withProperty("titus.scheduler.globalTaskLaunchingConstraintEvaluatorEnabled", "false")
                 .withApiPort(8080)
-                .withGrpcPort(8090)
+                .withGrpcPort(7104)
                 .withEnableDisruptionBudget(true);
 
         String cloudSimulatorHost = cliFacade.getString("H");
