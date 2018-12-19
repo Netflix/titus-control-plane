@@ -82,7 +82,7 @@
             ]
         },
         "com.github.akarnokd:rxjava2-interop": {
-            "locked": "0.13.2",
+            "locked": "0.13.4",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -334,12 +334,6 @@
                 "org.apache.cassandra:cassandra-all"
             ]
         },
-        "commons-logging:commons-logging": {
-            "locked": "1.2",
-            "transitive": [
-                "org.springframework:spring-core"
-            ]
-        },
         "de.jflex:jflex": {
             "locked": "1.6.0",
             "transitive": [
@@ -517,7 +511,7 @@
             ]
         },
         "io.reactivex.rxjava2:rxjava": {
-            "locked": "2.2.2",
+            "locked": "2.2.4",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop"
             ]
@@ -832,15 +826,21 @@
             ]
         },
         "org.springframework:spring-core": {
-            "locked": "4.3.9.RELEASE",
+            "locked": "5.1.3.RELEASE",
             "transitive": [
                 "org.springframework:spring-expression"
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "4.3.9.RELEASE",
+            "locked": "5.1.3.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
+            ]
+        },
+        "org.springframework:spring-jcl": {
+            "locked": "5.1.3.RELEASE",
+            "transitive": [
+                "org.springframework:spring-core"
             ]
         },
         "org.xerial.snappy:snappy-java": {
@@ -942,7 +942,7 @@
             ]
         },
         "com.github.akarnokd:rxjava2-interop": {
-            "locked": "0.13.2",
+            "locked": "0.13.4",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -1194,12 +1194,6 @@
                 "org.apache.cassandra:cassandra-all"
             ]
         },
-        "commons-logging:commons-logging": {
-            "locked": "1.2",
-            "transitive": [
-                "org.springframework:spring-core"
-            ]
-        },
         "de.jflex:jflex": {
             "locked": "1.6.0",
             "transitive": [
@@ -1377,7 +1371,7 @@
             ]
         },
         "io.reactivex.rxjava2:rxjava": {
-            "locked": "2.2.2",
+            "locked": "2.2.4",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop"
             ]
@@ -1692,15 +1686,21 @@
             ]
         },
         "org.springframework:spring-core": {
-            "locked": "4.3.9.RELEASE",
+            "locked": "5.1.3.RELEASE",
             "transitive": [
                 "org.springframework:spring-expression"
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "4.3.9.RELEASE",
+            "locked": "5.1.3.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
+            ]
+        },
+        "org.springframework:spring-jcl": {
+            "locked": "5.1.3.RELEASE",
+            "transitive": [
+                "org.springframework:spring-core"
             ]
         },
         "org.xerial.snappy:snappy-java": {
@@ -1802,7 +1802,7 @@
             ]
         },
         "com.github.akarnokd:rxjava2-interop": {
-            "locked": "0.13.2",
+            "locked": "0.13.4",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -2054,12 +2054,6 @@
                 "org.apache.cassandra:cassandra-all"
             ]
         },
-        "commons-logging:commons-logging": {
-            "locked": "1.2",
-            "transitive": [
-                "org.springframework:spring-core"
-            ]
-        },
         "de.jflex:jflex": {
             "locked": "1.6.0",
             "transitive": [
@@ -2237,7 +2231,7 @@
             ]
         },
         "io.reactivex.rxjava2:rxjava": {
-            "locked": "2.2.2",
+            "locked": "2.2.4",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop"
             ]
@@ -2553,15 +2547,21 @@
             ]
         },
         "org.springframework:spring-core": {
-            "locked": "4.3.9.RELEASE",
+            "locked": "5.1.3.RELEASE",
             "transitive": [
                 "org.springframework:spring-expression"
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "4.3.9.RELEASE",
+            "locked": "5.1.3.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
+            ]
+        },
+        "org.springframework:spring-jcl": {
+            "locked": "5.1.3.RELEASE",
+            "transitive": [
+                "org.springframework:spring-core"
             ]
         },
         "org.xerial.snappy:snappy-java": {
@@ -2726,7 +2726,7 @@
             ]
         },
         "com.github.akarnokd:rxjava2-interop": {
-            "locked": "0.13.2",
+            "locked": "0.13.4",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -2978,12 +2978,6 @@
                 "org.apache.cassandra:cassandra-all"
             ]
         },
-        "commons-logging:commons-logging": {
-            "locked": "1.2",
-            "transitive": [
-                "org.springframework:spring-core"
-            ]
-        },
         "de.jflex:jflex": {
             "locked": "1.6.0",
             "transitive": [
@@ -3161,7 +3155,7 @@
             ]
         },
         "io.reactivex.rxjava2:rxjava": {
-            "locked": "2.2.2",
+            "locked": "2.2.4",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop"
             ]
@@ -3477,15 +3471,21 @@
             ]
         },
         "org.springframework:spring-core": {
-            "locked": "4.3.9.RELEASE",
+            "locked": "5.1.3.RELEASE",
             "transitive": [
                 "org.springframework:spring-expression"
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "4.3.9.RELEASE",
+            "locked": "5.1.3.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
+            ]
+        },
+        "org.springframework:spring-jcl": {
+            "locked": "5.1.3.RELEASE",
+            "transitive": [
+                "org.springframework:spring-core"
             ]
         },
         "org.xerial.snappy:snappy-java": {
@@ -3587,7 +3587,7 @@
             ]
         },
         "com.github.akarnokd:rxjava2-interop": {
-            "locked": "0.13.2",
+            "locked": "0.13.4",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -3839,12 +3839,6 @@
                 "org.apache.cassandra:cassandra-all"
             ]
         },
-        "commons-logging:commons-logging": {
-            "locked": "1.2",
-            "transitive": [
-                "org.springframework:spring-core"
-            ]
-        },
         "de.jflex:jflex": {
             "locked": "1.6.0",
             "transitive": [
@@ -4022,7 +4016,7 @@
             ]
         },
         "io.reactivex.rxjava2:rxjava": {
-            "locked": "2.2.2",
+            "locked": "2.2.4",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop"
             ]
@@ -4338,15 +4332,21 @@
             ]
         },
         "org.springframework:spring-core": {
-            "locked": "4.3.9.RELEASE",
+            "locked": "5.1.3.RELEASE",
             "transitive": [
                 "org.springframework:spring-expression"
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "4.3.9.RELEASE",
+            "locked": "5.1.3.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
+            ]
+        },
+        "org.springframework:spring-jcl": {
+            "locked": "5.1.3.RELEASE",
+            "transitive": [
+                "org.springframework:spring-core"
             ]
         },
         "org.xerial.snappy:snappy-java": {
@@ -4454,7 +4454,7 @@
             ]
         },
         "com.github.akarnokd:rxjava2-interop": {
-            "locked": "0.13.2",
+            "locked": "0.13.4",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -4710,12 +4710,6 @@
                 "org.apache.cassandra:cassandra-all"
             ]
         },
-        "commons-logging:commons-logging": {
-            "locked": "1.2",
-            "transitive": [
-                "org.springframework:spring-core"
-            ]
-        },
         "de.jflex:jflex": {
             "locked": "1.6.0",
             "transitive": [
@@ -4898,7 +4892,7 @@
             "requested": "3.1.+"
         },
         "io.reactivex.rxjava2:rxjava": {
-            "locked": "2.2.2",
+            "locked": "2.2.4",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop"
             ]
@@ -5248,15 +5242,21 @@
             ]
         },
         "org.springframework:spring-core": {
-            "locked": "4.3.9.RELEASE",
+            "locked": "5.1.3.RELEASE",
             "transitive": [
                 "org.springframework:spring-expression"
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "4.3.9.RELEASE",
+            "locked": "5.1.3.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
+            ]
+        },
+        "org.springframework:spring-jcl": {
+            "locked": "5.1.3.RELEASE",
+            "transitive": [
+                "org.springframework:spring-core"
             ]
         },
         "org.xerial.snappy:snappy-java": {
@@ -5364,7 +5364,7 @@
             ]
         },
         "com.github.akarnokd:rxjava2-interop": {
-            "locked": "0.13.2",
+            "locked": "0.13.4",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -5620,12 +5620,6 @@
                 "org.apache.cassandra:cassandra-all"
             ]
         },
-        "commons-logging:commons-logging": {
-            "locked": "1.2",
-            "transitive": [
-                "org.springframework:spring-core"
-            ]
-        },
         "de.jflex:jflex": {
             "locked": "1.6.0",
             "transitive": [
@@ -5808,7 +5802,7 @@
             "requested": "3.1.+"
         },
         "io.reactivex.rxjava2:rxjava": {
-            "locked": "2.2.2",
+            "locked": "2.2.4",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop"
             ]
@@ -6158,15 +6152,21 @@
             ]
         },
         "org.springframework:spring-core": {
-            "locked": "4.3.9.RELEASE",
+            "locked": "5.1.3.RELEASE",
             "transitive": [
                 "org.springframework:spring-expression"
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "4.3.9.RELEASE",
+            "locked": "5.1.3.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
+            ]
+        },
+        "org.springframework:spring-jcl": {
+            "locked": "5.1.3.RELEASE",
+            "transitive": [
+                "org.springframework:spring-core"
             ]
         },
         "org.xerial.snappy:snappy-java": {
@@ -6274,7 +6274,7 @@
             ]
         },
         "com.github.akarnokd:rxjava2-interop": {
-            "locked": "0.13.2",
+            "locked": "0.13.4",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -6530,12 +6530,6 @@
                 "org.apache.cassandra:cassandra-all"
             ]
         },
-        "commons-logging:commons-logging": {
-            "locked": "1.2",
-            "transitive": [
-                "org.springframework:spring-core"
-            ]
-        },
         "de.jflex:jflex": {
             "locked": "1.6.0",
             "transitive": [
@@ -6718,7 +6712,7 @@
             "requested": "3.1.+"
         },
         "io.reactivex.rxjava2:rxjava": {
-            "locked": "2.2.2",
+            "locked": "2.2.4",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop"
             ]
@@ -7069,15 +7063,21 @@
             ]
         },
         "org.springframework:spring-core": {
-            "locked": "4.3.9.RELEASE",
+            "locked": "5.1.3.RELEASE",
             "transitive": [
                 "org.springframework:spring-expression"
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "4.3.9.RELEASE",
+            "locked": "5.1.3.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
+            ]
+        },
+        "org.springframework:spring-jcl": {
+            "locked": "5.1.3.RELEASE",
+            "transitive": [
+                "org.springframework:spring-core"
             ]
         },
         "org.xerial.snappy:snappy-java": {
@@ -7185,7 +7185,7 @@
             ]
         },
         "com.github.akarnokd:rxjava2-interop": {
-            "locked": "0.13.2",
+            "locked": "0.13.4",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -7441,12 +7441,6 @@
                 "org.apache.cassandra:cassandra-all"
             ]
         },
-        "commons-logging:commons-logging": {
-            "locked": "1.2",
-            "transitive": [
-                "org.springframework:spring-core"
-            ]
-        },
         "de.jflex:jflex": {
             "locked": "1.6.0",
             "transitive": [
@@ -7629,7 +7623,7 @@
             "requested": "3.1.+"
         },
         "io.reactivex.rxjava2:rxjava": {
-            "locked": "2.2.2",
+            "locked": "2.2.4",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop"
             ]
@@ -7980,15 +7974,21 @@
             ]
         },
         "org.springframework:spring-core": {
-            "locked": "4.3.9.RELEASE",
+            "locked": "5.1.3.RELEASE",
             "transitive": [
                 "org.springframework:spring-expression"
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "4.3.9.RELEASE",
+            "locked": "5.1.3.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
+            ]
+        },
+        "org.springframework:spring-jcl": {
+            "locked": "5.1.3.RELEASE",
+            "transitive": [
+                "org.springframework:spring-core"
             ]
         },
         "org.xerial.snappy:snappy-java": {
