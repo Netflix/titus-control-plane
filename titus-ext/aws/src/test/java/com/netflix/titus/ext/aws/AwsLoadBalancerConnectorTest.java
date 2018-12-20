@@ -17,7 +17,6 @@
 package com.netflix.titus.ext.aws;
 
 import java.util.List;
-import java.util.Set;
 
 import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.services.elasticloadbalancingv2.AmazonElasticLoadBalancingAsync;
@@ -26,18 +25,16 @@ import com.amazonaws.services.elasticloadbalancingv2.model.TargetGroupAssociatio
 import com.amazonaws.services.elasticloadbalancingv2.model.TargetGroupNotFoundException;
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.titus.api.connector.cloud.CloudConnectorException;
+import com.netflix.titus.api.connector.cloud.LoadBalancer;
 import com.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import com.netflix.titus.api.loadbalancer.service.LoadBalancerException;
 import com.netflix.titus.ext.aws.loadbalancer.AwsLoadBalancerConnector;
-import junit.framework.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import rx.observers.TestSubscriber;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -48,7 +45,7 @@ import static org.mockito.Mockito.when;
 /**
  * Tests the AWS load balancer connector. Those tests which require AWS credentials (and are thus not portable) should
  * be DISABLED.
- *
+ * <p>
  * In order to execute the disabled tests, the AWS resources to test are expected to have been created already and their
  * info is consumed via local credential files.
  */
@@ -106,40 +103,36 @@ public class AwsLoadBalancerConnectorTest {
     @Test
     public void testGetIpTargets() {
         TestSubscriber testSubscriber = new TestSubscriber();
-        awsLoadBalancerConnector.getRegisteredIps(targetGroupWithTargets).subscribe(testSubscriber);
+        awsLoadBalancerConnector.getLoadBalancer(targetGroupWithTargets).subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent();
         testSubscriber.assertCompleted();
         testSubscriber.assertNoErrors();
-        Set<String> targetSet = ((List<Set<String>>) testSubscriber.getOnNextEvents()).get(0);
-        assertThat(targetSet.size()).isGreaterThan(0);
+        LoadBalancer loadBalancer = (LoadBalancer) testSubscriber.getOnNextEvents().get(0);
+        assertEquals(targetGroupWithTargets, loadBalancer.getId());
+        assertThat(loadBalancer.getRegisteredIps()).isNotEmpty();
     }
 
     @Test
-    public void validateTargetGroupNotFoundExceptionIsTranslatedWithMockClientTest() {
-        Class suppressedExceptionClass = TargetGroupNotFoundException.class;
+    public void validateTargetGroupNotFoundExceptionIsTranslatedToRemovedState() {
         TestSubscriber testSubscriber = new TestSubscriber();
 
         AmazonElasticLoadBalancingAsync albClient = mock(AmazonElasticLoadBalancingAsync.class);
-        when(albClient.describeTargetHealthAsync(any(), any())).thenThrow(suppressedExceptionClass);
+        when(albClient.describeTargetHealthAsync(any(), any())).thenThrow(TargetGroupNotFoundException.class);
 
         awsLoadBalancerConnector = new AwsLoadBalancerConnector(albClient, new DefaultRegistry());
-        awsLoadBalancerConnector.getRegisteredIps(targetGroupWithTargets).subscribe(testSubscriber);
+        awsLoadBalancerConnector.getLoadBalancer(targetGroupWithTargets).subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent();
-
-        List<Throwable> errors = testSubscriber.getOnErrorEvents();
-        assertEquals(1, errors.size());
-
-        Throwable throwable = errors.get(0);
-        assertTrue(throwable instanceof LoadBalancerException);
-        assertEquals(
-                LoadBalancerException.ErrorCode.TargetGroupNotFound,
-                ((LoadBalancerException) throwable).getErrorCode());
+        testSubscriber.assertNoErrors();
+        testSubscriber.assertValueCount(1);
+        LoadBalancer loadBalancer = (LoadBalancer) testSubscriber.getOnNextEvents().get(0);
+        assertEquals(targetGroupWithTargets, loadBalancer.getId());
+        assertEquals(LoadBalancer.State.REMOVED, loadBalancer.getState());
     }
 
     @Test
-    public void validateDefaultExceptionsAreUnmodifiedWithMockClientTest() {
+    public void validateExceptionsAreUnmodifiedWithMockClientTest() {
         Class defaultExceptionClass = TargetGroupAssociationLimitException.class;
         TestSubscriber testSubscriber = new TestSubscriber();
 
@@ -147,7 +140,7 @@ public class AwsLoadBalancerConnectorTest {
         when(albClient.describeTargetHealthAsync(any(), any())).thenThrow(defaultExceptionClass);
 
         awsLoadBalancerConnector = new AwsLoadBalancerConnector(albClient, new DefaultRegistry());
-        awsLoadBalancerConnector.getRegisteredIps(targetGroupWithTargets).subscribe(testSubscriber);
+        awsLoadBalancerConnector.getLoadBalancer(targetGroupWithTargets).subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent();
 

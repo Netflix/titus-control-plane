@@ -37,5 +37,5 @@ public interface LoadBalancerConnector {
      */
     Completable isValid(String loadBalancerId);
 
-    Single<Set<String>> getRegisteredIps(String loadBalancerId);
+    Single<LoadBalancer> getLoadBalancer(String loadBalancerId);
 }

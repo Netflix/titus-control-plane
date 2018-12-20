@@ -24,6 +24,7 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
+import com.netflix.titus.api.connector.cloud.LoadBalancer;
 import com.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
@@ -87,7 +88,9 @@ public class DefaultLoadBalancerServiceTest {
         when(client.registerAll(any(), any())).thenReturn(Completable.complete());
         when(client.deregisterAll(any(), any())).thenReturn(Completable.complete());
         when(v3JobOperations.observeJobs()).thenReturn(PublishSubject.create());
-        when(client.getRegisteredIps(any())).thenReturn(Single.just(Collections.emptySet()));
+        when(client.getLoadBalancer(any())).thenAnswer(invocation -> Single.just(
+                new LoadBalancer(invocation.getArgument(0), LoadBalancer.State.ACTIVE, Collections.emptySet())
+        ));
     }
 
     @Before

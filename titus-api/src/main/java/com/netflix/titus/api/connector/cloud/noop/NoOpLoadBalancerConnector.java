@@ -19,6 +19,7 @@ package com.netflix.titus.api.connector.cloud.noop;
 import java.util.Collections;
 import java.util.Set;
 
+import com.netflix.titus.api.connector.cloud.LoadBalancer;
 import com.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import rx.Completable;
 import rx.Single;
@@ -43,7 +44,7 @@ public class NoOpLoadBalancerConnector implements LoadBalancerConnector {
     }
 
     @Override
-    public Single<Set<String>> getRegisteredIps(String loadBalancerId) {
-        return Single.just(Collections.emptySet());
+    public Single<LoadBalancer> getLoadBalancer(String id) {
+        return Single.just(new LoadBalancer(id, LoadBalancer.State.REMOVED, Collections.emptySet()));
     }
 }
