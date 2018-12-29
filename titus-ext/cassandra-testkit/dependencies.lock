@@ -699,7 +699,7 @@
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b10",
+            "locked": "3.0.1-b11",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -1559,7 +1559,7 @@
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b10",
+            "locked": "3.0.1-b11",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -2419,7 +2419,7 @@
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b10",
+            "locked": "3.0.1-b11",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -3343,7 +3343,7 @@
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b10",
+            "locked": "3.0.1-b11",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -4204,7 +4204,7 @@
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b10",
+            "locked": "3.0.1-b11",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -5100,7 +5100,7 @@
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b10",
+            "locked": "3.0.1-b11",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -6010,7 +6010,7 @@
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b10",
+            "locked": "3.0.1-b11",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -6920,7 +6920,7 @@
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b10",
+            "locked": "3.0.1-b11",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -7831,7 +7831,7 @@
             ]
         },
         "org.glassfish:javax.el": {
-            "locked": "3.0.1-b10",
+            "locked": "3.0.1-b11",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
