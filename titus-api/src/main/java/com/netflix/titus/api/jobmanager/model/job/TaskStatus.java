@@ -24,6 +24,7 @@ import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.StringExt;
 
 /**
+ *
  */
 @ClassFieldsNotNull
 public class TaskStatus extends ExecutableStatus<TaskState> {
@@ -150,7 +151,12 @@ public class TaskStatus extends ExecutableStatus<TaskState> {
 
         @Override
         public TaskStatus build() {
-            return new TaskStatus(state, reasonCode, toCompleteReasonMessage(), timestamp);
+            return new TaskStatus(
+                    state,
+                    reasonCode == null ? TaskStatus.REASON_UNKNOWN : reasonCode,
+                    toCompleteReasonMessage(),
+                    timestamp
+            );
         }
     }
 }

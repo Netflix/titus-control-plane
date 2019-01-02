@@ -39,6 +39,7 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.JobModel;
+import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
@@ -207,6 +208,15 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
     public JobScenarioBuilder<E> changeJobEnabledStatus(boolean enabled) {
         ExtTestSubscriber<Void> subscriber = new ExtTestSubscriber<>();
         jobOperations.updateJobStatus(jobId, enabled).subscribe(subscriber);
+
+        autoAdvanceUntilSuccessful(() -> checkOperationSubscriberAndThrowExceptionIfError(subscriber));
+
+        return this;
+    }
+
+    public JobScenarioBuilder<E> changServiceJobProcesses(ServiceJobProcesses processes) {
+        ExtTestSubscriber<Void> subscriber = new ExtTestSubscriber<>();
+        jobOperations.updateServiceJobProcesses(jobId, processes).subscribe(subscriber);
 
         autoAdvanceUntilSuccessful(() -> checkOperationSubscriberAndThrowExceptionIfError(subscriber));
 

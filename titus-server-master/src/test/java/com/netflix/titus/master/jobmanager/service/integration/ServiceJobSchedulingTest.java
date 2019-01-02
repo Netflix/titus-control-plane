@@ -24,10 +24,13 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
+import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.common.util.code.RecordingCodeInvariants;
+import com.netflix.titus.master.jobmanager.service.integration.scenario.JobScenarioBuilder;
 import com.netflix.titus.master.jobmanager.service.integration.scenario.JobsScenarioBuilder;
 import com.netflix.titus.master.jobmanager.service.integration.scenario.ScenarioTemplates;
 import org.junit.After;
@@ -122,6 +125,14 @@ public class ServiceJobSchedulingTest {
                 .template(ScenarioTemplates.changeJobCapacity(newCapacity))
                 .advance()
                 .expectTaskInActiveState(1, 0, TaskState.Accepted)
+        );
+    }
+
+    @Test(expected = JobManagerException.class)
+    public void testFinishedJobScaleUp() {
+        Capacity newCapacity = Capacity.newBuilder().withMin(0).withDesired(2).withMax(5).build();
+        testNoUpdatesAllowedForFinishedJob(jobScenario -> jobScenario
+                .template(ScenarioTemplates.changeJobCapacity(newCapacity))
         );
     }
 
@@ -224,20 +235,6 @@ public class ServiceJobSchedulingTest {
     }
 
     @Test
-    public void testJobCapacityUpdateWhenJobInKillInitiatedStateIsIgnored() {
-        Capacity newCapacity = Capacity.newBuilder().withMin(0).withDesired(2).withMax(5).build();
-
-        jobsScenarioBuilder.scheduleJob(oneTaskServiceJobDescriptor(), jobScenario -> jobScenario
-                .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
-                .template(ScenarioTemplates.killJob())
-                .template(ScenarioTemplates.changeJobCapacity(newCapacity))
-                .advance()
-                .advance()
-                .expectNoJobStateChangeEvent()
-        );
-    }
-
-    @Test
     public void testJobKillWithTaskInAcceptedStateWithRetries() {
         jobsScenarioBuilder.scheduleJob(oneTaskServiceJobDescriptor(), jobScenario -> jobScenario
                 .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
@@ -270,6 +267,11 @@ public class ServiceJobSchedulingTest {
         );
     }
 
+    @Test(expected = JobManagerException.class)
+    public void testFinishedJobEnableStatus() {
+        testNoUpdatesAllowedForFinishedJob(jobScenario -> jobScenario.changeJobEnabledStatus(false));
+    }
+
     @Test
     public void testJobEnableStatusUpdateToIdenticalValue() {
         JobDescriptor<?> emptyJob = JobFunctions.changeServiceJobCapacity(oneTaskServiceJobDescriptor(), 0);
@@ -280,6 +282,28 @@ public class ServiceJobSchedulingTest {
                 .advance()
                 .expectNoStoreUpdate()
                 .expectNoJobStateChangeEvent()
+        );
+    }
+
+    @Test(expected = JobManagerException.class)
+    public void testFinishedJobServiceProcessesUpdate() {
+        testNoUpdatesAllowedForFinishedJob(jobScenario -> jobScenario
+                .changServiceJobProcesses(ServiceJobProcesses.newBuilder().withDisableIncreaseDesired(true).build())
+        );
+    }
+
+    private void testNoUpdatesAllowedForFinishedJob(Consumer<JobScenarioBuilder> changeFun) {
+        JobDescriptor<ServiceJobExt> zeroSizeJob = oneTaskServiceJobDescriptor().but(JobFunctions.ofServiceSize(0));
+        jobsScenarioBuilder.scheduleJob(zeroSizeJob, jobScenario -> {
+                    jobScenario
+                            .ignoreAvailableEvents()
+                            .killJob()
+                            .expectJobEvent(job -> assertThat(job.getStatus().getState()).isEqualTo(JobState.KillInitiated))
+                            .expectJobEvent(job -> assertThat(job.getStatus().getState()).isEqualTo(JobState.Finished))
+                            .ignoreAvailableEvents();
+                    changeFun.accept(jobScenario);
+                    return jobScenario;
+                }
         );
     }
 

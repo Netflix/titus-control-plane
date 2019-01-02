@@ -205,7 +205,7 @@ public class CassandraJobStoreTest {
         store.storeJob(job).await();
         Pair<List<Job<?>>, Integer> jobsAndErrors = store.retrieveJobs().toBlocking().first();
         assertThat(jobsAndErrors.getLeft().get(0)).isEqualTo(job);
-        Job<BatchJobExt> newJob = Job.newBuilder(job)
+        Job<BatchJobExt> newJob = job.toBuilder()
                 .withStatus(JobStatus.newBuilder().withState(JobState.Finished).build())
                 .build();
         store.updateJob(newJob).await();
