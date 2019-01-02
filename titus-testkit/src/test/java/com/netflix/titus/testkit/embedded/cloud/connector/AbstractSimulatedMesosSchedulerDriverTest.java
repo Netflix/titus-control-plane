@@ -89,13 +89,12 @@ public abstract class AbstractSimulatedMesosSchedulerDriverTest {
     public void testTaskKill() throws Exception {
         Protos.TaskInfo taskInfo = newTaskInfo();
 
-        Protos.Offer offer = offers().takeNext(TIMEOUT_MS, TimeUnit.MILLISECONDS).getOffer();
+        Protos.Offer offer = offers().takeNext(3, TIMEOUT_MS, TimeUnit.MILLISECONDS).get(0).getOffer();
         mesosDriver.launchTasks(singletonList(offer.getId()), singletonList(taskInfo));
 
         Protos.TaskState afterLaunch = taskStatusUpdates().takeNext(TIMEOUT_MS, TimeUnit.MILLISECONDS).getState();
         assertThat(afterLaunch).isEqualTo(Protos.TaskState.TASK_STAGING);
 
-        offers().skipAvailable();
         mesosDriver.killTask(taskInfo.getTaskId());
 
         Protos.TaskStatus afterKill = taskStatusUpdates().takeNext(TIMEOUT_MS, TimeUnit.MILLISECONDS);
