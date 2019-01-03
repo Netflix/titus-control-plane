@@ -23,6 +23,7 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.titus.api.agent.model.sanitizer.AgentSanitizerBuilder;
+import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobAssertions;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder;
 import com.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerSanitizerBuilder;
@@ -38,6 +39,7 @@ import static com.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerSan
 import static com.netflix.titus.api.scheduler.model.sanitizer.SchedulerSanitizerBuilder.SCHEDULER_SANITIZER;
 
 /**
+ *
  */
 public class TitusEntitySanitizerModule extends AbstractModule {
 
@@ -47,29 +49,38 @@ public class TitusEntitySanitizerModule extends AbstractModule {
 
     @Provides
     @Singleton
-    @Named(JOB_STRICT_SANITIZER)
-    public EntitySanitizer getJobEntityStrictSanitizer(JobConfiguration jobConfiguration) {
-        return getJobEntitySanitizer(jobConfiguration, VerifierMode.Strict);
-    }
-
-    @Provides
-    @Singleton
-    @Named(JOB_PERMISSIVE_SANITIZER)
-    public EntitySanitizer getJobEntityPermissiveSanitizer(JobConfiguration jobConfiguration) {
-        return getJobEntitySanitizer(jobConfiguration, VerifierMode.Permissive);
-    }
-
-    private EntitySanitizer getJobEntitySanitizer(JobConfiguration jobConfiguration, VerifierMode verifierMode) {
-        return new JobSanitizerBuilder()
-                .withVerifierMode(verifierMode)
-                .withJobConstraintConfiguration(jobConfiguration)
-                .withMaxContainerSizeResolver(capacityGroup -> ResourceDimension.newBuilder()
+    public JobAssertions getJobAssertions(JobConfiguration jobConfiguration) {
+        return new JobAssertions(
+                jobConfiguration,
+                capacityGroup -> ResourceDimension.newBuilder()
                         .withCpus(jobConfiguration.getCpuMax())
                         .withGpu(jobConfiguration.getGpuMax())
                         .withMemoryMB(jobConfiguration.getMemoryMegabytesMax())
                         .withDiskMB(jobConfiguration.getDiskMegabytesMax())
                         .withNetworkMbs(jobConfiguration.getNetworkMbpsMax())
-                        .build())
+                        .build()
+        );
+    }
+
+    @Provides
+    @Singleton
+    @Named(JOB_STRICT_SANITIZER)
+    public EntitySanitizer getJobEntityStrictSanitizer(JobConfiguration jobConfiguration, JobAssertions jobAssertions) {
+        return getJobEntitySanitizer(jobConfiguration, jobAssertions, VerifierMode.Strict);
+    }
+
+    @Provides
+    @Singleton
+    @Named(JOB_PERMISSIVE_SANITIZER)
+    public EntitySanitizer getJobEntityPermissiveSanitizer(JobConfiguration jobConfiguration, JobAssertions jobAssertions) {
+        return getJobEntitySanitizer(jobConfiguration, jobAssertions, VerifierMode.Permissive);
+    }
+
+    private EntitySanitizer getJobEntitySanitizer(JobConfiguration jobConfiguration, JobAssertions jobAssertions, VerifierMode verifierMode) {
+        return new JobSanitizerBuilder()
+                .withVerifierMode(verifierMode)
+                .withJobConstraintConfiguration(jobConfiguration)
+                .withJobAsserts(jobAssertions)
                 .build();
     }
 

@@ -416,22 +416,22 @@ public final class StringExt {
         return mapping;
     }
 
-    public static boolean isASCIILetter(char c) {
+    public static boolean isAsciiLetter(char c) {
         return (c > 64 && c < 91) || (c > 96 && c < 123);
     }
 
-    public static boolean isASCIIDigit(char c) {
+    public static boolean isAsciiDigit(char c) {
         return c >= 48 && c <= 57;
     }
 
-    public static boolean isASCIILetterOrDigit(char c) {
-        return isASCIILetter(c) || isASCIIDigit(c);
+    public static boolean isAsciiLetterOrDigit(char c) {
+        return isAsciiLetter(c) || isAsciiDigit(c);
     }
 
     public static String removeNonAlphanumeric(String text) {
         StringBuilder sb = new StringBuilder();
         for (char c : text.toCharArray()) {
-            if (StringExt.isASCIILetterOrDigit(c)) {
+            if (StringExt.isAsciiLetterOrDigit(c)) {
                 sb.append(c);
             }
         }

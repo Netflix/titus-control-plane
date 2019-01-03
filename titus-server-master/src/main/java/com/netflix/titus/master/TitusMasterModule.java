@@ -24,7 +24,7 @@ import com.google.inject.multibindings.Multibinder;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.governator.guice.jersey.GovernatorJerseySupportModule;
 import com.netflix.titus.api.containerhealth.service.ContainerHealthService;
-import com.netflix.titus.api.FeatureFlagModule;
+import com.netflix.titus.runtime.FeatureFlagModule;
 import com.netflix.titus.master.agent.AgentModule;
 import com.netflix.titus.master.agent.endpoint.AgentEndpointModule;
 import com.netflix.titus.master.appscale.endpoint.v3.AutoScalingModule;

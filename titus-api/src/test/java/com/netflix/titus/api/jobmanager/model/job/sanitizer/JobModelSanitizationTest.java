@@ -305,7 +305,7 @@ public class JobModelSanitizationTest {
         return new JobSanitizerBuilder()
                 .withVerifierMode(verifierMode)
                 .withJobConstraintConfiguration(constraints)
-                .withMaxContainerSizeResolver(capacityGroup -> MAX_CONTAINER_SIZE)
+                .withJobAsserts(new JobAssertions(constraints, capacityGroup -> MAX_CONTAINER_SIZE))
                 .build();
     }
 }

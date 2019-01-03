@@ -30,6 +30,7 @@ import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor.JobDescriptorExt;
 import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
+import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobAssertions;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder;
 import com.netflix.titus.api.model.ResourceDimension;
@@ -293,14 +294,17 @@ public class JobsScenarioBuilder {
         return new JobSanitizerBuilder()
                 .withVerifierMode(verifierMode)
                 .withJobConstraintConfiguration(jobSanitizerConfiguration)
-                .withMaxContainerSizeResolver(instanceType -> ResourceDimension.newBuilder()
-                        .withCpus(64)
-                        .withGpu(8)
-                        .withMemoryMB(256 * 1024)
-                        .withDiskMB(1024 * 1024)
-                        .withNetworkMbs(10 * 1024)
-                        .build()
-                )
+                .withJobAsserts(new JobAssertions(
+                        jobSanitizerConfiguration,
+                        instanceType -> ResourceDimension.newBuilder()
+                                .withCpus(64)
+                                .withGpu(8)
+                                .withMemoryMB(256 * 1024)
+                                .withDiskMB(1024 * 1024)
+                                .withNetworkMbs(10 * 1024)
+                                .build()
+
+                ))
                 .build();
     }
 }

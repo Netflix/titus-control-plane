@@ -79,7 +79,7 @@ class TaskRelocationDataInjector {
     }
 
     Observable<Task> injectIntoTask(String taskId, Observable<Task> taskObservable) {
-        if (!featureActivationConfiguration.isMergeTaskMigrationPlanInGateway()) {
+        if (!featureActivationConfiguration.isMergingTaskMigrationPlanInGatewayEnabled()) {
             return taskObservable;
         }
 
@@ -96,7 +96,7 @@ class TaskRelocationDataInjector {
     }
 
     Observable<TaskQueryResult> injectIntoTaskQueryResult(Observable<TaskQueryResult> tasksObservable) {
-        if (!featureActivationConfiguration.isMergeTaskMigrationPlanInGateway()) {
+        if (!featureActivationConfiguration.isMergingTaskMigrationPlanInGatewayEnabled()) {
             return tasksObservable;
         }
 

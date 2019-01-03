@@ -21,11 +21,16 @@ import com.netflix.archaius.api.annotations.DefaultValue;
 
 /**
  * This configuration interface is a centralized store for all feature flags. Putting all feature flags in one place
- * improves project maintenance.
+ * should improve the project maintenance.
  */
 @Configuration(prefix = "titus.feature")
 public interface FeatureActivationConfiguration {
 
+    /**
+     * This flag enables the integration between the Titus Gateway and Task Relocation components.
+     * <p>
+     * This change was introduced in Q4/2018. The feature flag should be removed by the end of Q2/2019.
+     */
     @DefaultValue("false")
-    boolean isMergeTaskMigrationPlanInGateway();
+    boolean isMergingTaskMigrationPlanInGatewayEnabled();
 }

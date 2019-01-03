@@ -16,8 +16,10 @@
 
 package com.netflix.titus.api.jobmanager.model.job.sanitizer;
 
+import java.util.Collections;
 import java.util.Map;
 
+import com.google.common.collect.ImmutableMap;
 import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.model.ResourceDimension;
 import org.junit.Test;
@@ -29,13 +31,40 @@ public class JobAssertionsTest {
 
     private final JobConfiguration configuration = mock(JobConfiguration.class);
 
+    private final JobAssertions jobAssertions = new JobAssertions(configuration, id -> ResourceDimension.empty());
+
+    @Test
+    public void testEmptyMapOfEnvironmentVariableNames() {
+        Map<String, String> violations = jobAssertions.validateEnvironmentVariableNames(Collections.emptyMap());
+        assertThat(violations).isEmpty();
+    }
+
+    @Test
+    public void testGoodEnvironmentVariableNames() {
+        Map<String, String> violations = jobAssertions.validateEnvironmentVariableNames(ImmutableMap.of(
+                "THIS_IS_GOOD_123", "good value",
+                "_AND_THIS", "good value"
+        ));
+        assertThat(violations).isEmpty();
+    }
+
+    @Test
+    public void testBadEnvironmentVariableNames() {
+        Map<String, String> violations = jobAssertions.validateEnvironmentVariableNames(ImmutableMap.of(
+                "THIS_IS_GOOD_123", "good value",
+                "", "bad value",
+                "this is bad", "some value"
+        ));
+        assertThat(violations.keySet()).containsExactlyInAnyOrder("empty", "invalidCharacter");
+    }
+
     @Test
     public void testImageDigestValidation() {
         Image image = Image.newBuilder()
                 .withName("imageName")
                 .withDigest("sha256:abcdef0123456789abcdef0123456789abcdef0123456789")
                 .build();
-        Map<String, String> violations = new JobAssertions(configuration, id -> ResourceDimension.empty()).validateImage(image);
+        Map<String, String> violations = jobAssertions.validateImage(image);
         assertThat(violations).isEmpty();
     }
 
@@ -45,7 +74,7 @@ public class JobAssertionsTest {
                 .withName("imageName")
                 .withDigest("sha256:XYZ")
                 .build();
-        Map<String, String> violations = new JobAssertions(configuration, id -> ResourceDimension.empty()).validateImage(image);
+        Map<String, String> violations = jobAssertions.validateImage(image);
         assertThat(violations).hasSize(1);
     }
 }

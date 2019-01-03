@@ -34,7 +34,11 @@ import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.StringExt;
 
+import static com.netflix.titus.common.util.StringExt.isAsciiDigit;
+import static com.netflix.titus.common.util.StringExt.isAsciiLetter;
+
 /**
+ *
  */
 public class JobAssertions {
 
@@ -62,7 +66,8 @@ public class JobAssertions {
     private final JobConfiguration configuration;
     private final Function<String, ResourceDimension> maxContainerSizeResolver;
 
-    public JobAssertions(JobConfiguration configuration, Function<String, ResourceDimension> maxContainerSizeResolver) {
+    public JobAssertions(JobConfiguration configuration,
+                         Function<String, ResourceDimension> maxContainerSizeResolver) {
         this.configuration = configuration;
         this.maxContainerSizeResolver = maxContainerSizeResolver;
     }
@@ -73,7 +78,8 @@ public class JobAssertions {
 
     public boolean isValidIamRole(String iamRole) {
         // TODO We should make full ARN validation
-        return !StringExt.safeTrim(iamRole).isEmpty();
+        String trimmed = StringExt.safeTrim(iamRole);
+        return !trimmed.isEmpty() && !trimmed.contains(" ");
     }
 
     public boolean isEntryPointNotTooLarge(List<String> entryPoint) {
@@ -87,6 +93,39 @@ public class JobAssertions {
         int totalSize = entryPoint.stream().mapToInt(e -> StringExt.isEmpty(e) ? 0 : e.getBytes(UTF_8).length).sum();
 
         return totalSize <= MAX_ENTRY_POINT_SIZE_SIZE_BYTES;
+    }
+
+    public Map<String, String> validateEnvironmentVariableNames(Map<String, String> environment) {
+        if (CollectionsExt.isNullOrEmpty(environment)) {
+            return Collections.emptyMap();
+        }
+
+        Map<String, String> violations = new HashMap<>();
+        environment.forEach((key, value) -> {
+            if (key.isEmpty()) {
+                violations.put("empty", "the environment name cannot be an empty string");
+                return;
+            }
+
+            char first = key.charAt(0);
+            if (!isAsciiLetter(first) && first != '_') {
+                violations.put("invalidFirstCharacter", "the environment name must start with an ASCII letter or '_'");
+            }
+
+            if (key.length() == 1) {
+                return;
+            }
+
+            for (int i = 1; i < key.length(); i++) {
+                char c = key.charAt(i);
+                if (!isAsciiLetter(c) && !isAsciiDigit(c) && c != '_') {
+                    violations.put("invalidCharacter", "the environment name characters may be an ASCII letter, a digit or '_'");
+                    break;
+                }
+            }
+        });
+
+        return violations;
     }
 
     public boolean areEnvironmentVariablesNotTooLarge(Map<String, String> environment) {
