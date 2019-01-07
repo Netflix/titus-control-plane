@@ -79,7 +79,8 @@ public class JobRetryTest extends BaseIntegrationTest {
 
     @Test(timeout = 30_000)
     public void testBatchJobRetry() throws Exception {
-        jobsScenarioBuilder.schedule(ONE_TASK_BATCH_JOB, jobScenarioBuilder -> jobScenarioBuilder
+        JobDescriptor<BatchJobExt> jobDescriptor = ONE_TASK_BATCH_JOB.toBuilder().withApplicationName("testBatchJobRetry").build();
+        jobsScenarioBuilder.schedule(jobDescriptor, jobScenarioBuilder -> jobScenarioBuilder
                 .template(ScenarioTemplates.startTasksInNewJob())
                 .inTask(0, TaskScenarioBuilder::failTaskExecution)
                 .inTask(0, taskScenarioBuilder -> taskScenarioBuilder.expectStateUpdateSkipOther(TaskState.Finished))
@@ -94,7 +95,8 @@ public class JobRetryTest extends BaseIntegrationTest {
 
     @Test(timeout = 30_000)
     public void testServiceJobRetry() throws Exception {
-        jobsScenarioBuilder.schedule(ONE_TASK_SERVICE_JOB, jobScenarioBuilder -> jobScenarioBuilder
+        JobDescriptor<ServiceJobExt> jobDescriptor = ONE_TASK_SERVICE_JOB.toBuilder().withApplicationName("testServiceJobRetry").build();
+        jobsScenarioBuilder.schedule(jobDescriptor, jobScenarioBuilder -> jobScenarioBuilder
                 .template(ScenarioTemplates.startTasksInNewJob())
                 .inTask(0, taskScenarioBuilder -> taskScenarioBuilder.transitionUntil(TaskState.Finished))
                 .inTask(0, taskScenarioBuilder -> taskScenarioBuilder.expectStateUpdateSkipOther(TaskState.Finished))
@@ -109,7 +111,8 @@ public class JobRetryTest extends BaseIntegrationTest {
 
     @Test(timeout = 30_000)
     public void testBatchJobFailsAfterRetrying() throws Exception {
-        jobsScenarioBuilder.schedule(ONE_TASK_BATCH_JOB, jobScenarioBuilder -> jobScenarioBuilder
+        JobDescriptor<BatchJobExt> jobDescriptor = ONE_TASK_BATCH_JOB.toBuilder().withApplicationName("testBatchJobFailsAfterRetrying").build();
+        jobsScenarioBuilder.schedule(jobDescriptor, jobScenarioBuilder -> jobScenarioBuilder
                 .template(ScenarioTemplates.startTasksInNewJob())
                 .inTask(0, TaskScenarioBuilder::failTaskExecution)
                 .inTask(0, taskScenarioBuilder -> taskScenarioBuilder.expectStateUpdateSkipOther(TaskState.Finished))
@@ -122,7 +125,8 @@ public class JobRetryTest extends BaseIntegrationTest {
 
     @Test(timeout = 30_000)
     public void testServiceJobFailsAfterRetrying() throws Exception {
-        jobsScenarioBuilder.schedule(ONE_TASK_SERVICE_JOB, jobScenarioBuilder -> jobScenarioBuilder
+        JobDescriptor<ServiceJobExt> jobDescriptor = ONE_TASK_SERVICE_JOB.toBuilder().withApplicationName("testServiceJobFailsAfterRetrying").build();
+        jobsScenarioBuilder.schedule(jobDescriptor, jobScenarioBuilder -> jobScenarioBuilder
                 .template(ScenarioTemplates.startTasksInNewJob())
                 .inTask(0, TaskScenarioBuilder::failTaskExecution)
                 .inTask(0, taskScenarioBuilder -> taskScenarioBuilder.expectStateUpdateSkipOther(TaskState.Finished))
