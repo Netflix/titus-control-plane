@@ -132,18 +132,15 @@ public class Job<E extends JobDescriptor.JobDescriptorExt> {
     }
 
     public Builder<E> toBuilder() {
-        return newBuilder(this);
+        return new Builder<E>()
+                .withId(id)
+                .withJobDescriptor(jobDescriptor)
+                .withStatus(status)
+                .withStatusHistory(statusHistory);
     }
 
     public static <E extends JobDescriptor.JobDescriptorExt> Builder<E> newBuilder() {
         return new Builder<>();
-    }
-
-    public static <E extends JobDescriptor.JobDescriptorExt> Builder<E> newBuilder(Job<E> job) {
-        return new Builder<E>()
-                .withId(job.getId())
-                .withJobDescriptor(job.getJobDescriptor())
-                .withStatus(job.getStatus());
     }
 
     public static final class Builder<E extends JobDescriptor.JobDescriptorExt> {

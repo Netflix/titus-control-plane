@@ -143,10 +143,6 @@ public final class JobModel {
         return Job.newBuilder();
     }
 
-    public static <E extends JobDescriptor.JobDescriptorExt> Job.Builder<E> newJob(Job<E> job) {
-        return Job.newBuilder(job);
-    }
-
     public static BatchJobExt.Builder newBatchJobExt() {
         return BatchJobExt.newBuilder();
     }

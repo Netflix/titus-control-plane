@@ -19,8 +19,10 @@ package com.netflix.titus.master.jobmanager.service.service.action;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
+import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.jobmanager.store.JobStore;
 import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
@@ -42,6 +44,10 @@ public class BasicServiceJobActions {
                 .summary("Changing job capacity to: %s", capacity)
                 .changeWithModelUpdates(self -> {
                     Job<ServiceJobExt> serviceJob = engine.getReferenceView().getEntity();
+                    if (serviceJob.getStatus().getState() != JobState.Accepted) {
+                        return Observable.error(JobManagerException.jobTerminating(serviceJob));
+                    }
+
                     Job<ServiceJobExt> updatedJob = JobFunctions.changeServiceJobCapacity(serviceJob, capacity);
 
                     TitusModelAction modelAction = TitusModelAction.newModelUpdate(self).jobUpdate(jobHolder -> jobHolder.setEntity(updatedJob));
@@ -60,6 +66,10 @@ public class BasicServiceJobActions {
                 .summary("Changing job enable status to: %s", enabled)
                 .changeWithModelUpdates(self -> {
                     Job<ServiceJobExt> serviceJob = engine.getReferenceView().getEntity();
+                    if (serviceJob.getStatus().getState() != JobState.Accepted) {
+                        return Observable.error(JobManagerException.jobTerminating(serviceJob));
+                    }
+
                     Job<ServiceJobExt> updatedJob = JobFunctions.changeJobEnabledStatus(serviceJob, enabled);
 
                     TitusModelAction modelAction = TitusModelAction.newModelUpdate(self).jobUpdate(jobHolder -> jobHolder.setEntity(updatedJob));
@@ -78,6 +88,10 @@ public class BasicServiceJobActions {
                 .summary("Changing job service processes to: %s", processes)
                 .changeWithModelUpdates(self -> {
                     Job<ServiceJobExt> serviceJob = engine.getReferenceView().getEntity();
+                    if (serviceJob.getStatus().getState() != JobState.Accepted) {
+                        return Observable.error(JobManagerException.jobTerminating(serviceJob));
+                    }
+
                     Job<ServiceJobExt> updatedJob = JobFunctions.changeServiceJobProcesses(serviceJob, processes);
 
                     TitusModelAction modelAction = TitusModelAction.newModelUpdate(self).jobUpdate(jobHolder -> jobHolder.setEntity(updatedJob));

@@ -109,6 +109,7 @@ public final class V3GrpcModelConverters {
                 .withId(grpcJob.getId())
                 .withJobDescriptor(toCoreJobDescriptor(grpcJob.getJobDescriptor()))
                 .withStatus(toCoreJobStatus(grpcJob.getStatus()))
+                .withStatusHistory(grpcJob.getStatusHistoryList().stream().map(V3GrpcModelConverters::toCoreJobStatus).collect(Collectors.toList()))
                 .build();
     }
 

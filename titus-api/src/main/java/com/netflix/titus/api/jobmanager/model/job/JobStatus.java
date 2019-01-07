@@ -20,9 +20,13 @@ package com.netflix.titus.api.jobmanager.model.job;
 import com.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
 
 /**
+ *
  */
 @ClassFieldsNotNull
 public class JobStatus extends ExecutableStatus<JobState> {
+
+    public static final String REASON_UNKNOWN = "unknown";
+
     public JobStatus(JobState state, String reasonCode, String reasonMessage, long timestamp) {
         super(state, reasonCode, reasonMessage, timestamp);
     }
@@ -46,7 +50,12 @@ public class JobStatus extends ExecutableStatus<JobState> {
 
         @Override
         public JobStatus build() {
-            return new JobStatus(state, reasonCode, toCompleteReasonMessage(), timestamp);
+            return new JobStatus(
+                    state,
+                    reasonCode == null ? REASON_UNKNOWN : reasonCode,
+                    toCompleteReasonMessage(),
+                    timestamp
+            );
         }
     }
 }
