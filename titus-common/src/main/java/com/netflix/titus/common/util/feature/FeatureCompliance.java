@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 /**
  * {@link FeatureCompliance} tracks information about invocations that could not be executed, because of
  * some incompatibility with a newly introduced feature. Instances of this class should be used in parallel with
- * the {@link FeatureGuard} instances to record information for the diagnostic purposes.
+ * the {@link FeatureGuard} instances to record information for diagnostic purposes.
  */
 public interface FeatureCompliance<T> {
 

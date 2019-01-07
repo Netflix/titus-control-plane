@@ -22,8 +22,12 @@ import java.util.List;
 import java.util.Optional;
 
 import com.google.common.base.Preconditions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class FeatureComplianceAggregator<T> implements FeatureCompliance<T> {
+
+    private static final Logger logger = LoggerFactory.getLogger(FeatureComplianceAggregator.class);
 
     private final List<FeatureCompliance<T>> delegates;
 
@@ -39,6 +43,7 @@ class FeatureComplianceAggregator<T> implements FeatureCompliance<T> {
             try {
                 d.checkCompliance(value).ifPresent(combinedResult::add);
             } catch (Exception e) {
+                logger.warn("[{}] Unexpected error during compliance checking for value: {}", FeatureComplianceAggregator.class.getSimpleName(), value);
                 combinedResult.add(NonComplianceSet.of(
                         d.getClass().getSimpleName(),
                         value,

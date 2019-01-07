@@ -40,7 +40,7 @@ public abstract class FeatureComplianceDecorator<T> implements FeatureCompliance
                 return nonCompliance;
             });
         } catch (Exception e) {
-            logger.warn("[{}] Unexpected error during compliance checking for value: {}", value);
+            logger.warn("[{}] Unexpected error during compliance checking for value: {}", delegate.getClass().getSimpleName(), value);
             return Optional.of(NonComplianceSet.of(
                     delegate.getClass().getSimpleName(),
                     value,

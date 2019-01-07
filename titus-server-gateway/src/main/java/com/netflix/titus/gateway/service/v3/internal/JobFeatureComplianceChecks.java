@@ -133,7 +133,7 @@ class JobFeatureComplianceChecks {
                     MIN_DISK_SIZE_STRICT_VALIDATION_FEATURE,
                     jobDescriptor,
                     Collections.singletonMap("diskSizeLessThanMin", String.format("Minimum disk size is %sMB, but is set %sMB", minDiskSize, containerResources.getDiskMB())),
-                    String.format("Job descriptor must declare disk size that is no less than %sMB", containerResources.getDiskMB())
+                    String.format("Job descriptor must declare disk size that is no less than %sMB", minDiskSize)
             ));
         };
     }
