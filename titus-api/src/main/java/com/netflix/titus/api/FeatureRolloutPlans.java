@@ -38,7 +38,7 @@ public interface FeatureRolloutPlans {
             deadline = "03/30/2019",
             description = "Jobs with entry point binaries containing spaces are likely relying on the legacy shell parsing " +
                     "being done by titus-executor, and are submitting entry points as a flat string, instead of breaking it into a list of arguments. " +
-                    "Jobs that have a command set will fall on the new code path that does not do any shell parsing, and do not need to be checked."
+                    "Jobs that have a command set will fall on the new code path that does not do any shell parsing, and does not need to be checked."
     )
     String ENTRY_POINT_STRICT_VALIDATION_FEATURE = "entryPointStrictValidation";
 
