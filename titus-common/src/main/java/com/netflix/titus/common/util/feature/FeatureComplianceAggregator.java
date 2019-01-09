@@ -37,14 +37,14 @@ class FeatureComplianceAggregator<T> implements FeatureCompliance<T> {
     }
 
     @Override
-    public Optional<NonComplianceSet<T>> checkCompliance(T value) {
-        List<NonComplianceSet<T>> combinedResult = new ArrayList<>();
+    public Optional<NonComplianceList<T>> checkCompliance(T value) {
+        List<NonComplianceList<T>> combinedResult = new ArrayList<>();
         delegates.forEach(d -> {
             try {
                 d.checkCompliance(value).ifPresent(combinedResult::add);
             } catch (Exception e) {
                 logger.warn("[{}] Unexpected error during compliance checking for value: {}", FeatureComplianceAggregator.class.getSimpleName(), value);
-                combinedResult.add(NonComplianceSet.of(
+                combinedResult.add(NonComplianceList.of(
                         d.getClass().getSimpleName(),
                         value,
                         Collections.singletonMap("unexpectedError", e.getMessage()),
@@ -52,6 +52,6 @@ class FeatureComplianceAggregator<T> implements FeatureCompliance<T> {
                 ));
             }
         });
-        return combinedResult.isEmpty() ? Optional.empty() : NonComplianceSet.merge(combinedResult);
+        return combinedResult.isEmpty() ? Optional.empty() : NonComplianceList.merge(combinedResult);
     }
 }

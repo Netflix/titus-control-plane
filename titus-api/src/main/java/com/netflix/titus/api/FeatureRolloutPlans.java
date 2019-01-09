@@ -35,7 +35,7 @@ public interface FeatureRolloutPlans {
 
     @FeatureRollout(
             featureId = "entryPointStrictValidation",
-            deadline = "03/30/2019",
+            deadline = "06/30/2019",
             description = "Jobs with entry point binaries containing spaces are likely relying on the legacy shell parsing " +
                     "being done by titus-executor, and are submitting entry points as a flat string, instead of breaking it into a list of arguments. " +
                     "Jobs that have a command set will fall on the new code path that does not do any shell parsing, and does not need to be checked."
@@ -58,8 +58,15 @@ public interface FeatureRolloutPlans {
 
     @FeatureRollout(
             featureId = "minDiskSizeStrictValidationFeature",
-            deadline = "03/30/2018",
+            deadline = "03/30/2019",
             description = "Lower bound on the disk size."
     )
     String MIN_DISK_SIZE_STRICT_VALIDATION_FEATURE = "minDiskSizeStrictValidationFeature";
+
+    @FeatureRollout(
+            featureId = "moveTaskFeature",
+            deadline = "03/30/2019",
+            description = "Activation of the feature for moving tasks between jobs"
+    )
+    String MOVE_TASK_FEATURE = "moveTaskFeature";
 }

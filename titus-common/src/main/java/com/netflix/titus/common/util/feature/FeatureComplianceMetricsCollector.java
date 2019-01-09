@@ -30,7 +30,7 @@ class FeatureComplianceMetricsCollector<T> extends FeatureComplianceDecorator<T>
     }
 
     @Override
-    protected void processViolations(T value, NonComplianceSet<T> nonCompliance) {
+    protected void processViolations(T value, NonComplianceList<T> nonCompliance) {
         nonCompliance.getViolations().forEach(violation -> registry.counter(VIOLATIONS, "featureId", violation.getFeatureId()).increment());
     }
 }

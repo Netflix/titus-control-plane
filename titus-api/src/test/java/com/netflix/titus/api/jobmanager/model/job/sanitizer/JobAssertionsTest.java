@@ -42,20 +42,26 @@ public class JobAssertionsTest {
     @Test
     public void testGoodEnvironmentVariableNames() {
         Map<String, String> violations = jobAssertions.validateEnvironmentVariableNames(ImmutableMap.of(
-                "THIS_IS_GOOD_123", "good value",
-                "_AND_THIS", "good value"
+                "THIS_IS_GOOD_123", "good name",
+                "_THIS_IS_2_GOOD", "good name",
+                "_AND_THIS", "good name"
         ));
         assertThat(violations).isEmpty();
     }
 
     @Test
     public void testBadEnvironmentVariableNames() {
-        Map<String, String> violations = jobAssertions.validateEnvironmentVariableNames(ImmutableMap.of(
-                "THIS_IS_GOOD_123", "good value",
-                "", "bad value",
-                "this is bad", "some value"
-        ));
-        assertThat(violations.keySet()).containsExactlyInAnyOrder("empty", "invalidCharacter");
+        assertThat(jobAssertions.validateEnvironmentVariableNames(ImmutableMap.of(
+                "THIS_IS_GOOD_123", "good name",
+                "this is bad", "bad value",
+                "1_THIS_IS_NOT_GOOD", "bad name",
+                "", "bad value"
+        )).keySet()).containsExactlyInAnyOrder("empty", "invalidFirstCharacter", "invalidCharacter");
+
+        assertThat(jobAssertions.validateEnvironmentVariableNames(ImmutableMap.of(
+                "This_is_bad", "bad value",
+                "and_this_is_bad", "bad value"
+        )).keySet()).containsExactlyInAnyOrder("invalidFirstCharacter", "invalidCharacter");
     }
 
     @Test

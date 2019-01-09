@@ -30,7 +30,7 @@ class FeatureComplianceLogger<T> extends FeatureComplianceDecorator<T> {
     }
 
     @Override
-    protected void processViolations(T value, NonComplianceSet<T> nonCompliance) {
+    protected void processViolations(T value, NonComplianceList<T> nonCompliance) {
         String featureIds = nonCompliance.getViolations().stream().map(NonCompliance::getFeatureId).collect(Collectors.joining(","));
         logger.info("[{}] Non compliant value: value={}, violations={}", featureIds, value, nonCompliance.getViolations());
     }

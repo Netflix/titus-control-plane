@@ -27,6 +27,7 @@ import com.netflix.fenzo.ConstraintEvaluator;
 import com.netflix.fenzo.TaskRequest;
 import com.netflix.fenzo.TaskTrackerState;
 import com.netflix.fenzo.VirtualMachineCurrentState;
+import com.netflix.titus.api.FeatureActivationConfiguration;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor.JobDescriptorExt;
 import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
@@ -76,6 +77,7 @@ public class JobsScenarioBuilder {
     private final TitusRuntime titusRuntime = TitusRuntimes.test(testScheduler);
 
     private final JobManagerConfiguration configuration = mock(JobManagerConfiguration.class);
+    private final FeatureActivationConfiguration featureActivationConfiguration = mock(FeatureActivationConfiguration.class);
     private final JobConfiguration jobSanitizerConfiguration = mock(JobConfiguration.class);
     private final ApplicationSlaManagementService capacityGroupService = new StubbedApplicationSlaManagementService();
     private final StubbedSchedulingService schedulingService = new StubbedSchedulingService();
@@ -100,7 +102,7 @@ public class JobsScenarioBuilder {
         when(configuration.getTaskInKillInitiatedStateTimeoutMs()).thenReturn(KILL_INITIATED_TIMEOUT_MS);
         when(configuration.getTaskRetryerResetTimeMs()).thenReturn(TimeUnit.MINUTES.toMillis(5));
         when(configuration.getTaskKillAttempts()).thenReturn(2L);
-        when(configuration.isMoveTaskApiEnabled()).thenReturn(true);
+        when(featureActivationConfiguration.isMoveTaskApiEnabled()).thenReturn(true);
 
         jobStore.events().subscribe(storeEvents);
 
@@ -175,6 +177,7 @@ public class JobsScenarioBuilder {
 
         DefaultV3JobOperations v3JobOperations = new DefaultV3JobOperations(
                 configuration,
+                featureActivationConfiguration,
                 jobStore,
                 vmService,
                 new JobReconciliationFrameworkFactory(

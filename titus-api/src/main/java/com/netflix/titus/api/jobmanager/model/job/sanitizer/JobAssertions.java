@@ -108,8 +108,8 @@ public class JobAssertions {
             }
 
             char first = key.charAt(0);
-            if (!isAsciiLetter(first) && first != '_') {
-                violations.put("invalidFirstCharacter", "the environment name must start with an ASCII letter or '_'");
+            if (!isAsciiUpperCase(first) && first != '_') {
+                violations.put("invalidFirstCharacter", "the environment name must start with an upper case ASCII letter or '_'");
             }
 
             if (key.length() == 1) {
@@ -118,14 +118,18 @@ public class JobAssertions {
 
             for (int i = 1; i < key.length(); i++) {
                 char c = key.charAt(i);
-                if (!isAsciiLetter(c) && !isAsciiDigit(c) && c != '_') {
-                    violations.put("invalidCharacter", "the environment name characters may be an ASCII letter, a digit or '_'");
+                if (!isAsciiUpperCase(c) && !isAsciiDigit(c) && c != '_') {
+                    violations.put("invalidCharacter", "the environment name characters may be an upper case ASCII letter, a digit or '_'");
                     break;
                 }
             }
         });
 
         return violations;
+    }
+
+    private boolean isAsciiUpperCase(char c) {
+        return isAsciiLetter(c) && Character.isUpperCase(c);
     }
 
     public boolean areEnvironmentVariablesNotTooLarge(Map<String, String> environment) {

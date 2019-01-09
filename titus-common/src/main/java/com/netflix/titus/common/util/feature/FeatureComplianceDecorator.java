@@ -33,7 +33,7 @@ public abstract class FeatureComplianceDecorator<T> implements FeatureCompliance
     }
 
     @Override
-    public Optional<NonComplianceSet<T>> checkCompliance(T value) {
+    public Optional<NonComplianceList<T>> checkCompliance(T value) {
         try {
             return delegate.checkCompliance(value).map(nonCompliance -> {
                 processViolations(value, nonCompliance);
@@ -41,7 +41,7 @@ public abstract class FeatureComplianceDecorator<T> implements FeatureCompliance
             });
         } catch (Exception e) {
             logger.warn("[{}] Unexpected error during compliance checking for value: {}", delegate.getClass().getSimpleName(), value);
-            return Optional.of(NonComplianceSet.of(
+            return Optional.of(NonComplianceList.of(
                     delegate.getClass().getSimpleName(),
                     value,
                     Collections.singletonMap("unexpectedError", e.getMessage()),
@@ -50,5 +50,5 @@ public abstract class FeatureComplianceDecorator<T> implements FeatureCompliance
         }
     }
 
-    protected abstract void processViolations(T value, NonComplianceSet<T> nonCompliance);
+    protected abstract void processViolations(T value, NonComplianceList<T> nonCompliance);
 }

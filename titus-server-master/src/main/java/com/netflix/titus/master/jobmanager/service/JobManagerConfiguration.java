@@ -88,10 +88,4 @@ public interface JobManagerConfiguration {
      */
     @DefaultValue("false")
     boolean isFailOnDataValidation();
-
-    /**
-     * Feature flag disabling movetask api
-     */
-    @DefaultValue("false")
-    boolean isMoveTaskApiEnabled();
 }

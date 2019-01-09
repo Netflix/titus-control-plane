@@ -35,7 +35,7 @@ public interface FeatureCompliance<T> {
      *
      * @return {@link Optional#empty()} if compliant, non-empty if violations found.
      */
-    Optional<NonComplianceSet<T>> checkCompliance(T value);
+    Optional<NonComplianceList<T>> checkCompliance(T value);
 
 
     class NonCompliance<T> {
@@ -98,11 +98,11 @@ public interface FeatureCompliance<T> {
         }
     }
 
-    class NonComplianceSet<T> {
+    class NonComplianceList<T> {
 
         private final List<NonCompliance<T>> violations;
 
-        private NonComplianceSet(List<NonCompliance<T>> violations) {
+        private NonComplianceList(List<NonCompliance<T>> violations) {
             this.violations = violations;
         }
 
@@ -114,11 +114,11 @@ public interface FeatureCompliance<T> {
             return violations.stream().filter(v -> v.getFeatureId().equals(featureId)).findFirst();
         }
 
-        public static <T> NonComplianceSet<T> of(String featureId, T value, Map<String, String> context, String errorMessage) {
-            return new NonComplianceSet<>(Collections.singletonList(new NonCompliance<>(featureId, value, context, errorMessage)));
+        public static <T> NonComplianceList<T> of(String featureId, T value, Map<String, String> context, String errorMessage) {
+            return new NonComplianceList<>(Collections.singletonList(new NonCompliance<>(featureId, value, context, errorMessage)));
         }
 
-        public static <T> Optional<NonComplianceSet<T>> merge(List<NonComplianceSet<T>> items) {
+        public static <T> Optional<NonComplianceList<T>> merge(List<NonComplianceList<T>> items) {
             if (items.isEmpty()) {
                 return Optional.empty();
             }
@@ -126,7 +126,7 @@ public interface FeatureCompliance<T> {
                 return Optional.of(items.get(0));
             }
             List<NonCompliance<T>> violations = items.stream().flatMap(tNonComplianceViolations -> tNonComplianceViolations.getViolations().stream()).collect(Collectors.toList());
-            return Optional.of(new NonComplianceSet<>(violations));
+            return Optional.of(new NonComplianceList<>(violations));
         }
     }
 }

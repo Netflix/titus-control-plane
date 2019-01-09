@@ -149,7 +149,7 @@ class ExtendedJobSanitizer implements EntitySanitizer {
         }).orElse(jobDescriptor);
     }
 
-    private Map<String, String> buildNonComplianceJobAttributeMap(FeatureCompliance.NonComplianceSet<JobDescriptor<?>> violations) {
+    private Map<String, String> buildNonComplianceJobAttributeMap(FeatureCompliance.NonComplianceList<JobDescriptor<?>> violations) {
         StringBuilder violatedFeaturesBuilder = new StringBuilder();
         Map<String, String> violationJobAttributes = new HashMap<>();
 

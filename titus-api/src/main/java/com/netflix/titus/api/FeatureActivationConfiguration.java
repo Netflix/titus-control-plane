@@ -33,4 +33,11 @@ public interface FeatureActivationConfiguration {
      */
     @DefaultValue("false")
     boolean isMergingTaskMigrationPlanInGatewayEnabled();
+
+
+    /**
+     * Feature flag disabling movetask api
+     */
+    @DefaultValue("false")
+    boolean isMoveTaskApiEnabled();
 }

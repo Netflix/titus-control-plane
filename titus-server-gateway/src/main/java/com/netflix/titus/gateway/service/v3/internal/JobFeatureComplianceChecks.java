@@ -29,7 +29,7 @@ import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobAssertions;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.feature.FeatureCompliance;
-import com.netflix.titus.common.util.feature.FeatureCompliance.NonComplianceSet;
+import com.netflix.titus.common.util.feature.FeatureCompliance.NonComplianceList;
 import com.netflix.titus.gateway.service.v3.JobManagerConfiguration;
 
 import static com.netflix.titus.api.FeatureRolloutPlans.ENTRY_POINT_STRICT_VALIDATION_FEATURE;
@@ -55,7 +55,7 @@ class JobFeatureComplianceChecks {
             if (context.isEmpty()) {
                 return Optional.empty();
             }
-            return Optional.of(NonComplianceSet.of(
+            return Optional.of(NonComplianceList.of(
                     ENVIRONMENT_VARIABLE_NAMES_STRICT_VALIDATION_FEATURE,
                     jobDescriptor,
                     context,
@@ -72,7 +72,7 @@ class JobFeatureComplianceChecks {
             if (!jobDescriptor.getContainer().getSecurityProfile().getIamRole().isEmpty()) {
                 return Optional.empty();
             }
-            return Optional.of(NonComplianceSet.of(
+            return Optional.of(NonComplianceList.of(
                     IAM_ROLE_REQUIRED_FEATURE,
                     jobDescriptor,
                     NO_IAM_ROLE_CONTEXT,
@@ -89,7 +89,7 @@ class JobFeatureComplianceChecks {
             if (!jobDescriptor.getContainer().getSecurityProfile().getSecurityGroups().isEmpty()) {
                 return Optional.empty();
             }
-            return Optional.of(NonComplianceSet.of(
+            return Optional.of(NonComplianceList.of(
                     SECURITY_GROUPS_REQUIRED_FEATURE,
                     jobDescriptor,
                     NO_SECURITY_GROUPS_CONTEXT,
@@ -106,7 +106,7 @@ class JobFeatureComplianceChecks {
             List<String> entryPoint = jobDescriptor.getContainer().getEntryPoint();
             List<String> command = jobDescriptor.getContainer().getCommand();
             if (!CollectionsExt.isNullOrEmpty(entryPoint) && CollectionsExt.isNullOrEmpty(command) && CONTAINS_SPACES.test(entryPoint.get(0))) {
-                return Optional.of(NonComplianceSet.of(
+                return Optional.of(NonComplianceList.of(
                         ENTRY_POINT_STRICT_VALIDATION_FEATURE,
                         jobDescriptor,
                         ENTRY_POINT_WITH_SPACES_CONTEXT,
@@ -129,7 +129,7 @@ class JobFeatureComplianceChecks {
                 return Optional.empty();
             }
 
-            return Optional.of(NonComplianceSet.of(
+            return Optional.of(NonComplianceList.of(
                     MIN_DISK_SIZE_STRICT_VALIDATION_FEATURE,
                     jobDescriptor,
                     Collections.singletonMap("diskSizeLessThanMin", String.format("Minimum disk size is %sMB, but is set %sMB", minDiskSize, containerResources.getDiskMB())),
