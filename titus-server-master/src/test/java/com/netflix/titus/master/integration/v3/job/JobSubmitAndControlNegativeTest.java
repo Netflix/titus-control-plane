@@ -154,7 +154,7 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
     public void testJobWithBadSecurityProfile() throws Exception {
         SecurityProfile securityProfile = SecurityProfile.newBuilder()
                 .addSecurityGroups("not-good-security-group")
-                .setIamRole("   ")
+                .setIamRole("A   B")
                 .build();
         submitBadJob(
                 BATCH_JOB_DESCR_BUILDER.setContainer(BATCH_JOB_DESCR_BUILDER.getContainer().toBuilder().setSecurityProfile(securityProfile)).build(),

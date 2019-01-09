@@ -79,7 +79,7 @@ public class TaskRelocationDataInjectorTest {
     public void setUp() {
         when(grpcConfiguration.getRequestTimeout()).thenReturn(REQUEST_TIMEOUT_MS);
         when(jobManagerConfiguration.getRelocationTimeoutCoefficient()).thenReturn(0.5);
-        when(featureActivationConfiguration.isMergeTaskMigrationPlanInGateway()).thenReturn(true);
+        when(featureActivationConfiguration.isMergingTaskMigrationPlanInGatewayEnabled()).thenReturn(true);
     }
 
     @Test

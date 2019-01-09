@@ -16,51 +16,70 @@
 
 package com.netflix.titus.gateway.service.v3.internal;
 
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import javax.inject.Named;
-import javax.validation.ConstraintViolation;
 
-import com.google.common.base.CharMatcher;
+import com.google.common.annotations.VisibleForTesting;
+import com.netflix.titus.api.FeatureRolloutPlans;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.SecurityProfile;
+import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobAssertions;
+import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.model.validator.ValidationError;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
-import com.netflix.titus.common.util.RegExpExt;
+import com.netflix.titus.common.util.feature.FeatureCompliance;
+import com.netflix.titus.common.util.feature.FeatureCompliance.NonCompliance;
 import com.netflix.titus.gateway.service.v3.JobManagerConfiguration;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
+import static com.netflix.titus.api.FeatureRolloutPlans.ENVIRONMENT_VARIABLE_NAMES_STRICT_VALIDATION_FEATURE;
+import static com.netflix.titus.api.FeatureRolloutPlans.SECURITY_GROUPS_REQUIRED_FEATURE;
 import static com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_STRICT_SANITIZER;
+import static com.netflix.titus.common.util.feature.FeatureComplianceTypes.collectComplianceMetrics;
+import static com.netflix.titus.common.util.feature.FeatureComplianceTypes.logNonCompliant;
+import static com.netflix.titus.common.util.feature.FeatureComplianceTypes.mergeComplianceValidators;
 
 /**
  * Extends the default job model sanitizer with extra checks.
  */
 class ExtendedJobSanitizer implements EntitySanitizer {
 
-    private static final Logger logger = LoggerFactory.getLogger(ExtendedJobSanitizer.class);
+    private static final String TITUS_NON_COMPLIANT = "titus.noncompliant.";
 
-    private static final String TITUS_NON_COMPLIANT = "titus.noncompliant";
-    private static final Predicate<String> CONTAINS_SPACES = Pattern.compile(".*\\s+.*").asPredicate();
+    @VisibleForTesting
+    static final String TITUS_NON_COMPLIANT_FEATURES = TITUS_NON_COMPLIANT + "features";
 
     private final JobManagerConfiguration jobManagerConfiguration;
     private final EntitySanitizer entitySanitizer;
-    private final Function<String, Matcher> uncompliantClientMatcher;
+    private final Predicate<JobDescriptor> securityGroupsRequiredPredicate;
+    private final Predicate<JobDescriptor> environmentVariableNamesStrictValidationPredicate;
+    private final FeatureCompliance<JobDescriptor<?>> jobComplianceChecker;
 
     public ExtendedJobSanitizer(JobManagerConfiguration jobManagerConfiguration,
-                                @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer) {
+                                JobAssertions jobAssertions,
+                                @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer,
+                                @Named(SECURITY_GROUPS_REQUIRED_FEATURE) Predicate<JobDescriptor> securityGroupsRequiredPredicate,
+                                @Named(ENVIRONMENT_VARIABLE_NAMES_STRICT_VALIDATION_FEATURE) Predicate<JobDescriptor> environmentVariableNamesStrictValidationPredicate,
+                                TitusRuntime titusRuntime) {
         this.jobManagerConfiguration = jobManagerConfiguration;
         this.entitySanitizer = entitySanitizer;
-        this.uncompliantClientMatcher = RegExpExt.dynamicMatcher(
-                jobManagerConfiguration::getNoncompliantClientWhiteList, "noncompliantClientWhiteList", 0, logger
+        this.securityGroupsRequiredPredicate = securityGroupsRequiredPredicate;
+        this.environmentVariableNamesStrictValidationPredicate = environmentVariableNamesStrictValidationPredicate;
+
+        this.jobComplianceChecker = logNonCompliant(collectComplianceMetrics(titusRuntime.getRegistry(),
+                mergeComplianceValidators(
+                        JobFeatureComplianceChecks.missingSecurityGroups(),
+                        JobFeatureComplianceChecks.missingIamRole(),
+                        JobFeatureComplianceChecks.environmentVariablesNames(jobAssertions),
+                        JobFeatureComplianceChecks.entryPointViolations(),
+                        JobFeatureComplianceChecks.minDiskSize(jobManagerConfiguration)
+                ))
         );
     }
 
@@ -72,114 +91,78 @@ class ExtendedJobSanitizer implements EntitySanitizer {
     @Override
     public <T> Optional<T> sanitize(T entity) {
         T sanitized = entitySanitizer.sanitize(entity).orElse(entity);
+
         if (sanitized instanceof com.netflix.titus.api.jobmanager.model.job.JobDescriptor) {
-            com.netflix.titus.api.jobmanager.model.job.JobDescriptor jobDescriptor = (com.netflix.titus.api.jobmanager.model.job.JobDescriptor) sanitized;
-
-            // TODO Remove this code section once all clients are compliant and they set explicitly security group(s) and IAM role.
-            if (isInNonCompliantWhiteList(jobDescriptor)) {
-                jobDescriptor = addMissingSecurityGroupAndIamRole(jobDescriptor);
-            }
-
-            // TODO Remove once all clients are compliant.
-            jobDescriptor = checkEntryPointViolations(jobDescriptor);
-            jobDescriptor = checkResourceViolations(jobDescriptor);
-            sanitized = (T) checkEnvironmentViolations(jobDescriptor);
+            sanitized = (T) sanitizeJobDescriptor((JobDescriptor) sanitized);
         }
+
         return entity == sanitized ? Optional.empty() : Optional.of(sanitized);
     }
 
-    private boolean isInNonCompliantWhiteList(com.netflix.titus.api.jobmanager.model.job.JobDescriptor jobDescriptor) {
-        com.netflix.titus.api.jobmanager.model.job.JobGroupInfo jobGroupInfo = jobDescriptor.getJobGroupInfo();
-        String jobClusterId = jobDescriptor.getApplicationName() + '-' + jobGroupInfo.getStack() + '-' + jobGroupInfo.getDetail() + '-' + jobGroupInfo.getSequence();
-        return uncompliantClientMatcher.apply(jobClusterId).matches();
-    }
+    private JobDescriptor<?> sanitizeJobDescriptor(JobDescriptor<?> jobDescriptor) {
+        return jobComplianceChecker.checkCompliance(jobDescriptor).map(violations -> {
 
-    private com.netflix.titus.api.jobmanager.model.job.JobDescriptor addMissingSecurityGroupAndIamRole(com.netflix.titus.api.jobmanager.model.job.JobDescriptor<?> jobDescriptor) {
-        SecurityProfile securityProfile = jobDescriptor.getContainer().getSecurityProfile();
-        if (!securityProfile.getSecurityGroups().isEmpty() && !securityProfile.getIamRole().isEmpty()) {
-            return jobDescriptor;
-        }
-        SecurityProfile.Builder builder = securityProfile.toBuilder();
-        String nonCompliant = null;
-        if (securityProfile.getSecurityGroups().isEmpty()) {
-            builder.withSecurityGroups(jobManagerConfiguration.getDefaultSecurityGroups());
-            nonCompliant = "noSecurityGroups";
-        }
-        if (securityProfile.getIamRole().isEmpty()) {
-            builder.withIamRole(jobManagerConfiguration.getDefaultIamRole());
-            nonCompliant = nonCompliant == null ? "noIamRole" : nonCompliant + ",noIamRole";
-        }
-        com.netflix.titus.api.jobmanager.model.job.JobDescriptor<?> sanitizedJobDescriptor = jobDescriptor.toBuilder()
-                .withContainer(jobDescriptor.getContainer().toBuilder()
-                        .withSecurityProfile(builder.build()).build()
-                ).build();
-        return markNonCompliant(sanitizedJobDescriptor, nonCompliant);
-    }
+            JobDescriptor sanitized = jobDescriptor;
 
-    /**
-     * Jobs with entry point binaries containing spaces are likely relying on the legacy shell parsing being done by
-     * titus-executor, and are submitting entry points as a flat string, instead of breaking it onto a list of
-     * arguments.
-     * <p>
-     * Jobs that have a <tt>command</tt> set will fall on the "new" code path that does not do any shell parsing, and do
-     * not need to be checked.
-     */
-    private JobDescriptor checkEntryPointViolations(JobDescriptor jobDescriptor) {
-        List<String> entryPoint = jobDescriptor.getContainer().getEntryPoint();
-        List<String> command = jobDescriptor.getContainer().getCommand();
-        if (!CollectionsExt.isNullOrEmpty(entryPoint) && CollectionsExt.isNullOrEmpty(command) &&
-                CONTAINS_SPACES.test(entryPoint.get(0))) {
-            return markNonCompliant(jobDescriptor, "entryPointBinaryWithSpaces");
-        }
-        return jobDescriptor;
-    }
+            if (!securityGroupsRequiredPredicate.test(jobDescriptor)) {
+                // Missing security groups
+                SecurityProfile.Builder securityProfileBuilder = jobDescriptor.getContainer().getSecurityProfile().toBuilder();
+                violations.findViolation(SECURITY_GROUPS_REQUIRED_FEATURE).ifPresent(report ->
+                        securityProfileBuilder.withSecurityGroups(jobManagerConfiguration.getDefaultSecurityGroups())
+                );
 
-    private com.netflix.titus.api.jobmanager.model.job.JobDescriptor checkEnvironmentViolations(com.netflix.titus.api.jobmanager.model.job.JobDescriptor jobDescriptor) {
-        Map<String, String> env = jobDescriptor.getContainer().getEnv();
-        if (CollectionsExt.isNullOrEmpty(env)) {
-            return jobDescriptor;
-        }
+                // Missing IAM role
+                violations.findViolation(FeatureRolloutPlans.IAM_ROLE_REQUIRED_FEATURE).ifPresent(report ->
+                        securityProfileBuilder.withIamRole(jobManagerConfiguration.getDefaultIamRole())
+                );
 
-        boolean allAsciiCharacters = env.entrySet().stream().allMatch(entry -> isAscii(entry.getKey()) && isAscii(entry.getValue()));
-        boolean noDotInKeyName = env.keySet().stream().allMatch(key -> key == null || !key.contains("."));
+                sanitized = sanitized.toBuilder()
+                        .withContainer(sanitized.getContainer().toBuilder()
+                                .withSecurityProfile(securityProfileBuilder.build())
+                                .build()
+                        ).build();
+            }
 
-        if (allAsciiCharacters && noDotInKeyName) {
-            return jobDescriptor;
-        }
-
-        String nonCompliant = allAsciiCharacters
-                ? "environmentVariableNameWithDot"
-                : (noDotInKeyName ? "nonAsciiCharactersInEnvironmentVariable" : "environmentVariableNameWithDot,nonAsciiCharactersInEnvironmentVariable");
-
-        return markNonCompliant(jobDescriptor, nonCompliant);
-    }
-
-    private com.netflix.titus.api.jobmanager.model.job.JobDescriptor checkResourceViolations(com.netflix.titus.api.jobmanager.model.job.JobDescriptor jobDescriptor) {
-        ContainerResources containerResources = jobDescriptor.getContainer().getContainerResources();
-        int minDiskSize = jobManagerConfiguration.getMinDiskSizeMB();
-        if (containerResources.getDiskMB() >= minDiskSize) {
-            return jobDescriptor;
-        }
-
-        com.netflix.titus.api.jobmanager.model.job.JobDescriptor<?> sanitizedJobDescriptor = jobDescriptor.toBuilder()
-                .withContainer(jobDescriptor.getContainer().toBuilder()
+            // Min disk size
+            NonCompliance<JobDescriptor<?>> diskSizeViolation = violations.findViolation(FeatureRolloutPlans.MIN_DISK_SIZE_STRICT_VALIDATION_FEATURE).orElse(null);
+            if (diskSizeViolation != null) {
+                ContainerResources containerResources = sanitized.getContainer().getContainerResources();
+                sanitized = sanitized.toBuilder().withContainer(sanitized.getContainer().toBuilder()
                         .withContainerResources(
-                                containerResources.toBuilder().withDiskMB(minDiskSize).build()
+                                containerResources.toBuilder().withDiskMB(jobManagerConfiguration.getMinDiskSizeMB()).build()
                         ).build()
+
                 ).build();
-        return markNonCompliant(sanitizedJobDescriptor, "diskSizeLessThanMin");
+            }
+
+            // TODO Once not needed, remove this code and add the field level validator which invokes method JobAssertions#validateEnvironmentVariableNames.
+            // We have to throw the exception here, as we cannot conditionally check violations using annotations.
+            violations.findViolation(ENVIRONMENT_VARIABLE_NAMES_STRICT_VALIDATION_FEATURE).ifPresent(nonCompliance -> {
+                if (environmentVariableNamesStrictValidationPredicate.test(jobDescriptor)) {
+                    throw TitusServiceException.invalidArgument(nonCompliance.toErrorMessage());
+                }
+            });
+
+            return sanitized.toBuilder()
+                    .withAttributes(CollectionsExt.merge(jobDescriptor.getAttributes(), buildNonComplianceJobAttributeMap(violations)))
+                    .build();
+        }).orElse(jobDescriptor);
     }
 
-    private com.netflix.titus.api.jobmanager.model.job.JobDescriptor markNonCompliant(com.netflix.titus.api.jobmanager.model.job.JobDescriptor<?> jobDescriptor, String nonCompliant) {
-        Map<String, String> attributes = jobDescriptor.getAttributes();
-        String previousNonCompliant = attributes.get(TITUS_NON_COMPLIANT);
-        String newNonCompliant = previousNonCompliant == null ? nonCompliant : previousNonCompliant + ',' + nonCompliant;
-        return jobDescriptor.toBuilder()
-                .withAttributes(CollectionsExt.copyAndAdd(jobDescriptor.getAttributes(), TITUS_NON_COMPLIANT, newNonCompliant))
-                .build();
-    }
+    private Map<String, String> buildNonComplianceJobAttributeMap(FeatureCompliance.NonComplianceList<JobDescriptor<?>> violations) {
+        StringBuilder violatedFeaturesBuilder = new StringBuilder();
+        Map<String, String> violationJobAttributes = new HashMap<>();
 
-    private boolean isAscii(String value) {
-        return value == null || CharMatcher.ascii().matchesAllOf(value);
+        violations.getViolations().forEach(violation -> {
+            violatedFeaturesBuilder.append(violation.getFeatureId()).append(',');
+
+            String detailsPrefix = TITUS_NON_COMPLIANT + "details." + violation.getFeatureId() + '.';
+            violation.getContext().forEach((key, value) -> {
+                violationJobAttributes.put(detailsPrefix + key, value);
+            });
+        });
+        violationJobAttributes.put(TITUS_NON_COMPLIANT_FEATURES, violatedFeaturesBuilder.substring(0, violatedFeaturesBuilder.length() - 1));
+
+        return violationJobAttributes;
     }
 }

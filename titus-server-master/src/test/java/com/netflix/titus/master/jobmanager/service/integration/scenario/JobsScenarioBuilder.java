@@ -27,9 +27,11 @@ import com.netflix.fenzo.ConstraintEvaluator;
 import com.netflix.fenzo.TaskRequest;
 import com.netflix.fenzo.TaskTrackerState;
 import com.netflix.fenzo.VirtualMachineCurrentState;
+import com.netflix.titus.api.FeatureActivationConfiguration;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor.JobDescriptorExt;
 import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
+import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobAssertions;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder;
 import com.netflix.titus.api.model.ResourceDimension;
@@ -75,6 +77,7 @@ public class JobsScenarioBuilder {
     private final TitusRuntime titusRuntime = TitusRuntimes.test(testScheduler);
 
     private final JobManagerConfiguration configuration = mock(JobManagerConfiguration.class);
+    private final FeatureActivationConfiguration featureActivationConfiguration = mock(FeatureActivationConfiguration.class);
     private final JobConfiguration jobSanitizerConfiguration = mock(JobConfiguration.class);
     private final ApplicationSlaManagementService capacityGroupService = new StubbedApplicationSlaManagementService();
     private final StubbedSchedulingService schedulingService = new StubbedSchedulingService();
@@ -99,7 +102,7 @@ public class JobsScenarioBuilder {
         when(configuration.getTaskInKillInitiatedStateTimeoutMs()).thenReturn(KILL_INITIATED_TIMEOUT_MS);
         when(configuration.getTaskRetryerResetTimeMs()).thenReturn(TimeUnit.MINUTES.toMillis(5));
         when(configuration.getTaskKillAttempts()).thenReturn(2L);
-        when(configuration.isMoveTaskApiEnabled()).thenReturn(true);
+        when(featureActivationConfiguration.isMoveTaskApiEnabled()).thenReturn(true);
 
         jobStore.events().subscribe(storeEvents);
 
@@ -174,6 +177,7 @@ public class JobsScenarioBuilder {
 
         DefaultV3JobOperations v3JobOperations = new DefaultV3JobOperations(
                 configuration,
+                featureActivationConfiguration,
                 jobStore,
                 vmService,
                 new JobReconciliationFrameworkFactory(
@@ -293,14 +297,17 @@ public class JobsScenarioBuilder {
         return new JobSanitizerBuilder()
                 .withVerifierMode(verifierMode)
                 .withJobConstraintConfiguration(jobSanitizerConfiguration)
-                .withMaxContainerSizeResolver(instanceType -> ResourceDimension.newBuilder()
-                        .withCpus(64)
-                        .withGpu(8)
-                        .withMemoryMB(256 * 1024)
-                        .withDiskMB(1024 * 1024)
-                        .withNetworkMbs(10 * 1024)
-                        .build()
-                )
+                .withJobAsserts(new JobAssertions(
+                        jobSanitizerConfiguration,
+                        instanceType -> ResourceDimension.newBuilder()
+                                .withCpus(64)
+                                .withGpu(8)
+                                .withMemoryMB(256 * 1024)
+                                .withDiskMB(1024 * 1024)
+                                .withNetworkMbs(10 * 1024)
+                                .build()
+
+                ))
                 .build();
     }
 }

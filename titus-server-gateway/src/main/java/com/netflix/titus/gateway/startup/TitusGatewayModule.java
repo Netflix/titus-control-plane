@@ -24,7 +24,7 @@ import com.google.inject.TypeLiteral;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.spectator.api.Registry;
-import com.netflix.titus.api.FeatureFlagModule;
+import com.netflix.titus.runtime.FeatureFlagModule;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.common.runtime.SystemAbortListener;
 import com.netflix.titus.common.runtime.SystemLogService;

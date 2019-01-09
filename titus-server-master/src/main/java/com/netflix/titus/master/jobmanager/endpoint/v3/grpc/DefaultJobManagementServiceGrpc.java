@@ -28,6 +28,7 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.google.protobuf.Empty;
+import com.netflix.titus.api.FeatureRolloutPlans;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
@@ -89,7 +90,6 @@ import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Subscription;
 
-import static com.netflix.titus.api.FeatureFlagModule.DISRUPTION_BUDGET_FEATURE;
 import static com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_STRICT_SANITIZER;
 import static com.netflix.titus.runtime.connector.jobmanager.JobManagementClient.JOB_MINIMUM_FIELD_SET;
 import static com.netflix.titus.runtime.connector.jobmanager.JobManagementClient.TASK_MINIMUM_FIELD_SET;
@@ -127,7 +127,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
                                            V3JobOperations jobOperations,
                                            LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo,
                                            @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer,
-                                           @Named(DISRUPTION_BUDGET_FEATURE) Predicate<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> disruptionBudgetEnabledPredicate,
+                                           @Named(FeatureRolloutPlans.DISRUPTION_BUDGET_FEATURE) Predicate<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> disruptionBudgetEnabledPredicate,
                                            CallMetadataResolver callMetadataResolver,
                                            CellInfoResolver cellInfoResolver,
                                            TitusRuntime titusRuntime) {

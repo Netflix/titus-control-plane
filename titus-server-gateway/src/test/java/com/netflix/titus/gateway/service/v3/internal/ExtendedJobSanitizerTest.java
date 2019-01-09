@@ -16,19 +16,30 @@
 
 package com.netflix.titus.gateway.service.v3.internal;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import com.netflix.titus.api.FeatureRolloutPlans;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import com.netflix.titus.api.jobmanager.model.job.SecurityProfile;
+import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
+import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobAssertions;
+import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
+import com.netflix.titus.api.model.ResourceDimension;
+import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.gateway.service.v3.JobManagerConfiguration;
 import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 import org.junit.Before;
 import org.junit.Test;
 
+import static com.netflix.titus.api.FeatureRolloutPlans.ENVIRONMENT_VARIABLE_NAMES_STRICT_VALIDATION_FEATURE;
+import static com.netflix.titus.gateway.service.v3.internal.ExtendedJobSanitizer.TITUS_NON_COMPLIANT_FEATURES;
+import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -37,8 +48,16 @@ import static org.mockito.Mockito.when;
 public class ExtendedJobSanitizerTest {
 
     private static final int MIN_DISK_SIZE = 10_000;
+
+    private static final List<String> DEFAULT_SECURITY_GROUPS = asList("sg-1", "sg-2");
+    private static final String DEFAULT_IAM_ROLE = "defaultIamRole";
+
+    private final TitusRuntime titusRuntime = TitusRuntimes.internal();
+
     private final JobManagerConfiguration configuration = mock(JobManagerConfiguration.class);
+    private final JobConfiguration jobConfiguration = mock(JobConfiguration.class);
     private final EntitySanitizer entitySanitizer = mock(EntitySanitizer.class);
+    private final JobAssertions jobAssertions = new JobAssertions(jobConfiguration, instance -> ResourceDimension.empty());
 
     @Before
     public void setUp() {
@@ -46,35 +65,73 @@ public class ExtendedJobSanitizerTest {
     }
 
     @Test
+    public void testSecurityGroupsAndNoValidationFailures() {
+        testSecurityGrupValidation(false, DEFAULT_SECURITY_GROUPS);
+    }
+
+    @Test
+    public void testSecurityGroupsWithValidationFailures() {
+        testSecurityGrupValidation(true, Collections.emptyList());
+    }
+
+    private void testSecurityGrupValidation(boolean doNotAddIfMissing, List<String> expected) {
+        JobDescriptor jobDescriptor = newJobDescriptorWithSecurityProfile(Collections.emptyList(), "myIamRole");
+        ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, jd -> doNotAddIfMissing, jd -> false, titusRuntime);
+
+        when(configuration.getDefaultSecurityGroups()).thenReturn(asList("sg-1", "sg-2"));
+
+        Optional<JobDescriptor> sanitized = sanitizer.sanitize(jobDescriptor);
+
+        assertThat(sanitized).isPresent();
+        assertThat(sanitized.get().getContainer().getSecurityProfile().getSecurityGroups()).isEqualTo(expected);
+    }
+
+    @Test
+    public void testIamRoleAndNoValidationFailures() {
+        testIamRoleValidation(false, DEFAULT_IAM_ROLE);
+    }
+
+    @Test
+    public void testIamRoleWithValidationFailures() {
+        testIamRoleValidation(true, "");
+    }
+
+    private void testIamRoleValidation(boolean doNotAddIfMissing, String expected) {
+        JobDescriptor jobDescriptor = newJobDescriptorWithSecurityProfile(DEFAULT_SECURITY_GROUPS, "");
+        ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, jd -> doNotAddIfMissing, jd -> false, titusRuntime);
+
+        when(configuration.getDefaultIamRole()).thenReturn(DEFAULT_IAM_ROLE);
+
+        Optional<JobDescriptor> sanitized = sanitizer.sanitize(jobDescriptor);
+
+        assertThat(sanitized).isPresent();
+        assertThat(sanitized.get().getContainer().getSecurityProfile().getIamRole()).isEqualTo(expected);
+    }
+
+    @Test
     public void testDiskSizeIsChangedToMin() {
-        int diskSize = 100;
-        JobDescriptor jobDescriptor = JobDescriptorGenerator.batchJobDescriptors()
-                .map(jd -> jd.but(d -> d.getContainer().but(c -> c.getContainerResources().toBuilder().withDiskMB(diskSize))))
-                .getValue();
+        JobDescriptor jobDescriptor = newJobDescriptorWithDiskSize(100);
 
         when(configuration.getMinDiskSizeMB()).thenReturn(MIN_DISK_SIZE);
         when(entitySanitizer.sanitize(any())).thenReturn(Optional.of(jobDescriptor));
 
-        ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, entitySanitizer);
+        ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, jd -> false, jd -> false, titusRuntime);
         Optional<JobDescriptor> sanitizedJobDescriptorOpt = sanitizer.sanitize(jobDescriptor);
         JobDescriptor sanitizedJobDescriptor = sanitizedJobDescriptorOpt.get();
         assertThat(sanitizedJobDescriptor).isNotNull();
         assertThat(sanitizedJobDescriptor.getContainer().getContainerResources().getDiskMB()).isEqualTo(MIN_DISK_SIZE);
-        String nonCompliant = (String) sanitizedJobDescriptor.getAttributes().get("titus.noncompliant");
-        assertThat(nonCompliant).contains("diskSizeLessThanMin");
+        String nonCompliant = (String) sanitizedJobDescriptor.getAttributes().get(TITUS_NON_COMPLIANT_FEATURES);
+        assertThat(nonCompliant).contains(FeatureRolloutPlans.MIN_DISK_SIZE_STRICT_VALIDATION_FEATURE);
     }
 
     @Test
     public void testDiskSizeIsNotChanged() {
-        int diskSize = 11_000;
-        JobDescriptor jobDescriptor = JobDescriptorGenerator.batchJobDescriptors()
-                .map(jd -> jd.but(d -> d.getContainer().but(c -> c.getContainerResources().toBuilder().withDiskMB(diskSize))))
-                .getValue();
+        JobDescriptor jobDescriptor = newJobDescriptorWithDiskSize(11_000);
 
         when(configuration.getMinDiskSizeMB()).thenReturn(MIN_DISK_SIZE);
         when(entitySanitizer.sanitize(any())).thenReturn(Optional.of(jobDescriptor));
 
-        ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, entitySanitizer);
+        ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, jd -> false, jd -> false, titusRuntime);
         Optional<JobDescriptor> sanitizedJobDescriptorOpt = sanitizer.sanitize(jobDescriptor);
         assertThat(sanitizedJobDescriptorOpt).isEmpty();
     }
@@ -86,23 +143,23 @@ public class ExtendedJobSanitizerTest {
                         .withEntryPoint(Collections.singletonList("/bin/sh -c \"sleep 10\""))))
                 .getValue();
 
-        ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, entitySanitizer);
+        ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, jd -> false, jd -> false, titusRuntime);
         Optional<JobDescriptor<?>> sanitized = sanitizer.sanitize(jobDescriptor);
         assertThat(sanitized).isPresent();
         Map<String, String> attributes = sanitized.get().getAttributes();
-        assertThat(attributes).containsKey("titus.noncompliant");
-        List<String> problems = Arrays.asList(attributes.get("titus.noncompliant").split(","));
-        assertThat(problems).contains("entryPointBinaryWithSpaces");
+        assertThat(attributes).containsKey(TITUS_NON_COMPLIANT_FEATURES);
+        List<String> problems = asList(attributes.get(TITUS_NON_COMPLIANT_FEATURES).split(","));
+        assertThat(problems).contains(FeatureRolloutPlans.ENTRY_POINT_STRICT_VALIDATION_FEATURE);
     }
 
     @Test
     public void testValidEntryPoint() {
         JobDescriptor<?> jobDescriptor = JobDescriptorGenerator.batchJobDescriptors()
                 .map(jd -> jd.but(d -> d.getContainer().toBuilder()
-                        .withEntryPoint(Arrays.asList("/bin/sh", "-c", "sleep 10"))))
+                        .withEntryPoint(asList("/bin/sh", "-c", "sleep 10"))))
                 .getValue();
 
-        ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, entitySanitizer);
+        ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, jd -> false, jd -> false, titusRuntime);
         Optional<JobDescriptor<?>> sanitized = sanitizer.sanitize(jobDescriptor);
         assertThat(sanitized).isNotPresent();
     }
@@ -114,11 +171,51 @@ public class ExtendedJobSanitizerTest {
         JobDescriptor<?> jobDescriptor = JobDescriptorGenerator.batchJobDescriptors()
                 .map(jd -> jd.but(d -> d.getContainer().toBuilder()
                         .withEntryPoint(Collections.singletonList("a binary with spaces"))
-                        .withCommand(Arrays.asList("some", "arguments"))))
+                        .withCommand(asList("some", "arguments"))))
                 .getValue();
 
-        ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, entitySanitizer);
+        ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, jd -> false, jd -> false, titusRuntime);
         Optional<JobDescriptor<?>> sanitized = sanitizer.sanitize(jobDescriptor);
         assertThat(sanitized).isNotPresent();
+    }
+
+    @Test
+    public void testEnvironmentNamesWithInvalidCharactersAndNoValidationFailures() {
+        JobDescriptor jobDescriptor = newJobDescriptorWithEnvironment(";;;", "value");
+        ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, jd -> false, jd -> false, titusRuntime);
+
+        Optional<JobDescriptor> sanitized = sanitizer.sanitize(jobDescriptor);
+        assertThat(sanitized).isNotEmpty();
+        assertThat(sanitized.get().getAttributes().get(TITUS_NON_COMPLIANT_FEATURES)).isEqualTo(ENVIRONMENT_VARIABLE_NAMES_STRICT_VALIDATION_FEATURE);
+    }
+
+    @Test(expected = TitusServiceException.class)
+    public void testEnvironmentNamesWithInvalidCharactersAndWithValidationFailures() {
+        JobDescriptor jobDescriptor = newJobDescriptorWithEnvironment(";;;", "value");
+        ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, jd -> false, jd -> true, titusRuntime);
+
+        sanitizer.sanitize(jobDescriptor);
+    }
+
+    private JobDescriptor newJobDescriptorWithSecurityProfile(List<String> securityGroups, String iamRole) {
+        SecurityProfile securityProfile = SecurityProfile.newBuilder()
+                .withIamRole(iamRole)
+                .withSecurityGroups(securityGroups)
+                .build();
+        return JobDescriptorGenerator.batchJobDescriptors()
+                .map(jd -> jd.but(d -> d.getContainer().but(c -> c.toBuilder().withSecurityProfile(securityProfile).build())))
+                .getValue();
+    }
+
+    private JobDescriptor newJobDescriptorWithEnvironment(String key, String value) {
+        return JobDescriptorGenerator.batchJobDescriptors()
+                .map(jd -> jd.but(d -> d.getContainer().but(c -> c.toBuilder().withEnv(Collections.singletonMap(key, value)).build())))
+                .getValue();
+    }
+
+    private JobDescriptor<BatchJobExt> newJobDescriptorWithDiskSize(int diskSize) {
+        return JobDescriptorGenerator.batchJobDescriptors()
+                .map(jd -> jd.but(d -> d.getContainer().but(c -> c.getContainerResources().toBuilder().withDiskMB(diskSize))))
+                .getValue();
     }
 }

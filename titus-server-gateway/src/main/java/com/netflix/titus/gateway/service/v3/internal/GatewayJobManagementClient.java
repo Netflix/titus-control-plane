@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -33,6 +34,7 @@ import com.google.common.collect.Sets;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
+import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobAssertions;
 import com.netflix.titus.api.jobmanager.store.JobStore;
 import com.netflix.titus.api.jobmanager.store.JobStoreException;
 import com.netflix.titus.api.model.Pagination;
@@ -73,6 +75,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
 
+import static com.netflix.titus.api.FeatureRolloutPlans.ENVIRONMENT_VARIABLE_NAMES_STRICT_VALIDATION_FEATURE;
+import static com.netflix.titus.api.FeatureRolloutPlans.SECURITY_GROUPS_REQUIRED_FEATURE;
 import static com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_STRICT_SANITIZER;
 import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toGrpcPagination;
 import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toPage;
@@ -109,6 +113,9 @@ public class GatewayJobManagementClient extends JobManagementClientDelegate {
                                       LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo,
                                       TaskRelocationDataInjector taskRelocationDataInjector,
                                       @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer,
+                                      @Named(SECURITY_GROUPS_REQUIRED_FEATURE) Predicate<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> securityGroupsRequiredPredicate,
+                                      @Named(ENVIRONMENT_VARIABLE_NAMES_STRICT_VALIDATION_FEATURE) Predicate<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> environmentVariableNamesStrictValidationPredicate,
+                                      JobAssertions jobAssertions,
                                       EntityValidator<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> validator,
                                       TitusRuntime titusRuntime) {
         super(new SanitizingJobManagementClient(
@@ -118,7 +125,7 @@ public class GatewayJobManagementClient extends JobManagementClientDelegate {
 
                         configuration
                 ),
-                new ExtendedJobSanitizer(jobManagerConfiguration, entitySanitizer)
+                new ExtendedJobSanitizer(jobManagerConfiguration, jobAssertions, entitySanitizer, securityGroupsRequiredPredicate, environmentVariableNamesStrictValidationPredicate, titusRuntime)
         ));
         this.configuration = configuration;
         this.client = client;

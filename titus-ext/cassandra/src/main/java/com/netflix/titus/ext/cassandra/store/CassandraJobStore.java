@@ -43,6 +43,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.netflix.titus.api.FeatureRolloutPlans;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
@@ -70,7 +71,6 @@ import rx.Emitter;
 import rx.Observable;
 import rx.exceptions.Exceptions;
 
-import static com.netflix.titus.api.FeatureFlagModule.DISRUPTION_BUDGET_FEATURE;
 import static com.netflix.titus.common.util.guice.ProxyType.Logging;
 import static com.netflix.titus.common.util.guice.ProxyType.Spectator;
 import static com.netflix.titus.ext.cassandra.store.StoreTransactionLoggers.transactionLogger;
@@ -144,14 +144,14 @@ public class CassandraJobStore implements JobStore {
 
     @Inject
     public CassandraJobStore(CassandraStoreConfiguration configuration,
-                             @Named(DISRUPTION_BUDGET_FEATURE) Predicate<JobDescriptor> disruptionBudgetEnabledPredicate,
+                             @Named(FeatureRolloutPlans.DISRUPTION_BUDGET_FEATURE) Predicate<JobDescriptor> disruptionBudgetEnabledPredicate,
                              Session session,
                              TitusRuntime titusRuntime) {
         this(configuration, disruptionBudgetEnabledPredicate, session, titusRuntime, ObjectMappers.storeMapper(), INITIAL_BUCKET_COUNT, MAX_BUCKET_SIZE);
     }
 
     CassandraJobStore(CassandraStoreConfiguration configuration,
-                      @Named(DISRUPTION_BUDGET_FEATURE) Predicate<JobDescriptor> disruptionBudgetEnabledPredicate,
+                      @Named(FeatureRolloutPlans.DISRUPTION_BUDGET_FEATURE) Predicate<JobDescriptor> disruptionBudgetEnabledPredicate,
                       Session session,
                       TitusRuntime titusRuntime,
                       ObjectMapper mapper,

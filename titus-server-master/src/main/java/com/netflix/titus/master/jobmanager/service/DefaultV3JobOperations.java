@@ -27,6 +27,7 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.netflix.titus.api.FeatureActivationConfiguration;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -95,6 +96,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
     private final JobStore store;
     private final VirtualMachineMasterService vmService;
     private final JobManagerConfiguration jobManagerConfiguration;
+    private final FeatureActivationConfiguration featureActivationConfiguration;
     private final JobReconciliationFrameworkFactory jobReconciliationFrameworkFactory;
     private final JobSubmitLimiter jobSubmitLimiter;
     private final TitusRuntime titusRuntime;
@@ -108,12 +110,14 @@ public class DefaultV3JobOperations implements V3JobOperations {
      */
     @Inject
     public DefaultV3JobOperations(JobManagerConfiguration jobManagerConfiguration,
+                                  FeatureActivationConfiguration featureActivationConfiguration,
                                   JobStore store,
                                   VirtualMachineMasterService vmService,
                                   JobReconciliationFrameworkFactory jobReconciliationFrameworkFactory,
                                   JobSubmitLimiter jobSubmitLimiter,
                                   ManagementSubsystemInitializer managementSubsystemInitializer,
                                   TitusRuntime titusRuntime) {
+        this.featureActivationConfiguration = featureActivationConfiguration;
         this.store = store;
         this.vmService = vmService;
         this.jobManagerConfiguration = jobManagerConfiguration;
@@ -403,7 +407,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
 
     @Override
     public Observable<Void> moveServiceTask(String sourceJobId, String targetJobId, String taskId) {
-        if (!jobManagerConfiguration.isMoveTaskApiEnabled()) {
+        if (!featureActivationConfiguration.isMoveTaskApiEnabled()) {
             throw JobManagerException.notEnabled("Move task");
         }
         return Observable.defer(() -> {

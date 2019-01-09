@@ -17,16 +17,15 @@
 package com.netflix.titus.api.jobmanager.model.job.sanitizer;
 
 import java.util.Optional;
-import java.util.function.Function;
 
 import com.google.common.base.Preconditions;
 import com.netflix.titus.api.jobmanager.model.job.Job;
-import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizerBuilder;
 import com.netflix.titus.common.model.sanitizer.VerifierMode;
 
 /**
+ *
  */
 public class JobSanitizerBuilder {
 
@@ -41,8 +40,8 @@ public class JobSanitizerBuilder {
     private final EntitySanitizerBuilder sanitizerBuilder = EntitySanitizerBuilder.stdBuilder();
 
     private JobConfiguration jobConfiguration;
-    private Function<String, ResourceDimension> maxContainerSizeResolver;
     private VerifierMode verifierMode = VerifierMode.Strict;
+    private JobAssertions jobAssertions;
 
     public JobSanitizerBuilder withVerifierMode(VerifierMode verifierMode) {
         this.verifierMode = verifierMode;
@@ -54,14 +53,14 @@ public class JobSanitizerBuilder {
         return this;
     }
 
-    public JobSanitizerBuilder withMaxContainerSizeResolver(Function<String, ResourceDimension> maxContainerSizeResolver) {
-        this.maxContainerSizeResolver = maxContainerSizeResolver;
+    public JobSanitizerBuilder withJobAsserts(JobAssertions jobAssertions) {
+        this.jobAssertions = jobAssertions;
         return this;
     }
 
     public EntitySanitizer build() {
         Preconditions.checkNotNull(jobConfiguration, "JobConfiguration not set");
-        Preconditions.checkNotNull(maxContainerSizeResolver, "Max container size resolver not set");
+        Preconditions.checkNotNull(jobAssertions, "Job assertions not set");
 
         sanitizerBuilder
                 .verifierMode(verifierMode)
@@ -82,7 +81,7 @@ public class JobSanitizerBuilder {
                     return Optional.empty();
                 })
                 .registerBean("constraints", jobConfiguration)
-                .registerBean("asserts", new JobAssertions(jobConfiguration, maxContainerSizeResolver));
+                .registerBean("asserts", jobAssertions);
 
         return sanitizerBuilder.build();
     }
