@@ -17,6 +17,7 @@
 package com.netflix.titus.api.connector.cloud;
 
 import java.util.Collections;
+import java.util.Objects;
 import java.util.Set;
 
 public class LoadBalancer {
@@ -45,6 +46,25 @@ public class LoadBalancer {
 
     public Set<String> getRegisteredIps() {
         return registeredIps;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof LoadBalancer)) {
+            return false;
+        }
+        LoadBalancer that = (LoadBalancer) o;
+        return id.equals(that.id) &&
+                state == that.state &&
+                registeredIps.equals(that.registeredIps);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id, state, registeredIps);
     }
 
     @Override
