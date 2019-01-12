@@ -711,13 +711,13 @@
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.1.12.RELEASE",
+            "locked": "3.1.14.RELEASE",
             "transitive": [
                 "io.projectreactor:reactor-test"
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.1.12.RELEASE",
+            "locked": "3.1.14.RELEASE",
             "requested": "3.1.+"
         },
         "junit:junit-dep": {
@@ -879,13 +879,13 @@
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.1.12.RELEASE",
+            "locked": "3.1.14.RELEASE",
             "transitive": [
                 "io.projectreactor:reactor-test"
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.1.12.RELEASE",
+            "locked": "3.1.14.RELEASE",
             "requested": "3.1.+"
         },
         "junit:junit-dep": {
@@ -1047,13 +1047,13 @@
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.1.12.RELEASE",
+            "locked": "3.1.14.RELEASE",
             "transitive": [
                 "io.projectreactor:reactor-test"
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.1.12.RELEASE",
+            "locked": "3.1.14.RELEASE",
             "requested": "3.1.+"
         },
         "junit:junit-dep": {
@@ -1228,13 +1228,13 @@
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.1.12.RELEASE",
+            "locked": "3.1.14.RELEASE",
             "transitive": [
                 "io.projectreactor:reactor-test"
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.1.12.RELEASE",
+            "locked": "3.1.14.RELEASE",
             "requested": "3.1.+"
         },
         "junit:junit-dep": {
