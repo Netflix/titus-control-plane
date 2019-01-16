@@ -16,13 +16,13 @@
 
 package com.netflix.titus.runtime.connector.registry;
 
-import rx.Single;
+import reactor.core.publisher.Mono;
 
 /**
  * Interface for a container image registry client.
  */
 public interface RegistryClient {
 
-    Single<String> getImageDigest(String repository, String reference);
+    Mono<String> getImageDigest(String repository, String reference);
 
 }

@@ -18,18 +18,17 @@ package com.netflix.titus.master.endpoint.v2.rest;
 
 import java.util.Arrays;
 import java.util.List;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MediaType;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.google.common.base.Preconditions;
 import com.netflix.titus.api.endpoint.v2.rest.representation.ApplicationSlaRepresentation;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
+import com.netflix.titus.runtime.endpoint.common.rest.ErrorResponse;
 import com.netflix.titus.runtime.endpoint.common.rest.JsonMessageReaderWriter;
 import com.netflix.titus.runtime.endpoint.common.rest.TitusExceptionMapper;
 import com.netflix.titus.testkit.data.core.ApplicationSlaSample;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
-import com.netflix.titus.testkit.junit.jaxrs.HttpTestClient;
-import com.netflix.titus.testkit.junit.jaxrs.HttpTestClientException;
 import com.netflix.titus.testkit.junit.jaxrs.JaxRsServerResource;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -37,10 +36,13 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.mockito.Mockito;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpStatus;
+import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.web.reactive.function.BodyInserters;
 import rx.Observable;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -56,12 +58,12 @@ import static org.mockito.Mockito.when;
 @Category(IntegrationTest.class)
 public class ApplicationSlaManagementResourceTest {
 
-    private static final TypeReference<List<ApplicationSlaRepresentation>> APPLICATION_SLA_REP_LIST_TREF =
-            new TypeReference<List<ApplicationSlaRepresentation>>() {
+    private static final ParameterizedTypeReference<List<ApplicationSlaRepresentation>> APPLICATION_SLA_REP_LIST_TR =
+            new ParameterizedTypeReference<List<ApplicationSlaRepresentation>>() {
             };
 
     private static final ApplicationSLA SAMPLE_SLA = ApplicationSlaSample.CriticalSmall.build();
-    private static final ApplicationSlaRepresentation SAMPLE_SLA_REPRESENTATION = representationOf(SAMPLE_SLA);
+    private static final ApplicationSlaRepresentation SAMPLE_SLA_REPRESENTATION = Representation2ModelConvertions.asRepresentation(SAMPLE_SLA);
 
     private static final ApplicationSlaManagementService capacityManagementService = mock(ApplicationSlaManagementService.class);
 
@@ -72,13 +74,16 @@ public class ApplicationSlaManagementResourceTest {
             .withProviders(new JsonMessageReaderWriter(), new TitusExceptionMapper())
             .build();
 
-    private static HttpTestClient client;
+    private static String baseURI;
+    private static WebTestClient testClient;
 
     @BeforeClass
-    public static void setUpClass() throws Exception {
-        client = new HttpTestClient(
-                jaxRsServer.getBaseURI() + ApplicationSlaManagementEndpoint.PATH_API_V2_MANAGEMENT_APPLICATIONS
-        );
+    public static void setUpClass() {
+        baseURI = jaxRsServer.getBaseURI() + ApplicationSlaManagementEndpoint.PATH_API_V2_MANAGEMENT_APPLICATIONS + '/';
+        testClient = WebTestClient.bindToServer()
+                .baseUrl(baseURI)
+                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON)
+                .build();
     }
 
     @Before
@@ -87,116 +92,112 @@ public class ApplicationSlaManagementResourceTest {
     }
 
     @Test
-    public void addApplication() throws Exception {
+    public void addApplication() {
         when(capacityManagementService.getApplicationSLA(any())).thenReturn(null);
         when(capacityManagementService.addApplicationSLA(any())).thenReturn(Observable.empty());
 
-        client.doPOST(SAMPLE_SLA_REPRESENTATION, SAMPLE_SLA.getAppName());
+        testClient.post().body(BodyInserters.fromObject(SAMPLE_SLA_REPRESENTATION)).exchange()
+                .expectStatus().is2xxSuccessful()
+                .expectHeader().valueEquals(HttpHeaders.LOCATION, baseURI + SAMPLE_SLA.getAppName())
+                .expectBody().isEmpty();
 
         verify(capacityManagementService, times(1)).getApplicationSLA(any());
         verify(capacityManagementService, times(1)).addApplicationSLA(any());
     }
 
     @Test
-    public void addExistingApplicationFails() throws Exception {
+    public void addExistingApplicationFails() {
         when(capacityManagementService.getApplicationSLA(any())).thenReturn(SAMPLE_SLA);
 
-        execute(() -> client.doPOST(SAMPLE_SLA_REPRESENTATION, SAMPLE_SLA.getAppName()), 409);
+        testClient.post().body(BodyInserters.fromObject(SAMPLE_SLA_REPRESENTATION)).exchange()
+                .expectStatus().isEqualTo(HttpStatus.CONFLICT);
 
         verify(capacityManagementService, times(1)).getApplicationSLA(any());
         verify(capacityManagementService, times(0)).addApplicationSLA(any());
     }
 
     @Test
-    public void getAllApplications() throws Exception {
+    public void getAllApplications() {
         when(capacityManagementService.getApplicationSLAs()).thenReturn(Arrays.asList(
                 ApplicationSlaSample.CriticalSmall.build(), ApplicationSlaSample.CriticalLarge.build()
         ));
 
-        List<ApplicationSlaRepresentation> result = client.doGET(APPLICATION_SLA_REP_LIST_TREF);
-        assertThat(result).hasSize(2);
+        testClient.get().uri("").exchange()
+                .expectStatus().isOk()
+                .expectBody(APPLICATION_SLA_REP_LIST_TR).value(result -> assertThat(result).hasSize(2));
 
         verify(capacityManagementService, times(1)).getApplicationSLAs();
     }
 
     @Test
-    public void getApplicationByName() throws Exception {
+    public void getApplicationByName() {
         String targetName = SAMPLE_SLA.getAppName();
         when(capacityManagementService.getApplicationSLA(targetName)).thenReturn(SAMPLE_SLA);
 
-        ApplicationSlaRepresentation result = client.doGET('/' + targetName, ApplicationSlaRepresentation.class);
-        assertThat(result.getAppName()).isEqualTo(targetName);
+        testClient.get().uri(targetName).exchange()
+                .expectStatus().isOk()
+                .expectBody(ApplicationSlaRepresentation.class).value(result -> assertThat(result.getAppName()).isEqualTo(targetName));
 
         verify(capacityManagementService, times(1)).getApplicationSLA(targetName);
     }
 
     @Test
-    public void getNonExistingApplicationByNameFails() throws Exception {
+    public void getNonExistingApplicationByNameFails() {
         String myMissingApp = "myMissingApp";
         when(capacityManagementService.getApplicationSLA(any())).thenReturn(null);
 
-        execute(() -> client.doGET("/" + myMissingApp, ApplicationSlaRepresentation.class), 404);
+        testClient.get().uri(myMissingApp).exchange()
+                .expectStatus().isNotFound();
+
         verify(capacityManagementService, times(1)).getApplicationSLA(myMissingApp);
     }
 
     @Test
-    public void updateApplication() throws Exception {
+    public void updateApplication() {
         String targetName = SAMPLE_SLA.getAppName();
         when(capacityManagementService.getApplicationSLA(targetName)).thenReturn(SAMPLE_SLA);
         when(capacityManagementService.addApplicationSLA(any())).thenReturn(Observable.empty());
 
-        client.doPUT('/' + targetName, SAMPLE_SLA_REPRESENTATION);
+        testClient.put().uri(targetName).body(BodyInserters.fromObject(SAMPLE_SLA_REPRESENTATION)).exchange()
+                .expectStatus().isNoContent()
+                .expectBody().isEmpty();
 
         verify(capacityManagementService, times(1)).getApplicationSLA(targetName);
     }
 
     @Test
-    public void updateNonExistingApplicationFails() throws Exception {
+    public void updateNonExistingApplicationFails() {
         String targetAppName = SAMPLE_SLA.getAppName();
         when(capacityManagementService.getApplicationSLA(targetAppName)).thenReturn(null);
 
-        execute(() -> client.doPUT('/' + targetAppName, SAMPLE_SLA_REPRESENTATION), 404);
+        testClient.put().uri(targetAppName).body(BodyInserters.fromObject(SAMPLE_SLA_REPRESENTATION)).exchange()
+                .expectStatus().isNotFound()
+                .expectBody(ErrorResponse.class).value(error -> assertThat(error.getMessage()).contains("SLA not defined for"));
 
         verify(capacityManagementService, times(1)).getApplicationSLA(targetAppName);
         verify(capacityManagementService, never()).addApplicationSLA(any());
     }
 
     @Test
-    public void removeApplication() throws Exception {
+    public void removeApplication() {
         String targetAppName = SAMPLE_SLA.getAppName();
         when(capacityManagementService.getApplicationSLA(targetAppName)).thenReturn(SAMPLE_SLA);
         when(capacityManagementService.removeApplicationSLA(targetAppName)).thenReturn(Observable.empty());
 
-        client.doDELETE('/' + targetAppName);
+        testClient.delete().uri(targetAppName).exchange()
+                .expectStatus().isNoContent();
 
         verify(capacityManagementService, times(1)).removeApplicationSLA(targetAppName);
     }
 
     @Test
-    public void removeNonExistingApplicationFails() throws Exception {
+    public void removeNonExistingApplicationFails() {
         when(capacityManagementService.getApplicationSLA(anyString())).thenReturn(null);
 
-        execute(() -> client.doDELETE("/myMissingApp"), 404);
+        testClient.delete().uri("/myMissingApp").exchange()
+                .expectStatus().isNotFound();
 
         verify(capacityManagementService, times(1)).getApplicationSLA(any());
         verify(capacityManagementService, never()).removeApplicationSLA(any());
-    }
-
-    private static ApplicationSlaRepresentation representationOf(ApplicationSLA sample) {
-        return Representation2ModelConvertions.asRepresentation(sample);
-    }
-
-    private void execute(Action httpReq, int statusCode) throws Exception {
-        Preconditions.checkArgument(statusCode / 100 != 2);
-        try {
-            httpReq.call();
-            fail("HTTP request succeeded, while it has been expected to fail");
-        } catch (HttpTestClientException e) {
-            assertThat(e.getStatusCode()).isEqualTo(statusCode);
-        }
-    }
-
-    interface Action {
-        void call() throws Exception;
     }
 }

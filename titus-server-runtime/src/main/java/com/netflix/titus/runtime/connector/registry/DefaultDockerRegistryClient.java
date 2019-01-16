@@ -16,31 +16,26 @@
 
 package com.netflix.titus.runtime.connector.registry;
 
+import java.time.Duration;
 import java.util.AbstractMap;
 import java.util.Collections;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import javax.net.ssl.SSLException;
 
-import com.netflix.spectator.api.Registry;
-import com.netflix.titus.common.network.client.NettySslContextEngineFactory;
-import com.netflix.titus.common.network.client.RxHttpResponse;
-import com.netflix.titus.common.network.client.RxRestClient;
-import com.netflix.titus.common.network.client.RxRestClientException;
-import com.netflix.titus.common.network.client.RxRestClients;
-import com.netflix.titus.common.network.client.TypeProviders;
+import com.netflix.titus.common.network.client.TitusWebClientAddOns;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.guice.ProxyType;
 import com.netflix.titus.common.util.guice.annotation.ProxyConfiguration;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import io.netty.handler.ssl.SslContextBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import rx.Observable;
-import rx.Single;
+import org.springframework.web.reactive.function.client.ClientResponse;
+import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
+
 
 /**
  * This {@link DefaultDockerRegistryClient} implementation of {@link RegistryClient} connects to a
@@ -62,29 +57,16 @@ public class DefaultDockerRegistryClient implements RegistryClient {
     );
 
     private final TitusRegistryClientConfiguration titusRegistryClientConfiguration;
-    private final RxRestClient restClient;
+    private final WebClient restClient;
 
     @Inject
-    DefaultDockerRegistryClient(RegistryEndpointResolver endpointResolver, TitusRegistryClientConfiguration configuration, Registry spectatorRegistry) {
+    DefaultDockerRegistryClient(TitusRegistryClientConfiguration configuration, TitusRuntime titusRuntime) {
         this.titusRegistryClientConfiguration = configuration;
 
-        RxRestClients.Builder builder = RxRestClients.newBuilder("dockerRegistryClient", spectatorRegistry)
-                .endpointResolver(endpointResolver)
-                // We rely on the RxRestClient for timeout handling
-                .timeUnit(TimeUnit.MILLISECONDS)
-                .requestTimeout(titusRegistryClientConfiguration.getRegistryTimeoutMs())
-                .retryCount(titusRegistryClientConfiguration.getRegistryRetryCount())
-                .retryDelay(titusRegistryClientConfiguration.getRegistryRetryDelayMs())
-                .noRetryStatuses(Collections.singleton(HttpResponseStatus.NOT_FOUND));
-        if (titusRegistryClientConfiguration.isSecure()) {
-            try {
-                builder.sslEngineFactory(new NettySslContextEngineFactory(SslContextBuilder.forClient().build()));
-            } catch (SSLException e) {
-                logger.error("Unable configure Docker registry client SSL context: {}", e);
-                throw new RuntimeException("Error configuring SSL context", e);
-            }
-        }
-        this.restClient = builder.build();
+        this.restClient = WebClient.builder()
+                .baseUrl(configuration.getRegistryUri())
+                .apply(b -> TitusWebClientAddOns.addTitusDefaults(b, DefaultDockerRegistryClient.class.getSimpleName(), titusRegistryClientConfiguration.isSecure(), titusRuntime))
+                .build();
     }
 
     /**
@@ -92,37 +74,39 @@ public class DefaultDockerRegistryClient implements RegistryClient {
      * reference may be an image tag or digest value. If the image does not exist or another error is
      * encountered, an onError value is emitted.
      */
-    public Single<String> getImageDigest(String repository, String reference) {
-        return registryRequestWithErrorHandling(
-                restClient.doGET(buildRegistryUri(repository, reference), headers, TypeProviders.ofEmptyResponse()), repository, reference)
-                .map(RxHttpResponse::getHeaders)
-                .flatMap(stringListMap -> {
-                    if (stringListMap.containsKey(dockerDigestHeaderKey)) {
-                        return Observable.from(stringListMap.get(dockerDigestHeaderKey));
+    public Mono<String> getImageDigest(String repository, String reference) {
+        return restClient.get().uri(buildRegistryUri(repository, reference))
+                .headers(consumer -> headers.forEach(consumer::add))
+                .exchange()
+                .flatMap(response -> {
+                    if (response.statusCode().value() == HttpResponseStatus.NOT_FOUND.code()) {
+                        return Mono.error(
+                                new TitusRegistryException(TitusRegistryException.ErrorCode.IMAGE_NOT_FOUND,
+                                        String.format("Image %s:%s does not exist in registry", repository, reference))
+                        );
                     }
-                    return Observable.error(new TitusRegistryException(TitusRegistryException.ErrorCode.MISSING_HEADER, "Missing required header " + dockerDigestHeaderKey));
-                }).toSingle();
+                    if (!response.statusCode().is2xxSuccessful()) {
+                        return Mono.error(
+                                new TitusRegistryException(TitusRegistryException.ErrorCode.INTERNAL,
+                                        String.format("Cannot fetch image %s:%s metadata: statusCode=%s", repository, reference, response.statusCode()))
+                        );
+                    }
+                    ClientResponse.Headers responseHeaders = response.headers();
+                    if (responseHeaders.header(dockerDigestHeaderKey).isEmpty()) {
+                        return Mono.error(new TitusRegistryException(TitusRegistryException.ErrorCode.MISSING_HEADER, "Missing required header " + dockerDigestHeaderKey));
+                    }
+                    return Mono.just(responseHeaders.header(dockerDigestHeaderKey).get(0));
+                })
+                .timeout(Duration.ofMillis(titusRegistryClientConfiguration.getRegistryTimeoutMs()))
+                .retryWhen(TitusWebClientAddOns.retryer(
+                        Duration.ofMillis(titusRegistryClientConfiguration.getRegistryRetryDelayMs()),
+                        titusRegistryClientConfiguration.getRegistryRetryCount(),
+                        error -> !(error instanceof TitusRegistryException),
+                        logger
+                ));
     }
 
     private String buildRegistryUri(String repository, String reference) {
         return "/v2/" + repository + "/manifests/" + reference;
-    }
-
-    /**
-     * Wraps an observable registry request with error handling.
-     */
-    private <T> Observable<T> registryRequestWithErrorHandling(Observable<T> obs, String repository, String reference) {
-        return obs.onErrorResumeNext(throwable -> {
-            if (throwable instanceof RxRestClientException) {
-                if (((RxRestClientException)throwable).getStatusCode() == HttpResponseStatus.NOT_FOUND.code()) {
-                    return Observable.error(
-                            new TitusRegistryException(TitusRegistryException.ErrorCode.IMAGE_NOT_FOUND,
-                                    String.format("Image %s:%s does not exist in registry", repository, reference)));
-                }
-            }
-            return  Observable.error(
-                    new TitusRegistryException(TitusRegistryException.ErrorCode.INTERNAL,
-                            throwable.getMessage()));
-        });
     }
 }

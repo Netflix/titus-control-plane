@@ -25,7 +25,6 @@ import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.common.model.validator.EntityValidator;
 import com.netflix.titus.common.model.validator.ValidationError;
-import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.runtime.connector.registry.RegistryClient;
 import com.netflix.titus.runtime.connector.registry.TitusRegistryException;
 import org.slf4j.Logger;
@@ -81,20 +80,20 @@ public class JobImageValidator implements EntityValidator<JobDescriptor> {
         }
 
         return sanitizeImage(jobDescriptor)
-        // We are ignoring most image validation errors. We will propagate
-        // more errors as we going feature confidence.
-        .onErrorReturn(throwable -> {
-            if (throwable instanceof TitusRegistryException) {
-                TitusRegistryException tre = (TitusRegistryException)throwable;
-                switch (tre.getErrorCode()) {
-                    case IMAGE_NOT_FOUND:
-                        return false;
-                    default:
-                        return true;
-                }
-            }
-            return true;
-        }, jobDescriptor);
+                // We are ignoring most image validation errors. We will propagate
+                // more errors as we going feature confidence.
+                .onErrorReturn(throwable -> {
+                    if (throwable instanceof TitusRegistryException) {
+                        TitusRegistryException tre = (TitusRegistryException) throwable;
+                        switch (tre.getErrorCode()) {
+                            case IMAGE_NOT_FOUND:
+                                return false;
+                            default:
+                                return true;
+                        }
+                    }
+                    return true;
+                }, jobDescriptor);
     }
 
     private Mono<JobDescriptor> sanitizeImage(JobDescriptor jobDescriptor) {
@@ -111,11 +110,11 @@ public class JobImageValidator implements EntityValidator<JobDescriptor> {
     }
 
     private Mono<Void> checkImageTagExists(Image image) {
-        return ReactorExt.toMono(registryClient.getImageDigest(image.getName(), image.getTag())).then();
+        return registryClient.getImageDigest(image.getName(), image.getTag()).then();
     }
 
     private Mono<Void> checkImageDigestExist(Image image) {
-        return ReactorExt.toMono(registryClient.getImageDigest(image.getName(), image.getDigest())).then();
+        return registryClient.getImageDigest(image.getName(), image.getDigest()).then();
     }
 
     private Mono<JobDescriptor> addMissingImageDigest(JobDescriptor jobDescriptor) {
@@ -124,7 +123,7 @@ public class JobImageValidator implements EntityValidator<JobDescriptor> {
             return Mono.just(jobDescriptor);
         }
 
-        return ReactorExt.toMono(registryClient.getImageDigest(image.getName(), image.getTag())
+        return registryClient.getImageDigest(image.getName(), image.getTag())
                 .map(digest -> jobDescriptor.toBuilder()
                         .withContainer(jobDescriptor.getContainer().toBuilder()
                                 .withImage(Image.newBuilder()
@@ -132,12 +131,14 @@ public class JobImageValidator implements EntityValidator<JobDescriptor> {
                                         .withTag(image.getTag())
                                         .withDigest(digest)
                                         .build()).build()
-                        ).build()));
+                        ).build());
     }
 
     private boolean hasDigest(Image image) {
         return null != image.getDigest() && !image.getDigest().isEmpty();
     }
 
-    private boolean isDisabled() { return !configuration.isEnabled(); }
+    private boolean isDisabled() {
+        return !configuration.isEnabled();
+    }
 }

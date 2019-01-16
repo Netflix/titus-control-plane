@@ -29,7 +29,7 @@ import com.netflix.discovery.EurekaClient;
 import com.netflix.titus.common.network.reverseproxy.http.ReactorHttpClientFactory;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.ext.eureka.reverseproxy.EurekaReverseProxyConfiguration;
-import reactor.ipc.netty.http.client.HttpClient;
+import reactor.netty.http.client.HttpClient;
 
 /**
  * FIXME {@link HttpClient} accepts single address only. We need a wrapper that would work with Eureka based name resolver.
@@ -78,7 +78,12 @@ public class EurekaReactorHttpClientFactory implements ReactorHttpClientFactory 
                 List<InstanceInfo> instances = eurekaClient.getInstancesByVipAddress(address.getVipAddress(), address.isSecure());
                 if (!CollectionsExt.isNullOrEmpty(instances)) {
                     InstanceInfo target = instances.get(0);
-                    HttpClient client = HttpClient.create(target.getIPAddr(), address.isSecure() ? target.getSecurePort() : target.getPort());
+                    HttpClient client = HttpClient.create().baseUrl(
+                            String.format("%s://%s:%s",
+                                    address.isSecure() ? "https" : "http",
+                                    target.getIPAddr(),
+                                    address.isSecure() ? target.getSecurePort() : target.getPort()
+                            ));
                     clients.putIfAbsent(serviceName, client);
                 }
             }

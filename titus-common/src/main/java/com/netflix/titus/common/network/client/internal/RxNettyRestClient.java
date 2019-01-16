@@ -65,6 +65,8 @@ public class RxNettyRestClient implements RxRestClient {
 
     /* For testing */ static final ObjectMapper MAPPER = createObjectMapper();
 
+    private static final Object VOID_VALUE = new Object();
+
     private final EndpointResolver endpointResolver;
     private final RxClientMetric rxClientMetric;
     private final Optional<Function<Integer, TypeProvider<?>>> errorReplyTypeResolver;
@@ -301,6 +303,9 @@ public class RxNettyRestClient implements RxRestClient {
         InputStream is = new ByteBufInputStream(byteBufs);
         try {
             if (type instanceof ClassTypeProvider) {
+                if(type.getEntityClass() == Void.class) {
+                    return Either.ofValue(VOID_VALUE);
+                }
                 return Either.ofValue(MAPPER.readValue(is, type.getEntityClass()));
             } else if (type instanceof JacksonTypeReferenceProvider) {
                 return Either.ofValue(MAPPER.readValue(is, ((JacksonTypeReferenceProvider<?>) type).getTypeReference()));

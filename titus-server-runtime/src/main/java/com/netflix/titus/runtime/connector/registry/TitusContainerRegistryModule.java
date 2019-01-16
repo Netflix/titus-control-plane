@@ -26,7 +26,6 @@ import com.netflix.titus.runtime.endpoint.validator.JobImageValidatorConfigurati
 public class TitusContainerRegistryModule extends AbstractModule {
     @Override
     protected void configure() {
-        bind(RegistryEndpointResolver.class).to(RegistryConfigurationEndpointResolver.class);
         bind(RegistryClient.class).to(DefaultDockerRegistryClient.class);
     }
 

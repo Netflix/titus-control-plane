@@ -16,10 +16,10 @@
 
 package com.netflix.titus.runtime.connector.registry;
 
-import java.util.List;
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
 
-import com.netflix.spectator.api.DefaultRegistry;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.runtime.TitusRuntimes;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import org.junit.After;
 import org.junit.Before;
@@ -28,7 +28,6 @@ import org.mockserver.integration.ClientAndServer;
 import org.mockserver.model.Header;
 import org.mockserver.model.HttpRequest;
 import org.mockserver.model.HttpResponse;
-import rx.observers.AssertableSubscriber;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -37,6 +36,10 @@ import static org.mockserver.integration.ClientAndServer.startClientAndServer;
 
 public class RegistryClientTest {
 
+    private static final Duration TIMEOUT = Duration.ofSeconds(10);
+
+    private final TitusRuntime titusRuntime = TitusRuntimes.internal();
+
     private ClientAndServer mockServer;
 
     private final TitusRegistryClientConfiguration configuration = mock(TitusRegistryClientConfiguration.class);
@@ -44,19 +47,15 @@ public class RegistryClientTest {
 
     @Before
     public void setUp() {
-        when(configuration.getRegistryHostname()).thenReturn("localhost");
-        when(configuration.getRegistryHttpPort()).thenReturn(7002);
+        mockServer = startClientAndServer(0);
+
+        when(configuration.getRegistryUri()).thenReturn("http://localhost:" + mockServer.getPort());
         when(configuration.isSecure()).thenReturn(false);
         when(configuration.getRegistryTimeoutMs()).thenReturn(500);
         when(configuration.getRegistryRetryCount()).thenReturn(3);
         when(configuration.getRegistryRetryDelayMs()).thenReturn(5);
 
-        mockServer = startClientAndServer(configuration.getRegistryHttpPort());
-
-        registryClient = new DefaultDockerRegistryClient(
-                new RegistryConfigurationEndpointResolver(configuration),
-                configuration,
-                new DefaultRegistry());
+        registryClient = new DefaultDockerRegistryClient(configuration, titusRuntime);
     }
 
     @After
@@ -85,12 +84,8 @@ public class RegistryClientTest {
                                 .withBody("{\"schemaVersion\": 2}")
                 );
 
-        final AssertableSubscriber<String> resultSubscriber = registryClient.getImageDigest(repo, tag).test();
-        resultSubscriber.awaitValueCount(1, 10, TimeUnit.SECONDS);
-        resultSubscriber.assertNoErrors();
-        final List<String> digests = resultSubscriber.getOnNextEvents();
-        assertThat(digests.size()).isEqualTo(1);
-        assertThat(digests.get(0).equals(digest)).isTrue();
+        String retrievedDigest = registryClient.getImageDigest(repo, tag).timeout(TIMEOUT).block();
+        assertThat(retrievedDigest).isEqualTo(digest);
     }
 
     @Test
@@ -104,14 +99,10 @@ public class RegistryClientTest {
                 ).respond(HttpResponse.response()
                 .withStatusCode(HttpResponseStatus.NOT_FOUND.code()));
 
-        final AssertableSubscriber<String> resultSubscriber = registryClient.getImageDigest(repo, tag).test();
-        resultSubscriber.awaitTerminalEvent(10, TimeUnit.SECONDS);
-
-        resultSubscriber.assertError(TitusRegistryException.class);
-
-        List<Throwable> onErrorEvents = resultSubscriber.getOnErrorEvents();
-        assertThat(onErrorEvents).isNotNull();
-        assertThat(onErrorEvents).hasSize(1);
-        assertThat(((TitusRegistryException)onErrorEvents.get(0)).getErrorCode()).isEqualTo(TitusRegistryException.ErrorCode.IMAGE_NOT_FOUND);
+        try {
+            registryClient.getImageDigest(repo, tag).timeout(TIMEOUT).block();
+        } catch (TitusRegistryException e) {
+            assertThat(e.getErrorCode()).isEqualTo(TitusRegistryException.ErrorCode.IMAGE_NOT_FOUND);
+        }
     }
 }

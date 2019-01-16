@@ -34,7 +34,6 @@ import com.netflix.titus.supplementary.relocation.store.memory.InMemoryRelocatio
 import com.netflix.titus.supplementary.relocation.workflow.RelocationWorkflowModule;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
-import reactor.ipc.netty.http.client.HttpClient;
 
 /**
  * Task relocation server runner, with stubbed external connectors. Used by the task relocation service integration tests.
@@ -43,10 +42,7 @@ public class TaskRelocationSandbox {
 
     private final LifecycleInjector injector;
 
-    private RelocationConnectorStubs relocationConnectorStubs;
-
     public TaskRelocationSandbox(RelocationConnectorStubs relocationConnectorStubs) {
-        this.relocationConnectorStubs = relocationConnectorStubs;
         this.injector = InjectorBuilder.fromModules(
                 new ArchaiusModule() {
                     @Override
@@ -82,18 +78,10 @@ public class TaskRelocationSandbox {
         injector.close();
     }
 
-    public RelocationConnectorStubs getRelocationConnectorStubs() {
-        return relocationConnectorStubs;
-    }
-
     public ManagedChannel getGrpcChannel() {
         int port = injector.getInstance(TaskRelocationGrpcServer.class).getPort();
         return ManagedChannelBuilder.forAddress("localhost", port)
                 .usePlaintext(true)
                 .build();
-    }
-
-    public HttpClient getHttpClient() {
-        return null;
     }
 }
