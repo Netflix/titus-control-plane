@@ -249,20 +249,20 @@
             ]
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.3.13",
+            "locked": "2.3.14",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.3.13",
+            "locked": "2.3.14",
             "transitive": [
                 "com.netflix.archaius:archaius2-guice",
                 "com.netflix.titus:titus-common"
             ]
         },
         "com.netflix.archaius:archaius2-guice": {
-            "locked": "2.3.13",
+            "locked": "2.3.14",
             "transitive": [
                 "com.netflix.titus:titus-server-runtime"
             ]
@@ -564,7 +564,7 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-handler",
                 "io.netty:netty-transport",
@@ -574,7 +574,7 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-socks",
@@ -584,24 +584,31 @@
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
+                "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
-                "io.projectreactor.ipc:reactor-netty",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
         },
+        "io.netty:netty-codec-http2": {
+            "locked": "4.1.32.Final",
+            "transitive": [
+                "io.projectreactor.netty:reactor-netty"
+            ]
+        },
         "io.netty:netty-codec-socks": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-handler-proxy",
                 "org.mock-server:mockserver-core"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-resolver",
@@ -611,28 +618,29 @@
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
-                "io.projectreactor.ipc:reactor-netty",
+                "io.netty:netty-codec-http2",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
         },
         "io.netty:netty-handler-proxy": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
-                "io.projectreactor.ipc:reactor-netty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-handler",
@@ -644,14 +652,14 @@
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
-                "io.projectreactor.ipc:reactor-netty",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-transport-native-epoll"
             ]
@@ -670,23 +678,24 @@
             ]
         },
         "io.projectreactor.addons:reactor-adapter": {
-            "locked": "3.1.7.RELEASE",
+            "locked": "3.1.9.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
-        "io.projectreactor.ipc:reactor-netty": {
-            "locked": "0.7.12.RELEASE",
+        "io.projectreactor.netty:reactor-netty": {
+            "locked": "0.8.4.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.1.12.RELEASE",
+            "locked": "3.2.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
-                "io.projectreactor.ipc:reactor-netty"
+                "io.projectreactor.netty:reactor-netty",
+                "org.springframework:spring-webflux"
             ]
         },
         "io.reactivex.rxjava2:rxjava": {
@@ -1059,44 +1068,60 @@
             ]
         },
         "org.springframework:spring-aop": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-beans": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
-                "org.springframework:spring-context"
+                "org.springframework:spring-context",
+                "org.springframework:spring-web",
+                "org.springframework:spring-webflux"
             ]
         },
         "org.springframework:spring-context": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
         "org.springframework:spring-core": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
                 "org.springframework:spring-context",
-                "org.springframework:spring-expression"
+                "org.springframework:spring-expression",
+                "org.springframework:spring-web",
+                "org.springframework:spring-webflux"
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-jcl": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
+            ]
+        },
+        "org.springframework:spring-web": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "org.springframework:spring-webflux"
+            ]
+        },
+        "org.springframework:spring-webflux": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common"
             ]
         },
         "org.xerial.snappy:snappy-java": {
@@ -1374,20 +1399,20 @@
             ]
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.3.13",
+            "locked": "2.3.14",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.3.13",
+            "locked": "2.3.14",
             "transitive": [
                 "com.netflix.archaius:archaius2-guice",
                 "com.netflix.titus:titus-common"
             ]
         },
         "com.netflix.archaius:archaius2-guice": {
-            "locked": "2.3.13",
+            "locked": "2.3.14",
             "transitive": [
                 "com.netflix.titus:titus-server-runtime"
             ]
@@ -1689,7 +1714,7 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-handler",
                 "io.netty:netty-transport",
@@ -1699,7 +1724,7 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-socks",
@@ -1709,24 +1734,31 @@
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
+                "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
-                "io.projectreactor.ipc:reactor-netty",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
         },
+        "io.netty:netty-codec-http2": {
+            "locked": "4.1.32.Final",
+            "transitive": [
+                "io.projectreactor.netty:reactor-netty"
+            ]
+        },
         "io.netty:netty-codec-socks": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-handler-proxy",
                 "org.mock-server:mockserver-core"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-resolver",
@@ -1736,28 +1768,29 @@
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
-                "io.projectreactor.ipc:reactor-netty",
+                "io.netty:netty-codec-http2",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
         },
         "io.netty:netty-handler-proxy": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
-                "io.projectreactor.ipc:reactor-netty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-handler",
@@ -1769,14 +1802,14 @@
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
-                "io.projectreactor.ipc:reactor-netty",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-transport-native-epoll"
             ]
@@ -1795,23 +1828,24 @@
             ]
         },
         "io.projectreactor.addons:reactor-adapter": {
-            "locked": "3.1.7.RELEASE",
+            "locked": "3.1.9.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
-        "io.projectreactor.ipc:reactor-netty": {
-            "locked": "0.7.12.RELEASE",
+        "io.projectreactor.netty:reactor-netty": {
+            "locked": "0.8.4.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.1.12.RELEASE",
+            "locked": "3.2.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
-                "io.projectreactor.ipc:reactor-netty"
+                "io.projectreactor.netty:reactor-netty",
+                "org.springframework:spring-webflux"
             ]
         },
         "io.reactivex.rxjava2:rxjava": {
@@ -2184,44 +2218,60 @@
             ]
         },
         "org.springframework:spring-aop": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-beans": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
-                "org.springframework:spring-context"
+                "org.springframework:spring-context",
+                "org.springframework:spring-web",
+                "org.springframework:spring-webflux"
             ]
         },
         "org.springframework:spring-context": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
         "org.springframework:spring-core": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
                 "org.springframework:spring-context",
-                "org.springframework:spring-expression"
+                "org.springframework:spring-expression",
+                "org.springframework:spring-web",
+                "org.springframework:spring-webflux"
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-jcl": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
+            ]
+        },
+        "org.springframework:spring-web": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "org.springframework:spring-webflux"
+            ]
+        },
+        "org.springframework:spring-webflux": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common"
             ]
         },
         "org.xerial.snappy:snappy-java": {
@@ -2499,20 +2549,20 @@
             ]
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.3.13",
+            "locked": "2.3.14",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.3.13",
+            "locked": "2.3.14",
             "transitive": [
                 "com.netflix.archaius:archaius2-guice",
                 "com.netflix.titus:titus-common"
             ]
         },
         "com.netflix.archaius:archaius2-guice": {
-            "locked": "2.3.13",
+            "locked": "2.3.14",
             "transitive": [
                 "com.netflix.titus:titus-server-runtime"
             ]
@@ -2814,7 +2864,7 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-handler",
                 "io.netty:netty-transport",
@@ -2824,7 +2874,7 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-socks",
@@ -2834,24 +2884,31 @@
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
+                "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
-                "io.projectreactor.ipc:reactor-netty",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
         },
+        "io.netty:netty-codec-http2": {
+            "locked": "4.1.32.Final",
+            "transitive": [
+                "io.projectreactor.netty:reactor-netty"
+            ]
+        },
         "io.netty:netty-codec-socks": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-handler-proxy",
                 "org.mock-server:mockserver-core"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-resolver",
@@ -2861,28 +2918,29 @@
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
-                "io.projectreactor.ipc:reactor-netty",
+                "io.netty:netty-codec-http2",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
         },
         "io.netty:netty-handler-proxy": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
-                "io.projectreactor.ipc:reactor-netty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-handler",
@@ -2894,14 +2952,14 @@
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
-                "io.projectreactor.ipc:reactor-netty",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-transport-native-epoll"
             ]
@@ -2920,23 +2978,24 @@
             ]
         },
         "io.projectreactor.addons:reactor-adapter": {
-            "locked": "3.1.7.RELEASE",
+            "locked": "3.1.9.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
-        "io.projectreactor.ipc:reactor-netty": {
-            "locked": "0.7.12.RELEASE",
+        "io.projectreactor.netty:reactor-netty": {
+            "locked": "0.8.4.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.1.12.RELEASE",
+            "locked": "3.2.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
-                "io.projectreactor.ipc:reactor-netty"
+                "io.projectreactor.netty:reactor-netty",
+                "org.springframework:spring-webflux"
             ]
         },
         "io.reactivex.rxjava2:rxjava": {
@@ -3310,44 +3369,60 @@
             ]
         },
         "org.springframework:spring-aop": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-beans": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
-                "org.springframework:spring-context"
+                "org.springframework:spring-context",
+                "org.springframework:spring-web",
+                "org.springframework:spring-webflux"
             ]
         },
         "org.springframework:spring-context": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
         "org.springframework:spring-core": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
                 "org.springframework:spring-context",
-                "org.springframework:spring-expression"
+                "org.springframework:spring-expression",
+                "org.springframework:spring-web",
+                "org.springframework:spring-webflux"
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-jcl": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
+            ]
+        },
+        "org.springframework:spring-web": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "org.springframework:spring-webflux"
+            ]
+        },
+        "org.springframework:spring-webflux": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common"
             ]
         },
         "org.xerial.snappy:snappy-java": {
@@ -3688,20 +3763,20 @@
             ]
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.3.13",
+            "locked": "2.3.14",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.3.13",
+            "locked": "2.3.14",
             "transitive": [
                 "com.netflix.archaius:archaius2-guice",
                 "com.netflix.titus:titus-common"
             ]
         },
         "com.netflix.archaius:archaius2-guice": {
-            "locked": "2.3.13",
+            "locked": "2.3.14",
             "transitive": [
                 "com.netflix.titus:titus-server-runtime"
             ]
@@ -4003,7 +4078,7 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-handler",
                 "io.netty:netty-transport",
@@ -4013,7 +4088,7 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-socks",
@@ -4023,24 +4098,31 @@
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
+                "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
-                "io.projectreactor.ipc:reactor-netty",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
         },
+        "io.netty:netty-codec-http2": {
+            "locked": "4.1.32.Final",
+            "transitive": [
+                "io.projectreactor.netty:reactor-netty"
+            ]
+        },
         "io.netty:netty-codec-socks": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-handler-proxy",
                 "org.mock-server:mockserver-core"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-resolver",
@@ -4050,28 +4132,29 @@
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
-                "io.projectreactor.ipc:reactor-netty",
+                "io.netty:netty-codec-http2",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
         },
         "io.netty:netty-handler-proxy": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
-                "io.projectreactor.ipc:reactor-netty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-handler",
@@ -4083,14 +4166,14 @@
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
-                "io.projectreactor.ipc:reactor-netty",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-transport-native-epoll"
             ]
@@ -4109,23 +4192,24 @@
             ]
         },
         "io.projectreactor.addons:reactor-adapter": {
-            "locked": "3.1.7.RELEASE",
+            "locked": "3.1.9.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
-        "io.projectreactor.ipc:reactor-netty": {
-            "locked": "0.7.12.RELEASE",
+        "io.projectreactor.netty:reactor-netty": {
+            "locked": "0.8.4.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.1.12.RELEASE",
+            "locked": "3.2.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
-                "io.projectreactor.ipc:reactor-netty"
+                "io.projectreactor.netty:reactor-netty",
+                "org.springframework:spring-webflux"
             ]
         },
         "io.reactivex.rxjava2:rxjava": {
@@ -4499,44 +4583,60 @@
             ]
         },
         "org.springframework:spring-aop": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-beans": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
-                "org.springframework:spring-context"
+                "org.springframework:spring-context",
+                "org.springframework:spring-web",
+                "org.springframework:spring-webflux"
             ]
         },
         "org.springframework:spring-context": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
         "org.springframework:spring-core": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
                 "org.springframework:spring-context",
-                "org.springframework:spring-expression"
+                "org.springframework:spring-expression",
+                "org.springframework:spring-web",
+                "org.springframework:spring-webflux"
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-jcl": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
+            ]
+        },
+        "org.springframework:spring-web": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "org.springframework:spring-webflux"
+            ]
+        },
+        "org.springframework:spring-webflux": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common"
             ]
         },
         "org.xerial.snappy:snappy-java": {
@@ -4814,20 +4914,20 @@
             ]
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.3.13",
+            "locked": "2.3.14",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.3.13",
+            "locked": "2.3.14",
             "transitive": [
                 "com.netflix.archaius:archaius2-guice",
                 "com.netflix.titus:titus-common"
             ]
         },
         "com.netflix.archaius:archaius2-guice": {
-            "locked": "2.3.13",
+            "locked": "2.3.14",
             "transitive": [
                 "com.netflix.titus:titus-server-runtime"
             ]
@@ -5129,7 +5229,7 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-handler",
                 "io.netty:netty-transport",
@@ -5139,7 +5239,7 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-socks",
@@ -5149,24 +5249,31 @@
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
+                "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
-                "io.projectreactor.ipc:reactor-netty",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
         },
+        "io.netty:netty-codec-http2": {
+            "locked": "4.1.32.Final",
+            "transitive": [
+                "io.projectreactor.netty:reactor-netty"
+            ]
+        },
         "io.netty:netty-codec-socks": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-handler-proxy",
                 "org.mock-server:mockserver-core"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-resolver",
@@ -5176,28 +5283,29 @@
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
-                "io.projectreactor.ipc:reactor-netty",
+                "io.netty:netty-codec-http2",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
         },
         "io.netty:netty-handler-proxy": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
-                "io.projectreactor.ipc:reactor-netty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-handler",
@@ -5209,14 +5317,14 @@
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
-                "io.projectreactor.ipc:reactor-netty",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-transport-native-epoll"
             ]
@@ -5235,23 +5343,24 @@
             ]
         },
         "io.projectreactor.addons:reactor-adapter": {
-            "locked": "3.1.7.RELEASE",
+            "locked": "3.1.9.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
-        "io.projectreactor.ipc:reactor-netty": {
-            "locked": "0.7.12.RELEASE",
+        "io.projectreactor.netty:reactor-netty": {
+            "locked": "0.8.4.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.1.12.RELEASE",
+            "locked": "3.2.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
-                "io.projectreactor.ipc:reactor-netty"
+                "io.projectreactor.netty:reactor-netty",
+                "org.springframework:spring-webflux"
             ]
         },
         "io.reactivex.rxjava2:rxjava": {
@@ -5625,44 +5734,60 @@
             ]
         },
         "org.springframework:spring-aop": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-beans": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
-                "org.springframework:spring-context"
+                "org.springframework:spring-context",
+                "org.springframework:spring-web",
+                "org.springframework:spring-webflux"
             ]
         },
         "org.springframework:spring-context": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
         "org.springframework:spring-core": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
                 "org.springframework:spring-context",
-                "org.springframework:spring-expression"
+                "org.springframework:spring-expression",
+                "org.springframework:spring-web",
+                "org.springframework:spring-webflux"
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-jcl": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
+            ]
+        },
+        "org.springframework:spring-web": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "org.springframework:spring-webflux"
+            ]
+        },
+        "org.springframework:spring-webflux": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common"
             ]
         },
         "org.xerial.snappy:snappy-java": {
@@ -5710,16 +5835,17 @@
             ]
         },
         "ch.qos.logback:logback-classic": {
-            "locked": "1.1.3",
+            "locked": "1.2.3",
             "transitive": [
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-logging",
-                "org.mock-server:mockserver-netty"
+                "org.mock-server:mockserver-netty",
+                "org.springframework.boot:spring-boot-starter-logging"
             ]
         },
         "ch.qos.logback:logback-core": {
-            "locked": "1.1.3",
+            "locked": "1.2.3",
             "transitive": [
                 "ch.qos.logback:logback-classic"
             ]
@@ -5768,9 +5894,10 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.8.4",
+            "locked": "2.9.0",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.netflix.fenzo:fenzo-triggers",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
@@ -5778,24 +5905,29 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-core": {
-            "locked": "2.8.7",
+            "locked": "2.9.8",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
+                "com.fasterxml.jackson.module:jackson-module-parameter-names",
                 "org.mock-server:mockserver-core"
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.8.7",
+            "locked": "2.9.8",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
+                "com.fasterxml.jackson.module:jackson-module-parameter-names",
                 "com.github.fge:jackson-coreutils",
                 "com.netflix.fenzo:fenzo-core",
                 "com.netflix.titus:titus-common",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-jaxrs",
-                "org.mock-server:mockserver-core"
+                "org.mock-server:mockserver-core",
+                "org.springframework.boot:spring-boot-starter-json"
             ]
         },
         "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml": {
@@ -5805,14 +5937,28 @@
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
-            "locked": "2.8.7",
+            "locked": "2.9.8",
             "transitive": [
-                "com.netflix.titus:titus-common"
+                "com.netflix.titus:titus-common",
+                "org.springframework.boot:spring-boot-starter-json"
+            ]
+        },
+        "com.fasterxml.jackson.datatype:jackson-datatype-jsr310": {
+            "locked": "2.9.8",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-json"
+            ]
+        },
+        "com.fasterxml.jackson.module:jackson-module-parameter-names": {
+            "locked": "2.9.8",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-json"
             ]
         },
         "com.fasterxml:classmate": {
-            "locked": "1.3.1",
+            "locked": "1.3.4",
             "transitive": [
+                "org.hibernate.validator:hibernate-validator",
                 "org.hibernate:hibernate-validator"
             ]
         },
@@ -6085,20 +6231,20 @@
             ]
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.3.13",
+            "locked": "2.3.14",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.3.13",
+            "locked": "2.3.14",
             "transitive": [
                 "com.netflix.archaius:archaius2-guice",
                 "com.netflix.titus:titus-common"
             ]
         },
         "com.netflix.archaius:archaius2-guice": {
-            "locked": "2.3.13",
+            "locked": "2.3.14",
             "transitive": [
                 "com.netflix.runtime:health-guice",
                 "com.netflix.titus:titus-server-gateway",
@@ -6530,7 +6676,7 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-handler",
                 "io.netty:netty-transport",
@@ -6540,7 +6686,7 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-socks",
@@ -6550,24 +6696,31 @@
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
+                "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
-                "io.projectreactor.ipc:reactor-netty",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
         },
+        "io.netty:netty-codec-http2": {
+            "locked": "4.1.32.Final",
+            "transitive": [
+                "io.projectreactor.netty:reactor-netty"
+            ]
+        },
         "io.netty:netty-codec-socks": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-handler-proxy",
                 "org.mock-server:mockserver-core"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-resolver",
@@ -6577,10 +6730,11 @@
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
-                "io.projectreactor.ipc:reactor-netty",
+                "io.netty:netty-codec-http2",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-core",
@@ -6588,19 +6742,19 @@
             ]
         },
         "io.netty:netty-handler-proxy": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
-                "io.projectreactor.ipc:reactor-netty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-handler",
@@ -6612,14 +6766,14 @@
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
-                "io.projectreactor.ipc:reactor-netty",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-transport-native-epoll"
             ]
@@ -6638,28 +6792,30 @@
             ]
         },
         "io.projectreactor.addons:reactor-adapter": {
-            "locked": "3.1.7.RELEASE",
+            "locked": "3.1.9.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
-        "io.projectreactor.ipc:reactor-netty": {
-            "locked": "0.7.12.RELEASE",
+        "io.projectreactor.netty:reactor-netty": {
+            "locked": "0.8.4.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-common"
+                "com.netflix.titus:titus-common",
+                "org.springframework.boot:spring-boot-starter-reactor-netty"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.1.12.RELEASE",
+            "locked": "3.2.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
-                "io.projectreactor.ipc:reactor-netty",
-                "io.projectreactor:reactor-test"
+                "io.projectreactor.netty:reactor-netty",
+                "io.projectreactor:reactor-test",
+                "org.springframework:spring-webflux"
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.1.12.RELEASE",
+            "locked": "3.1.14.RELEASE",
             "requested": "3.1.+"
         },
         "io.reactivex.rxjava2:rxjava": {
@@ -6728,6 +6884,12 @@
                 "javax.mail:mailapi"
             ]
         },
+        "javax.annotation:javax.annotation-api": {
+            "locked": "1.3.2",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter"
+            ]
+        },
         "javax.el:javax.el-api": {
             "locked": "3.0.1-b06",
             "transitive": [
@@ -6768,9 +6930,10 @@
             ]
         },
         "javax.validation:validation-api": {
-            "locked": "1.1.0.Final",
+            "locked": "2.0.1.Final",
             "transitive": [
                 "io.swagger:swagger-core",
+                "org.hibernate.validator:hibernate-validator",
                 "org.hibernate:hibernate-validator"
             ]
         },
@@ -6929,6 +7092,18 @@
             "locked": "2.11.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
+            ]
+        },
+        "org.apache.logging.log4j:log4j-api": {
+            "locked": "2.11.1",
+            "transitive": [
+                "org.apache.logging.log4j:log4j-to-slf4j"
+            ]
+        },
+        "org.apache.logging.log4j:log4j-to-slf4j": {
+            "locked": "2.11.1",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-logging"
             ]
         },
         "org.apache.mesos:mesos": {
@@ -7105,6 +7280,12 @@
                 "com.netflix.titus:titus-common"
             ]
         },
+        "org.hibernate.validator:hibernate-validator": {
+            "locked": "6.0.14.Final",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-webflux"
+            ]
+        },
         "org.hibernate:hibernate-validator": {
             "locked": "5.4.2.Final",
             "transitive": [
@@ -7119,8 +7300,9 @@
             ]
         },
         "org.jboss.logging:jboss-logging": {
-            "locked": "3.3.0.Final",
+            "locked": "3.3.2.Final",
             "transitive": [
+                "org.hibernate.validator:hibernate-validator",
                 "org.hibernate:hibernate-validator"
             ]
         },
@@ -7277,6 +7459,12 @@
                 "org.apache.cassandra:cassandra-thrift"
             ]
         },
+        "org.slf4j:jul-to-slf4j": {
+            "locked": "1.7.25",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-logging"
+            ]
+        },
         "org.slf4j:slf4j-api": {
             "locked": "1.7.25",
             "requested": "1.7.0",
@@ -7309,6 +7497,7 @@
                 "org.apache.cassandra:cassandra-all",
                 "org.apache.cassandra:cassandra-thrift",
                 "org.apache.curator:curator-client",
+                "org.apache.logging.log4j:log4j-to-slf4j",
                 "org.apache.thrift:libthrift",
                 "org.apache.zookeeper:zookeeper",
                 "org.caffinitas.ohc:ohc-core",
@@ -7319,7 +7508,10 @@
                 "org.mock-server:mockserver-netty",
                 "org.quartz-scheduler:quartz",
                 "org.slf4j:jcl-over-slf4j",
-                "org.slf4j:slf4j-log4j12"
+                "org.slf4j:jul-to-slf4j",
+                "org.slf4j:slf4j-log4j12",
+                "org.synchronoss.cloud:nio-multipart-parser",
+                "org.synchronoss.cloud:nio-stream-storage"
             ]
         },
         "org.slf4j:slf4j-log4j12": {
@@ -7337,45 +7529,123 @@
                 "com.netflix.titus:titus-testkit"
             ]
         },
+        "org.springframework.boot:spring-boot": {
+            "locked": "2.1.2.RELEASE",
+            "transitive": [
+                "org.springframework.boot:spring-boot-autoconfigure",
+                "org.springframework.boot:spring-boot-starter"
+            ]
+        },
+        "org.springframework.boot:spring-boot-autoconfigure": {
+            "locked": "2.1.2.RELEASE",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter"
+            ]
+        },
+        "org.springframework.boot:spring-boot-starter": {
+            "locked": "2.1.2.RELEASE",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-json",
+                "org.springframework.boot:spring-boot-starter-webflux"
+            ]
+        },
+        "org.springframework.boot:spring-boot-starter-json": {
+            "locked": "2.1.2.RELEASE",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-webflux"
+            ]
+        },
+        "org.springframework.boot:spring-boot-starter-logging": {
+            "locked": "2.1.2.RELEASE",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter"
+            ]
+        },
+        "org.springframework.boot:spring-boot-starter-reactor-netty": {
+            "locked": "2.1.2.RELEASE",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-webflux"
+            ]
+        },
+        "org.springframework.boot:spring-boot-starter-webflux": {
+            "locked": "2.1.2.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-testkit"
+            ]
+        },
         "org.springframework:spring-aop": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-beans": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
-                "org.springframework:spring-context"
+                "org.springframework:spring-context",
+                "org.springframework:spring-web",
+                "org.springframework:spring-webflux"
             ]
         },
         "org.springframework:spring-context": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-server-runtime"
+                "com.netflix.titus:titus-server-runtime",
+                "org.springframework.boot:spring-boot"
             ]
         },
         "org.springframework:spring-core": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
+                "org.springframework.boot:spring-boot",
+                "org.springframework.boot:spring-boot-starter",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
                 "org.springframework:spring-context",
-                "org.springframework:spring-expression"
+                "org.springframework:spring-expression",
+                "org.springframework:spring-web",
+                "org.springframework:spring-webflux"
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-jcl": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
+            ]
+        },
+        "org.springframework:spring-web": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-json",
+                "org.springframework.boot:spring-boot-starter-webflux",
+                "org.springframework:spring-webflux"
+            ]
+        },
+        "org.springframework:spring-webflux": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common",
+                "org.springframework.boot:spring-boot-starter-webflux"
+            ]
+        },
+        "org.synchronoss.cloud:nio-multipart-parser": {
+            "locked": "1.1.0",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-webflux"
+            ]
+        },
+        "org.synchronoss.cloud:nio-stream-storage": {
+            "locked": "1.1.3",
+            "transitive": [
+                "org.synchronoss.cloud:nio-multipart-parser"
             ]
         },
         "org.webjars:swagger-ui": {
@@ -7392,12 +7662,13 @@
             ]
         },
         "org.yaml:snakeyaml": {
-            "locked": "1.15",
+            "locked": "1.23",
             "transitive": [
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
-                "org.apache.cassandra:cassandra-all"
+                "org.apache.cassandra:cassandra-all",
+                "org.springframework.boot:spring-boot-starter"
             ]
         },
         "xerces:xerces": {
@@ -7433,16 +7704,17 @@
             ]
         },
         "ch.qos.logback:logback-classic": {
-            "locked": "1.1.3",
+            "locked": "1.2.3",
             "transitive": [
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-logging",
-                "org.mock-server:mockserver-netty"
+                "org.mock-server:mockserver-netty",
+                "org.springframework.boot:spring-boot-starter-logging"
             ]
         },
         "ch.qos.logback:logback-core": {
-            "locked": "1.1.3",
+            "locked": "1.2.3",
             "transitive": [
                 "ch.qos.logback:logback-classic"
             ]
@@ -7491,9 +7763,10 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.8.4",
+            "locked": "2.9.0",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.netflix.fenzo:fenzo-triggers",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
@@ -7501,24 +7774,29 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-core": {
-            "locked": "2.8.7",
+            "locked": "2.9.8",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
+                "com.fasterxml.jackson.module:jackson-module-parameter-names",
                 "org.mock-server:mockserver-core"
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.8.7",
+            "locked": "2.9.8",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
+                "com.fasterxml.jackson.module:jackson-module-parameter-names",
                 "com.github.fge:jackson-coreutils",
                 "com.netflix.fenzo:fenzo-core",
                 "com.netflix.titus:titus-common",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-jaxrs",
-                "org.mock-server:mockserver-core"
+                "org.mock-server:mockserver-core",
+                "org.springframework.boot:spring-boot-starter-json"
             ]
         },
         "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml": {
@@ -7528,14 +7806,28 @@
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
-            "locked": "2.8.7",
+            "locked": "2.9.8",
             "transitive": [
-                "com.netflix.titus:titus-common"
+                "com.netflix.titus:titus-common",
+                "org.springframework.boot:spring-boot-starter-json"
+            ]
+        },
+        "com.fasterxml.jackson.datatype:jackson-datatype-jsr310": {
+            "locked": "2.9.8",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-json"
+            ]
+        },
+        "com.fasterxml.jackson.module:jackson-module-parameter-names": {
+            "locked": "2.9.8",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-json"
             ]
         },
         "com.fasterxml:classmate": {
-            "locked": "1.3.1",
+            "locked": "1.3.4",
             "transitive": [
+                "org.hibernate.validator:hibernate-validator",
                 "org.hibernate:hibernate-validator"
             ]
         },
@@ -7808,20 +8100,20 @@
             ]
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.3.13",
+            "locked": "2.3.14",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.3.13",
+            "locked": "2.3.14",
             "transitive": [
                 "com.netflix.archaius:archaius2-guice",
                 "com.netflix.titus:titus-common"
             ]
         },
         "com.netflix.archaius:archaius2-guice": {
-            "locked": "2.3.13",
+            "locked": "2.3.14",
             "transitive": [
                 "com.netflix.runtime:health-guice",
                 "com.netflix.titus:titus-server-gateway",
@@ -8253,7 +8545,7 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-handler",
                 "io.netty:netty-transport",
@@ -8263,7 +8555,7 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-socks",
@@ -8273,24 +8565,31 @@
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
+                "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
-                "io.projectreactor.ipc:reactor-netty",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
         },
+        "io.netty:netty-codec-http2": {
+            "locked": "4.1.32.Final",
+            "transitive": [
+                "io.projectreactor.netty:reactor-netty"
+            ]
+        },
         "io.netty:netty-codec-socks": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-handler-proxy",
                 "org.mock-server:mockserver-core"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-resolver",
@@ -8300,10 +8599,11 @@
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
-                "io.projectreactor.ipc:reactor-netty",
+                "io.netty:netty-codec-http2",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-core",
@@ -8311,19 +8611,19 @@
             ]
         },
         "io.netty:netty-handler-proxy": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
-                "io.projectreactor.ipc:reactor-netty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-handler",
@@ -8335,14 +8635,14 @@
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
-                "io.projectreactor.ipc:reactor-netty",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-transport-native-epoll"
             ]
@@ -8361,28 +8661,30 @@
             ]
         },
         "io.projectreactor.addons:reactor-adapter": {
-            "locked": "3.1.7.RELEASE",
+            "locked": "3.1.9.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
-        "io.projectreactor.ipc:reactor-netty": {
-            "locked": "0.7.12.RELEASE",
+        "io.projectreactor.netty:reactor-netty": {
+            "locked": "0.8.4.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-common"
+                "com.netflix.titus:titus-common",
+                "org.springframework.boot:spring-boot-starter-reactor-netty"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.1.12.RELEASE",
+            "locked": "3.2.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
-                "io.projectreactor.ipc:reactor-netty",
-                "io.projectreactor:reactor-test"
+                "io.projectreactor.netty:reactor-netty",
+                "io.projectreactor:reactor-test",
+                "org.springframework:spring-webflux"
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.1.12.RELEASE",
+            "locked": "3.1.14.RELEASE",
             "requested": "3.1.+"
         },
         "io.reactivex.rxjava2:rxjava": {
@@ -8451,6 +8753,12 @@
                 "javax.mail:mailapi"
             ]
         },
+        "javax.annotation:javax.annotation-api": {
+            "locked": "1.3.2",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter"
+            ]
+        },
         "javax.el:javax.el-api": {
             "locked": "3.0.1-b06",
             "transitive": [
@@ -8491,9 +8799,10 @@
             ]
         },
         "javax.validation:validation-api": {
-            "locked": "1.1.0.Final",
+            "locked": "2.0.1.Final",
             "transitive": [
                 "io.swagger:swagger-core",
+                "org.hibernate.validator:hibernate-validator",
                 "org.hibernate:hibernate-validator"
             ]
         },
@@ -8652,6 +8961,18 @@
             "locked": "2.11.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
+            ]
+        },
+        "org.apache.logging.log4j:log4j-api": {
+            "locked": "2.11.1",
+            "transitive": [
+                "org.apache.logging.log4j:log4j-to-slf4j"
+            ]
+        },
+        "org.apache.logging.log4j:log4j-to-slf4j": {
+            "locked": "2.11.1",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-logging"
             ]
         },
         "org.apache.mesos:mesos": {
@@ -8828,6 +9149,12 @@
                 "com.netflix.titus:titus-common"
             ]
         },
+        "org.hibernate.validator:hibernate-validator": {
+            "locked": "6.0.14.Final",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-webflux"
+            ]
+        },
         "org.hibernate:hibernate-validator": {
             "locked": "5.4.2.Final",
             "transitive": [
@@ -8842,8 +9169,9 @@
             ]
         },
         "org.jboss.logging:jboss-logging": {
-            "locked": "3.3.0.Final",
+            "locked": "3.3.2.Final",
             "transitive": [
+                "org.hibernate.validator:hibernate-validator",
                 "org.hibernate:hibernate-validator"
             ]
         },
@@ -9000,6 +9328,12 @@
                 "org.apache.cassandra:cassandra-thrift"
             ]
         },
+        "org.slf4j:jul-to-slf4j": {
+            "locked": "1.7.25",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-logging"
+            ]
+        },
         "org.slf4j:slf4j-api": {
             "locked": "1.7.25",
             "requested": "1.7.0",
@@ -9032,6 +9366,7 @@
                 "org.apache.cassandra:cassandra-all",
                 "org.apache.cassandra:cassandra-thrift",
                 "org.apache.curator:curator-client",
+                "org.apache.logging.log4j:log4j-to-slf4j",
                 "org.apache.thrift:libthrift",
                 "org.apache.zookeeper:zookeeper",
                 "org.caffinitas.ohc:ohc-core",
@@ -9042,7 +9377,10 @@
                 "org.mock-server:mockserver-netty",
                 "org.quartz-scheduler:quartz",
                 "org.slf4j:jcl-over-slf4j",
-                "org.slf4j:slf4j-log4j12"
+                "org.slf4j:jul-to-slf4j",
+                "org.slf4j:slf4j-log4j12",
+                "org.synchronoss.cloud:nio-multipart-parser",
+                "org.synchronoss.cloud:nio-stream-storage"
             ]
         },
         "org.slf4j:slf4j-log4j12": {
@@ -9060,45 +9398,123 @@
                 "com.netflix.titus:titus-testkit"
             ]
         },
+        "org.springframework.boot:spring-boot": {
+            "locked": "2.1.2.RELEASE",
+            "transitive": [
+                "org.springframework.boot:spring-boot-autoconfigure",
+                "org.springframework.boot:spring-boot-starter"
+            ]
+        },
+        "org.springframework.boot:spring-boot-autoconfigure": {
+            "locked": "2.1.2.RELEASE",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter"
+            ]
+        },
+        "org.springframework.boot:spring-boot-starter": {
+            "locked": "2.1.2.RELEASE",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-json",
+                "org.springframework.boot:spring-boot-starter-webflux"
+            ]
+        },
+        "org.springframework.boot:spring-boot-starter-json": {
+            "locked": "2.1.2.RELEASE",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-webflux"
+            ]
+        },
+        "org.springframework.boot:spring-boot-starter-logging": {
+            "locked": "2.1.2.RELEASE",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter"
+            ]
+        },
+        "org.springframework.boot:spring-boot-starter-reactor-netty": {
+            "locked": "2.1.2.RELEASE",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-webflux"
+            ]
+        },
+        "org.springframework.boot:spring-boot-starter-webflux": {
+            "locked": "2.1.2.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-testkit"
+            ]
+        },
         "org.springframework:spring-aop": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-beans": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
-                "org.springframework:spring-context"
+                "org.springframework:spring-context",
+                "org.springframework:spring-web",
+                "org.springframework:spring-webflux"
             ]
         },
         "org.springframework:spring-context": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-server-runtime"
+                "com.netflix.titus:titus-server-runtime",
+                "org.springframework.boot:spring-boot"
             ]
         },
         "org.springframework:spring-core": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
+                "org.springframework.boot:spring-boot",
+                "org.springframework.boot:spring-boot-starter",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
                 "org.springframework:spring-context",
-                "org.springframework:spring-expression"
+                "org.springframework:spring-expression",
+                "org.springframework:spring-web",
+                "org.springframework:spring-webflux"
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-jcl": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
+            ]
+        },
+        "org.springframework:spring-web": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-json",
+                "org.springframework.boot:spring-boot-starter-webflux",
+                "org.springframework:spring-webflux"
+            ]
+        },
+        "org.springframework:spring-webflux": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common",
+                "org.springframework.boot:spring-boot-starter-webflux"
+            ]
+        },
+        "org.synchronoss.cloud:nio-multipart-parser": {
+            "locked": "1.1.0",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-webflux"
+            ]
+        },
+        "org.synchronoss.cloud:nio-stream-storage": {
+            "locked": "1.1.3",
+            "transitive": [
+                "org.synchronoss.cloud:nio-multipart-parser"
             ]
         },
         "org.webjars:swagger-ui": {
@@ -9115,12 +9531,13 @@
             ]
         },
         "org.yaml:snakeyaml": {
-            "locked": "1.15",
+            "locked": "1.23",
             "transitive": [
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
-                "org.apache.cassandra:cassandra-all"
+                "org.apache.cassandra:cassandra-all",
+                "org.springframework.boot:spring-boot-starter"
             ]
         },
         "xerces:xerces": {
@@ -9156,16 +9573,17 @@
             ]
         },
         "ch.qos.logback:logback-classic": {
-            "locked": "1.1.3",
+            "locked": "1.2.3",
             "transitive": [
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-logging",
-                "org.mock-server:mockserver-netty"
+                "org.mock-server:mockserver-netty",
+                "org.springframework.boot:spring-boot-starter-logging"
             ]
         },
         "ch.qos.logback:logback-core": {
-            "locked": "1.1.3",
+            "locked": "1.2.3",
             "transitive": [
                 "ch.qos.logback:logback-classic"
             ]
@@ -9214,9 +9632,10 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.8.4",
+            "locked": "2.9.0",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.netflix.fenzo:fenzo-triggers",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
@@ -9224,24 +9643,29 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-core": {
-            "locked": "2.8.7",
+            "locked": "2.9.8",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
+                "com.fasterxml.jackson.module:jackson-module-parameter-names",
                 "org.mock-server:mockserver-core"
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.8.7",
+            "locked": "2.9.8",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
+                "com.fasterxml.jackson.module:jackson-module-parameter-names",
                 "com.github.fge:jackson-coreutils",
                 "com.netflix.fenzo:fenzo-core",
                 "com.netflix.titus:titus-common",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-jaxrs",
-                "org.mock-server:mockserver-core"
+                "org.mock-server:mockserver-core",
+                "org.springframework.boot:spring-boot-starter-json"
             ]
         },
         "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml": {
@@ -9251,14 +9675,28 @@
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
-            "locked": "2.8.7",
+            "locked": "2.9.8",
             "transitive": [
-                "com.netflix.titus:titus-common"
+                "com.netflix.titus:titus-common",
+                "org.springframework.boot:spring-boot-starter-json"
+            ]
+        },
+        "com.fasterxml.jackson.datatype:jackson-datatype-jsr310": {
+            "locked": "2.9.8",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-json"
+            ]
+        },
+        "com.fasterxml.jackson.module:jackson-module-parameter-names": {
+            "locked": "2.9.8",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-json"
             ]
         },
         "com.fasterxml:classmate": {
-            "locked": "1.3.1",
+            "locked": "1.3.4",
             "transitive": [
+                "org.hibernate.validator:hibernate-validator",
                 "org.hibernate:hibernate-validator"
             ]
         },
@@ -9531,20 +9969,20 @@
             ]
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.3.13",
+            "locked": "2.3.14",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.3.13",
+            "locked": "2.3.14",
             "transitive": [
                 "com.netflix.archaius:archaius2-guice",
                 "com.netflix.titus:titus-common"
             ]
         },
         "com.netflix.archaius:archaius2-guice": {
-            "locked": "2.3.13",
+            "locked": "2.3.14",
             "transitive": [
                 "com.netflix.runtime:health-guice",
                 "com.netflix.titus:titus-server-gateway",
@@ -9976,7 +10414,7 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-handler",
                 "io.netty:netty-transport",
@@ -9986,7 +10424,7 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-socks",
@@ -9996,24 +10434,31 @@
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
+                "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
-                "io.projectreactor.ipc:reactor-netty",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
         },
+        "io.netty:netty-codec-http2": {
+            "locked": "4.1.32.Final",
+            "transitive": [
+                "io.projectreactor.netty:reactor-netty"
+            ]
+        },
         "io.netty:netty-codec-socks": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-handler-proxy",
                 "org.mock-server:mockserver-core"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-resolver",
@@ -10023,10 +10468,11 @@
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
-                "io.projectreactor.ipc:reactor-netty",
+                "io.netty:netty-codec-http2",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-core",
@@ -10034,19 +10480,19 @@
             ]
         },
         "io.netty:netty-handler-proxy": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
-                "io.projectreactor.ipc:reactor-netty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-handler",
@@ -10058,14 +10504,14 @@
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
-                "io.projectreactor.ipc:reactor-netty",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-transport-native-epoll"
             ]
@@ -10084,28 +10530,30 @@
             ]
         },
         "io.projectreactor.addons:reactor-adapter": {
-            "locked": "3.1.7.RELEASE",
+            "locked": "3.1.9.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
-        "io.projectreactor.ipc:reactor-netty": {
-            "locked": "0.7.12.RELEASE",
+        "io.projectreactor.netty:reactor-netty": {
+            "locked": "0.8.4.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-common"
+                "com.netflix.titus:titus-common",
+                "org.springframework.boot:spring-boot-starter-reactor-netty"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.1.12.RELEASE",
+            "locked": "3.2.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
-                "io.projectreactor.ipc:reactor-netty",
-                "io.projectreactor:reactor-test"
+                "io.projectreactor.netty:reactor-netty",
+                "io.projectreactor:reactor-test",
+                "org.springframework:spring-webflux"
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.1.12.RELEASE",
+            "locked": "3.1.14.RELEASE",
             "requested": "3.1.+"
         },
         "io.reactivex.rxjava2:rxjava": {
@@ -10174,6 +10622,12 @@
                 "javax.mail:mailapi"
             ]
         },
+        "javax.annotation:javax.annotation-api": {
+            "locked": "1.3.2",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter"
+            ]
+        },
         "javax.el:javax.el-api": {
             "locked": "3.0.1-b06",
             "transitive": [
@@ -10214,9 +10668,10 @@
             ]
         },
         "javax.validation:validation-api": {
-            "locked": "1.1.0.Final",
+            "locked": "2.0.1.Final",
             "transitive": [
                 "io.swagger:swagger-core",
+                "org.hibernate.validator:hibernate-validator",
                 "org.hibernate:hibernate-validator"
             ]
         },
@@ -10375,6 +10830,18 @@
             "locked": "2.11.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
+            ]
+        },
+        "org.apache.logging.log4j:log4j-api": {
+            "locked": "2.11.1",
+            "transitive": [
+                "org.apache.logging.log4j:log4j-to-slf4j"
+            ]
+        },
+        "org.apache.logging.log4j:log4j-to-slf4j": {
+            "locked": "2.11.1",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-logging"
             ]
         },
         "org.apache.mesos:mesos": {
@@ -10551,6 +11018,12 @@
                 "com.netflix.titus:titus-common"
             ]
         },
+        "org.hibernate.validator:hibernate-validator": {
+            "locked": "6.0.14.Final",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-webflux"
+            ]
+        },
         "org.hibernate:hibernate-validator": {
             "locked": "5.4.2.Final",
             "transitive": [
@@ -10565,8 +11038,9 @@
             ]
         },
         "org.jboss.logging:jboss-logging": {
-            "locked": "3.3.0.Final",
+            "locked": "3.3.2.Final",
             "transitive": [
+                "org.hibernate.validator:hibernate-validator",
                 "org.hibernate:hibernate-validator"
             ]
         },
@@ -10723,6 +11197,12 @@
                 "org.apache.cassandra:cassandra-thrift"
             ]
         },
+        "org.slf4j:jul-to-slf4j": {
+            "locked": "1.7.25",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-logging"
+            ]
+        },
         "org.slf4j:slf4j-api": {
             "locked": "1.7.25",
             "requested": "1.7.0",
@@ -10755,6 +11235,7 @@
                 "org.apache.cassandra:cassandra-all",
                 "org.apache.cassandra:cassandra-thrift",
                 "org.apache.curator:curator-client",
+                "org.apache.logging.log4j:log4j-to-slf4j",
                 "org.apache.thrift:libthrift",
                 "org.apache.zookeeper:zookeeper",
                 "org.caffinitas.ohc:ohc-core",
@@ -10765,7 +11246,10 @@
                 "org.mock-server:mockserver-netty",
                 "org.quartz-scheduler:quartz",
                 "org.slf4j:jcl-over-slf4j",
-                "org.slf4j:slf4j-log4j12"
+                "org.slf4j:jul-to-slf4j",
+                "org.slf4j:slf4j-log4j12",
+                "org.synchronoss.cloud:nio-multipart-parser",
+                "org.synchronoss.cloud:nio-stream-storage"
             ]
         },
         "org.slf4j:slf4j-log4j12": {
@@ -10784,45 +11268,123 @@
                 "com.netflix.titus:titus-testkit"
             ]
         },
+        "org.springframework.boot:spring-boot": {
+            "locked": "2.1.2.RELEASE",
+            "transitive": [
+                "org.springframework.boot:spring-boot-autoconfigure",
+                "org.springframework.boot:spring-boot-starter"
+            ]
+        },
+        "org.springframework.boot:spring-boot-autoconfigure": {
+            "locked": "2.1.2.RELEASE",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter"
+            ]
+        },
+        "org.springframework.boot:spring-boot-starter": {
+            "locked": "2.1.2.RELEASE",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-json",
+                "org.springframework.boot:spring-boot-starter-webflux"
+            ]
+        },
+        "org.springframework.boot:spring-boot-starter-json": {
+            "locked": "2.1.2.RELEASE",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-webflux"
+            ]
+        },
+        "org.springframework.boot:spring-boot-starter-logging": {
+            "locked": "2.1.2.RELEASE",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter"
+            ]
+        },
+        "org.springframework.boot:spring-boot-starter-reactor-netty": {
+            "locked": "2.1.2.RELEASE",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-webflux"
+            ]
+        },
+        "org.springframework.boot:spring-boot-starter-webflux": {
+            "locked": "2.1.2.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-testkit"
+            ]
+        },
         "org.springframework:spring-aop": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-beans": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
-                "org.springframework:spring-context"
+                "org.springframework:spring-context",
+                "org.springframework:spring-web",
+                "org.springframework:spring-webflux"
             ]
         },
         "org.springframework:spring-context": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-server-runtime"
+                "com.netflix.titus:titus-server-runtime",
+                "org.springframework.boot:spring-boot"
             ]
         },
         "org.springframework:spring-core": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
+                "org.springframework.boot:spring-boot",
+                "org.springframework.boot:spring-boot-starter",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
                 "org.springframework:spring-context",
-                "org.springframework:spring-expression"
+                "org.springframework:spring-expression",
+                "org.springframework:spring-web",
+                "org.springframework:spring-webflux"
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-jcl": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
+            ]
+        },
+        "org.springframework:spring-web": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-json",
+                "org.springframework.boot:spring-boot-starter-webflux",
+                "org.springframework:spring-webflux"
+            ]
+        },
+        "org.springframework:spring-webflux": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common",
+                "org.springframework.boot:spring-boot-starter-webflux"
+            ]
+        },
+        "org.synchronoss.cloud:nio-multipart-parser": {
+            "locked": "1.1.0",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-webflux"
+            ]
+        },
+        "org.synchronoss.cloud:nio-stream-storage": {
+            "locked": "1.1.3",
+            "transitive": [
+                "org.synchronoss.cloud:nio-multipart-parser"
             ]
         },
         "org.webjars:swagger-ui": {
@@ -10839,12 +11401,13 @@
             ]
         },
         "org.yaml:snakeyaml": {
-            "locked": "1.15",
+            "locked": "1.23",
             "transitive": [
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
-                "org.apache.cassandra:cassandra-all"
+                "org.apache.cassandra:cassandra-all",
+                "org.springframework.boot:spring-boot-starter"
             ]
         },
         "xerces:xerces": {
@@ -10880,16 +11443,17 @@
             ]
         },
         "ch.qos.logback:logback-classic": {
-            "locked": "1.1.3",
+            "locked": "1.2.3",
             "transitive": [
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-logging",
-                "org.mock-server:mockserver-netty"
+                "org.mock-server:mockserver-netty",
+                "org.springframework.boot:spring-boot-starter-logging"
             ]
         },
         "ch.qos.logback:logback-core": {
-            "locked": "1.1.3",
+            "locked": "1.2.3",
             "transitive": [
                 "ch.qos.logback:logback-classic"
             ]
@@ -10938,9 +11502,10 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.8.4",
+            "locked": "2.9.0",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.netflix.fenzo:fenzo-triggers",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
@@ -10948,24 +11513,29 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-core": {
-            "locked": "2.8.7",
+            "locked": "2.9.8",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
+                "com.fasterxml.jackson.module:jackson-module-parameter-names",
                 "org.mock-server:mockserver-core"
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.8.7",
+            "locked": "2.9.8",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
+                "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
+                "com.fasterxml.jackson.module:jackson-module-parameter-names",
                 "com.github.fge:jackson-coreutils",
                 "com.netflix.fenzo:fenzo-core",
                 "com.netflix.titus:titus-common",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-jaxrs",
-                "org.mock-server:mockserver-core"
+                "org.mock-server:mockserver-core",
+                "org.springframework.boot:spring-boot-starter-json"
             ]
         },
         "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml": {
@@ -10975,14 +11545,28 @@
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
-            "locked": "2.8.7",
+            "locked": "2.9.8",
             "transitive": [
-                "com.netflix.titus:titus-common"
+                "com.netflix.titus:titus-common",
+                "org.springframework.boot:spring-boot-starter-json"
+            ]
+        },
+        "com.fasterxml.jackson.datatype:jackson-datatype-jsr310": {
+            "locked": "2.9.8",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-json"
+            ]
+        },
+        "com.fasterxml.jackson.module:jackson-module-parameter-names": {
+            "locked": "2.9.8",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-json"
             ]
         },
         "com.fasterxml:classmate": {
-            "locked": "1.3.1",
+            "locked": "1.3.4",
             "transitive": [
+                "org.hibernate.validator:hibernate-validator",
                 "org.hibernate:hibernate-validator"
             ]
         },
@@ -11255,20 +11839,20 @@
             ]
         },
         "com.netflix.archaius:archaius2-api": {
-            "locked": "2.3.13",
+            "locked": "2.3.14",
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
         },
         "com.netflix.archaius:archaius2-core": {
-            "locked": "2.3.13",
+            "locked": "2.3.14",
             "transitive": [
                 "com.netflix.archaius:archaius2-guice",
                 "com.netflix.titus:titus-common"
             ]
         },
         "com.netflix.archaius:archaius2-guice": {
-            "locked": "2.3.13",
+            "locked": "2.3.14",
             "transitive": [
                 "com.netflix.runtime:health-guice",
                 "com.netflix.titus:titus-server-gateway",
@@ -11700,7 +12284,7 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-handler",
                 "io.netty:netty-transport",
@@ -11710,7 +12294,7 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-socks",
@@ -11720,24 +12304,31 @@
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
+                "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
-                "io.projectreactor.ipc:reactor-netty",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
         },
+        "io.netty:netty-codec-http2": {
+            "locked": "4.1.32.Final",
+            "transitive": [
+                "io.projectreactor.netty:reactor-netty"
+            ]
+        },
         "io.netty:netty-codec-socks": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-handler-proxy",
                 "org.mock-server:mockserver-core"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-resolver",
@@ -11747,10 +12338,11 @@
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
-                "io.projectreactor.ipc:reactor-netty",
+                "io.netty:netty-codec-http2",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-core",
@@ -11758,19 +12350,19 @@
             ]
         },
         "io.netty:netty-handler-proxy": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
-                "io.projectreactor.ipc:reactor-netty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-handler",
@@ -11782,14 +12374,14 @@
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
-                "io.projectreactor.ipc:reactor-netty",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
-            "locked": "4.1.31.Final",
+            "locked": "4.1.32.Final",
             "transitive": [
                 "io.netty:netty-transport-native-epoll"
             ]
@@ -11808,28 +12400,30 @@
             ]
         },
         "io.projectreactor.addons:reactor-adapter": {
-            "locked": "3.1.7.RELEASE",
+            "locked": "3.1.9.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
-        "io.projectreactor.ipc:reactor-netty": {
-            "locked": "0.7.12.RELEASE",
+        "io.projectreactor.netty:reactor-netty": {
+            "locked": "0.8.4.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-common"
+                "com.netflix.titus:titus-common",
+                "org.springframework.boot:spring-boot-starter-reactor-netty"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.1.12.RELEASE",
+            "locked": "3.2.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
-                "io.projectreactor.ipc:reactor-netty",
-                "io.projectreactor:reactor-test"
+                "io.projectreactor.netty:reactor-netty",
+                "io.projectreactor:reactor-test",
+                "org.springframework:spring-webflux"
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.1.12.RELEASE",
+            "locked": "3.1.14.RELEASE",
             "requested": "3.1.+"
         },
         "io.reactivex.rxjava2:rxjava": {
@@ -11898,6 +12492,12 @@
                 "javax.mail:mailapi"
             ]
         },
+        "javax.annotation:javax.annotation-api": {
+            "locked": "1.3.2",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter"
+            ]
+        },
         "javax.el:javax.el-api": {
             "locked": "3.0.1-b06",
             "transitive": [
@@ -11938,9 +12538,10 @@
             ]
         },
         "javax.validation:validation-api": {
-            "locked": "1.1.0.Final",
+            "locked": "2.0.1.Final",
             "transitive": [
                 "io.swagger:swagger-core",
+                "org.hibernate.validator:hibernate-validator",
                 "org.hibernate:hibernate-validator"
             ]
         },
@@ -12099,6 +12700,18 @@
             "locked": "2.11.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
+            ]
+        },
+        "org.apache.logging.log4j:log4j-api": {
+            "locked": "2.11.1",
+            "transitive": [
+                "org.apache.logging.log4j:log4j-to-slf4j"
+            ]
+        },
+        "org.apache.logging.log4j:log4j-to-slf4j": {
+            "locked": "2.11.1",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-logging"
             ]
         },
         "org.apache.mesos:mesos": {
@@ -12275,6 +12888,12 @@
                 "com.netflix.titus:titus-common"
             ]
         },
+        "org.hibernate.validator:hibernate-validator": {
+            "locked": "6.0.14.Final",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-webflux"
+            ]
+        },
         "org.hibernate:hibernate-validator": {
             "locked": "5.4.2.Final",
             "transitive": [
@@ -12289,8 +12908,9 @@
             ]
         },
         "org.jboss.logging:jboss-logging": {
-            "locked": "3.3.0.Final",
+            "locked": "3.3.2.Final",
             "transitive": [
+                "org.hibernate.validator:hibernate-validator",
                 "org.hibernate:hibernate-validator"
             ]
         },
@@ -12447,6 +13067,12 @@
                 "org.apache.cassandra:cassandra-thrift"
             ]
         },
+        "org.slf4j:jul-to-slf4j": {
+            "locked": "1.7.25",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-logging"
+            ]
+        },
         "org.slf4j:slf4j-api": {
             "locked": "1.7.25",
             "requested": "1.7.0",
@@ -12479,6 +13105,7 @@
                 "org.apache.cassandra:cassandra-all",
                 "org.apache.cassandra:cassandra-thrift",
                 "org.apache.curator:curator-client",
+                "org.apache.logging.log4j:log4j-to-slf4j",
                 "org.apache.thrift:libthrift",
                 "org.apache.zookeeper:zookeeper",
                 "org.caffinitas.ohc:ohc-core",
@@ -12489,7 +13116,10 @@
                 "org.mock-server:mockserver-netty",
                 "org.quartz-scheduler:quartz",
                 "org.slf4j:jcl-over-slf4j",
-                "org.slf4j:slf4j-log4j12"
+                "org.slf4j:jul-to-slf4j",
+                "org.slf4j:slf4j-log4j12",
+                "org.synchronoss.cloud:nio-multipart-parser",
+                "org.synchronoss.cloud:nio-stream-storage"
             ]
         },
         "org.slf4j:slf4j-log4j12": {
@@ -12508,45 +13138,123 @@
                 "com.netflix.titus:titus-testkit"
             ]
         },
+        "org.springframework.boot:spring-boot": {
+            "locked": "2.1.2.RELEASE",
+            "transitive": [
+                "org.springframework.boot:spring-boot-autoconfigure",
+                "org.springframework.boot:spring-boot-starter"
+            ]
+        },
+        "org.springframework.boot:spring-boot-autoconfigure": {
+            "locked": "2.1.2.RELEASE",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter"
+            ]
+        },
+        "org.springframework.boot:spring-boot-starter": {
+            "locked": "2.1.2.RELEASE",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-json",
+                "org.springframework.boot:spring-boot-starter-webflux"
+            ]
+        },
+        "org.springframework.boot:spring-boot-starter-json": {
+            "locked": "2.1.2.RELEASE",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-webflux"
+            ]
+        },
+        "org.springframework.boot:spring-boot-starter-logging": {
+            "locked": "2.1.2.RELEASE",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter"
+            ]
+        },
+        "org.springframework.boot:spring-boot-starter-reactor-netty": {
+            "locked": "2.1.2.RELEASE",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-webflux"
+            ]
+        },
+        "org.springframework.boot:spring-boot-starter-webflux": {
+            "locked": "2.1.2.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-testkit"
+            ]
+        },
         "org.springframework:spring-aop": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-beans": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
-                "org.springframework:spring-context"
+                "org.springframework:spring-context",
+                "org.springframework:spring-web",
+                "org.springframework:spring-webflux"
             ]
         },
         "org.springframework:spring-context": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-server-runtime"
+                "com.netflix.titus:titus-server-runtime",
+                "org.springframework.boot:spring-boot"
             ]
         },
         "org.springframework:spring-core": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
+                "org.springframework.boot:spring-boot",
+                "org.springframework.boot:spring-boot-starter",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
                 "org.springframework:spring-context",
-                "org.springframework:spring-expression"
+                "org.springframework:spring-expression",
+                "org.springframework:spring-web",
+                "org.springframework:spring-webflux"
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-jcl": {
-            "locked": "5.1.3.RELEASE",
+            "locked": "5.1.4.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
+            ]
+        },
+        "org.springframework:spring-web": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-json",
+                "org.springframework.boot:spring-boot-starter-webflux",
+                "org.springframework:spring-webflux"
+            ]
+        },
+        "org.springframework:spring-webflux": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common",
+                "org.springframework.boot:spring-boot-starter-webflux"
+            ]
+        },
+        "org.synchronoss.cloud:nio-multipart-parser": {
+            "locked": "1.1.0",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-webflux"
+            ]
+        },
+        "org.synchronoss.cloud:nio-stream-storage": {
+            "locked": "1.1.3",
+            "transitive": [
+                "org.synchronoss.cloud:nio-multipart-parser"
             ]
         },
         "org.webjars:swagger-ui": {
@@ -12563,12 +13271,13 @@
             ]
         },
         "org.yaml:snakeyaml": {
-            "locked": "1.15",
+            "locked": "1.23",
             "transitive": [
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
-                "org.apache.cassandra:cassandra-all"
+                "org.apache.cassandra:cassandra-all",
+                "org.springframework.boot:spring-boot-starter"
             ]
         },
         "xerces:xerces": {
