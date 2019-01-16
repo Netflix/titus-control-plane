@@ -21,14 +21,9 @@ import com.netflix.archaius.api.annotations.DefaultValue;
 
 @Configuration(prefix = "titus.registryClient")
 public interface TitusRegistryClientConfiguration {
-    @DefaultValue("myRegistry")
-    String getVipAddress();
 
-    @DefaultValue("localhost")
-    String getRegistryHostname();
-
-    @DefaultValue("7002")
-    int getRegistryHttpPort();
+    @DefaultValue("http://localhost")
+    String getRegistryUri();
 
     @DefaultValue("true")
     boolean isSecure();

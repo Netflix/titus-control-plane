@@ -9,7 +9,8 @@ dependencies {
     // Spring
     compile "io.projectreactor:reactor-core:${springReactor}"
     compile "io.projectreactor.addons:reactor-adapter:${springReactor}"
-    compile "io.projectreactor.ipc:reactor-netty:${springReactorNetty}"
+    compile "io.projectreactor.netty:reactor-netty:${springReactorNetty}"
+    compile "org.springframework:spring-webflux:${springVersion}"
 
     compile "com.netflix.spectator:spectator-api:${spectatorVersion}"
     compile "com.netflix.numerus:numerus:${numerusVersion}"

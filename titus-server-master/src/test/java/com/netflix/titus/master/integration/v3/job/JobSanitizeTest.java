@@ -33,16 +33,18 @@ import com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCell;
 import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMasters;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedClouds;
+import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import com.netflix.titus.testkit.junit.master.TitusStackResource;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import rx.Single;
+import reactor.core.publisher.Mono;
 
 import static com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters.toGrpcJobDescriptor;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.batchJobDescriptors;
@@ -53,6 +55,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@Category(IntegrationTest.class)
 public class JobSanitizeTest extends BaseIntegrationTest {
     private static final Logger logger = LoggerFactory.getLogger(JobSanitizeTest.class);
 
@@ -85,7 +88,7 @@ public class JobSanitizeTest extends BaseIntegrationTest {
      */
     @Test
     public void testJobDigestResolution() {
-        when(registryClient.getImageDigest(anyString(), anyString())).thenReturn(Single.just(digest));
+        when(registryClient.getImageDigest(anyString(), anyString())).thenReturn(Mono.just(digest));
 
         final com.netflix.titus.grpc.protogen.JobDescriptor jobDescriptor =
                 toGrpcJobDescriptor(batchJobDescriptors()
@@ -108,7 +111,7 @@ public class JobSanitizeTest extends BaseIntegrationTest {
      */
     @Test
     public void testNonexistentTag() {
-        when(registryClient.getImageDigest(anyString(), anyString())).thenReturn(Single.error(new TitusRegistryException(TitusRegistryException.ErrorCode.IMAGE_NOT_FOUND, missingImageErrorMsg)));
+        when(registryClient.getImageDigest(anyString(), anyString())).thenReturn(Mono.error(new TitusRegistryException(TitusRegistryException.ErrorCode.IMAGE_NOT_FOUND, missingImageErrorMsg)));
 
         final com.netflix.titus.grpc.protogen.JobDescriptor jobDescriptor =
                 toGrpcJobDescriptor(batchJobDescriptors()
@@ -134,7 +137,7 @@ public class JobSanitizeTest extends BaseIntegrationTest {
      */
     @Test
     public void testSuppressedInternalError() {
-        when(registryClient.getImageDigest(anyString(), anyString())).thenReturn(Single.error(new TitusRegistryException(TitusRegistryException.ErrorCode.INTERNAL, internalErrorMsg)));
+        when(registryClient.getImageDigest(anyString(), anyString())).thenReturn(Mono.error(new TitusRegistryException(TitusRegistryException.ErrorCode.INTERNAL, internalErrorMsg)));
 
         final com.netflix.titus.grpc.protogen.JobDescriptor jobDescriptor =
                 toGrpcJobDescriptor(batchJobDescriptors()

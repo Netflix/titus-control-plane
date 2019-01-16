@@ -26,8 +26,8 @@ import com.netflix.titus.runtime.endpoint.validator.JobImageValidatorConfigurati
 import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 import org.junit.Before;
 import org.junit.Test;
+import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
-import rx.Single;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -66,13 +66,13 @@ public class JobImageValidatorTest {
     @Before
     public void setUp() {
         when(configuration.isEnabled()).thenReturn(true);
-        when(registryClient.getImageDigest(anyString(), anyString())).thenReturn(Single.just(digest));
+        when(registryClient.getImageDigest(anyString(), anyString())).thenReturn(Mono.just(digest));
         validator = new JobImageValidator(configuration, registryClient);
     }
 
     @Test
     public void testJobWithTagResolution() {
-        when(registryClient.getImageDigest(anyString(), anyString())).thenReturn(Single.just(digest));
+        when(registryClient.getImageDigest(anyString(), anyString())).thenReturn(Mono.just(digest));
 
         StepVerifier.create(validator.sanitize(jobDescriptorWithTag))
                 .assertNext(sanitizedJobDescriptor ->
@@ -82,7 +82,7 @@ public class JobImageValidatorTest {
 
     @Test
     public void testJobWithNonExistentTag() {
-        when(registryClient.getImageDigest(anyString(), anyString())).thenReturn(Single.error(new TitusRegistryException(TitusRegistryException.ErrorCode.IMAGE_NOT_FOUND, errorDescription)));
+        when(registryClient.getImageDigest(anyString(), anyString())).thenReturn(Mono.error(new TitusRegistryException(TitusRegistryException.ErrorCode.IMAGE_NOT_FOUND, errorDescription)));
 
         StepVerifier.create(validator.sanitize(jobDescriptorWithTag))
                 .expectErrorSatisfies(throwable -> {
@@ -97,7 +97,7 @@ public class JobImageValidatorTest {
      */
     @Test
     public void testSuppressedInternalError() {
-        when(registryClient.getImageDigest(anyString(), anyString())).thenReturn(Single.error(new TitusRegistryException(TitusRegistryException.ErrorCode.INTERNAL, "Oops")));
+        when(registryClient.getImageDigest(anyString(), anyString())).thenReturn(Mono.error(new TitusRegistryException(TitusRegistryException.ErrorCode.INTERNAL, "Oops")));
 
         StepVerifier.create(validator.sanitize(jobDescriptorWithTag))
                 .assertNext(jd -> {
@@ -109,7 +109,7 @@ public class JobImageValidatorTest {
 
     @Test
     public void testJobWithDigestExists() {
-        when(registryClient.getImageDigest(anyString(), anyString())).thenReturn(Single.just(digest));
+        when(registryClient.getImageDigest(anyString(), anyString())).thenReturn(Mono.just(digest));
 
         StepVerifier.create(validator.sanitize(jobDescriptorWithDigest))
                 .assertNext(sanitizedJobDescriptor -> {
@@ -121,7 +121,7 @@ public class JobImageValidatorTest {
 
     @Test
     public void testValidateImageWithTag() {
-        when(registryClient.getImageDigest(anyString(), anyString())).thenReturn(Single.just(digest));
+        when(registryClient.getImageDigest(anyString(), anyString())).thenReturn(Mono.just(digest));
 
         StepVerifier.create(validator.validate(jobDescriptorWithTag))
                 .assertNext(validationErrors -> assertThat(validationErrors.isEmpty()).isTrue())
@@ -130,7 +130,7 @@ public class JobImageValidatorTest {
 
     @Test
     public void testValidateImageWithDigest() {
-        when(registryClient.getImageDigest(anyString(), anyString())).thenReturn(Single.just(digest));
+        when(registryClient.getImageDigest(anyString(), anyString())).thenReturn(Mono.just(digest));
 
         StepVerifier.create(validator.validate(jobDescriptorWithDigest))
                 .assertNext(validationErrors -> assertThat(validationErrors.isEmpty()).isTrue())
@@ -139,7 +139,7 @@ public class JobImageValidatorTest {
 
     @Test
     public void testValidateMissingImage() {
-        when(registryClient.getImageDigest(anyString(), anyString())).thenReturn(Single.error(new TitusRegistryException(TitusRegistryException.ErrorCode.IMAGE_NOT_FOUND, errorDescription)));
+        when(registryClient.getImageDigest(anyString(), anyString())).thenReturn(Mono.error(new TitusRegistryException(TitusRegistryException.ErrorCode.IMAGE_NOT_FOUND, errorDescription)));
 
         StepVerifier.create(validator.validate(jobDescriptorWithTag))
                 .assertNext(validationErrors -> {

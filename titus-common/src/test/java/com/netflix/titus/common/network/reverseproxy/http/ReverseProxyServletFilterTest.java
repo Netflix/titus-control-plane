@@ -16,7 +16,6 @@
 
 package com.netflix.titus.common.network.reverseproxy.http;
 
-import java.nio.charset.Charset;
 import java.time.Duration;
 import java.util.Optional;
 import javax.ws.rs.DELETE;
@@ -33,14 +32,13 @@ import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import com.netflix.titus.testkit.junit.jaxrs.JaxRsServerResource;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
-import io.netty.handler.codec.http.HttpContent;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
-import reactor.ipc.netty.http.client.HttpClient;
-import reactor.ipc.netty.http.client.HttpClientResponse;
+import reactor.netty.http.client.HttpClient;
+import reactor.netty.http.client.HttpClientResponse;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -58,7 +56,7 @@ public class ReverseProxyServletFilterTest {
 
     private static final ReactorHttpClientFactory reactorClientFactory = serviceName -> {
         if (serviceName.contains("/forwarded")) {
-            return Optional.of(HttpClient.create("localhost", mainServer.getPort()));
+            return Optional.of(HttpClient.create().baseUrl("http://localhost:" + mainServer.getPort()));
         }
         return Optional.empty();
     };
@@ -71,48 +69,62 @@ public class ReverseProxyServletFilterTest {
 
     @Test
     public void testGetWithoutForwarding() {
-        HttpClientResponse response = HttpClient.create("localhost", proxyServer.getPort()).get("/ROOT/notForwarded/samples?value=hello").block(TIMEOUT);
-        assertThat(response.status().code()).isEqualTo(200);
-        assertThat(response.receiveContent().map(this::httpContentToString).blockFirst(TIMEOUT)).isEqualTo("\"notForwarded:hello\"");
+        String response = newProxyClient().get().uri("/ROOT/notForwarded/samples?value=hello")
+                .responseContent()
+                .aggregate()
+                .asString()
+                .block(TIMEOUT);
+        assertThat(response).isEqualTo("\"notForwarded:hello\"");
+    }
+
+    private HttpClient newProxyClient() {
+        return HttpClient.create().baseUrl("http://localhost:" + proxyServer.getPort());
     }
 
     @Test
     public void testGetWithForwarding() {
-        HttpClientResponse response = HttpClient.create("localhost", proxyServer.getPort()).get("/ROOT/forwarded/samples?value=hello").block(TIMEOUT);
-        assertThat(response.status().code()).isEqualTo(200);
-        assertThat(response.receiveContent().map(this::httpContentToString).blockFirst(TIMEOUT)).isEqualTo("\"forwarded:hello\"");
+        String response = newProxyClient().get().uri("/ROOT/forwarded/samples?value=hello")
+                .responseContent()
+                .aggregate()
+                .asString()
+                .block(TIMEOUT);
+        assertThat(response).isEqualTo("\"forwarded:hello\"");
     }
 
     @Test
     public void testPostWithoutForwarding() {
-        HttpClientResponse response = HttpClient.create("localhost", proxyServer.getPort())
-                .post("/ROOT/notForwarded/samples", r -> r.send(toFluxByteBuf("Echo123")))
+        String response = newProxyClient().post().uri("/ROOT/notForwarded/samples")
+                .send(toFluxByteBuf("Echo123"))
+                .responseContent()
+                .aggregate()
+                .asString()
                 .block(TIMEOUT);
-        assertThat(response.status().code()).isEqualTo(200);
-        assertThat(response.receiveContent().map(this::httpContentToString).blockFirst(TIMEOUT)).isEqualTo("\"notForwarded:Echo123\"");
+        assertThat(response).isEqualTo("\"notForwarded:Echo123\"");
     }
 
     @Test
     public void testPostWithForwarding() {
-        HttpClientResponse response = HttpClient.create("localhost", proxyServer.getPort())
-                .post("/ROOT/forwarded/samples", r -> r.send(toFluxByteBuf("Echo123")))
+        String response = newProxyClient().post().uri("/ROOT/forwarded/samples")
+                .send(toFluxByteBuf("Echo123"))
+                .responseContent()
+                .aggregate()
+                .asString()
                 .block(TIMEOUT);
-        assertThat(response.status().code()).isEqualTo(200);
-        assertThat(response.receiveContent().map(this::httpContentToString).blockFirst(TIMEOUT)).isEqualTo("\"forwarded:Echo123\"");
+        assertThat(response).isEqualTo("\"forwarded:Echo123\"");
     }
 
     @Test
     public void testDeleteWithoutForwarding() {
-        HttpClientResponse response = HttpClient.create("localhost", proxyServer.getPort())
-                .delete("/ROOT/notForwarded/samples/abc")
+        HttpClientResponse response = newProxyClient().delete().uri("/ROOT/notForwarded/samples/abc")
+                .response()
                 .block(TIMEOUT);
         assertThat(response.status().code()).isEqualTo(204);
     }
 
     @Test
     public void testDeleteWithForwarding() {
-        HttpClientResponse response = HttpClient.create("localhost", proxyServer.getPort())
-                .delete("/ROOT/forwarded/samples/abc")
+        HttpClientResponse response = newProxyClient().delete().uri("/ROOT/forwarded/samples/abc")
+                .response()
                 .block(TIMEOUT);
         assertThat(response.status().code()).isEqualTo(204);
         assertThat(response.responseHeaders().get(X_TITUS_REMOVED_KEY)).isEqualTo("forwarded:abc");
@@ -120,13 +132,6 @@ public class ReverseProxyServletFilterTest {
 
     private Publisher<? extends ByteBuf> toFluxByteBuf(String value) {
         return Flux.just(Unpooled.wrappedBuffer(value.getBytes()));
-    }
-
-    private String httpContentToString(HttpContent bufHolder) {
-        ByteBuf bodyBuf = bufHolder.content();
-        byte[] bytes = new byte[bodyBuf.readableBytes()];
-        bodyBuf.getBytes(bodyBuf.readerIndex(), bytes);
-        return new String(bytes, Charset.defaultCharset());
     }
 
     @Path("/ROOT")
