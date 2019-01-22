@@ -85,7 +85,7 @@ import com.netflix.titus.runtime.endpoint.common.rest.EmbeddedJettyModule;
 import com.netflix.titus.runtime.store.v3.memory.InMemoryJobStore;
 import com.netflix.titus.runtime.store.v3.memory.InMemoryLoadBalancerStore;
 import com.netflix.titus.runtime.store.v3.memory.InMemoryPolicyStore;
-import com.netflix.titus.testkit.client.DefaultTitusMasterClient;
+import com.netflix.titus.testkit.client.ReactorTitusMasterClient;
 import com.netflix.titus.testkit.client.TitusMasterClient;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import com.netflix.titus.testkit.embedded.cloud.agent.SimulatedAgentConfiguration;
@@ -306,7 +306,7 @@ public class EmbeddedTitusMaster {
 
     public TitusMasterClient getClient() {
         int jettyPort = injector.getInstance(JettyModule.JettyRunner.class).getLocalPort();
-        return new DefaultTitusMasterClient("127.0.0.1", jettyPort);
+        return new ReactorTitusMasterClient("127.0.0.1", jettyPort);
     }
 
     public HealthStub getHealthClient() {

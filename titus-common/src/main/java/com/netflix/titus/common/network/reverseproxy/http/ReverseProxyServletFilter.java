@@ -17,8 +17,10 @@
 package com.netflix.titus.common.network.reverseproxy.http;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.time.Duration;
 import java.util.Enumeration;
+import java.util.Iterator;
 import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -26,6 +28,7 @@ import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
+import javax.servlet.ServletInputStream;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
@@ -33,21 +36,20 @@ import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.UriBuilder;
 
 import com.google.common.io.ByteStreams;
-import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.common.util.IOExt;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import io.netty.handler.codec.http.HttpHeaders;
 import org.reactivestreams.Publisher;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.ipc.netty.http.client.HttpClient;
-import reactor.ipc.netty.http.client.HttpClientRequest;
-import reactor.ipc.netty.http.client.HttpClientResponse;
+import reactor.netty.http.client.HttpClient;
+import reactor.netty.http.client.HttpClientResponse;
 
 @Singleton
 public class ReverseProxyServletFilter implements Filter {
 
     private static final Duration REQUEST_TIMEOUT = Duration.ofMillis(30_000);
-
-    private static final byte[] EMPTY_BYTE_ARRAY = new byte[0];
 
     private final ReactorHttpClientFactory clientFactory;
 
@@ -57,7 +59,7 @@ public class ReverseProxyServletFilter implements Filter {
     }
 
     @Override
-    public void init(FilterConfig filterConfig) throws ServletException {
+    public void init(FilterConfig filterConfig) {
     }
 
     @Override
@@ -93,31 +95,63 @@ public class ReverseProxyServletFilter implements Filter {
     }
 
     private void doForwardGET(HttpServletRequest clientRequest, HttpServletResponse clientResponse, HttpClient httpClient) {
-        doExecute(
-                clientResponse,
-                httpClient.get(buildURI(clientRequest), proxyRequest -> copyHeaders(clientRequest, proxyRequest).send())
-        );
+        HttpClient.ResponseReceiver<?> request = httpClient
+                .headers(headers -> copyHeaders(clientRequest, headers))
+                .get()
+                .uri(buildURI(clientRequest));
+        replyHandler(request, clientResponse);
     }
 
     private void doForwardPOST(HttpServletRequest clientRequest, HttpServletResponse clientResponse, HttpClient httpClient) {
-        doExecute(
-                clientResponse,
-                httpClient.post(buildURI(clientRequest), proxyRequest -> copyHeaders(clientRequest, proxyRequest).send(readRequestBody(clientRequest)))
-        );
+        HttpClient.ResponseReceiver<?> request = httpClient
+                .headers(headers -> copyHeaders(clientRequest, headers))
+                .post()
+                .uri(buildURI(clientRequest))
+                .send(readRequestBody(clientRequest));
+        replyHandler(request, clientResponse);
     }
 
     private void doForwardPUT(HttpServletRequest clientRequest, HttpServletResponse clientResponse, HttpClient httpClient) {
-        doExecute(
-                clientResponse,
-                httpClient.put(buildURI(clientRequest), proxyRequest -> copyHeaders(clientRequest, proxyRequest).send(readRequestBody(clientRequest)))
-        );
+        HttpClient.ResponseReceiver<?> request = httpClient
+                .headers(headers -> copyHeaders(clientRequest, headers))
+                .put()
+                .uri(buildURI(clientRequest))
+                .send(readRequestBody(clientRequest));
+        replyHandler(request, clientResponse);
     }
 
     private void doForwardDELETE(HttpServletRequest clientRequest, HttpServletResponse clientResponse, HttpClient httpClient) {
-        doExecute(
-                clientResponse,
-                httpClient.delete(buildURI(clientRequest), proxyRequest -> copyHeaders(clientRequest, proxyRequest).send())
-        );
+        HttpClient.ResponseReceiver<?> request = httpClient
+                .headers(headers -> copyHeaders(clientRequest, headers))
+                .delete()
+                .uri(buildURI(clientRequest))
+                .send(readRequestBody(clientRequest));
+        replyHandler(request, clientResponse);
+    }
+
+    private void replyHandler(HttpClient.ResponseReceiver<?> request, HttpServletResponse clientResponse) {
+        Iterator<Object> outputIt = request
+                .response((httpResponse, bodyStream) -> Flux.<Object>just(httpResponse).concatWith(bodyStream.map(this::toByteArray)))
+                .timeout(REQUEST_TIMEOUT)
+                .toIterable()
+                .iterator();
+        HttpClientResponse httpResponse = (HttpClientResponse) outputIt.next();
+        clientResponse.setStatus(httpResponse.status().code());
+        httpResponse.responseHeaders().forEach(entry -> clientResponse.addHeader(entry.getKey(), entry.getValue()));
+        try (OutputStream bodyOS = clientResponse.getOutputStream()) {
+            while (outputIt.hasNext()) {
+                byte[] bodyPart = (byte[]) outputIt.next();
+                bodyOS.write(bodyPart);
+            }
+        } catch (Exception e) {
+            throw new IllegalStateException("Output stream error", e);
+        }
+    }
+
+    private byte[] toByteArray(ByteBuf byteBuf) {
+        byte[] buf = new byte[byteBuf.readableBytes()];
+        byteBuf.readBytes(buf);
+        return buf;
     }
 
     @Override
@@ -131,49 +165,24 @@ public class ReverseProxyServletFilter implements Filter {
                 .toString();
     }
 
-    private HttpClientRequest copyHeaders(HttpServletRequest request, HttpClientRequest proxyRequest) {
+    private void copyHeaders(HttpServletRequest request, HttpHeaders proxyRequestHeaders) {
         Enumeration<String> hIt = request.getHeaderNames();
         while (hIt.hasMoreElements()) {
             String name = hIt.nextElement();
-            proxyRequest.addHeader(name, request.getHeader(name));
+            proxyRequestHeaders.add(name, request.getHeader(name));
         }
-        return proxyRequest;
     }
 
     private Publisher<ByteBuf> readRequestBody(HttpServletRequest clientRequest) {
+        ServletInputStream inputStream = null;
         try {
-            byte[] body = ByteStreams.toByteArray(clientRequest.getInputStream());
+            inputStream = clientRequest.getInputStream();
+            byte[] body = ByteStreams.toByteArray(inputStream);
             return Mono.just(Unpooled.wrappedBuffer(body));
         } catch (Exception e) {
             return Mono.error(e);
+        } finally {
+            IOExt.closeSilently(inputStream);
         }
-    }
-
-    private void doExecute(HttpServletResponse response, Mono<HttpClientResponse> proxyResponse) {
-        try {
-            Pair<HttpClientResponse, byte[]> proxyResultPair = proxyResponse
-                    .flatMap(this::readProxyResponseBody)
-                    .block(REQUEST_TIMEOUT);
-            sendProxyResponse(response, proxyResultPair.getLeft(), proxyResultPair.getRight());
-        } catch (Exception e) {
-            handleException(e, response);
-        }
-    }
-
-    private Mono<Pair<HttpClientResponse, byte[]>> readProxyResponseBody(HttpClientResponse proxyResponse) {
-        return proxyResponse.receive()
-                .asByteArray()
-                .last(EMPTY_BYTE_ARRAY)
-                .map(body -> Pair.of(proxyResponse, body));
-    }
-
-    private void sendProxyResponse(HttpServletResponse response, HttpClientResponse proxyResponse, byte[] body) throws IOException {
-        response.setStatus(proxyResponse.status().code());
-        proxyResponse.responseHeaders().forEach(entry -> response.addHeader(entry.getKey(), entry.getValue()));
-        response.getOutputStream().write(body);
-    }
-
-    private void handleException(Exception error, HttpServletResponse response) {
-        response.setStatus(500);
     }
 }

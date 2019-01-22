@@ -413,9 +413,16 @@
         "io.netty:netty-codec-http": {
             "locked": "4.1.32.Final",
             "transitive": [
+                "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
-                "io.projectreactor.ipc:reactor-netty",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty"
+            ]
+        },
+        "io.netty:netty-codec-http2": {
+            "locked": "4.1.32.Final",
+            "transitive": [
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-socks": {
@@ -437,7 +444,8 @@
             "locked": "4.1.32.Final",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
-                "io.projectreactor.ipc:reactor-netty",
+                "io.netty:netty-codec-http2",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty",
                 "org.cassandraunit:cassandra-unit"
             ]
@@ -445,7 +453,7 @@
         "io.netty:netty-handler-proxy": {
             "locked": "4.1.32.Final",
             "transitive": [
-                "io.projectreactor.ipc:reactor-netty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
@@ -467,7 +475,7 @@
         "io.netty:netty-transport-native-epoll": {
             "locked": "4.1.32.Final",
             "transitive": [
-                "io.projectreactor.ipc:reactor-netty",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty"
             ]
         },
@@ -496,18 +504,19 @@
                 "com.netflix.titus:titus-common"
             ]
         },
-        "io.projectreactor.ipc:reactor-netty": {
-            "locked": "0.7.14.RELEASE",
+        "io.projectreactor.netty:reactor-netty": {
+            "locked": "0.8.4.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.1.14.RELEASE",
+            "locked": "3.2.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
-                "io.projectreactor.ipc:reactor-netty"
+                "io.projectreactor.netty:reactor-netty",
+                "org.springframework:spring-webflux"
             ]
         },
         "io.reactivex.rxjava2:rxjava": {
@@ -825,10 +834,20 @@
                 "com.netflix.titus:titus-ext-cassandra"
             ]
         },
+        "org.springframework:spring-beans": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "org.springframework:spring-web",
+                "org.springframework:spring-webflux"
+            ]
+        },
         "org.springframework:spring-core": {
             "locked": "5.1.4.RELEASE",
             "transitive": [
-                "org.springframework:spring-expression"
+                "org.springframework:spring-beans",
+                "org.springframework:spring-expression",
+                "org.springframework:spring-web",
+                "org.springframework:spring-webflux"
             ]
         },
         "org.springframework:spring-expression": {
@@ -841,6 +860,18 @@
             "locked": "5.1.4.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
+            ]
+        },
+        "org.springframework:spring-web": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "org.springframework:spring-webflux"
+            ]
+        },
+        "org.springframework:spring-webflux": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common"
             ]
         },
         "org.xerial.snappy:snappy-java": {
@@ -1273,9 +1304,16 @@
         "io.netty:netty-codec-http": {
             "locked": "4.1.32.Final",
             "transitive": [
+                "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
-                "io.projectreactor.ipc:reactor-netty",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty"
+            ]
+        },
+        "io.netty:netty-codec-http2": {
+            "locked": "4.1.32.Final",
+            "transitive": [
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-socks": {
@@ -1297,7 +1335,8 @@
             "locked": "4.1.32.Final",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
-                "io.projectreactor.ipc:reactor-netty",
+                "io.netty:netty-codec-http2",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty",
                 "org.cassandraunit:cassandra-unit"
             ]
@@ -1305,7 +1344,7 @@
         "io.netty:netty-handler-proxy": {
             "locked": "4.1.32.Final",
             "transitive": [
-                "io.projectreactor.ipc:reactor-netty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
@@ -1327,7 +1366,7 @@
         "io.netty:netty-transport-native-epoll": {
             "locked": "4.1.32.Final",
             "transitive": [
-                "io.projectreactor.ipc:reactor-netty",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty"
             ]
         },
@@ -1356,18 +1395,19 @@
                 "com.netflix.titus:titus-common"
             ]
         },
-        "io.projectreactor.ipc:reactor-netty": {
-            "locked": "0.7.14.RELEASE",
+        "io.projectreactor.netty:reactor-netty": {
+            "locked": "0.8.4.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.1.14.RELEASE",
+            "locked": "3.2.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
-                "io.projectreactor.ipc:reactor-netty"
+                "io.projectreactor.netty:reactor-netty",
+                "org.springframework:spring-webflux"
             ]
         },
         "io.reactivex.rxjava2:rxjava": {
@@ -1685,10 +1725,20 @@
                 "com.netflix.titus:titus-ext-cassandra"
             ]
         },
+        "org.springframework:spring-beans": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "org.springframework:spring-web",
+                "org.springframework:spring-webflux"
+            ]
+        },
         "org.springframework:spring-core": {
             "locked": "5.1.4.RELEASE",
             "transitive": [
-                "org.springframework:spring-expression"
+                "org.springframework:spring-beans",
+                "org.springframework:spring-expression",
+                "org.springframework:spring-web",
+                "org.springframework:spring-webflux"
             ]
         },
         "org.springframework:spring-expression": {
@@ -1701,6 +1751,18 @@
             "locked": "5.1.4.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
+            ]
+        },
+        "org.springframework:spring-web": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "org.springframework:spring-webflux"
+            ]
+        },
+        "org.springframework:spring-webflux": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common"
             ]
         },
         "org.xerial.snappy:snappy-java": {
@@ -2133,9 +2195,16 @@
         "io.netty:netty-codec-http": {
             "locked": "4.1.32.Final",
             "transitive": [
+                "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
-                "io.projectreactor.ipc:reactor-netty",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty"
+            ]
+        },
+        "io.netty:netty-codec-http2": {
+            "locked": "4.1.32.Final",
+            "transitive": [
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-socks": {
@@ -2157,7 +2226,8 @@
             "locked": "4.1.32.Final",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
-                "io.projectreactor.ipc:reactor-netty",
+                "io.netty:netty-codec-http2",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty",
                 "org.cassandraunit:cassandra-unit"
             ]
@@ -2165,7 +2235,7 @@
         "io.netty:netty-handler-proxy": {
             "locked": "4.1.32.Final",
             "transitive": [
-                "io.projectreactor.ipc:reactor-netty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
@@ -2187,7 +2257,7 @@
         "io.netty:netty-transport-native-epoll": {
             "locked": "4.1.32.Final",
             "transitive": [
-                "io.projectreactor.ipc:reactor-netty",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty"
             ]
         },
@@ -2216,18 +2286,19 @@
                 "com.netflix.titus:titus-common"
             ]
         },
-        "io.projectreactor.ipc:reactor-netty": {
-            "locked": "0.7.14.RELEASE",
+        "io.projectreactor.netty:reactor-netty": {
+            "locked": "0.8.4.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.1.14.RELEASE",
+            "locked": "3.2.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
-                "io.projectreactor.ipc:reactor-netty"
+                "io.projectreactor.netty:reactor-netty",
+                "org.springframework:spring-webflux"
             ]
         },
         "io.reactivex.rxjava2:rxjava": {
@@ -2546,10 +2617,20 @@
                 "com.netflix.titus:titus-ext-cassandra"
             ]
         },
+        "org.springframework:spring-beans": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "org.springframework:spring-web",
+                "org.springframework:spring-webflux"
+            ]
+        },
         "org.springframework:spring-core": {
             "locked": "5.1.4.RELEASE",
             "transitive": [
-                "org.springframework:spring-expression"
+                "org.springframework:spring-beans",
+                "org.springframework:spring-expression",
+                "org.springframework:spring-web",
+                "org.springframework:spring-webflux"
             ]
         },
         "org.springframework:spring-expression": {
@@ -2562,6 +2643,18 @@
             "locked": "5.1.4.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
+            ]
+        },
+        "org.springframework:spring-web": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "org.springframework:spring-webflux"
+            ]
+        },
+        "org.springframework:spring-webflux": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common"
             ]
         },
         "org.xerial.snappy:snappy-java": {
@@ -3057,9 +3150,16 @@
         "io.netty:netty-codec-http": {
             "locked": "4.1.32.Final",
             "transitive": [
+                "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
-                "io.projectreactor.ipc:reactor-netty",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty"
+            ]
+        },
+        "io.netty:netty-codec-http2": {
+            "locked": "4.1.32.Final",
+            "transitive": [
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-socks": {
@@ -3081,7 +3181,8 @@
             "locked": "4.1.32.Final",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
-                "io.projectreactor.ipc:reactor-netty",
+                "io.netty:netty-codec-http2",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty",
                 "org.cassandraunit:cassandra-unit"
             ]
@@ -3089,7 +3190,7 @@
         "io.netty:netty-handler-proxy": {
             "locked": "4.1.32.Final",
             "transitive": [
-                "io.projectreactor.ipc:reactor-netty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
@@ -3111,7 +3212,7 @@
         "io.netty:netty-transport-native-epoll": {
             "locked": "4.1.32.Final",
             "transitive": [
-                "io.projectreactor.ipc:reactor-netty",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty"
             ]
         },
@@ -3140,18 +3241,19 @@
                 "com.netflix.titus:titus-common"
             ]
         },
-        "io.projectreactor.ipc:reactor-netty": {
-            "locked": "0.7.14.RELEASE",
+        "io.projectreactor.netty:reactor-netty": {
+            "locked": "0.8.4.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.1.14.RELEASE",
+            "locked": "3.2.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
-                "io.projectreactor.ipc:reactor-netty"
+                "io.projectreactor.netty:reactor-netty",
+                "org.springframework:spring-webflux"
             ]
         },
         "io.reactivex.rxjava2:rxjava": {
@@ -3470,10 +3572,20 @@
                 "com.netflix.titus:titus-ext-cassandra"
             ]
         },
+        "org.springframework:spring-beans": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "org.springframework:spring-web",
+                "org.springframework:spring-webflux"
+            ]
+        },
         "org.springframework:spring-core": {
             "locked": "5.1.4.RELEASE",
             "transitive": [
-                "org.springframework:spring-expression"
+                "org.springframework:spring-beans",
+                "org.springframework:spring-expression",
+                "org.springframework:spring-web",
+                "org.springframework:spring-webflux"
             ]
         },
         "org.springframework:spring-expression": {
@@ -3486,6 +3598,18 @@
             "locked": "5.1.4.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
+            ]
+        },
+        "org.springframework:spring-web": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "org.springframework:spring-webflux"
+            ]
+        },
+        "org.springframework:spring-webflux": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common"
             ]
         },
         "org.xerial.snappy:snappy-java": {
@@ -3918,9 +4042,16 @@
         "io.netty:netty-codec-http": {
             "locked": "4.1.32.Final",
             "transitive": [
+                "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
-                "io.projectreactor.ipc:reactor-netty",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty"
+            ]
+        },
+        "io.netty:netty-codec-http2": {
+            "locked": "4.1.32.Final",
+            "transitive": [
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-socks": {
@@ -3942,7 +4073,8 @@
             "locked": "4.1.32.Final",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
-                "io.projectreactor.ipc:reactor-netty",
+                "io.netty:netty-codec-http2",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty",
                 "org.cassandraunit:cassandra-unit"
             ]
@@ -3950,7 +4082,7 @@
         "io.netty:netty-handler-proxy": {
             "locked": "4.1.32.Final",
             "transitive": [
-                "io.projectreactor.ipc:reactor-netty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
@@ -3972,7 +4104,7 @@
         "io.netty:netty-transport-native-epoll": {
             "locked": "4.1.32.Final",
             "transitive": [
-                "io.projectreactor.ipc:reactor-netty",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty"
             ]
         },
@@ -4001,18 +4133,19 @@
                 "com.netflix.titus:titus-common"
             ]
         },
-        "io.projectreactor.ipc:reactor-netty": {
-            "locked": "0.7.14.RELEASE",
+        "io.projectreactor.netty:reactor-netty": {
+            "locked": "0.8.4.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.1.14.RELEASE",
+            "locked": "3.2.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
-                "io.projectreactor.ipc:reactor-netty"
+                "io.projectreactor.netty:reactor-netty",
+                "org.springframework:spring-webflux"
             ]
         },
         "io.reactivex.rxjava2:rxjava": {
@@ -4331,10 +4464,20 @@
                 "com.netflix.titus:titus-ext-cassandra"
             ]
         },
+        "org.springframework:spring-beans": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "org.springframework:spring-web",
+                "org.springframework:spring-webflux"
+            ]
+        },
         "org.springframework:spring-core": {
             "locked": "5.1.4.RELEASE",
             "transitive": [
-                "org.springframework:spring-expression"
+                "org.springframework:spring-beans",
+                "org.springframework:spring-expression",
+                "org.springframework:spring-web",
+                "org.springframework:spring-webflux"
             ]
         },
         "org.springframework:spring-expression": {
@@ -4347,6 +4490,18 @@
             "locked": "5.1.4.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
+            ]
+        },
+        "org.springframework:spring-web": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "org.springframework:spring-webflux"
+            ]
+        },
+        "org.springframework:spring-webflux": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common"
             ]
         },
         "org.xerial.snappy:snappy-java": {
@@ -4789,9 +4944,16 @@
         "io.netty:netty-codec-http": {
             "locked": "4.1.32.Final",
             "transitive": [
+                "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
-                "io.projectreactor.ipc:reactor-netty",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty"
+            ]
+        },
+        "io.netty:netty-codec-http2": {
+            "locked": "4.1.32.Final",
+            "transitive": [
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-socks": {
@@ -4813,7 +4975,8 @@
             "locked": "4.1.32.Final",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
-                "io.projectreactor.ipc:reactor-netty",
+                "io.netty:netty-codec-http2",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty",
                 "org.cassandraunit:cassandra-unit"
             ]
@@ -4821,7 +4984,7 @@
         "io.netty:netty-handler-proxy": {
             "locked": "4.1.32.Final",
             "transitive": [
-                "io.projectreactor.ipc:reactor-netty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
@@ -4843,7 +5006,7 @@
         "io.netty:netty-transport-native-epoll": {
             "locked": "4.1.32.Final",
             "transitive": [
-                "io.projectreactor.ipc:reactor-netty",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty"
             ]
         },
@@ -4872,19 +5035,20 @@
                 "com.netflix.titus:titus-common"
             ]
         },
-        "io.projectreactor.ipc:reactor-netty": {
-            "locked": "0.7.14.RELEASE",
+        "io.projectreactor.netty:reactor-netty": {
+            "locked": "0.8.4.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.1.14.RELEASE",
+            "locked": "3.2.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
-                "io.projectreactor.ipc:reactor-netty",
-                "io.projectreactor:reactor-test"
+                "io.projectreactor.netty:reactor-netty",
+                "io.projectreactor:reactor-test",
+                "org.springframework:spring-webflux"
             ]
         },
         "io.projectreactor:reactor-test": {
@@ -5241,10 +5405,20 @@
                 "com.netflix.titus:titus-ext-cassandra"
             ]
         },
+        "org.springframework:spring-beans": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "org.springframework:spring-web",
+                "org.springframework:spring-webflux"
+            ]
+        },
         "org.springframework:spring-core": {
             "locked": "5.1.4.RELEASE",
             "transitive": [
-                "org.springframework:spring-expression"
+                "org.springframework:spring-beans",
+                "org.springframework:spring-expression",
+                "org.springframework:spring-web",
+                "org.springframework:spring-webflux"
             ]
         },
         "org.springframework:spring-expression": {
@@ -5257,6 +5431,18 @@
             "locked": "5.1.4.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
+            ]
+        },
+        "org.springframework:spring-web": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "org.springframework:spring-webflux"
+            ]
+        },
+        "org.springframework:spring-webflux": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common"
             ]
         },
         "org.xerial.snappy:snappy-java": {
@@ -5699,9 +5885,16 @@
         "io.netty:netty-codec-http": {
             "locked": "4.1.32.Final",
             "transitive": [
+                "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
-                "io.projectreactor.ipc:reactor-netty",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty"
+            ]
+        },
+        "io.netty:netty-codec-http2": {
+            "locked": "4.1.32.Final",
+            "transitive": [
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-socks": {
@@ -5723,7 +5916,8 @@
             "locked": "4.1.32.Final",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
-                "io.projectreactor.ipc:reactor-netty",
+                "io.netty:netty-codec-http2",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty",
                 "org.cassandraunit:cassandra-unit"
             ]
@@ -5731,7 +5925,7 @@
         "io.netty:netty-handler-proxy": {
             "locked": "4.1.32.Final",
             "transitive": [
-                "io.projectreactor.ipc:reactor-netty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
@@ -5753,7 +5947,7 @@
         "io.netty:netty-transport-native-epoll": {
             "locked": "4.1.32.Final",
             "transitive": [
-                "io.projectreactor.ipc:reactor-netty",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty"
             ]
         },
@@ -5782,19 +5976,20 @@
                 "com.netflix.titus:titus-common"
             ]
         },
-        "io.projectreactor.ipc:reactor-netty": {
-            "locked": "0.7.14.RELEASE",
+        "io.projectreactor.netty:reactor-netty": {
+            "locked": "0.8.4.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.1.14.RELEASE",
+            "locked": "3.2.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
-                "io.projectreactor.ipc:reactor-netty",
-                "io.projectreactor:reactor-test"
+                "io.projectreactor.netty:reactor-netty",
+                "io.projectreactor:reactor-test",
+                "org.springframework:spring-webflux"
             ]
         },
         "io.projectreactor:reactor-test": {
@@ -6151,10 +6346,20 @@
                 "com.netflix.titus:titus-ext-cassandra"
             ]
         },
+        "org.springframework:spring-beans": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "org.springframework:spring-web",
+                "org.springframework:spring-webflux"
+            ]
+        },
         "org.springframework:spring-core": {
             "locked": "5.1.4.RELEASE",
             "transitive": [
-                "org.springframework:spring-expression"
+                "org.springframework:spring-beans",
+                "org.springframework:spring-expression",
+                "org.springframework:spring-web",
+                "org.springframework:spring-webflux"
             ]
         },
         "org.springframework:spring-expression": {
@@ -6167,6 +6372,18 @@
             "locked": "5.1.4.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
+            ]
+        },
+        "org.springframework:spring-web": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "org.springframework:spring-webflux"
+            ]
+        },
+        "org.springframework:spring-webflux": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common"
             ]
         },
         "org.xerial.snappy:snappy-java": {
@@ -6609,9 +6826,16 @@
         "io.netty:netty-codec-http": {
             "locked": "4.1.32.Final",
             "transitive": [
+                "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
-                "io.projectreactor.ipc:reactor-netty",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty"
+            ]
+        },
+        "io.netty:netty-codec-http2": {
+            "locked": "4.1.32.Final",
+            "transitive": [
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-socks": {
@@ -6633,7 +6857,8 @@
             "locked": "4.1.32.Final",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
-                "io.projectreactor.ipc:reactor-netty",
+                "io.netty:netty-codec-http2",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty",
                 "org.cassandraunit:cassandra-unit"
             ]
@@ -6641,7 +6866,7 @@
         "io.netty:netty-handler-proxy": {
             "locked": "4.1.32.Final",
             "transitive": [
-                "io.projectreactor.ipc:reactor-netty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
@@ -6663,7 +6888,7 @@
         "io.netty:netty-transport-native-epoll": {
             "locked": "4.1.32.Final",
             "transitive": [
-                "io.projectreactor.ipc:reactor-netty",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty"
             ]
         },
@@ -6692,19 +6917,20 @@
                 "com.netflix.titus:titus-common"
             ]
         },
-        "io.projectreactor.ipc:reactor-netty": {
-            "locked": "0.7.14.RELEASE",
+        "io.projectreactor.netty:reactor-netty": {
+            "locked": "0.8.4.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.1.14.RELEASE",
+            "locked": "3.2.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
-                "io.projectreactor.ipc:reactor-netty",
-                "io.projectreactor:reactor-test"
+                "io.projectreactor.netty:reactor-netty",
+                "io.projectreactor:reactor-test",
+                "org.springframework:spring-webflux"
             ]
         },
         "io.projectreactor:reactor-test": {
@@ -7062,10 +7288,20 @@
                 "com.netflix.titus:titus-ext-cassandra"
             ]
         },
+        "org.springframework:spring-beans": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "org.springframework:spring-web",
+                "org.springframework:spring-webflux"
+            ]
+        },
         "org.springframework:spring-core": {
             "locked": "5.1.4.RELEASE",
             "transitive": [
-                "org.springframework:spring-expression"
+                "org.springframework:spring-beans",
+                "org.springframework:spring-expression",
+                "org.springframework:spring-web",
+                "org.springframework:spring-webflux"
             ]
         },
         "org.springframework:spring-expression": {
@@ -7078,6 +7314,18 @@
             "locked": "5.1.4.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
+            ]
+        },
+        "org.springframework:spring-web": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "org.springframework:spring-webflux"
+            ]
+        },
+        "org.springframework:spring-webflux": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common"
             ]
         },
         "org.xerial.snappy:snappy-java": {
@@ -7520,9 +7768,16 @@
         "io.netty:netty-codec-http": {
             "locked": "4.1.32.Final",
             "transitive": [
+                "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
-                "io.projectreactor.ipc:reactor-netty",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty"
+            ]
+        },
+        "io.netty:netty-codec-http2": {
+            "locked": "4.1.32.Final",
+            "transitive": [
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-socks": {
@@ -7544,7 +7799,8 @@
             "locked": "4.1.32.Final",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
-                "io.projectreactor.ipc:reactor-netty",
+                "io.netty:netty-codec-http2",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty",
                 "org.cassandraunit:cassandra-unit"
             ]
@@ -7552,7 +7808,7 @@
         "io.netty:netty-handler-proxy": {
             "locked": "4.1.32.Final",
             "transitive": [
-                "io.projectreactor.ipc:reactor-netty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
@@ -7574,7 +7830,7 @@
         "io.netty:netty-transport-native-epoll": {
             "locked": "4.1.32.Final",
             "transitive": [
-                "io.projectreactor.ipc:reactor-netty",
+                "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty"
             ]
         },
@@ -7603,19 +7859,20 @@
                 "com.netflix.titus:titus-common"
             ]
         },
-        "io.projectreactor.ipc:reactor-netty": {
-            "locked": "0.7.14.RELEASE",
+        "io.projectreactor.netty:reactor-netty": {
+            "locked": "0.8.4.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.1.14.RELEASE",
+            "locked": "3.2.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
-                "io.projectreactor.ipc:reactor-netty",
-                "io.projectreactor:reactor-test"
+                "io.projectreactor.netty:reactor-netty",
+                "io.projectreactor:reactor-test",
+                "org.springframework:spring-webflux"
             ]
         },
         "io.projectreactor:reactor-test": {
@@ -7973,10 +8230,20 @@
                 "com.netflix.titus:titus-ext-cassandra"
             ]
         },
+        "org.springframework:spring-beans": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "org.springframework:spring-web",
+                "org.springframework:spring-webflux"
+            ]
+        },
         "org.springframework:spring-core": {
             "locked": "5.1.4.RELEASE",
             "transitive": [
-                "org.springframework:spring-expression"
+                "org.springframework:spring-beans",
+                "org.springframework:spring-expression",
+                "org.springframework:spring-web",
+                "org.springframework:spring-webflux"
             ]
         },
         "org.springframework:spring-expression": {
@@ -7989,6 +8256,18 @@
             "locked": "5.1.4.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
+            ]
+        },
+        "org.springframework:spring-web": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "org.springframework:spring-webflux"
+            ]
+        },
+        "org.springframework:spring-webflux": {
+            "locked": "5.1.4.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common"
             ]
         },
         "org.xerial.snappy:snappy-java": {

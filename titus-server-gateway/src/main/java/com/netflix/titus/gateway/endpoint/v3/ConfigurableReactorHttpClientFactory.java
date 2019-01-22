@@ -23,7 +23,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.netflix.titus.common.network.reverseproxy.http.ReactorHttpClientFactory;
-import reactor.ipc.netty.http.client.HttpClient;
+import reactor.netty.http.client.HttpClient;
 
 @Singleton
 public class ConfigurableReactorHttpClientFactory implements ReactorHttpClientFactory {
@@ -47,7 +47,7 @@ public class ConfigurableReactorHttpClientFactory implements ReactorHttpClientFa
 
     private Map<String, HttpClient> buildClients(SupplementaryServiceLocationConfiguration configuration) {
         Map<String, HttpClient> result = new HashMap<>();
-        configuration.getServices().forEach((k, v) -> result.put(k, HttpClient.create(v.getHost(), v.getHttpPort())));
+        configuration.getServices().forEach((k, v) -> result.put(k, HttpClient.create().baseUrl(String.format("http://%s:%s", v.getHost(), v.getHttpPort()))));
         return result;
     }
 }

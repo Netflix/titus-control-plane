@@ -18,20 +18,22 @@ package com.netflix.titus.master.endpoint.v2.rest;
 
 import java.net.InetSocketAddress;
 import java.util.Optional;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MediaType;
 
 import com.netflix.titus.api.endpoint.v2.rest.representation.LeaderRepresentation;
+import com.netflix.titus.master.mesos.MesosMasterResolver;
 import com.netflix.titus.master.supervisor.service.MasterDescription;
 import com.netflix.titus.master.supervisor.service.MasterMonitor;
-import com.netflix.titus.master.mesos.MesosMasterResolver;
 import com.netflix.titus.runtime.endpoint.common.rest.JsonMessageReaderWriter;
 import com.netflix.titus.runtime.endpoint.common.rest.TitusExceptionMapper;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
-import com.netflix.titus.testkit.junit.jaxrs.HttpTestClient;
 import com.netflix.titus.testkit.junit.jaxrs.JaxRsServerResource;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.springframework.test.web.reactive.server.WebTestClient;
 
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -59,25 +61,31 @@ public class LeaderResourceTest {
             .withProviders(new JsonMessageReaderWriter(), new TitusExceptionMapper())
             .build();
 
-    private static HttpTestClient client;
+    private static WebTestClient testClient;
 
     @BeforeClass
-    public static void setUpClass() throws Exception {
-        client = new HttpTestClient(jaxRsServer.getBaseURI());
+    public static void setUpClass() {
+        testClient = WebTestClient.bindToServer()
+                .baseUrl(jaxRsServer.getBaseURI())
+                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON)
+                .build();
     }
 
     @Test
-    public void testLeaderReply() throws Exception {
+    public void testLeaderReply() {
         when(masterMonitor.getLatestLeader()).thenReturn(LATEST_MASTER);
         when(mesosMasterResolver.resolveLeader()).thenReturn(Optional.of(LEADER_ADDRESS));
         when(mesosMasterResolver.resolveMesosAddresses()).thenReturn(asList(LEADER_ADDRESS, NON_LEADER_ADDRESS));
 
-        LeaderRepresentation info = client.doGET("/api/v2/leader", LeaderRepresentation.class);
-        assertThat(info.getHostname()).isEqualTo("masterHost");
-        assertThat(info.getHostIP()).isEqualTo("127.0.0.1");
-        assertThat(info.getApiPort()).isEqualTo(7001);
-        assertThat(info.getApiStatusUri()).isEqualTo("/api/status");
-        assertThat(info.getMesosLeader()).isEqualTo("masterLeader:5050");
-        assertThat(info.getMesosServers()).containsExactly("masterLeader:5050", "masterNonLeader:5050");
+        testClient.get().uri("/api/v2/leader").exchange()
+                .expectBody(LeaderRepresentation.class)
+                .value(result -> {
+                    assertThat(result.getHostname()).isEqualTo("masterHost");
+                    assertThat(result.getHostIP()).isEqualTo("127.0.0.1");
+                    assertThat(result.getApiPort()).isEqualTo(7001);
+                    assertThat(result.getApiStatusUri()).isEqualTo("/api/status");
+                    assertThat(result.getMesosLeader()).isEqualTo("masterLeader:5050");
+                    assertThat(result.getMesosServers()).containsExactly("masterLeader:5050", "masterNonLeader:5050");
+                });
     }
 }

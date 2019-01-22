@@ -19,15 +19,15 @@ package com.netflix.titus.master.endpoint.v2.rest;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MediaType;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.netflix.titus.master.agent.ServerInfo;
 import com.netflix.titus.master.agent.service.server.ServerInfoResolver;
 import com.netflix.titus.master.scheduler.VMOperations;
 import com.netflix.titus.runtime.endpoint.common.rest.JsonMessageReaderWriter;
 import com.netflix.titus.runtime.endpoint.common.rest.TitusExceptionMapper;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
-import com.netflix.titus.testkit.junit.jaxrs.HttpTestClient;
 import com.netflix.titus.testkit.junit.jaxrs.JaxRsServerResource;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -35,6 +35,8 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.mockito.Mockito;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.test.web.reactive.server.WebTestClient;
 
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
@@ -47,14 +49,14 @@ import static org.mockito.Mockito.when;
 @Category(IntegrationTest.class)
 public class VmManagementResourceTest {
 
-    private static final TypeReference<List<ServerInfo>> LIST_SERVER_INFOS_TREF = new TypeReference<List<ServerInfo>>() {
+    private static final ParameterizedTypeReference<List<ServerInfo>> LIST_SERVER_INFOS_TREF = new ParameterizedTypeReference<List<ServerInfo>>() {
     };
 
-    private static final TypeReference<List<VMOperations.AgentInfo>> LIST_AGENT_INFO_TREF = new TypeReference<List<VMOperations.AgentInfo>>() {
+    private static final ParameterizedTypeReference<List<VMOperations.AgentInfo>> LIST_AGENT_INFO_TREF = new ParameterizedTypeReference<List<VMOperations.AgentInfo>>() {
     };
 
-    private static final TypeReference<Map<String, List<VMOperations.JobsOnVMStatus>>> MAP_JOBS_ON_VMS_TREF =
-            new TypeReference<Map<String, List<VMOperations.JobsOnVMStatus>>>() {
+    private static final ParameterizedTypeReference<Map<String, List<VMOperations.JobsOnVMStatus>>> MAP_JOBS_ON_VMS_TREF =
+            new ParameterizedTypeReference<Map<String, List<VMOperations.JobsOnVMStatus>>>() {
             };
 
     private static ServerInfoResolver serverInfoResolver = mock(ServerInfoResolver.class);
@@ -67,11 +69,14 @@ public class VmManagementResourceTest {
             .withProviders(new JsonMessageReaderWriter(), new TitusExceptionMapper())
             .build();
 
-    private static HttpTestClient client;
+    private static WebTestClient testClient;
 
     @BeforeClass
-    public static void setUpClass() throws Exception {
-        client = new HttpTestClient(jaxRsServer.getBaseURI() + VmManagementEndpoint.PATH_API_V2_VM);
+    public static void setUpClass() {
+        testClient = WebTestClient.bindToServer()
+                .baseUrl(jaxRsServer.getBaseURI() + VmManagementEndpoint.PATH_API_V2_VM + '/')
+                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON)
+                .build();
     }
 
     @Before
@@ -80,55 +85,58 @@ public class VmManagementResourceTest {
     }
 
     @Test
-    public void testGetServerInfos() throws Exception {
+    public void testGetServerInfos() {
         when(serverInfoResolver.resolveAll()).thenReturn(Collections.singletonList(createServerInfo()));
 
-        List<ServerInfo> serverInfos = client.doGET(VmManagementEndpoint.PATH_LIST_SERVER_INFOS, LIST_SERVER_INFOS_TREF);
+        testClient.get().uri(VmManagementEndpoint.PATH_LIST_SERVER_INFOS).exchange()
+                .expectBody(LIST_SERVER_INFOS_TREF)
+                .value(serverInfos -> assertThat(serverInfos).hasSize(1));
 
         verify(serverInfoResolver, times(1)).resolveAll();
-        assertThat(serverInfos).hasSize(1);
     }
 
     @Test
-    public void testGetAllAgents() throws Exception {
+    public void testGetAllAgents() {
         when(vmOps.getAgentInfos()).thenReturn(Collections.singletonList(createAgentInfo()));
 
-        List<VMOperations.AgentInfo> agentInfos = client.doGET(VmManagementEndpoint.PATH_LIST_AGENTS, LIST_AGENT_INFO_TREF);
+        testClient.get().uri(VmManagementEndpoint.PATH_LIST_AGENTS).exchange()
+                .expectBody(LIST_AGENT_INFO_TREF)
+                .value(agentInfos -> assertThat(agentInfos).hasSize(1));
 
         verify(vmOps, times(1)).getAgentInfos();
-        assertThat(agentInfos).hasSize(1);
     }
 
     @Test
-    public void testGetDetachedAgents() throws Exception {
+    public void testGetDetachedAgents() {
         when(vmOps.getDetachedAgentInfos()).thenReturn(Collections.singletonList(createAgentInfo()));
 
-        Map<String, Object> queryParams = singletonMap("detached", Boolean.TRUE);
-        List<VMOperations.AgentInfo> agentInfos = client.doGET(VmManagementEndpoint.PATH_LIST_AGENTS, queryParams, LIST_AGENT_INFO_TREF);
+        testClient.get().uri(VmManagementEndpoint.PATH_LIST_AGENTS + "?detached=true").exchange()
+                .expectBody(LIST_AGENT_INFO_TREF)
+                .value(agentInfos -> assertThat(agentInfos).hasSize(1));
 
         verify(vmOps, times(1)).getDetachedAgentInfos();
-        assertThat(agentInfos).hasSize(1);
     }
 
     @Test
-    public void testGetJobsOnVMs() throws Exception {
+    public void testGetJobsOnVMs() {
         when(vmOps.getJobsOnVMs(false, false)).thenReturn(createJobsOnVMs());
 
-        Map<String, List<VMOperations.JobsOnVMStatus>> jobInfos = client.doGET(VmManagementEndpoint.PATH_LIST_JOBS_ON_VM, MAP_JOBS_ON_VMS_TREF);
+        testClient.get().uri(VmManagementEndpoint.PATH_LIST_JOBS_ON_VM).exchange()
+                .expectBody(MAP_JOBS_ON_VMS_TREF)
+                .value(agentInfos -> assertThat(agentInfos).hasSize(1));
 
         verify(vmOps, times(1)).getJobsOnVMs(false, false);
-        assertThat(jobInfos).hasSize(1);
     }
 
     @Test
-    public void testGetIdleJobsOnVm() throws Exception {
+    public void testGetIdleJobsOnVm() {
         when(vmOps.getJobsOnVMs(true, false)).thenReturn(createJobsOnVMs());
 
-        Map<String, Object> queryParams = singletonMap("idleOnly", Boolean.TRUE);
-        Map<String, List<VMOperations.JobsOnVMStatus>> jobInfos = client.doGET(VmManagementEndpoint.PATH_LIST_JOBS_ON_VM, queryParams, MAP_JOBS_ON_VMS_TREF);
+        testClient.get().uri(VmManagementEndpoint.PATH_LIST_JOBS_ON_VM + "?idleOnly=true").exchange()
+                .expectBody(MAP_JOBS_ON_VMS_TREF)
+                .value(agentInfos -> assertThat(agentInfos).hasSize(1));
 
         verify(vmOps, times(1)).getJobsOnVMs(true, false);
-        assertThat(jobInfos).hasSize(1);
     }
 
     private VMOperations.AgentInfo createAgentInfo() {
