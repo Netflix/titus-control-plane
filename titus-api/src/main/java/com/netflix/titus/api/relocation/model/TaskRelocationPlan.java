@@ -27,12 +27,14 @@ public class TaskRelocationPlan {
     private final String taskId;
     private final TaskRelocationReason reason;
     private final String reasonMessage;
+    private final long decisionTime;
     private final long relocationTime;
 
-    public TaskRelocationPlan(String taskId, TaskRelocationReason reason, String reasonMessage, long relocationTime) {
+    public TaskRelocationPlan(String taskId, TaskRelocationReason reason, String reasonMessage, long decisionTime, long relocationTime) {
         this.taskId = taskId;
         this.reason = reason;
         this.reasonMessage = reasonMessage;
+        this.decisionTime = decisionTime;
         this.relocationTime = relocationTime;
     }
 
@@ -48,6 +50,10 @@ public class TaskRelocationPlan {
         return reasonMessage;
     }
 
+    public long getDecisionTime() {
+        return decisionTime;
+    }
+
     public long getRelocationTime() {
         return relocationTime;
     }
@@ -61,15 +67,16 @@ public class TaskRelocationPlan {
             return false;
         }
         TaskRelocationPlan that = (TaskRelocationPlan) o;
-        return relocationTime == that.relocationTime &&
+        return decisionTime == that.decisionTime &&
+                relocationTime == that.relocationTime &&
                 Objects.equals(taskId, that.taskId) &&
-                Objects.equals(reason, that.reason) &&
+                reason == that.reason &&
                 Objects.equals(reasonMessage, that.reasonMessage);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(taskId, reason, reasonMessage, relocationTime);
+        return Objects.hash(taskId, reason, reasonMessage, decisionTime, relocationTime);
     }
 
     @Override
@@ -78,12 +85,13 @@ public class TaskRelocationPlan {
                 "taskId='" + taskId + '\'' +
                 ", reason=" + reason +
                 ", reasonMessage='" + reasonMessage + '\'' +
+                ", decisionTime=" + decisionTime +
                 ", relocationTime=" + relocationTime +
                 '}';
     }
 
     public Builder toBuilder() {
-        return newBuilder().withTaskId(taskId).withReason(reason).withReasonMessage(reasonMessage).withRelocationTime(relocationTime);
+        return newBuilder().withTaskId(taskId).withReason(reason).withReasonMessage(reasonMessage).withDecisionTime(decisionTime).withRelocationTime(relocationTime);
     }
 
     public static Builder newBuilder() {
@@ -94,6 +102,7 @@ public class TaskRelocationPlan {
         private String taskId;
         private TaskRelocationReason reason;
         private String reasonMessage;
+        private long decisionTime;
         private long relocationTime;
 
         private Builder() {
@@ -114,13 +123,18 @@ public class TaskRelocationPlan {
             return this;
         }
 
+        public Builder withDecisionTime(long decisionTime) {
+            this.decisionTime = decisionTime;
+            return this;
+        }
+
         public Builder withRelocationTime(long relocationTime) {
             this.relocationTime = relocationTime;
             return this;
         }
 
         public TaskRelocationPlan build() {
-            return new TaskRelocationPlan(taskId, reason, reasonMessage, relocationTime);
+            return new TaskRelocationPlan(taskId, reason, reasonMessage, decisionTime, relocationTime);
         }
     }
 }

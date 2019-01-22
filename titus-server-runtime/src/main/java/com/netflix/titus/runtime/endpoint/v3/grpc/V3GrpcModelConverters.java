@@ -881,6 +881,7 @@ public final class V3GrpcModelConverters {
     public static com.netflix.titus.grpc.protogen.MigrationDetails toGrpcMigrationDetails(MigrationDetails migrationDetails) {
         return com.netflix.titus.grpc.protogen.MigrationDetails.newBuilder()
                 .setNeedsMigration(migrationDetails.isNeedsMigration())
+                .setStarted(migrationDetails.getStarted())
                 .setDeadline(migrationDetails.getDeadline())
                 .build();
     }

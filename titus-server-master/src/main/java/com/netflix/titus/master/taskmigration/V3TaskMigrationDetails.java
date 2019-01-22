@@ -31,6 +31,7 @@ import com.netflix.titus.api.jobmanager.model.job.migration.SelfManagedMigration
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.tuple.Pair;
 
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID;
@@ -43,13 +44,15 @@ public class V3TaskMigrationDetails implements TaskMigrationDetails {
     private final String jobId;
     private final String taskId;
     private final V3JobOperations v3JobOperations;
+    private final TitusRuntime titusRuntime;
     private final long createdTimeMillis;
 
-    public V3TaskMigrationDetails(Job<?> job, Task task, V3JobOperations v3JobOperations) {
+    public V3TaskMigrationDetails(Job<?> job, Task task, V3JobOperations v3JobOperations, TitusRuntime titusRuntime) {
         this.jobId = job.getId();
         this.taskId = task.getId();
         this.v3JobOperations = v3JobOperations;
-        this.createdTimeMillis = System.currentTimeMillis();
+        this.titusRuntime = titusRuntime;
+        this.createdTimeMillis = titusRuntime.getClock().wallTime();
     }
 
     @Override
@@ -146,6 +149,7 @@ public class V3TaskMigrationDetails implements TaskMigrationDetails {
                         ServiceJobTask serviceTask = (ServiceJobTask) t;
                         MigrationDetails newMigrationDetails = MigrationDetails.newBuilder()
                                 .withNeedsMigration(true)
+                                .withStarted(titusRuntime.getClock().wallTime())
                                 .withDeadline(migrationDeadline)
                                 .build();
                         return Optional.of(serviceTask.toBuilder().withMigrationDetails(newMigrationDetails).build());

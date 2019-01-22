@@ -42,6 +42,7 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.guice.annotation.Activator;
@@ -74,6 +75,7 @@ public class ServiceJobTaskMigrator implements TaskMigrator {
     private final Map<String, TaskMigrationManager> taskMigrationManagers;
     private final Scheduler.Worker worker;
     private final Registry registry;
+    private final TitusRuntime titusRuntime;
 
     private final Map<String, Gauge> jobsToBeMigratedCounters = new HashMap<>();
     private EnumMap<TaskMigrationManager.State, AtomicInteger> serviceJobsToBeMigrated;
@@ -86,22 +88,23 @@ public class ServiceJobTaskMigrator implements TaskMigrator {
     public ServiceJobTaskMigrator(V3JobOperations v3JobOperations,
                                   ServiceJobTaskMigratorConfig config,
                                   TaskMigrationManagerFactory managerFactory,
-                                  Registry registry) {
+                                  TitusRuntime titusRuntime) {
         this(SchedulerExt.createSingleThreadScheduler("service-job-task-migrator"),
-                v3JobOperations, config, managerFactory, registry);
+                v3JobOperations, config, managerFactory, titusRuntime);
     }
 
     public ServiceJobTaskMigrator(Scheduler scheduler,
                                   V3JobOperations v3JobOperations,
                                   ServiceJobTaskMigratorConfig config,
                                   TaskMigrationManagerFactory managerFactory,
-                                  Registry registry) {
+                                  TitusRuntime titusRuntime) {
         this.scheduler = scheduler;
         this.v3JobOperations = v3JobOperations;
         this.config = config;
         this.worker = scheduler.createWorker();
         this.managerFactory = managerFactory;
-        this.registry = registry;
+        this.registry = titusRuntime.getRegistry();
+        this.titusRuntime = titusRuntime;
 
         taskMigrationDetailsMap = new ConcurrentHashMap<>();
         taskMigrationManagers = new ConcurrentHashMap<>();
@@ -145,7 +148,7 @@ public class ServiceJobTaskMigrator implements TaskMigrator {
                 V3QueueableTask v3QueueableTask = (V3QueueableTask) taskRequest;
                 Job job = v3QueueableTask.getJob();
                 Task task = v3QueueableTask.getTask();
-                TaskMigrationDetails taskMigrationDetails = new V3TaskMigrationDetails(job, task, v3JobOperations);
+                TaskMigrationDetails taskMigrationDetails = new V3TaskMigrationDetails(job, task, v3JobOperations, titusRuntime);
                 if (!appNamesToIgnore.contains(taskMigrationDetails.getApplicationName()) && taskMigrationDetails.isService()) {
                     taskMigrationDetailsMap.putIfAbsent(taskMigrationDetails.getId(), taskMigrationDetails);
                     logger.debug("Added v3 taskId: {} to migration map", taskId);
