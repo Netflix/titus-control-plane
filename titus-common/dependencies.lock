@@ -369,7 +369,7 @@
             "requested": "3.+"
         },
         "org.hdrhistogram:HdrHistogram": {
-            "locked": "2.1.10",
+            "locked": "2.1.11",
             "requested": "2.1.+"
         },
         "org.hibernate:hibernate-validator": {
@@ -811,7 +811,7 @@
             "requested": "3.+"
         },
         "org.hdrhistogram:HdrHistogram": {
-            "locked": "2.1.10",
+            "locked": "2.1.11",
             "requested": "2.1.+"
         },
         "org.hibernate:hibernate-validator": {
@@ -1259,7 +1259,7 @@
             "requested": "3.+"
         },
         "org.hdrhistogram:HdrHistogram": {
-            "locked": "2.1.10",
+            "locked": "2.1.11",
             "requested": "2.1.+"
         },
         "org.hibernate:hibernate-validator": {
@@ -1775,7 +1775,7 @@
             "requested": "3.+"
         },
         "org.hdrhistogram:HdrHistogram": {
-            "locked": "2.1.10",
+            "locked": "2.1.11",
             "requested": "2.1.+"
         },
         "org.hibernate:hibernate-validator": {
@@ -2228,7 +2228,7 @@
             "requested": "3.+"
         },
         "org.hdrhistogram:HdrHistogram": {
-            "locked": "2.1.10",
+            "locked": "2.1.11",
             "requested": "2.1.+"
         },
         "org.hibernate:hibernate-validator": {
@@ -3795,7 +3795,7 @@
             ]
         },
         "org.hdrhistogram:HdrHistogram": {
-            "locked": "2.1.10",
+            "locked": "2.1.11",
             "requested": "2.1.+",
             "transitive": [
                 "com.netflix.titus:titus-common"
@@ -5699,7 +5699,7 @@
             ]
         },
         "org.hdrhistogram:HdrHistogram": {
-            "locked": "2.1.10",
+            "locked": "2.1.11",
             "requested": "2.1.+",
             "transitive": [
                 "com.netflix.titus:titus-common"
@@ -7603,7 +7603,7 @@
             ]
         },
         "org.hdrhistogram:HdrHistogram": {
-            "locked": "2.1.10",
+            "locked": "2.1.11",
             "requested": "2.1.+",
             "transitive": [
                 "com.netflix.titus:titus-common"
@@ -9508,7 +9508,7 @@
             ]
         },
         "org.hdrhistogram:HdrHistogram": {
-            "locked": "2.1.10",
+            "locked": "2.1.11",
             "requested": "2.1.+",
             "transitive": [
                 "com.netflix.titus:titus-common"
