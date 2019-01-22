@@ -425,7 +425,7 @@ public final class V3GrpcModelConverters {
                 .withTwoLevelResources(toCoreTwoLevelResources(job, grpcTask))
                 .withSystemResubmitNumber(systemResubmitNumber)
                 .withTaskContext(taskContext)
-        ;
+                .withAttributes(grpcTask.getAttributesMap());
 
         if (isBatchTask) { // Batch job
             ((BatchJobTask.Builder) builder).withIndex(Integer.parseInt(taskIndexStr));
@@ -844,6 +844,7 @@ public final class V3GrpcModelConverters {
                 .setStatus(toGrpcTaskStatus(coreTask.getStatus()))
                 .addAllStatusHistory(toGrpcTaskStatusHistory(coreTask.getStatusHistory()))
                 .putAllTaskContext(taskContext)
+                .putAllAttributes(coreTask.getAttributes())
                 .setLogLocation(toGrpcLogLocation(coreTask, logStorageInfo));
 
         if (coreTask instanceof ServiceJobTask) {

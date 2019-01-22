@@ -42,8 +42,9 @@ public class ServiceJobTask extends Task {
                           List<TaskStatus> statusHistory,
                           List<TwoLevelResource> twoLevelResources,
                           Map<String, String> taskContext,
+                          Map<String, String> attributes,
                           MigrationDetails migrationDetails) {
-        super(id, jobId, status, statusHistory, originalId, resubmitOf, resubmitNumber, systemResubmitNumber, twoLevelResources, taskContext);
+        super(id, jobId, status, statusHistory, originalId, resubmitOf, resubmitNumber, systemResubmitNumber, twoLevelResources, taskContext, attributes);
         this.migrationDetails = migrationDetails;
     }
 
@@ -87,6 +88,7 @@ public class ServiceJobTask extends Task {
                 ", systemResubmitNumber=" + getSystemResubmitNumber() +
                 ", twoLevelResources=" + getTwoLevelResources() +
                 ", taskContext=" + getTaskContext() +
+                ", attributes=" + getAttributes() +
                 "migrationDetails=" + migrationDetails +
                 '}';
     }
@@ -112,7 +114,7 @@ public class ServiceJobTask extends Task {
         }
 
         private Builder(ServiceJobTask serviceJobTask) {
-            newBuilder(this, serviceJobTask);
+            newBuilder(this, serviceJobTask).withMigrationDetails(serviceJobTask.getMigrationDetails());
         }
 
         public Builder withMigrationDetails(MigrationDetails migrationDetails) {
@@ -137,6 +139,7 @@ public class ServiceJobTask extends Task {
                     nonNull(statusHistory),
                     nonNull(twoLevelResources),
                     nonNull(taskContext),
+                    nonNull(attributes),
                     migrationDetails
             );
         }

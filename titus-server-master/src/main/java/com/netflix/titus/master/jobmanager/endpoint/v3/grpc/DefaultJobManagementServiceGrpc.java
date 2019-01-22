@@ -61,6 +61,7 @@ import com.netflix.titus.grpc.protogen.JobQueryResult;
 import com.netflix.titus.grpc.protogen.JobStatusUpdate;
 import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
 import com.netflix.titus.grpc.protogen.Task;
+import com.netflix.titus.grpc.protogen.TaskAttributesUpdate;
 import com.netflix.titus.grpc.protogen.TaskId;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskMoveRequest;
@@ -459,6 +460,24 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
                         responseObserver.onNext(Empty.getDefaultInstance());
                         responseObserver.onCompleted();
                     }
+            );
+        });
+    }
+
+    @Override
+    public void updateTaskAttributes(TaskAttributesUpdate request, StreamObserver<Empty> responseObserver) {
+        execute(callMetadataResolver, responseObserver, callMetadata -> {
+            jobOperations.updateTask(
+                    request.getTaskId(),
+                    task -> Optional.of(task.toBuilder().withAttributes(request.getAttributesMap()).build()),
+                    V3JobOperations.Trigger.API,
+                    "User request: userId=" + callMetadata.getCallerId()
+            ).subscribe(
+                    () -> {
+                        responseObserver.onNext(Empty.getDefaultInstance());
+                        responseObserver.onCompleted();
+                    },
+                    e -> safeOnError(logger, e, responseObserver)
             );
         });
     }

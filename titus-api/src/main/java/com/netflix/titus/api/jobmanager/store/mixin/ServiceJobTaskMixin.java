@@ -38,6 +38,7 @@ public class ServiceJobTaskMixin {
                                   @JsonProperty("statusHistory") List<TaskStatus> statusHistory,
                                   @JsonProperty("twoLevelResources") List<TwoLevelResource> twoLevelResources,
                                   @JsonProperty("taskContext") Map<String, String> taskContext,
+                                  @JsonProperty("attributes") Map<String, String> attributes,
                                   @JsonProperty("migrationDetails") MigrationDetails migrationDetails) {
     }
 }

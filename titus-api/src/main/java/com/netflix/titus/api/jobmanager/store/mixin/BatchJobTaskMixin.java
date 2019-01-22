@@ -37,6 +37,7 @@ public abstract class BatchJobTaskMixin {
                       @JsonProperty("status") TaskStatus status,
                       @JsonProperty("statusHistory") List<TaskStatus> statusHistory,
                       @JsonProperty("twoLevelResources") List<TwoLevelResource> twoLevelResources,
-                      @JsonProperty("taskContext") Map<String, String> taskContext) {
+                      @JsonProperty("taskContext") Map<String, String> taskContext,
+                      @JsonProperty("attributes") Map<String, String> attributes) {
     }
 }

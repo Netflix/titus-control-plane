@@ -44,6 +44,7 @@ public abstract class Task {
     private final int systemResubmitNumber;
     private final List<TwoLevelResource> twoLevelResources;
     private final Map<String, String> taskContext;
+    private final Map<String, String> attributes;
 
     protected Task(String id,
                    String jobId,
@@ -54,7 +55,8 @@ public abstract class Task {
                    int resubmitNumber,
                    int systemResubmitNumber,
                    List<TwoLevelResource> twoLevelResources,
-                   Map<String, String> taskContext) {
+                   Map<String, String> taskContext,
+                   Map<String, String> attributes) {
         this.id = id;
         this.jobId = jobId;
         this.status = status;
@@ -65,6 +67,7 @@ public abstract class Task {
         this.systemResubmitNumber = systemResubmitNumber;
         this.twoLevelResources = CollectionsExt.nullableImmutableCopyOf(twoLevelResources);
         this.taskContext = CollectionsExt.nullableImmutableCopyOf(taskContext);
+        this.attributes = attributes;
     }
 
     public String getId() {
@@ -107,6 +110,10 @@ public abstract class Task {
         return taskContext;
     }
 
+    public Map<String, String> getAttributes() {
+        return attributes;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -125,12 +132,13 @@ public abstract class Task {
                 Objects.equals(originalId, task.originalId) &&
                 Objects.equals(resubmitOf, task.resubmitOf) &&
                 Objects.equals(twoLevelResources, task.twoLevelResources) &&
-                Objects.equals(taskContext, task.taskContext);
+                Objects.equals(taskContext, task.taskContext) &&
+                Objects.equals(attributes, task.attributes);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, jobId, status, statusHistory, originalId, resubmitOf, resubmitNumber, systemResubmitNumber, twoLevelResources, taskContext);
+        return Objects.hash(id, jobId, status, statusHistory, originalId, resubmitOf, resubmitNumber, systemResubmitNumber, twoLevelResources, taskContext, attributes);
     }
 
     @Override
@@ -146,6 +154,7 @@ public abstract class Task {
                 ", systemResubmitNumber=" + systemResubmitNumber +
                 ", twoLevelResources=" + twoLevelResources +
                 ", taskContext=" + taskContext +
+                ", attributes=" + attributes +
                 '}';
     }
 
@@ -162,6 +171,7 @@ public abstract class Task {
         protected int systemResubmitNumber;
         protected List<TwoLevelResource> twoLevelResources;
         protected Map<String, String> taskContext;
+        protected Map<String, String> attributes;
 
         public B withId(String id) {
             this.id = id;
@@ -245,6 +255,11 @@ public abstract class Task {
             return self();
         }
 
+        public B withAttributes(Map<String, String> attributes) {
+            this.attributes = attributes;
+            return self();
+        }
+
         public B withCellInfo(Job<?> job) {
             final Map<String, String> jobAttributes = job.getJobDescriptor().getAttributes();
             if (CollectionsExt.containsKeys(jobAttributes, JOB_ATTRIBUTES_CELL)) {
@@ -279,7 +294,8 @@ public abstract class Task {
                     .withResubmitNumber(resubmitNumber)
                     .withSystemResubmitNumber(resubmitNumber)
                     .withTwoLevelResources(twoLevelResources)
-                    .withTaskContext(taskContext);
+                    .withTaskContext(taskContext)
+                    .withAttributes(attributes);
         }
 
         protected B newBuilder(TaskBuilder<T, B> newBuilder, Task task) {
@@ -293,7 +309,8 @@ public abstract class Task {
                     .withResubmitNumber(task.getResubmitNumber())
                     .withSystemResubmitNumber(task.getSystemResubmitNumber())
                     .withTwoLevelResources(task.getTwoLevelResources())
-                    .withTaskContext(task.getTaskContext());
+                    .withTaskContext(task.getTaskContext())
+                    .withAttributes(task.getAttributes());
 
         }
 
