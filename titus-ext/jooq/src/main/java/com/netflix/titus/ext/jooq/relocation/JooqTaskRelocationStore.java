@@ -65,6 +65,7 @@ public class JooqTaskRelocationStore implements TaskRelocationStore {
                 .column(RELOCATION_PLAN.TASK_ID)
                 .column(RELOCATION_PLAN.REASON_CODE)
                 .column(RELOCATION_PLAN.REASON_MESSAGE)
+                .column(RELOCATION_PLAN.DECISION_TIME)
                 .column(RELOCATION_PLAN.RELOCATION_TIME)
                 .constraint(DSL.constraint("pk_relocation_plan_task_id").primaryKey(RELOCATION_PLAN.TASK_ID))
                 .execute();
@@ -171,6 +172,7 @@ public class JooqTaskRelocationStore implements TaskRelocationStore {
 
         storeQuery.addValue(RELOCATION_PLAN.REASON_CODE, relocationPlan.getReason().name());
         storeQuery.addValue(RELOCATION_PLAN.REASON_MESSAGE, relocationPlan.getReasonMessage());
+        storeQuery.addValue(RELOCATION_PLAN.DECISION_TIME, new Timestamp(relocationPlan.getDecisionTime()));
         storeQuery.addValue(RELOCATION_PLAN.RELOCATION_TIME, new Timestamp(relocationPlan.getRelocationTime()));
 
         return storeQuery;

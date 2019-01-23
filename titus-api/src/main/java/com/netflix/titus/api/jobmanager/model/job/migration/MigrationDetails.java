@@ -16,17 +16,25 @@
 
 package com.netflix.titus.api.jobmanager.model.job.migration;
 
+import java.util.Objects;
+
 public class MigrationDetails {
     private final boolean needsMigration;
+    private final long started;
     private final long deadline;
 
-    public MigrationDetails(boolean needsMigration, long deadline) {
+    public MigrationDetails(boolean needsMigration, long started, long deadline) {
         this.needsMigration = needsMigration;
+        this.started = started;
         this.deadline = deadline;
     }
 
     public boolean isNeedsMigration() {
         return needsMigration;
+    }
+
+    public long getStarted() {
+        return started;
     }
 
     public long getDeadline() {
@@ -41,26 +49,22 @@ public class MigrationDetails {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
         MigrationDetails that = (MigrationDetails) o;
-
-        if (needsMigration != that.needsMigration) {
-            return false;
-        }
-        return deadline == that.deadline;
+        return needsMigration == that.needsMigration &&
+                started == that.started &&
+                deadline == that.deadline;
     }
 
     @Override
     public int hashCode() {
-        int result = (needsMigration ? 1 : 0);
-        result = 31 * result + (int) (deadline ^ (deadline >>> 32));
-        return result;
+        return Objects.hash(needsMigration, started, deadline);
     }
 
     @Override
     public String toString() {
         return "MigrationDetails{" +
                 "needsMigration=" + needsMigration +
+                ", started=" + started +
                 ", deadline=" + deadline +
                 '}';
     }
@@ -71,6 +75,7 @@ public class MigrationDetails {
 
     public static final class MigrationDetailsBuilder {
         private boolean needsMigration;
+        private long started;
         private long deadline;
 
         private MigrationDetailsBuilder() {
@@ -81,17 +86,22 @@ public class MigrationDetails {
             return this;
         }
 
+        public MigrationDetailsBuilder withStarted(long started) {
+            this.started = started;
+            return this;
+        }
+
         public MigrationDetailsBuilder withDeadline(long deadline) {
             this.deadline = deadline;
             return this;
         }
 
         public MigrationDetailsBuilder but() {
-            return MigrationDetails.newBuilder().withNeedsMigration(needsMigration).withDeadline(deadline);
+            return MigrationDetails.newBuilder().withNeedsMigration(needsMigration).withStarted(started).withDeadline(deadline);
         }
 
         public MigrationDetails build() {
-            return new MigrationDetails(needsMigration, deadline);
+            return new MigrationDetails(needsMigration, started, deadline);
         }
     }
 }

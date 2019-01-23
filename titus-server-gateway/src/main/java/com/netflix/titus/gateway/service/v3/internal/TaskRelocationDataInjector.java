@@ -139,6 +139,7 @@ class TaskRelocationDataInjector {
         return task.toBuilder().setMigrationDetails(
                 MigrationDetails.newBuilder()
                         .setNeedsMigration(true)
+                        .setStarted(relocationPlan.getDecisionTime())
                         .setDeadline(relocationPlan.getRelocationTime())
                         .build()
         ).build();

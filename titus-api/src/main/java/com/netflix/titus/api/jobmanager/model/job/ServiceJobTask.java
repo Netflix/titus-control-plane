@@ -26,6 +26,7 @@ import com.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
 import static com.netflix.titus.common.util.CollectionsExt.nonNull;
 
 /**
+ *
  */
 @ClassFieldsNotNull
 public class ServiceJobTask extends Task {
@@ -128,7 +129,7 @@ public class ServiceJobTask extends Task {
 
         @Override
         public ServiceJobTask build() {
-            migrationDetails = migrationDetails == null ? new MigrationDetails(false, 0) : migrationDetails;
+            migrationDetails = migrationDetails == null ? new MigrationDetails(false, 0, 0) : migrationDetails;
             return new ServiceJobTask(id,
                     originalId,
                     Optional.ofNullable(resubmitOf),

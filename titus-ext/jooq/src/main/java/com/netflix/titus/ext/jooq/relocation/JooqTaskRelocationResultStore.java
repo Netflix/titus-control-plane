@@ -75,6 +75,7 @@ public class JooqTaskRelocationResultStore implements TaskRelocationResultStore 
                 .column(RELOCATION_STATUS.STATUS_MESSAGE)
                 .column(RELOCATION_STATUS.REASON_CODE)
                 .column(RELOCATION_STATUS.REASON_MESSAGE)
+                .column(RELOCATION_STATUS.RELOCATION_DECISION_TIME)
                 .column(RELOCATION_STATUS.RELOCATION_PLAN_TIME)
                 .column(RELOCATION_STATUS.RELOCATION_EXECUTION_TIME)
                 .constraint(DSL.constraint("pk_relocation_status_task_id").primaryKey(RELOCATION_STATUS.TASK_ID))
@@ -164,6 +165,7 @@ public class JooqTaskRelocationResultStore implements TaskRelocationResultStore 
                                         .withTaskId(record.getTaskId())
                                         .withReason(TaskRelocationPlan.TaskRelocationReason.valueOf(record.getReasonCode()))
                                         .withReasonMessage(record.getReasonMessage())
+                                        .withDecisionTime(record.getRelocationDecisionTime().getTime())
                                         .withRelocationTime(record.getRelocationPlanTime().getTime())
                                         .build()
                                 )
@@ -187,6 +189,7 @@ public class JooqTaskRelocationResultStore implements TaskRelocationResultStore 
         storeQuery.addValue(RELOCATION_STATUS.STATUS_MESSAGE, toLengthLimitedVarchar(relocationStatus.getStatusMessage()));
         storeQuery.addValue(RELOCATION_STATUS.REASON_CODE, relocationStatus.getTaskRelocationPlan().getReason().name());
         storeQuery.addValue(RELOCATION_STATUS.REASON_MESSAGE, toLengthLimitedVarchar(relocationStatus.getTaskRelocationPlan().getReasonMessage()));
+        storeQuery.addValue(RELOCATION_STATUS.RELOCATION_DECISION_TIME, new Timestamp(relocationStatus.getTaskRelocationPlan().getDecisionTime()));
         storeQuery.addValue(RELOCATION_STATUS.RELOCATION_PLAN_TIME, new Timestamp(relocationStatus.getTaskRelocationPlan().getRelocationTime()));
         storeQuery.addValue(RELOCATION_STATUS.RELOCATION_EXECUTION_TIME, new Timestamp(relocationStatus.getTimestamp()));
 
