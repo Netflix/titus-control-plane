@@ -23,6 +23,7 @@ public abstract class MigrationDetailsMixin {
 
     @JsonCreator
     protected MigrationDetailsMixin(@JsonProperty("needsMigration") boolean needsMigration,
+                                    @JsonProperty("started") long started,
                                     @JsonProperty("deadline") long deadline) {
     }
 }

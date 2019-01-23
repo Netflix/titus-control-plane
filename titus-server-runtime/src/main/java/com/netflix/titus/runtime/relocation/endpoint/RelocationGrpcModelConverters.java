@@ -42,6 +42,7 @@ public class RelocationGrpcModelConverters {
                 .setTaskId(plan.getTaskId())
                 .setReasonCode(plan.getReason().name())
                 .setReasonMessage(plan.getReasonMessage())
+                .setDecisionTime(plan.getDecisionTime())
                 .setRelocationTime(plan.getRelocationTime())
                 .build();
     }

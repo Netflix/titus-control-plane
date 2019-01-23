@@ -21,8 +21,9 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.Lists;
-import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.master.taskmigration.TaskMigrationDetails;
 import com.netflix.titus.master.taskmigration.TaskMigrationManager;
 import com.netflix.titus.master.taskmigration.TaskMigrationManagerFactory;
@@ -43,13 +44,15 @@ import static org.mockito.Mockito.when;
 public class ServiceJobTaskMigratorTest {
 
     private final TestScheduler scheduler = Schedulers.test();
+    private final TitusRuntime titusRuntime = TitusRuntimes.test(scheduler);
+
     private final ServiceJobTaskMigratorConfig migratorConfig = mock(ServiceJobTaskMigratorConfig.class);
     private final TaskMigrationManager migrationManager = mock(TaskMigrationManager.class);
     private final TaskMigrationManagerFactory managerFactory = mock(TaskMigrationManagerFactory.class);
     private final V3JobOperations v3JobOperations = mock(V3JobOperations.class);
 
     private final ServiceJobTaskMigrator serviceJobTaskMigrator = new ServiceJobTaskMigrator(scheduler,
-            v3JobOperations, migratorConfig, managerFactory, new DefaultRegistry());
+            v3JobOperations, migratorConfig, managerFactory, titusRuntime);
 
 
     @Test
