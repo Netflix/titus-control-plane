@@ -37,7 +37,7 @@ import static com.netflix.titus.testkit.junit.master.TitusStackResource.V3_ENGIN
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskServiceJobDescriptor;
 
 @Category(IntegrationTest.class)
-public class MoveTaskTest extends BaseIntegrationTest {
+public class TaskMoveTest extends BaseIntegrationTest {
 
     private static final JobDescriptor<ServiceJobExt> ONE_TASK_SERVICE_JOB = oneTaskServiceJobDescriptor().toBuilder().withApplicationName(V3_ENGINE_APP_PREFIX).build();
 

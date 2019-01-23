@@ -16,8 +16,10 @@
 
 package com.netflix.titus.master.integration.v3.scenario;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -30,6 +32,7 @@ import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.common.aws.AwsInstanceType;
 import com.netflix.titus.grpc.protogen.EvictionServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
+import com.netflix.titus.grpc.protogen.TaskAttributesUpdate;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskMoveRequest;
 import com.netflix.titus.grpc.protogen.TaskStatus;
@@ -139,6 +142,19 @@ public class TaskScenarioBuilder {
         rethrow(() -> responseObserver.awaitDone(TIMEOUT_MS, TimeUnit.MILLISECONDS));
 
         logger.info("[{}] Task {} killed in {}[ms]", discoverActiveTest(), taskId, stopWatch.elapsed(TimeUnit.MILLISECONDS));
+        return this;
+    }
+
+    public TaskScenarioBuilder updateTaskAttributes(Map<String, String> attributes) {
+        String taskId = getTask().getId();
+        logger.info("[{}] Updating attributes of task {} of job {}...", discoverActiveTest(), taskId, jobScenarioBuilder.getJobId());
+        Stopwatch stopWatch = Stopwatch.createStarted();
+
+        TestStreamObserver<Empty> responseObserver = new TestStreamObserver<>();
+        jobClient.updateTaskAttributes(TaskAttributesUpdate.newBuilder().setTaskId(taskId).putAllAttributes(attributes).build(), responseObserver);
+        rethrow(() -> responseObserver.awaitDone(TIMEOUT_MS, TimeUnit.MILLISECONDS));
+
+        logger.info("[{}] Task {} updated in {}[ms]", discoverActiveTest(), taskId, stopWatch.elapsed(TimeUnit.MILLISECONDS));
         return this;
     }
 
@@ -278,6 +294,12 @@ public class TaskScenarioBuilder {
         logger.info("[{}] Asserting task {}...", discoverActiveTest(), message);
 
         Preconditions.checkArgument(predicate.test(getTask()), message);
+        return this;
+    }
+
+    public TaskScenarioBuilder assertTaskUpdate(Consumer<Task> assertFun) {
+        Task task = expectTaskUpdate(update -> true, update -> true, "N/A");
+        assertFun.accept(task);
         return this;
     }
 
