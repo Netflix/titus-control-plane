@@ -29,6 +29,7 @@ import com.netflix.titus.grpc.protogen.JobQueryResult;
 import com.netflix.titus.grpc.protogen.JobStatusUpdate;
 import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
 import com.netflix.titus.grpc.protogen.Task;
+import com.netflix.titus.grpc.protogen.TaskAttributesUpdate;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskMoveRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
@@ -73,6 +74,8 @@ public interface JobManagementClient {
     Observable<TaskQueryResult> findTasks(TaskQuery taskQuery);
 
     Completable killTask(TaskKillRequest taskKillRequest);
+
+    Completable updateTaskAttributes(TaskAttributesUpdate taskMoveRequest);
 
     Completable moveTask(TaskMoveRequest taskMoveRequest);
 }

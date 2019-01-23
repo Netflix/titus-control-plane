@@ -486,6 +486,11 @@ public class CassandraJobStore implements JobStore {
                             tasks.add(Either.ofValue(effectiveTask));
                         }
 
+                        // Task attributes field check
+                        if(task.getAttributes() == null) {
+                            task = task.toBuilder().withAttributes(Collections.emptyMap()).build();
+                        }
+
                         transactionLogger().logAfterRead(retrieveActiveTaskStatement, "retrieveTasksForJob", task);
                     } catch (Exception e) {
                         logger.error("Cannot map serialized task data to Task class: {}", effectiveValue, e);

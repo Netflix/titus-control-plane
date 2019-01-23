@@ -34,6 +34,7 @@ import com.netflix.titus.grpc.protogen.JobQueryResult;
 import com.netflix.titus.grpc.protogen.JobStatusUpdate;
 import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
 import com.netflix.titus.grpc.protogen.Task;
+import com.netflix.titus.grpc.protogen.TaskAttributesUpdate;
 import com.netflix.titus.grpc.protogen.TaskId;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskMoveRequest;
@@ -178,6 +179,11 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     @Override
     public void killTask(TaskKillRequest request, StreamObserver<Empty> responseObserver) {
         streamCompletableResponse(jobManagementClient.killTask(request), responseObserver);
+    }
+
+    @Override
+    public void updateTaskAttributes(TaskAttributesUpdate request, StreamObserver<Empty> responseObserver) {
+        streamCompletableResponse(jobManagementClient.updateTaskAttributes(request), responseObserver);
     }
 
     @Override

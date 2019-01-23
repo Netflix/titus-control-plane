@@ -49,6 +49,7 @@ import com.netflix.titus.grpc.protogen.JobStatusUpdate;
 import com.netflix.titus.grpc.protogen.Page;
 import com.netflix.titus.grpc.protogen.ServiceJobSpec;
 import com.netflix.titus.grpc.protogen.Task;
+import com.netflix.titus.grpc.protogen.TaskAttributesUpdate;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskMoveRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
@@ -205,6 +206,23 @@ public class JobManagementResource {
     ) {
         TaskKillRequest taskKillRequest = TaskKillRequest.newBuilder().setTaskId(taskId).setShrink(shrink).build();
         return Responses.fromCompletable(jobManagementClient.killTask(taskKillRequest));
+    }
+
+    @PUT
+    @ApiOperation("Change attributes of a task")
+    @Path("/tasks/{taskId}/attributes")
+    public Response updateTaskAttributes(@PathParam("taskId") String taskId,
+                                         TaskAttributesUpdate request) {
+        TaskAttributesUpdate sanitizedRequest;
+        if (request.getTaskId().isEmpty()) {
+            sanitizedRequest = request.toBuilder().setTaskId(taskId).build();
+        } else {
+            if (!taskId.equals(request.getTaskId())) {
+                return Response.status(Response.Status.BAD_REQUEST).build();
+            }
+            sanitizedRequest = request;
+        }
+        return Responses.fromCompletable(jobManagementClient.updateTaskAttributes(sanitizedRequest));
     }
 
     @POST

@@ -33,6 +33,7 @@ import com.netflix.titus.grpc.protogen.JobQuery;
 import com.netflix.titus.grpc.protogen.JobQueryResult;
 import com.netflix.titus.grpc.protogen.JobStatusUpdate;
 import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
+import com.netflix.titus.grpc.protogen.TaskAttributesUpdate;
 import com.netflix.titus.grpc.protogen.TaskId;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskMoveRequest;
@@ -184,6 +185,14 @@ public class GrpcJobManagementClient implements JobManagementClient {
         return createRequestCompletable(emitter -> {
             StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
             createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).killTask(taskKillRequest, streamObserver);
+        }, configuration.getRequestTimeout());
+    }
+
+    @Override
+    public Completable updateTaskAttributes(TaskAttributesUpdate taskUpdateRequest) {
+        return createRequestCompletable(emitter -> {
+            StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).updateTaskAttributes(taskUpdateRequest, streamObserver);
         }, configuration.getRequestTimeout());
     }
 
