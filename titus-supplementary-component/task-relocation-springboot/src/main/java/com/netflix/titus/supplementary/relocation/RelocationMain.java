@@ -17,6 +17,7 @@
 package com.netflix.titus.supplementary.relocation;
 
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.runtime.connector.titusmaster.ConfigurationLeaderResolver;
 import com.netflix.titus.runtime.connector.titusmaster.LeaderNameResolverFactory;
 import com.netflix.titus.runtime.connector.titusmaster.LeaderResolver;
 import com.netflix.titus.runtime.connector.titusmaster.TitusMasterClientConfiguration;
@@ -29,6 +30,11 @@ import org.springframework.context.annotation.Bean;
 
 @SpringBootApplication
 public class RelocationMain {
+
+    @Bean
+    public LeaderResolver getLeaderResolver(TitusMasterClientConfiguration configuration) {
+        return new ConfigurationLeaderResolver(configuration);
+    }
 
     @Bean(name = TitusMasterConnectorComponent.TITUS_MASTER_CHANNEL)
     public Channel getManagedChannel(TitusMasterClientConfiguration configuration, LeaderResolver leaderResolver, TitusRuntime titusRuntime) {
