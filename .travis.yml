@@ -29,6 +29,7 @@ matrix:
         - docker
       env:
         - DOCKER_COMPOSE_VERSION=1.22.0
+        - CURL_RETRY_LIMIT=50
       cache: false
       before_install:
         - sudo rm /usr/local/bin/docker-compose
@@ -40,7 +41,7 @@ matrix:
         - docker-compose build
       script:
         - docker-compose up -d
-        - for i in {1..150}; do curl --fail --max-time 10 --connect-timeout 5 http://127.0.0.1:7001/api/v2/status && exit 0 || echo Retrying...; sleep 2; done; exit 1
+        - /bin/bash -c "for i in {1..${CURL_RETRY_LIMIT}}; do curl --fail --max-time 10 --connect-timeout 5 http://127.0.0.1:7001/api/v2/status && exit 0 || echo Retrying...; sleep 2; done; exit 1"
       after_failure:
         - docker-compose logs
       after_script:
