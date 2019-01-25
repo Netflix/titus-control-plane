@@ -477,6 +477,11 @@ public class CassandraJobStore implements JobStore {
                     try {
                         task = ObjectMappers.readValue(mapper, effectiveValue, Task.class);
 
+                        // Task attributes field check
+                        if(task.getAttributes() == null) {
+                            task = task.toBuilder().withAttributes(Collections.emptyMap()).build();
+                        }
+
                         if (!fitBadDataInjection.isPresent()) {
                             tasks.add(Either.ofValue(task));
                         } else {
@@ -484,11 +489,6 @@ public class CassandraJobStore implements JobStore {
                             effectiveTask = fitBadDataInjection.get().afterImmediate(JobStoreFitAction.ErrorKind.DuplicatedEni.name(), effectiveTask);
                             effectiveTask = fitBadDataInjection.get().afterImmediate(JobStoreFitAction.ErrorKind.CorruptedTaskPlacementData.name(), effectiveTask);
                             tasks.add(Either.ofValue(effectiveTask));
-                        }
-
-                        // Task attributes field check
-                        if(task.getAttributes() == null) {
-                            task = task.toBuilder().withAttributes(Collections.emptyMap()).build();
                         }
 
                         transactionLogger().logAfterRead(retrieveActiveTaskStatement, "retrieveTasksForJob", task);
