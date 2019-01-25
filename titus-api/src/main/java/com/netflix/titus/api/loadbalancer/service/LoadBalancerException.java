@@ -23,8 +23,7 @@ import static java.lang.String.format;
 public class LoadBalancerException extends RuntimeException {
 
     public enum ErrorCode {
-        JobMaxLoadBalancers,
-        TargetGroupNotFound
+        JobMaxLoadBalancers
     }
 
     private final ErrorCode errorCode;
@@ -47,12 +46,6 @@ public class LoadBalancerException extends RuntimeException {
                 .build();
     }
 
-    public static LoadBalancerException targetGroupNotFound(String targetGroupId, Throwable cause) {
-        return new Builder(ErrorCode.TargetGroupNotFound, format("TargetGroup '%s' not found.", targetGroupId))
-                .withCause(cause)
-                .build();
-    }
-
     public static final class Builder {
         private final ErrorCode errorCode;
         private final String message;
@@ -71,19 +64,5 @@ public class LoadBalancerException extends RuntimeException {
         public LoadBalancerException build() {
             return new LoadBalancerException(this);
         }
-    }
-
-    public static Level getLogLevel(Throwable throwable) {
-        Level level = Level.ERROR;
-
-        if (throwable instanceof LoadBalancerException) {
-            LoadBalancerException loadBalancerException = (LoadBalancerException) throwable;
-            if (loadBalancerException.getErrorCode().equals(ErrorCode.TargetGroupNotFound)) {
-                // TODO: We don't handle out-of-band deletion of TargetGroup, so this is not an exceptional case.
-                level = Level.DEBUG;
-            }
-        }
-
-        return level;
     }
 }

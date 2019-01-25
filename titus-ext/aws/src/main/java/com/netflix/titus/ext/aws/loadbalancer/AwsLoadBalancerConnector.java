@@ -16,17 +16,25 @@
 
 package com.netflix.titus.ext.aws.loadbalancer;
 
+import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.amazonaws.services.elasticloadbalancingv2.AmazonElasticLoadBalancingAsync;
-import com.amazonaws.services.elasticloadbalancingv2.model.*;
+import com.amazonaws.services.elasticloadbalancingv2.model.DeregisterTargetsRequest;
+import com.amazonaws.services.elasticloadbalancingv2.model.DescribeTargetGroupsRequest;
+import com.amazonaws.services.elasticloadbalancingv2.model.DescribeTargetGroupsResult;
+import com.amazonaws.services.elasticloadbalancingv2.model.DescribeTargetHealthRequest;
+import com.amazonaws.services.elasticloadbalancingv2.model.DescribeTargetHealthResult;
+import com.amazonaws.services.elasticloadbalancingv2.model.RegisterTargetsRequest;
+import com.amazonaws.services.elasticloadbalancingv2.model.TargetDescription;
+import com.amazonaws.services.elasticloadbalancingv2.model.TargetGroupNotFoundException;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.connector.cloud.CloudConnectorException;
+import com.netflix.titus.api.connector.cloud.LoadBalancer;
 import com.netflix.titus.api.connector.cloud.LoadBalancerConnector;
-import com.netflix.titus.api.loadbalancer.service.LoadBalancerException;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.guice.ProxyType;
 import com.netflix.titus.common.util.guice.annotation.ProxyConfiguration;
@@ -150,9 +158,8 @@ public class AwsLoadBalancerConnector implements LoadBalancerConnector {
     }
 
     @Override
-    public Single<Set<String>> getRegisteredIps(String loadBalancerId) {
-        final DescribeTargetHealthRequest request = new DescribeTargetHealthRequest()
-                .withTargetGroupArn(loadBalancerId);
+    public Single<LoadBalancer> getLoadBalancer(String id) {
+        final DescribeTargetHealthRequest request = new DescribeTargetHealthRequest().withTargetGroupArn(id);
 
         long startTime = registry.clock().wallTime();
         Single<DescribeTargetHealthResult> asyncResult = AwsObservableExt.asyncActionSingle(
@@ -161,25 +168,19 @@ public class AwsLoadBalancerConnector implements LoadBalancerConnector {
 
         return asyncResult
                 .observeOn(scheduler)
-                .onErrorResumeNext(throwable -> {
-                    connectorMetrics.failure(AwsLoadBalancerConnectorMetrics.AwsLoadBalancerMethods.DescribeTargetHealth, throwable, startTime);
-                    // In order to conditionally handle this exception elsewhere without requiring a dependency on AWS
-                    // libraries we wrap this Exception.
-                    if (throwable instanceof TargetGroupNotFoundException) {
-                        throwable = LoadBalancerException.targetGroupNotFound(loadBalancerId, throwable);
-                    }
-
-                    return Single.error(throwable);
-                })
                 .map(result -> {
                     connectorMetrics.success(AwsLoadBalancerConnectorMetrics.AwsLoadBalancerMethods.DescribeTargetHealth, startTime);
-                    return ipsFromResult(result);
+                    Set<String> ips = result.getTargetHealthDescriptions().stream()
+                            .map(description -> description.getTarget().getId())
+                            .collect(Collectors.toSet());
+                    return new LoadBalancer(id, LoadBalancer.State.ACTIVE, ips);
+                })
+                .onErrorResumeNext(throwable -> {
+                    connectorMetrics.failure(AwsLoadBalancerConnectorMetrics.AwsLoadBalancerMethods.DescribeTargetHealth, throwable, startTime);
+                    if (throwable instanceof TargetGroupNotFoundException) {
+                        return Single.just(new LoadBalancer(id, LoadBalancer.State.REMOVED, Collections.emptySet()));
+                    }
+                    return Single.error(throwable);
                 });
-    }
-
-    private Set<String> ipsFromResult(DescribeTargetHealthResult result) {
-        return result.getTargetHealthDescriptions().stream()
-                .map(description -> description.getTarget().getId())
-                .collect(Collectors.toSet());
     }
 }
