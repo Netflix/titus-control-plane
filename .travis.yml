@@ -17,9 +17,6 @@ env:
     - secure: FmOJ216vMYOvM/GgxUUU2w5SuIcHf3uP1CKpKNqblNWyqKiVwwJbOq9k/h4tR3HHMIZCm8WbP0FMZEcHLCj/QgWTKNtwgcwkBi47B3Pf2VsOZchnAopdkZQysRvsW4gOfhQQo/ktIuv3FoXZEqC/zOZwQ7fpLOULBWVwWAmT1OCakuuXmDxIBRMXynMM/xalNDcUbvGmPqbJeK+MmtSWAGLu+3ImGAUOGUVf0XXovpBoz6hqijJ1fscm6LbwhHeDa0rYe/Iu27NRHHuDmcCqJySwywDhzPjwXKsSgXXjcmEVzE/KihUWASZf3E2uQ74jJxmYMoj6FjWRKib6CX8DhGuyKcQF28hExwqrCNKjKJC+bD069OhaluEeOYP7HPUkip1rnjk5wC6VTCbH6Hj3GvecaIaipUq2H/dDbSAyejMpoqIgU/eH8u+HQ7M7y5qwXvT7lmZ+MF5Nq6mnrVwaunHlJrflWhLwMcCX5NMCn7xTQFqWFh2R1REpaBZC4TrLgLH1zTk+qMUeOdxyav3LyqPl52yuV8HWzsfQt237YmC+98Wz7qHGPLLUJz1ey+CEhpeWF3ftM7WMMP+x3F/rK9AsXm6qexYpi1HaO04wJm+mBWWdtP2iH3X9ZEwnl+MnnvZm1BjF0DfTliU8nYZw6uMvJOjXwlqP1hDI9HBmhDQ=
 matrix:
   fast_finish: true
-  allow_failures:
-    - env: TITUS_INTEGRATION_TEST=true
-    - language: generic
   include:
     - name: "Unit Tests"
       env: TITUS_INTEGRATION_TEST=false
@@ -32,6 +29,7 @@ matrix:
         - docker
       env:
         - DOCKER_COMPOSE_VERSION=1.22.0
+        - CURL_RETRY_LIMIT=50
       cache: false
       before_install:
         - sudo rm /usr/local/bin/docker-compose
@@ -43,6 +41,8 @@ matrix:
         - docker-compose build
       script:
         - docker-compose up -d
-        - for i in {1..150}; do curl --fail --max-time 10 --connect-timeout 5 http://127.0.0.1:7001/api/v2/status && exit 0 || echo Retrying...; sleep 2; done; exit 1
+        - /bin/bash -c "for i in {1..${CURL_RETRY_LIMIT}}; do curl --fail --max-time 10 --connect-timeout 5 http://127.0.0.1:7001/api/v2/status && exit 0 || echo Retrying...; sleep 2; done; exit 1"
+      after_failure:
+        - docker-compose logs
       after_script:
         - docker-compose down
