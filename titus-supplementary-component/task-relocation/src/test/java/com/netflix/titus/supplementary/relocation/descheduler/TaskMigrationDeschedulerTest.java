@@ -133,11 +133,13 @@ public class TaskMigrationDeschedulerTest {
     }
 
     private TaskMigrationDescheduler newDescheduler(Map<String, TaskRelocationPlan> plannedAheadTaskRelocationPlans) {
+        Map<String, Task> tasksById = toTaskMap(jobOperations.getTasks());
         return new TaskMigrationDescheduler(
                 plannedAheadTaskRelocationPlans,
-                new EvacuatedAgentsAllocationTracker(dataGenerator.getAgentOperations(), toTaskMap(jobOperations.getTasks())),
+                new EvacuatedAgentsAllocationTracker(dataGenerator.getAgentOperations(), tasksById),
                 new EvictionQuotaTracker(dataGenerator.getEvictionOperations(), JobTestFunctions.toJobMap(jobOperations.getJobs())),
                 jobOperations.getJobs().stream().collect(Collectors.toMap(Job::getId, j -> j)),
+                tasksById,
                 titusRuntime
         );
     }

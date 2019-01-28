@@ -38,9 +38,11 @@ class EvacuatedAgentsAllocationTracker {
     private final Map<String, AgentInstance> removableAgentsById;
     private final Map<String, Pair<AgentInstance, List<Task>>> removableAgentsAndTasksByAgentId;
     private final Set<String> descheduledTasks = new HashSet<>();
+    private final Map<String, AgentInstance> agentsByTaskId;
     private final Map<String, AgentInstance> removableAgentsByTaskId = new HashMap<>();
 
     EvacuatedAgentsAllocationTracker(ReadOnlyAgentOperations agentOperations, Map<String, Task> tasksById) {
+        this.agentsByTaskId = RelocationUtil.buildTasksToInstanceMap(agentOperations, tasksById);
         this.removableAgentsById = agentOperations.getInstanceGroups().stream()
                 .filter(RelocationUtil::isRemovable)
                 .flatMap(ig -> agentOperations.getAgentInstances(ig.getId()).stream())
@@ -72,7 +74,11 @@ class EvacuatedAgentsAllocationTracker {
         return removableAgentsByTaskId.containsKey(task.getId());
     }
 
-    AgentInstance getAgent(Task task) {
+    AgentInstance getRemovableAgent(Task task) {
         return removableAgentsByTaskId.get(task.getId());
+    }
+
+    AgentInstance getAgent(Task task) {
+        return agentsByTaskId.get(task.getId());
     }
 }

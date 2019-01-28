@@ -28,7 +28,8 @@ public final class RelocationAttributes {
     public static String RELOCATION_REQUIRED = "titus.relocation.required";
 
     /**
-     * Like {@link #RELOCATION_REQUIRED}, but the safeguards for the object termination are ignored.
+     * Like {@link #RELOCATION_REQUIRED}, but the safeguards (system eviction limits, job disruption budget)
+     * for the object termination are ignored.
      */
     public static String RELOCATION_REQUIRED_IMMEDIATELY = "titus.relocation.requiredImmediately";
 
@@ -40,12 +41,13 @@ public final class RelocationAttributes {
     public static String RELOCATION_REQUIRED_BY = "titus.relocation.requiredBy";
 
     /**
-     * Like {@link #RELOCATION_REQUIRED_BY}, but the safeguards for the object termination are ignored.
+     * Like {@link #RELOCATION_REQUIRED_BY}, but the safeguards (system eviction limits, job disruption budget)
+     * for the object termination are ignored.
      */
     public static String RELOCATION_REQUIRED_BY_IMMEDIATELY = "titus.relocation.requiredByImmediately";
 
     /**
-     * If set to true, turns off the relocation process for an object. Applicable to an agent and a task.
+     * If set to true, turns off the relocation process for an object. Applicable to an agent, a job and a task.
      */
     public static String RELOCATION_NOT_ALLOWED = "titus.relocation.notAllowed";
 }

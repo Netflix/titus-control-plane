@@ -33,6 +33,8 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.supplementary.relocation.model.DeschedulingFailure;
+import com.netflix.titus.supplementary.relocation.model.DeschedulingResult;
+import com.netflix.titus.supplementary.relocation.util.RelocationPredicates;
 
 class TaskMigrationDescheduler {
 
@@ -56,18 +58,48 @@ class TaskMigrationDescheduler {
     private final EvacuatedAgentsAllocationTracker evacuatedAgentsAllocationTracker;
     private final EvictionQuotaTracker evictionQuotaTracker;
     private final Map<String, Job<?>> jobsById;
+    private final Map<String, Task> tasksById;
     private final Clock clock;
 
     TaskMigrationDescheduler(Map<String, TaskRelocationPlan> plannedAheadTaskRelocationPlans,
                              EvacuatedAgentsAllocationTracker evacuatedAgentsAllocationTracker,
                              EvictionQuotaTracker evictionQuotaTracker,
                              Map<String, Job<?>> jobsById,
+                             Map<String, Task> tasksById,
                              TitusRuntime titusRuntime) {
         this.plannedAheadTaskRelocationPlans = plannedAheadTaskRelocationPlans;
         this.evacuatedAgentsAllocationTracker = evacuatedAgentsAllocationTracker;
         this.evictionQuotaTracker = evictionQuotaTracker;
         this.jobsById = jobsById;
+        this.tasksById = tasksById;
         this.clock = titusRuntime.getClock();
+    }
+
+    Map<String, DeschedulingResult> findAllImmediateEvictions() {
+        Map<String, DeschedulingResult> result = new HashMap<>();
+        tasksById.values().forEach(task -> {
+            Job<?> job = jobsById.get(task.getJobId());
+            AgentInstance instance = evacuatedAgentsAllocationTracker.getAgent(task);
+            if (job != null && instance != null) {
+                RelocationPredicates.checkIfMustBeRelocatedImmediately(job, task, instance).ifPresent(reason -> {
+                    TaskRelocationPlan plan = TaskRelocationPlan.newBuilder()
+                            .withTaskId(task.getId())
+                            .withReason(TaskRelocationPlan.TaskRelocationReason.TaskMigration)
+                            .withReasonMessage(reason)
+                            .withRelocationTime(clock.wallTime())
+                            .build();
+
+                    DeschedulingResult deschedulingResult = DeschedulingResult.newBuilder()
+                            .withTask(task)
+                            .withAgentInstance(instance)
+                            .withTaskRelocationPlan(plan)
+                            .build();
+
+                    result.put(task.getId(), deschedulingResult);
+                });
+            }
+        });
+        return result;
     }
 
     Optional<Pair<AgentInstance, List<Task>>> nextBestMatch() {
@@ -98,12 +130,21 @@ class TaskMigrationDescheduler {
         String message;
         if (job == null) {
             message = "No job record found";
-        } else if (!canTerminate(task)) {
-            message = "Migration deadline not reached yet";
-        } else if (evictionQuotaTracker.getJobEvictionQuota(job.getId()) <= 0) {
-            message = "Not enough job quota";
         } else {
-            message = "Unknown";
+            AgentInstance instance = evacuatedAgentsAllocationTracker.getAgent(task);
+            Optional<String> blockedOpt = instance != null
+                    ? RelocationPredicates.checkIfRelocationBlocked(job, task, instance)
+                    : Optional.empty();
+
+            if (blockedOpt.isPresent()) {
+                message = blockedOpt.get();
+            } else if (!canTerminate(task)) {
+                message = "Migration deadline not reached yet";
+            } else if (evictionQuotaTracker.getJobEvictionQuota(job.getId()) <= 0) {
+                message = "Not enough job quota";
+            } else {
+                message = "Unknown";
+            }
         }
 
         return DeschedulingFailure.newBuilder().withReasonMessage(message).build();
