@@ -69,4 +69,11 @@ public interface FeatureRolloutPlans {
             description = "Activation of the feature for moving tasks between jobs"
     )
     String MOVE_TASK_FEATURE = "moveTaskFeature";
+
+    @FeatureRollout(
+            featureId = "jobAuthorizationFeature",
+            deadline = "06/30/2019",
+            description = "Allowing job mutations for authorized users only "
+    )
+    String JOB_AUTHORIZATION_FEATURE = "jobAuthorizationFeature";
 }

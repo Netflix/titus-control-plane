@@ -49,27 +49,37 @@ public final class TitusWebClientAddOns {
 
     public static WebClient.Builder addTitusDefaults(WebClient.Builder clientBuilder,
                                                      String endpointName,
-                                                     boolean secure,
+                                                     HttpClient httpClient,
                                                      TitusRuntime titusRuntime) {
 
-        HttpClient httpClient = addMetricCallbacks(
-                addLoggingCallbacks(HttpClient.create()),
+        HttpClient updatedHttpClient = addMetricCallbacks(
+                addLoggingCallbacks(httpClient),
                 endpointName,
                 titusRuntime.getRegistry()
         );
 
+        return clientBuilder.clientConnector(new ReactorClientHttpConnector(updatedHttpClient));
+    }
+
+    public static WebClient.Builder addTitusDefaults(WebClient.Builder clientBuilder,
+                                                     String endpointName,
+                                                     boolean secure,
+                                                     TitusRuntime titusRuntime) {
+        addTitusDefaults(clientBuilder, endpointName, HttpClient.create(), titusRuntime);
+
+        HttpClient httpClient = HttpClient.create();
         // SSL
         if (secure) {
             try {
                 SslContext sslContext = SslContextBuilder.forClient().build();
-                httpClient.secure(spec -> spec.sslContext(sslContext));
+                httpClient = httpClient.secure(spec -> spec.sslContext(sslContext));
             } catch (SSLException e) {
                 logger.error("Unable configure Docker registry client SSL context: {}", e);
                 throw new RuntimeException("Error configuring SSL context", e);
             }
         }
 
-        return clientBuilder.clientConnector(new ReactorClientHttpConnector(httpClient));
+        return addTitusDefaults(clientBuilder, endpointName, httpClient, titusRuntime);
     }
 
     public static Function<Flux<Throwable>, Flux<?>> retryer(Duration interval,
