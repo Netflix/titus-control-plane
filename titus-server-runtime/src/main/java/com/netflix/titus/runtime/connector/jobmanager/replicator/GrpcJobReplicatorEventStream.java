@@ -149,12 +149,13 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
                     coreEvent = toJobCoreEvent(job);
                     break;
                 case TASKUPDATE:
+                    //TODO(fabio): handle task moved when it is added to the gRPC API definition
                     com.netflix.titus.grpc.protogen.Task task = event.getTaskUpdate().getTask();
-                    Job<?> taskJob = lastSnapshot.getJobs().stream().filter(j -> j.getId().equals(task.getJobId())).findFirst().orElse(null);
-                    if (taskJob != null) {
-                        Task coreTask = V3GrpcModelConverters.toCoreTask(taskJob, task);
+                    Optional<Job<?>> taskJob = lastSnapshot.findJob(task.getJobId());
+                    if (taskJob.isPresent()) {
+                        Task coreTask = V3GrpcModelConverters.toCoreTask(taskJob.get(), task);
                         newSnapshot = lastSnapshot.updateTask(coreTask);
-                        coreEvent = toTaskCoreEvent(taskJob, coreTask);
+                        coreEvent = toTaskCoreEvent(taskJob.get(), coreTask);
                     } else {
                         titusRuntime.getCodeInvariants().inconsistent("Job record not found: jobId=%s, taskId=%s", task.getJobId(), task.getId());
                         newSnapshot = Optional.empty();
