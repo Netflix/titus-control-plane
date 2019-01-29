@@ -46,6 +46,7 @@ import com.netflix.titus.common.model.validator.ValidationError;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ProtobufCopy;
 import com.netflix.titus.common.util.rx.ObservableExt;
+import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
@@ -75,6 +76,7 @@ import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import com.netflix.titus.master.model.ResourceDimensions;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import com.netflix.titus.runtime.endpoint.JobQueryCriteria;
+import com.netflix.titus.runtime.endpoint.authorization.AuthorizationService;
 import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataUtils;
@@ -119,6 +121,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     private final Predicate<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> disruptionBudgetEnabledPredicate;
     private final CallMetadataResolver callMetadataResolver;
     private final CellDecorator cellDecorator;
+    private final AuthorizationService authorizationService;
     private final TitusRuntime titusRuntime;
 
     @Inject
@@ -131,6 +134,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
                                            @Named(FeatureRolloutPlans.DISRUPTION_BUDGET_FEATURE) Predicate<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> disruptionBudgetEnabledPredicate,
                                            CallMetadataResolver callMetadataResolver,
                                            CellInfoResolver cellInfoResolver,
+                                           AuthorizationService authorizationService,
                                            TitusRuntime titusRuntime) {
         this.configuration = configuration;
         this.agentManagementService = agentManagementService;
@@ -141,6 +145,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
         this.disruptionBudgetEnabledPredicate = disruptionBudgetEnabledPredicate;
         this.callMetadataResolver = callMetadataResolver;
         this.cellDecorator = new CellDecorator(cellInfoResolver::getCellName);
+        this.authorizationService = authorizationService;
         this.titusRuntime = titusRuntime;
     }
 
@@ -436,16 +441,31 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     @Override
     public void killTask(TaskKillRequest request, StreamObserver<Empty> responseObserver) {
         execute(callMetadataResolver, responseObserver, callMetadata -> {
+            Pair<com.netflix.titus.api.jobmanager.model.job.Job<?>, com.netflix.titus.api.jobmanager.model.job.Task> jobTaskPair = jobOperations.findTaskById(request.getTaskId()).orElse(null);
+            if (jobTaskPair == null) {
+                responseObserver.onError(JobManagerException.taskNotFound(request.getTaskId()));
+                return;
+            }
+
             String reason = String.format("User initiated task kill: %s", CallMetadataUtils.toReasonString(callMetadata));
-            jobOperations.killTask(request.getTaskId(), request.getShrink(), reason).subscribe(
-                    nothing -> {
-                    },
-                    e -> safeOnError(logger, e, responseObserver),
-                    () -> {
-                        responseObserver.onNext(Empty.getDefaultInstance());
-                        responseObserver.onCompleted();
-                    }
-            );
+            ReactorExt.toObservable(authorizationService.authorize(callMetadata, jobTaskPair.getLeft()))
+                    .flatMap(authorizationResult -> {
+                        if (!authorizationResult.isAuthorized()) {
+                            Status status = Status.PERMISSION_DENIED
+                                    .withDescription("Request not authorized: " + authorizationResult.getReason());
+                            return Observable.error(new StatusRuntimeException(status));
+                        }
+                        return jobOperations.killTask(request.getTaskId(), request.getShrink(), reason);
+                    })
+                    .subscribe(
+                            nothing -> {
+                            },
+                            e -> safeOnError(logger, e, responseObserver),
+                            () -> {
+                                responseObserver.onNext(Empty.getDefaultInstance());
+                                responseObserver.onCompleted();
+                            }
+                    );
         });
     }
 
