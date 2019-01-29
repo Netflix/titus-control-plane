@@ -28,6 +28,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.netflix.titus.api.FeatureActivationConfiguration;
+import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -579,7 +580,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
         Task changed = modelUpdateEvent.getChangedEntityHolder().getEntity();
         if (!modelUpdateEvent.getPreviousEntityHolder().isPresent()) {
             return tasksPredicate.test(Pair.of(job, changed))
-                    ? Optional.of(TaskUpdateEvent.newTask(job, changed))
+                    ? Optional.of(toNewTaskUpdateEvent(job, changed))
                     : Optional.empty();
         }
         Task previous = modelUpdateEvent.getPreviousEntityHolder().get().getEntity();
@@ -589,6 +590,17 @@ public class DefaultV3JobOperations implements V3JobOperations {
         return tasksPredicate.test(Pair.of(job, changed))
                 ? Optional.of(TaskUpdateEvent.taskChange(job, changed, previous))
                 : Optional.empty();
+    }
+
+    /**
+     * Check if it really is a new task, or if it existed before and was moved from another Job.
+     * @return an event indicating if the task was moved from another job
+     */
+    private TaskUpdateEvent toNewTaskUpdateEvent(Job<?> job, Task newTask) {
+        if (newTask.getTaskContext().containsKey(TaskAttributes.TASK_ATTRIBUTES_MOVED_FROM_JOB)) {
+            return TaskUpdateEvent.newTaskFromAnotherJob(job, newTask);
+        }
+        return TaskUpdateEvent.newTask(job, newTask);
     }
 
     private boolean isDesiredCapacityInvalid(Capacity targetCapacity, Job<ServiceJobExt> serviceJob) {

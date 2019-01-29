@@ -16,6 +16,7 @@
 
 package com.netflix.titus.api.jobmanager.model.job.event;
 
+import java.util.Objects;
 import java.util.Optional;
 
 import com.netflix.titus.api.jobmanager.model.job.Job;
@@ -26,12 +27,18 @@ public class TaskUpdateEvent extends JobManagerEvent<Task> {
     private final Job<?> currentJob;
     private final Task currentTask;
     private final Optional<Task> previousTask;
+    private final boolean movedFromAnotherJob;
 
     private TaskUpdateEvent(Job<?> currentJob, Task currentTask, Optional<Task> previousTask) {
+        this(currentJob, currentTask, previousTask, false);
+    }
+
+    private TaskUpdateEvent(Job<?> currentJob, Task currentTask, Optional<Task> previousTask, boolean moved) {
         super(currentTask, previousTask);
         this.currentJob = currentJob;
         this.currentTask = currentTask;
         this.previousTask = previousTask;
+        this.movedFromAnotherJob = moved;
     }
 
     public Job<?> getCurrentJob() {
@@ -46,41 +53,49 @@ public class TaskUpdateEvent extends JobManagerEvent<Task> {
         return previousTask;
     }
 
+    public boolean isMovedFromAnotherJob() {
+        return movedFromAnotherJob;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
         }
-        if (o == null || getClass() != o.getClass()) {
+        if (!(o instanceof TaskUpdateEvent)) {
             return false;
         }
         if (!super.equals(o)) {
             return false;
         }
-
         TaskUpdateEvent that = (TaskUpdateEvent) o;
-
-        return currentJob != null ? currentJob.equals(that.currentJob) : that.currentJob == null;
+        return movedFromAnotherJob == that.movedFromAnotherJob &&
+                currentJob.equals(that.currentJob) &&
+                currentTask.equals(that.currentTask) &&
+                previousTask.equals(that.previousTask);
     }
 
     @Override
     public int hashCode() {
-        int result = super.hashCode();
-        result = 31 * result + (currentJob != null ? currentJob.hashCode() : 0);
-        return result;
+        return Objects.hash(super.hashCode(), currentJob, currentTask, previousTask, movedFromAnotherJob);
     }
 
     @Override
     public String toString() {
         return "TaskUpdateEvent{" +
                 "currentJob=" + currentJob +
-                ", current=" + getCurrent() +
-                ", previous=" + getPrevious() +
-                "}";
+                ", currentTask=" + currentTask +
+                ", previousTask=" + previousTask +
+                ", movedFromAnotherJob=" + movedFromAnotherJob +
+                '}';
     }
 
     public static TaskUpdateEvent newTask(Job job, Task current) {
         return new TaskUpdateEvent(job, current, Optional.empty());
+    }
+
+    public static TaskUpdateEvent newTaskFromAnotherJob(Job job, Task current) {
+        return new TaskUpdateEvent(job, current, Optional.empty(), true);
     }
 
     public static TaskUpdateEvent taskChange(Job job, Task current, Task previous) {

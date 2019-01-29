@@ -898,6 +898,7 @@ public final class V3GrpcModelConverters {
 
         TaskUpdateEvent taskUpdateEvent = (TaskUpdateEvent) event;
         return JobChangeNotification.newBuilder()
+                // TODO(fabio): propagate isMovedFromAnotherJob
                 .setTaskUpdate(
                         JobChangeNotification.TaskUpdate.newBuilder().
                                 setTask(toGrpcTask(taskUpdateEvent.getCurrent(), logStorageInfo))
