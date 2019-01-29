@@ -452,7 +452,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
                     .flatMap(authorizationResult -> {
                         if (!authorizationResult.isAuthorized()) {
                             Status status = Status.PERMISSION_DENIED
-                                    .withDescription("Request not authorized: " + new IllegalArgumentException(authorizationResult.getReason()));
+                                    .withDescription("Request not authorized: " + authorizationResult.getReason());
                             return Observable.error(new StatusRuntimeException(status));
                         }
                         return jobOperations.killTask(request.getTaskId(), request.getShrink(), reason);
