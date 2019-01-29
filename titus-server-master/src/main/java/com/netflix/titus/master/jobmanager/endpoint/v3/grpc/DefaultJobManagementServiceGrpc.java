@@ -451,7 +451,9 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
             ReactorExt.toObservable(authorizationService.authorize(callMetadata, jobTaskPair.getLeft()))
                     .flatMap(authorizationResult -> {
                         if (!authorizationResult.isAuthorized()) {
-                            return Observable.error(new IllegalArgumentException(authorizationResult.getReason()));
+                            Status status = Status.PERMISSION_DENIED
+                                    .withDescription("Request not authorized: " + new IllegalArgumentException(authorizationResult.getReason()));
+                            return Observable.error(new StatusRuntimeException(status));
                         }
                         return jobOperations.killTask(request.getTaskId(), request.getShrink(), reason);
                     })
