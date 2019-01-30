@@ -25,8 +25,6 @@ import com.netflix.titus.api.jobmanager.model.job.Task;
 public class TaskUpdateEvent extends JobManagerEvent<Task> {
 
     private final Job<?> currentJob;
-    private final Task currentTask;
-    private final Optional<Task> previousTask;
     private final boolean movedFromAnotherJob;
 
     private TaskUpdateEvent(Job<?> currentJob, Task currentTask, Optional<Task> previousTask) {
@@ -36,8 +34,6 @@ public class TaskUpdateEvent extends JobManagerEvent<Task> {
     private TaskUpdateEvent(Job<?> currentJob, Task currentTask, Optional<Task> previousTask, boolean moved) {
         super(currentTask, previousTask);
         this.currentJob = currentJob;
-        this.currentTask = currentTask;
-        this.previousTask = previousTask;
         this.movedFromAnotherJob = moved;
     }
 
@@ -46,11 +42,11 @@ public class TaskUpdateEvent extends JobManagerEvent<Task> {
     }
 
     public Task getCurrentTask() {
-        return currentTask;
+        return getCurrent();
     }
 
     public Optional<Task> getPreviousTask() {
-        return previousTask;
+        return getPrevious();
     }
 
     public boolean isMovedFromAnotherJob() {
@@ -70,22 +66,20 @@ public class TaskUpdateEvent extends JobManagerEvent<Task> {
         }
         TaskUpdateEvent that = (TaskUpdateEvent) o;
         return movedFromAnotherJob == that.movedFromAnotherJob &&
-                currentJob.equals(that.currentJob) &&
-                currentTask.equals(that.currentTask) &&
-                previousTask.equals(that.previousTask);
+                currentJob.equals(that.currentJob);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), currentJob, currentTask, previousTask, movedFromAnotherJob);
+        return Objects.hash(super.hashCode(), currentJob, movedFromAnotherJob);
     }
 
     @Override
     public String toString() {
         return "TaskUpdateEvent{" +
                 "currentJob=" + currentJob +
-                ", currentTask=" + currentTask +
-                ", previousTask=" + previousTask +
+                ", currentTask=" + getCurrent() +
+                ", previousTask=" + getPrevious() +
                 ", movedFromAnotherJob=" + movedFromAnotherJob +
                 '}';
     }
