@@ -18,6 +18,7 @@ package com.netflix.titus.master.loadbalancer.service;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +38,7 @@ import com.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.StringExt;
+import com.netflix.titus.common.util.code.CodeInvariants;
 import com.netflix.titus.common.util.limiter.tokenbucket.TokenBucket;
 import com.netflix.titus.common.util.rx.ObservableExt;
 import com.netflix.titus.common.util.rx.batch.Batch;
@@ -63,6 +65,7 @@ class LoadBalancerEngine {
     private final Subject<JobLoadBalancer, JobLoadBalancer> pendingDissociations = PublishSubject.<JobLoadBalancer>create().toSerialized();
 
     private final TitusRuntime titusRuntime;
+    private final CodeInvariants invariants;
     private final LoadBalancerConfiguration configuration;
     private final LoadBalancerJobOperations jobOperations;
     private final TokenBucket connectorTokenBucket;
@@ -80,6 +83,7 @@ class LoadBalancerEngine {
                        TokenBucket connectorTokenBucket,
                        Scheduler scheduler) {
         this.titusRuntime = titusRuntime;
+        this.invariants = titusRuntime.getCodeInvariants();
         this.configuration = configuration;
         this.jobOperations = loadBalancerJobOperations;
         this.connector = loadBalancerConnector;
@@ -201,7 +205,7 @@ class LoadBalancerEngine {
             Set<JobLoadBalancer> targetJobLoadBalancers = store.getAssociatedLoadBalancersSetForJob(targetJobId);
             String sourceJobId = task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_MOVED_FROM_JOB);
             if (StringExt.isEmpty(sourceJobId)) {
-                logger.warn("Task moved to {} does not include the source job id: {}", task.getJobId(), task.getId());
+                invariants.inconsistent("Task moved to %s does not include the source job id: %s", task.getJobId(), task.getId());
                 return Collections.emptyList();
             }
             Set<JobLoadBalancer> sourceJobLoadBalancers = store.getAssociatedLoadBalancersSetForJob(sourceJobId);
@@ -211,22 +215,17 @@ class LoadBalancerEngine {
 
             // register on load balancers associated with the target job
             if (TaskHelpers.isStartedWithIp(task)) {
-                // targetJobLoadBalancers - sourceJobLoadBalancers
-                Set<JobLoadBalancer> toRegister = targetJobLoadBalancers.stream()
-                        .filter(target -> sourceJobLoadBalancers.stream().noneMatch(
-                                source -> source.getLoadBalancerId().equalsIgnoreCase(target.getLoadBalancerId())
-                        ))
-                        .collect(Collectors.toSet());
+                Collection<JobLoadBalancer> toRegister = CollectionsExt.difference(
+                        targetJobLoadBalancers, sourceJobLoadBalancers, JobLoadBalancer::byLoadBalancerId
+                );
                 changes.addAll(updatesForLoadBalancers(toRegister, task, State.Registered));
             }
             // deregister from load balancers associated with the source job
-            // sourceJobLoadBalancers - targetJobLoadBalancers
-            Set<JobLoadBalancer> toDeregister = sourceJobLoadBalancers.stream()
-                    .filter(source -> targetJobLoadBalancers.stream().noneMatch(
-                            target -> target.getLoadBalancerId().equalsIgnoreCase(source.getLoadBalancerId())
-                    ))
-                    .collect(Collectors.toSet());
+            Collection<JobLoadBalancer> toDeregister = CollectionsExt.difference(
+                    sourceJobLoadBalancers, targetJobLoadBalancers, JobLoadBalancer::byLoadBalancerId
+            );
             changes.addAll(updatesForLoadBalancers(toDeregister, task, State.Deregistered));
+
             if (!changes.isEmpty()) {
                 logger.info("Task moved to {} from {}. Jobs are associated with one or more load balancers, generating {} load balancer updates",
                         targetJobId, sourceJobId, changes.size());
@@ -235,7 +234,7 @@ class LoadBalancerEngine {
         });
     }
 
-    private List<TargetStateBatchable> updatesForLoadBalancers(Set<JobLoadBalancer> loadBalancers, Task task, State desired) {
+    private List<TargetStateBatchable> updatesForLoadBalancers(Collection<JobLoadBalancer> loadBalancers, Task task, State desired) {
         return loadBalancers.stream()
                 .map(association -> toLoadBalancerTarget(association, task))
                 .map(target -> new TargetStateBatchable(Priority.High, now(), new TargetState(target, desired)))

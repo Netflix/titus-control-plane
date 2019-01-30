@@ -81,4 +81,11 @@ public class JobLoadBalancer implements Comparable<JobLoadBalancer> {
         }
         return loadBalancerId.compareTo(o.getLoadBalancerId());
     }
+
+    /**
+     * {@link java.util.function.BiPredicate} that compares <tt>loadBalancerIds</tt>.
+     */
+    public static boolean byLoadBalancerId(JobLoadBalancer one, JobLoadBalancer other) {
+        return one.loadBalancerId.equals(other.loadBalancerId);
+    }
 }
