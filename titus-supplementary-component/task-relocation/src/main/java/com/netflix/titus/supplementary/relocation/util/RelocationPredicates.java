@@ -48,7 +48,7 @@ public class RelocationPredicates {
 
         // As the relocation must be done immediately, there is no point in persisting the plan. The task will be
         // evicted in this iteration.
-        if (isRelocationRequiredImmediately(instance) || isRelocationRequired(task) || isRelocationRequiredByImmediately(job, task)) {
+        if (isRelocationRequiredImmediately(instance) || isRelocationRequiredImmediately(task) || isRelocationRequiredByImmediately(job, task)) {
             return Optional.empty();
         }
 
@@ -156,7 +156,7 @@ public class RelocationPredicates {
 
     private static long getJobTimestamp(Job<?> job, String key) {
         try {
-            return Long.parseLong(job.getJobDescriptor().getAttributes().getOrDefault(key, "0"));
+            return Long.parseLong(job.getJobDescriptor().getAttributes().getOrDefault(key, "-1"));
         } catch (NumberFormatException e) {
             return 0;
         }

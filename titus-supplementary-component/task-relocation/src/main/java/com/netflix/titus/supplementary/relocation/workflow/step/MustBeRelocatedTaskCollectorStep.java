@@ -94,6 +94,9 @@ public class MustBeRelocatedTaskCollectorStep {
                             result.put(task.getId(), buildRelocationPlan(job, task, reason))
                     ));
         });
+
+        this.lastResult = result;
+        
         return result;
     }
 
