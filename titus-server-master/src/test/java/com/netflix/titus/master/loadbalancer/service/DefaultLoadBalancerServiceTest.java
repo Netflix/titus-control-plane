@@ -877,7 +877,7 @@ public class DefaultLoadBalancerServiceTest {
                         TaskAttributes.TASK_ATTRIBUTES_MOVED_FROM_JOB, sourceJobId
                 )).build();
 
-        // detect the task is moved and gets registered on the target
+        // detect the task is moved and gets deregistered from the source
         taskEvents.onNext(TaskUpdateEvent.newTaskFromAnotherJob(null, moved));
         testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
 
