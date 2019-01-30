@@ -23,8 +23,10 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableSet;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.TreeSet;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -328,6 +330,8 @@ class StubbedJobStore implements JobStore {
                     jobs.put(jobFrom.getId(), jobFrom);
                     jobs.put(jobTo.getId(), jobTo);
                     tasks.put(taskAfter.getId(), taskAfter);
+                    jobToServiceTaskIndex.get(jobFrom.getId()).removeTask(taskAfter);
+                    jobToServiceTaskIndex.get(jobTo.getId()).addTask(taskAfter);
                     eventSubject.onNext(Pair.of(StoreEvent.JobUpdated, jobFrom));
                     eventSubject.onNext(Pair.of(StoreEvent.JobUpdated, jobTo));
                     eventSubject.onNext(Pair.of(StoreEvent.TaskUpdated, taskAfter));
@@ -391,6 +395,7 @@ class StubbedJobStore implements JobStore {
     private static class ServiceTaskIndex {
 
         private int nextIdx;
+        private NavigableSet<Integer> freeIndexes = new TreeSet<>();
         private Map<Integer, List<String>> taskIds = new HashMap<>();
 
         private void addTask(Task task) {
@@ -403,7 +408,17 @@ class StubbedJobStore implements JobStore {
             } else {
                 List<String> ids = new ArrayList<>();
                 ids.add(task.getId());
-                taskIds.put(nextIdx++, ids);
+                taskIds.put(nextFreeIdx(), ids);
+            }
+        }
+
+        private void removeTask(Task task) {
+            String originalId = task.getOriginalId();
+            Optional<Pair<Integer, Integer>> taskIndexAndResubmit = getTaskIndexAndResubmitById(originalId);
+            if (taskIndexAndResubmit.isPresent()) {
+                int idx = taskIndexAndResubmit.get().getLeft();
+                taskIds.remove(idx);
+                freeIndexes.add(idx);
             }
         }
 
@@ -424,6 +439,14 @@ class StubbedJobStore implements JobStore {
                 return Optional.of(slotIds.get(resubmit));
             }
             return Optional.empty();
+        }
+
+        @SuppressWarnings("ConstantConditions")
+        private int nextFreeIdx() {
+            if (freeIndexes.isEmpty()) {
+                return nextIdx++;
+            }
+            return freeIndexes.pollFirst();
         }
     }
 }

@@ -60,6 +60,7 @@ public class V3ClientUtils {
         state.put(task.getId(), task);
 
         if (previous == null) {
+            // TODO(fabio): handle isTaskMoved once added to the gRPC API
             return Pair.of(TaskUpdateEvent.newTask(job, task), state);
         }
         return Pair.of(TaskUpdateEvent.taskChange(job, task, (Task) previous), state);

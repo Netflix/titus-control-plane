@@ -176,11 +176,6 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
                         e -> logger.error("Error while processing load balancer batch", e),
                         () -> logger.info("Load balancer batch stream closed")
                 );
-
-        // TODO(fabio): reconciliation
-        // TODO(fabio): watch job updates stream for garbage collection
-        // TODO(fabio): garbage collect removed jobs and loadbalancers
-        // TODO(fabio): integrate with the V2 engine
     }
 
     private void logBatchInfo(Batch<TargetStateBatchable, String> batch) {
