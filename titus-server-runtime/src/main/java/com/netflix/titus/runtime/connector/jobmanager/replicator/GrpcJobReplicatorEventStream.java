@@ -17,9 +17,7 @@
 package com.netflix.titus.runtime.connector.jobmanager.replicator;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
@@ -104,20 +102,19 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
         }
 
         private Flux<ReplicatorEvent<JobSnapshot, JobManagerEvent<?>>> buildInitialCache() {
-            Map<String, Job<?>> jobsById = new HashMap<>();
-            Map<String, List<Task>> tasksByJobId = new HashMap<>();
+            JobSnapshot.Builder builder = JobSnapshot.newBuilder(UUID.randomUUID().toString());
 
             snapshotEvents.forEach(event -> {
                 switch (event.getNotificationCase()) {
                     case JOBUPDATE:
                         com.netflix.titus.grpc.protogen.Job job = event.getJobUpdate().getJob();
-                        jobsById.put(job.getId(), V3GrpcModelConverters.toCoreJob(job));
+                        builder.addOrUpdateJob(V3GrpcModelConverters.toCoreJob(job));
                         break;
                     case TASKUPDATE:
                         com.netflix.titus.grpc.protogen.Task task = event.getTaskUpdate().getTask();
-                        Job<?> taskJob = jobsById.get(task.getJobId());
+                        Job<?> taskJob = builder.getJob(task.getJobId());
                         if (taskJob != null) {
-                            tasksByJobId.computeIfAbsent(task.getJobId(), j -> new ArrayList<>()).add(V3GrpcModelConverters.toCoreTask(taskJob, task));
+                            builder.addOrUpdateTask(V3GrpcModelConverters.toCoreTask(taskJob, task), event.getTaskUpdate().getMovedFromAnotherJob());
                         } else {
                             titusRuntime.getCodeInvariants().inconsistent("Job record not found: jobId=%s, taskId=%s", task.getJobId(), task.getId());
                         }
@@ -128,7 +125,7 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
             // No longer needed
             snapshotEvents.clear();
 
-            JobSnapshot initialSnapshot = new JobSnapshot(UUID.randomUUID().toString(), jobsById, tasksByJobId);
+            JobSnapshot initialSnapshot = builder.build();
             lastJobSnapshotRef.set(initialSnapshot);
 
             logger.info("Job snapshot loaded: jobs={}, tasks={}", initialSnapshot.getJobs().size(), initialSnapshot.getTasks().size());
@@ -149,14 +146,13 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
                     coreEvent = toJobCoreEvent(job);
                     break;
                 case TASKUPDATE:
-                    //TODO(fabio): handle task moved when it is added to the gRPC API definition
                     com.netflix.titus.grpc.protogen.Task task = event.getTaskUpdate().getTask();
                     Optional<Job<?>> taskJobOpt = lastSnapshot.findJob(task.getJobId());
                     if (taskJobOpt.isPresent()) {
                         Job<?> taskJob = taskJobOpt.get();
                         Task coreTask = V3GrpcModelConverters.toCoreTask(taskJob, task);
-                        newSnapshot = lastSnapshot.updateTask(coreTask);
-                        coreEvent = toTaskCoreEvent(taskJob, coreTask);
+                        newSnapshot = lastSnapshot.updateTask(coreTask, event.getTaskUpdate().getMovedFromAnotherJob());
+                        coreEvent = toTaskCoreEvent(taskJob, coreTask, event.getTaskUpdate().getMovedFromAnotherJob());
                     } else {
                         titusRuntime.getCodeInvariants().inconsistent("Job record not found: jobId=%s, taskId=%s", task.getJobId(), task.getId());
                         newSnapshot = Optional.empty();
@@ -178,7 +174,10 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
                     .orElseGet(() -> JobUpdateEvent.newJob(newJob));
         }
 
-        private JobManagerEvent<?> toTaskCoreEvent(Job<?> job, Task newTask) {
+        private JobManagerEvent<?> toTaskCoreEvent(Job<?> job, Task newTask, boolean moved) {
+            if (moved) {
+                return TaskUpdateEvent.newTaskFromAnotherJob(job, newTask);
+            }
             return lastJobSnapshotRef.get().findTaskById(newTask.getId())
                     .map(jobTaskPair -> TaskUpdateEvent.taskChange(job, newTask, jobTaskPair.getRight()))
                     .orElseGet(() -> TaskUpdateEvent.newTask(job, newTask));

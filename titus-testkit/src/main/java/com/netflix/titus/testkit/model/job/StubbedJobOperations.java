@@ -184,8 +184,12 @@ class StubbedJobOperations implements V3JobOperations {
     }
 
     @Override
-    public Observable<Void> moveServiceTask(String taskId, String sourceJobId, String targetJobId) {
-        throw new IllegalStateException("method not implemented");
+    public Observable<Void> moveServiceTask(String sourceJobId, String targetJobId, String taskId) {
+        return defer(() -> {
+            stubbedJobData.changeJob(sourceJobId, job -> JobFunctions.incrementJobSize(job, -1));
+            stubbedJobData.changeJob(targetJobId, job -> JobFunctions.incrementJobSize(job, 1));
+            stubbedJobData.changeTask(taskId, task -> JobFunctions.moveTask(sourceJobId, targetJobId, task));
+        });
     }
 
     @Override

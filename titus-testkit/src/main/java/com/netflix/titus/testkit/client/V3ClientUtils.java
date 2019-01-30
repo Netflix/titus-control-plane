@@ -59,8 +59,9 @@ public class V3ClientUtils {
         Object previous = state.get(task.getId());
         state.put(task.getId(), task);
 
-        if (previous == null) {
-            // TODO(fabio): handle isTaskMoved once added to the gRPC API
+        if (event.getTaskUpdate().getMovedFromAnotherJob()) {
+            return Pair.of(TaskUpdateEvent.newTaskFromAnotherJob(job, task), state);
+        } else if (previous == null) {
             return Pair.of(TaskUpdateEvent.newTask(job, task), state);
         }
         return Pair.of(TaskUpdateEvent.taskChange(job, task, (Task) previous), state);
