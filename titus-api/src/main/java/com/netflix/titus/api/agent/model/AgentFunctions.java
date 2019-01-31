@@ -24,6 +24,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
+import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.time.Clock;
 
 /**
@@ -68,5 +69,11 @@ public final class AgentFunctions {
                         .withDetail(detail)
                         .build()
         ).build();
+    }
+
+    public static AgentInstance appendInstanceAttribute(AgentInstance instance, String attributeName, Object attributeValue) {
+        return instance.toBuilder()
+                .withAttributes(CollectionsExt.copyAndAdd(instance.getAttributes(), attributeName, "" + attributeValue))
+                .build();
     }
 }

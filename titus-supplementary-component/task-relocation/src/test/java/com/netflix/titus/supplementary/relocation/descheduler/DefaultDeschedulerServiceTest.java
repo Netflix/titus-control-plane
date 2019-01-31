@@ -32,6 +32,8 @@ import com.netflix.titus.api.relocation.model.TaskRelocationPlan.TaskRelocationR
 import com.netflix.titus.common.data.generator.MutableDataGenerator;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
+import com.netflix.titus.common.util.time.TestClock;
+import com.netflix.titus.supplementary.relocation.RelocationAttributes;
 import com.netflix.titus.supplementary.relocation.RelocationConnectorStubs;
 import com.netflix.titus.supplementary.relocation.model.DeschedulingResult;
 import com.netflix.titus.testkit.model.job.JobGenerator;
@@ -54,6 +56,8 @@ public class DefaultDeschedulerServiceTest {
 
     private final TitusRuntime titusRuntime = TitusRuntimes.test();
 
+    private final TestClock clock = (TestClock) titusRuntime.getClock();
+
     private final MutableDataGenerator<AgentInstanceGroup> flexInstanceGroupGenerator = new MutableDataGenerator<>(agentServerGroups(Tier.Flex, 10));
 
     private final MutableDataGenerator<Job<ServiceJobExt>> jobGenerator = new MutableDataGenerator<>(
@@ -68,6 +72,7 @@ public class DefaultDeschedulerServiceTest {
             .addInstanceGroup(flexInstanceGroupGenerator.getValue().but(withId("removable1"), inState(InstanceGroupLifecycleState.Removable)))
             .addJob(jobGenerator.getValue().but(withJobId("job1")))
             .addJob(jobGenerator.getValue().but(withJobId("job2")))
+            .addJob(jobGenerator.getValue().but(withJobId("jobImmediate")))
             .addJob(jobGenerator.getValue().but(withJobId("jobLegacy"), withJobDisruptionBudget(DisruptionBudget.none())));
 
     private final ReadOnlyJobOperations jobOperations = dataGenerator.getJobOperations();
@@ -91,19 +96,29 @@ public class DefaultDeschedulerServiceTest {
         dataGenerator.place("removable1", tasksOfJob2.get(2), tasksOfJob2.get(3));
         dataGenerator.setQuota("job2", 2);
 
+        dataGenerator.addJobAttribute("jobImmediate", RelocationAttributes.RELOCATION_REQUIRED_BY_IMMEDIATELY, "" + (clock.wallTime() + 1));
+        Task taskImmediate = jobOperations.getTasks("jobImmediate").get(0);
+        dataGenerator.place("active1", taskImmediate);
+
         List<Task> tasksOfLegacyJob = jobOperations.getTasks("jobLegacy");
         dataGenerator.place("active1", tasksOfLegacyJob.get(0), tasksOfLegacyJob.get(1));
         dataGenerator.place("removable1", tasksOfLegacyJob.get(2), tasksOfLegacyJob.get(3));
         dataGenerator.setQuota("jobLegacy", 2);
 
         List<DeschedulingResult> results = deschedulerService.deschedule(Collections.emptyMap());
-        assertThat(results).hasSize(6);
+        assertThat(results).hasSize(7);
         for (DeschedulingResult result : results) {
-            assertThat(result.getAgentInstance().getInstanceGroupId()).isEqualTo("removable1");
-
+            boolean isImmediateJobMigration = result.getTask().getId().equals(taskImmediate.getId());
+            if (isImmediateJobMigration) {
+                assertThat(result.getAgentInstance().getInstanceGroupId()).isEqualTo("active1");
+            } else {
+                assertThat(result.getAgentInstance().getInstanceGroupId()).isEqualTo("removable1");
+            }
             TaskRelocationPlan plan = result.getTaskRelocationPlan();
             assertThat(plan.getReason()).isEqualTo(TaskRelocationReason.TaskMigration);
-            if (plan.getTaskId().startsWith("jobLegacy")) {
+            if (isImmediateJobMigration) {
+                assertThat(plan.getReasonMessage()).containsSequence("Job marked for immediate eviction");
+            } else if (plan.getTaskId().startsWith("jobLegacy")) {
                 assertThat(plan.getReasonMessage()).containsSequence("Attempted failed migration of a legacy job");
             } else {
                 assertThat(plan.getReasonMessage()).containsSequence("Immediate task migration");

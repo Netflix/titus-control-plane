@@ -177,6 +177,28 @@ public final class JobFunctions {
         return jobDescriptor.toBuilder().withExtensions(ext).build();
     }
 
+    public static <E extends JobDescriptorExt> JobDescriptor<E> appendJobDescriptorAttribute(JobDescriptor<E> jobDescriptor,
+                                                                                             String attributeName,
+                                                                                             Object attributeValue) {
+        return jobDescriptor.toBuilder()
+                .withAttributes(CollectionsExt.copyAndAdd(jobDescriptor.getAttributes(), attributeName, "" + attributeValue))
+                .build();
+    }
+
+    public static <E extends JobDescriptorExt> Job<E> appendJobDescriptorAttribute(Job<E> job,
+                                                                                   String attributeName,
+                                                                                   Object attributeValue) {
+        return job.toBuilder()
+                .withJobDescriptor(appendJobDescriptorAttribute(job.getJobDescriptor(), attributeName, attributeValue))
+                .build();
+    }
+
+    public static Task appendTaskAttribute(Task task, String attributeName, Object attributeValue) {
+        return task.toBuilder()
+                .withAttributes(CollectionsExt.copyAndAdd(task.getAttributes(), attributeName, "" + attributeValue))
+                .build();
+    }
+
     public static Job<BatchJobExt> changeBatchJobSize(Job<BatchJobExt> job, int size) {
         return job.toBuilder().withJobDescriptor(changeBatchJobSize(job.getJobDescriptor(), size)).build();
     }
