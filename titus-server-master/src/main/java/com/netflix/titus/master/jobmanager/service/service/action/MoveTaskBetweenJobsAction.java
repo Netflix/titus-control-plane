@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.Optional;
 
 import com.google.common.collect.ImmutableMap;
-import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
@@ -90,8 +89,7 @@ public class MoveTaskBetweenJobsAction implements MultiEngineChangeAction {
             // Decrement job size by 1
             Job<ServiceJobExt> updatedJobFrom = JobFunctions.incrementJobSize(jobFrom, -1);
             Job<ServiceJobExt> updatedJobTo = JobFunctions.incrementJobSize(jobTo, 1);
-
-            Task updatedReferenceTaskTo = updateTask(jobFrom, jobTo, taskFromReference);
+            Task updatedReferenceTaskTo = JobFunctions.moveTask(jobFrom.getId(), jobTo.getId(), taskFromReference);
 
             // Move the task
             return titusStore.moveTask(updatedJobFrom, updatedJobTo, updatedReferenceTaskTo).andThen(
@@ -101,13 +99,6 @@ public class MoveTaskBetweenJobsAction implements MultiEngineChangeAction {
                     ))
             );
         });
-    }
-
-    private Task updateTask(Job<?> jobFrom, Job<?> jobTo, Task taskBefore) {
-        return taskBefore.toBuilder()
-                .withJobId(jobTo.getId())
-                .addToTaskContext(TaskAttributes.TASK_ATTRIBUTES_MOVED_FROM_JOB, jobFrom.getId())
-                .build();
     }
 
     private List<ModelActionHolder> createModelUpdateActionsFrom(Job<ServiceJobExt> updatedJobFrom, Job<ServiceJobExt> updatedJobTo, Task taskFrom) {

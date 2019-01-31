@@ -26,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor.JobDescriptorExt;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.ContainerHealthProvider;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
@@ -374,6 +375,13 @@ public final class JobFunctions {
             }
             return findStatusAfter(task, checkedState).map(after -> after.getTimestamp() - checkedStatus.getTimestamp()).orElse(0L);
         });
+    }
+
+    public static Task moveTask(String jobIdFrom, String jobIdTo, Task taskBefore) {
+        return taskBefore.toBuilder()
+                .withJobId(jobIdTo)
+                .addToTaskContext(TaskAttributes.TASK_ATTRIBUTES_MOVED_FROM_JOB, jobIdFrom)
+                .build();
     }
 
     /**
