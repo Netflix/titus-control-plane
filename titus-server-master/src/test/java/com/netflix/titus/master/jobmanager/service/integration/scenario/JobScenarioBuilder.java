@@ -234,7 +234,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
 
     public JobScenarioBuilder<E> killJob() {
         ExtTestSubscriber<Void> subscriber = new ExtTestSubscriber<>();
-        jobOperations.killJob(jobId).subscribe(subscriber);
+        jobOperations.killJob(jobId, "Testing").subscribe(subscriber);
 
         autoAdvanceUntilSuccessful(() -> checkOperationSubscriberAndThrowExceptionIfError(subscriber));
 

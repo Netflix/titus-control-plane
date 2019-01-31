@@ -174,7 +174,7 @@ class StubbedJobOperations implements V3JobOperations {
     }
 
     @Override
-    public Observable<Void> killJob(String jobId) {
+    public Observable<Void> killJob(String jobId, String reason) {
         return defer(() -> stubbedJobData.killJob(jobId));
     }
 
