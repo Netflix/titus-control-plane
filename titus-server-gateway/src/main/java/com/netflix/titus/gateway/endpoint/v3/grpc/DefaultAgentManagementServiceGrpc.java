@@ -22,6 +22,7 @@ import javax.inject.Singleton;
 import com.google.protobuf.Empty;
 import com.netflix.titus.grpc.protogen.AgentChangeEvent;
 import com.netflix.titus.grpc.protogen.AgentInstance;
+import com.netflix.titus.grpc.protogen.AgentInstanceAttributesUpdate;
 import com.netflix.titus.grpc.protogen.AgentInstanceGroup;
 import com.netflix.titus.grpc.protogen.AgentInstanceGroups;
 import com.netflix.titus.grpc.protogen.AgentInstances;
@@ -113,6 +114,15 @@ public class DefaultAgentManagementServiceGrpc extends AgentManagementServiceImp
     @Override
     public void updateInstanceGroupAttributes(InstanceGroupAttributesUpdate request, StreamObserver<Empty> responseObserver) {
         Subscription subscription = agentManagementService.updateInstanceGroupAttributes(request).subscribe(
+                () -> emitEmptyReply(responseObserver),
+                e -> safeOnError(logger, e, responseObserver)
+        );
+        attachCancellingCallback(responseObserver, subscription);
+    }
+
+    @Override
+    public void updateAgentInstanceAttributes(AgentInstanceAttributesUpdate request, StreamObserver<Empty> responseObserver) {
+        Subscription subscription = agentManagementService.updateAgentInstanceAttributes(request).subscribe(
                 () -> emitEmptyReply(responseObserver),
                 e -> safeOnError(logger, e, responseObserver)
         );
