@@ -366,7 +366,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
     }
 
     @Override
-    public Observable<Void> killJob(String jobId) {
+    public Observable<Void> killJob(String jobId, String reason) {
         return reconciliationFramework.findEngineByRootId(jobId)
                 .map(engine -> {
                     Job<?> job = engine.getReferenceView().getEntity();
@@ -374,7 +374,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
                     if (jobState == JobState.KillInitiated || jobState == JobState.Finished) {
                         return Observable.<Void>error(JobManagerException.jobTerminating(job));
                     }
-                    return engine.changeReferenceModel(KillInitiatedActions.initiateJobKillAction(engine, store));
+                    return engine.changeReferenceModel(KillInitiatedActions.initiateJobKillAction(engine, store, reason));
                 })
                 .orElse(Observable.error(JobManagerException.jobNotFound(jobId)));
     }

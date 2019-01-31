@@ -56,16 +56,17 @@ public class KillInitiatedActions {
     /**
      * Move job to {@link JobState#KillInitiated} state in reference, running and store models.
      */
-    public static TitusChangeAction initiateJobKillAction(ReconciliationEngine<JobManagerReconcilerEvent> engine, JobStore titusStore) {
+    public static TitusChangeAction initiateJobKillAction(ReconciliationEngine<JobManagerReconcilerEvent> engine, JobStore titusStore, String reason) {
+        String reasonMessage = String.format("Changing job state to KillInitiated (reason:%s)", reason);
         return TitusChangeAction.newAction("initiateJobKillAction")
                 .id(engine.getReferenceView().getId())
                 .trigger(V3JobOperations.Trigger.API)
-                .summary("Changing job state to KillInitiated")
+                .summary(reasonMessage)
                 .changeWithModelUpdates(self -> {
                     Job job = engine.getReferenceView().getEntity();
                     JobStatus newStatus = JobStatus.newBuilder()
                             .withState(JobState.KillInitiated)
-                            .withReasonCode(TaskStatus.REASON_JOB_KILLED).withReasonMessage("External job termination request")
+                            .withReasonCode(TaskStatus.REASON_JOB_KILLED).withReasonMessage(reasonMessage)
                             .build();
                     Job jobWithKillInitiated = JobFunctions.changeJobStatus(job, newStatus);
 

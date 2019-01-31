@@ -46,7 +46,6 @@ import com.netflix.titus.common.model.validator.ValidationError;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ProtobufCopy;
 import com.netflix.titus.common.util.rx.ObservableExt;
-import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
@@ -78,6 +77,7 @@ import com.netflix.titus.master.service.management.ApplicationSlaManagementServi
 import com.netflix.titus.runtime.endpoint.JobQueryCriteria;
 import com.netflix.titus.runtime.endpoint.authorization.AuthorizationService;
 import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadata;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataUtils;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
@@ -90,6 +90,7 @@ import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Mono;
 import rx.Observable;
 import rx.Subscription;
 
@@ -331,15 +332,17 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
                 return;
             }
 
-            jobOperations.updateJobCapacity(request.getJobId(), newCapacity).subscribe(
-                    nothing -> {
-                    },
-                    e -> safeOnError(logger, e, responseObserver),
-                    () -> {
-                        responseObserver.onNext(Empty.getDefaultInstance());
-                        responseObserver.onCompleted();
-                    }
-            );
+            authorizeJobUpdate(callMetadata, request.getJobId())
+                    .concatWith(jobOperations.updateJobCapacityReactor(request.getJobId(), newCapacity))
+                    .subscribe(
+                            nothing -> {
+                            },
+                            e -> safeOnError(logger, e, responseObserver),
+                            () -> {
+                                responseObserver.onNext(Empty.getDefaultInstance());
+                                responseObserver.onCompleted();
+                            }
+                    );
         });
     }
 
@@ -348,30 +351,35 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
         execute(callMetadataResolver, responseObserver, callMetadata -> {
             ServiceJobProcesses serviceJobProcesses = V3GrpcModelConverters.toCoreServiceJobProcesses(request.getServiceJobProcesses());
 
-            jobOperations.updateServiceJobProcesses(request.getJobId(), serviceJobProcesses).subscribe(
-                    nothing -> {
-                    },
-                    e -> safeOnError(logger, e, responseObserver),
-                    () -> {
-                        responseObserver.onNext(Empty.getDefaultInstance());
-                        responseObserver.onCompleted();
-                    }
-            );
+            authorizeJobUpdate(callMetadata, request.getJobId())
+                    .concatWith(jobOperations.updateServiceJobProcessesReactor(request.getJobId(), serviceJobProcesses))
+                    .subscribe(
+                            nothing -> {
+                            },
+                            e -> safeOnError(logger, e, responseObserver),
+                            () -> {
+                                responseObserver.onNext(Empty.getDefaultInstance());
+                                responseObserver.onCompleted();
+                            }
+                    );
         });
     }
 
     @Override
     public void updateJobStatus(JobStatusUpdate request, StreamObserver<Empty> responseObserver) {
-        execute(callMetadataResolver, responseObserver, callMetadata ->
-                jobOperations.updateJobStatus(request.getId(), request.getEnableStatus()).subscribe(
-                        nothing -> {
-                        },
-                        e -> safeOnError(logger, e, responseObserver),
-                        () -> {
-                            responseObserver.onNext(Empty.getDefaultInstance());
-                            responseObserver.onCompleted();
-                        }
-                ));
+        execute(callMetadataResolver, responseObserver, callMetadata -> {
+            authorizeJobUpdate(callMetadata, request.getId())
+                    .concatWith(jobOperations.updateJobStatusReactor(request.getId(), request.getEnableStatus()))
+                    .subscribe(
+                            nothing -> {
+                            },
+                            e -> safeOnError(logger, e, responseObserver),
+                            () -> {
+                                responseObserver.onNext(Empty.getDefaultInstance());
+                                responseObserver.onCompleted();
+                            }
+                    );
+        });
     }
 
     @Override
@@ -383,15 +391,18 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
                 return;
             }
             validateAndConvertJobDisruptionBudgetToCoreModel(job, request.getDisruptionBudget(), responseObserver).ifPresent(sanitized ->
-                    jobOperations.updateJobDisruptionBudget(request.getJobId(), sanitized).subscribe(
-                            nothing -> {
-                            },
-                            e -> safeOnError(logger, e, responseObserver),
-                            () -> {
-                                responseObserver.onNext(Empty.getDefaultInstance());
-                                responseObserver.onCompleted();
-                            }
-                    )
+
+                    authorizeJobUpdate(callMetadata, job)
+                            .concatWith(jobOperations.updateJobDisruptionBudget(request.getJobId(), sanitized))
+                            .subscribe(
+                                    nothing -> {
+                                    },
+                                    e -> safeOnError(logger, e, responseObserver),
+                                    () -> {
+                                        responseObserver.onNext(Empty.getDefaultInstance());
+                                        responseObserver.onCompleted();
+                                    }
+                            )
             );
         });
     }
@@ -426,37 +437,28 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void killJob(JobId request, StreamObserver<Empty> responseObserver) {
-        execute(callMetadataResolver, responseObserver, callMetadata ->
-                jobOperations.killJob(request.getId()).subscribe(
-                        nothing -> {
-                        },
-                        e -> safeOnError(logger, e, responseObserver),
-                        () -> {
-                            responseObserver.onNext(Empty.getDefaultInstance());
-                            responseObserver.onCompleted();
-                        }
-                ));
+        execute(callMetadataResolver, responseObserver, callMetadata -> {
+            String reason = String.format("User initiated job kill: %s", CallMetadataUtils.toReasonString(callMetadata));
+            authorizeJobUpdate(callMetadata, request.getId())
+                    .concatWith(jobOperations.killJobReactor(request.getId(), reason))
+                    .subscribe(
+                            nothing -> {
+                            },
+                            e -> safeOnError(logger, e, responseObserver),
+                            () -> {
+                                responseObserver.onNext(Empty.getDefaultInstance());
+                                responseObserver.onCompleted();
+                            }
+                    );
+        });
     }
 
     @Override
     public void killTask(TaskKillRequest request, StreamObserver<Empty> responseObserver) {
         execute(callMetadataResolver, responseObserver, callMetadata -> {
-            Pair<com.netflix.titus.api.jobmanager.model.job.Job<?>, com.netflix.titus.api.jobmanager.model.job.Task> jobTaskPair = jobOperations.findTaskById(request.getTaskId()).orElse(null);
-            if (jobTaskPair == null) {
-                responseObserver.onError(JobManagerException.taskNotFound(request.getTaskId()));
-                return;
-            }
-
             String reason = String.format("User initiated task kill: %s", CallMetadataUtils.toReasonString(callMetadata));
-            ReactorExt.toObservable(authorizationService.authorize(callMetadata, jobTaskPair.getLeft()))
-                    .flatMap(authorizationResult -> {
-                        if (!authorizationResult.isAuthorized()) {
-                            Status status = Status.PERMISSION_DENIED
-                                    .withDescription("Request not authorized: " + authorizationResult.getReason());
-                            return Observable.error(new StatusRuntimeException(status));
-                        }
-                        return jobOperations.killTask(request.getTaskId(), request.getShrink(), reason);
-                    })
+            authorizeTaskUpdate(callMetadata, request.getTaskId())
+                    .concatWith(jobOperations.killTaskReactor(request.getTaskId(), request.getShrink(), reason))
                     .subscribe(
                             nothing -> {
                             },
@@ -561,6 +563,38 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
         ServerCallStreamObserver<JobChangeNotification> serverObserver = (ServerCallStreamObserver<JobChangeNotification>) responseObserver;
         serverObserver.setOnCancelHandler(subscription::unsubscribe);
+    }
+
+    private Mono<Void> authorizeJobUpdate(CallMetadata callMetadata, String jobId) {
+        return Mono.defer(() -> {
+            com.netflix.titus.api.jobmanager.model.job.Job<?> job = jobOperations.getJob(jobId).orElse(null);
+            if (job == null) {
+                return Mono.error(JobManagerException.jobNotFound(jobId));
+            }
+            return authorizeJobUpdate(callMetadata, job);
+        });
+    }
+
+    private Mono<Void> authorizeTaskUpdate(CallMetadata callMetadata, String taskId) {
+        return Mono.defer(() -> {
+            Pair<com.netflix.titus.api.jobmanager.model.job.Job<?>, com.netflix.titus.api.jobmanager.model.job.Task> jobTaskPair = jobOperations.findTaskById(taskId).orElse(null);
+            if (jobTaskPair == null) {
+                return Mono.error(JobManagerException.taskNotFound(taskId));
+            }
+            return authorizeJobUpdate(callMetadata, jobTaskPair.getLeft());
+        });
+    }
+
+    private Mono<Void> authorizeJobUpdate(CallMetadata callMetadata, com.netflix.titus.api.jobmanager.model.job.Job<?> job) {
+        return authorizationService.authorize(callMetadata, job)
+                .flatMap(authorizationResult -> {
+                    if (!authorizationResult.isAuthorized()) {
+                        Status status = Status.PERMISSION_DENIED
+                                .withDescription("Request not authorized: " + authorizationResult.getReason());
+                        return Mono.error(new StatusRuntimeException(status));
+                    }
+                    return Mono.empty();
+                });
     }
 
     private JobQueryResult toJobQueryResult(List<Job> jobs, Pagination runtimePagination) {
