@@ -16,6 +16,7 @@
 
 package com.netflix.titus.master.integration.v3.job;
 
+import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
@@ -35,6 +36,7 @@ import org.junit.rules.RuleChain;
 import static com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCells.basicCell;
 import static com.netflix.titus.testkit.junit.master.TitusStackResource.V3_ENGINE_APP_PREFIX;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskServiceJobDescriptor;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @Category(IntegrationTest.class)
 public class TaskMoveTest extends BaseIntegrationTest {
@@ -63,14 +65,19 @@ public class TaskMoveTest extends BaseIntegrationTest {
                 .template(ScenarioTemplates.startTasksInNewJob())
         );
         String targetJobId = jobsScenarioBuilder.takeJob(0).getJobId();
+        String sourceJobId = jobsScenarioBuilder.takeJob(1).getJobId();
 
         jobsScenarioBuilder.takeJob(1)
-                .inTask(0, taskScenarioBuilder -> taskScenarioBuilder
-                        .moveTask(targetJobId)
-                )
+                .inTask(0, taskScenarioBuilder -> taskScenarioBuilder.moveTask(targetJobId))
                 .expectJobUpdateEvent(job -> JobFunctions.getJobDesiredSize(job) == 0, "Job with no tasks expected");
 
         jobsScenarioBuilder.takeJob(0)
-                .expectJobUpdateEvent(job -> JobFunctions.getJobDesiredSize(job) == 2, "Job with two tasks expected");
+                .expectJobUpdateEvent(job -> JobFunctions.getJobDesiredSize(job) == 2, "Job with two tasks expected")
+                .inTask(1, taskScenarioBuilder -> taskScenarioBuilder
+                        .assertTaskUpdate(task -> {
+                            assertThat(task.getJobId()).isEqualTo(targetJobId);
+                            assertThat(task.getTaskContext()).containsEntry(TaskAttributes.TASK_ATTRIBUTES_MOVED_FROM_JOB, sourceJobId);
+                        })
+                );
     }
 }

@@ -321,8 +321,22 @@ class StubbedJobData {
         }
 
         Task changeTask(String taskId, Function<Task, Task> transformer) {
-            Task updatedTask = transformer.apply(tasksById.get(taskId));
+            Job<?> job = getJobHolderByTaskId(taskId).getJob();
+            Task currentTask = tasksById.get(taskId);
+            Task updatedTask = transformer.apply(currentTask);
+            boolean moved = currentTask != null && !currentTask.getJobId().equals(updatedTask.getJobId());
             tasksById.put(updatedTask.getId(), updatedTask);
+
+            TaskUpdateEvent taskUpdateEvent;
+            if (moved) {
+                taskUpdateEvent = TaskUpdateEvent.newTaskFromAnotherJob(job, updatedTask);
+            } else if (currentTask != null) {
+                taskUpdateEvent = TaskUpdateEvent.taskChange(job, updatedTask, currentTask);
+            } else {
+                taskUpdateEvent = TaskUpdateEvent.newTask(job, updatedTask);
+            }
+            observeJobsSubject.onNext(taskUpdateEvent);
+
             return updatedTask;
         }
 

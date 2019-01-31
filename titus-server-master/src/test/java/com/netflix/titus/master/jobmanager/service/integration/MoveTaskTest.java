@@ -22,7 +22,6 @@ import java.util.concurrent.TimeoutException;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
-import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.common.util.CollectionsExt;
@@ -52,7 +51,8 @@ public class MoveTaskTest {
                 .expectJobEvent(job -> assertThat(JobFunctions.getJobDesiredSize(job)).isEqualTo(0));
 
         jobsScenarioBuilder.getJobScenario(0)
-                .expectJobEvent(job -> assertThat(JobFunctions.getJobDesiredSize(job)).isEqualTo(2));
+                .expectJobEvent(job -> assertThat(JobFunctions.getJobDesiredSize(job)).isEqualTo(2))
+                .expectTaskEvent(1, 0, event -> assertThat(event.isMovedFromAnotherJob()).isTrue());
     }
 
     @Test
@@ -67,7 +67,7 @@ public class MoveTaskTest {
     @Test
     public void testMoveWithBatchTask() {
         try {
-            startNewJob(oneTaskBatchJobDescriptor()).moveTask(0, 0,"someSrcJobId", "someTargetJobId");
+            startNewJob(oneTaskBatchJobDescriptor()).moveTask(0, 0, "someSrcJobId", "someTargetJobId");
         } catch (JobManagerException e) {
             assertThat(e.getErrorCode()).isEqualTo(JobManagerException.ErrorCode.NotServiceJob);
         }
@@ -113,7 +113,7 @@ public class MoveTaskTest {
         String sourceJobId = sourceJobBuilder.getJobId();
         String targetJobId = startNewJob(oneTaskServiceJobDescriptor()).getJobId();
 
-                sourceJobBuilder.advance()
+        sourceJobBuilder.advance()
                 .slowStore()
                 .inTask(0, 0, task -> {
                     ExtTestSubscriber<Void> testSubscriber = new ExtTestSubscriber<>();

@@ -17,8 +17,11 @@
 package com.netflix.titus.runtime.connector.jobmanager.replicator;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
+import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -26,6 +29,8 @@ import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
+import com.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
+import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.tuple.Pair;
@@ -35,12 +40,14 @@ import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.runtime.connector.jobmanager.JobSnapshot;
 import com.netflix.titus.testkit.model.job.JobComponentStub;
 import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
+import org.assertj.core.api.Condition;
 import org.junit.Before;
 import org.junit.Test;
 import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -127,6 +134,64 @@ public class GrpcJobReplicatorEventStreamTest {
 
                 .thenCancel()
                 .verify();
+    }
+
+    @Test
+    public void testCacheTaskMove() {
+        Pair<Job, List<Task>> pair = dataGenerator.createJobAndTasks(SERVICE_JOB);
+        Job target = dataGenerator.createJob(SERVICE_JOB);
+        Task task = pair.getRight().get(0);
+        String sourceJobId = pair.getLeft().getId();
+        String targetJobId = target.getId();
+        List<ReplicatorEvent<JobSnapshot, JobManagerEvent<?>>> events = new ArrayList<>();
+
+        newConnectVerifier()
+                .assertNext(next -> assertThat(next.getSnapshot().getTasks())
+                        .allSatisfy(t -> assertThat(t.getStatus().getState()).isEqualTo(TaskState.Accepted)))
+                .then(() -> dataGenerator.moveTaskToState(task, TaskState.Started))
+                .assertNext(next -> {
+                    JobSnapshot snapshot = next.getSnapshot();
+                    Optional<Pair<Job<?>, Task>> taskOpt = snapshot.findTaskById(task.getId());
+                    assertThat(taskOpt).isPresent();
+                    assertThat(taskOpt.get().getRight().getStatus().getState()).isEqualTo(TaskState.Started);
+                    assertThat(snapshot.getTasks(sourceJobId))
+                            .haveExactly(1, new Condition<>(t -> t.getId().equals(task.getId()), "found the task"));
+                })
+                .then(() -> dataGenerator.getJobOperations()
+                        .moveServiceTask(sourceJobId, targetJobId, task.getId())
+                        .test()
+                        .awaitTerminalEvent()
+                        .assertNoErrors()
+                )
+                .recordWith(() -> events)
+                .thenConsumeWhile(next -> {
+                    JobManagerEvent<?> trigger = next.getTrigger();
+                    if (!(trigger instanceof TaskUpdateEvent)) {
+                        return true;
+                    }
+                    TaskUpdateEvent taskUpdateEvent = (TaskUpdateEvent) trigger;
+                    return !taskUpdateEvent.isMovedFromAnotherJob();
+                })
+                .thenCancel()
+                .verify();
+
+        assertThat(events).hasSize(3);
+        events.stream().map(ReplicatorEvent::getTrigger).forEach(jobManagerEvent -> {
+            if (jobManagerEvent instanceof JobUpdateEvent) {
+                JobUpdateEvent jobUpdateEvent = (JobUpdateEvent) jobManagerEvent;
+                String eventJobId = jobUpdateEvent.getCurrent().getId();
+                assertThat(eventJobId).isIn(sourceJobId, targetJobId);
+            } else if (jobManagerEvent instanceof TaskUpdateEvent) {
+                TaskUpdateEvent taskUpdateEvent = (TaskUpdateEvent) jobManagerEvent;
+                assertThat(taskUpdateEvent.isMovedFromAnotherJob()).isTrue();
+                assertThat(taskUpdateEvent.getCurrentJob().getId()).isEqualTo(targetJobId);
+                assertThat(taskUpdateEvent.getCurrent().getJobId()).isEqualTo(targetJobId);
+                assertThat(taskUpdateEvent.getCurrent().getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_MOVED_FROM_JOB))
+                        .isEqualTo(sourceJobId);
+            } else {
+                fail("Unexpected event type: %s", jobManagerEvent);
+            }
+        });
     }
 
     @Test

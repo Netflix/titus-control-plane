@@ -16,6 +16,7 @@
 
 package com.netflix.titus.api.jobmanager.model.job.event;
 
+import java.util.Objects;
 import java.util.Optional;
 
 import com.netflix.titus.api.jobmanager.model.job.Job;
@@ -45,23 +46,17 @@ public abstract class JobManagerEvent<TYPE> {
         if (this == o) {
             return true;
         }
-        if (o == null || getClass() != o.getClass()) {
+        if (!(o instanceof JobManagerEvent)) {
             return false;
         }
-
         JobManagerEvent<?> that = (JobManagerEvent<?>) o;
-
-        if (current != null ? !current.equals(that.current) : that.current != null) {
-            return false;
-        }
-        return previous != null ? previous.equals(that.previous) : that.previous == null;
+        return current.equals(that.current) &&
+                previous.equals(that.previous);
     }
 
     @Override
     public int hashCode() {
-        int result = current != null ? current.hashCode() : 0;
-        result = 31 * result + (previous != null ? previous.hashCode() : 0);
-        return result;
+        return Objects.hash(current, previous);
     }
 
     public static JobManagerEvent<Job> snapshotMarker() {

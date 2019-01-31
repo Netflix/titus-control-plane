@@ -22,13 +22,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
+import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
 
 import static java.util.Collections.unmodifiableList;
@@ -40,7 +44,7 @@ import static java.util.Collections.unmodifiableMap;
  */
 public class JobSnapshot {
 
-    private static final JobSnapshot EMPTY = new JobSnapshot("empty", Collections.emptyMap(), Collections.emptyMap());
+    private static final JobSnapshot EMPTY = new Builder("empty", Collections.emptyMap(), Collections.emptyMap()).build();
 
     private final String snapshotId;
     private final Map<String, Job<?>> jobsById;
@@ -50,139 +54,32 @@ public class JobSnapshot {
     private final List<Pair<Job<?>, List<Task>>> allJobsAndTasks;
     private final Map<String, Task> taskById;
 
-    public JobSnapshot(String snapshotId, Map<String, Job<?>> jobsById, Map<String, List<Task>> tasksByJobId) {
+    public static JobSnapshot empty() {
+        return EMPTY;
+    }
+
+    public static JobSnapshot newInstance(String snapshotId, Map<String, Job<?>> jobsById, Map<String, List<Task>> tasksByJobId) {
+        return new Builder(snapshotId, jobsById, tasksByJobId).build();
+    }
+
+    public static Builder newBuilder(String snapshotId, Map<String, Job<?>> jobsById, Map<String, List<Task>> tasksByJobId) {
+        return new Builder(snapshotId, jobsById, tasksByJobId);
+    }
+
+    public static Builder newBuilder(String snapshotId) {
+        return new Builder(snapshotId);
+    }
+
+    private JobSnapshot(String snapshotId, Map<String, Job<?>> jobsById, Map<String, List<Task>> tasksByJobId,
+                        List<Job<?>> allJobs, List<Task> allTasks, List<Pair<Job<?>, List<Task>>> allJobsAndTasks,
+                        Map<String, Task> taskById) {
         this.snapshotId = snapshotId;
         this.jobsById = jobsById;
-
-        Map<String, List<Task>> immutableTasksByJobId = new HashMap<>();
-        tasksByJobId.forEach((jobId, tasks) -> immutableTasksByJobId.put(jobId, unmodifiableList(tasks)));
-        this.tasksByJobId = unmodifiableMap(immutableTasksByJobId);
-
-        this.allJobs = Collections.unmodifiableList(new ArrayList<>(jobsById.values()));
-
-        this.allJobsAndTasks = buildAllJobsAndTasksList(jobsById, tasksByJobId);
-
-        List<Task> allTasks = new ArrayList<>();
-        tasksByJobId.values().forEach(allTasks::addAll);
-        this.allTasks = Collections.unmodifiableList(allTasks);
-
-        Map<String, Task> taskById = new HashMap<>();
-        tasksByJobId.values().forEach(tasks -> tasks.forEach(task -> taskById.put(task.getId(), task)));
+        this.tasksByJobId = tasksByJobId;
+        this.allJobs = allJobs;
+        this.allTasks = allTasks;
+        this.allJobsAndTasks = allJobsAndTasks;
         this.taskById = taskById;
-    }
-
-    private JobSnapshot(JobSnapshot previousCache, Job<?> updatedJob) {
-        this.snapshotId = previousCache.getSnapshotId();
-
-        Job<?> previousJob = previousCache.jobsById.get(updatedJob.getId());
-
-        // We check this condition in the updateJob below.
-        Preconditions.checkArgument(previousJob != null || updatedJob.getStatus().getState() != JobState.Finished);
-
-        if (updatedJob.getStatus().getState() == JobState.Finished) {
-            // Remove the job and all its tasks.
-            this.jobsById = CollectionsExt.copyAndRemove(previousCache.jobsById, updatedJob.getId());
-            this.tasksByJobId = CollectionsExt.copyAndRemove(previousCache.tasksByJobId, updatedJob.getId());
-
-            List<Job<?>> allJobs = new ArrayList<>();
-            previousCache.allJobs.forEach(job -> {
-                if (!job.getId().equals(updatedJob.getId())) {
-                    allJobs.add(job);
-                }
-            });
-            this.allJobs = unmodifiableList(allJobs);
-
-            List<Task> allTasks = new ArrayList<>();
-            previousCache.allTasks.forEach(task -> {
-                if (!task.getJobId().equals(updatedJob.getId())) {
-                    allTasks.add(task);
-                }
-            });
-            this.allTasks = unmodifiableList(allTasks);
-
-            List<Pair<Job<?>, List<Task>>> allJobsAndTasks = new ArrayList<>();
-            previousCache.allJobsAndTasks.forEach(pair -> {
-                if (!pair.getLeft().getId().equals(updatedJob.getId())) {
-                    allJobsAndTasks.add(pair);
-                }
-            });
-            this.allJobsAndTasks = unmodifiableList(allJobsAndTasks);
-
-            Map<String, Task> taskById = new HashMap<>();
-            previousCache.taskById.values().forEach(task -> {
-                if (!task.getJobId().equals(updatedJob.getId())) {
-                    taskById.put(task.getId(), task);
-                }
-            });
-            this.taskById = unmodifiableMap(taskById);
-        } else {
-            this.jobsById = unmodifiableMap(CollectionsExt.copyAndAdd(previousCache.jobsById, updatedJob.getId(), updatedJob));
-            this.tasksByJobId = previousCache.tasksByJobId;
-            this.allTasks = previousCache.allTasks;
-            this.taskById = previousCache.taskById;
-
-            if (previousJob == null) {
-                this.allJobs = CollectionsExt.copyAndAdd(previousCache.allJobs, updatedJob);
-                this.allJobsAndTasks = CollectionsExt.copyAndAdd(previousCache.allJobsAndTasks, Pair.of(updatedJob, Collections.emptyList()));
-            } else {
-                List<Job<?>> allJobs = new ArrayList<>();
-                previousCache.allJobs.forEach(job -> allJobs.add(job.getId().equals(updatedJob.getId()) ? updatedJob : job));
-                this.allJobs = allJobs;
-
-                List<Pair<Job<?>, List<Task>>> allJobsAndTasks = new ArrayList<>();
-                previousCache.allJobsAndTasks.forEach(pair -> allJobsAndTasks.add(
-                        pair.getLeft().getId().equals(updatedJob.getId()) ? Pair.of(updatedJob, pair.getRight()) : pair
-                ));
-                this.allJobsAndTasks = allJobsAndTasks;
-            }
-        }
-    }
-
-    private JobSnapshot(JobSnapshot previousCache, Task updatedTask) {
-        this.snapshotId = previousCache.getSnapshotId();
-
-        Task previousTask = previousCache.taskById.get(updatedTask.getId());
-
-        // We check these conditions in the updateTask below.
-        Preconditions.checkArgument(previousCache.jobsById.containsKey(updatedTask.getJobId()));
-        Preconditions.checkArgument(previousTask != null || updatedTask.getStatus().getState() != TaskState.Finished);
-
-        this.jobsById = previousCache.jobsById;
-        this.allJobs = previousCache.allJobs;
-
-        if (updatedTask.getStatus().getState() == TaskState.Finished) {
-            List<Task> tasks = removeTask(previousCache.tasksByJobId.get(updatedTask.getJobId()), updatedTask);
-            this.tasksByJobId = CollectionsExt.copyAndAdd(previousCache.tasksByJobId, updatedTask.getJobId(), tasks);
-
-            this.allTasks = removeTask(previousCache.allTasks, updatedTask);
-
-            List<Pair<Job<?>, List<Task>>> allJobsAndTasks = new ArrayList<>();
-            previousCache.allJobsAndTasks.forEach(pair -> {
-                if (pair.getLeft().getId().equals(updatedTask.getJobId())) {
-                    allJobsAndTasks.add(Pair.of(pair.getLeft(), removeTask(pair.getRight(), updatedTask)));
-                } else {
-                    allJobsAndTasks.add(pair);
-                }
-            });
-            this.allJobsAndTasks = unmodifiableList(allJobsAndTasks);
-            this.taskById = unmodifiableMap(CollectionsExt.copyAndRemove(previousCache.taskById, updatedTask.getId()));
-        } else {
-            List<Task> tasks = updateTask(previousCache.tasksByJobId.get(updatedTask.getJobId()), updatedTask);
-            this.tasksByJobId = CollectionsExt.copyAndAdd(previousCache.tasksByJobId, updatedTask.getJobId(), tasks);
-
-            this.allTasks = updateTask(previousCache.allTasks, updatedTask);
-
-            List<Pair<Job<?>, List<Task>>> allJobsAndTasks = new ArrayList<>();
-            previousCache.allJobsAndTasks.forEach(pair -> {
-                if (pair.getLeft().getId().equals(updatedTask.getJobId())) {
-                    allJobsAndTasks.add(Pair.of(pair.getLeft(), updateTask(pair.getRight(), updatedTask)));
-                } else {
-                    allJobsAndTasks.add(pair);
-                }
-            });
-            this.allJobsAndTasks = unmodifiableList(allJobsAndTasks);
-            this.taskById = unmodifiableMap(CollectionsExt.copyAndAdd(previousCache.taskById, updatedTask.getId(), updatedTask));
-        }
     }
 
     public String getSnapshotId() {
@@ -194,8 +91,7 @@ public class JobSnapshot {
     }
 
     public Optional<Job<?>> findJob(String jobId) {
-        Job<?> job = jobsById.get(jobId);
-        return job == null ? Optional.empty() : Optional.of(job);
+        return Optional.ofNullable(jobsById.get(jobId));
     }
 
     public List<Task> getTasks() {
@@ -216,10 +112,8 @@ public class JobSnapshot {
             return Optional.empty();
         }
         Job<?> job = jobsById.get(task.getJobId());
-        // If this happens, we have a bug in the code.
-        if (job == null) {
-            return Optional.empty();
-        }
+        Preconditions.checkState(job != null); // if this happens there is a bug
+
         return Optional.of(Pair.of(job, task));
     }
 
@@ -228,10 +122,17 @@ public class JobSnapshot {
         if (previous == null && job.getStatus().getState() == JobState.Finished) {
             return Optional.empty();
         }
-        return Optional.of(new JobSnapshot(this, job));
+
+        Builder builder = new Builder(this);
+        if (job.getStatus().getState() == JobState.Finished) {
+            builder.removeJob(job);
+        } else {
+            builder.addOrUpdateJob(job);
+        }
+        return Optional.of(builder.build());
     }
 
-    public Optional<JobSnapshot> updateTask(Task task) {
+    public Optional<JobSnapshot> updateTask(Task task, boolean moved) {
         if (!jobsById.containsKey(task.getJobId())) { // Inconsistent data
             return Optional.empty();
         }
@@ -241,7 +142,13 @@ public class JobSnapshot {
             return Optional.empty();
         }
 
-        return Optional.of(new JobSnapshot(this, task));
+        Builder builder = new Builder(this);
+        if (task.getStatus().getState() == TaskState.Finished) {
+            builder.removeTask(task, moved);
+        } else {
+            builder.addOrUpdateTask(task, moved);
+        }
+        return Optional.of(builder.build());
     }
 
     @Override
@@ -256,48 +163,103 @@ public class JobSnapshot {
         return sb.append('}').toString();
     }
 
-    public static JobSnapshot empty() {
-        return EMPTY;
-    }
+    public static class Builder {
+        private final String snapshotId;
+        private final Map<String, Job<?>> jobsById;
+        private final Map<String, List<Task>> tasksByJobId;
 
-    private List<Pair<Job<?>, List<Task>>> buildAllJobsAndTasksList(Map<String, Job<?>> jobsById, Map<String, List<Task>> tasksByJobId) {
-        List<Pair<Job<?>, List<Task>>> result = new ArrayList<>();
-
-        jobsById.values().forEach(job -> {
-            List<Task> tasks = tasksByJobId.get(job.getId());
-            if (CollectionsExt.isNullOrEmpty(tasks)) {
-                result.add(Pair.of(job, Collections.emptyList()));
-            } else {
-                result.add(Pair.of(job, Collections.unmodifiableList(tasks)));
-            }
-        });
-
-        return Collections.unmodifiableList(result);
-    }
-
-    private List<Task> updateTask(List<Task> tasks, Task taskToUpdate) {
-        if (CollectionsExt.isNullOrEmpty(tasks)) {
-            return Collections.singletonList(taskToUpdate);
+        private Builder(String snapshotId) {
+            this.snapshotId = snapshotId;
+            this.jobsById = new HashMap<>();
+            this.tasksByJobId = new HashMap<>();
         }
 
-        List<Task> result = new ArrayList<>();
-        tasks.forEach(task -> {
-            if (!task.getId().equals(taskToUpdate.getId())) {
-                result.add(task);
-            }
-        });
-        result.add(taskToUpdate);
+        private Builder(JobSnapshot from) {
+            this(from.snapshotId, from.jobsById, from.tasksByJobId);
+        }
 
-        return unmodifiableList(result);
-    }
+        private Builder(String snapshotId, Map<String, Job<?>> jobsById, Map<String, List<Task>> tasksByJobId) {
+            this.snapshotId = snapshotId;
+            this.jobsById = new HashMap<>(jobsById);
+            HashMap<String, List<Task>> copy = new HashMap<>();
+            tasksByJobId.forEach((jobId, tasks) -> copy.put(jobId, new ArrayList<>(tasks)));
+            this.tasksByJobId = copy;
+        }
 
-    private List<Task> removeTask(List<Task> tasks, Task taskToRemove) {
-        List<Task> result = new ArrayList<>();
-        tasks.forEach(task -> {
-            if (!task.getId().equals(taskToRemove.getId())) {
-                result.add(task);
+        public JobSnapshot build() {
+            Map<String, List<Task>> immutableTasksByJobId = new HashMap<>();
+            tasksByJobId.forEach((jobId, tasks) -> immutableTasksByJobId.put(jobId, unmodifiableList(tasks)));
+
+            List<Task> allTasks = new ArrayList<>();
+            tasksByJobId.values().forEach(allTasks::addAll);
+
+            Map<String, Task> taskById = allTasks.stream().collect(Collectors.toMap(Task::getId, Function.identity()));
+
+            return new JobSnapshot(
+                    snapshotId,
+                    unmodifiableMap(jobsById),
+                    unmodifiableMap(immutableTasksByJobId),
+                    unmodifiableList(new ArrayList<>(jobsById.values())),
+                    unmodifiableList(allTasks),
+                    buildAllJobsAndTasksList(jobsById, tasksByJobId),
+                    unmodifiableMap(taskById)
+            );
+
+        }
+
+        public Builder removeJob(Job<?> job) {
+            jobsById.remove(job.getId());
+            tasksByJobId.remove(job.getId());
+            return this;
+        }
+
+        public Builder addOrUpdateJob(Job<?> job) {
+            jobsById.put(job.getId(), job);
+            return this;
+        }
+
+        public Builder removeTask(Task task, boolean movedFromAnotherJob) {
+            String jobIdIndexToUpdate = movedFromAnotherJob ?
+                    task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_MOVED_FROM_JOB) :
+                    task.getJobId();
+            Preconditions.checkArgument(StringExt.isNotEmpty(jobIdIndexToUpdate));
+
+            if (tasksByJobId.containsKey(jobIdIndexToUpdate)) {
+                tasksByJobId.get(jobIdIndexToUpdate).removeIf(t -> t.getId().equals(task.getId()));
             }
-        });
-        return unmodifiableList(result);
+
+            return this;
+        }
+
+        public Builder addOrUpdateTask(Task task, boolean movedFromAnotherJob) {
+            if (movedFromAnotherJob) {
+                removeTask(task, true);
+            }
+            tasksByJobId.putIfAbsent(task.getJobId(), new ArrayList<>());
+            List<Task> jobTasks = tasksByJobId.get(task.getJobId());
+            jobTasks.removeIf(t -> t.getId().equals(task.getId()));
+            jobTasks.add(task);
+
+            return this;
+        }
+
+        private static List<Pair<Job<?>, List<Task>>> buildAllJobsAndTasksList(Map<String, Job<?>> jobsById, Map<String, List<Task>> tasksByJobId) {
+            List<Pair<Job<?>, List<Task>>> result = new ArrayList<>();
+
+            jobsById.values().forEach(job -> {
+                List<Task> tasks = tasksByJobId.get(job.getId());
+                if (CollectionsExt.isNullOrEmpty(tasks)) {
+                    result.add(Pair.of(job, Collections.emptyList()));
+                } else {
+                    result.add(Pair.of(job, unmodifiableList(tasks)));
+                }
+            });
+
+            return unmodifiableList(result);
+        }
+
+        public Job<?> getJob(String jobId) {
+            return jobsById.get(jobId);
+        }
     }
 }

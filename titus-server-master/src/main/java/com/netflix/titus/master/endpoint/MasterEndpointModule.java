@@ -23,6 +23,7 @@ import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.titus.master.endpoint.grpc.GrpcEndpointConfiguration;
 import com.netflix.titus.master.endpoint.grpc.TitusMasterGrpcServer;
+import com.netflix.titus.runtime.endpoint.authorization.AuthorizationServiceModule;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolveModule;
 
 public class MasterEndpointModule extends AbstractModule {
@@ -30,6 +31,7 @@ public class MasterEndpointModule extends AbstractModule {
     protected void configure() {
         bind(TitusMasterGrpcServer.class).asEagerSingleton();
         install(new CallMetadataResolveModule());
+        install(new AuthorizationServiceModule());
     }
 
     @Provides

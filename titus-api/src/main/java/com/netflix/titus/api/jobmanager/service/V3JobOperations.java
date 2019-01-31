@@ -24,6 +24,7 @@ import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
+import com.netflix.titus.common.util.rx.ReactorExt;
 import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
@@ -42,17 +43,52 @@ public interface V3JobOperations extends ReadOnlyJobOperations {
 
     Observable<String> createJob(JobDescriptor<?> jobDescriptor);
 
+    /**
+     * @deprecated Use {@link #updateJobCapacityReactor(String, Capacity)}
+     */
     Observable<Void> updateJobCapacity(String jobId, Capacity capacity);
 
+    default Mono<Void> updateJobCapacityReactor(String jobId, Capacity capacity) {
+        return ReactorExt.toMono(updateJobCapacity(jobId, capacity));
+    }
+
+    /**
+     * @deprecated Use {@link #updateServiceJobProcessesReactor(String, ServiceJobProcesses)}
+     */
     Observable<Void> updateServiceJobProcesses(String jobId, ServiceJobProcesses serviceJobProcesses);
 
+    default Mono<Void> updateServiceJobProcessesReactor(String jobId, ServiceJobProcesses serviceJobProcesses) {
+        return ReactorExt.toMono(updateServiceJobProcesses(jobId, serviceJobProcesses));
+    }
+
+    /**
+     * @deprecated Use {@link #updateJobStatusReactor(String, boolean)}
+     */
     Observable<Void> updateJobStatus(String serviceJobId, boolean enabled);
+
+    default Mono<Void> updateJobStatusReactor(String serviceJobId, boolean enabled) {
+        return ReactorExt.toMono(updateJobStatus(serviceJobId, enabled));
+    }
 
     Mono<Void> updateJobDisruptionBudget(String jobId, DisruptionBudget disruptionBudget);
 
-    Observable<Void> killJob(String jobId);
+    /**
+     * @deprecated Use {@link #killJobReactor(String, String)}
+     */
+    Observable<Void> killJob(String jobId, String reason);
 
+    default Mono<Void> killJobReactor(String jobId, String reason) {
+        return ReactorExt.toMono(killJob(jobId, reason));
+    }
+
+    /**
+     * @deprecated Use {@link #killTaskReactor(String, boolean, String)}
+     */
     Observable<Void> killTask(String taskId, boolean shrink, String reason);
+
+    default Mono<Void> killTaskReactor(String taskId, boolean shrink, String reason) {
+        return ReactorExt.toMono(killTask(taskId, shrink, reason));
+    }
 
     /**
      * Move a task from one service job to another.

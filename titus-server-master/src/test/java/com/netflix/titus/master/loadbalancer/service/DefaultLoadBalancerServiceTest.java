@@ -24,6 +24,7 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
+import com.netflix.titus.api.connector.cloud.LoadBalancer;
 import com.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
@@ -87,7 +88,9 @@ public class DefaultLoadBalancerServiceTest {
         when(client.registerAll(any(), any())).thenReturn(Completable.complete());
         when(client.deregisterAll(any(), any())).thenReturn(Completable.complete());
         when(v3JobOperations.observeJobs()).thenReturn(PublishSubject.create());
-        when(client.getRegisteredIps(any())).thenReturn(Single.just(Collections.emptySet()));
+        when(client.getLoadBalancer(any())).thenAnswer(invocation -> Single.just(
+                new LoadBalancer(invocation.getArgument(0), LoadBalancer.State.ACTIVE, Collections.emptySet())
+        ));
     }
 
     @Before
@@ -713,6 +716,175 @@ public class DefaultLoadBalancerServiceTest {
         verify(client, never()).registerAll(eq(loadBalancerId), any());
         verify(client).deregisterAll(eq(loadBalancerId), argThat(set -> set.contains("3.3.3.3")));
         verifyReconcilerIgnore(jobId, loadBalancerId, "3.3.3.3");
+    }
+
+    @Test
+    public void movedTasks() {
+        final String taskId = UUID.randomUUID().toString();
+        final String sourceJobId = UUID.randomUUID().toString();
+        final String targetJobId = UUID.randomUUID().toString();
+        final String sourceLoadBalancerId = "lb-" + UUID.randomUUID().toString();
+        final String targetLoadBalancerId = "lb-" + UUID.randomUUID().toString();
+        final String commonLoadBalancerId = "lb-" + UUID.randomUUID().toString();
+        final PublishSubject<JobManagerEvent<?>> taskEvents = PublishSubject.create();
+
+        when(client.registerAll(any(), any())).thenReturn(Completable.complete());
+        when(client.deregisterAll(any(), any())).thenReturn(Completable.complete());
+        when(v3JobOperations.observeJobs()).thenReturn(taskEvents);
+        LoadBalancerTests.applyValidGetJobMock(v3JobOperations, sourceJobId);
+        LoadBalancerTests.applyValidGetJobMock(v3JobOperations, targetJobId);
+
+        LoadBalancerConfiguration configuration = LoadBalancerTests.mockConfiguration(MIN_TIME_IN_QUEUE_MS);
+        DefaultLoadBalancerService service = new DefaultLoadBalancerService(
+                runtime, configuration, client, loadBalancerStore, loadBalancerJobOperations, reconciler, validator, testScheduler);
+
+        final AssertableSubscriber<Batch<TargetStateBatchable, String>> testSubscriber = service.events().test();
+
+        assertTrue(service.addLoadBalancer(sourceJobId, sourceLoadBalancerId).await(100, TimeUnit.MILLISECONDS));
+        assertTrue(service.addLoadBalancer(sourceJobId, commonLoadBalancerId).await(100, TimeUnit.MILLISECONDS));
+        assertThat(service.getJobLoadBalancers(sourceJobId).toBlocking().toIterable())
+                .containsExactlyInAnyOrder(sourceLoadBalancerId, commonLoadBalancerId);
+
+        assertTrue(service.addLoadBalancer(targetJobId, targetLoadBalancerId).await(100, TimeUnit.MILLISECONDS));
+        assertTrue(service.addLoadBalancer(targetJobId, commonLoadBalancerId).await(100, TimeUnit.MILLISECONDS));
+        assertThat(service.getJobLoadBalancers(targetJobId).toBlocking().toIterable())
+                .containsExactlyInAnyOrder(targetLoadBalancerId, commonLoadBalancerId);
+
+        testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
+
+        testSubscriber.assertNoErrors().assertValueCount(0);
+        verify(client, never()).registerAll(any(), any());
+        verify(client, never()).deregisterAll(any(), any());
+        verifyNoReconcilerIgnore();
+
+        Task moved = ServiceJobTask.newBuilder()
+                .withJobId(targetJobId)
+                .withId(taskId)
+                .withStatus(TaskStatus.newBuilder().withState(TaskState.Started).build())
+                .withTaskContext(CollectionsExt.asMap(
+                        TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP, "1.2.3.4",
+                        TaskAttributes.TASK_ATTRIBUTES_MOVED_FROM_JOB, sourceJobId
+                )).build();
+
+        // detect the task is moved, gets deregistered from the source and registered on the target
+        taskEvents.onNext(TaskUpdateEvent.newTaskFromAnotherJob(null, moved));
+        testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
+
+        testSubscriber.assertNoErrors().assertValueCount(2);
+        verify(client).registerAll(eq(targetLoadBalancerId), argThat(set -> set.contains("1.2.3.4")));
+        verify(client).deregisterAll(eq(sourceLoadBalancerId), argThat(set -> set.contains("1.2.3.4")));
+        verifyReconcilerIgnore(targetJobId, targetLoadBalancerId, "1.2.3.4");
+        verifyReconcilerIgnore(sourceJobId, sourceLoadBalancerId, "1.2.3.4");
+
+        // load balancers associated with both source and target jobs are not changed
+        verify(client, never()).registerAll(eq(commonLoadBalancerId), any());
+        verify(client, never()).deregisterAll(eq(commonLoadBalancerId), any());
+        verifyNoReconcilerIgnore(targetJobId, commonLoadBalancerId);
+        verifyNoReconcilerIgnore(sourceJobId, commonLoadBalancerId);
+    }
+
+    @Test
+    public void movedTaskOnlyTargetAssociatedWithLoadBalancer() {
+        final String taskId = UUID.randomUUID().toString();
+        final String sourceJobId = UUID.randomUUID().toString();
+        final String targetJobId = UUID.randomUUID().toString();
+        final String targetLoadBalancerId = "lb-" + UUID.randomUUID().toString();
+        final PublishSubject<JobManagerEvent<?>> taskEvents = PublishSubject.create();
+
+        when(client.registerAll(any(), any())).thenReturn(Completable.complete());
+        when(client.deregisterAll(any(), any())).thenReturn(Completable.complete());
+        when(v3JobOperations.observeJobs()).thenReturn(taskEvents);
+        LoadBalancerTests.applyValidGetJobMock(v3JobOperations, sourceJobId);
+        LoadBalancerTests.applyValidGetJobMock(v3JobOperations, targetJobId);
+
+        LoadBalancerConfiguration configuration = LoadBalancerTests.mockConfiguration(MIN_TIME_IN_QUEUE_MS);
+        DefaultLoadBalancerService service = new DefaultLoadBalancerService(
+                runtime, configuration, client, loadBalancerStore, loadBalancerJobOperations, reconciler, validator, testScheduler);
+
+        final AssertableSubscriber<Batch<TargetStateBatchable, String>> testSubscriber = service.events().test();
+
+        assertThat(service.getJobLoadBalancers(sourceJobId).toBlocking().toIterable()).isEmpty();
+
+        assertTrue(service.addLoadBalancer(targetJobId, targetLoadBalancerId).await(100, TimeUnit.MILLISECONDS));
+        assertThat(service.getJobLoadBalancers(targetJobId).toBlocking().toIterable())
+                .containsExactlyInAnyOrder(targetLoadBalancerId);
+
+        testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
+
+        testSubscriber.assertNoErrors().assertValueCount(0);
+        verify(client, never()).registerAll(any(), any());
+        verify(client, never()).deregisterAll(any(), any());
+        verifyNoReconcilerIgnore();
+
+        Task moved = ServiceJobTask.newBuilder()
+                .withJobId(targetJobId)
+                .withId(taskId)
+                .withStatus(TaskStatus.newBuilder().withState(TaskState.Started).build())
+                .withTaskContext(CollectionsExt.asMap(
+                        TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP, "1.2.3.4",
+                        TaskAttributes.TASK_ATTRIBUTES_MOVED_FROM_JOB, sourceJobId
+                )).build();
+
+        // detect the task is moved and gets registered on the target
+        taskEvents.onNext(TaskUpdateEvent.newTaskFromAnotherJob(null, moved));
+        testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
+
+        testSubscriber.assertNoErrors().assertValueCount(1);
+        verify(client).registerAll(eq(targetLoadBalancerId), argThat(set -> set.contains("1.2.3.4")));
+        verify(client, never()).deregisterAll(any(), any());
+        verifyReconcilerIgnore(targetJobId, targetLoadBalancerId, "1.2.3.4");
+    }
+
+    @Test
+    public void movedTaskOnlySourceAssociatedWithLoadBalancer() {
+        final String taskId = UUID.randomUUID().toString();
+        final String sourceJobId = UUID.randomUUID().toString();
+        final String targetJobId = UUID.randomUUID().toString();
+        final String sourceLoadBalancerId = "lb-" + UUID.randomUUID().toString();
+        final PublishSubject<JobManagerEvent<?>> taskEvents = PublishSubject.create();
+
+        when(client.registerAll(any(), any())).thenReturn(Completable.complete());
+        when(client.deregisterAll(any(), any())).thenReturn(Completable.complete());
+        when(v3JobOperations.observeJobs()).thenReturn(taskEvents);
+        LoadBalancerTests.applyValidGetJobMock(v3JobOperations, sourceJobId);
+        LoadBalancerTests.applyValidGetJobMock(v3JobOperations, targetJobId);
+
+        LoadBalancerConfiguration configuration = LoadBalancerTests.mockConfiguration(MIN_TIME_IN_QUEUE_MS);
+        DefaultLoadBalancerService service = new DefaultLoadBalancerService(
+                runtime, configuration, client, loadBalancerStore, loadBalancerJobOperations, reconciler, validator, testScheduler);
+
+        final AssertableSubscriber<Batch<TargetStateBatchable, String>> testSubscriber = service.events().test();
+
+        assertTrue(service.addLoadBalancer(sourceJobId, sourceLoadBalancerId).await(100, TimeUnit.MILLISECONDS));
+        assertThat(service.getJobLoadBalancers(sourceJobId).toBlocking().toIterable())
+                .containsExactlyInAnyOrder(sourceLoadBalancerId);
+
+        assertThat(service.getJobLoadBalancers(targetJobId).toBlocking().toIterable()).isEmpty();
+
+        testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
+
+        testSubscriber.assertNoErrors().assertValueCount(0);
+        verify(client, never()).registerAll(any(), any());
+        verify(client, never()).deregisterAll(any(), any());
+        verifyNoReconcilerIgnore();
+
+        Task moved = ServiceJobTask.newBuilder()
+                .withJobId(targetJobId)
+                .withId(taskId)
+                .withStatus(TaskStatus.newBuilder().withState(TaskState.Started).build())
+                .withTaskContext(CollectionsExt.asMap(
+                        TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP, "1.2.3.4",
+                        TaskAttributes.TASK_ATTRIBUTES_MOVED_FROM_JOB, sourceJobId
+                )).build();
+
+        // detect the task is moved and gets deregistered from the source
+        taskEvents.onNext(TaskUpdateEvent.newTaskFromAnotherJob(null, moved));
+        testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
+
+        testSubscriber.assertNoErrors().assertValueCount(1);
+        verify(client).deregisterAll(eq(sourceLoadBalancerId), argThat(set -> set.contains("1.2.3.4")));
+        verify(client, never()).registerAll(any(), any());
+        verifyReconcilerIgnore(sourceJobId, sourceLoadBalancerId, "1.2.3.4");
     }
 
     private void verifyReconcilerIgnore(String jobId, String loadBalancerId, String... ipAddresses) {

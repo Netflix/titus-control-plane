@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -505,6 +506,16 @@ public final class CollectionsExt {
      */
     public static <T, I> Map<I, T> indexBy(List<T> items, Function<T, I> keyMapper) {
         return items.stream().collect(Collectors.toMap(keyMapper, Function.identity(), (v1, v2) -> v1));
+    }
+
+    /**
+     * @param equal custom logic for equality between items from both <tt>Collections</tt>
+     * @return items present in <tt>one</tt> that are not present in <tt>other</tt>, according to a custom predicate for each pair
+     */
+    public static <T> Collection<T> difference(Collection<T> one, Collection<T> other, BiPredicate<T, T> equal) {
+        return one.stream()
+                .filter(it -> other.stream().noneMatch(ot -> equal.test(it, ot)))
+                .collect(Collectors.toSet());
     }
 
     public static class MapBuilder<K, V> {
