@@ -20,7 +20,6 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.netflix.titus.common.util.guice.annotation.Activator;
-import com.netflix.titus.master.VirtualMachineMasterService;
 import com.netflix.titus.master.scheduler.SchedulingService;
 
 /**

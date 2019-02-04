@@ -42,7 +42,7 @@ import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.time.Clock;
-import com.netflix.titus.master.VirtualMachineMasterService;
+import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
 import com.netflix.titus.master.jobmanager.service.common.action.task.BasicTaskActions;
 import com.netflix.titus.master.jobmanager.service.common.action.task.KillInitiatedActions;

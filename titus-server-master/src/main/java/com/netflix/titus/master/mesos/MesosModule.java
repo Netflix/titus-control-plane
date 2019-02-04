@@ -22,7 +22,6 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.runtime.health.guice.HealthModule;
-import com.netflix.titus.master.VirtualMachineMasterService;
 import com.netflix.titus.master.mesos.resolver.DefaultMesosMasterResolver;
 
 public class MesosModule extends AbstractModule {

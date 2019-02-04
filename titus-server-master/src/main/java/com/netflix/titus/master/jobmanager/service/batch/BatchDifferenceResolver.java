@@ -42,7 +42,7 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.retry.Retryers;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.master.VirtualMachineMasterService;
+import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import com.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils;

@@ -18,9 +18,13 @@ package com.netflix.titus.master.config;
 
 import com.netflix.archaius.api.annotations.DefaultValue;
 import com.netflix.archaius.api.annotations.PropertyName;
-import com.netflix.titus.master.CoreConfiguration;
 
-public interface MasterConfiguration extends CoreConfiguration {
+public interface MasterConfiguration {
+
+    @PropertyName(name = "titus.localmode")
+    @DefaultValue("false")
+    boolean isLocalMode();
+
     @PropertyName(name = "region")
     String getRegion();
 
@@ -81,80 +85,7 @@ public interface MasterConfiguration extends CoreConfiguration {
     @DefaultValue("300")
     long getMesosLeaseOfferExpirySecs();
 
-    @PropertyName(name = "titus.jobs.max.jars.per.named.job")
-    @DefaultValue("10")
-    int getMaximumNumberOfJarsPerJobName();
-
-    @PropertyName(name = "titus.named.job.store.completed.jobs")
-    @DefaultValue("false")
-    boolean getStoreCompletedJobsForNamedJob();
-
-    @PropertyName(name = "titus.worker.resubmission.interval.secs")
-    @DefaultValue("5:10:20")
-    String getWorkerResubmitIntervalSecs();
-
-    @PropertyName(name = "titus.worker.expire.resubmit.delay.secs")
-    @DefaultValue("300")
-    long getExpireWorkerResubmitDelaySecs();
-
-    @PropertyName(name = "titus.worker.expire.resubmit.execution.interval.secs")
-    @DefaultValue("120")
-    long getExpireResubmitDelayExecutionIntervalSecs();
-
-    @PropertyName(name = "titus.master.terminated.job.to.delete.delay.hours")
-    @DefaultValue("360")
-        // 15 days * 24 hours
-    long getTerminatedJobToDeleteDelayHours();
-
     @PropertyName(name = "mesos.slave.attribute.zone.name")
     @DefaultValue("zone")
     String getHostZoneAttributeName();
-
-    @PropertyName(name = "titus.agent.cluster.instance.type")
-    @DefaultValue("itype")
-    String getInstanceTypeAttributeName();
-
-    @PropertyName(name = "titus.master.store.worker.writes.batch.size")
-    @DefaultValue("100")
-    int getWorkerWriteBatchSize();
-
-    @PropertyName(name = "titus.master.check.unique.job.id.sequence")
-    @DefaultValue("true")
-    boolean getCheckUniqueJobIdSequence();
-
-    @PropertyName(name = "titus.jobspec.cpu.max")
-    @DefaultValue("64")
-        // r4.16xl limit
-    int getMaxCPUs();
-
-    @PropertyName(name = "titus.jobspec.memory.mb.max")
-    @DefaultValue("465000")
-        // r4.16xl limit
-    int getMaxMemory();
-
-    @PropertyName(name = "titus.jobspec.disk.mb.max")
-    @DefaultValue("2000000")
-        // r4.16xl limit
-    int getMaxDisk();
-
-    @PropertyName(name = "titus.jobspec.network.mbps.max")
-    @DefaultValue("15000")
-        // r4.16xl limit
-    int getMaxNetworkMbps();
-
-    @PropertyName(name = "titus.jobspec.batch.instances.max")
-    @DefaultValue("1000")
-    int getMaxBatchInstances();
-
-    @PropertyName(name = "titus.jobspec.service.instances.max")
-    @DefaultValue("2500")
-    int getMaxServiceInstances();
-
-    @PropertyName(name = "titus.store.terminatedJobCleanUpBatchSize")
-    @DefaultValue("1000")
-    int getTerminatedJobCleanUpBatchSize();
-
-    @PropertyName(name = "titusMaster.store.maxInvalidJobs")
-    @DefaultValue("0")
-    long getMaxInvalidJobs();
 }
