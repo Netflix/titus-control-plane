@@ -43,7 +43,7 @@ public class SchedulingConstraintValidator implements ConstraintValidator<Schedu
      * To avoid compatibility issues we will ignore case for constraint names.
      * TODO Convert names to IDL defined format when job is created.
      */
-    private static final Set<String> CONSTRAINT_NAMES = asSet("uniquehost", "exclusivehost", "zonebalance");
+    private static final Set<String> CONSTRAINT_NAMES = asSet("uniquehost", "exclusivehost", "zonebalance", "activehost");
 
     @Target({METHOD, FIELD, ANNOTATION_TYPE, CONSTRUCTOR, PARAMETER})
     @Retention(RetentionPolicy.RUNTIME)

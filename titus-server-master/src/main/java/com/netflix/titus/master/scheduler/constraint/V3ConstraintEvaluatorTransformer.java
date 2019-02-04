@@ -26,8 +26,10 @@ import com.netflix.fenzo.AsSoftConstraint;
 import com.netflix.fenzo.ConstraintEvaluator;
 import com.netflix.fenzo.VMTaskFitnessCalculator;
 import com.netflix.fenzo.plugins.ExclusiveHostConstraint;
+import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.config.MasterConfiguration;
+import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,14 +51,27 @@ public class V3ConstraintEvaluatorTransformer implements ConstraintEvaluatorTran
     private static final int EXPECTED_NUM_ZONES = 3;
 
     private static final ExclusiveHostConstraint EXCLUSIVE_HOST_CONSTRAINT = new ExclusiveHostConstraint();
+    private static final String EXCLUSIVE_HOST = "exclusivehost";
+    private static final String UNIQUE_HOST = "uniquehost";
+    private static final String ZONE_BALANCE = "zonebalance";
+    private static final String ACTIVE_HOST = "activehost";
+    private static final String HOST = "host";
+    private static final String SERVER_GROUP = "servergroup";
 
     private final MasterConfiguration config;
+    private final SchedulerConfiguration schedulerConfiguration;
     private final TaskCache taskCache;
+    private final AgentManagementService agentManagementService;
 
     @Inject
-    public V3ConstraintEvaluatorTransformer(MasterConfiguration config, TaskCache taskCache) {
+    public V3ConstraintEvaluatorTransformer(MasterConfiguration config,
+                                            SchedulerConfiguration schedulerConfiguration,
+                                            TaskCache taskCache,
+                                            AgentManagementService agentManagementService) {
         this.config = config;
+        this.schedulerConfiguration = schedulerConfiguration;
         this.taskCache = taskCache;
+        this.agentManagementService = agentManagementService;
     }
 
     @Override
@@ -64,16 +79,20 @@ public class V3ConstraintEvaluatorTransformer implements ConstraintEvaluatorTran
         String name = hardConstraint.getLeft();
         String value = hardConstraint.getRight();
         switch (name.toLowerCase()) {
-            case "exclusivehost":
+            case EXCLUSIVE_HOST:
                 return "true".equals(value) ? Optional.of(EXCLUSIVE_HOST_CONSTRAINT) : Optional.empty();
-            case "uniquehost":
+            case UNIQUE_HOST:
                 return "true".equals(value) ? Optional.of(new V3UniqueHostConstraint()) : Optional.empty();
-            case "zonebalance":
+            case ZONE_BALANCE:
                 return "true".equals(value)
                         ? Optional.of(new V3ZoneBalancedHardConstraintEvaluator(taskCache, EXPECTED_NUM_ZONES, config.getHostZoneAttributeName()))
                         : Optional.empty();
-            case "host":
-            case "servergroup":
+            case ACTIVE_HOST:
+                return "true".equals(value)
+                        ? Optional.of(new ActiveHostConstraint(schedulerConfiguration, agentManagementService))
+                        : Optional.empty();
+            case HOST:
+            case SERVER_GROUP:
         }
         logger.error("Unknown or not supported job hard constraint: {}", name);
         return Optional.empty();
@@ -84,16 +103,20 @@ public class V3ConstraintEvaluatorTransformer implements ConstraintEvaluatorTran
         String name = softConstraints.getLeft();
         String value = softConstraints.getRight();
         switch (name.toLowerCase()) {
-            case "exclusivehost":
+            case EXCLUSIVE_HOST:
                 return "true".equals(value) ? Optional.of(AsSoftConstraint.get(EXCLUSIVE_HOST_CONSTRAINT)) : Optional.empty();
-            case "uniquehost":
+            case UNIQUE_HOST:
                 return "true".equals(value) ? Optional.of(AsSoftConstraint.get(new V3UniqueHostConstraint())) : Optional.empty();
-            case "zonebalance":
+            case ZONE_BALANCE:
                 return "true".equals(value)
                         ? Optional.of(new V3ZoneBalancedFitnessCalculator(taskCache, EXPECTED_NUM_ZONES, config.getHostZoneAttributeName()))
                         : Optional.empty();
-            case "host":
-            case "servergroup":
+            case ACTIVE_HOST:
+                return "true".equals(value)
+                        ? Optional.of(AsSoftConstraint.get(new ActiveHostConstraint(schedulerConfiguration, agentManagementService)))
+                        : Optional.empty();
+            case HOST:
+            case SERVER_GROUP:
         }
         logger.error("Unknown or not supported job hard constraint: {}", name);
         return Optional.empty();
