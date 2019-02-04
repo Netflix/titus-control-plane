@@ -28,7 +28,7 @@ import com.netflix.fenzo.functions.Action1;
 import com.netflix.titus.api.json.ObjectMappers;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.master.VirtualMachineMasterService;
+import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.mesos.ContainerEvent;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import org.apache.mesos.Protos;

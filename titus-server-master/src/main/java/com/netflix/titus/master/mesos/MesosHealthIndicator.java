@@ -23,7 +23,6 @@ import javax.inject.Singleton;
 import com.netflix.runtime.health.api.Health;
 import com.netflix.runtime.health.api.HealthIndicator;
 import com.netflix.runtime.health.api.HealthIndicatorCallback;
-import com.netflix.titus.master.VirtualMachineMasterService;
 
 /**
  * For TitusMaster leader, check if it is connected to Mesos.

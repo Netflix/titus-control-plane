@@ -71,7 +71,7 @@ import com.netflix.titus.grpc.protogen.SupervisorServiceGrpc.SupervisorServiceBl
 import com.netflix.titus.master.TitusMaster;
 import com.netflix.titus.master.TitusMasterModule;
 import com.netflix.titus.master.TitusRuntimeModule;
-import com.netflix.titus.master.VirtualMachineMasterService;
+import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.agent.store.InMemoryAgentStore;
 import com.netflix.titus.master.endpoint.grpc.TitusMasterGrpcServer;
 import com.netflix.titus.master.eviction.service.quota.system.ArchaiusSystemDisruptionBudgetResolver;

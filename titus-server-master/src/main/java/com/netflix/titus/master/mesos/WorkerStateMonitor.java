@@ -32,7 +32,6 @@ import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.master.VirtualMachineMasterService;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

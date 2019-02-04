@@ -50,6 +50,7 @@ import com.netflix.titus.common.util.guice.ContainerEventBusModule;
 import com.netflix.titus.common.util.rx.eventbus.RxEventBus;
 import com.netflix.titus.common.util.rx.eventbus.internal.DefaultRxEventBus;
 import com.netflix.titus.master.mesos.MesosStatusOverrideFitAction;
+import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.scheduler.SchedulingService;
 import com.netflix.titus.master.supervisor.service.LeaderActivator;
 import com.netflix.titus.runtime.Fit;
