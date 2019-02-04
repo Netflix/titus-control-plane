@@ -40,6 +40,7 @@ public class TaskRelocationPlanPredicateTest {
             .withTaskId("task1")
             .withReason(TaskRelocationReason.TaskMigration)
             .withReasonMessage("reason message")
+            .withDecisionTime(100)
             .withRelocationTime(123)
             .build();
 

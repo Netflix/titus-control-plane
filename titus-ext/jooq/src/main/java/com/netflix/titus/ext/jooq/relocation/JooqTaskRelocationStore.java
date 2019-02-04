@@ -80,6 +80,7 @@ public class JooqTaskRelocationStore implements TaskRelocationStore {
                             .withTaskId(record.getTaskId())
                             .withReason(TaskRelocationReason.valueOf(record.getReasonCode()))
                             .withReasonMessage(record.getReasonMessage())
+                            .withDecisionTime(record.getDecisionTime().getTime())
                             .withRelocationTime(record.getRelocationTime().getTime())
                             .build()
             );

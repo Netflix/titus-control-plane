@@ -17,13 +17,14 @@
 package com.netflix.titus.api.agent.model;
 
 import java.util.Collection;
-import java.util.Optional;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import com.netflix.titus.api.agent.service.AgentManagementException;
-import com.netflix.titus.api.agent.service.AgentManagementService;
+import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
+import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.time.Clock;
 
 /**
@@ -34,20 +35,26 @@ public final class AgentFunctions {
     private AgentFunctions() {
     }
 
+    public static Map<String, AgentInstance> buildInstanceByIdMap(ReadOnlyAgentOperations agentManagementService) {
+        Map<String, AgentInstance> instancesById = new HashMap<>();
+        agentManagementService.getInstanceGroups().forEach(instanceGroup -> {
+            try {
+                agentManagementService.getAgentInstances(instanceGroup.getId()).forEach(instance -> {
+                    instancesById.put(instance.getId(), instance);
+                });
+            } catch (Exception e) {
+                // Ignore
+            }
+        });
+        return instancesById;
+    }
+
     public static Set<String> instanceGroupIds(Collection<AgentInstanceGroup> instanceGroups) {
         return instanceGroups.stream().map(AgentInstanceGroup::getId).collect(Collectors.toSet());
     }
 
     public static Set<String> instanceIds(Collection<AgentInstance> instances) {
         return instances.stream().map(AgentInstance::getId).collect(Collectors.toSet());
-    }
-
-    public static Optional<AgentInstanceGroup> getInstanceGroup(String id, AgentManagementService agentManagementService) {
-        try {
-            return Optional.of(agentManagementService.getInstanceGroup(id));
-        } catch (AgentManagementException e) {
-            return Optional.empty();
-        }
     }
 
     public static Function<AgentInstanceGroup, AgentInstanceGroup> withId(String newId) {
@@ -62,5 +69,11 @@ public final class AgentFunctions {
                         .withDetail(detail)
                         .build()
         ).build();
+    }
+
+    public static AgentInstance appendInstanceAttribute(AgentInstance instance, String attributeName, Object attributeValue) {
+        return instance.toBuilder()
+                .withAttributes(CollectionsExt.copyAndAdd(instance.getAttributes(), attributeName, "" + attributeValue))
+                .build();
     }
 }

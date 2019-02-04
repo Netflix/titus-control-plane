@@ -16,35 +16,32 @@
 
 package com.netflix.titus.supplementary.relocation.workflow.step;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import com.google.common.base.Stopwatch;
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
-import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudgetPolicy;
+import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.SelfManagedDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
-import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.common.util.time.Clock;
-import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan.TaskRelocationReason;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.time.Clock;
+import com.netflix.titus.common.util.tuple.Triple;
 import com.netflix.titus.supplementary.relocation.util.RelocationUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.hasDisruptionBudget;
 import static com.netflix.titus.api.relocation.model.RelocationFunctions.areEqualExceptRelocationTime;
-import static com.netflix.titus.supplementary.relocation.util.RelocationUtil.getAgentInstances;
-import static com.netflix.titus.supplementary.relocation.util.RelocationUtil.getRemovableGroups;
+import static com.netflix.titus.supplementary.relocation.util.RelocationPredicates.checkIfNeedsRelocationPlan;
 
 /**
  * Step at which all containers that are requested to terminate are identified, and their relocation timestamps are set.
@@ -72,7 +69,7 @@ public class MustBeRelocatedTaskCollectorStep {
     public Map<String, TaskRelocationPlan> collectTasksThatMustBeRelocated() {
         Stopwatch stopwatch = Stopwatch.createStarted();
         try {
-            Map<String, TaskRelocationPlan> result = execute();
+            Map<String, TaskRelocationPlan> result = buildRelocationPlans();
             metrics.onSuccess(result.size(), stopwatch.elapsed(TimeUnit.MILLISECONDS));
             logger.debug("Step results: {}", result);
             return result;
@@ -83,55 +80,64 @@ public class MustBeRelocatedTaskCollectorStep {
         }
     }
 
-    private Map<String, TaskRelocationPlan> execute() {
-        List<Task> tasks = jobOperations.getTasks();
-
-        List<AgentInstance> removableAgents = getAgentInstances(agentOperations, getRemovableGroups(agentOperations));
-
-        List<Pair<AgentInstance, Task>> tasksOnRemovableAgents = removableAgents.stream()
-                .flatMap(agent -> RelocationUtil.findTasksOnInstance(agent, tasks).stream().map(t -> Pair.of(agent, t)))
-                .collect(Collectors.toList());
-
-        long now = clock.wallTime();
-
+    private Map<String, TaskRelocationPlan> buildRelocationPlans() {
         Map<String, TaskRelocationPlan> result = new HashMap<>();
-        tasksOnRemovableAgents.forEach(agentTaskPair -> {
-            AgentInstance agent = agentTaskPair.getLeft();
-            Task task = agentTaskPair.getRight();
-            Optional<Job<?>> jobOpt = jobOperations.getJob(task.getJobId());
+        List<Triple<Job<?>, Task, AgentInstance>> allItems = findAllJobTaskAgentTriples();
+        allItems.forEach(triple -> {
 
-            if (jobOpt == null) {
-                logger.info("Found task with no job record. Ignoring it: jobId={}, taskId={}", task.getJobId(), task.getId());
-                return;
-            }
+            Job<?> job = triple.getFirst();
+            Task task = triple.getSecond();
+            AgentInstance instance = triple.getThird();
 
-            Job<?> job = jobOpt.get();
-
-            if (hasDisruptionBudget(job) && isSelfManaged(job)) {
-                SelfManagedDisruptionBudgetPolicy selfManaged = (SelfManagedDisruptionBudgetPolicy) job.getJobDescriptor().getDisruptionBudget().getDisruptionBudgetPolicy();
-
-                TaskRelocationPlan relocationPlan = TaskRelocationPlan.newBuilder()
-                        .withTaskId(task.getId())
-                        .withReason(TaskRelocationReason.TaskMigration)
-                        .withReasonMessage("Agent instance scheduled to remove: instanceId=" + agent.getId())
-                        .withRelocationTime(now + selfManaged.getRelocationTimeMs())
-                        .build();
-
-                TaskRelocationPlan previous = lastResult.get(task.getId());
-                boolean keepPrevious = previous != null &&
-                        (areEqualExceptRelocationTime(previous, relocationPlan) || previous.getRelocationTime() < relocationPlan.getRelocationTime());
-
-                result.put(task.getId(), keepPrevious ? previous : relocationPlan);
-            }
+            agentOperations.findInstanceGroup(instance.getInstanceGroupId()).ifPresent(instanceGroup ->
+                    checkIfNeedsRelocationPlan(job, task, instanceGroup, instance).ifPresent(reason ->
+                            result.put(task.getId(), buildSelfManagedRelocationPlan(job, task, reason))
+                    ));
         });
 
         this.lastResult = result;
-
+        
         return result;
     }
 
-    private boolean isSelfManaged(Job<?> job) {
-        DisruptionBudgetPolicy disruptionBudgetPolicy = job.getJobDescriptor().getDisruptionBudget().getDisruptionBudgetPolicy();
-        return disruptionBudgetPolicy instanceof SelfManagedDisruptionBudgetPolicy;
+    private List<Triple<Job<?>, Task, AgentInstance>> findAllJobTaskAgentTriples() {
+        Map<String, AgentInstance> taskToInstanceMap = RelocationUtil.buildTasksToInstanceMap(agentOperations, jobOperations);
+
+        List<Triple<Job<?>, Task, AgentInstance>> result = new ArrayList<>();
+        jobOperations.getJobs().forEach(job -> {
+            jobOperations.getTasks(job.getId()).forEach(task -> {
+                TaskState taskState = task.getStatus().getState();
+                if (taskState != TaskState.Accepted && taskState != TaskState.KillInitiated && taskState != TaskState.Finished) {
+                    AgentInstance instance = taskToInstanceMap.get(task.getId());
+                    if (instance != null) {
+                        result.add(Triple.of(job, task, instance));
+                    }
+                }
+            });
+        });
+        return result;
+    }
+
+    /**
+     * Relocation plans today are limited to self managed polices.
+     */
+    private TaskRelocationPlan buildSelfManagedRelocationPlan(Job<?> job, Task task, String reason) {
+        long now = clock.wallTime();
+
+        SelfManagedDisruptionBudgetPolicy selfManaged = (SelfManagedDisruptionBudgetPolicy) job.getJobDescriptor().getDisruptionBudget().getDisruptionBudgetPolicy();
+
+        TaskRelocationPlan relocationPlan = TaskRelocationPlan.newBuilder()
+                .withTaskId(task.getId())
+                .withReason(TaskRelocationReason.TaskMigration)
+                .withReasonMessage(reason)
+                .withDecisionTime(now)
+                .withRelocationTime(now + selfManaged.getRelocationTimeMs())
+                .build();
+
+        TaskRelocationPlan previous = lastResult.get(task.getId());
+        boolean keepPrevious = previous != null &&
+                (areEqualExceptRelocationTime(previous, relocationPlan) || previous.getRelocationTime() < relocationPlan.getRelocationTime());
+
+        return keepPrevious ? previous : relocationPlan;
     }
 }

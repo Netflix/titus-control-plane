@@ -17,9 +17,12 @@
 package com.netflix.titus.supplementary.relocation.util;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.netflix.titus.api.agent.model.AgentFunctions;
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
@@ -27,26 +30,41 @@ import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
-import com.netflix.titus.common.util.DateTimeExt;
+import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
+import com.netflix.titus.common.util.DateTimeExt;
 
 public final class RelocationUtil {
 
-    public static List<AgentInstance> getAgentInstances(ReadOnlyAgentOperations agentOperations,
-                                                        List<AgentInstanceGroup> instanceGroups) {
-        return instanceGroups.stream()
-                .flatMap(ig -> agentOperations.getAgentInstances(ig.getId()).stream())
-                .collect(Collectors.toList());
+    public static Map<String, Task> buildTaskByIdMap(ReadOnlyJobOperations jobOperations) {
+        Map<String, Task> result = new HashMap<>();
+        jobOperations.getJobs().forEach(job -> jobOperations.getTasks(job.getId()).forEach(task -> result.put(task.getId(), task)));
+        return result;
+    }
+
+    public static Map<String, AgentInstance> buildTasksToInstanceMap(ReadOnlyAgentOperations agentManagementService,
+                                                                     Map<String, Task> taskByIdMap) {
+        Map<String, AgentInstance> instancesById = AgentFunctions.buildInstanceByIdMap(agentManagementService);
+        Map<String, AgentInstance> result = new HashMap<>();
+        taskByIdMap.values().forEach(task -> {
+            String instanceId = task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID);
+            if (instanceId != null) {
+                AgentInstance instance = instancesById.get(instanceId);
+                if (instance != null) {
+                    result.put(task.getId(), instance);
+                }
+            }
+        });
+        return result;
+    }
+
+    public static Map<String, AgentInstance> buildTasksToInstanceMap(ReadOnlyAgentOperations agentManagementService,
+                                                                     ReadOnlyJobOperations jobOperations) {
+        return buildTasksToInstanceMap(agentManagementService, buildTaskByIdMap(jobOperations));
     }
 
     public static boolean isRemovable(AgentInstanceGroup instanceGroup) {
         return instanceGroup.getLifecycleStatus().getState() == InstanceGroupLifecycleState.Removable;
-    }
-
-    public static List<AgentInstanceGroup> getRemovableGroups(ReadOnlyAgentOperations agentOperations) {
-        return agentOperations.getInstanceGroups().stream()
-                .filter(ig -> ig.getLifecycleStatus().getState() == InstanceGroupLifecycleState.Removable)
-                .collect(Collectors.toList());
     }
 
     public static List<Task> findTasksOnInstance(AgentInstance instance, Collection<Task> tasks) {

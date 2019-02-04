@@ -36,9 +36,12 @@ import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.common.data.generator.MutableDataGenerator;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
+import com.netflix.titus.common.util.time.TestClock;
 import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.supplementary.relocation.RelocationAttributes;
 import com.netflix.titus.supplementary.relocation.RelocationConnectorStubs;
 import com.netflix.titus.supplementary.relocation.model.DeschedulingFailure;
+import com.netflix.titus.supplementary.relocation.model.DeschedulingResult;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import com.netflix.titus.testkit.model.job.JobTestFunctions;
 import org.junit.Test;
@@ -61,6 +64,8 @@ public class TaskMigrationDeschedulerTest {
 
     private final TitusRuntime titusRuntime = TitusRuntimes.test();
 
+    private final TestClock clock = (TestClock) titusRuntime.getClock();
+
     private final MutableDataGenerator<AgentInstanceGroup> flexInstanceGroupGenerator = new MutableDataGenerator<>(agentServerGroups(Tier.Flex, 10));
 
     private final MutableDataGenerator<Job<ServiceJobExt>> jobGenerator = new MutableDataGenerator<>(
@@ -74,10 +79,22 @@ public class TaskMigrationDeschedulerTest {
             .addInstanceGroup(flexInstanceGroupGenerator.getValue().but(withId("active1"), inState(InstanceGroupLifecycleState.Active)))
             .addInstanceGroup(flexInstanceGroupGenerator.getValue().but(withId("removable1"), inState(InstanceGroupLifecycleState.Removable)))
             .addJob(jobGenerator.getValue().but(withJobId("job1")))
-            .addJob(jobGenerator.getValue().but(withJobId("job2")));
+            .addJob(jobGenerator.getValue().but(withJobId("job2")))
+            .addJob(jobGenerator.getValue().but(withJobId("jobToMigrate")));
 
     private final ReadOnlyJobOperations jobOperations = dataGenerator.getJobOperations();
     private final ReadOnlyAgentOperations agentOperations = dataGenerator.getAgentOperations();
+
+    @Test
+    public void testImmediateMigrations() {
+        dataGenerator.addJobAttribute("jobToMigrate", RelocationAttributes.RELOCATION_REQUIRED_BY_IMMEDIATELY, "" + (clock.wallTime() + 1));
+
+        Task task0 = jobOperations.getTasks("jobToMigrate").get(0);
+        dataGenerator.place("active1", task0);
+
+        Map<String, DeschedulingResult> immediateEvictions = newDescheduler(Collections.emptyMap()).findAllImmediateEvictions();
+        assertThat(immediateEvictions).hasSize(1).containsKey(task0.getId());
+    }
 
     @Test
     public void testDelayedMigrations() {
@@ -133,11 +150,13 @@ public class TaskMigrationDeschedulerTest {
     }
 
     private TaskMigrationDescheduler newDescheduler(Map<String, TaskRelocationPlan> plannedAheadTaskRelocationPlans) {
+        Map<String, Task> tasksById = toTaskMap(jobOperations.getTasks());
         return new TaskMigrationDescheduler(
                 plannedAheadTaskRelocationPlans,
-                new EvacuatedAgentsAllocationTracker(dataGenerator.getAgentOperations(), toTaskMap(jobOperations.getTasks())),
+                new EvacuatedAgentsAllocationTracker(dataGenerator.getAgentOperations(), tasksById),
                 new EvictionQuotaTracker(dataGenerator.getEvictionOperations(), JobTestFunctions.toJobMap(jobOperations.getJobs())),
                 jobOperations.getJobs().stream().collect(Collectors.toMap(Job::getId, j -> j)),
+                tasksById,
                 titusRuntime
         );
     }

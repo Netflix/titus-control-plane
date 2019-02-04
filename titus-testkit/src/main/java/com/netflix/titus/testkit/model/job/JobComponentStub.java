@@ -38,6 +38,7 @@ import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.common.data.generator.DataGenerator;
 import com.netflix.titus.common.data.generator.MutableDataGenerator;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
@@ -132,6 +133,15 @@ public class JobComponentStub {
     public <E extends JobDescriptor.JobDescriptorExt> Job<E> changeJob(Job<E> updatedJob) {
         stubbedJobData.changeJob(updatedJob.getId(), j -> updatedJob);
         return updatedJob;
+    }
+
+    public void addJobAttribute(String jobId, String attributeName, String attributeValue) {
+        stubbedJobData.changeJob(jobId, job -> {
+            JobDescriptor update = job.getJobDescriptor().toBuilder()
+                    .withAttributes(CollectionsExt.copyAndAdd(job.getJobDescriptor().getAttributes(), attributeName, attributeValue))
+                    .build();
+            return job.toBuilder().withJobDescriptor(update).build();
+        });
     }
 
     public Job finishJob(Job job) {
