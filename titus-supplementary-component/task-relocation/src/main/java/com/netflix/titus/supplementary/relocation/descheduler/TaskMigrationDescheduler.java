@@ -76,6 +76,8 @@ class TaskMigrationDescheduler {
     }
 
     Map<String, DeschedulingResult> findAllImmediateEvictions() {
+        long now = clock.wallTime();
+
         Map<String, DeschedulingResult> result = new HashMap<>();
         tasksById.values().forEach(task -> {
             Job<?> job = jobsById.get(task.getJobId());
@@ -86,7 +88,8 @@ class TaskMigrationDescheduler {
                             .withTaskId(task.getId())
                             .withReason(TaskRelocationPlan.TaskRelocationReason.TaskMigration)
                             .withReasonMessage(reason)
-                            .withRelocationTime(clock.wallTime())
+                            .withDecisionTime(now)
+                            .withRelocationTime(now)
                             .build();
 
                     DeschedulingResult deschedulingResult = DeschedulingResult.newBuilder()

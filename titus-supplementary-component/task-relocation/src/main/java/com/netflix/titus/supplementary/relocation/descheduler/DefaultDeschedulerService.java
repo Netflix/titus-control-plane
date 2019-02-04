@@ -148,20 +148,24 @@ public class DefaultDeschedulerService implements DeschedulerService {
     }
 
     private TaskRelocationPlan newImmediateRelocationPlan(Task task) {
+        long now = clock.wallTime();
         return TaskRelocationPlan.newBuilder()
                 .withTaskId(task.getId())
                 .withReason(TaskRelocationReason.TaskMigration)
                 .withReasonMessage("Immediate task migration, as no migration constraint defined for the job")
-                .withRelocationTime(clock.wallTime())
+                .withDecisionTime(now)
+                .withRelocationTime(now)
                 .build();
     }
 
     private TaskRelocationPlan newLegacyRelocationPlan(Task task) {
+        long now = clock.wallTime();
         return TaskRelocationPlan.newBuilder()
                 .withTaskId(task.getId())
                 .withReason(TaskRelocationReason.TaskMigration)
                 .withReasonMessage("Attempted failed migration of a legacy job")
-                .withRelocationTime(clock.wallTime())
+                .withDecisionTime(now)
+                .withRelocationTime(now)
                 .build();
     }
 }

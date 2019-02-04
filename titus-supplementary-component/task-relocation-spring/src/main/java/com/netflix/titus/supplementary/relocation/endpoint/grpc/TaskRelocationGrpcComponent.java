@@ -38,10 +38,4 @@ public class TaskRelocationGrpcComponent {
                                                                   TaskRelocationResultStore archiveStore) {
         return new TaskRelocationGrpcService(jobOperations, workflowExecutor, archiveStore);
     }
-
-    @Bean
-    public TaskRelocationGrpcServer getTaskRelocationGrpcServer(GrpcEndpointConfiguration configuration,
-                                                                TaskRelocationGrpcService taskRelocationGrpcService) {
-        return new TaskRelocationGrpcServer(configuration, taskRelocationGrpcService);
-    }
 }

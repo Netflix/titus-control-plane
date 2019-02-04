@@ -26,6 +26,7 @@ public class TaskRelocationPlanGenerator {
     public static TaskRelocationPlan oneMigrationPlan() {
         return TaskRelocationPlan.newBuilder()
                 .withTaskId("task1")
+                .withDecisionTime(101)
                 .withRelocationTime(123)
                 .withReason(TaskRelocationReason.TaskMigration)
                 .withReasonMessage("test")

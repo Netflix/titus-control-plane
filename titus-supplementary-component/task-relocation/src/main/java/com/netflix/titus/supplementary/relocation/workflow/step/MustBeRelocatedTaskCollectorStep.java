@@ -127,6 +127,7 @@ public class MustBeRelocatedTaskCollectorStep {
                 .withTaskId(task.getId())
                 .withReason(TaskRelocationReason.TaskMigration)
                 .withReasonMessage(reason)
+                .withDecisionTime(now)
                 .withRelocationTime(now + selfManaged.getRelocationTimeMs())
                 .build();
 

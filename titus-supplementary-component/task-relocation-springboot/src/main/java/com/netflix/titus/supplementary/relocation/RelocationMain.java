@@ -21,14 +21,20 @@ import com.netflix.titus.runtime.connector.titusmaster.ConfigurationLeaderResolv
 import com.netflix.titus.runtime.connector.titusmaster.LeaderNameResolverFactory;
 import com.netflix.titus.runtime.connector.titusmaster.LeaderResolver;
 import com.netflix.titus.runtime.connector.titusmaster.TitusMasterClientConfiguration;
+import com.netflix.titus.runtime.endpoint.common.grpc.GrpcEndpointConfiguration;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolveComponent;
 import com.netflix.titus.supplementary.relocation.connector.TitusMasterConnectorComponent;
+import com.netflix.titus.supplementary.relocation.endpoint.grpc.TaskRelocationGrpcServer;
+import com.netflix.titus.supplementary.relocation.endpoint.grpc.TaskRelocationGrpcService;
 import io.grpc.Channel;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 
 @SpringBootApplication
+@Import(CallMetadataResolveComponent.class)
 public class RelocationMain {
 
     @Bean
@@ -44,6 +50,12 @@ public class RelocationMain {
                 .usePlaintext(true)
                 .maxHeaderListSize(65536)
                 .build();
+    }
+
+    @Bean
+    public TaskRelocationGrpcServer getTaskRelocationGrpcServer(GrpcEndpointConfiguration configuration,
+                                                                TaskRelocationGrpcService taskRelocationGrpcService) {
+        return new TaskRelocationGrpcServer(configuration, taskRelocationGrpcService);
     }
 
     public static void main(String[] args) {
