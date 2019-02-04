@@ -91,7 +91,7 @@ public class MustBeRelocatedTaskCollectorStep {
 
             agentOperations.findInstanceGroup(instance.getInstanceGroupId()).ifPresent(instanceGroup ->
                     checkIfNeedsRelocationPlan(job, task, instanceGroup, instance).ifPresent(reason ->
-                            result.put(task.getId(), buildRelocationPlan(job, task, reason))
+                            result.put(task.getId(), buildSelfManagedRelocationPlan(job, task, reason))
                     ));
         });
 
@@ -118,7 +118,10 @@ public class MustBeRelocatedTaskCollectorStep {
         return result;
     }
 
-    private TaskRelocationPlan buildRelocationPlan(Job<?> job, Task task, String reason) {
+    /**
+     * Relocation plans today are limited to self managed polices.
+     */
+    private TaskRelocationPlan buildSelfManagedRelocationPlan(Job<?> job, Task task, String reason) {
         long now = clock.wallTime();
 
         SelfManagedDisruptionBudgetPolicy selfManaged = (SelfManagedDisruptionBudgetPolicy) job.getJobDescriptor().getDisruptionBudget().getDisruptionBudgetPolicy();
