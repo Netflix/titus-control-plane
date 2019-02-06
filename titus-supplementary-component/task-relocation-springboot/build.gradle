@@ -33,7 +33,7 @@ configurations.all {
 }
 
 dependencies {
-    compile project(':titus-supplementary-component-task-relocation-spring')
+    compile project(':titus-supplementary-component-task-relocation')
 
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-tomcat'

@@ -21,12 +21,10 @@ import javax.inject.Singleton;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
-import com.netflix.governator.guice.jersey.GovernatorJerseySupportModule;
 import com.netflix.titus.runtime.endpoint.common.grpc.GrpcEndpointConfiguration;
 import com.netflix.titus.runtime.endpoint.resolver.HostCallerIdResolver;
 import com.netflix.titus.runtime.endpoint.resolver.NoOpHostCallerIdResolver;
 import com.netflix.titus.supplementary.relocation.endpoint.grpc.TaskRelocationGrpcServer;
-import com.netflix.titus.supplementary.relocation.endpoint.rest.TaskRelocationJerseyModule;
 
 public class TaskRelocationEndpointModule extends AbstractModule {
     @Override
@@ -35,10 +33,6 @@ public class TaskRelocationEndpointModule extends AbstractModule {
 
         // GRPC
         bind(TaskRelocationGrpcServer.class).asEagerSingleton();
-
-        // REST
-        install(new GovernatorJerseySupportModule());
-        install(new TaskRelocationJerseyModule());
     }
 
     @Provides

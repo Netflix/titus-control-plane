@@ -27,17 +27,11 @@ import com.netflix.titus.supplementary.relocation.RelocationConfiguration;
 import com.netflix.titus.supplementary.relocation.descheduler.DeschedulerService;
 import com.netflix.titus.supplementary.relocation.store.TaskRelocationResultStore;
 import com.netflix.titus.supplementary.relocation.store.TaskRelocationStore;
-import org.mockito.Mockito;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 
 @Component
 public class TaskRelocationWorkflowComponent {
-
-    @Bean
-    public RelocationWorkflowExecutor getRelocationWorkflowExecutor() {
-        return Mockito.mock(RelocationWorkflowExecutor.class);
-    }
 
     @Bean
     public RelocationWorkflowExecutor getRelocationWorkflowExecutor(RelocationConfiguration configuration,

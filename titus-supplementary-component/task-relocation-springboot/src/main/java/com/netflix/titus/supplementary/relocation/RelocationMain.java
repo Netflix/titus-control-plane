@@ -23,7 +23,7 @@ import com.netflix.titus.runtime.connector.titusmaster.LeaderResolver;
 import com.netflix.titus.runtime.connector.titusmaster.TitusMasterClientConfiguration;
 import com.netflix.titus.runtime.endpoint.common.grpc.GrpcEndpointConfiguration;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolveComponent;
-import com.netflix.titus.supplementary.relocation.connector.TitusMasterConnectorComponent;
+import com.netflix.titus.runtime.connector.titusmaster.TitusMasterConnectorComponent;
 import com.netflix.titus.supplementary.relocation.endpoint.grpc.TaskRelocationGrpcServer;
 import com.netflix.titus.supplementary.relocation.endpoint.grpc.TaskRelocationGrpcService;
 import io.grpc.Channel;
