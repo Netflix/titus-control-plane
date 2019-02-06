@@ -21,9 +21,13 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.google.common.truth.FailureStrategy;
+import com.google.common.truth.StandardSubjectBuilder;
+import com.google.common.truth.extensions.proto.ProtoTruth;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.MapEntry;
 import com.google.protobuf.Message;
@@ -85,5 +89,37 @@ public final class ProtobufExt {
         }
 
         return (T) builder.build();
+    }
+
+    /**
+     * Deep comparison between two protobuf {@link Message entities}, including nested entities. The two messages *must*
+     * be of the same type (i.e.: {@code getDescriptorForType()} must return the same {@code Descriptor} for both).
+     *
+     * @return an @{@link Optional} {@link String} report of the differences, {@link Optional#empty()} if none are found.
+     * @throws IllegalArgumentException when both messages are not of the same type
+     * @throws NullPointerException     when any of the messages are <tt>null</tt>
+     */
+    public static <T extends Message> Optional<String> diffReport(T one, T other) {
+        ErrorCollector collector = new ErrorCollector();
+        StandardSubjectBuilder.forCustomFailureStrategy(collector)
+                .about(ProtoTruth.protos())
+                .that(one)
+                .named(one.getDescriptorForType().getName())
+                .reportingMismatchesOnly()
+                .isEqualTo(other);
+        return Optional.ofNullable(collector.getFailure().getMessage());
+    }
+
+    private static class ErrorCollector implements FailureStrategy {
+        private volatile AssertionError failure;
+
+        @Override
+        public void fail(AssertionError failure) {
+            this.failure = failure;
+        }
+
+        public AssertionError getFailure() {
+            return failure;
+        }
     }
 }

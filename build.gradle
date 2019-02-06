@@ -76,6 +76,7 @@ subprojects {
         protobufVersion = '3.5.+'
         postgresqlVersion = '9.4.+'
         grpcVersion = '1.10.+'
+        googleTruthVersion = '0.42+'
         swaggerVersion = '1.5.12'
         jsonVersion = '20140107'
         zkVersion = '0.4'
