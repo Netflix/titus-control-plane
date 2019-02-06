@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.supplementary.relocation.connector;
+package com.netflix.titus.runtime.connector.titusmaster;
 
 import javax.inject.Named;
 
@@ -23,7 +23,6 @@ import com.netflix.titus.grpc.protogen.EvictionServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.SupervisorServiceGrpc;
 import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
-import com.netflix.titus.runtime.connector.titusmaster.TitusMasterClientConfiguration;
 import com.netflix.titus.runtime.endpoint.common.grpc.DefaultReactorGrpcClientAdapterFactory;
 import com.netflix.titus.runtime.endpoint.common.grpc.ReactorGrpcClientAdapterFactory;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;

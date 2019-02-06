@@ -1,10 +1,14 @@
-apply plugin: 'application'
-
-mainClassName = 'com.netflix.titus.supplementary.relocation.startup.TaskRelocationMain'
+configurations.all {
+    // We need to exclude logback as it clashes with other logging engines.
+    exclude group: 'ch.qos.logback', module: 'logback-classic'
+    exclude group: 'ch.qos.logback', module: 'logback-core'
+}
 
 dependencies {
+    compile "org.springframework:spring-web:${springVersion}"
+    compile "org.springframework.boot:spring-boot:${springBootVersion}"
+
     compile project(':titus-server-runtime')
 
     testCompile project(':titus-testkit')
 }
-
