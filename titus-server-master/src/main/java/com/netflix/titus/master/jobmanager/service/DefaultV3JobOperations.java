@@ -60,7 +60,6 @@ import com.netflix.titus.common.util.guice.annotation.ProxyConfiguration;
 import com.netflix.titus.common.util.rx.ObservableExt;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.jobmanager.service.common.action.JobEntityHolders;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
@@ -73,6 +72,7 @@ import com.netflix.titus.master.jobmanager.service.event.JobModelReconcilerEvent
 import com.netflix.titus.master.jobmanager.service.limiter.JobSubmitLimiter;
 import com.netflix.titus.master.jobmanager.service.service.action.BasicServiceJobActions;
 import com.netflix.titus.master.jobmanager.service.service.action.MoveTaskBetweenJobsAction;
+import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.service.management.ManagementSubsystemInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -594,6 +594,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
 
     /**
      * Check if it really is a new task, or if it existed before and was moved from another Job.
+     *
      * @return an event indicating if the task was moved from another job
      */
     private TaskUpdateEvent toNewTaskUpdateEvent(Job<?> job, Task newTask) {

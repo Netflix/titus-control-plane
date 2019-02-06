@@ -237,8 +237,8 @@ public class TitusTaskInfoCreator {
         }
 
         Map<String, String> labels = Parameters.getLabels(parameters);
-        String metatronAppMetadata = labels.get("NETFLIX_APP_METADATA");
-        String metatronAppSignature = labels.get("NETFLIX_APP_METADATA_SIG");
+        String metatronAppMetadata = labels.get(Container.ATTRIBUTE_NETFLIX_APP_METADATA);
+        String metatronAppSignature = labels.get(Container.ATTRIBUTE_NETFLIX_APP_METADATA_SIG);
         if (metatronAppMetadata != null && metatronAppSignature != null) {
             TitanProtos.ContainerInfo.MetatronCreds.Builder metatronBldr = TitanProtos.ContainerInfo.MetatronCreds.newBuilder()
                     .setAppMetadata(metatronAppMetadata)

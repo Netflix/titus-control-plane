@@ -16,17 +16,11 @@
 
 package com.netflix.titus.common.util;
 
-import java.util.Arrays;
 import java.util.Collection;
 
-import com.google.protobuf.DescriptorProtos;
-import com.google.protobuf.DescriptorProtos.FieldDescriptorProto;
-import com.google.protobuf.DescriptorProtos.FileDescriptorProto;
-import com.google.protobuf.Descriptors;
-import com.google.protobuf.Descriptors.Descriptor;
 import com.google.protobuf.Descriptors.FieldDescriptor;
-import com.google.protobuf.Descriptors.FileDescriptor;
 import com.google.protobuf.DynamicMessage;
+import com.google.protobuf.Message;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -36,167 +30,108 @@ import static org.assertj.core.api.Assertions.fail;
 
 public class ProtobufCopyTest {
 
-    private static Descriptor INNER_TYPE;
-    private static Descriptor OUTER_TYPE;
-
-    private static FieldDescriptor INNER_FIELD_1;
-    private static FieldDescriptor INNER_FIELD_2;
-    private static FieldDescriptor OUTER_FIELD_1;
-    private static FieldDescriptor OUTER_FIELD_2;
-
-    private static DynamicMessage OUTER_VALUE;
+    private static Message OUTER_VALUE;
 
     @BeforeClass
     public static void setUp() throws Exception {
-        buildSampleProtoModel();
-        buildSampleValues();
-    }
-
-    /**
-     * Programmatically constructs test protobuf model:
-     */
-    private static void buildSampleProtoModel() throws Descriptors.DescriptorValidationException {
-        // Inner type
-        FieldDescriptorProto innerField1 = FieldDescriptorProto.newBuilder()
-                .setName("stringField1")
-                .setNumber(1)
-                .setType(FieldDescriptorProto.Type.TYPE_STRING)
-                .build();
-        FieldDescriptorProto innerField2 = FieldDescriptorProto.newBuilder()
-                .setName("stringField2")
-                .setNumber(2)
-                .setType(FieldDescriptorProto.Type.TYPE_STRING)
-                .build();
-
-        DescriptorProtos.DescriptorProto innerBuilder = DescriptorProtos.DescriptorProto.newBuilder()
-                .setName("InnerEntity")
-                .addField(innerField1)
-                .addField(innerField2)
-                .build();
-
-        // Outer type
-        FieldDescriptorProto outerField1 = FieldDescriptorProto.newBuilder()
-                .setName("objectField")
-                .setNumber(1)
-                .setType(FieldDescriptorProto.Type.TYPE_MESSAGE)
-                .setTypeName("InnerEntity")
-                .build();
-        FieldDescriptorProto outerField2 = FieldDescriptorProto.newBuilder()
-                .setName("objectArrayField")
-                .setNumber(2)
-                .setType(FieldDescriptorProto.Type.TYPE_MESSAGE)
-                .setTypeName("InnerEntity")
-                .setLabel(FieldDescriptorProto.Label.LABEL_REPEATED)
-                .build();
-
-        DescriptorProtos.DescriptorProto outerBuilder = DescriptorProtos.DescriptorProto.newBuilder()
-                .setName("OuterEntity")
-                .addField(outerField1)
-                .addField(outerField2)
-                .build();
-
-        FileDescriptorProto proto = FileDescriptorProto.newBuilder()
-                .setName("sampleProtoModel")
-                .addMessageType(innerBuilder)
-                .addMessageType(outerBuilder)
-                .build();
-
-        FileDescriptor fileDescriptor = FileDescriptor.buildFrom(proto, new FileDescriptor[0]);
-        INNER_TYPE = fileDescriptor.getMessageTypes().get(0);
-        OUTER_TYPE = fileDescriptor.getMessageTypes().get(1);
-    }
-
-    private static void buildSampleValues() {
-        INNER_FIELD_1 = INNER_TYPE.getFields().get(0);
-        INNER_FIELD_2 = INNER_TYPE.getFields().get(1);
-        DynamicMessage innerValue = DynamicMessage.newBuilder(INNER_TYPE)
-                .setField(INNER_FIELD_1, "innerValue1")
-                .setField(INNER_FIELD_2, "innerValue2")
-                .build();
-        DynamicMessage innerValue2 = DynamicMessage.newBuilder(INNER_TYPE)
-                .setField(INNER_FIELD_1, "inner2Value1")
-                .setField(INNER_FIELD_2, "inner2Value2")
-                .build();
-
-        OUTER_FIELD_1 = OUTER_TYPE.getFields().get(0);
-        OUTER_FIELD_2 = OUTER_TYPE.getFields().get(1);
-        OUTER_VALUE = DynamicMessage.newBuilder(OUTER_TYPE)
-                .setField(OUTER_FIELD_1, innerValue)
-                .setField(OUTER_FIELD_2, Arrays.asList(innerValue, innerValue2))
-                .build();
+        Message innerValue = ProtoMessageBuilder.newInner("innerValue1", "innerValue2");
+        Message innerValue2 = ProtoMessageBuilder.newInner("inner2Value1", "inner2Value2");
+        OUTER_VALUE = ProtoMessageBuilder.newOuter(innerValue, 10, innerValue, innerValue2);
     }
 
     @Test
     public void testTopLevelFieldSelection() throws Exception {
         // Include all fields
-        DynamicMessage all = ProtobufCopy.copy(OUTER_VALUE, asSet("objectField", "primitiveField"));
-        assertFieldHasValue(all, OUTER_FIELD_1);
-        assertFieldHasValue(all, OUTER_FIELD_2);
+        Message all = ProtobufExt.copy(OUTER_VALUE, asSet("objectField", "primitiveField"));
+        FieldDescriptor objectField = ProtoMessageBuilder.getAndAssertField(OUTER_VALUE, "objectField");
+        FieldDescriptor primitiveField = ProtoMessageBuilder.getAndAssertField(OUTER_VALUE, "primitiveField");
+        assertFieldHasValue(all, objectField);
+        assertFieldHasValue(all, primitiveField);
 
         // Include only second field
-        DynamicMessage secondOnly = ProtobufCopy.copy(OUTER_VALUE, asSet("primitiveField"));
-        assertFieldHasNoValue(secondOnly, OUTER_FIELD_1);
-        assertFieldHasValue(secondOnly, OUTER_FIELD_2);
+        Message secondOnly = ProtobufExt.copy(OUTER_VALUE, asSet("primitiveField"));
+        assertFieldHasNoValue(secondOnly, objectField);
+        assertFieldHasValue(secondOnly, primitiveField);
     }
 
     @Test
     public void testNestedSimpleFieldSelection() throws Exception {
-        DynamicMessage filtered = ProtobufCopy.copy(OUTER_VALUE, asSet("objectField.stringField1", "primitiveField"));
+        Message filtered = ProtobufExt.copy(OUTER_VALUE, asSet("objectField.stringField1", "primitiveField"));
+        FieldDescriptor objectField = ProtoMessageBuilder.getAndAssertField(OUTER_VALUE, "objectField");
+        FieldDescriptor primitiveField = ProtoMessageBuilder.getAndAssertField(OUTER_VALUE, "primitiveField");
+        FieldDescriptor objectArrayField = ProtoMessageBuilder.getAndAssertField(OUTER_VALUE, "objectArrayField");
+        FieldDescriptor stringField1 = ProtoMessageBuilder.getAndAssertField(objectField.getMessageType(), "stringField1");
+        FieldDescriptor stringField2 = ProtoMessageBuilder.getAndAssertField(objectField.getMessageType(), "stringField2");
 
-        assertFieldHasValue(filtered, OUTER_FIELD_1);
-        assertFieldHasValue((DynamicMessage) filtered.getField(OUTER_FIELD_1), INNER_FIELD_1);
-        assertFieldHasNoValue((DynamicMessage) filtered.getField(OUTER_FIELD_1), INNER_FIELD_2);
+        assertFieldHasValue(filtered, objectField);
+        assertFieldHasValue((Message) filtered.getField(objectField), stringField1);
+        assertFieldHasNoValue((Message) filtered.getField(objectField), stringField2);
 
-        assertFieldHasValue(filtered, OUTER_FIELD_2);
+        assertFieldHasValue(filtered, primitiveField);
+        assertFieldHasNoValue(filtered, objectArrayField);
     }
 
     @Test
     public void testCollectionFieldSelection() throws Exception {
-        DynamicMessage filtered = ProtobufCopy.copy(OUTER_VALUE, asSet("objectArrayField", "primitiveField"));
+        Message filtered = ProtobufExt.copy(OUTER_VALUE, asSet("objectArrayField", "primitiveField"));
+        FieldDescriptor objectField = OUTER_VALUE.getDescriptorForType().findFieldByName("objectField");
+        FieldDescriptor primitiveField = OUTER_VALUE.getDescriptorForType().findFieldByName("primitiveField");
+        FieldDescriptor objectArrayField = OUTER_VALUE.getDescriptorForType().findFieldByName("objectArrayField");
+        FieldDescriptor stringField1 = ProtoMessageBuilder.getAndAssertField(objectField.getMessageType(), "stringField1");
+        FieldDescriptor stringField2 = ProtoMessageBuilder.getAndAssertField(objectField.getMessageType(), "stringField2");
 
-        assertFieldHasNoValue(filtered, OUTER_FIELD_1);
-        assertFieldHasValue(filtered, OUTER_FIELD_2);
+        assertFieldHasNoValue(filtered, objectField);
+        assertFieldHasValue(filtered, primitiveField);
+        assertFieldHasValue(filtered, objectArrayField);
 
-        Collection<DynamicMessage> collection = (Collection<DynamicMessage>) filtered.getField(OUTER_FIELD_2);
+        Collection<Message> collection = (Collection<Message>) filtered.getField(objectArrayField);
         assertThat(collection).hasSize(2);
-        for (DynamicMessage dm : collection) {
-            assertFieldHasValue(dm, INNER_FIELD_1);
-            assertFieldHasValue(dm, INNER_FIELD_2);
+        for (Message inner : collection) {
+            assertFieldHasValue(inner, stringField1);
+            assertFieldHasValue(inner, stringField2);
         }
     }
 
     @Test
     public void testNestedCollectionFieldSelection() throws Exception {
-        DynamicMessage filtered = ProtobufCopy.copy(OUTER_VALUE, asSet("objectArrayField.stringField1", "primitiveField"));
+        Message filtered = ProtobufExt.copy(OUTER_VALUE, asSet("objectArrayField.stringField1", "primitiveField"));
+        FieldDescriptor objectField = OUTER_VALUE.getDescriptorForType().findFieldByName("objectField");
+        FieldDescriptor objectArrayField = OUTER_VALUE.getDescriptorForType().findFieldByName("objectArrayField");
+        FieldDescriptor stringField1 = ProtoMessageBuilder.getAndAssertField(objectField.getMessageType(), "stringField1");
+        FieldDescriptor stringField2 = ProtoMessageBuilder.getAndAssertField(objectField.getMessageType(), "stringField2");
 
-        assertFieldHasNoValue(filtered, OUTER_FIELD_1);
-        assertFieldHasValue(filtered, OUTER_FIELD_2);
+        assertFieldHasNoValue(filtered, objectField);
+        assertFieldHasValue(filtered, objectArrayField);
 
-        Collection<DynamicMessage> collection = (Collection<DynamicMessage>) filtered.getField(OUTER_FIELD_2);
-        for (DynamicMessage dm : collection) {
-            assertFieldHasValue(dm, INNER_FIELD_1);
-            assertFieldHasNoValue(dm, INNER_FIELD_2);
+        Collection<Message> collection = (Collection<Message>) filtered.getField(objectArrayField);
+        for (Message inner : collection) {
+            assertFieldHasValue(inner, stringField1);
+            assertFieldHasNoValue(inner, stringField2);
         }
     }
 
-    private void assertFieldHasValue(DynamicMessage entity, FieldDescriptor field) {
+    private void assertFieldHasValue(Message entity, FieldDescriptor field) {
         Object value = entity.getField(field);
         assertThat(value).isNotNull();
 
         if (value instanceof DynamicMessage) {
             assertThat(((DynamicMessage) value).getAllFields()).isNotEmpty();
+        } else if (value instanceof Collection) {
+            assertThat((Collection) value).isNotEmpty();
         } else {
             assertThat(value).isNotNull();
         }
     }
 
-    private void assertFieldHasNoValue(DynamicMessage entity, FieldDescriptor field) {
+    private void assertFieldHasNoValue(Message entity, FieldDescriptor field) {
         Object value = entity.getField(field);
         if (value != null) {
             if (value instanceof DynamicMessage) {
                 assertThat(((DynamicMessage) value).getAllFields()).isEmpty();
             } else if (value instanceof String) {
                 assertThat(value).isEqualTo("");
+            } else if (value instanceof Collection) {
+                assertThat((Collection) value).isEmpty();
             } else {
                 fail("Expected null value for field " + field);
             }

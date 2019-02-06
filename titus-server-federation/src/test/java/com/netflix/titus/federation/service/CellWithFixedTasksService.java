@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 import com.google.protobuf.Empty;
 import com.netflix.titus.api.model.Pagination;
 import com.netflix.titus.api.model.PaginationUtil;
-import com.netflix.titus.common.util.ProtobufCopy;
+import com.netflix.titus.common.util.ProtobufExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.Task;
@@ -78,7 +78,7 @@ class CellWithFixedTasksService extends JobManagementServiceGrpc.JobManagementSe
         if (!fieldsFilter.isEmpty()) {
             fieldsFilter.add("id");
             page = page.mapLeft(tasks -> tasks.stream()
-                    .map(task -> ProtobufCopy.copy(task, fieldsFilter))
+                    .map(task -> ProtobufExt.copy(task, fieldsFilter))
                     .collect(Collectors.toList()));
         }
         TaskQueryResult result = TaskQueryResult.newBuilder()

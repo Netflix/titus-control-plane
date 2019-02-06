@@ -44,7 +44,7 @@ import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.model.validator.ValidationError;
 import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.common.util.ProtobufCopy;
+import com.netflix.titus.common.util.ProtobufExt;
 import com.netflix.titus.common.util.rx.ObservableExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.Job;
@@ -232,7 +232,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
             } else {
                 Set<String> fields = new HashSet<>(jobQuery.getFieldsList());
                 fields.addAll(JOB_MINIMUM_FIELD_SET);
-                grpcQueryResult = toJobQueryResult(grpcJobs.stream().map(j -> ProtobufCopy.copy(j, fields)).collect(Collectors.toList()), queryResult.getRight());
+                grpcQueryResult = toJobQueryResult(grpcJobs.stream().map(j -> ProtobufExt.copy(j, fields)).collect(Collectors.toList()), queryResult.getRight());
             }
 
             responseObserver.onNext(grpcQueryResult);
@@ -290,7 +290,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
             } else {
                 Set<String> fields = new HashSet<>(taskQuery.getFieldsList());
                 fields.addAll(TASK_MINIMUM_FIELD_SET);
-                grpcQueryResult = toTaskQueryResult(grpcTasks.stream().map(t -> ProtobufCopy.copy(t, fields)).collect(Collectors.toList()), queryResult.getRight());
+                grpcQueryResult = toTaskQueryResult(grpcTasks.stream().map(t -> ProtobufExt.copy(t, fields)).collect(Collectors.toList()), queryResult.getRight());
             }
 
             responseObserver.onNext(grpcQueryResult);

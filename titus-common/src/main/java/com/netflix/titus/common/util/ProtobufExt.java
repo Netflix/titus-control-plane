@@ -31,9 +31,9 @@ import com.google.protobuf.Message;
 /**
  * Given set of field names, creates a copy of protobuf object, with only the indicated fields included.
  */
-public final class ProtobufCopy {
+public final class ProtobufExt {
 
-    private ProtobufCopy() {
+    private ProtobufExt() {
     }
 
     public static <T extends Message> T copy(T entity, Set<String> fields) {
