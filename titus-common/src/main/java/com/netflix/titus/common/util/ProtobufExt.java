@@ -103,22 +103,22 @@ public final class ProtobufExt {
         ErrorCollector collector = new ErrorCollector();
         StandardSubjectBuilder.forCustomFailureStrategy(collector)
                 .about(ProtoTruth.protos())
-                .that(one)
+                .that(other)
                 .named(one.getDescriptorForType().getName())
                 .reportingMismatchesOnly()
-                .isEqualTo(other);
-        return Optional.ofNullable(collector.getFailure().getMessage());
+                .isEqualTo(one);
+        return collector.getFailure().map(AssertionError::getMessage);
     }
 
     private static class ErrorCollector implements FailureStrategy {
-        private volatile AssertionError failure;
+        private volatile Optional<AssertionError> failure = Optional.empty();
 
         @Override
         public void fail(AssertionError failure) {
-            this.failure = failure;
+            this.failure = Optional.of(failure);
         }
 
-        public AssertionError getFailure() {
+        public Optional<AssertionError> getFailure() {
             return failure;
         }
     }

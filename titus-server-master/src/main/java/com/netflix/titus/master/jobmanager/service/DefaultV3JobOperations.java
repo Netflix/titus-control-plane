@@ -31,6 +31,7 @@ import com.netflix.titus.api.FeatureActivationConfiguration;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.JobCompatibility;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
@@ -54,6 +55,7 @@ import com.netflix.titus.common.framework.reconciler.ModelActionHolder.Model;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import com.netflix.titus.common.framework.reconciler.ReconciliationFramework;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.ProtobufExt;
 import com.netflix.titus.common.util.guice.ProxyType;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.guice.annotation.ProxyConfiguration;
@@ -74,6 +76,7 @@ import com.netflix.titus.master.jobmanager.service.service.action.BasicServiceJo
 import com.netflix.titus.master.jobmanager.service.service.action.MoveTaskBetweenJobsAction;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.service.management.ManagementSubsystemInitializer;
+import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
@@ -418,30 +421,33 @@ public class DefaultV3JobOperations implements V3JobOperations {
             ReconciliationEngine<JobManagerReconcilerEvent> engineFrom = fromEngineTaskPair.getLeft();
             Job<ServiceJobExt> jobFrom = engineFrom.getReferenceView().getEntity();
 
-            // Validate the source job is a service job
             if (!JobFunctions.isServiceJob(jobFrom)) {
                 throw JobManagerException.notServiceJob(jobFrom.getId());
             }
 
-            // Validate that the task belongs to source job id
             if (!jobFrom.getId().equals(sourceJobId)) {
                 throw JobManagerException.taskJobMismatch(taskId, sourceJobId);
             }
 
-            // Validate that we are moving across different jobs
             if (jobFrom.getId().equals(targetJobId)) {
                 throw JobManagerException.sameJobs(jobFrom.getId());
             }
-
-            // TODO(fabio): validate that source and destination jobs are compatible (same container specs)
 
             ReconciliationEngine<JobManagerReconcilerEvent> engineTo =
                     reconciliationFramework.findEngineByRootId(targetJobId).orElseThrow(() -> JobManagerException.jobNotFound(targetJobId));
             Job<ServiceJobExt> jobTo = engineTo.getReferenceView().getEntity();
 
-            // Validate target job is a service job
             if (!JobFunctions.isServiceJob(jobTo)) {
                 throw JobManagerException.notServiceJob(jobTo.getId());
+            }
+
+            JobCompatibility compatibility = JobCompatibility.of(jobFrom, jobTo);
+            if (!compatibility.isCompatible()) {
+                Optional<String> diffReport = ProtobufExt.diffReport(
+                        V3GrpcModelConverters.toGrpcJobDescriptor(compatibility.getNormalizedDescriptorFrom()),
+                        V3GrpcModelConverters.toGrpcJobDescriptor(compatibility.getNormalizedDescriptorTo())
+                );
+                throw JobManagerException.notCompatible(jobFrom, jobTo, diffReport.orElse(""));
             }
 
             return reconciliationFramework.changeReferenceModel(

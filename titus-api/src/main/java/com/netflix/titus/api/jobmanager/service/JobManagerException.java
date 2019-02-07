@@ -52,6 +52,7 @@ public class JobManagerException extends RuntimeException {
         SameJobIds,
         TaskJobMismatch,
         NotEnabled,
+        JobsNotCompatible
     }
 
     private final ErrorCode errorCode;
@@ -212,6 +213,13 @@ public class JobManagerException extends RuntimeException {
         return new JobManagerException(
                 ErrorCode.TaskJobMismatch,
                 format("Operation requires task id to belong to the source job id. Task with id %s does not belong to job with id %s", taskId, jobId)
+        );
+    }
+
+    public static JobManagerException notCompatible(Job<ServiceJobExt> jobFrom, Job<ServiceJobExt> jobTo, String details) {
+        return new JobManagerException(
+                ErrorCode.JobsNotCompatible,
+                format("Operation requires jobs to be compatible: %s -> %s\n%s", jobFrom.getId(), jobTo.getId(), details)
         );
     }
 

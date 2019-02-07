@@ -34,9 +34,6 @@ import com.netflix.titus.common.util.CollectionsExt;
 import static com.netflix.titus.common.util.CollectionsExt.asSet;
 import static com.netflix.titus.common.util.CollectionsExt.nonNull;
 
-/**
- *
- */
 @ClassFieldsNotNull
 @SchedulingConstraintSet
 public class Container {
