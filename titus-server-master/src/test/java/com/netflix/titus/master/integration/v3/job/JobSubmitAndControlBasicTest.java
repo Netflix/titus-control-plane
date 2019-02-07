@@ -24,7 +24,7 @@ import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.model.EfsMount;
 import com.netflix.titus.common.aws.AwsInstanceType;
-import com.netflix.titus.gateway.service.v3.JobManagerConfiguration;
+import com.netflix.titus.runtime.jobmanager.JobManagerConfiguration;
 import com.netflix.titus.grpc.protogen.TaskStatus.TaskState;
 import com.netflix.titus.master.integration.BaseIntegrationTest;
 import com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates;

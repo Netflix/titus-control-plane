@@ -48,6 +48,7 @@ import com.netflix.titus.runtime.connector.relocation.RelocationClientTransportM
 import com.netflix.titus.runtime.connector.titusmaster.TitusMasterConnectorModule;
 import com.netflix.titus.runtime.endpoint.common.EmptyLogStorageInfo;
 import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
+import com.netflix.titus.runtime.endpoint.validator.JobSecurityValidatorModule;
 import com.netflix.titus.runtime.endpoint.validator.TitusValidatorModule;
 
 // Common module dependencies
@@ -86,6 +87,7 @@ public final class TitusGatewayModule extends AbstractModule {
         install(new TitusContainerRegistryModule());
         install(new TitusEntitySanitizerModule());
         install(new TitusValidatorModule());
+        install(new JobSecurityValidatorModule());
 
         // Feature flags
         install(new FeatureFlagModule());

@@ -18,7 +18,6 @@ package com.netflix.titus.common.network.client;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Collections;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -152,7 +151,7 @@ public class RxRestClients {
                 requestTimeout = configuration.getRequestTimeoutMs();
                 retryDelay = configuration.getRetryDelayMs();
                 timeUnit = TimeUnit.MILLISECONDS;
-                noRetryStatuses = Collections.emptySet();
+                noRetryStatuses = configuration.getNoRetryStatuses();
             }
 
             if (retryCount > 0) {

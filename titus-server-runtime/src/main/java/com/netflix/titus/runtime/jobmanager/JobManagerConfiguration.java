@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.gateway.service.v3;
+package com.netflix.titus.runtime.jobmanager;
 
 import java.util.List;
 
