@@ -23,12 +23,14 @@ import java.util.Objects;
 public class CallMetadata {
 
     private final String callerId;
+    private final CallerType callerType;
     private final String callReason;
     private final List<String> callPath;
     private final boolean debug;
 
-    public CallMetadata(String callerId, String callReason, List<String> callPath, boolean debug) {
+    public CallMetadata(String callerId, CallerType callerType, String callReason, List<String> callPath, boolean debug) {
         this.callerId = callerId;
+        this.callerType = callerType;
         this.callReason = callReason;
         this.callPath = callPath;
         this.debug = debug;
@@ -36,6 +38,10 @@ public class CallMetadata {
 
     public String getCallerId() {
         return callerId;
+    }
+
+    public CallerType getCallerType() {
+        return callerType;
     }
 
     public String getCallReason() {
@@ -61,19 +67,21 @@ public class CallMetadata {
         CallMetadata that = (CallMetadata) o;
         return debug == that.debug &&
                 Objects.equals(callerId, that.callerId) &&
+                callerType == that.callerType &&
                 Objects.equals(callReason, that.callReason) &&
                 Objects.equals(callPath, that.callPath);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(callerId, callReason, callPath, debug);
+        return Objects.hash(callerId, callerType, callReason, callPath, debug);
     }
 
     @Override
     public String toString() {
         return "CallMetadata{" +
                 "callerId='" + callerId + '\'' +
+                ", callerType=" + callerType +
                 ", callReason='" + callReason + '\'' +
                 ", callPath=" + callPath +
                 ", debug=" + debug +
@@ -85,11 +93,12 @@ public class CallMetadata {
     }
 
     public Builder toBuilder() {
-        return newBuilder().withCallerId(callerId).withCallReason(callReason).withCallPath(callPath).withDebug(debug);
+        return newBuilder().withCallerId(callerId).withCallerType(callerType).withCallReason(callReason).withCallPath(callPath).withDebug(debug);
     }
 
     public static final class Builder {
         private String callerId;
+        private CallerType callerType;
         private String callReason;
         private List<String> callPath;
         private boolean debug;
@@ -99,6 +108,11 @@ public class CallMetadata {
 
         public Builder withCallerId(String callerId) {
             this.callerId = callerId;
+            return this;
+        }
+
+        public Builder withCallerType(CallerType callerType) {
+            this.callerType = callerType;
             return this;
         }
 
@@ -118,11 +132,16 @@ public class CallMetadata {
         }
 
         public Builder but() {
-            return newBuilder().withCallerId(callerId).withCallReason(callReason).withCallPath(callPath).withDebug(debug);
+            return newBuilder().withCallerId(callerId).withCallerType(callerType).withCallReason(callReason).withCallPath(callPath).withDebug(debug);
         }
 
         public CallMetadata build() {
-            return new CallMetadata(callerId, callReason == null ? "" : callReason, callPath == null ? Collections.emptyList() : callPath, debug);
+            return new CallMetadata(callerId,
+                    callerType == null ? CallerType.Unknown : callerType,
+                    callReason == null ? "" : callReason,
+                    callPath == null ? Collections.emptyList() : callPath,
+                    debug
+            );
         }
     }
 }

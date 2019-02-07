@@ -47,6 +47,7 @@ public class SimpleHttpCallMetadataResolver implements CallMetadataResolver {
 
     private void interceptBefore(HttpServletRequest httpServletRequest) {
         String callerId = getOrDefault(httpServletRequest.getHeader(CallMetadataHeaders.CALLER_ID_HEADER), "unknownCallerId");
+        String callerType = getOrDefault(httpServletRequest.getHeader(CallMetadataHeaders.CALLER_TYPE_HEADER), "");
         String directCallerId = resolveDirectCallerId(httpServletRequest)
                 .orElseGet(() ->
                         getOrDefault(httpServletRequest.getHeader(CallMetadataHeaders.DIRECT_CALLER_ID_HEADER), "unknownDirectCallerId")
@@ -55,6 +56,7 @@ public class SimpleHttpCallMetadataResolver implements CallMetadataResolver {
 
         callMetadataThreadLocal.set(CallMetadata.newBuilder()
                 .withCallerId(callerId)
+                .withCallerType(CallerType.parseCallerType(callerId, callerType))
                 .withCallReason(callReason)
                 .withCallPath(Collections.singletonList(directCallerId))
                 .build()

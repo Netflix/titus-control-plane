@@ -24,6 +24,8 @@ public final class CallMetadataHeaders {
 
     public final static String CALLER_ID_HEADER = "X-Titus-CallerId";
 
+    public final static String CALLER_TYPE_HEADER = "X-Titus-CallerType";
+
     public final static String DIRECT_CALLER_ID_HEADER = "X-Titus-DirectCallerId";
 
     public final static String CALL_REASON_HEADER = "X-Titus-CallReason";

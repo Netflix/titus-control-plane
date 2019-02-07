@@ -49,10 +49,12 @@ public class SimpleGrpcCallMetadataResolver implements CallMetadataResolver {
 
         // No CellMetadata in header, so we must built it here.
         String callerId = getOrDefault(V3HeaderInterceptor.CALLER_ID_CONTEXT_KEY.get(), "unknownCallerId");
+        String callerType = getOrDefault(V3HeaderInterceptor.CALLER_TYPE_CONTEXT_KEY.get(), "");
         String callReason = getOrDefault(V3HeaderInterceptor.CALL_REASON_CONTEXT_KEY.get(), "reason not given");
 
         return Optional.of(CallMetadata.newBuilder()
                 .withCallerId(callerId)
+                .withCallerType(CallerType.parseCallerType(callerId, callerType))
                 .withCallPath(Collections.singletonList(directCallerId))
                 .withCallReason(callReason)
                 .build()

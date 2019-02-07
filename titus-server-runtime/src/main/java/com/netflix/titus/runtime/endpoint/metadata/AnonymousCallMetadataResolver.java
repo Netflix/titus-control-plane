@@ -23,7 +23,10 @@ import javax.inject.Singleton;
 public class AnonymousCallMetadataResolver implements CallMetadataResolver {
 
     private static final AnonymousCallMetadataResolver INSTANCE = new AnonymousCallMetadataResolver();
-    private static final CallMetadata ANONYMOUS = CallMetadata.newBuilder().withCallerId("anonymous").build();
+    private static final CallMetadata ANONYMOUS = CallMetadata.newBuilder()
+            .withCallerId("anonymous")
+            .withCallerType(CallerType.Unknown)
+            .build();
 
     private static final Optional<CallMetadata> ANONYMOUS_OPTIONAL = Optional.of(ANONYMOUS);
 
