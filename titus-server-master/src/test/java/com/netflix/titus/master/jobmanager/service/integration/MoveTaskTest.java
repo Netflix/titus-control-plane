@@ -82,9 +82,7 @@ public class MoveTaskTest {
         String targetJobId = startNewJob(oneTaskBatchJobDescriptor()).getJobId();
 
         try {
-            sourceJobBuilder.advance()
-                    .moveTask(0, 0, sourceJobId, targetJobId)
-                    .expectJobEvent(job -> assertThat(JobFunctions.getJobDesiredSize(job)).isEqualTo(0));
+            sourceJobBuilder.moveTask(0, 0, sourceJobId, targetJobId);
         } catch (JobManagerException e) {
             assertThat(e.getErrorCode()).isEqualTo(JobManagerException.ErrorCode.NotServiceJob);
         }
@@ -104,9 +102,7 @@ public class MoveTaskTest {
         String targetJobId = startNewJob(incompatible).getJobId();
 
         try {
-            sourceJobBuilder.advance()
-                    .moveTask(0, 0, sourceJobId, targetJobId)
-                    .expectJobEvent(job -> assertThat(JobFunctions.getJobDesiredSize(job)).isEqualTo(0));
+            sourceJobBuilder.moveTask(0, 0, sourceJobId, targetJobId);
         } catch (JobManagerException e) {
             assertThat(e.getErrorCode()).isEqualTo(JobManagerException.ErrorCode.JobsNotCompatible);
             assertThat(e.getMessage()).contains("container.image.name");

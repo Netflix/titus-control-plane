@@ -17,7 +17,9 @@
 package com.netflix.titus.api.jobmanager.model.job;
 
 import java.util.HashMap;
+import java.util.Map;
 
+import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.model.job.migration.SystemDefaultMigrationPolicy;
@@ -64,13 +66,15 @@ public class JobCompatibility {
     }
 
     private static JobDescriptor<ServiceJobExt> unsetIgnoredFieldsForCompatibility(JobDescriptor<ServiceJobExt> descriptor) {
-        HashMap<String, String> onlyTitusAttributes = new HashMap<>(descriptor.getAttributes());
+        Map<String, String> onlyTitusAttributes = new HashMap<>(descriptor.getAttributes());
         onlyTitusAttributes.entrySet().removeIf(entry ->
-                !entry.getKey().startsWith("titus.") && !entry.getKey().startsWith("titusParameter.")
+                !entry.getKey().startsWith(JobAttributes.TITUS_ATTRIBUTE_PREFIX) &&
+                        !entry.getKey().startsWith(JobAttributes.TITUS_PARAMETER_ATTRIBUTE_PREFIX)
         );
-        HashMap<String, String> onlyTitusContainerAttributes = new HashMap<>(descriptor.getContainer().getAttributes());
+        Map<String, String> onlyTitusContainerAttributes = new HashMap<>(descriptor.getContainer().getAttributes());
         onlyTitusContainerAttributes.entrySet().removeIf(entry ->
-                !entry.getKey().startsWith("titus.") && !entry.getKey().startsWith("titusParameter.")
+                !entry.getKey().startsWith(JobAttributes.TITUS_ATTRIBUTE_PREFIX) &&
+                        !entry.getKey().startsWith(JobAttributes.TITUS_PARAMETER_ATTRIBUTE_PREFIX)
         );
 
         return descriptor.toBuilder()
