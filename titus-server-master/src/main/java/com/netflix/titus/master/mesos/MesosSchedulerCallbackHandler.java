@@ -377,6 +377,10 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
             TaskStatus effectiveTaskStatus = taskStatusUpdateFitInjection.map(i -> i.afterImmediate("update", taskStatus)).orElse(taskStatus);
 
             if (isReconcilerUpdateForUnknownTask(effectiveTaskStatus)) {
+                if (taskStatus.getState() == TaskState.TASK_LOST) {
+                    logger.info("Ignoring reconciler TASK_LOST status update for task: {}", taskId);
+                    return;
+                }
                 mesosStateTracker.unknownTaskStatusUpdate(taskStatus);
                 if (!mesosConfiguration.isAllowReconcilerUpdatesForUnknownTasks()) {
                     logger.info("Ignoring reconciler triggered task status update: {}", taskId);

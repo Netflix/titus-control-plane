@@ -475,12 +475,7 @@ public class CassandraJobStore implements JobStore {
 
                     Task task;
                     try {
-                        task = ObjectMappers.readValue(mapper, effectiveValue, Task.class);
-
-                        // Task attributes field check
-                        if(task.getAttributes() == null) {
-                            task = task.toBuilder().withAttributes(Collections.emptyMap()).build();
-                        }
+                        task = deserializeTask(effectiveValue);
 
                         if (!fitBadDataInjection.isPresent()) {
                             tasks.add(Either.ofValue(task));
@@ -517,7 +512,7 @@ public class CassandraJobStore implements JobStore {
                     Row row = resultSet.one();
                     if (row != null) {
                         String value = row.getString(0);
-                        Task task = ObjectMappers.readValue(mapper, value, Task.class);
+                        Task task = deserializeTask(value);
 
                         transactionLogger().logAfterRead(retrieveActiveTaskStatement, "retrieveTask", task);
 
@@ -655,7 +650,7 @@ public class CassandraJobStore implements JobStore {
                     List<Observable<ResultSet>> observables = taskIds.stream().map(retrieveArchivedTaskStatement::bind).map(this::execute).collect(Collectors.toList());
                     return Observable.merge(observables, getConcurrencyLimit()).flatMapIterable(tasksResultSet -> tasksResultSet.all().stream()
                             .map(row -> row.getString(0))
-                            .map(value -> ObjectMappers.readValue(mapper, value, Task.class))
+                            .map(value -> deserializeTask(value))
                             .collect(Collectors.toList()));
                 }));
     }
@@ -667,12 +662,23 @@ public class CassandraJobStore implements JobStore {
                     Row row = resultSet.one();
                     if (row != null) {
                         String value = row.getString(0);
-                        Task task = ObjectMappers.readValue(mapper, value, Task.class);
+                        Task task = deserializeTask(value);
                         return Observable.just(task);
                     } else {
                         return Observable.error(JobStoreException.taskDoesNotExist(taskId));
                     }
                 }));
+    }
+
+    private Task deserializeTask(String value) {
+        Task task = ObjectMappers.readValue(mapper, value, Task.class);
+
+        // Task attributes field check
+        if (task.getAttributes() == null) {
+            task = task.toBuilder().withAttributes(Collections.emptyMap()).build();
+        }
+
+        return task;
     }
 
     private boolean isJobActive(String jobId) {
