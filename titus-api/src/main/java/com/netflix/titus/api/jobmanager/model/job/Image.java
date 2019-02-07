@@ -68,6 +68,10 @@ public class Image {
         return digest != null ? digest.equals(image.digest) : image.digest == null;
     }
 
+    public Builder toBuilder() {
+        return newBuilder(this);
+    }
+
     @Override
     public int hashCode() {
         int result = name != null ? name.hashCode() : 0;

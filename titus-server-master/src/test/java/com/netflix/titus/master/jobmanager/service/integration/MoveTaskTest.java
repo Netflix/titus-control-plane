@@ -45,8 +45,9 @@ public class MoveTaskTest {
 
     @Test
     public void testMove() {
-        String targetJobId = startNewJob(oneTaskServiceJobDescriptor()).getJobId();
-        String sourceJobId = startNewJob(oneTaskServiceJobDescriptor()).getJobId();
+        JobDescriptor<ServiceJobExt> jobDescriptor = oneTaskServiceJobDescriptor();
+        String targetJobId = startNewJob(jobDescriptor).getJobId();
+        String sourceJobId = startNewJob(jobDescriptor).getJobId();
         jobsScenarioBuilder.getJobScenario(1).moveTask(0, 0, sourceJobId, targetJobId)
                 .expectJobEvent(job -> assertThat(JobFunctions.getJobDesiredSize(job)).isEqualTo(0));
 
@@ -75,23 +76,44 @@ public class MoveTaskTest {
 
     @Test
     public void testMoveWithInvalidTargetJob() {
-        JobScenarioBuilder<ServiceJobExt> sourceJobBuilder = startNewJob(oneTaskServiceJobDescriptor());
+        JobDescriptor<ServiceJobExt> jobDescriptor = oneTaskServiceJobDescriptor();
+        JobScenarioBuilder<ServiceJobExt> sourceJobBuilder = startNewJob(jobDescriptor);
         String sourceJobId = sourceJobBuilder.getJobId();
         String targetJobId = startNewJob(oneTaskBatchJobDescriptor()).getJobId();
 
         try {
-            sourceJobBuilder.advance()
-                    .moveTask(0, 0, sourceJobId, targetJobId)
-                    .expectJobEvent(job -> assertThat(JobFunctions.getJobDesiredSize(job)).isEqualTo(0));
+            sourceJobBuilder.moveTask(0, 0, sourceJobId, targetJobId);
         } catch (JobManagerException e) {
             assertThat(e.getErrorCode()).isEqualTo(JobManagerException.ErrorCode.NotServiceJob);
         }
     }
 
     @Test
+    public void testMoveWithIncompatibleTargetJob() {
+        JobDescriptor<ServiceJobExt> jobDescriptor = oneTaskServiceJobDescriptor();
+        JobScenarioBuilder<ServiceJobExt> sourceJobBuilder = startNewJob(jobDescriptor);
+        String sourceJobId = sourceJobBuilder.getJobId();
+        JobDescriptor<ServiceJobExt> incompatible = jobDescriptor.but(descriptor ->
+                descriptor.getContainer().but(container -> container.getImage().toBuilder()
+                        .withName("other/image")
+                        .build()
+                )
+        );
+        String targetJobId = startNewJob(incompatible).getJobId();
+
+        try {
+            sourceJobBuilder.moveTask(0, 0, sourceJobId, targetJobId);
+        } catch (JobManagerException e) {
+            assertThat(e.getErrorCode()).isEqualTo(JobManagerException.ErrorCode.JobsNotCompatible);
+            assertThat(e.getMessage()).contains("container.image.name");
+        }
+    }
+
+    @Test
     public void testMoveWithStoreUpdateFailure() {
-        String targetJobId = startNewJob(oneTaskServiceJobDescriptor()).getJobId();
-        JobScenarioBuilder<ServiceJobExt> sourceJobBuilder = startNewJob(oneTaskServiceJobDescriptor());
+        JobDescriptor<ServiceJobExt> jobDescriptor = oneTaskServiceJobDescriptor();
+        String targetJobId = startNewJob(jobDescriptor).getJobId();
+        JobScenarioBuilder<ServiceJobExt> sourceJobBuilder = startNewJob(jobDescriptor);
         String sourceJobId = sourceJobBuilder.getJobId();
 
         try {
@@ -109,9 +131,10 @@ public class MoveTaskTest {
 
     @Test
     public void testMoveTimeout() {
-        JobScenarioBuilder<ServiceJobExt> sourceJobBuilder = startNewJob(oneTaskServiceJobDescriptor());
+        JobDescriptor<ServiceJobExt> jobDescriptor = oneTaskServiceJobDescriptor();
+        JobScenarioBuilder<ServiceJobExt> sourceJobBuilder = startNewJob(jobDescriptor);
         String sourceJobId = sourceJobBuilder.getJobId();
-        String targetJobId = startNewJob(oneTaskServiceJobDescriptor()).getJobId();
+        String targetJobId = startNewJob(jobDescriptor).getJobId();
 
         sourceJobBuilder.advance()
                 .slowStore()

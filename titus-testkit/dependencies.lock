@@ -246,6 +246,14 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
+        "com.google.auto.value:auto-value-annotations": {
+            "locked": "1.6.2",
+            "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth"
+            ]
+        },
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.1",
             "transitive": [
@@ -253,7 +261,7 @@
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
+            "locked": "3.0.2",
             "transitive": [
                 "com.github.fge:btf",
                 "com.github.fge:jackson-coreutils",
@@ -261,6 +269,7 @@
                 "com.github.fge:json-schema-validator",
                 "com.github.fge:msg-simple",
                 "com.github.fge:uri-template",
+                "com.google.guava:guava",
                 "com.twitter:util-cache_2.11",
                 "com.twitter:util-collection_2.11",
                 "io.grpc:grpc-core"
@@ -274,13 +283,17 @@
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.1.2",
+            "locked": "2.3.1",
             "transitive": [
+                "com.google.guava:guava",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.guava:guava": {
-            "locked": "20.0",
+            "locked": "25.1-android",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.datastax.cassandra:cassandra-driver-extras",
@@ -288,6 +301,9 @@
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "com.netflix.titus:titus-common",
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:finagle-http_2.11",
@@ -351,10 +367,18 @@
                 "com.sun.jersey.contribs:jersey-guice"
             ]
         },
+        "com.google.j2objc:j2objc-annotations": {
+            "locked": "1.1",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.5.1",
+            "locked": "3.6.0",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-master",
@@ -368,6 +392,25 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
+        "com.google.truth.extensions:truth-liteproto-extension": {
+            "locked": "0.42",
+            "transitive": [
+                "com.google.truth.extensions:truth-proto-extension"
+            ]
+        },
+        "com.google.truth.extensions:truth-proto-extension": {
+            "locked": "0.42",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "com.google.truth:truth": {
+            "locked": "0.42",
+            "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension"
+            ]
+        },
         "com.googlecode.concurrent-trees:concurrent-trees": {
             "locked": "2.4.0",
             "transitive": [
@@ -378,6 +421,12 @@
             "locked": "1.4",
             "transitive": [
                 "org.apache.cassandra:cassandra-all"
+            ]
+        },
+        "com.googlecode.java-diff-utils:diffutils": {
+            "locked": "1.3.0",
+            "transitive": [
+                "com.google.truth:truth"
             ]
         },
         "com.googlecode.json-simple:json-simple": {
@@ -1116,6 +1165,7 @@
         "junit:junit": {
             "locked": "4.12",
             "transitive": [
+                "com.google.truth:truth",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-netty"
             ]
@@ -1316,6 +1366,21 @@
                 "com.netflix.titus:titus-ext-cassandra-testkit"
             ]
         },
+        "org.checkerframework:checker-compat-qual": {
+            "locked": "2.5.3",
+            "transitive": [
+                "com.google.guava:guava",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth"
+            ]
+        },
+        "org.checkerframework:checker-qual": {
+            "locked": "2.5.3",
+            "transitive": [
+                "com.google.truth:truth"
+            ]
+        },
         "org.codehaus.jackson:jackson-core-asl": {
             "locked": "1.9.2",
             "transitive": [
@@ -1327,6 +1392,12 @@
             "locked": "1.9.2",
             "transitive": [
                 "org.apache.cassandra:cassandra-all"
+            ]
+        },
+        "org.codehaus.mojo:animal-sniffer-annotations": {
+            "locked": "1.14",
+            "transitive": [
+                "com.google.guava:guava"
             ]
         },
         "org.eclipse.jdt.core.compiler:ecj": {
@@ -1432,7 +1503,7 @@
             ]
         },
         "org.hibernate:hibernate-validator": {
-            "locked": "5.4.2.Final",
+            "locked": "5.4.3.Final",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-server-runtime"
@@ -2068,6 +2139,14 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
+        "com.google.auto.value:auto-value-annotations": {
+            "locked": "1.6.2",
+            "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth"
+            ]
+        },
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.1",
             "transitive": [
@@ -2075,7 +2154,7 @@
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
+            "locked": "3.0.2",
             "transitive": [
                 "com.github.fge:btf",
                 "com.github.fge:jackson-coreutils",
@@ -2083,6 +2162,7 @@
                 "com.github.fge:json-schema-validator",
                 "com.github.fge:msg-simple",
                 "com.github.fge:uri-template",
+                "com.google.guava:guava",
                 "com.twitter:util-cache_2.11",
                 "com.twitter:util-collection_2.11",
                 "io.grpc:grpc-core"
@@ -2096,13 +2176,17 @@
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.1.2",
+            "locked": "2.3.1",
             "transitive": [
+                "com.google.guava:guava",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.guava:guava": {
-            "locked": "20.0",
+            "locked": "25.1-android",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.datastax.cassandra:cassandra-driver-extras",
@@ -2110,6 +2194,9 @@
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "com.netflix.titus:titus-common",
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:finagle-http_2.11",
@@ -2173,10 +2260,18 @@
                 "com.sun.jersey.contribs:jersey-guice"
             ]
         },
+        "com.google.j2objc:j2objc-annotations": {
+            "locked": "1.1",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.5.1",
+            "locked": "3.6.0",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-master",
@@ -2190,6 +2285,25 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
+        "com.google.truth.extensions:truth-liteproto-extension": {
+            "locked": "0.42",
+            "transitive": [
+                "com.google.truth.extensions:truth-proto-extension"
+            ]
+        },
+        "com.google.truth.extensions:truth-proto-extension": {
+            "locked": "0.42",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "com.google.truth:truth": {
+            "locked": "0.42",
+            "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension"
+            ]
+        },
         "com.googlecode.concurrent-trees:concurrent-trees": {
             "locked": "2.4.0",
             "transitive": [
@@ -2200,6 +2314,12 @@
             "locked": "1.4",
             "transitive": [
                 "org.apache.cassandra:cassandra-all"
+            ]
+        },
+        "com.googlecode.java-diff-utils:diffutils": {
+            "locked": "1.3.0",
+            "transitive": [
+                "com.google.truth:truth"
             ]
         },
         "com.googlecode.json-simple:json-simple": {
@@ -2938,6 +3058,7 @@
         "junit:junit": {
             "locked": "4.12",
             "transitive": [
+                "com.google.truth:truth",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-netty"
             ]
@@ -3138,6 +3259,21 @@
                 "com.netflix.titus:titus-ext-cassandra-testkit"
             ]
         },
+        "org.checkerframework:checker-compat-qual": {
+            "locked": "2.5.3",
+            "transitive": [
+                "com.google.guava:guava",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth"
+            ]
+        },
+        "org.checkerframework:checker-qual": {
+            "locked": "2.5.3",
+            "transitive": [
+                "com.google.truth:truth"
+            ]
+        },
         "org.codehaus.jackson:jackson-core-asl": {
             "locked": "1.9.2",
             "transitive": [
@@ -3149,6 +3285,12 @@
             "locked": "1.9.2",
             "transitive": [
                 "org.apache.cassandra:cassandra-all"
+            ]
+        },
+        "org.codehaus.mojo:animal-sniffer-annotations": {
+            "locked": "1.14",
+            "transitive": [
+                "com.google.guava:guava"
             ]
         },
         "org.eclipse.jdt.core.compiler:ecj": {
@@ -3254,7 +3396,7 @@
             ]
         },
         "org.hibernate:hibernate-validator": {
-            "locked": "5.4.2.Final",
+            "locked": "5.4.3.Final",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-server-runtime"
@@ -3890,6 +4032,14 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
+        "com.google.auto.value:auto-value-annotations": {
+            "locked": "1.6.2",
+            "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth"
+            ]
+        },
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.1",
             "transitive": [
@@ -3897,7 +4047,7 @@
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
+            "locked": "3.0.2",
             "transitive": [
                 "com.github.fge:btf",
                 "com.github.fge:jackson-coreutils",
@@ -3905,6 +4055,7 @@
                 "com.github.fge:json-schema-validator",
                 "com.github.fge:msg-simple",
                 "com.github.fge:uri-template",
+                "com.google.guava:guava",
                 "com.twitter:util-cache_2.11",
                 "com.twitter:util-collection_2.11",
                 "io.grpc:grpc-core"
@@ -3918,13 +4069,17 @@
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.1.2",
+            "locked": "2.3.1",
             "transitive": [
+                "com.google.guava:guava",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.guava:guava": {
-            "locked": "20.0",
+            "locked": "25.1-android",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.datastax.cassandra:cassandra-driver-extras",
@@ -3932,6 +4087,9 @@
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "com.netflix.titus:titus-common",
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:finagle-http_2.11",
@@ -3995,10 +4153,18 @@
                 "com.sun.jersey.contribs:jersey-guice"
             ]
         },
+        "com.google.j2objc:j2objc-annotations": {
+            "locked": "1.1",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.5.1",
+            "locked": "3.6.0",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-master",
@@ -4012,6 +4178,25 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
+        "com.google.truth.extensions:truth-liteproto-extension": {
+            "locked": "0.42",
+            "transitive": [
+                "com.google.truth.extensions:truth-proto-extension"
+            ]
+        },
+        "com.google.truth.extensions:truth-proto-extension": {
+            "locked": "0.42",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "com.google.truth:truth": {
+            "locked": "0.42",
+            "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension"
+            ]
+        },
         "com.googlecode.concurrent-trees:concurrent-trees": {
             "locked": "2.4.0",
             "transitive": [
@@ -4022,6 +4207,12 @@
             "locked": "1.4",
             "transitive": [
                 "org.apache.cassandra:cassandra-all"
+            ]
+        },
+        "com.googlecode.java-diff-utils:diffutils": {
+            "locked": "1.3.0",
+            "transitive": [
+                "com.google.truth:truth"
             ]
         },
         "com.googlecode.json-simple:json-simple": {
@@ -4760,6 +4951,7 @@
         "junit:junit": {
             "locked": "4.12",
             "transitive": [
+                "com.google.truth:truth",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-netty"
             ]
@@ -4960,6 +5152,21 @@
                 "com.netflix.titus:titus-ext-cassandra-testkit"
             ]
         },
+        "org.checkerframework:checker-compat-qual": {
+            "locked": "2.5.3",
+            "transitive": [
+                "com.google.guava:guava",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth"
+            ]
+        },
+        "org.checkerframework:checker-qual": {
+            "locked": "2.5.3",
+            "transitive": [
+                "com.google.truth:truth"
+            ]
+        },
         "org.codehaus.jackson:jackson-core-asl": {
             "locked": "1.9.2",
             "transitive": [
@@ -4971,6 +5178,12 @@
             "locked": "1.9.2",
             "transitive": [
                 "org.apache.cassandra:cassandra-all"
+            ]
+        },
+        "org.codehaus.mojo:animal-sniffer-annotations": {
+            "locked": "1.14",
+            "transitive": [
+                "com.google.guava:guava"
             ]
         },
         "org.eclipse.jdt.core.compiler:ecj": {
@@ -5076,7 +5289,7 @@
             ]
         },
         "org.hibernate:hibernate-validator": {
-            "locked": "5.4.2.Final",
+            "locked": "5.4.3.Final",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-server-runtime"
@@ -5776,6 +5989,14 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
+        "com.google.auto.value:auto-value-annotations": {
+            "locked": "1.6.2",
+            "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth"
+            ]
+        },
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.1",
             "transitive": [
@@ -5783,7 +6004,7 @@
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
+            "locked": "3.0.2",
             "transitive": [
                 "com.github.fge:btf",
                 "com.github.fge:jackson-coreutils",
@@ -5791,6 +6012,7 @@
                 "com.github.fge:json-schema-validator",
                 "com.github.fge:msg-simple",
                 "com.github.fge:uri-template",
+                "com.google.guava:guava",
                 "com.twitter:util-cache_2.11",
                 "com.twitter:util-collection_2.11",
                 "io.grpc:grpc-core"
@@ -5804,13 +6026,17 @@
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.1.2",
+            "locked": "2.3.1",
             "transitive": [
+                "com.google.guava:guava",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.guava:guava": {
-            "locked": "20.0",
+            "locked": "25.1-android",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.datastax.cassandra:cassandra-driver-extras",
@@ -5818,6 +6044,9 @@
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "com.netflix.titus:titus-common",
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:finagle-http_2.11",
@@ -5881,10 +6110,18 @@
                 "com.sun.jersey.contribs:jersey-guice"
             ]
         },
+        "com.google.j2objc:j2objc-annotations": {
+            "locked": "1.1",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.5.1",
+            "locked": "3.6.0",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-master",
@@ -5898,6 +6135,25 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
+        "com.google.truth.extensions:truth-liteproto-extension": {
+            "locked": "0.42",
+            "transitive": [
+                "com.google.truth.extensions:truth-proto-extension"
+            ]
+        },
+        "com.google.truth.extensions:truth-proto-extension": {
+            "locked": "0.42",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "com.google.truth:truth": {
+            "locked": "0.42",
+            "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension"
+            ]
+        },
         "com.googlecode.concurrent-trees:concurrent-trees": {
             "locked": "2.4.0",
             "transitive": [
@@ -5908,6 +6164,12 @@
             "locked": "1.4",
             "transitive": [
                 "org.apache.cassandra:cassandra-all"
+            ]
+        },
+        "com.googlecode.java-diff-utils:diffutils": {
+            "locked": "1.3.0",
+            "transitive": [
+                "com.google.truth:truth"
             ]
         },
         "com.googlecode.json-simple:json-simple": {
@@ -6646,6 +6908,7 @@
         "junit:junit": {
             "locked": "4.12",
             "transitive": [
+                "com.google.truth:truth",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-netty"
             ]
@@ -6846,6 +7109,21 @@
                 "com.netflix.titus:titus-ext-cassandra-testkit"
             ]
         },
+        "org.checkerframework:checker-compat-qual": {
+            "locked": "2.5.3",
+            "transitive": [
+                "com.google.guava:guava",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth"
+            ]
+        },
+        "org.checkerframework:checker-qual": {
+            "locked": "2.5.3",
+            "transitive": [
+                "com.google.truth:truth"
+            ]
+        },
         "org.codehaus.jackson:jackson-core-asl": {
             "locked": "1.9.2",
             "transitive": [
@@ -6857,6 +7135,12 @@
             "locked": "1.9.2",
             "transitive": [
                 "org.apache.cassandra:cassandra-all"
+            ]
+        },
+        "org.codehaus.mojo:animal-sniffer-annotations": {
+            "locked": "1.14",
+            "transitive": [
+                "com.google.guava:guava"
             ]
         },
         "org.eclipse.jdt.core.compiler:ecj": {
@@ -6962,7 +7246,7 @@
             ]
         },
         "org.hibernate:hibernate-validator": {
-            "locked": "5.4.2.Final",
+            "locked": "5.4.3.Final",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-server-runtime"
@@ -7599,6 +7883,14 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
+        "com.google.auto.value:auto-value-annotations": {
+            "locked": "1.6.2",
+            "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth"
+            ]
+        },
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.1",
             "transitive": [
@@ -7606,7 +7898,7 @@
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
+            "locked": "3.0.2",
             "transitive": [
                 "com.github.fge:btf",
                 "com.github.fge:jackson-coreutils",
@@ -7614,6 +7906,7 @@
                 "com.github.fge:json-schema-validator",
                 "com.github.fge:msg-simple",
                 "com.github.fge:uri-template",
+                "com.google.guava:guava",
                 "com.twitter:util-cache_2.11",
                 "com.twitter:util-collection_2.11",
                 "io.grpc:grpc-core"
@@ -7627,13 +7920,17 @@
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.1.2",
+            "locked": "2.3.1",
             "transitive": [
+                "com.google.guava:guava",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.guava:guava": {
-            "locked": "20.0",
+            "locked": "25.1-android",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.datastax.cassandra:cassandra-driver-extras",
@@ -7641,6 +7938,9 @@
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "com.netflix.titus:titus-common",
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:finagle-http_2.11",
@@ -7704,10 +8004,18 @@
                 "com.sun.jersey.contribs:jersey-guice"
             ]
         },
+        "com.google.j2objc:j2objc-annotations": {
+            "locked": "1.1",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.5.1",
+            "locked": "3.6.0",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-master",
@@ -7721,6 +8029,25 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
+        "com.google.truth.extensions:truth-liteproto-extension": {
+            "locked": "0.42",
+            "transitive": [
+                "com.google.truth.extensions:truth-proto-extension"
+            ]
+        },
+        "com.google.truth.extensions:truth-proto-extension": {
+            "locked": "0.42",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "com.google.truth:truth": {
+            "locked": "0.42",
+            "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension"
+            ]
+        },
         "com.googlecode.concurrent-trees:concurrent-trees": {
             "locked": "2.4.0",
             "transitive": [
@@ -7731,6 +8058,12 @@
             "locked": "1.4",
             "transitive": [
                 "org.apache.cassandra:cassandra-all"
+            ]
+        },
+        "com.googlecode.java-diff-utils:diffutils": {
+            "locked": "1.3.0",
+            "transitive": [
+                "com.google.truth:truth"
             ]
         },
         "com.googlecode.json-simple:json-simple": {
@@ -8469,6 +8802,7 @@
         "junit:junit": {
             "locked": "4.12",
             "transitive": [
+                "com.google.truth:truth",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-netty"
             ]
@@ -8669,6 +9003,21 @@
                 "com.netflix.titus:titus-ext-cassandra-testkit"
             ]
         },
+        "org.checkerframework:checker-compat-qual": {
+            "locked": "2.5.3",
+            "transitive": [
+                "com.google.guava:guava",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth"
+            ]
+        },
+        "org.checkerframework:checker-qual": {
+            "locked": "2.5.3",
+            "transitive": [
+                "com.google.truth:truth"
+            ]
+        },
         "org.codehaus.jackson:jackson-core-asl": {
             "locked": "1.9.2",
             "transitive": [
@@ -8680,6 +9029,12 @@
             "locked": "1.9.2",
             "transitive": [
                 "org.apache.cassandra:cassandra-all"
+            ]
+        },
+        "org.codehaus.mojo:animal-sniffer-annotations": {
+            "locked": "1.14",
+            "transitive": [
+                "com.google.guava:guava"
             ]
         },
         "org.eclipse.jdt.core.compiler:ecj": {
@@ -8785,7 +9140,7 @@
             ]
         },
         "org.hibernate:hibernate-validator": {
-            "locked": "5.4.2.Final",
+            "locked": "5.4.3.Final",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-server-runtime"
@@ -9428,6 +9783,14 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
+        "com.google.auto.value:auto-value-annotations": {
+            "locked": "1.6.2",
+            "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth"
+            ]
+        },
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.1",
             "transitive": [
@@ -9435,7 +9798,7 @@
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
+            "locked": "3.0.2",
             "transitive": [
                 "com.github.fge:btf",
                 "com.github.fge:jackson-coreutils",
@@ -9443,6 +9806,7 @@
                 "com.github.fge:json-schema-validator",
                 "com.github.fge:msg-simple",
                 "com.github.fge:uri-template",
+                "com.google.guava:guava",
                 "com.twitter:util-cache_2.11",
                 "com.twitter:util-collection_2.11",
                 "io.grpc:grpc-core"
@@ -9456,13 +9820,17 @@
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.1.2",
+            "locked": "2.3.1",
             "transitive": [
+                "com.google.guava:guava",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.guava:guava": {
-            "locked": "20.0",
+            "locked": "25.1-android",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.datastax.cassandra:cassandra-driver-extras",
@@ -9470,6 +9838,9 @@
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "com.netflix.titus:titus-common",
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:finagle-http_2.11",
@@ -9533,10 +9904,18 @@
                 "com.sun.jersey.contribs:jersey-guice"
             ]
         },
+        "com.google.j2objc:j2objc-annotations": {
+            "locked": "1.1",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.5.1",
+            "locked": "3.6.0",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-master",
@@ -9550,6 +9929,25 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
+        "com.google.truth.extensions:truth-liteproto-extension": {
+            "locked": "0.42",
+            "transitive": [
+                "com.google.truth.extensions:truth-proto-extension"
+            ]
+        },
+        "com.google.truth.extensions:truth-proto-extension": {
+            "locked": "0.42",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "com.google.truth:truth": {
+            "locked": "0.42",
+            "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension"
+            ]
+        },
         "com.googlecode.concurrent-trees:concurrent-trees": {
             "locked": "2.4.0",
             "transitive": [
@@ -9560,6 +9958,12 @@
             "locked": "1.4",
             "transitive": [
                 "org.apache.cassandra:cassandra-all"
+            ]
+        },
+        "com.googlecode.java-diff-utils:diffutils": {
+            "locked": "1.3.0",
+            "transitive": [
+                "com.google.truth:truth"
             ]
         },
         "com.googlecode.json-simple:json-simple": {
@@ -10307,6 +10711,7 @@
         "junit:junit": {
             "locked": "4.12",
             "transitive": [
+                "com.google.truth:truth",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-netty"
             ]
@@ -10507,6 +10912,21 @@
                 "com.netflix.titus:titus-ext-cassandra-testkit"
             ]
         },
+        "org.checkerframework:checker-compat-qual": {
+            "locked": "2.5.3",
+            "transitive": [
+                "com.google.guava:guava",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth"
+            ]
+        },
+        "org.checkerframework:checker-qual": {
+            "locked": "2.5.3",
+            "transitive": [
+                "com.google.truth:truth"
+            ]
+        },
         "org.codehaus.jackson:jackson-core-asl": {
             "locked": "1.9.2",
             "transitive": [
@@ -10518,6 +10938,12 @@
             "locked": "1.9.2",
             "transitive": [
                 "org.apache.cassandra:cassandra-all"
+            ]
+        },
+        "org.codehaus.mojo:animal-sniffer-annotations": {
+            "locked": "1.14",
+            "transitive": [
+                "com.google.guava:guava"
             ]
         },
         "org.eclipse.jdt.core.compiler:ecj": {
@@ -10626,7 +11052,7 @@
             ]
         },
         "org.hibernate:hibernate-validator": {
-            "locked": "5.4.2.Final",
+            "locked": "5.4.3.Final",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-server-runtime"
@@ -11269,6 +11695,14 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
+        "com.google.auto.value:auto-value-annotations": {
+            "locked": "1.6.2",
+            "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth"
+            ]
+        },
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.1",
             "transitive": [
@@ -11276,7 +11710,7 @@
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
+            "locked": "3.0.2",
             "transitive": [
                 "com.github.fge:btf",
                 "com.github.fge:jackson-coreutils",
@@ -11284,6 +11718,7 @@
                 "com.github.fge:json-schema-validator",
                 "com.github.fge:msg-simple",
                 "com.github.fge:uri-template",
+                "com.google.guava:guava",
                 "com.twitter:util-cache_2.11",
                 "com.twitter:util-collection_2.11",
                 "io.grpc:grpc-core"
@@ -11297,13 +11732,17 @@
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.1.2",
+            "locked": "2.3.1",
             "transitive": [
+                "com.google.guava:guava",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.guava:guava": {
-            "locked": "20.0",
+            "locked": "25.1-android",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.datastax.cassandra:cassandra-driver-extras",
@@ -11311,6 +11750,9 @@
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "com.netflix.titus:titus-common",
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:finagle-http_2.11",
@@ -11374,10 +11816,18 @@
                 "com.sun.jersey.contribs:jersey-guice"
             ]
         },
+        "com.google.j2objc:j2objc-annotations": {
+            "locked": "1.1",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.5.1",
+            "locked": "3.6.0",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-master",
@@ -11391,6 +11841,25 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
+        "com.google.truth.extensions:truth-liteproto-extension": {
+            "locked": "0.42",
+            "transitive": [
+                "com.google.truth.extensions:truth-proto-extension"
+            ]
+        },
+        "com.google.truth.extensions:truth-proto-extension": {
+            "locked": "0.42",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "com.google.truth:truth": {
+            "locked": "0.42",
+            "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension"
+            ]
+        },
         "com.googlecode.concurrent-trees:concurrent-trees": {
             "locked": "2.4.0",
             "transitive": [
@@ -11401,6 +11870,12 @@
             "locked": "1.4",
             "transitive": [
                 "org.apache.cassandra:cassandra-all"
+            ]
+        },
+        "com.googlecode.java-diff-utils:diffutils": {
+            "locked": "1.3.0",
+            "transitive": [
+                "com.google.truth:truth"
             ]
         },
         "com.googlecode.json-simple:json-simple": {
@@ -12148,6 +12623,7 @@
         "junit:junit": {
             "locked": "4.12",
             "transitive": [
+                "com.google.truth:truth",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-netty"
             ]
@@ -12348,6 +12824,21 @@
                 "com.netflix.titus:titus-ext-cassandra-testkit"
             ]
         },
+        "org.checkerframework:checker-compat-qual": {
+            "locked": "2.5.3",
+            "transitive": [
+                "com.google.guava:guava",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth"
+            ]
+        },
+        "org.checkerframework:checker-qual": {
+            "locked": "2.5.3",
+            "transitive": [
+                "com.google.truth:truth"
+            ]
+        },
         "org.codehaus.jackson:jackson-core-asl": {
             "locked": "1.9.2",
             "transitive": [
@@ -12359,6 +12850,12 @@
             "locked": "1.9.2",
             "transitive": [
                 "org.apache.cassandra:cassandra-all"
+            ]
+        },
+        "org.codehaus.mojo:animal-sniffer-annotations": {
+            "locked": "1.14",
+            "transitive": [
+                "com.google.guava:guava"
             ]
         },
         "org.eclipse.jdt.core.compiler:ecj": {
@@ -12467,7 +12964,7 @@
             ]
         },
         "org.hibernate:hibernate-validator": {
-            "locked": "5.4.2.Final",
+            "locked": "5.4.3.Final",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-server-runtime"
@@ -13110,6 +13607,14 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
+        "com.google.auto.value:auto-value-annotations": {
+            "locked": "1.6.2",
+            "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth"
+            ]
+        },
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.1",
             "transitive": [
@@ -13117,7 +13622,7 @@
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
+            "locked": "3.0.2",
             "transitive": [
                 "com.github.fge:btf",
                 "com.github.fge:jackson-coreutils",
@@ -13125,6 +13630,7 @@
                 "com.github.fge:json-schema-validator",
                 "com.github.fge:msg-simple",
                 "com.github.fge:uri-template",
+                "com.google.guava:guava",
                 "com.twitter:util-cache_2.11",
                 "com.twitter:util-collection_2.11",
                 "io.grpc:grpc-core"
@@ -13138,13 +13644,17 @@
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.1.2",
+            "locked": "2.3.1",
             "transitive": [
+                "com.google.guava:guava",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.guava:guava": {
-            "locked": "20.0",
+            "locked": "25.1-android",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.datastax.cassandra:cassandra-driver-extras",
@@ -13152,6 +13662,9 @@
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "com.netflix.titus:titus-common",
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:finagle-http_2.11",
@@ -13215,10 +13728,18 @@
                 "com.sun.jersey.contribs:jersey-guice"
             ]
         },
+        "com.google.j2objc:j2objc-annotations": {
+            "locked": "1.1",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.5.1",
+            "locked": "3.6.0",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-master",
@@ -13232,6 +13753,25 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
+        "com.google.truth.extensions:truth-liteproto-extension": {
+            "locked": "0.42",
+            "transitive": [
+                "com.google.truth.extensions:truth-proto-extension"
+            ]
+        },
+        "com.google.truth.extensions:truth-proto-extension": {
+            "locked": "0.42",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "com.google.truth:truth": {
+            "locked": "0.42",
+            "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension"
+            ]
+        },
         "com.googlecode.concurrent-trees:concurrent-trees": {
             "locked": "2.4.0",
             "transitive": [
@@ -13242,6 +13782,12 @@
             "locked": "1.4",
             "transitive": [
                 "org.apache.cassandra:cassandra-all"
+            ]
+        },
+        "com.googlecode.java-diff-utils:diffutils": {
+            "locked": "1.3.0",
+            "transitive": [
+                "com.google.truth:truth"
             ]
         },
         "com.googlecode.json-simple:json-simple": {
@@ -13989,6 +14535,7 @@
         "junit:junit": {
             "locked": "4.12",
             "transitive": [
+                "com.google.truth:truth",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-netty"
             ]
@@ -14189,6 +14736,21 @@
                 "com.netflix.titus:titus-ext-cassandra-testkit"
             ]
         },
+        "org.checkerframework:checker-compat-qual": {
+            "locked": "2.5.3",
+            "transitive": [
+                "com.google.guava:guava",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth"
+            ]
+        },
+        "org.checkerframework:checker-qual": {
+            "locked": "2.5.3",
+            "transitive": [
+                "com.google.truth:truth"
+            ]
+        },
         "org.codehaus.jackson:jackson-core-asl": {
             "locked": "1.9.2",
             "transitive": [
@@ -14200,6 +14762,12 @@
             "locked": "1.9.2",
             "transitive": [
                 "org.apache.cassandra:cassandra-all"
+            ]
+        },
+        "org.codehaus.mojo:animal-sniffer-annotations": {
+            "locked": "1.14",
+            "transitive": [
+                "com.google.guava:guava"
             ]
         },
         "org.eclipse.jdt.core.compiler:ecj": {
@@ -14308,7 +14876,7 @@
             ]
         },
         "org.hibernate:hibernate-validator": {
-            "locked": "5.4.2.Final",
+            "locked": "5.4.3.Final",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-server-runtime"
@@ -14952,6 +15520,14 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
+        "com.google.auto.value:auto-value-annotations": {
+            "locked": "1.6.2",
+            "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth"
+            ]
+        },
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.1",
             "transitive": [
@@ -14959,7 +15535,7 @@
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
+            "locked": "3.0.2",
             "transitive": [
                 "com.github.fge:btf",
                 "com.github.fge:jackson-coreutils",
@@ -14967,6 +15543,7 @@
                 "com.github.fge:json-schema-validator",
                 "com.github.fge:msg-simple",
                 "com.github.fge:uri-template",
+                "com.google.guava:guava",
                 "com.twitter:util-cache_2.11",
                 "com.twitter:util-collection_2.11",
                 "io.grpc:grpc-core"
@@ -14980,13 +15557,17 @@
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.1.2",
+            "locked": "2.3.1",
             "transitive": [
+                "com.google.guava:guava",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.guava:guava": {
-            "locked": "20.0",
+            "locked": "25.1-android",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.datastax.cassandra:cassandra-driver-extras",
@@ -14994,6 +15575,9 @@
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "com.netflix.titus:titus-common",
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:finagle-http_2.11",
@@ -15057,10 +15641,18 @@
                 "com.sun.jersey.contribs:jersey-guice"
             ]
         },
+        "com.google.j2objc:j2objc-annotations": {
+            "locked": "1.1",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.5.1",
+            "locked": "3.6.0",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-master",
@@ -15074,6 +15666,25 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
+        "com.google.truth.extensions:truth-liteproto-extension": {
+            "locked": "0.42",
+            "transitive": [
+                "com.google.truth.extensions:truth-proto-extension"
+            ]
+        },
+        "com.google.truth.extensions:truth-proto-extension": {
+            "locked": "0.42",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "com.google.truth:truth": {
+            "locked": "0.42",
+            "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension"
+            ]
+        },
         "com.googlecode.concurrent-trees:concurrent-trees": {
             "locked": "2.4.0",
             "transitive": [
@@ -15084,6 +15695,12 @@
             "locked": "1.4",
             "transitive": [
                 "org.apache.cassandra:cassandra-all"
+            ]
+        },
+        "com.googlecode.java-diff-utils:diffutils": {
+            "locked": "1.3.0",
+            "transitive": [
+                "com.google.truth:truth"
             ]
         },
         "com.googlecode.json-simple:json-simple": {
@@ -15831,6 +16448,7 @@
         "junit:junit": {
             "locked": "4.12",
             "transitive": [
+                "com.google.truth:truth",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-netty"
             ]
@@ -16031,6 +16649,21 @@
                 "com.netflix.titus:titus-ext-cassandra-testkit"
             ]
         },
+        "org.checkerframework:checker-compat-qual": {
+            "locked": "2.5.3",
+            "transitive": [
+                "com.google.guava:guava",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth"
+            ]
+        },
+        "org.checkerframework:checker-qual": {
+            "locked": "2.5.3",
+            "transitive": [
+                "com.google.truth:truth"
+            ]
+        },
         "org.codehaus.jackson:jackson-core-asl": {
             "locked": "1.9.2",
             "transitive": [
@@ -16042,6 +16675,12 @@
             "locked": "1.9.2",
             "transitive": [
                 "org.apache.cassandra:cassandra-all"
+            ]
+        },
+        "org.codehaus.mojo:animal-sniffer-annotations": {
+            "locked": "1.14",
+            "transitive": [
+                "com.google.guava:guava"
             ]
         },
         "org.eclipse.jdt.core.compiler:ecj": {
@@ -16150,7 +16789,7 @@
             ]
         },
         "org.hibernate:hibernate-validator": {
-            "locked": "5.4.2.Final",
+            "locked": "5.4.3.Final",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-server-runtime"
