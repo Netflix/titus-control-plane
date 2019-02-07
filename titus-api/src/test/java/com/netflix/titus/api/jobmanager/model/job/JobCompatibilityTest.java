@@ -56,6 +56,18 @@ public class JobCompatibilityTest {
     }
 
     @Test
+    public void testDifferentJobGroupInfo() {
+        JobDescriptor<ServiceJobExt> reference = JobDescriptorGenerator.oneTaskServiceJobDescriptor();
+        JobDescriptor<ServiceJobExt> other = reference.toBuilder()
+                .withJobGroupInfo(reference.getJobGroupInfo().toBuilder()
+                        .withSequence("020")
+                        .build())
+                .build();
+        JobCompatibility compatibility = JobCompatibility.of(reference, other);
+        assertThat(compatibility.isCompatible()).isTrue();
+    }
+
+    @Test
     public void testServiceExtInformationIsIgnored() {
         JobDescriptor<ServiceJobExt> reference = JobDescriptorGenerator.oneTaskServiceJobDescriptor();
         JobDescriptor<ServiceJobExt> other = reference.toBuilder()

@@ -33,6 +33,7 @@ import com.netflix.titus.api.jobmanager.model.job.retry.ImmediateRetryPolicy;
  * <ol>
  * <li>Owner</li>
  * <li>Application name</li>
+ * <li>Job group info (stack, details, sequence)</li>
  * <li>Disruption budget</li>
  * <li>Any attributes not prefixed with <tt>titus.</tt> or <tt>titusParameter.</tt></li>
  * <li>Any container attributes not prefixed with <tt>titus.</tt> or <tt>titusParameter.</tt></li>
@@ -75,6 +76,7 @@ public class JobCompatibility {
         return descriptor.toBuilder()
                 .withOwner(Owner.newBuilder().withTeamEmail("").build())
                 .withApplicationName("")
+                .withJobGroupInfo(JobGroupInfo.newBuilder().build())
                 .withAttributes(onlyTitusAttributes)
                 .withContainer(descriptor.getContainer().toBuilder()
                         .withAttributes(onlyTitusContainerAttributes)
