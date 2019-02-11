@@ -16,6 +16,7 @@
 
 package com.netflix.titus.runtime.endpoint.metadata;
 
+import java.util.Collections;
 import java.util.Optional;
 import javax.inject.Singleton;
 
@@ -23,9 +24,18 @@ import javax.inject.Singleton;
 public class AnonymousCallMetadataResolver implements CallMetadataResolver {
 
     private static final AnonymousCallMetadataResolver INSTANCE = new AnonymousCallMetadataResolver();
+
+    private static final String ANONYMOUS_ID = "anonymous";
+
     private static final CallMetadata ANONYMOUS = CallMetadata.newBuilder()
-            .withCallerId("anonymous")
-            .withCallerType(CallerType.Unknown)
+            .withCallerId(ANONYMOUS_ID)
+            .withCallPath(Collections.singletonList(ANONYMOUS_ID))
+            .withCallReason("")
+            .withCallers(Collections.singletonList(Caller.newBuilder()
+                    .withId(ANONYMOUS_ID)
+                    .withCallerType(CallerType.Unknown)
+                    .build()
+            ))
             .build();
 
     private static final Optional<CallMetadata> ANONYMOUS_OPTIONAL = Optional.of(ANONYMOUS);
