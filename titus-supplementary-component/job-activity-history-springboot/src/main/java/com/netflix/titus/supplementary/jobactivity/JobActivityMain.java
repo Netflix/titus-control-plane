@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.supplementary.relocation;
+package com.netflix.titus.supplementary.jobactivity;
 
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.runtime.connector.MasterConnectorComponent;
@@ -27,8 +27,8 @@ import com.netflix.titus.runtime.connector.titusmaster.TitusMasterConnectorCompo
 import com.netflix.titus.runtime.endpoint.common.grpc.GrpcEndpointConfiguration;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolveComponent;
 import com.netflix.titus.runtime.endpoint.rest.RestAddOnsComponent;
-import com.netflix.titus.supplementary.relocation.endpoint.grpc.TaskRelocationGrpcServer;
-import com.netflix.titus.supplementary.relocation.endpoint.grpc.TaskRelocationGrpcService;
+import com.netflix.titus.supplementary.jobactivity.endpoint.grpc.JobActivityGrpcService;
+import com.netflix.titus.supplementary.jobactivity.endpoint.grpc.JobActivityHistoryGrpcServer;
 import io.grpc.Channel;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import org.springframework.boot.SpringApplication;
@@ -44,7 +44,7 @@ import org.springframework.context.annotation.Import;
         MasterDataReplicationComponent.class,
         RestAddOnsComponent.class
 })
-public class RelocationMain {
+public class JobActivityMain {
 
     @Bean
     public LeaderResolver getLeaderResolver(TitusMasterClientConfiguration configuration) {
@@ -62,12 +62,12 @@ public class RelocationMain {
     }
 
     @Bean
-    public TaskRelocationGrpcServer getTaskRelocationGrpcServer(GrpcEndpointConfiguration configuration,
-                                                                TaskRelocationGrpcService taskRelocationGrpcService) {
-        return new TaskRelocationGrpcServer(configuration, taskRelocationGrpcService);
+    public JobActivityHistoryGrpcServer getTaskRelocationGrpcServer(GrpcEndpointConfiguration configuration,
+                                                                    JobActivityGrpcService jobActivityGrpcService) {
+        return new JobActivityHistoryGrpcServer(configuration, jobActivityGrpcService);
     }
 
     public static void main(String[] args) {
-        SpringApplication.run(RelocationMain.class, args);
+        SpringApplication.run(JobActivityMain.class, args);
     }
 }

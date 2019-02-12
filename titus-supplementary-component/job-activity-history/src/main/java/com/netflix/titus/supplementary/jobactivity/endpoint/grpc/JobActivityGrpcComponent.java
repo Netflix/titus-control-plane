@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,29 +14,24 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.supplementary.relocation.endpoint.grpc;
+package com.netflix.titus.supplementary.jobactivity.endpoint.grpc;
 
-import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.runtime.endpoint.common.grpc.GrpcEndpointConfiguration;
 import com.netflix.titus.runtime.endpoint.common.grpc.GrpcEndpointConfigurationBean;
-import com.netflix.titus.supplementary.relocation.store.TaskRelocationResultStore;
-import com.netflix.titus.supplementary.relocation.workflow.RelocationWorkflowExecutor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 
 @Configuration
-public class TaskRelocationGrpcComponent {
+public class JobActivityGrpcComponent {
 
     @Bean
     public GrpcEndpointConfiguration getGrpcEndpointConfiguration(Environment environment) {
-        return new GrpcEndpointConfigurationBean(environment, "titus.relocation.endpoint.");
+        return new GrpcEndpointConfigurationBean(environment, "titus.jobactivity.endpoint.");
     }
 
     @Bean
-    public TaskRelocationGrpcService getTaskRelocationGrpcService(ReadOnlyJobOperations jobOperations,
-                                                                  RelocationWorkflowExecutor workflowExecutor,
-                                                                  TaskRelocationResultStore archiveStore) {
-        return new TaskRelocationGrpcService(jobOperations, workflowExecutor, archiveStore);
+    public JobActivityGrpcService getJobActivityGrpcService() {
+        return new JobActivityGrpcService();
     }
 }

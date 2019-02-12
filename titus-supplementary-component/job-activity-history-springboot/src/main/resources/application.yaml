@@ -1,0 +1,10 @@
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
+titus:
+  jobactivity:
+    endpoint:
+      port: 7105
