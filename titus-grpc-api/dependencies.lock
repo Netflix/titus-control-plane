@@ -375,7 +375,7 @@
     },
     "protobuf": {
         "com.netflix.titus:titus-api-definitions": {
-            "locked": "0.0.1-rc55",
+            "locked": "0.0.1-rc56",
             "requested": "0.0.1-rc+"
         }
     },
@@ -711,13 +711,13 @@
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.1.14.RELEASE",
+            "locked": "3.1.15.RELEASE",
             "transitive": [
                 "io.projectreactor:reactor-test"
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.1.14.RELEASE",
+            "locked": "3.1.15.RELEASE",
             "requested": "3.1.+"
         },
         "junit:junit-dep": {
@@ -879,13 +879,13 @@
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.1.14.RELEASE",
+            "locked": "3.1.15.RELEASE",
             "transitive": [
                 "io.projectreactor:reactor-test"
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.1.14.RELEASE",
+            "locked": "3.1.15.RELEASE",
             "requested": "3.1.+"
         },
         "junit:junit-dep": {
@@ -1047,13 +1047,13 @@
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.1.14.RELEASE",
+            "locked": "3.1.15.RELEASE",
             "transitive": [
                 "io.projectreactor:reactor-test"
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.1.14.RELEASE",
+            "locked": "3.1.15.RELEASE",
             "requested": "3.1.+"
         },
         "junit:junit-dep": {
@@ -1228,13 +1228,13 @@
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.1.14.RELEASE",
+            "locked": "3.1.15.RELEASE",
             "transitive": [
                 "io.projectreactor:reactor-test"
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.1.14.RELEASE",
+            "locked": "3.1.15.RELEASE",
             "requested": "3.1.+"
         },
         "junit:junit-dep": {

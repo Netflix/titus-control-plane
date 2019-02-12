@@ -35,8 +35,6 @@ dependencies {
     compile "io.grpc:grpc-netty-shaded:${grpcVersion}"
     compile "io.grpc:grpc-stub:${grpcVersion}"
     compile "io.grpc:grpc-protobuf:${grpcVersion}"
-    // Protobuf validation
-    compile "com.google.truth.extensions:truth-proto-extension:${googleTruthVersion}"
 
     compile "com.github.akarnokd:rxjava2-interop:${rxJavaInteropVersion}"
 
