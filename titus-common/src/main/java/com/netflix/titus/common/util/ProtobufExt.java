@@ -25,9 +25,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.google.common.truth.FailureStrategy;
-import com.google.common.truth.StandardSubjectBuilder;
-import com.google.common.truth.extensions.proto.ProtoTruth;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.MapEntry;
 import com.google.protobuf.Message;
@@ -100,26 +97,10 @@ public final class ProtobufExt {
      * @throws NullPointerException     when any of the messages are <tt>null</tt>
      */
     public static <T extends Message> Optional<String> diffReport(T one, T other) {
-        ErrorCollector collector = new ErrorCollector();
-        StandardSubjectBuilder.forCustomFailureStrategy(collector)
-                .about(ProtoTruth.protos())
-                .that(other)
-                .named(one.getDescriptorForType().getName())
-                .reportingMismatchesOnly()
-                .isEqualTo(one);
-        return collector.getFailure().map(AssertionError::getMessage);
-    }
-
-    private static class ErrorCollector implements FailureStrategy {
-        private volatile Optional<AssertionError> failure = Optional.empty();
-
-        @Override
-        public void fail(AssertionError failure) {
-            this.failure = Optional.of(failure);
+        if (one.equals(other)) {
+            return Optional.empty();
         }
-
-        public Optional<AssertionError> getFailure() {
-            return failure;
-        }
+        // TODO(fabio): implementation temporarily removed due to transitive dependency mismatches with guava
+        return Optional.of(String.format("Differences:\n>>>\n%s\n<<<\n%s", one.toString(), other.toString()));
     }
 }
