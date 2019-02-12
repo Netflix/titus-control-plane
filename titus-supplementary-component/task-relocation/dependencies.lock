@@ -108,14 +108,6 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
-        "com.google.auto.value:auto-value-annotations": {
-            "locked": "1.6.2",
-            "transitive": [
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
-                "com.google.truth:truth"
-            ]
-        },
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.1",
             "transitive": [
@@ -123,7 +115,7 @@
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.2",
+            "locked": "3.0.0",
             "transitive": [
                 "com.github.fge:btf",
                 "com.github.fge:jackson-coreutils",
@@ -131,7 +123,6 @@
                 "com.github.fge:json-schema-validator",
                 "com.github.fge:msg-simple",
                 "com.github.fge:uri-template",
-                "com.google.guava:guava",
                 "com.twitter:util-cache_2.11",
                 "com.twitter:util-collection_2.11",
                 "io.grpc:grpc-core"
@@ -145,25 +136,18 @@
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.3.1",
+            "locked": "2.1.2",
             "transitive": [
-                "com.google.guava:guava",
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
-                "com.google.truth:truth",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.guava:guava": {
-            "locked": "25.1-android",
+            "locked": "20.0",
             "transitive": [
                 "com.github.fge:jackson-coreutils",
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
-                "com.google.truth:truth",
                 "com.netflix.titus:titus-common",
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:finagle-http_2.11",
@@ -222,18 +206,10 @@
                 "com.sun.jersey.contribs:jersey-guice"
             ]
         },
-        "com.google.j2objc:j2objc-annotations": {
-            "locked": "1.1",
-            "transitive": [
-                "com.google.guava:guava"
-            ]
-        },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.6.0",
+            "locked": "3.5.1",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api",
                 "io.grpc:grpc-protobuf"
@@ -243,31 +219,6 @@
             "locked": "3.5.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
-            ]
-        },
-        "com.google.truth.extensions:truth-liteproto-extension": {
-            "locked": "0.42",
-            "transitive": [
-                "com.google.truth.extensions:truth-proto-extension"
-            ]
-        },
-        "com.google.truth.extensions:truth-proto-extension": {
-            "locked": "0.42",
-            "transitive": [
-                "com.netflix.titus:titus-common"
-            ]
-        },
-        "com.google.truth:truth": {
-            "locked": "0.42",
-            "transitive": [
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension"
-            ]
-        },
-        "com.googlecode.java-diff-utils:diffutils": {
-            "locked": "1.3.0",
-            "transitive": [
-                "com.google.truth:truth"
             ]
         },
         "com.googlecode.libphonenumber:libphonenumber": {
@@ -598,27 +549,35 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
+                "io.netty:netty-codec",
+                "io.netty:netty-codec-http",
+                "io.netty:netty-codec-http2",
+                "io.netty:netty-codec-socks",
                 "io.netty:netty-handler",
+                "io.netty:netty-handler-proxy",
                 "io.netty:netty-transport",
                 "io.netty:netty-transport-native-epoll",
+                "io.netty:netty-transport-native-unix-common",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
+                "io.netty:netty-codec-http2",
                 "io.netty:netty-codec-socks",
                 "io.netty:netty-handler",
+                "io.netty:netty-handler-proxy",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
@@ -629,30 +588,37 @@
             ]
         },
         "io.netty:netty-codec-http2": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-socks": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-handler-proxy",
                 "org.mock-server:mockserver-core"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-buffer",
+                "io.netty:netty-codec",
+                "io.netty:netty-codec-http",
+                "io.netty:netty-codec-http2",
+                "io.netty:netty-codec-socks",
+                "io.netty:netty-handler",
+                "io.netty:netty-handler-proxy",
                 "io.netty:netty-resolver",
+                "io.netty:netty-transport",
                 "io.netty:netty-transport-native-epoll",
                 "io.netty:netty-transport-native-unix-common",
                 "org.mock-server:mockserver-netty"
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.projectreactor.netty:reactor-netty",
@@ -662,21 +628,24 @@
             ]
         },
         "io.netty:netty-handler-proxy": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-codec",
+                "io.netty:netty-codec-http",
+                "io.netty:netty-codec-http2",
+                "io.netty:netty-codec-socks",
                 "io.netty:netty-handler",
                 "io.netty:netty-handler-proxy",
                 "io.netty:netty-transport-native-epoll",
@@ -686,14 +655,14 @@
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-transport-native-epoll"
             ]
@@ -718,13 +687,13 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.4.RELEASE",
+            "locked": "0.8.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.2.5.RELEASE",
+            "locked": "3.2.6.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
@@ -846,7 +815,6 @@
         "junit:junit": {
             "locked": "4.12",
             "transitive": [
-                "com.google.truth:truth",
                 "org.mock-server:mockserver-netty"
             ]
         },
@@ -897,27 +865,6 @@
                 "org.bouncycastle:bcpkix-jdk15on",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
-            ]
-        },
-        "org.checkerframework:checker-compat-qual": {
-            "locked": "2.5.3",
-            "transitive": [
-                "com.google.guava:guava",
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
-                "com.google.truth:truth"
-            ]
-        },
-        "org.checkerframework:checker-qual": {
-            "locked": "2.5.3",
-            "transitive": [
-                "com.google.truth:truth"
-            ]
-        },
-        "org.codehaus.mojo:animal-sniffer-annotations": {
-            "locked": "1.14",
-            "transitive": [
-                "com.google.guava:guava"
             ]
         },
         "org.eclipse.jetty:jetty-http": {
@@ -1320,14 +1267,6 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
-        "com.google.auto.value:auto-value-annotations": {
-            "locked": "1.6.2",
-            "transitive": [
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
-                "com.google.truth:truth"
-            ]
-        },
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.1",
             "transitive": [
@@ -1335,7 +1274,7 @@
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.2",
+            "locked": "3.0.0",
             "transitive": [
                 "com.github.fge:btf",
                 "com.github.fge:jackson-coreutils",
@@ -1343,7 +1282,6 @@
                 "com.github.fge:json-schema-validator",
                 "com.github.fge:msg-simple",
                 "com.github.fge:uri-template",
-                "com.google.guava:guava",
                 "com.twitter:util-cache_2.11",
                 "com.twitter:util-collection_2.11",
                 "io.grpc:grpc-core"
@@ -1357,25 +1295,18 @@
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.3.1",
+            "locked": "2.1.2",
             "transitive": [
-                "com.google.guava:guava",
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
-                "com.google.truth:truth",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.guava:guava": {
-            "locked": "25.1-android",
+            "locked": "20.0",
             "transitive": [
                 "com.github.fge:jackson-coreutils",
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
-                "com.google.truth:truth",
                 "com.netflix.titus:titus-common",
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:finagle-http_2.11",
@@ -1434,18 +1365,10 @@
                 "com.sun.jersey.contribs:jersey-guice"
             ]
         },
-        "com.google.j2objc:j2objc-annotations": {
-            "locked": "1.1",
-            "transitive": [
-                "com.google.guava:guava"
-            ]
-        },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.6.0",
+            "locked": "3.5.1",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api",
                 "io.grpc:grpc-protobuf"
@@ -1455,31 +1378,6 @@
             "locked": "3.5.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
-            ]
-        },
-        "com.google.truth.extensions:truth-liteproto-extension": {
-            "locked": "0.42",
-            "transitive": [
-                "com.google.truth.extensions:truth-proto-extension"
-            ]
-        },
-        "com.google.truth.extensions:truth-proto-extension": {
-            "locked": "0.42",
-            "transitive": [
-                "com.netflix.titus:titus-common"
-            ]
-        },
-        "com.google.truth:truth": {
-            "locked": "0.42",
-            "transitive": [
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension"
-            ]
-        },
-        "com.googlecode.java-diff-utils:diffutils": {
-            "locked": "1.3.0",
-            "transitive": [
-                "com.google.truth:truth"
             ]
         },
         "com.googlecode.libphonenumber:libphonenumber": {
@@ -1810,27 +1708,35 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
+                "io.netty:netty-codec",
+                "io.netty:netty-codec-http",
+                "io.netty:netty-codec-http2",
+                "io.netty:netty-codec-socks",
                 "io.netty:netty-handler",
+                "io.netty:netty-handler-proxy",
                 "io.netty:netty-transport",
                 "io.netty:netty-transport-native-epoll",
+                "io.netty:netty-transport-native-unix-common",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
+                "io.netty:netty-codec-http2",
                 "io.netty:netty-codec-socks",
                 "io.netty:netty-handler",
+                "io.netty:netty-handler-proxy",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
@@ -1841,30 +1747,37 @@
             ]
         },
         "io.netty:netty-codec-http2": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-socks": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-handler-proxy",
                 "org.mock-server:mockserver-core"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-buffer",
+                "io.netty:netty-codec",
+                "io.netty:netty-codec-http",
+                "io.netty:netty-codec-http2",
+                "io.netty:netty-codec-socks",
+                "io.netty:netty-handler",
+                "io.netty:netty-handler-proxy",
                 "io.netty:netty-resolver",
+                "io.netty:netty-transport",
                 "io.netty:netty-transport-native-epoll",
                 "io.netty:netty-transport-native-unix-common",
                 "org.mock-server:mockserver-netty"
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.projectreactor.netty:reactor-netty",
@@ -1874,21 +1787,24 @@
             ]
         },
         "io.netty:netty-handler-proxy": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-codec",
+                "io.netty:netty-codec-http",
+                "io.netty:netty-codec-http2",
+                "io.netty:netty-codec-socks",
                 "io.netty:netty-handler",
                 "io.netty:netty-handler-proxy",
                 "io.netty:netty-transport-native-epoll",
@@ -1898,14 +1814,14 @@
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-transport-native-epoll"
             ]
@@ -1930,13 +1846,13 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.4.RELEASE",
+            "locked": "0.8.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.2.5.RELEASE",
+            "locked": "3.2.6.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
@@ -2058,7 +1974,6 @@
         "junit:junit": {
             "locked": "4.12",
             "transitive": [
-                "com.google.truth:truth",
                 "org.mock-server:mockserver-netty"
             ]
         },
@@ -2109,27 +2024,6 @@
                 "org.bouncycastle:bcpkix-jdk15on",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
-            ]
-        },
-        "org.checkerframework:checker-compat-qual": {
-            "locked": "2.5.3",
-            "transitive": [
-                "com.google.guava:guava",
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
-                "com.google.truth:truth"
-            ]
-        },
-        "org.checkerframework:checker-qual": {
-            "locked": "2.5.3",
-            "transitive": [
-                "com.google.truth:truth"
-            ]
-        },
-        "org.codehaus.mojo:animal-sniffer-annotations": {
-            "locked": "1.14",
-            "transitive": [
-                "com.google.guava:guava"
             ]
         },
         "org.eclipse.jetty:jetty-http": {
@@ -2532,14 +2426,6 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
-        "com.google.auto.value:auto-value-annotations": {
-            "locked": "1.6.2",
-            "transitive": [
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
-                "com.google.truth:truth"
-            ]
-        },
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.1",
             "transitive": [
@@ -2547,7 +2433,7 @@
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.2",
+            "locked": "3.0.0",
             "transitive": [
                 "com.github.fge:btf",
                 "com.github.fge:jackson-coreutils",
@@ -2555,7 +2441,6 @@
                 "com.github.fge:json-schema-validator",
                 "com.github.fge:msg-simple",
                 "com.github.fge:uri-template",
-                "com.google.guava:guava",
                 "com.twitter:util-cache_2.11",
                 "com.twitter:util-collection_2.11",
                 "io.grpc:grpc-core"
@@ -2569,25 +2454,18 @@
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.3.1",
+            "locked": "2.1.2",
             "transitive": [
-                "com.google.guava:guava",
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
-                "com.google.truth:truth",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.guava:guava": {
-            "locked": "25.1-android",
+            "locked": "20.0",
             "transitive": [
                 "com.github.fge:jackson-coreutils",
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
-                "com.google.truth:truth",
                 "com.netflix.titus:titus-common",
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:finagle-http_2.11",
@@ -2646,18 +2524,10 @@
                 "com.sun.jersey.contribs:jersey-guice"
             ]
         },
-        "com.google.j2objc:j2objc-annotations": {
-            "locked": "1.1",
-            "transitive": [
-                "com.google.guava:guava"
-            ]
-        },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.6.0",
+            "locked": "3.5.1",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api",
                 "io.grpc:grpc-protobuf"
@@ -2667,31 +2537,6 @@
             "locked": "3.5.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
-            ]
-        },
-        "com.google.truth.extensions:truth-liteproto-extension": {
-            "locked": "0.42",
-            "transitive": [
-                "com.google.truth.extensions:truth-proto-extension"
-            ]
-        },
-        "com.google.truth.extensions:truth-proto-extension": {
-            "locked": "0.42",
-            "transitive": [
-                "com.netflix.titus:titus-common"
-            ]
-        },
-        "com.google.truth:truth": {
-            "locked": "0.42",
-            "transitive": [
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension"
-            ]
-        },
-        "com.googlecode.java-diff-utils:diffutils": {
-            "locked": "1.3.0",
-            "transitive": [
-                "com.google.truth:truth"
             ]
         },
         "com.googlecode.libphonenumber:libphonenumber": {
@@ -3022,27 +2867,35 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
+                "io.netty:netty-codec",
+                "io.netty:netty-codec-http",
+                "io.netty:netty-codec-http2",
+                "io.netty:netty-codec-socks",
                 "io.netty:netty-handler",
+                "io.netty:netty-handler-proxy",
                 "io.netty:netty-transport",
                 "io.netty:netty-transport-native-epoll",
+                "io.netty:netty-transport-native-unix-common",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
+                "io.netty:netty-codec-http2",
                 "io.netty:netty-codec-socks",
                 "io.netty:netty-handler",
+                "io.netty:netty-handler-proxy",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
@@ -3053,30 +2906,37 @@
             ]
         },
         "io.netty:netty-codec-http2": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-socks": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-handler-proxy",
                 "org.mock-server:mockserver-core"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-buffer",
+                "io.netty:netty-codec",
+                "io.netty:netty-codec-http",
+                "io.netty:netty-codec-http2",
+                "io.netty:netty-codec-socks",
+                "io.netty:netty-handler",
+                "io.netty:netty-handler-proxy",
                 "io.netty:netty-resolver",
+                "io.netty:netty-transport",
                 "io.netty:netty-transport-native-epoll",
                 "io.netty:netty-transport-native-unix-common",
                 "org.mock-server:mockserver-netty"
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.projectreactor.netty:reactor-netty",
@@ -3086,21 +2946,24 @@
             ]
         },
         "io.netty:netty-handler-proxy": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-codec",
+                "io.netty:netty-codec-http",
+                "io.netty:netty-codec-http2",
+                "io.netty:netty-codec-socks",
                 "io.netty:netty-handler",
                 "io.netty:netty-handler-proxy",
                 "io.netty:netty-transport-native-epoll",
@@ -3110,14 +2973,14 @@
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-transport-native-epoll"
             ]
@@ -3142,13 +3005,13 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.4.RELEASE",
+            "locked": "0.8.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.2.5.RELEASE",
+            "locked": "3.2.6.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
@@ -3270,7 +3133,6 @@
         "junit:junit": {
             "locked": "4.12",
             "transitive": [
-                "com.google.truth:truth",
                 "org.mock-server:mockserver-netty"
             ]
         },
@@ -3321,27 +3183,6 @@
                 "org.bouncycastle:bcpkix-jdk15on",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
-            ]
-        },
-        "org.checkerframework:checker-compat-qual": {
-            "locked": "2.5.3",
-            "transitive": [
-                "com.google.guava:guava",
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
-                "com.google.truth:truth"
-            ]
-        },
-        "org.checkerframework:checker-qual": {
-            "locked": "2.5.3",
-            "transitive": [
-                "com.google.truth:truth"
-            ]
-        },
-        "org.codehaus.mojo:animal-sniffer-annotations": {
-            "locked": "1.14",
-            "transitive": [
-                "com.google.guava:guava"
             ]
         },
         "org.eclipse.jetty:jetty-http": {
@@ -3808,14 +3649,6 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
-        "com.google.auto.value:auto-value-annotations": {
-            "locked": "1.6.2",
-            "transitive": [
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
-                "com.google.truth:truth"
-            ]
-        },
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.1",
             "transitive": [
@@ -3823,7 +3656,7 @@
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.2",
+            "locked": "3.0.0",
             "transitive": [
                 "com.github.fge:btf",
                 "com.github.fge:jackson-coreutils",
@@ -3831,7 +3664,6 @@
                 "com.github.fge:json-schema-validator",
                 "com.github.fge:msg-simple",
                 "com.github.fge:uri-template",
-                "com.google.guava:guava",
                 "com.twitter:util-cache_2.11",
                 "com.twitter:util-collection_2.11",
                 "io.grpc:grpc-core"
@@ -3845,25 +3677,18 @@
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.3.1",
+            "locked": "2.1.2",
             "transitive": [
-                "com.google.guava:guava",
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
-                "com.google.truth:truth",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.guava:guava": {
-            "locked": "25.1-android",
+            "locked": "20.0",
             "transitive": [
                 "com.github.fge:jackson-coreutils",
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
-                "com.google.truth:truth",
                 "com.netflix.titus:titus-common",
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:finagle-http_2.11",
@@ -3922,18 +3747,10 @@
                 "com.sun.jersey.contribs:jersey-guice"
             ]
         },
-        "com.google.j2objc:j2objc-annotations": {
-            "locked": "1.1",
-            "transitive": [
-                "com.google.guava:guava"
-            ]
-        },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.6.0",
+            "locked": "3.5.1",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api",
                 "io.grpc:grpc-protobuf"
@@ -3943,31 +3760,6 @@
             "locked": "3.5.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
-            ]
-        },
-        "com.google.truth.extensions:truth-liteproto-extension": {
-            "locked": "0.42",
-            "transitive": [
-                "com.google.truth.extensions:truth-proto-extension"
-            ]
-        },
-        "com.google.truth.extensions:truth-proto-extension": {
-            "locked": "0.42",
-            "transitive": [
-                "com.netflix.titus:titus-common"
-            ]
-        },
-        "com.google.truth:truth": {
-            "locked": "0.42",
-            "transitive": [
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension"
-            ]
-        },
-        "com.googlecode.java-diff-utils:diffutils": {
-            "locked": "1.3.0",
-            "transitive": [
-                "com.google.truth:truth"
             ]
         },
         "com.googlecode.libphonenumber:libphonenumber": {
@@ -4298,27 +4090,35 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
+                "io.netty:netty-codec",
+                "io.netty:netty-codec-http",
+                "io.netty:netty-codec-http2",
+                "io.netty:netty-codec-socks",
                 "io.netty:netty-handler",
+                "io.netty:netty-handler-proxy",
                 "io.netty:netty-transport",
                 "io.netty:netty-transport-native-epoll",
+                "io.netty:netty-transport-native-unix-common",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
+                "io.netty:netty-codec-http2",
                 "io.netty:netty-codec-socks",
                 "io.netty:netty-handler",
+                "io.netty:netty-handler-proxy",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
@@ -4329,30 +4129,37 @@
             ]
         },
         "io.netty:netty-codec-http2": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-socks": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-handler-proxy",
                 "org.mock-server:mockserver-core"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-buffer",
+                "io.netty:netty-codec",
+                "io.netty:netty-codec-http",
+                "io.netty:netty-codec-http2",
+                "io.netty:netty-codec-socks",
+                "io.netty:netty-handler",
+                "io.netty:netty-handler-proxy",
                 "io.netty:netty-resolver",
+                "io.netty:netty-transport",
                 "io.netty:netty-transport-native-epoll",
                 "io.netty:netty-transport-native-unix-common",
                 "org.mock-server:mockserver-netty"
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.projectreactor.netty:reactor-netty",
@@ -4362,21 +4169,24 @@
             ]
         },
         "io.netty:netty-handler-proxy": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-codec",
+                "io.netty:netty-codec-http",
+                "io.netty:netty-codec-http2",
+                "io.netty:netty-codec-socks",
                 "io.netty:netty-handler",
                 "io.netty:netty-handler-proxy",
                 "io.netty:netty-transport-native-epoll",
@@ -4386,14 +4196,14 @@
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-transport-native-epoll"
             ]
@@ -4418,13 +4228,13 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.4.RELEASE",
+            "locked": "0.8.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.2.5.RELEASE",
+            "locked": "3.2.6.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
@@ -4546,7 +4356,6 @@
         "junit:junit": {
             "locked": "4.12",
             "transitive": [
-                "com.google.truth:truth",
                 "org.mock-server:mockserver-netty"
             ]
         },
@@ -4597,27 +4406,6 @@
                 "org.bouncycastle:bcpkix-jdk15on",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
-            ]
-        },
-        "org.checkerframework:checker-compat-qual": {
-            "locked": "2.5.3",
-            "transitive": [
-                "com.google.guava:guava",
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
-                "com.google.truth:truth"
-            ]
-        },
-        "org.checkerframework:checker-qual": {
-            "locked": "2.5.3",
-            "transitive": [
-                "com.google.truth:truth"
-            ]
-        },
-        "org.codehaus.mojo:animal-sniffer-annotations": {
-            "locked": "1.14",
-            "transitive": [
-                "com.google.guava:guava"
             ]
         },
         "org.eclipse.jetty:jetty-http": {
@@ -5021,14 +4809,6 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
-        "com.google.auto.value:auto-value-annotations": {
-            "locked": "1.6.2",
-            "transitive": [
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
-                "com.google.truth:truth"
-            ]
-        },
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.1",
             "transitive": [
@@ -5036,7 +4816,7 @@
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.2",
+            "locked": "3.0.0",
             "transitive": [
                 "com.github.fge:btf",
                 "com.github.fge:jackson-coreutils",
@@ -5044,7 +4824,6 @@
                 "com.github.fge:json-schema-validator",
                 "com.github.fge:msg-simple",
                 "com.github.fge:uri-template",
-                "com.google.guava:guava",
                 "com.twitter:util-cache_2.11",
                 "com.twitter:util-collection_2.11",
                 "io.grpc:grpc-core"
@@ -5058,25 +4837,18 @@
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.3.1",
+            "locked": "2.1.2",
             "transitive": [
-                "com.google.guava:guava",
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
-                "com.google.truth:truth",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.guava:guava": {
-            "locked": "25.1-android",
+            "locked": "20.0",
             "transitive": [
                 "com.github.fge:jackson-coreutils",
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
-                "com.google.truth:truth",
                 "com.netflix.titus:titus-common",
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:finagle-http_2.11",
@@ -5135,18 +4907,10 @@
                 "com.sun.jersey.contribs:jersey-guice"
             ]
         },
-        "com.google.j2objc:j2objc-annotations": {
-            "locked": "1.1",
-            "transitive": [
-                "com.google.guava:guava"
-            ]
-        },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.6.0",
+            "locked": "3.5.1",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api",
                 "io.grpc:grpc-protobuf"
@@ -5156,31 +4920,6 @@
             "locked": "3.5.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
-            ]
-        },
-        "com.google.truth.extensions:truth-liteproto-extension": {
-            "locked": "0.42",
-            "transitive": [
-                "com.google.truth.extensions:truth-proto-extension"
-            ]
-        },
-        "com.google.truth.extensions:truth-proto-extension": {
-            "locked": "0.42",
-            "transitive": [
-                "com.netflix.titus:titus-common"
-            ]
-        },
-        "com.google.truth:truth": {
-            "locked": "0.42",
-            "transitive": [
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension"
-            ]
-        },
-        "com.googlecode.java-diff-utils:diffutils": {
-            "locked": "1.3.0",
-            "transitive": [
-                "com.google.truth:truth"
             ]
         },
         "com.googlecode.libphonenumber:libphonenumber": {
@@ -5511,27 +5250,35 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
+                "io.netty:netty-codec",
+                "io.netty:netty-codec-http",
+                "io.netty:netty-codec-http2",
+                "io.netty:netty-codec-socks",
                 "io.netty:netty-handler",
+                "io.netty:netty-handler-proxy",
                 "io.netty:netty-transport",
                 "io.netty:netty-transport-native-epoll",
+                "io.netty:netty-transport-native-unix-common",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
+                "io.netty:netty-codec-http2",
                 "io.netty:netty-codec-socks",
                 "io.netty:netty-handler",
+                "io.netty:netty-handler-proxy",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
@@ -5542,30 +5289,37 @@
             ]
         },
         "io.netty:netty-codec-http2": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-socks": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-handler-proxy",
                 "org.mock-server:mockserver-core"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-buffer",
+                "io.netty:netty-codec",
+                "io.netty:netty-codec-http",
+                "io.netty:netty-codec-http2",
+                "io.netty:netty-codec-socks",
+                "io.netty:netty-handler",
+                "io.netty:netty-handler-proxy",
                 "io.netty:netty-resolver",
+                "io.netty:netty-transport",
                 "io.netty:netty-transport-native-epoll",
                 "io.netty:netty-transport-native-unix-common",
                 "org.mock-server:mockserver-netty"
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.projectreactor.netty:reactor-netty",
@@ -5575,21 +5329,24 @@
             ]
         },
         "io.netty:netty-handler-proxy": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-codec",
+                "io.netty:netty-codec-http",
+                "io.netty:netty-codec-http2",
+                "io.netty:netty-codec-socks",
                 "io.netty:netty-handler",
                 "io.netty:netty-handler-proxy",
                 "io.netty:netty-transport-native-epoll",
@@ -5599,14 +5356,14 @@
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-transport-native-epoll"
             ]
@@ -5631,13 +5388,13 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.4.RELEASE",
+            "locked": "0.8.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.2.5.RELEASE",
+            "locked": "3.2.6.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
@@ -5759,7 +5516,6 @@
         "junit:junit": {
             "locked": "4.12",
             "transitive": [
-                "com.google.truth:truth",
                 "org.mock-server:mockserver-netty"
             ]
         },
@@ -5810,27 +5566,6 @@
                 "org.bouncycastle:bcpkix-jdk15on",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
-            ]
-        },
-        "org.checkerframework:checker-compat-qual": {
-            "locked": "2.5.3",
-            "transitive": [
-                "com.google.guava:guava",
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
-                "com.google.truth:truth"
-            ]
-        },
-        "org.checkerframework:checker-qual": {
-            "locked": "2.5.3",
-            "transitive": [
-                "com.google.truth:truth"
-            ]
-        },
-        "org.codehaus.mojo:animal-sniffer-annotations": {
-            "locked": "1.14",
-            "transitive": [
-                "com.google.guava:guava"
             ]
         },
         "org.eclipse.jetty:jetty-http": {
@@ -6362,14 +6097,6 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
-        "com.google.auto.value:auto-value-annotations": {
-            "locked": "1.6.2",
-            "transitive": [
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
-                "com.google.truth:truth"
-            ]
-        },
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.1",
             "transitive": [
@@ -6377,7 +6104,7 @@
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.2",
+            "locked": "3.0.0",
             "transitive": [
                 "com.github.fge:btf",
                 "com.github.fge:jackson-coreutils",
@@ -6385,7 +6112,6 @@
                 "com.github.fge:json-schema-validator",
                 "com.github.fge:msg-simple",
                 "com.github.fge:uri-template",
-                "com.google.guava:guava",
                 "com.twitter:util-cache_2.11",
                 "com.twitter:util-collection_2.11",
                 "io.grpc:grpc-core"
@@ -6399,17 +6125,13 @@
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.3.1",
+            "locked": "2.1.2",
             "transitive": [
-                "com.google.guava:guava",
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
-                "com.google.truth:truth",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.guava:guava": {
-            "locked": "25.1-android",
+            "locked": "20.0",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.datastax.cassandra:cassandra-driver-extras",
@@ -6417,9 +6139,6 @@
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
-                "com.google.truth:truth",
                 "com.netflix.titus:titus-common",
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:finagle-http_2.11",
@@ -6483,18 +6202,10 @@
                 "com.sun.jersey.contribs:jersey-guice"
             ]
         },
-        "com.google.j2objc:j2objc-annotations": {
-            "locked": "1.1",
-            "transitive": [
-                "com.google.guava:guava"
-            ]
-        },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.6.0",
+            "locked": "3.5.1",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-master",
@@ -6508,25 +6219,6 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
-        "com.google.truth.extensions:truth-liteproto-extension": {
-            "locked": "0.42",
-            "transitive": [
-                "com.google.truth.extensions:truth-proto-extension"
-            ]
-        },
-        "com.google.truth.extensions:truth-proto-extension": {
-            "locked": "0.42",
-            "transitive": [
-                "com.netflix.titus:titus-common"
-            ]
-        },
-        "com.google.truth:truth": {
-            "locked": "0.42",
-            "transitive": [
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension"
-            ]
-        },
         "com.googlecode.concurrent-trees:concurrent-trees": {
             "locked": "2.4.0",
             "transitive": [
@@ -6537,12 +6229,6 @@
             "locked": "1.4",
             "transitive": [
                 "org.apache.cassandra:cassandra-all"
-            ]
-        },
-        "com.googlecode.java-diff-utils:diffutils": {
-            "locked": "1.3.0",
-            "transitive": [
-                "com.google.truth:truth"
             ]
         },
         "com.googlecode.json-simple:json-simple": {
@@ -7019,27 +6705,35 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
+                "io.netty:netty-codec",
+                "io.netty:netty-codec-http",
+                "io.netty:netty-codec-http2",
+                "io.netty:netty-codec-socks",
                 "io.netty:netty-handler",
+                "io.netty:netty-handler-proxy",
                 "io.netty:netty-transport",
                 "io.netty:netty-transport-native-epoll",
+                "io.netty:netty-transport-native-unix-common",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
+                "io.netty:netty-codec-http2",
                 "io.netty:netty-codec-socks",
                 "io.netty:netty-handler",
+                "io.netty:netty-handler-proxy",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
@@ -7050,30 +6744,37 @@
             ]
         },
         "io.netty:netty-codec-http2": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-socks": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-handler-proxy",
                 "org.mock-server:mockserver-core"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-buffer",
+                "io.netty:netty-codec",
+                "io.netty:netty-codec-http",
+                "io.netty:netty-codec-http2",
+                "io.netty:netty-codec-socks",
+                "io.netty:netty-handler",
+                "io.netty:netty-handler-proxy",
                 "io.netty:netty-resolver",
+                "io.netty:netty-transport",
                 "io.netty:netty-transport-native-epoll",
                 "io.netty:netty-transport-native-unix-common",
                 "org.mock-server:mockserver-netty"
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "io.netty:netty-codec-http2",
@@ -7085,21 +6786,24 @@
             ]
         },
         "io.netty:netty-handler-proxy": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-codec",
+                "io.netty:netty-codec-http",
+                "io.netty:netty-codec-http2",
+                "io.netty:netty-codec-socks",
                 "io.netty:netty-handler",
                 "io.netty:netty-handler-proxy",
                 "io.netty:netty-transport-native-epoll",
@@ -7109,14 +6813,14 @@
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-transport-native-epoll"
             ]
@@ -7141,14 +6845,14 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.4.RELEASE",
+            "locked": "0.8.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-reactor-netty"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.2.5.RELEASE",
+            "locked": "3.2.6.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
@@ -7158,7 +6862,7 @@
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.1.14.RELEASE",
+            "locked": "3.1.15.RELEASE",
             "requested": "3.1.+"
         },
         "io.reactivex.rxjava2:rxjava": {
@@ -7305,7 +7009,6 @@
         "junit:junit": {
             "locked": "4.12",
             "transitive": [
-                "com.google.truth:truth",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-netty"
             ]
@@ -7512,21 +7215,6 @@
                 "com.netflix.titus:titus-ext-cassandra-testkit"
             ]
         },
-        "org.checkerframework:checker-compat-qual": {
-            "locked": "2.5.3",
-            "transitive": [
-                "com.google.guava:guava",
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
-                "com.google.truth:truth"
-            ]
-        },
-        "org.checkerframework:checker-qual": {
-            "locked": "2.5.3",
-            "transitive": [
-                "com.google.truth:truth"
-            ]
-        },
         "org.codehaus.jackson:jackson-core-asl": {
             "locked": "1.9.2",
             "transitive": [
@@ -7538,12 +7226,6 @@
             "locked": "1.9.2",
             "transitive": [
                 "org.apache.cassandra:cassandra-all"
-            ]
-        },
-        "org.codehaus.mojo:animal-sniffer-annotations": {
-            "locked": "1.14",
-            "transitive": [
-                "com.google.guava:guava"
             ]
         },
         "org.eclipse.jdt.core.compiler:ecj": {
@@ -8287,14 +7969,6 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
-        "com.google.auto.value:auto-value-annotations": {
-            "locked": "1.6.2",
-            "transitive": [
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
-                "com.google.truth:truth"
-            ]
-        },
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.1",
             "transitive": [
@@ -8302,7 +7976,7 @@
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.2",
+            "locked": "3.0.0",
             "transitive": [
                 "com.github.fge:btf",
                 "com.github.fge:jackson-coreutils",
@@ -8310,7 +7984,6 @@
                 "com.github.fge:json-schema-validator",
                 "com.github.fge:msg-simple",
                 "com.github.fge:uri-template",
-                "com.google.guava:guava",
                 "com.twitter:util-cache_2.11",
                 "com.twitter:util-collection_2.11",
                 "io.grpc:grpc-core"
@@ -8324,17 +7997,13 @@
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.3.1",
+            "locked": "2.1.2",
             "transitive": [
-                "com.google.guava:guava",
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
-                "com.google.truth:truth",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.guava:guava": {
-            "locked": "25.1-android",
+            "locked": "20.0",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.datastax.cassandra:cassandra-driver-extras",
@@ -8342,9 +8011,6 @@
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
-                "com.google.truth:truth",
                 "com.netflix.titus:titus-common",
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:finagle-http_2.11",
@@ -8408,18 +8074,10 @@
                 "com.sun.jersey.contribs:jersey-guice"
             ]
         },
-        "com.google.j2objc:j2objc-annotations": {
-            "locked": "1.1",
-            "transitive": [
-                "com.google.guava:guava"
-            ]
-        },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.6.0",
+            "locked": "3.5.1",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-master",
@@ -8433,25 +8091,6 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
-        "com.google.truth.extensions:truth-liteproto-extension": {
-            "locked": "0.42",
-            "transitive": [
-                "com.google.truth.extensions:truth-proto-extension"
-            ]
-        },
-        "com.google.truth.extensions:truth-proto-extension": {
-            "locked": "0.42",
-            "transitive": [
-                "com.netflix.titus:titus-common"
-            ]
-        },
-        "com.google.truth:truth": {
-            "locked": "0.42",
-            "transitive": [
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension"
-            ]
-        },
         "com.googlecode.concurrent-trees:concurrent-trees": {
             "locked": "2.4.0",
             "transitive": [
@@ -8462,12 +8101,6 @@
             "locked": "1.4",
             "transitive": [
                 "org.apache.cassandra:cassandra-all"
-            ]
-        },
-        "com.googlecode.java-diff-utils:diffutils": {
-            "locked": "1.3.0",
-            "transitive": [
-                "com.google.truth:truth"
             ]
         },
         "com.googlecode.json-simple:json-simple": {
@@ -8944,27 +8577,35 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
+                "io.netty:netty-codec",
+                "io.netty:netty-codec-http",
+                "io.netty:netty-codec-http2",
+                "io.netty:netty-codec-socks",
                 "io.netty:netty-handler",
+                "io.netty:netty-handler-proxy",
                 "io.netty:netty-transport",
                 "io.netty:netty-transport-native-epoll",
+                "io.netty:netty-transport-native-unix-common",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
+                "io.netty:netty-codec-http2",
                 "io.netty:netty-codec-socks",
                 "io.netty:netty-handler",
+                "io.netty:netty-handler-proxy",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
@@ -8975,30 +8616,37 @@
             ]
         },
         "io.netty:netty-codec-http2": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-socks": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-handler-proxy",
                 "org.mock-server:mockserver-core"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-buffer",
+                "io.netty:netty-codec",
+                "io.netty:netty-codec-http",
+                "io.netty:netty-codec-http2",
+                "io.netty:netty-codec-socks",
+                "io.netty:netty-handler",
+                "io.netty:netty-handler-proxy",
                 "io.netty:netty-resolver",
+                "io.netty:netty-transport",
                 "io.netty:netty-transport-native-epoll",
                 "io.netty:netty-transport-native-unix-common",
                 "org.mock-server:mockserver-netty"
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "io.netty:netty-codec-http2",
@@ -9010,21 +8658,24 @@
             ]
         },
         "io.netty:netty-handler-proxy": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-codec",
+                "io.netty:netty-codec-http",
+                "io.netty:netty-codec-http2",
+                "io.netty:netty-codec-socks",
                 "io.netty:netty-handler",
                 "io.netty:netty-handler-proxy",
                 "io.netty:netty-transport-native-epoll",
@@ -9034,14 +8685,14 @@
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-transport-native-epoll"
             ]
@@ -9066,14 +8717,14 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.4.RELEASE",
+            "locked": "0.8.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-reactor-netty"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.2.5.RELEASE",
+            "locked": "3.2.6.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
@@ -9083,7 +8734,7 @@
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.1.14.RELEASE",
+            "locked": "3.1.15.RELEASE",
             "requested": "3.1.+"
         },
         "io.reactivex.rxjava2:rxjava": {
@@ -9230,7 +8881,6 @@
         "junit:junit": {
             "locked": "4.12",
             "transitive": [
-                "com.google.truth:truth",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-netty"
             ]
@@ -9437,21 +9087,6 @@
                 "com.netflix.titus:titus-ext-cassandra-testkit"
             ]
         },
-        "org.checkerframework:checker-compat-qual": {
-            "locked": "2.5.3",
-            "transitive": [
-                "com.google.guava:guava",
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
-                "com.google.truth:truth"
-            ]
-        },
-        "org.checkerframework:checker-qual": {
-            "locked": "2.5.3",
-            "transitive": [
-                "com.google.truth:truth"
-            ]
-        },
         "org.codehaus.jackson:jackson-core-asl": {
             "locked": "1.9.2",
             "transitive": [
@@ -9463,12 +9098,6 @@
             "locked": "1.9.2",
             "transitive": [
                 "org.apache.cassandra:cassandra-all"
-            ]
-        },
-        "org.codehaus.mojo:animal-sniffer-annotations": {
-            "locked": "1.14",
-            "transitive": [
-                "com.google.guava:guava"
             ]
         },
         "org.eclipse.jdt.core.compiler:ecj": {
@@ -10212,14 +9841,6 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
-        "com.google.auto.value:auto-value-annotations": {
-            "locked": "1.6.2",
-            "transitive": [
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
-                "com.google.truth:truth"
-            ]
-        },
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.1",
             "transitive": [
@@ -10227,7 +9848,7 @@
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.2",
+            "locked": "3.0.0",
             "transitive": [
                 "com.github.fge:btf",
                 "com.github.fge:jackson-coreutils",
@@ -10235,7 +9856,6 @@
                 "com.github.fge:json-schema-validator",
                 "com.github.fge:msg-simple",
                 "com.github.fge:uri-template",
-                "com.google.guava:guava",
                 "com.twitter:util-cache_2.11",
                 "com.twitter:util-collection_2.11",
                 "io.grpc:grpc-core"
@@ -10249,17 +9869,13 @@
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.3.1",
+            "locked": "2.1.2",
             "transitive": [
-                "com.google.guava:guava",
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
-                "com.google.truth:truth",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.guava:guava": {
-            "locked": "25.1-android",
+            "locked": "20.0",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.datastax.cassandra:cassandra-driver-extras",
@@ -10267,9 +9883,6 @@
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
-                "com.google.truth:truth",
                 "com.netflix.titus:titus-common",
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:finagle-http_2.11",
@@ -10333,18 +9946,10 @@
                 "com.sun.jersey.contribs:jersey-guice"
             ]
         },
-        "com.google.j2objc:j2objc-annotations": {
-            "locked": "1.1",
-            "transitive": [
-                "com.google.guava:guava"
-            ]
-        },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.6.0",
+            "locked": "3.5.1",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-master",
@@ -10358,25 +9963,6 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
-        "com.google.truth.extensions:truth-liteproto-extension": {
-            "locked": "0.42",
-            "transitive": [
-                "com.google.truth.extensions:truth-proto-extension"
-            ]
-        },
-        "com.google.truth.extensions:truth-proto-extension": {
-            "locked": "0.42",
-            "transitive": [
-                "com.netflix.titus:titus-common"
-            ]
-        },
-        "com.google.truth:truth": {
-            "locked": "0.42",
-            "transitive": [
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension"
-            ]
-        },
         "com.googlecode.concurrent-trees:concurrent-trees": {
             "locked": "2.4.0",
             "transitive": [
@@ -10387,12 +9973,6 @@
             "locked": "1.4",
             "transitive": [
                 "org.apache.cassandra:cassandra-all"
-            ]
-        },
-        "com.googlecode.java-diff-utils:diffutils": {
-            "locked": "1.3.0",
-            "transitive": [
-                "com.google.truth:truth"
             ]
         },
         "com.googlecode.json-simple:json-simple": {
@@ -10869,27 +10449,35 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
+                "io.netty:netty-codec",
+                "io.netty:netty-codec-http",
+                "io.netty:netty-codec-http2",
+                "io.netty:netty-codec-socks",
                 "io.netty:netty-handler",
+                "io.netty:netty-handler-proxy",
                 "io.netty:netty-transport",
                 "io.netty:netty-transport-native-epoll",
+                "io.netty:netty-transport-native-unix-common",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
+                "io.netty:netty-codec-http2",
                 "io.netty:netty-codec-socks",
                 "io.netty:netty-handler",
+                "io.netty:netty-handler-proxy",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
@@ -10900,30 +10488,37 @@
             ]
         },
         "io.netty:netty-codec-http2": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-socks": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-handler-proxy",
                 "org.mock-server:mockserver-core"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-buffer",
+                "io.netty:netty-codec",
+                "io.netty:netty-codec-http",
+                "io.netty:netty-codec-http2",
+                "io.netty:netty-codec-socks",
+                "io.netty:netty-handler",
+                "io.netty:netty-handler-proxy",
                 "io.netty:netty-resolver",
+                "io.netty:netty-transport",
                 "io.netty:netty-transport-native-epoll",
                 "io.netty:netty-transport-native-unix-common",
                 "org.mock-server:mockserver-netty"
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "io.netty:netty-codec-http2",
@@ -10935,21 +10530,24 @@
             ]
         },
         "io.netty:netty-handler-proxy": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-codec",
+                "io.netty:netty-codec-http",
+                "io.netty:netty-codec-http2",
+                "io.netty:netty-codec-socks",
                 "io.netty:netty-handler",
                 "io.netty:netty-handler-proxy",
                 "io.netty:netty-transport-native-epoll",
@@ -10959,14 +10557,14 @@
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-transport-native-epoll"
             ]
@@ -10991,14 +10589,14 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.4.RELEASE",
+            "locked": "0.8.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-reactor-netty"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.2.5.RELEASE",
+            "locked": "3.2.6.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
@@ -11008,7 +10606,7 @@
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.1.14.RELEASE",
+            "locked": "3.1.15.RELEASE",
             "requested": "3.1.+"
         },
         "io.reactivex.rxjava2:rxjava": {
@@ -11155,7 +10753,6 @@
         "junit:junit": {
             "locked": "4.12",
             "transitive": [
-                "com.google.truth:truth",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-netty"
             ]
@@ -11362,21 +10959,6 @@
                 "com.netflix.titus:titus-ext-cassandra-testkit"
             ]
         },
-        "org.checkerframework:checker-compat-qual": {
-            "locked": "2.5.3",
-            "transitive": [
-                "com.google.guava:guava",
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
-                "com.google.truth:truth"
-            ]
-        },
-        "org.checkerframework:checker-qual": {
-            "locked": "2.5.3",
-            "transitive": [
-                "com.google.truth:truth"
-            ]
-        },
         "org.codehaus.jackson:jackson-core-asl": {
             "locked": "1.9.2",
             "transitive": [
@@ -11388,12 +10970,6 @@
             "locked": "1.9.2",
             "transitive": [
                 "org.apache.cassandra:cassandra-all"
-            ]
-        },
-        "org.codehaus.mojo:animal-sniffer-annotations": {
-            "locked": "1.14",
-            "transitive": [
-                "com.google.guava:guava"
             ]
         },
         "org.eclipse.jdt.core.compiler:ecj": {
@@ -12138,14 +11714,6 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
-        "com.google.auto.value:auto-value-annotations": {
-            "locked": "1.6.2",
-            "transitive": [
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
-                "com.google.truth:truth"
-            ]
-        },
         "com.google.code.findbugs:annotations": {
             "locked": "2.0.1",
             "transitive": [
@@ -12153,7 +11721,7 @@
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.2",
+            "locked": "3.0.0",
             "transitive": [
                 "com.github.fge:btf",
                 "com.github.fge:jackson-coreutils",
@@ -12161,7 +11729,6 @@
                 "com.github.fge:json-schema-validator",
                 "com.github.fge:msg-simple",
                 "com.github.fge:uri-template",
-                "com.google.guava:guava",
                 "com.twitter:util-cache_2.11",
                 "com.twitter:util-collection_2.11",
                 "io.grpc:grpc-core"
@@ -12175,17 +11742,13 @@
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.3.1",
+            "locked": "2.1.2",
             "transitive": [
-                "com.google.guava:guava",
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
-                "com.google.truth:truth",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.guava:guava": {
-            "locked": "25.1-android",
+            "locked": "20.0",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.datastax.cassandra:cassandra-driver-extras",
@@ -12193,9 +11756,6 @@
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
-                "com.google.truth:truth",
                 "com.netflix.titus:titus-common",
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:finagle-http_2.11",
@@ -12259,18 +11819,10 @@
                 "com.sun.jersey.contribs:jersey-guice"
             ]
         },
-        "com.google.j2objc:j2objc-annotations": {
-            "locked": "1.1",
-            "transitive": [
-                "com.google.guava:guava"
-            ]
-        },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.6.0",
+            "locked": "3.5.1",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-master",
@@ -12284,25 +11836,6 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
-        "com.google.truth.extensions:truth-liteproto-extension": {
-            "locked": "0.42",
-            "transitive": [
-                "com.google.truth.extensions:truth-proto-extension"
-            ]
-        },
-        "com.google.truth.extensions:truth-proto-extension": {
-            "locked": "0.42",
-            "transitive": [
-                "com.netflix.titus:titus-common"
-            ]
-        },
-        "com.google.truth:truth": {
-            "locked": "0.42",
-            "transitive": [
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension"
-            ]
-        },
         "com.googlecode.concurrent-trees:concurrent-trees": {
             "locked": "2.4.0",
             "transitive": [
@@ -12313,12 +11846,6 @@
             "locked": "1.4",
             "transitive": [
                 "org.apache.cassandra:cassandra-all"
-            ]
-        },
-        "com.googlecode.java-diff-utils:diffutils": {
-            "locked": "1.3.0",
-            "transitive": [
-                "com.google.truth:truth"
             ]
         },
         "com.googlecode.json-simple:json-simple": {
@@ -12795,27 +12322,35 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
+                "io.netty:netty-codec",
+                "io.netty:netty-codec-http",
+                "io.netty:netty-codec-http2",
+                "io.netty:netty-codec-socks",
                 "io.netty:netty-handler",
+                "io.netty:netty-handler-proxy",
                 "io.netty:netty-transport",
                 "io.netty:netty-transport-native-epoll",
+                "io.netty:netty-transport-native-unix-common",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
+                "io.netty:netty-codec-http2",
                 "io.netty:netty-codec-socks",
                 "io.netty:netty-handler",
+                "io.netty:netty-handler-proxy",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
@@ -12826,30 +12361,37 @@
             ]
         },
         "io.netty:netty-codec-http2": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-socks": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-handler-proxy",
                 "org.mock-server:mockserver-core"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-buffer",
+                "io.netty:netty-codec",
+                "io.netty:netty-codec-http",
+                "io.netty:netty-codec-http2",
+                "io.netty:netty-codec-socks",
+                "io.netty:netty-handler",
+                "io.netty:netty-handler-proxy",
                 "io.netty:netty-resolver",
+                "io.netty:netty-transport",
                 "io.netty:netty-transport-native-epoll",
                 "io.netty:netty-transport-native-unix-common",
                 "org.mock-server:mockserver-netty"
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "io.netty:netty-codec-http2",
@@ -12861,21 +12403,24 @@
             ]
         },
         "io.netty:netty-handler-proxy": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-codec",
+                "io.netty:netty-codec-http",
+                "io.netty:netty-codec-http2",
+                "io.netty:netty-codec-socks",
                 "io.netty:netty-handler",
                 "io.netty:netty-handler-proxy",
                 "io.netty:netty-transport-native-epoll",
@@ -12885,14 +12430,14 @@
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty",
                 "io.reactivex:rxnetty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
-            "locked": "4.1.32.Final",
+            "locked": "4.1.33.Final",
             "transitive": [
                 "io.netty:netty-transport-native-epoll"
             ]
@@ -12917,14 +12462,14 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.4.RELEASE",
+            "locked": "0.8.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-reactor-netty"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.2.5.RELEASE",
+            "locked": "3.2.6.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
@@ -12934,7 +12479,7 @@
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.1.14.RELEASE",
+            "locked": "3.1.15.RELEASE",
             "requested": "3.1.+"
         },
         "io.reactivex.rxjava2:rxjava": {
@@ -13081,7 +12626,6 @@
         "junit:junit": {
             "locked": "4.12",
             "transitive": [
-                "com.google.truth:truth",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-netty"
             ]
@@ -13288,21 +12832,6 @@
                 "com.netflix.titus:titus-ext-cassandra-testkit"
             ]
         },
-        "org.checkerframework:checker-compat-qual": {
-            "locked": "2.5.3",
-            "transitive": [
-                "com.google.guava:guava",
-                "com.google.truth.extensions:truth-liteproto-extension",
-                "com.google.truth.extensions:truth-proto-extension",
-                "com.google.truth:truth"
-            ]
-        },
-        "org.checkerframework:checker-qual": {
-            "locked": "2.5.3",
-            "transitive": [
-                "com.google.truth:truth"
-            ]
-        },
         "org.codehaus.jackson:jackson-core-asl": {
             "locked": "1.9.2",
             "transitive": [
@@ -13314,12 +12843,6 @@
             "locked": "1.9.2",
             "transitive": [
                 "org.apache.cassandra:cassandra-all"
-            ]
-        },
-        "org.codehaus.mojo:animal-sniffer-annotations": {
-            "locked": "1.14",
-            "transitive": [
-                "com.google.guava:guava"
             ]
         },
         "org.eclipse.jdt.core.compiler:ecj": {
