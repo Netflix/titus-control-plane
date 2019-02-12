@@ -95,7 +95,10 @@ public class DefaultDockerRegistryClient implements RegistryClient {
                     if (responseHeaders.header(dockerDigestHeaderKey).isEmpty()) {
                         return Mono.error(new TitusRegistryException(TitusRegistryException.ErrorCode.MISSING_HEADER, "Missing required header " + dockerDigestHeaderKey));
                     }
-                    return Mono.just(responseHeaders.header(dockerDigestHeaderKey).get(0));
+                    return response.toEntity(String.class).flatMap(responseEntity -> {
+                        logger.debug("Resolved image: {}", responseEntity);
+                        return Mono.just(responseHeaders.header(dockerDigestHeaderKey).get(0));
+                    });
                 })
                 .timeout(Duration.ofMillis(titusRegistryClientConfiguration.getRegistryTimeoutMs()))
                 .retryWhen(TitusWebClientAddOns.retryer(
