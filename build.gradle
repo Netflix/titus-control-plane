@@ -76,7 +76,7 @@ subprojects {
         protobufVersion = '3.5.+'
         postgresqlVersion = '9.4.+'
         grpcVersion = '1.10.+'
-        googleTruthVersion = '0.42+'
+        googleTruthVersion = '0.34' // pinned to avoid a transitive dependency on guava > 20.x
         swaggerVersion = '1.5.12'
         jsonVersion = '20140107'
         zkVersion = '0.4'

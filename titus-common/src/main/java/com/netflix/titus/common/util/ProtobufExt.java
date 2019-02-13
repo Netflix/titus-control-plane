@@ -25,8 +25,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.google.common.truth.FailureStrategy;
-import com.google.common.truth.StandardSubjectBuilder;
+import com.google.common.truth.AbstractFailureStrategy;
+import com.google.common.truth.TestVerb;
 import com.google.common.truth.extensions.proto.ProtoTruth;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.MapEntry;
@@ -101,25 +101,25 @@ public final class ProtobufExt {
      */
     public static <T extends Message> Optional<String> diffReport(T one, T other) {
         ErrorCollector collector = new ErrorCollector();
-        StandardSubjectBuilder.forCustomFailureStrategy(collector)
+        new TestVerb(collector)
                 .about(ProtoTruth.protos())
                 .that(other)
                 .named(one.getDescriptorForType().getName())
                 .reportingMismatchesOnly()
                 .isEqualTo(one);
-        return collector.getFailure().map(AssertionError::getMessage);
+        return collector.getFailure();
     }
 
-    private static class ErrorCollector implements FailureStrategy {
-        private volatile Optional<AssertionError> failure = Optional.empty();
+    private static class ErrorCollector extends AbstractFailureStrategy {
+        private volatile Optional<String> failure = Optional.empty();
 
-        @Override
-        public void fail(AssertionError failure) {
-            this.failure = Optional.of(failure);
+        public Optional<String> getFailure() {
+            return failure;
         }
 
-        public Optional<AssertionError> getFailure() {
-            return failure;
+        @Override
+        public void fail(String message, Throwable cause) {
+            this.failure = Optional.of(message);
         }
     }
 }
