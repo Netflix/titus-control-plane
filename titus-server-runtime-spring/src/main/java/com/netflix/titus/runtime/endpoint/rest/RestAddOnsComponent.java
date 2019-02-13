@@ -16,6 +16,7 @@
 
 package com.netflix.titus.runtime.endpoint.rest;
 
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.runtime.endpoint.metadata.SimpleHttpCallMetadataResolver;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
@@ -24,6 +25,11 @@ import org.springframework.http.converter.protobuf.ProtobufHttpMessageConverter;
 
 @Configuration
 public class RestAddOnsComponent {
+
+    @Bean
+    public LocalSchedulerSpringResource getLocalSchedulerSpringResource(TitusRuntime titusRuntime) {
+        return new LocalSchedulerSpringResource(titusRuntime);
+    }
 
     @Bean
     public FilterRegistrationBean<SimpleHttpCallMetadataResolver.CallMetadataInterceptorFilter> CallMetadataInterceptorFilter(SimpleHttpCallMetadataResolver resolver) {
