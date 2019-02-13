@@ -19,6 +19,7 @@ package com.netflix.titus.runtime.connector.registry;
 import java.time.Duration;
 import java.util.AbstractMap;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -32,7 +33,7 @@ import com.netflix.titus.common.util.guice.annotation.ProxyConfiguration;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.web.reactive.function.client.ClientResponse;
+import org.springframework.http.HttpHeaders;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
@@ -78,27 +79,26 @@ public class DefaultDockerRegistryClient implements RegistryClient {
         return restClient.get().uri(buildRegistryUri(repository, reference))
                 .headers(consumer -> headers.forEach(consumer::add))
                 .exchange()
+                .flatMap(response -> response.toEntity(String.class))
                 .flatMap(response -> {
-                    if (response.statusCode().value() == HttpResponseStatus.NOT_FOUND.code()) {
+                    if (response.getStatusCode().value() == HttpResponseStatus.NOT_FOUND.code()) {
                         return Mono.error(
                                 new TitusRegistryException(TitusRegistryException.ErrorCode.IMAGE_NOT_FOUND,
                                         String.format("Image %s:%s does not exist in registry", repository, reference))
                         );
                     }
-                    if (!response.statusCode().is2xxSuccessful()) {
+                    if (!response.getStatusCode().is2xxSuccessful()) {
                         return Mono.error(
                                 new TitusRegistryException(TitusRegistryException.ErrorCode.INTERNAL,
-                                        String.format("Cannot fetch image %s:%s metadata: statusCode=%s", repository, reference, response.statusCode()))
+                                        String.format("Cannot fetch image %s:%s metadata: statusCode=%s", repository, reference, response.getStatusCode()))
                         );
                     }
-                    ClientResponse.Headers responseHeaders = response.headers();
-                    if (responseHeaders.header(dockerDigestHeaderKey).isEmpty()) {
+                    HttpHeaders responseHeaders = response.getHeaders();
+                    List<String> dockerDigestHeaderValue = responseHeaders.getOrDefault(dockerDigestHeaderKey, Collections.emptyList());
+                    if (dockerDigestHeaderValue.isEmpty()) {
                         return Mono.error(new TitusRegistryException(TitusRegistryException.ErrorCode.MISSING_HEADER, "Missing required header " + dockerDigestHeaderKey));
                     }
-                    return response.toEntity(String.class).flatMap(responseEntity -> {
-                        logger.debug("Resolved image: {}", responseEntity);
-                        return Mono.just(responseHeaders.header(dockerDigestHeaderKey).get(0));
-                    });
+                    return Mono.just(dockerDigestHeaderValue.get(0));
                 })
                 .timeout(Duration.ofMillis(titusRegistryClientConfiguration.getRegistryTimeoutMs()))
                 .retryWhen(TitusWebClientAddOns.retryer(
