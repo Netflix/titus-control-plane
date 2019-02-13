@@ -16,7 +16,6 @@
 
 package com.netflix.titus.ext.zookeeper.supervisor;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -44,7 +43,6 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
-import static com.netflix.titus.common.util.CollectionsExt.asSet;
 import static com.netflix.titus.ext.zookeeper.ZookeeperTestUtils.newMasterDescription;
 import static com.netflix.titus.master.supervisor.endpoint.grpc.SupervisorGrpcModelConverters.toCoreMasterInstance;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -146,18 +144,24 @@ public class ZookeeperMasterMonitorTest {
      * Zookeeper sends multiple events for the same master update, so we have to be able to filter this out.
      */
     private void expectMasters(ExtTestSubscriber<List<MasterInstance>> mastersSubscriber, MasterInstance... masters) throws Exception {
+        long deadline = System.currentTimeMillis() + 5_000;
         List<MasterInstance> last = null;
-        for (List<MasterInstance> next; (next = mastersSubscriber.takeNext()) != null; ) {
+        while (true) {
+            long delayMs = deadline - System.currentTimeMillis();
+            if (delayMs <= 0) {
+                fail("Did not received expected update. Last observed update=" + last);
+            }
+            List<MasterInstance> next = mastersSubscriber.takeNext(delayMs, TimeUnit.MILLISECONDS);
+            assertThat(next).isNotNull();
+
             // Due to race condition we may get here default protobuf MasterInstance value (empty ZK node), followed
             // by the initial value set after the ZK path is created.
             long emptyNodeCount = next.stream().filter(m -> m.equals(DEFAULT_MASTER_INSTANCE)).count();
+
             if (emptyNodeCount == 0) {
-                last = next;
+                assertThat(next).hasSize(masters.length).contains(masters);
+                return;
             }
-        }
-        boolean matches = last != null && new HashSet<>(last).equals(asSet(masters));
-        if (!matches) {
-            assertThat(mastersSubscriber.takeNext(5, TimeUnit.SECONDS)).hasSize(masters.length).contains(masters);
         }
     }
 
