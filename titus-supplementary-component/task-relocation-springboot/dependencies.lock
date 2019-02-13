@@ -119,7 +119,7 @@
             ]
         },
         "com.github.akarnokd:rxjava2-interop": {
-            "locked": "0.13.4",
+            "locked": "0.13.5",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -254,6 +254,9 @@
         "com.google.errorprone:error_prone_annotations": {
             "locked": "2.1.2",
             "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "io.grpc:grpc-core"
             ]
         },
@@ -266,6 +269,9 @@
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "com.netflix.titus:titus-common",
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:finagle-http_2.11",
@@ -333,6 +339,8 @@
             "locked": "3.5.1",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-master",
@@ -344,6 +352,25 @@
             "locked": "3.5.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
+            ]
+        },
+        "com.google.truth.extensions:truth-liteproto-extension": {
+            "locked": "0.34",
+            "transitive": [
+                "com.google.truth.extensions:truth-proto-extension"
+            ]
+        },
+        "com.google.truth.extensions:truth-proto-extension": {
+            "locked": "0.34",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "com.google.truth:truth": {
+            "locked": "0.34",
+            "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension"
             ]
         },
         "com.googlecode.concurrent-trees:concurrent-trees": {
@@ -565,19 +592,10 @@
             ]
         },
         "com.netflix.titus:titus-supplementary-component-task-relocation": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring"
-            ]
-        },
-        "com.netflix.titus:titus-supplementary-component-task-relocation-spring": {
             "project": true
         },
         "com.netflix.titus:titus-testkit": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring"
-            ]
+            "project": true
         },
         "com.ning:compress-lzf": {
             "locked": "0.8.4",
@@ -1134,6 +1152,7 @@
         "junit:junit": {
             "locked": "4.12",
             "transitive": [
+                "com.google.truth:truth",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-netty"
             ]
@@ -1455,7 +1474,7 @@
             ]
         },
         "org.hibernate:hibernate-validator": {
-            "locked": "5.4.2.Final",
+            "locked": "5.4.3.Final",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-server-runtime"
@@ -1652,7 +1671,6 @@
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring",
                 "com.netflix.titus:titus-testkit",
                 "com.thinkaurelius.thrift:thrift-server",
                 "io.dropwizard.metrics:metrics-core",
@@ -1693,14 +1711,13 @@
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring",
                 "com.netflix.titus:titus-testkit"
             ]
         },
         "org.springframework.boot:spring-boot": {
             "locked": "2.1.2.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring",
+                "com.netflix.titus:titus-supplementary-component-task-relocation",
                 "org.springframework.boot:spring-boot-autoconfigure",
                 "org.springframework.boot:spring-boot-starter"
             ]
@@ -1793,7 +1810,7 @@
         "org.springframework:spring-web": {
             "locked": "5.1.4.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring",
+                "com.netflix.titus:titus-supplementary-component-task-relocation",
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-webflux",
                 "org.springframework:spring-webflux"
@@ -1976,7 +1993,7 @@
             ]
         },
         "com.github.akarnokd:rxjava2-interop": {
-            "locked": "0.13.4",
+            "locked": "0.13.5",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -2111,6 +2128,9 @@
         "com.google.errorprone:error_prone_annotations": {
             "locked": "2.1.2",
             "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "io.grpc:grpc-core"
             ]
         },
@@ -2123,6 +2143,9 @@
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "com.netflix.titus:titus-common",
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:finagle-http_2.11",
@@ -2190,6 +2213,8 @@
             "locked": "3.5.1",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-master",
@@ -2201,6 +2226,25 @@
             "locked": "3.5.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
+            ]
+        },
+        "com.google.truth.extensions:truth-liteproto-extension": {
+            "locked": "0.34",
+            "transitive": [
+                "com.google.truth.extensions:truth-proto-extension"
+            ]
+        },
+        "com.google.truth.extensions:truth-proto-extension": {
+            "locked": "0.34",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "com.google.truth:truth": {
+            "locked": "0.34",
+            "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension"
             ]
         },
         "com.googlecode.concurrent-trees:concurrent-trees": {
@@ -2422,19 +2466,10 @@
             ]
         },
         "com.netflix.titus:titus-supplementary-component-task-relocation": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring"
-            ]
-        },
-        "com.netflix.titus:titus-supplementary-component-task-relocation-spring": {
             "project": true
         },
         "com.netflix.titus:titus-testkit": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring"
-            ]
+            "project": true
         },
         "com.ning:compress-lzf": {
             "locked": "0.8.4",
@@ -2998,6 +3033,7 @@
         "junit:junit": {
             "locked": "4.12",
             "transitive": [
+                "com.google.truth:truth",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-netty"
             ]
@@ -3340,7 +3376,7 @@
             ]
         },
         "org.hibernate:hibernate-validator": {
-            "locked": "5.4.2.Final",
+            "locked": "5.4.3.Final",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-server-runtime"
@@ -3543,7 +3579,6 @@
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring",
                 "com.netflix.titus:titus-testkit",
                 "com.thinkaurelius.thrift:thrift-server",
                 "io.dropwizard.metrics:metrics-core",
@@ -3584,14 +3619,13 @@
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring",
                 "com.netflix.titus:titus-testkit"
             ]
         },
         "org.springframework.boot:spring-boot": {
             "locked": "2.1.2.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring",
+                "com.netflix.titus:titus-supplementary-component-task-relocation",
                 "org.springframework.boot:spring-boot-actuator",
                 "org.springframework.boot:spring-boot-autoconfigure",
                 "org.springframework.boot:spring-boot-starter"
@@ -3720,7 +3754,7 @@
         "org.springframework:spring-web": {
             "locked": "5.1.4.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring",
+                "com.netflix.titus:titus-supplementary-component-task-relocation",
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-web",
                 "org.springframework.boot:spring-boot-starter-webflux",
@@ -3911,7 +3945,7 @@
             ]
         },
         "com.github.akarnokd:rxjava2-interop": {
-            "locked": "0.13.4",
+            "locked": "0.13.5",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -4046,6 +4080,9 @@
         "com.google.errorprone:error_prone_annotations": {
             "locked": "2.1.2",
             "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "io.grpc:grpc-core"
             ]
         },
@@ -4058,6 +4095,9 @@
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "com.netflix.titus:titus-common",
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:finagle-http_2.11",
@@ -4125,6 +4165,8 @@
             "locked": "3.5.1",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-master",
@@ -4136,6 +4178,25 @@
             "locked": "3.5.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
+            ]
+        },
+        "com.google.truth.extensions:truth-liteproto-extension": {
+            "locked": "0.34",
+            "transitive": [
+                "com.google.truth.extensions:truth-proto-extension"
+            ]
+        },
+        "com.google.truth.extensions:truth-proto-extension": {
+            "locked": "0.34",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "com.google.truth:truth": {
+            "locked": "0.34",
+            "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension"
             ]
         },
         "com.googlecode.concurrent-trees:concurrent-trees": {
@@ -4357,19 +4418,10 @@
             ]
         },
         "com.netflix.titus:titus-supplementary-component-task-relocation": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring"
-            ]
-        },
-        "com.netflix.titus:titus-supplementary-component-task-relocation-spring": {
             "project": true
         },
         "com.netflix.titus:titus-testkit": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring"
-            ]
+            "project": true
         },
         "com.ning:compress-lzf": {
             "locked": "0.8.4",
@@ -4933,6 +4985,7 @@
         "junit:junit": {
             "locked": "4.12",
             "transitive": [
+                "com.google.truth:truth",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-netty"
             ]
@@ -5275,7 +5328,7 @@
             ]
         },
         "org.hibernate:hibernate-validator": {
-            "locked": "5.4.2.Final",
+            "locked": "5.4.3.Final",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-server-runtime"
@@ -5478,7 +5531,6 @@
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring",
                 "com.netflix.titus:titus-testkit",
                 "com.thinkaurelius.thrift:thrift-server",
                 "io.dropwizard.metrics:metrics-core",
@@ -5520,14 +5572,13 @@
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring",
                 "com.netflix.titus:titus-testkit"
             ]
         },
         "org.springframework.boot:spring-boot": {
             "locked": "2.1.2.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring",
+                "com.netflix.titus:titus-supplementary-component-task-relocation",
                 "org.springframework.boot:spring-boot-actuator",
                 "org.springframework.boot:spring-boot-autoconfigure",
                 "org.springframework.boot:spring-boot-starter"
@@ -5656,7 +5707,7 @@
         "org.springframework:spring-web": {
             "locked": "5.1.4.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring",
+                "com.netflix.titus:titus-supplementary-component-task-relocation",
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-web",
                 "org.springframework.boot:spring-boot-starter-webflux",
@@ -5908,7 +5959,7 @@
             ]
         },
         "com.github.akarnokd:rxjava2-interop": {
-            "locked": "0.13.4",
+            "locked": "0.13.5",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -6043,6 +6094,9 @@
         "com.google.errorprone:error_prone_annotations": {
             "locked": "2.1.2",
             "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "io.grpc:grpc-core"
             ]
         },
@@ -6055,6 +6109,9 @@
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "com.netflix.titus:titus-common",
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:finagle-http_2.11",
@@ -6122,6 +6179,8 @@
             "locked": "3.5.1",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-master",
@@ -6133,6 +6192,25 @@
             "locked": "3.5.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
+            ]
+        },
+        "com.google.truth.extensions:truth-liteproto-extension": {
+            "locked": "0.34",
+            "transitive": [
+                "com.google.truth.extensions:truth-proto-extension"
+            ]
+        },
+        "com.google.truth.extensions:truth-proto-extension": {
+            "locked": "0.34",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "com.google.truth:truth": {
+            "locked": "0.34",
+            "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension"
             ]
         },
         "com.googlecode.concurrent-trees:concurrent-trees": {
@@ -6354,19 +6432,10 @@
             ]
         },
         "com.netflix.titus:titus-supplementary-component-task-relocation": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring"
-            ]
-        },
-        "com.netflix.titus:titus-supplementary-component-task-relocation-spring": {
             "project": true
         },
         "com.netflix.titus:titus-testkit": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring"
-            ]
+            "project": true
         },
         "com.ning:compress-lzf": {
             "locked": "0.8.4",
@@ -6923,6 +6992,7 @@
         "junit:junit": {
             "locked": "4.12",
             "transitive": [
+                "com.google.truth:truth",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-netty"
             ]
@@ -7244,7 +7314,7 @@
             ]
         },
         "org.hibernate:hibernate-validator": {
-            "locked": "5.4.2.Final",
+            "locked": "5.4.3.Final",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-server-runtime"
@@ -7441,7 +7511,6 @@
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring",
                 "com.netflix.titus:titus-testkit",
                 "com.thinkaurelius.thrift:thrift-server",
                 "io.dropwizard.metrics:metrics-core",
@@ -7483,14 +7552,13 @@
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring",
                 "com.netflix.titus:titus-testkit"
             ]
         },
         "org.springframework.boot:spring-boot": {
             "locked": "2.1.2.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring",
+                "com.netflix.titus:titus-supplementary-component-task-relocation",
                 "org.springframework.boot:spring-boot-autoconfigure",
                 "org.springframework.boot:spring-boot-starter"
             ]
@@ -7583,7 +7651,7 @@
         "org.springframework:spring-web": {
             "locked": "5.1.4.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring",
+                "com.netflix.titus:titus-supplementary-component-task-relocation",
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-webflux",
                 "org.springframework:spring-webflux"
@@ -7766,7 +7834,7 @@
             ]
         },
         "com.github.akarnokd:rxjava2-interop": {
-            "locked": "0.13.4",
+            "locked": "0.13.5",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -7901,6 +7969,9 @@
         "com.google.errorprone:error_prone_annotations": {
             "locked": "2.1.2",
             "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "io.grpc:grpc-core"
             ]
         },
@@ -7913,6 +7984,9 @@
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "com.netflix.titus:titus-common",
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:finagle-http_2.11",
@@ -7980,6 +8054,8 @@
             "locked": "3.5.1",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-master",
@@ -7991,6 +8067,25 @@
             "locked": "3.5.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
+            ]
+        },
+        "com.google.truth.extensions:truth-liteproto-extension": {
+            "locked": "0.34",
+            "transitive": [
+                "com.google.truth.extensions:truth-proto-extension"
+            ]
+        },
+        "com.google.truth.extensions:truth-proto-extension": {
+            "locked": "0.34",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "com.google.truth:truth": {
+            "locked": "0.34",
+            "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension"
             ]
         },
         "com.googlecode.concurrent-trees:concurrent-trees": {
@@ -8212,19 +8307,10 @@
             ]
         },
         "com.netflix.titus:titus-supplementary-component-task-relocation": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring"
-            ]
-        },
-        "com.netflix.titus:titus-supplementary-component-task-relocation-spring": {
             "project": true
         },
         "com.netflix.titus:titus-testkit": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring"
-            ]
+            "project": true
         },
         "com.ning:compress-lzf": {
             "locked": "0.8.4",
@@ -8788,6 +8874,7 @@
         "junit:junit": {
             "locked": "4.12",
             "transitive": [
+                "com.google.truth:truth",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-netty"
             ]
@@ -9130,7 +9217,7 @@
             ]
         },
         "org.hibernate:hibernate-validator": {
-            "locked": "5.4.2.Final",
+            "locked": "5.4.3.Final",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-server-runtime"
@@ -9333,7 +9420,6 @@
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring",
                 "com.netflix.titus:titus-testkit",
                 "com.thinkaurelius.thrift:thrift-server",
                 "io.dropwizard.metrics:metrics-core",
@@ -9375,14 +9461,13 @@
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring",
                 "com.netflix.titus:titus-testkit"
             ]
         },
         "org.springframework.boot:spring-boot": {
             "locked": "2.1.2.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring",
+                "com.netflix.titus:titus-supplementary-component-task-relocation",
                 "org.springframework.boot:spring-boot-actuator",
                 "org.springframework.boot:spring-boot-autoconfigure",
                 "org.springframework.boot:spring-boot-starter"
@@ -9511,7 +9596,7 @@
         "org.springframework:spring-web": {
             "locked": "5.1.4.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring",
+                "com.netflix.titus:titus-supplementary-component-task-relocation",
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-web",
                 "org.springframework.boot:spring-boot-starter-webflux",
@@ -9706,7 +9791,7 @@
             ]
         },
         "com.github.akarnokd:rxjava2-interop": {
-            "locked": "0.13.4",
+            "locked": "0.13.5",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -9841,6 +9926,9 @@
         "com.google.errorprone:error_prone_annotations": {
             "locked": "2.1.2",
             "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "io.grpc:grpc-core"
             ]
         },
@@ -9853,6 +9941,9 @@
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "com.netflix.titus:titus-common",
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:finagle-http_2.11",
@@ -9920,6 +10011,8 @@
             "locked": "3.5.1",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-master",
@@ -9931,6 +10024,25 @@
             "locked": "3.5.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
+            ]
+        },
+        "com.google.truth.extensions:truth-liteproto-extension": {
+            "locked": "0.34",
+            "transitive": [
+                "com.google.truth.extensions:truth-proto-extension"
+            ]
+        },
+        "com.google.truth.extensions:truth-proto-extension": {
+            "locked": "0.34",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "com.google.truth:truth": {
+            "locked": "0.34",
+            "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension"
             ]
         },
         "com.googlecode.concurrent-trees:concurrent-trees": {
@@ -10156,19 +10268,10 @@
             ]
         },
         "com.netflix.titus:titus-supplementary-component-task-relocation": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring"
-            ]
-        },
-        "com.netflix.titus:titus-supplementary-component-task-relocation-spring": {
             "project": true
         },
         "com.netflix.titus:titus-testkit": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring"
-            ]
+            "project": true
         },
         "com.ning:compress-lzf": {
             "locked": "0.8.4",
@@ -10583,7 +10686,7 @@
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.1.14.RELEASE",
+            "locked": "3.1.15.RELEASE",
             "requested": "3.1.+"
         },
         "io.reactivex.rxjava2:rxjava": {
@@ -10730,6 +10833,7 @@
         "junit:junit": {
             "locked": "4.12",
             "transitive": [
+                "com.google.truth:truth",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-netty"
             ]
@@ -11056,7 +11160,7 @@
             ]
         },
         "org.hibernate:hibernate-validator": {
-            "locked": "5.4.2.Final",
+            "locked": "5.4.3.Final",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-server-runtime"
@@ -11255,7 +11359,6 @@
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring",
                 "com.netflix.titus:titus-testkit",
                 "com.thinkaurelius.thrift:thrift-server",
                 "io.dropwizard.metrics:metrics-core",
@@ -11296,14 +11399,13 @@
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring",
                 "com.netflix.titus:titus-testkit"
             ]
         },
         "org.springframework.boot:spring-boot": {
             "locked": "2.1.2.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring",
+                "com.netflix.titus:titus-supplementary-component-task-relocation",
                 "org.springframework.boot:spring-boot-autoconfigure",
                 "org.springframework.boot:spring-boot-starter"
             ]
@@ -11396,7 +11498,7 @@
         "org.springframework:spring-web": {
             "locked": "5.1.4.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring",
+                "com.netflix.titus:titus-supplementary-component-task-relocation",
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-webflux",
                 "org.springframework:spring-webflux"
@@ -11585,7 +11687,7 @@
             ]
         },
         "com.github.akarnokd:rxjava2-interop": {
-            "locked": "0.13.4",
+            "locked": "0.13.5",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -11720,6 +11822,9 @@
         "com.google.errorprone:error_prone_annotations": {
             "locked": "2.1.2",
             "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "io.grpc:grpc-core"
             ]
         },
@@ -11732,6 +11837,9 @@
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "com.netflix.titus:titus-common",
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:finagle-http_2.11",
@@ -11799,6 +11907,8 @@
             "locked": "3.5.1",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-master",
@@ -11810,6 +11920,25 @@
             "locked": "3.5.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
+            ]
+        },
+        "com.google.truth.extensions:truth-liteproto-extension": {
+            "locked": "0.34",
+            "transitive": [
+                "com.google.truth.extensions:truth-proto-extension"
+            ]
+        },
+        "com.google.truth.extensions:truth-proto-extension": {
+            "locked": "0.34",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "com.google.truth:truth": {
+            "locked": "0.34",
+            "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension"
             ]
         },
         "com.googlecode.concurrent-trees:concurrent-trees": {
@@ -12035,19 +12164,10 @@
             ]
         },
         "com.netflix.titus:titus-supplementary-component-task-relocation": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring"
-            ]
-        },
-        "com.netflix.titus:titus-supplementary-component-task-relocation-spring": {
             "project": true
         },
         "com.netflix.titus:titus-testkit": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring"
-            ]
+            "project": true
         },
         "com.ning:compress-lzf": {
             "locked": "0.8.4",
@@ -12468,7 +12588,7 @@
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.1.14.RELEASE",
+            "locked": "3.1.15.RELEASE",
             "requested": "3.1.+"
         },
         "io.reactivex.rxjava2:rxjava": {
@@ -12616,6 +12736,7 @@
         "junit:junit": {
             "locked": "4.12",
             "transitive": [
+                "com.google.truth:truth",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-netty"
             ]
@@ -12963,7 +13084,7 @@
             ]
         },
         "org.hibernate:hibernate-validator": {
-            "locked": "5.4.2.Final",
+            "locked": "5.4.3.Final",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-server-runtime"
@@ -13168,7 +13289,6 @@
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring",
                 "com.netflix.titus:titus-testkit",
                 "com.thinkaurelius.thrift:thrift-server",
                 "io.dropwizard.metrics:metrics-core",
@@ -13209,14 +13329,13 @@
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring",
                 "com.netflix.titus:titus-testkit"
             ]
         },
         "org.springframework.boot:spring-boot": {
             "locked": "2.1.2.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring",
+                "com.netflix.titus:titus-supplementary-component-task-relocation",
                 "org.springframework.boot:spring-boot-actuator",
                 "org.springframework.boot:spring-boot-autoconfigure",
                 "org.springframework.boot:spring-boot-starter"
@@ -13345,7 +13464,7 @@
         "org.springframework:spring-web": {
             "locked": "5.1.4.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring",
+                "com.netflix.titus:titus-supplementary-component-task-relocation",
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-web",
                 "org.springframework.boot:spring-boot-starter-webflux",
@@ -13540,7 +13659,7 @@
             ]
         },
         "com.github.akarnokd:rxjava2-interop": {
-            "locked": "0.13.4",
+            "locked": "0.13.5",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -13675,6 +13794,9 @@
         "com.google.errorprone:error_prone_annotations": {
             "locked": "2.1.2",
             "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "io.grpc:grpc-core"
             ]
         },
@@ -13687,6 +13809,9 @@
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "com.netflix.titus:titus-common",
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:finagle-http_2.11",
@@ -13754,6 +13879,8 @@
             "locked": "3.5.1",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-master",
@@ -13765,6 +13892,25 @@
             "locked": "3.5.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
+            ]
+        },
+        "com.google.truth.extensions:truth-liteproto-extension": {
+            "locked": "0.34",
+            "transitive": [
+                "com.google.truth.extensions:truth-proto-extension"
+            ]
+        },
+        "com.google.truth.extensions:truth-proto-extension": {
+            "locked": "0.34",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "com.google.truth:truth": {
+            "locked": "0.34",
+            "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension"
             ]
         },
         "com.googlecode.concurrent-trees:concurrent-trees": {
@@ -13990,19 +14136,10 @@
             ]
         },
         "com.netflix.titus:titus-supplementary-component-task-relocation": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring"
-            ]
-        },
-        "com.netflix.titus:titus-supplementary-component-task-relocation-spring": {
             "project": true
         },
         "com.netflix.titus:titus-testkit": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring"
-            ]
+            "project": true
         },
         "com.ning:compress-lzf": {
             "locked": "0.8.4",
@@ -14417,7 +14554,7 @@
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.1.14.RELEASE",
+            "locked": "3.1.15.RELEASE",
             "requested": "3.1.+"
         },
         "io.reactivex.rxjava2:rxjava": {
@@ -14564,6 +14701,7 @@
         "junit:junit": {
             "locked": "4.12",
             "transitive": [
+                "com.google.truth:truth",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-netty"
             ]
@@ -14890,7 +15028,7 @@
             ]
         },
         "org.hibernate:hibernate-validator": {
-            "locked": "5.4.2.Final",
+            "locked": "5.4.3.Final",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-server-runtime"
@@ -15089,7 +15227,6 @@
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring",
                 "com.netflix.titus:titus-testkit",
                 "com.thinkaurelius.thrift:thrift-server",
                 "io.dropwizard.metrics:metrics-core",
@@ -15131,14 +15268,13 @@
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring",
                 "com.netflix.titus:titus-testkit"
             ]
         },
         "org.springframework.boot:spring-boot": {
             "locked": "2.1.2.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring",
+                "com.netflix.titus:titus-supplementary-component-task-relocation",
                 "org.springframework.boot:spring-boot-autoconfigure",
                 "org.springframework.boot:spring-boot-starter"
             ]
@@ -15231,7 +15367,7 @@
         "org.springframework:spring-web": {
             "locked": "5.1.4.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring",
+                "com.netflix.titus:titus-supplementary-component-task-relocation",
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-webflux",
                 "org.springframework:spring-webflux"
@@ -15420,7 +15556,7 @@
             ]
         },
         "com.github.akarnokd:rxjava2-interop": {
-            "locked": "0.13.4",
+            "locked": "0.13.5",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -15555,6 +15691,9 @@
         "com.google.errorprone:error_prone_annotations": {
             "locked": "2.1.2",
             "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "io.grpc:grpc-core"
             ]
         },
@@ -15567,6 +15706,9 @@
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "com.netflix.titus:titus-common",
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:finagle-http_2.11",
@@ -15634,6 +15776,8 @@
             "locked": "3.5.1",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-master",
@@ -15645,6 +15789,25 @@
             "locked": "3.5.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
+            ]
+        },
+        "com.google.truth.extensions:truth-liteproto-extension": {
+            "locked": "0.34",
+            "transitive": [
+                "com.google.truth.extensions:truth-proto-extension"
+            ]
+        },
+        "com.google.truth.extensions:truth-proto-extension": {
+            "locked": "0.34",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "com.google.truth:truth": {
+            "locked": "0.34",
+            "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension"
             ]
         },
         "com.googlecode.concurrent-trees:concurrent-trees": {
@@ -15870,19 +16033,10 @@
             ]
         },
         "com.netflix.titus:titus-supplementary-component-task-relocation": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring"
-            ]
-        },
-        "com.netflix.titus:titus-supplementary-component-task-relocation-spring": {
             "project": true
         },
         "com.netflix.titus:titus-testkit": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring"
-            ]
+            "project": true
         },
         "com.ning:compress-lzf": {
             "locked": "0.8.4",
@@ -16303,7 +16457,7 @@
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.1.14.RELEASE",
+            "locked": "3.1.15.RELEASE",
             "requested": "3.1.+"
         },
         "io.reactivex.rxjava2:rxjava": {
@@ -16451,6 +16605,7 @@
         "junit:junit": {
             "locked": "4.12",
             "transitive": [
+                "com.google.truth:truth",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-netty"
             ]
@@ -16798,7 +16953,7 @@
             ]
         },
         "org.hibernate:hibernate-validator": {
-            "locked": "5.4.2.Final",
+            "locked": "5.4.3.Final",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-server-runtime"
@@ -17003,7 +17158,6 @@
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring",
                 "com.netflix.titus:titus-testkit",
                 "com.thinkaurelius.thrift:thrift-server",
                 "io.dropwizard.metrics:metrics-core",
@@ -17045,14 +17199,13 @@
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring",
                 "com.netflix.titus:titus-testkit"
             ]
         },
         "org.springframework.boot:spring-boot": {
             "locked": "2.1.2.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring",
+                "com.netflix.titus:titus-supplementary-component-task-relocation",
                 "org.springframework.boot:spring-boot-actuator",
                 "org.springframework.boot:spring-boot-autoconfigure",
                 "org.springframework.boot:spring-boot-starter"
@@ -17181,7 +17334,7 @@
         "org.springframework:spring-web": {
             "locked": "5.1.4.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-supplementary-component-task-relocation-spring",
+                "com.netflix.titus:titus-supplementary-component-task-relocation",
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-web",
                 "org.springframework.boot:spring-boot-starter-webflux",

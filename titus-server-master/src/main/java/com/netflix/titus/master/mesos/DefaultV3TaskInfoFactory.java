@@ -60,9 +60,6 @@ import static com.netflix.titus.common.util.Evaluators.applyNotNull;
 @Singleton
 public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo> {
 
-    public static final String NETFLIX_APP_METADATA = "NETFLIX_APP_METADATA";
-    public static final String NETFLIX_APP_METADATA_SIG = "NETFLIX_APP_METADATA_SIG";
-
     private static final String PASSTHROUGH_ATTRIBUTES_PREFIX = "titusParameter.agent.";
     private static final String EXECUTOR_PER_TASK_LABEL = "executorpertask";
     private static final String LEGACY_EXECUTOR_NAME = "docker-executor";
@@ -126,8 +123,8 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
         }
 
         // Configure Metatron
-        String metatronAppMetadata = v3SecurityProfile.getAttributes().get(NETFLIX_APP_METADATA);
-        String metatronAppSignature = v3SecurityProfile.getAttributes().get(NETFLIX_APP_METADATA_SIG);
+        String metatronAppMetadata = v3SecurityProfile.getAttributes().get(Container.ATTRIBUTE_NETFLIX_APP_METADATA);
+        String metatronAppSignature = v3SecurityProfile.getAttributes().get(Container.ATTRIBUTE_NETFLIX_APP_METADATA_SIG);
         if (metatronAppMetadata != null && metatronAppSignature != null) {
             ContainerInfo.MetatronCreds.Builder metatronBuilder = ContainerInfo.MetatronCreds.newBuilder()
                     .setAppMetadata(metatronAppMetadata)

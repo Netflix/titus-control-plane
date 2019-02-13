@@ -21,9 +21,13 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.google.common.truth.AbstractFailureStrategy;
+import com.google.common.truth.TestVerb;
+import com.google.common.truth.extensions.proto.ProtoTruth;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.MapEntry;
 import com.google.protobuf.Message;
@@ -31,9 +35,9 @@ import com.google.protobuf.Message;
 /**
  * Given set of field names, creates a copy of protobuf object, with only the indicated fields included.
  */
-public final class ProtobufCopy {
+public final class ProtobufExt {
 
-    private ProtobufCopy() {
+    private ProtobufExt() {
     }
 
     public static <T extends Message> T copy(T entity, Set<String> fields) {
@@ -85,5 +89,37 @@ public final class ProtobufCopy {
         }
 
         return (T) builder.build();
+    }
+
+    /**
+     * Deep comparison between two protobuf {@link Message entities}, including nested entities. The two messages *must*
+     * be of the same type (i.e.: {@code getDescriptorForType()} must return the same {@code Descriptor} for both).
+     *
+     * @return an @{@link Optional} {@link String} report of the differences, {@link Optional#empty()} if none are found.
+     * @throws IllegalArgumentException when both messages are not of the same type
+     * @throws NullPointerException     when any of the messages are <tt>null</tt>
+     */
+    public static <T extends Message> Optional<String> diffReport(T one, T other) {
+        ErrorCollector collector = new ErrorCollector();
+        new TestVerb(collector)
+                .about(ProtoTruth.protos())
+                .that(other)
+                .named(one.getDescriptorForType().getName())
+                .reportingMismatchesOnly()
+                .isEqualTo(one);
+        return collector.getFailure();
+    }
+
+    private static class ErrorCollector extends AbstractFailureStrategy {
+        private volatile Optional<String> failure = Optional.empty();
+
+        public Optional<String> getFailure() {
+            return failure;
+        }
+
+        @Override
+        public void fail(String message, Throwable cause) {
+            this.failure = Optional.of(message);
+        }
     }
 }

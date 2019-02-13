@@ -32,7 +32,7 @@ import com.google.protobuf.Empty;
 import com.netflix.titus.api.federation.model.Cell;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.util.CollectionsExt;
-import com.netflix.titus.common.util.ProtobufCopy;
+import com.netflix.titus.common.util.ProtobufExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.concurrency.CallbackCountDownLatch;
 import com.netflix.titus.common.util.rx.EmitterWithMultipleSubscriptions;
@@ -238,7 +238,7 @@ public class AggregatingJobManagementClient implements JobManagementClient {
 
                     if (!CollectionsExt.isNullOrEmpty(fields)) {
                         combinedPage = combinedPage.mapLeft(jobs -> jobs.stream()
-                                .map(job -> ProtobufCopy.copy(job, fields))
+                                .map(job -> ProtobufExt.copy(job, fields))
                                 .collect(Collectors.toList())
                         );
                     }
@@ -360,7 +360,7 @@ public class AggregatingJobManagementClient implements JobManagementClient {
 
                     if (!CollectionsExt.isNullOrEmpty(fields)) {
                         combinedPage = combinedPage.mapLeft(tasks -> tasks.stream()
-                                .map(task -> ProtobufCopy.copy(task, fields))
+                                .map(task -> ProtobufExt.copy(task, fields))
                                 .collect(Collectors.toList())
                         );
                     }

@@ -34,19 +34,21 @@ import com.netflix.titus.common.util.CollectionsExt;
 import static com.netflix.titus.common.util.CollectionsExt.asSet;
 import static com.netflix.titus.common.util.CollectionsExt.nonNull;
 
-/**
- */
 @ClassFieldsNotNull
 @SchedulingConstraintSet
 public class Container {
 
-    public static String RESOURCE_CPU = "cpu";
-    public static String RESOURCE_GPU = "gpu";
-    public static String RESOURCE_MEMORY = "memoryMB";
-    public static String RESOURCE_DISK = "diskMB";
-    public static String RESOURCE_NETWORK = "networkMbps";
+    public static final String RESOURCE_CPU = "cpu";
+    public static final String RESOURCE_GPU = "gpu";
+    public static final String RESOURCE_MEMORY = "memoryMB";
+    public static final String RESOURCE_DISK = "diskMB";
+    public static final String RESOURCE_NETWORK = "networkMbps";
 
     public static final Set<String> PRIMARY_RESOURCES = asSet(Container.RESOURCE_CPU, Container.RESOURCE_MEMORY, Container.RESOURCE_DISK, Container.RESOURCE_NETWORK);
+
+    // attributes for Metatron
+    public static final String ATTRIBUTE_NETFLIX_APP_METADATA = "NETFLIX_APP_METADATA";
+    public static final String ATTRIBUTE_NETFLIX_APP_METADATA_SIG = "NETFLIX_APP_METADATA_SIG";
 
     @Valid
     private final ContainerResources containerResources;

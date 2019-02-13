@@ -22,46 +22,52 @@ package com.netflix.titus.api.jobmanager;
  */
 public final class JobAttributes {
 
+    public static final String TITUS_ATTRIBUTE_PREFIX = "titus.";
+    public static final String TITUS_PARAMETER_ATTRIBUTE_PREFIX = "titusParameter.";
+
     // Job Descriptor Attributes
 
     /**
      * Federated stack name. All cells under the same federated stack must share the same value.
      */
-    public static final String JOB_ATTRIBUTES_STACK = "titus.stack";
+    public static final String JOB_ATTRIBUTES_STACK = TITUS_ATTRIBUTE_PREFIX + "stack";
 
     /**
      * Unique Cell name for a deployment.
      */
-    public static final String JOB_ATTRIBUTES_CELL = "titus.cell";
+    public static final String JOB_ATTRIBUTES_CELL = TITUS_ATTRIBUTE_PREFIX + "cell";
 
     // Container Attributes
 
     /**
      * Allow the task to use more CPU (as based on time slicing) than specified.
      */
-    public static final String JOB_PARAMETER_ATTRIBUTES_ALLOW_CPU_BURSTING = "titusParameter.agent.allowCpuBursting";
+    public static final String JOB_PARAMETER_ATTRIBUTES_ALLOW_CPU_BURSTING =
+            TITUS_PARAMETER_ATTRIBUTE_PREFIX + "agent.allowCpuBursting";
 
     /**
      * Allow the task to use more Network (as based on time and bandwidth slicing) than specified.
      */
-    public static final String JOB_PARAMETER_ATTRIBUTES_ALLOW_NETWORK_BURSTING = "titusParameter.agent.allowNetworkBursting";
+    public static final String JOB_PARAMETER_ATTRIBUTES_ALLOW_NETWORK_BURSTING =
+            TITUS_PARAMETER_ATTRIBUTE_PREFIX + "agent.allowNetworkBursting";
 
     /**
      * Sets SCHED_BATCH -- Linux batch scheduling, for cache-friendly handling of lowprio, batch-like, CPU-bound, 100% non-interactive tasks.
      */
-    public static final String JOB_PARAMETER_ATTRIBUTES_SCHED_BATCH = "titusParameter.agent.schedBatch";
+    public static final String JOB_PARAMETER_ATTRIBUTES_SCHED_BATCH =
+            TITUS_PARAMETER_ATTRIBUTE_PREFIX + "agent.schedBatch";
 
     /**
      * Allows the creation of nested containers.
      */
-    public static final String JOB_PARAMETER_ATTRIBUTES_ALLOW_NESTED_CONTAINERS = "titusParameter.agent.allowNestedContainers";
+    public static final String JOB_PARAMETER_ATTRIBUTES_ALLOW_NESTED_CONTAINERS =
+            TITUS_PARAMETER_ATTRIBUTE_PREFIX + "agent.allowNestedContainers";
 
     /**
      * How long to wait for a task (container) to exit on its own after sending a SIGTERM -- after this period elapses, a SIGKILL will sent.
      */
-    public static final String JOB_PARAMETER_ATTRIBUTES_KILL_WAIT_SECONDS = "titusParameter.agent.killWaitSeconds";
-
-    // Security Profile Attributes
+    public static final String JOB_PARAMETER_ATTRIBUTES_KILL_WAIT_SECONDS =
+            TITUS_PARAMETER_ATTRIBUTE_PREFIX + "agent.killWaitSeconds";
 
     private JobAttributes() {
     }
