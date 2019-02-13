@@ -105,8 +105,7 @@ public class MoveTaskTest {
             sourceJobBuilder.moveTask(0, 0, sourceJobId, targetJobId);
         } catch (JobManagerException e) {
             assertThat(e.getErrorCode()).isEqualTo(JobManagerException.ErrorCode.JobsNotCompatible);
-            // TODO(fabio): re-enable assertion when proper diffing is added
-            // assertThat(e.getMessage()).contains("container.image.name");
+            assertThat(e.getMessage()).contains("container.image.name");
         }
     }
 
