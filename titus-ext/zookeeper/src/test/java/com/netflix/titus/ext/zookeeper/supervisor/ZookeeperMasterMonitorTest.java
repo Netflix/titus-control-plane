@@ -44,9 +44,9 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
-import static com.jayway.awaitility.Awaitility.await;
 import static com.netflix.titus.common.util.CollectionsExt.asSet;
 import static com.netflix.titus.ext.zookeeper.ZookeeperTestUtils.newMasterDescription;
+import static com.netflix.titus.master.supervisor.endpoint.grpc.SupervisorGrpcModelConverters.toCoreMasterInstance;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
@@ -54,6 +54,8 @@ import static org.assertj.core.api.Assertions.fail;
 public class ZookeeperMasterMonitorTest {
 
     private static final TitusRuntime titusRuntime = TitusRuntimes.internal();
+
+    private static final MasterInstance DEFAULT_MASTER_INSTANCE = toCoreMasterInstance(com.netflix.titus.grpc.protogen.MasterInstance.getDefaultInstance());
 
     @ClassRule
     public static CuratorServiceResource curatorServiceResource = new CuratorServiceResource(titusRuntime);
@@ -117,13 +119,7 @@ public class ZookeeperMasterMonitorTest {
         // Update information about itself
         MasterInstance initial = ZookeeperTestUtils.newMasterInstance("selfId", MasterState.Inactive);
         assertThat(masterMonitor.updateOwnMasterInstance(initial).get()).isNull();
-
-        // Due to race condition we may get here default protobuf MasterInstance value (empty ZK node), followed
-        // by the initial value set after the ZK path is created.
-        await().timeout(5, TimeUnit.SECONDS).until(() -> {
-            List<MasterInstance> update = mastersSubscriber.takeNext();
-            return update.size() == 1 && update.get(0).equals(initial);
-        });
+        expectMasters(mastersSubscriber, initial);
 
         // Change state
         MasterInstance updated = MasterInstanceFunctions.moveTo(initial, MasterStatus.newBuilder()
@@ -152,7 +148,12 @@ public class ZookeeperMasterMonitorTest {
     private void expectMasters(ExtTestSubscriber<List<MasterInstance>> mastersSubscriber, MasterInstance... masters) throws Exception {
         List<MasterInstance> last = null;
         for (List<MasterInstance> next; (next = mastersSubscriber.takeNext()) != null; ) {
-            last = next;
+            // Due to race condition we may get here default protobuf MasterInstance value (empty ZK node), followed
+            // by the initial value set after the ZK path is created.
+            long emptyNodeCount = next.stream().filter(m -> m.equals(DEFAULT_MASTER_INSTANCE)).count();
+            if (emptyNodeCount == 0) {
+                last = next;
+            }
         }
         boolean matches = last != null && new HashSet<>(last).equals(asSet(masters));
         if (!matches) {
