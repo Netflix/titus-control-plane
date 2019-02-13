@@ -195,6 +195,9 @@
         "com.google.errorprone:error_prone_annotations": {
             "locked": "2.1.2",
             "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "io.grpc:grpc-core"
             ]
         },
@@ -205,6 +208,9 @@
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "com.netflix.archaius:archaius-core",
                 "com.netflix.netflix-commons:netflix-infix",
                 "com.netflix.servo:servo-core",
@@ -273,6 +279,8 @@
             "locked": "3.5.1",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-master",
@@ -284,6 +292,25 @@
             "locked": "3.5.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
+            ]
+        },
+        "com.google.truth.extensions:truth-liteproto-extension": {
+            "locked": "0.34",
+            "transitive": [
+                "com.google.truth.extensions:truth-proto-extension"
+            ]
+        },
+        "com.google.truth.extensions:truth-proto-extension": {
+            "locked": "0.34",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "com.google.truth:truth": {
+            "locked": "0.34",
+            "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension"
             ]
         },
         "com.googlecode.libphonenumber:libphonenumber": {
@@ -1014,6 +1041,7 @@
         "junit:junit": {
             "locked": "4.12",
             "transitive": [
+                "com.google.truth:truth",
                 "org.mock-server:mockserver-netty"
             ]
         },
@@ -1662,6 +1690,9 @@
         "com.google.errorprone:error_prone_annotations": {
             "locked": "2.1.2",
             "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "io.grpc:grpc-core"
             ]
         },
@@ -1672,6 +1703,9 @@
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "com.netflix.archaius:archaius-core",
                 "com.netflix.netflix-commons:netflix-infix",
                 "com.netflix.servo:servo-core",
@@ -1740,6 +1774,8 @@
             "locked": "3.5.1",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-master",
@@ -1751,6 +1787,25 @@
             "locked": "3.5.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
+            ]
+        },
+        "com.google.truth.extensions:truth-liteproto-extension": {
+            "locked": "0.34",
+            "transitive": [
+                "com.google.truth.extensions:truth-proto-extension"
+            ]
+        },
+        "com.google.truth.extensions:truth-proto-extension": {
+            "locked": "0.34",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "com.google.truth:truth": {
+            "locked": "0.34",
+            "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension"
             ]
         },
         "com.googlecode.libphonenumber:libphonenumber": {
@@ -2481,6 +2536,7 @@
         "junit:junit": {
             "locked": "4.12",
             "transitive": [
+                "com.google.truth:truth",
                 "org.mock-server:mockserver-netty"
             ]
         },
@@ -3129,6 +3185,9 @@
         "com.google.errorprone:error_prone_annotations": {
             "locked": "2.1.2",
             "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "io.grpc:grpc-core"
             ]
         },
@@ -3139,6 +3198,9 @@
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "com.netflix.archaius:archaius-core",
                 "com.netflix.netflix-commons:netflix-infix",
                 "com.netflix.servo:servo-core",
@@ -3207,6 +3269,8 @@
             "locked": "3.5.1",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-master",
@@ -3218,6 +3282,25 @@
             "locked": "3.5.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
+            ]
+        },
+        "com.google.truth.extensions:truth-liteproto-extension": {
+            "locked": "0.34",
+            "transitive": [
+                "com.google.truth.extensions:truth-proto-extension"
+            ]
+        },
+        "com.google.truth.extensions:truth-proto-extension": {
+            "locked": "0.34",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "com.google.truth:truth": {
+            "locked": "0.34",
+            "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension"
             ]
         },
         "com.googlecode.libphonenumber:libphonenumber": {
@@ -3948,6 +4031,7 @@
         "junit:junit": {
             "locked": "4.12",
             "transitive": [
+                "com.google.truth:truth",
                 "org.mock-server:mockserver-netty"
             ]
         },
@@ -4660,6 +4744,9 @@
         "com.google.errorprone:error_prone_annotations": {
             "locked": "2.1.2",
             "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "io.grpc:grpc-core"
             ]
         },
@@ -4670,6 +4757,9 @@
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "com.netflix.archaius:archaius-core",
                 "com.netflix.netflix-commons:netflix-infix",
                 "com.netflix.servo:servo-core",
@@ -4738,6 +4828,8 @@
             "locked": "3.5.1",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-master",
@@ -4749,6 +4841,25 @@
             "locked": "3.5.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
+            ]
+        },
+        "com.google.truth.extensions:truth-liteproto-extension": {
+            "locked": "0.34",
+            "transitive": [
+                "com.google.truth.extensions:truth-proto-extension"
+            ]
+        },
+        "com.google.truth.extensions:truth-proto-extension": {
+            "locked": "0.34",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "com.google.truth:truth": {
+            "locked": "0.34",
+            "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension"
             ]
         },
         "com.googlecode.libphonenumber:libphonenumber": {
@@ -5479,6 +5590,7 @@
         "junit:junit": {
             "locked": "4.12",
             "transitive": [
+                "com.google.truth:truth",
                 "org.mock-server:mockserver-netty"
             ]
         },
@@ -6128,6 +6240,9 @@
         "com.google.errorprone:error_prone_annotations": {
             "locked": "2.1.2",
             "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "io.grpc:grpc-core"
             ]
         },
@@ -6138,6 +6253,9 @@
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "com.netflix.archaius:archaius-core",
                 "com.netflix.netflix-commons:netflix-infix",
                 "com.netflix.servo:servo-core",
@@ -6206,6 +6324,8 @@
             "locked": "3.5.1",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-master",
@@ -6217,6 +6337,25 @@
             "locked": "3.5.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
+            ]
+        },
+        "com.google.truth.extensions:truth-liteproto-extension": {
+            "locked": "0.34",
+            "transitive": [
+                "com.google.truth.extensions:truth-proto-extension"
+            ]
+        },
+        "com.google.truth.extensions:truth-proto-extension": {
+            "locked": "0.34",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "com.google.truth:truth": {
+            "locked": "0.34",
+            "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension"
             ]
         },
         "com.googlecode.libphonenumber:libphonenumber": {
@@ -6947,6 +7086,7 @@
         "junit:junit": {
             "locked": "4.12",
             "transitive": [
+                "com.google.truth:truth",
                 "org.mock-server:mockserver-netty"
             ]
         },
@@ -7704,6 +7844,9 @@
         "com.google.errorprone:error_prone_annotations": {
             "locked": "2.1.2",
             "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "io.grpc:grpc-core"
             ]
         },
@@ -7716,6 +7859,9 @@
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "com.netflix.archaius:archaius-core",
                 "com.netflix.netflix-commons:netflix-infix",
                 "com.netflix.servo:servo-core",
@@ -7787,6 +7933,8 @@
             "locked": "3.5.1",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-master",
@@ -7798,6 +7946,25 @@
             "locked": "3.5.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
+            ]
+        },
+        "com.google.truth.extensions:truth-liteproto-extension": {
+            "locked": "0.34",
+            "transitive": [
+                "com.google.truth.extensions:truth-proto-extension"
+            ]
+        },
+        "com.google.truth.extensions:truth-proto-extension": {
+            "locked": "0.34",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "com.google.truth:truth": {
+            "locked": "0.34",
+            "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension"
             ]
         },
         "com.googlecode.concurrent-trees:concurrent-trees": {
@@ -8664,6 +8831,7 @@
         "junit:junit": {
             "locked": "4.12",
             "transitive": [
+                "com.google.truth:truth",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-netty"
             ]
@@ -9738,6 +9906,9 @@
         "com.google.errorprone:error_prone_annotations": {
             "locked": "2.1.2",
             "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "io.grpc:grpc-core"
             ]
         },
@@ -9750,6 +9921,9 @@
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "com.netflix.archaius:archaius-core",
                 "com.netflix.netflix-commons:netflix-infix",
                 "com.netflix.servo:servo-core",
@@ -9821,6 +9995,8 @@
             "locked": "3.5.1",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-master",
@@ -9832,6 +10008,25 @@
             "locked": "3.5.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
+            ]
+        },
+        "com.google.truth.extensions:truth-liteproto-extension": {
+            "locked": "0.34",
+            "transitive": [
+                "com.google.truth.extensions:truth-proto-extension"
+            ]
+        },
+        "com.google.truth.extensions:truth-proto-extension": {
+            "locked": "0.34",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "com.google.truth:truth": {
+            "locked": "0.34",
+            "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension"
             ]
         },
         "com.googlecode.concurrent-trees:concurrent-trees": {
@@ -10698,6 +10893,7 @@
         "junit:junit": {
             "locked": "4.12",
             "transitive": [
+                "com.google.truth:truth",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-netty"
             ]
@@ -11772,6 +11968,9 @@
         "com.google.errorprone:error_prone_annotations": {
             "locked": "2.1.2",
             "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "io.grpc:grpc-core"
             ]
         },
@@ -11784,6 +11983,9 @@
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "com.netflix.archaius:archaius-core",
                 "com.netflix.netflix-commons:netflix-infix",
                 "com.netflix.servo:servo-core",
@@ -11855,6 +12057,8 @@
             "locked": "3.5.1",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-master",
@@ -11866,6 +12070,25 @@
             "locked": "3.5.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
+            ]
+        },
+        "com.google.truth.extensions:truth-liteproto-extension": {
+            "locked": "0.34",
+            "transitive": [
+                "com.google.truth.extensions:truth-proto-extension"
+            ]
+        },
+        "com.google.truth.extensions:truth-proto-extension": {
+            "locked": "0.34",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "com.google.truth:truth": {
+            "locked": "0.34",
+            "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension"
             ]
         },
         "com.googlecode.concurrent-trees:concurrent-trees": {
@@ -12732,6 +12955,7 @@
         "junit:junit": {
             "locked": "4.12",
             "transitive": [
+                "com.google.truth:truth",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-netty"
             ]
@@ -13807,6 +14031,9 @@
         "com.google.errorprone:error_prone_annotations": {
             "locked": "2.1.2",
             "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "io.grpc:grpc-core"
             ]
         },
@@ -13819,6 +14046,9 @@
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
+                "com.google.truth:truth",
                 "com.netflix.archaius:archaius-core",
                 "com.netflix.netflix-commons:netflix-infix",
                 "com.netflix.servo:servo-core",
@@ -13890,6 +14120,8 @@
             "locked": "3.5.1",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-master",
@@ -13901,6 +14133,25 @@
             "locked": "3.5.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
+            ]
+        },
+        "com.google.truth.extensions:truth-liteproto-extension": {
+            "locked": "0.34",
+            "transitive": [
+                "com.google.truth.extensions:truth-proto-extension"
+            ]
+        },
+        "com.google.truth.extensions:truth-proto-extension": {
+            "locked": "0.34",
+            "transitive": [
+                "com.netflix.titus:titus-common"
+            ]
+        },
+        "com.google.truth:truth": {
+            "locked": "0.34",
+            "transitive": [
+                "com.google.truth.extensions:truth-liteproto-extension",
+                "com.google.truth.extensions:truth-proto-extension"
             ]
         },
         "com.googlecode.concurrent-trees:concurrent-trees": {
@@ -14767,6 +15018,7 @@
         "junit:junit": {
             "locked": "4.12",
             "transitive": [
+                "com.google.truth:truth",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-netty"
             ]
