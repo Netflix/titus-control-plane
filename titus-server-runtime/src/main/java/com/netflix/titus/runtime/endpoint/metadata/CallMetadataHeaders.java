@@ -94,7 +94,7 @@ public final class CallMetadataHeaders {
     public static final String DIRECT_CALLER_CONTEXT_SERVICE_NAME = "titus.service.name";
 
     /**
-     * Nome of the method that is invoked.
+     * Name of the method that is invoked.
      */
     public static final String DIRECT_CALLER_CONTEXT_SERVICE_METHOD = "titus.service.method";
 
