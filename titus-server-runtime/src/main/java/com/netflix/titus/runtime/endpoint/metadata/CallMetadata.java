@@ -19,18 +19,41 @@ package com.netflix.titus.runtime.endpoint.metadata;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
+
+import com.google.common.base.Preconditions;
+import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.common.util.StringExt;
 
 public class CallMetadata {
 
+    /**
+     * @deprecated Use {@link #callers} instead.
+     */
+    @Deprecated
     private final String callerId;
+
     private final String callReason;
+
+    /**
+     * @deprecated Use {@link #callers} instead.
+     */
+    @Deprecated
     private final List<String> callPath;
+
+    private final List<Caller> callers;
+
     private final boolean debug;
 
-    public CallMetadata(String callerId, String callReason, List<String> callPath, boolean debug) {
+    public CallMetadata(String callerId,
+                        String callReason,
+                        List<String> callPath,
+                        List<Caller> callers,
+                        boolean debug) {
         this.callerId = callerId;
         this.callReason = callReason;
         this.callPath = callPath;
+        this.callers = callers;
         this.debug = debug;
     }
 
@@ -44,6 +67,10 @@ public class CallMetadata {
 
     public List<String> getCallPath() {
         return callPath;
+    }
+
+    public List<Caller> getCallers() {
+        return callers;
     }
 
     public boolean isDebug() {
@@ -62,12 +89,13 @@ public class CallMetadata {
         return debug == that.debug &&
                 Objects.equals(callerId, that.callerId) &&
                 Objects.equals(callReason, that.callReason) &&
-                Objects.equals(callPath, that.callPath);
+                Objects.equals(callPath, that.callPath) &&
+                Objects.equals(callers, that.callers);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(callerId, callReason, callPath, debug);
+        return Objects.hash(callerId, callReason, callPath, callers, debug);
     }
 
     @Override
@@ -76,6 +104,7 @@ public class CallMetadata {
                 "callerId='" + callerId + '\'' +
                 ", callReason='" + callReason + '\'' +
                 ", callPath=" + callPath +
+                ", callers=" + callers +
                 ", debug=" + debug +
                 '}';
     }
@@ -93,6 +122,7 @@ public class CallMetadata {
         private String callReason;
         private List<String> callPath;
         private boolean debug;
+        private List<Caller> callers;
 
         private Builder() {
         }
@@ -112,6 +142,11 @@ public class CallMetadata {
             return this;
         }
 
+        public Builder withCallers(List<Caller> callers) {
+            this.callers = callers;
+            return this;
+        }
+
         public Builder withDebug(boolean debug) {
             this.debug = debug;
             return this;
@@ -122,7 +157,37 @@ public class CallMetadata {
         }
 
         public CallMetadata build() {
-            return new CallMetadata(callerId, callReason == null ? "" : callReason, callPath == null ? Collections.emptyList() : callPath, debug);
+            this.callReason = StringExt.safeTrim(callReason);
+
+            if (!CollectionsExt.isNullOrEmpty(callers)) {
+                return buildNew();
+            }
+
+            // Legacy
+            Preconditions.checkNotNull(callerId, "The original caller id not");
+
+            List<Caller> callersFromLegacy = Collections.singletonList(
+                    Caller.newBuilder()
+                            .withId(callerId)
+                            .withCallerType(CallerType.parseCallerType(callerId, ""))
+                            .build()
+            );
+
+            return new CallMetadata(callerId, callReason, CollectionsExt.nonNull(callPath), callersFromLegacy, debug);
+        }
+
+        /**
+         * Populates deprecated fields from the callers.
+         */
+        private CallMetadata buildNew() {
+            Caller originalCaller = callers.get(0);
+            return new CallMetadata(
+                    originalCaller.getId(),
+                    callReason,
+                    callers.stream().map(Caller::getId).collect(Collectors.toList()),
+                    callers,
+                    debug
+            );
         }
     }
 }

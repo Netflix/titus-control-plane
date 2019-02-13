@@ -16,6 +16,8 @@
 
 package com.netflix.titus.runtime.endpoint.metadata;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 import com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters;
@@ -38,11 +40,15 @@ import static com.netflix.titus.common.util.CollectionsExt.asSet;
 public class V3HeaderInterceptor implements ServerInterceptor {
 
     private static final Logger logger = LoggerFactory.getLogger(V3HeaderInterceptor.class);
+
+    private static final String X_TITUS_GRPC_CALLER_CONTEXT = "X-Titus-GrpcCallerContext";
+
     private static final Set<String> ALLOWED_COMPRESSION_TYPES = asSet("gzip");
 
     public static Metadata.Key<String> DEBUG_KEY = Metadata.Key.of(CallMetadataHeaders.DEBUG_HEADER, Metadata.ASCII_STRING_MARSHALLER);
     public static Metadata.Key<String> COMPRESSION_KEY = Metadata.Key.of(CallMetadataHeaders.COMPRESSION_HEADER, Metadata.ASCII_STRING_MARSHALLER);
     public static Metadata.Key<String> CALLER_ID_KEY = Metadata.Key.of(CallMetadataHeaders.CALLER_ID_HEADER, Metadata.ASCII_STRING_MARSHALLER);
+    public static Metadata.Key<String> CALLER_TYPE_KEY = Metadata.Key.of(CallMetadataHeaders.CALLER_TYPE_HEADER, Metadata.ASCII_STRING_MARSHALLER);
     public static Metadata.Key<String> DIRECT_CALLER_ID_KEY = Metadata.Key.of(CallMetadataHeaders.DIRECT_CALLER_ID_HEADER, Metadata.ASCII_STRING_MARSHALLER);
     public static Metadata.Key<String> CALL_REASON_KEY = Metadata.Key.of(CallMetadataHeaders.CALL_REASON_HEADER, Metadata.ASCII_STRING_MARSHALLER);
     public static Metadata.Key<byte[]> CALL_METADATA_KEY = Metadata.Key.of(CallMetadataHeaders.CALL_METADATA_HEADER, Metadata.BINARY_BYTE_MARSHALLER);
@@ -50,8 +56,11 @@ public class V3HeaderInterceptor implements ServerInterceptor {
     public static Context.Key<String> DEBUG_CONTEXT_KEY = Context.key(CallMetadataHeaders.DEBUG_HEADER);
     public static Context.Key<String> COMPRESSION_CONTEXT_KEY = Context.key(CallMetadataHeaders.COMPRESSION_HEADER);
     public static Context.Key<String> CALLER_ID_CONTEXT_KEY = Context.key(CallMetadataHeaders.CALLER_ID_HEADER);
+    public static Context.Key<String> CALLER_TYPE_CONTEXT_KEY = Context.key(CallMetadataHeaders.CALLER_TYPE_HEADER);
     public static Context.Key<String> DIRECT_CALLER_ID_CONTEXT_KEY = Context.key(CallMetadataHeaders.DIRECT_CALLER_ID_HEADER);
+    public static Context.Key<String> DIRECT_CALLER_TYPE_CONTEXT_KEY = Context.key(CallMetadataHeaders.DIRECT_CALLER_TYPE_HEADER);
     public static Context.Key<String> CALL_REASON_CONTEXT_KEY = Context.key(CallMetadataHeaders.CALL_REASON_HEADER);
+    public static Context.Key<Map<String, String>> CALLER_CONTEXT_CONTEXT_KEY = Context.key(X_TITUS_GRPC_CALLER_CONTEXT);
     public static Context.Key<CallMetadata> CALL_METADATA_CONTEXT_KEY = Context.key(CallMetadataHeaders.CALL_METADATA_HEADER);
 
     @Override
@@ -73,18 +82,13 @@ public class V3HeaderInterceptor implements ServerInterceptor {
                 wrappedContext = wrappedContext.withValue(COMPRESSION_CONTEXT_KEY, compressionType);
             }
         }
-        Object callerIdValue = headers.get(CALLER_ID_KEY);
-        if (callerIdValue != null) {
-            wrappedContext = wrappedContext.withValue(CALLER_ID_CONTEXT_KEY, callerIdValue.toString());
-        }
-        Object directCallerIdValue = headers.get(DIRECT_CALLER_ID_KEY);
-        if (directCallerIdValue != null) {
-            wrappedContext = wrappedContext.withValue(DIRECT_CALLER_ID_CONTEXT_KEY, directCallerIdValue.toString());
-        }
-        Object callReasonValue = headers.get(CALL_REASON_KEY);
-        if (callReasonValue != null) {
-            wrappedContext = wrappedContext.withValue(CALL_REASON_CONTEXT_KEY, callReasonValue.toString());
-        }
+
+        wrappedContext = copyIntoContext(wrappedContext, headers, CALLER_ID_KEY, CALLER_ID_CONTEXT_KEY);
+        wrappedContext = copyIntoContext(wrappedContext, headers, CALLER_TYPE_KEY, CALLER_TYPE_CONTEXT_KEY);
+        wrappedContext = copyIntoContext(wrappedContext, headers, DIRECT_CALLER_ID_KEY, DIRECT_CALLER_ID_CONTEXT_KEY);
+        wrappedContext = copyIntoContext(wrappedContext, headers, CALL_REASON_KEY, CALL_REASON_CONTEXT_KEY);
+        wrappedContext = copyDirectCallerContextIntoContext(wrappedContext, call);
+
         Object callMetadataValue = headers.get(CALL_METADATA_KEY);
         if (callMetadataValue != null) {
             try {
@@ -105,5 +109,33 @@ public class V3HeaderInterceptor implements ServerInterceptor {
         Metadata metadata = new Metadata();
         metadata.put(CALL_METADATA_KEY, CommonGrpcModelConverters.toGrpcCallMetadata(callMetadata).toByteArray());
         return serviceStub.withInterceptors(MetadataUtils.newAttachHeadersInterceptor(metadata));
+    }
+
+    private static Context copyIntoContext(Context context, Metadata headers, Metadata.Key<String> headerKey, Context.Key<String> contextKey) {
+        Object value = headers.get(headerKey);
+        return value == null ? context : context.withValue(contextKey, value.toString());
+    }
+
+    private <ReqT, RespT> Context copyDirectCallerContextIntoContext(Context context, ServerCall<ReqT, RespT> call) {
+        Map<String, String> callerContext = new HashMap<>();
+
+        String fullName = call.getMethodDescriptor().getFullMethodName();
+        int methodBegin = fullName.indexOf('/');
+        String serviceName;
+        String methodName;
+        if (methodBegin <= 0) {
+            serviceName = fullName;
+            methodName = fullName;
+        } else {
+            serviceName = fullName.substring(0, methodBegin);
+            methodName = Character.toLowerCase(fullName.charAt(methodBegin + 1)) + fullName.substring(methodBegin + 2);
+        }
+
+        callerContext.put(CallMetadataHeaders.DIRECT_CALLER_CONTEXT_SERVICE_NAME, serviceName);
+        callerContext.put(CallMetadataHeaders.DIRECT_CALLER_CONTEXT_SERVICE_METHOD, methodName);
+        callerContext.put(CallMetadataHeaders.DIRECT_CALLER_CONTEXT_TRANSPORT_TYPE, "GRPC");
+        callerContext.put(CallMetadataHeaders.DIRECT_CALLER_CONTEXT_TRANSPORT_SECURE, "?");
+
+        return context.withValue(CALLER_CONTEXT_CONTEXT_KEY, callerContext);
     }
 }

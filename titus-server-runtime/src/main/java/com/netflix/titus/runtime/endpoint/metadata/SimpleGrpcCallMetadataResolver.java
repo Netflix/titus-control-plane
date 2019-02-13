@@ -17,7 +17,6 @@
 package com.netflix.titus.runtime.endpoint.metadata;
 
 import java.util.Collections;
-import java.util.List;
 import java.util.Optional;
 import javax.inject.Singleton;
 
@@ -25,6 +24,7 @@ import com.netflix.titus.common.util.CollectionsExt;
 import io.grpc.Context;
 
 import static com.netflix.titus.common.util.Evaluators.getOrDefault;
+import static java.util.Arrays.asList;
 
 @Singleton
 public class SimpleGrpcCallMetadataResolver implements CallMetadataResolver {
@@ -36,30 +36,58 @@ public class SimpleGrpcCallMetadataResolver implements CallMetadataResolver {
             return Optional.empty();
         }
 
-        CallMetadata callMetadata = V3HeaderInterceptor.CALL_METADATA_CONTEXT_KEY.get();
-        String directCallerId = resolveDirectCallerId().orElseGet(() ->
-                getOrDefault(V3HeaderInterceptor.DIRECT_CALLER_ID_CONTEXT_KEY.get(), CallMetadataUtils.UNKNOWN_CALLER_ID)
-        );
+        CallMetadata forwardedCallMetadata = V3HeaderInterceptor.CALL_METADATA_CONTEXT_KEY.get();
+        Caller directCaller = resolveDirectCallerInternal();
 
         // If we have CallMetadata instance, we can safely ignore other headers, except the direct caller.
-        if (callMetadata != null) {
-            List<String> callPath = CollectionsExt.copyAndAdd(callMetadata.getCallPath(), directCallerId);
-            return Optional.of(callMetadata.toBuilder().withCallPath(callPath).build());
+        if (forwardedCallMetadata != null) {
+            return Optional.of(forwardedCallMetadata.toBuilder()
+                    .withCallPath(CollectionsExt.copyAndAdd(forwardedCallMetadata.getCallPath(), directCaller.getId()))
+                    .withCallers(CollectionsExt.copyAndAdd(forwardedCallMetadata.getCallers(), directCaller))
+                    .build());
         }
 
         // No CellMetadata in header, so we must built it here.
-        String callerId = getOrDefault(V3HeaderInterceptor.CALLER_ID_CONTEXT_KEY.get(), "unknownCallerId");
+        String callerId = V3HeaderInterceptor.CALLER_ID_CONTEXT_KEY.get();
         String callReason = getOrDefault(V3HeaderInterceptor.CALL_REASON_CONTEXT_KEY.get(), "reason not given");
 
-        return Optional.of(CallMetadata.newBuilder()
-                .withCallerId(callerId)
-                .withCallPath(Collections.singletonList(directCallerId))
-                .withCallReason(callReason)
-                .build()
-        );
+        CallMetadata.Builder callMetadataBuilder = CallMetadata.newBuilder().withCallReason(callReason);
+
+        if (callerId == null) {
+            callMetadataBuilder
+                    .withCallerId(directCaller.getId())
+                    .withCallPath(Collections.singletonList(directCaller.getId()))
+                    .withCallers(Collections.singletonList(directCaller));
+        } else {
+            Caller originalCaller = Caller.newBuilder()
+                    .withId(callerId)
+                    .withCallerType(CallerType.parseCallerType(callerId, V3HeaderInterceptor.CALLER_TYPE_CONTEXT_KEY.get()))
+                    .build();
+
+            callMetadataBuilder
+                    .withCallerId(callerId)
+                    .withCallPath(asList(callerId, directCaller.getId()))
+                    .withCallers(asList(originalCaller, directCaller));
+        }
+
+        return Optional.of(callMetadataBuilder.build());
     }
 
-    protected Optional<String> resolveDirectCallerId() {
+    protected Optional<Caller> resolveDirectCaller() {
         return Optional.empty();
+    }
+
+    private Caller resolveDirectCallerInternal() {
+        return resolveDirectCaller().orElseGet(() ->
+                {
+                    String directCallerId = getOrDefault(V3HeaderInterceptor.DIRECT_CALLER_ID_CONTEXT_KEY.get(), CallMetadataUtils.UNKNOWN_CALLER_ID);
+                    CallerType directCallerType = CallerType.parseCallerType(directCallerId, V3HeaderInterceptor.DIRECT_CALLER_TYPE_CONTEXT_KEY.get());
+                    return Caller.newBuilder()
+                            .withId(directCallerId)
+                            .withCallerType(directCallerType)
+                            .withContext(V3HeaderInterceptor.CALLER_CONTEXT_CONTEXT_KEY.get())
+                            .build();
+                }
+        );
     }
 }
