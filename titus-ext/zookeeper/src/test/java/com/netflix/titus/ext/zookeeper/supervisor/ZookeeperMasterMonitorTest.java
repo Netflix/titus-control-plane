@@ -16,7 +16,6 @@
 
 package com.netflix.titus.ext.zookeeper.supervisor;
 
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -44,8 +43,8 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
-import static com.netflix.titus.common.util.CollectionsExt.asSet;
 import static com.netflix.titus.ext.zookeeper.ZookeeperTestUtils.newMasterDescription;
+import static com.netflix.titus.master.supervisor.endpoint.grpc.SupervisorGrpcModelConverters.toCoreMasterInstance;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
@@ -53,6 +52,8 @@ import static org.assertj.core.api.Assertions.fail;
 public class ZookeeperMasterMonitorTest {
 
     private static final TitusRuntime titusRuntime = TitusRuntimes.internal();
+
+    private static final MasterInstance DEFAULT_MASTER_INSTANCE = toCoreMasterInstance(com.netflix.titus.grpc.protogen.MasterInstance.getDefaultInstance());
 
     @ClassRule
     public static CuratorServiceResource curatorServiceResource = new CuratorServiceResource(titusRuntime);
@@ -116,8 +117,7 @@ public class ZookeeperMasterMonitorTest {
         // Update information about itself
         MasterInstance initial = ZookeeperTestUtils.newMasterInstance("selfId", MasterState.Inactive);
         assertThat(masterMonitor.updateOwnMasterInstance(initial).get()).isNull();
-
-        assertThat(mastersSubscriber.takeNext(5, TimeUnit.SECONDS)).hasSize(1).contains(initial);
+        expectMasters(mastersSubscriber, initial);
 
         // Change state
         MasterInstance updated = MasterInstanceFunctions.moveTo(initial, MasterStatus.newBuilder()
@@ -144,13 +144,24 @@ public class ZookeeperMasterMonitorTest {
      * Zookeeper sends multiple events for the same master update, so we have to be able to filter this out.
      */
     private void expectMasters(ExtTestSubscriber<List<MasterInstance>> mastersSubscriber, MasterInstance... masters) throws Exception {
+        long deadline = System.currentTimeMillis() + 5_000;
         List<MasterInstance> last = null;
-        for (List<MasterInstance> next; (next = mastersSubscriber.takeNext()) != null; ) {
-            last = next;
-        }
-        boolean matches = last != null && new HashSet<>(last).equals(asSet(masters));
-        if (!matches) {
-            assertThat(mastersSubscriber.takeNext(5, TimeUnit.SECONDS)).hasSize(masters.length).contains(masters);
+        while (true) {
+            long delayMs = deadline - System.currentTimeMillis();
+            if (delayMs <= 0) {
+                fail("Did not received expected update. Last observed update=" + last);
+            }
+            List<MasterInstance> next = mastersSubscriber.takeNext(delayMs, TimeUnit.MILLISECONDS);
+            assertThat(next).isNotNull();
+
+            // Due to race condition we may get here default protobuf MasterInstance value (empty ZK node), followed
+            // by the initial value set after the ZK path is created.
+            long emptyNodeCount = next.stream().filter(m -> m.equals(DEFAULT_MASTER_INSTANCE)).count();
+
+            if (emptyNodeCount == 0) {
+                assertThat(next).hasSize(masters.length).contains(masters);
+                return;
+            }
         }
     }
 
