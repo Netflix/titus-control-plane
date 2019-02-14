@@ -21,11 +21,13 @@ package com.netflix.titus.ext.aws;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Provider;
+import javax.inject.Singleton;
 
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagementAsync;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagementAsyncClientBuilder;
 
+@Singleton
 public class AmazonIamAsyncProvider implements Provider<AmazonIdentityManagementAsync> {
 
     private final AmazonIdentityManagementAsync amazonIdentityManagementAsync;

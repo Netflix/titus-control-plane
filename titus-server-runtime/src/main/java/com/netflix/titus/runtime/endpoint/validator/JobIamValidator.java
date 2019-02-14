@@ -27,8 +27,6 @@ import javax.inject.Singleton;
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.connector.cloud.IamConnector;
-import com.netflix.titus.api.iam.model.IamRole;
-import com.netflix.titus.api.iam.service.IamConnectorException;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.common.model.validator.EntityValidator;
 import com.netflix.titus.common.model.validator.ValidationError;
@@ -83,9 +81,8 @@ public class JobIamValidator implements EntityValidator<JobDescriptor> {
             return Mono.just(Collections.emptySet());
         }
 
-        return iamConnector.getIamRole(iamRoleName)
+        return iamConnector.canIamAssume(iamRoleName, configuration.getAgentIamAssumeRole())
                 .timeout(Duration.ofMillis(configuration.getIamValidationTimeoutMs()))
-                .flatMap(iamRole -> validateAssumePolicy(iamRole, configuration.getAgentIamAssumeRole()))
                 // If role is found and is assumable return an empty ValidationError set, otherwise
                 // populate the set with a specific error.
                 .thenReturn(Collections.<ValidationError>emptySet())
@@ -107,21 +104,6 @@ public class JobIamValidator implements EntityValidator<JobDescriptor> {
         return Mono.just(jobDescriptor);
     }
 
-    /**
-     * Validates that the provided assume role name can assume into the IAM role.
-     * The Mono completes if assume is possible and emits error otherwise.
-     */
-    private Mono<Void> validateAssumePolicy(IamRole iamRole, String iamAssumeRoleName) {
-        if (iamRole.canAssume(iamAssumeRoleName)) {
-            return Mono.empty();
-        }
-        return Mono.error(new IamConnectorException(
-                IamConnectorException.ErrorCode.INVALID,
-                String.format("Titus cannot assume into role %s: %s unable to assumeRole",
-                        iamRole.getRoleName(), iamAssumeRoleName)
-        ));
-    }
-
     private boolean isFriendlyName(String iamRoleName) {
         // Check if this looks like an ARN
         return !(iamRoleName.startsWith("arn:aws:") ||
@@ -129,5 +111,5 @@ public class JobIamValidator implements EntityValidator<JobDescriptor> {
                 iamRoleName.contains("/"));
     }
 
-    private boolean isDisabled() { return !configuration.iamValidatorEnabled(); }
+    private boolean isDisabled() { return !configuration.isIamValidatorEnabled(); }
 }

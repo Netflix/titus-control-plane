@@ -22,7 +22,6 @@ import java.util.Set;
 
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.titus.api.connector.cloud.IamConnector;
-import com.netflix.titus.api.iam.model.IamRole;
 import com.netflix.titus.api.iam.service.IamConnectorException;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.SecurityProfile;
@@ -40,22 +39,21 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class JobSecurityValidatorTest {
-    private static final String validIamRoleName = "myValidIamRole";
-    private static final String invalidIamRoleName = "myInvalidIamRole";
-    private static final String iamAssumeRoleName = "myIamAssumeRole";
+    private static final String VALID_IAM_ROLE_NAME = "myValidIamRole";
+    private static final String INVALID_IAM_ROLE_NAME = "myInvalidIamRole";
+    private static final String IAM_ASSUME_ROLE_NAME = "myIamAssumeRole";
 
-    private static final String cannotAssumeIamErrorMsg = "Titus cannot assume into role";
-    private static final String missingIamErrorMsg = "Could not find IAM";
+    private static final String CANNOT_ASSUME_IAM_ERROR_MSG = "Titus cannot assume into role";
+    private static final String MISSING_IAM_ERROR_MSG = "Could not find IAM";
 
     private final JobSecurityValidatorConfiguration configuration = mock(JobSecurityValidatorConfiguration.class);
     private final IamConnector iamConnector = mock(IamConnector.class);
     private JobIamValidator iamValidator;
-    private final IamRole mockIamRole = mock(IamRole.class);
 
     private final JobDescriptor<?> jobDescriptorWithValidIam = JobDescriptorGenerator.batchJobDescriptors()
             .map(jd -> jd.but(d -> d.getContainer().toBuilder()
             .withSecurityProfile(SecurityProfile.newBuilder()
-                    .withIamRole(validIamRoleName)
+                    .withIamRole(VALID_IAM_ROLE_NAME)
                     .build())
             ))
             .getValue();
@@ -63,24 +61,22 @@ public class JobSecurityValidatorTest {
     private final JobDescriptor<?> jobDescriptorWithInvalidIam = JobDescriptorGenerator.batchJobDescriptors()
             .map(jd -> jd.but(d -> d.getContainer().toBuilder()
                     .withSecurityProfile(SecurityProfile.newBuilder()
-                            .withIamRole(invalidIamRoleName)
+                            .withIamRole(INVALID_IAM_ROLE_NAME)
                             .build())
             ))
             .getValue();
 
     @Before
     public void setUp() {
-        when(configuration.iamValidatorEnabled()).thenReturn(true);
-        when(configuration.getAgentIamAssumeRole()).thenReturn(iamAssumeRoleName);
+        when(configuration.isIamValidatorEnabled()).thenReturn(true);
+        when(configuration.getAgentIamAssumeRole()).thenReturn(IAM_ASSUME_ROLE_NAME);
         when(configuration.getIamValidationTimeoutMs()).thenReturn(10000L);
         iamValidator = new JobIamValidator(configuration, iamConnector, new DefaultRegistry());
     }
 
     @Test
     public void testJobWithValidIam() {
-        when(mockIamRole.getRoleName()).thenReturn(validIamRoleName);
-        when(mockIamRole.canAssume(iamAssumeRoleName)).thenReturn(true);
-        when(iamConnector.getIamRole(validIamRoleName)).thenReturn(Mono.just(mockIamRole));
+        when(iamConnector.canIamAssume(VALID_IAM_ROLE_NAME, IAM_ASSUME_ROLE_NAME)).thenReturn(Mono.empty());
 
         StepVerifier.create(iamValidator.validate(jobDescriptorWithValidIam))
                 .assertNext(validationErrors -> assertThat(validationErrors.isEmpty()).isTrue())
@@ -89,11 +85,10 @@ public class JobSecurityValidatorTest {
 
     @Test
     public void testJobWithUnassumableIam() {
-        String errorMsg = String.format("%s %s", cannotAssumeIamErrorMsg, invalidIamRoleName);
+        String errorMsg = String.format("%s %s", CANNOT_ASSUME_IAM_ERROR_MSG, INVALID_IAM_ROLE_NAME);
 
-        when(mockIamRole.getRoleName()).thenReturn(invalidIamRoleName);
-        when(iamConnector.getIamRole(invalidIamRoleName)).thenReturn(Mono.just(mockIamRole));
-        when(mockIamRole.canAssume(iamAssumeRoleName)).thenReturn(false);
+        when(iamConnector.canIamAssume(INVALID_IAM_ROLE_NAME, IAM_ASSUME_ROLE_NAME))
+                .thenReturn(Mono.error(IamConnectorException.iamRoleCannotAssume(INVALID_IAM_ROLE_NAME, IAM_ASSUME_ROLE_NAME)));
 
         StepVerifier.create(iamValidator.validate(jobDescriptorWithInvalidIam))
                 .assertNext(validationErrors -> validationErrorsContainsJust(validationErrors, errorMsg))
@@ -102,13 +97,10 @@ public class JobSecurityValidatorTest {
 
     @Test
     public void testJobWithNonexistentIam() {
-        String errorMsg = String.format("%s %s", missingIamErrorMsg, invalidIamRoleName);
+        String errorMsg = String.format("%s %s", MISSING_IAM_ERROR_MSG, INVALID_IAM_ROLE_NAME);
 
-        when(mockIamRole.getRoleName()).thenReturn(invalidIamRoleName);
-        when(iamConnector.getIamRole(invalidIamRoleName)).thenReturn(
-                Mono.error(new IamConnectorException(IamConnectorException.ErrorCode.IAM_NOT_FOUND,
-                        errorMsg))
-        );
+        when(iamConnector.canIamAssume(INVALID_IAM_ROLE_NAME, IAM_ASSUME_ROLE_NAME))
+                .thenReturn(Mono.error(IamConnectorException.iamRoleNotFound(INVALID_IAM_ROLE_NAME)));
 
         Mono<Set<ValidationError>> validationErrorsMono = iamValidator.validate(jobDescriptorWithInvalidIam);
         StepVerifier.create(validationErrorsMono)

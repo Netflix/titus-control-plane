@@ -26,4 +26,9 @@ public class NoOpIamConnector implements IamConnector {
     public Mono<IamRole> getIamRole(String iamRoleName) {
         return Mono.empty();
     }
+
+    @Override
+    public Mono<Void> canIamAssume(String iamRoleName, String assumeResourceName) {
+        return Mono.empty();
+    }
 }

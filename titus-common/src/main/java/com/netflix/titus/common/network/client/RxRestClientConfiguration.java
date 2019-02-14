@@ -17,10 +17,9 @@
 package com.netflix.titus.common.network.client;
 
 import java.util.Collections;
-import java.util.Set;
+import java.util.List;
 
 import com.netflix.archaius.api.annotations.DefaultValue;
-import io.netty.handler.codec.http.HttpResponseStatus;
 
 /**
  * Configuration interface for {@link RxRestClient}.
@@ -36,7 +35,7 @@ public interface RxRestClientConfiguration {
     @DefaultValue("200")
     long getRetryDelayMs();
 
-    default Set<HttpResponseStatus> getNoRetryStatuses() {
-        return Collections.emptySet();
+    default List<String> getNoRetryStatuses() {
+        return Collections.emptyList();
     }
 }

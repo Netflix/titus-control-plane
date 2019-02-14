@@ -28,4 +28,10 @@ public interface IamConnector {
      * Get an IAM Role descriptor.
      */
     Mono<IamRole> getIamRole(String iamRoleName);
+
+    /**
+     * Returns a successful Mono if the specified IAM Role can be assumed
+     * into by the provided assuming Role.
+     */
+    Mono<Void> canIamAssume(String iamRoleName, String assumeResourceName);
 }

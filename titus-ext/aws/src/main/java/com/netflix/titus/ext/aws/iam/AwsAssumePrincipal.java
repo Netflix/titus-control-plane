@@ -18,6 +18,7 @@
 
 package com.netflix.titus.ext.aws.iam;
 
+import java.util.Collections;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
@@ -39,6 +40,9 @@ public class AwsAssumePrincipal {
     }
 
     public List<String> getPrincipals() {
+        if (null == principals) {
+            return Collections.emptyList();
+        }
         return principals;
     }
 

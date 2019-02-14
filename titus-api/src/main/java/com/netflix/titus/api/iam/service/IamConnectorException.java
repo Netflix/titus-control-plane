@@ -18,6 +18,8 @@
 
 package com.netflix.titus.api.iam.service;
 
+import static java.lang.String.format;
+
 /**
  * A custom {@link RuntimeException} implementation that indicates errors communicating with a IAM connector.
  */
@@ -31,7 +33,7 @@ public class IamConnectorException extends RuntimeException {
 
     private final ErrorCode errorCode;
 
-    public IamConnectorException(ErrorCode errorCode, String message) {
+    private IamConnectorException(ErrorCode errorCode, String message) {
         this(errorCode, message, new RuntimeException(message));
     }
 
@@ -41,4 +43,20 @@ public class IamConnectorException extends RuntimeException {
     }
 
     public ErrorCode getErrorCode() { return errorCode; }
+
+    public static IamConnectorException iamRoleNotFound(String iamRoleName) {
+        return new IamConnectorException(ErrorCode.IAM_NOT_FOUND, format("Could not find IAM %s", iamRoleName));
+    }
+
+    public static IamConnectorException iamRoleUnexpectedError(String iamRoleName) {
+        return iamRoleUnexpectedError(iamRoleName, "Reason unknown");
+    }
+
+    public static IamConnectorException iamRoleUnexpectedError(String iamRoleName, String message) {
+        return new IamConnectorException(ErrorCode.INTERNAL, format("Unable to query IAM %s: %s", iamRoleName, message));
+    }
+
+    public static IamConnectorException iamRoleCannotAssume(String iamRoleName, String iamAssumeRoleName) {
+        return new IamConnectorException(ErrorCode.INVALID, format("Titus cannot assume into role %s: %s unable to assumeRole", iamRoleName, iamAssumeRoleName));
+    }
 }

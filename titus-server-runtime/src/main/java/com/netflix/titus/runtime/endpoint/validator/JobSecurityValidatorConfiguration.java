@@ -24,7 +24,7 @@ import com.netflix.archaius.api.annotations.DefaultValue;
 @Configuration(prefix = "titus.validate.job.security")
 public interface JobSecurityValidatorConfiguration {
     @DefaultValue("true")
-    boolean iamValidatorEnabled();
+    boolean isIamValidatorEnabled();
 
     @DefaultValue("titusagentInstanceProfile")
     String getAgentIamAssumeRole();

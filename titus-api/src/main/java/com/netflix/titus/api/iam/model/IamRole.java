@@ -18,22 +18,85 @@
 
 package com.netflix.titus.api.iam.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
- * Interface for an IAM Role Policy.
+ * Describes an IAM Role Policy.
  */
-public interface IamRole {
+public class IamRole {
+    private final String roleId;
+    private final String roleName;
+    private final String resourceName;
+    private final String assumePolicy;
 
-    String getRoleId();
+    @JsonCreator
+    public IamRole(@JsonProperty("roleId")String roleId,
+                   @JsonProperty("roleNmae")String roleName,
+                   @JsonProperty("arn")String resourceName,
+                   @JsonProperty("assumeRolePolicyDocument") String assumePolicy) {
+        this.roleId = roleId;
+        this.roleName = roleName;
+        this.resourceName = resourceName;
+        this.assumePolicy = assumePolicy;
+    }
 
-    String getRoleName();
+    public String getRoleId() {
+        return roleId;
+    }
 
-    String getResourceName();
+    public String getRoleName() { return roleName; }
 
-    String getAssumePolicy();
+    public String getResourceName() { return resourceName; }
 
-    /**
-     * Returns true of the provided resource name can assume into
-     * this role based on its assume policy.
-     */
-    Boolean canAssume(String assumeResourceName);
+    public String getAssumePolicy() {
+        return assumePolicy;
+    }
+
+    @Override
+    public String toString() {
+        return "IamRole{" +
+                "roleId='" + roleId + '\'' +
+                ", roleName='" + roleName + '\'' +
+                ", resourceName='" + resourceName + '\'' +
+                ", assumePolicy='" + assumePolicy + '\'' +
+                '}';
+    }
+
+    public static Builder newBuilder() {
+        return new Builder();
+    }
+
+    public static class Builder {
+        private String roleId;
+        private String roleName;
+        private String resourceName;
+        private String policyDoc;
+
+        private Builder() {}
+
+        public Builder withRoleId(String roleId) {
+            this.roleId = roleId;
+            return this;
+        }
+
+        public Builder withRoleName(String roleName) {
+            this.roleName = roleName;
+            return this;
+        }
+
+        public Builder withResourceName(String resourceName) {
+            this.resourceName = resourceName;
+            return this;
+        }
+
+        public Builder withPolicyDoc(String policyDoc) {
+            this.policyDoc = policyDoc;
+            return this;
+        }
+
+        public IamRole build() {
+            return new IamRole(roleId, roleName, resourceName, policyDoc);
+        }
+    }
 }

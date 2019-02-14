@@ -17,15 +17,10 @@
 package com.netflix.titus.ext.aws.iam;
 
 import java.time.Duration;
-import java.util.concurrent.Future;
-import java.util.function.BiFunction;
-import java.util.function.Supplier;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.amazonaws.AmazonWebServiceRequest;
-import com.amazonaws.handlers.AsyncHandler;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagementAsync;
 import com.amazonaws.services.identitymanagement.model.GetRoleRequest;
 import com.amazonaws.services.identitymanagement.model.GetRoleResult;
@@ -37,6 +32,7 @@ import com.netflix.titus.api.iam.service.IamConnectorException;
 import com.netflix.titus.common.util.guice.ProxyType;
 import com.netflix.titus.common.util.guice.annotation.ProxyConfiguration;
 import com.netflix.titus.ext.aws.AwsConfiguration;
+import com.netflix.titus.ext.aws.AwsReactorExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
@@ -79,7 +75,7 @@ public class AwsIamConnector implements IamConnector {
                 .timeout(Duration.ofMillis(configuration.getAwsRequestTimeoutMs()))
                 .map(getRoleResult -> {
                     connectorMetrics.success(AwsIamConnectorMetrics.AwsIamMethods.GetIamRole, startTime);
-                    return (IamRole)AwsIamRole.newBuilder()
+                    return IamRole.newBuilder()
                             .withRoleId(getRoleResult.getRole().getRoleId())
                             .withRoleName(getRoleResult.getRole().getRoleName())
                             .withResourceName(getRoleResult.getRole().getArn())
@@ -90,45 +86,25 @@ public class AwsIamConnector implements IamConnector {
                 .onErrorMap(throwable -> {
                     connectorMetrics.failure(AwsIamConnectorMetrics.AwsIamMethods.GetIamRole, throwable, startTime);
                     if (throwable instanceof NoSuchEntityException) {
-                        return new IamConnectorException(IamConnectorException.ErrorCode.IAM_NOT_FOUND,
-                                String.format("Could not find IAM %s: %s", iamRoleName, throwable.getMessage()));
+                        return IamConnectorException.iamRoleNotFound(iamRoleName);
                     }
-                    return new IamConnectorException(IamConnectorException.ErrorCode.INTERNAL,
-                            String.format("Unable to query IAM %s: %s", iamRoleName, throwable.getMessage()));
+                    return IamConnectorException.iamRoleUnexpectedError(iamRoleName, throwable.getMessage());
+                });
+    }
+
+    @Override
+    public Mono<Void> canIamAssume(String iamRoleName, String assumeResourceName) {
+        return getIamRole(iamRoleName)
+                .flatMap(iamRole -> {
+                    if (AwsIamUtil.canAssume(iamRole, assumeResourceName)) {
+                        return Mono.empty();
+                    }
+                    return Mono.error(IamConnectorException.iamRoleCannotAssume(iamRole.getRoleName(), assumeResourceName));
                 });
     }
 
     private Mono<GetRoleResult> getAwsIamRole(String iamRoleName) {
         GetRoleRequest request = new GetRoleRequest().withRoleName(iamRoleName);
-        return toMono(request, iamClient::getRoleAsync);
-    }
-
-    private <REQUEST extends AmazonWebServiceRequest, RESPONSE> Mono<RESPONSE> toMono(
-            Supplier<REQUEST> request,
-            BiFunction<REQUEST, AsyncHandler<REQUEST, RESPONSE>, Future<RESPONSE>> callFun
-    ) {
-        return Mono.create(emitter -> {
-            AsyncHandler<REQUEST, RESPONSE> asyncHandler = new AsyncHandler<REQUEST, RESPONSE>() {
-                @Override
-                public void onError(Exception exception) { emitter.error(exception); }
-
-                @Override
-                public void onSuccess(REQUEST request, RESPONSE result) { emitter.success(result); }
-            };
-            Future<RESPONSE> future = callFun.apply(request.get(), asyncHandler);
-            emitter.onDispose(() -> {
-                if (!future.isCancelled() && !future.isDone()) {
-                    future.cancel(true);
-                }
-            });
-        });
-    }
-
-    private <REQUEST extends AmazonWebServiceRequest, RESPONSE> Mono<RESPONSE> toMono(
-            REQUEST request,
-            BiFunction<REQUEST, AsyncHandler<REQUEST, RESPONSE>, Future<RESPONSE>> callFun
-    ) {
-        Supplier<REQUEST> supplier = () -> request;
-        return toMono(supplier, callFun);
+        return AwsReactorExt.toMono(request, iamClient::getRoleAsync);
     }
 }

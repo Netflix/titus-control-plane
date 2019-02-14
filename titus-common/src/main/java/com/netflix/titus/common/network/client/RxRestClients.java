@@ -18,6 +18,8 @@ package com.netflix.titus.common.network.client;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -151,7 +153,7 @@ public class RxRestClients {
                 requestTimeout = configuration.getRequestTimeoutMs();
                 retryDelay = configuration.getRetryDelayMs();
                 timeUnit = TimeUnit.MILLISECONDS;
-                noRetryStatuses = configuration.getNoRetryStatuses();
+                noRetryStatuses = toHttpStatusSet(configuration.getNoRetryStatuses());
             }
 
             if (retryCount > 0) {
@@ -170,6 +172,12 @@ public class RxRestClients {
             Preconditions.checkArgument(!Strings.isNullOrEmpty(host), "Host must be valid");
             boolean secure = !Objects.isNull(sslEngineFactory);
             return new SingleHostEndpointResolver(host, port, secure);
+        }
+
+        private Set<HttpResponseStatus> toHttpStatusSet(List<String> noRetryStatusList) {
+            Set<HttpResponseStatus> noRetryStatusSet = new HashSet<>();
+            noRetryStatusList.forEach(noRetryStatusString -> noRetryStatusSet.add(HttpResponseStatus.parseLine(noRetryStatusString)));
+            return noRetryStatusSet;
         }
     }
 }
