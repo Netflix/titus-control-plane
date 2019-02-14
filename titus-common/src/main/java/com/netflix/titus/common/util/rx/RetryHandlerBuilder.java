@@ -150,7 +150,7 @@ public final class RetryHandlerBuilder {
                         );
                         return Observable.error(new IOException(errorMessage, retryItem.cause));
                     }
-                    long expDelay = Math.min(maxDelay, (1 << retryItem.retry) * retryDelayMs);
+                    long expDelay = buildDelay(retryItem.retry);
                     if (retryItem.cause instanceof TimeoutException) {
                         logger.info("Delaying timed-out {} retry by {}[ms]", title, expDelay);
                     } else {
@@ -184,7 +184,7 @@ public final class RetryHandlerBuilder {
                         );
                         return Flux.error(new IOException(errorMessage, retryItem.cause));
                     }
-                    long expDelay = Math.min(maxDelay, (1 << retryItem.retry) * retryDelayMs);
+                    long expDelay = buildDelay(retryItem.retry);
                     if (retryItem.cause instanceof TimeoutException) {
                         logger.info("Delaying timed-out {} retry by {}[ms]", title, expDelay);
                     } else {
@@ -193,6 +193,14 @@ public final class RetryHandlerBuilder {
                     }
                     return Flux.interval(Duration.ofMillis(expDelay), reactorScheduler).take(1);
                 });
+    }
+
+    private long buildDelay(int retry) {
+        final long backOffTime = (1 << retry) * retryDelayMs;
+        if (backOffTime < 0) {
+            return maxDelay;
+        }
+        return Math.min(maxDelay, backOffTime);
     }
 
     public static RetryHandlerBuilder retryHandler() {
