@@ -84,6 +84,7 @@ public final class RetryHandlerBuilder {
 
     public RetryHandlerBuilder withRetryDelay(long retryDelay, TimeUnit timeUnit) {
         Preconditions.checkArgument(retryDelay > 0, "Retry delay must be >0");
+        Preconditions.checkArgument(retryDelay < Integer.MAX_VALUE, "Retry delay should be < Integer.MAX_VALUE");
         this.retryDelayMs = timeUnit.toMillis(retryDelay);
         return this;
     }
