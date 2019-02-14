@@ -17,11 +17,17 @@
 package com.netflix.titus.common.util.rx;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 
 import com.netflix.titus.testkit.rx.ExtTestSubscriber;
+import io.reactivex.subscribers.TestSubscriber;
 import org.junit.Test;
+import org.reactivestreams.Publisher;
+import reactor.core.publisher.Flux;
+import reactor.test.scheduler.VirtualTimeScheduler;
 import rx.Observable;
 import rx.functions.Func1;
 import rx.schedulers.Schedulers;
@@ -103,6 +109,60 @@ public class RetryHandlerBuilderTest {
 
         assertThat(testSubscriber.getError()).isInstanceOf(IOException.class);
     }
+
+    @Test
+    public void testUnlimitedRetries() throws Exception {
+        Func1<Observable<? extends Throwable>, Observable<?>> retryFun = builder
+                .withUnlimitedRetries()
+                .withDelay(RETRY_DELAY_SEC, RETRY_DELAY_SEC * 4, TimeUnit.SECONDS)
+                .buildExponentialBackoff();
+
+        final Observable<String> observables = Observable.range(1, 100)
+                .map(i -> new RuntimeException("Error " + i))
+                .flatMap(this::observableOf);
+
+        observables.retryWhen(retryFun, testScheduler).subscribe(testSubscriber);
+
+        testScheduler.advanceTimeBy(RETRY_DELAY_SEC * 10000, TimeUnit.SECONDS);
+        assertThat(testSubscriber.getError()).isNull();
+    }
+
+    @Test
+    public void testReactorBasedUnlimitedRetries() {
+        TestSubscriber<String> testSubscriber = TestSubscriber.create();
+        final VirtualTimeScheduler virtualTimeScheduler = VirtualTimeScheduler.create();
+
+        final Function<Flux<Throwable>, Publisher<?>> retryFun = builder.withUnlimitedRetries()
+                .withReactorScheduler(virtualTimeScheduler)
+                .withDelay(RETRY_DELAY_SEC, RETRY_DELAY_SEC * 4, TimeUnit.SECONDS)
+                .buildReactorExponentialBackoff();
+
+        Flux.range(1, 100)
+                .map(i -> new RuntimeException("Error " + i))
+                .flatMap(this::fluxOf)
+                .retryWhen(retryFun)
+                .subscribe(testSubscriber);
+        virtualTimeScheduler.advanceTimeBy(Duration.ofSeconds(RETRY_DELAY_SEC * 1000));
+        testSubscriber.assertNoErrors();
+    }
+
+    private Flux<String> fluxOf(Object... items) {
+        AtomicInteger pos = new AtomicInteger();
+        return Flux.create(sink -> {
+            for (int i = pos.get(); i < items.length; i++) {
+                pos.incrementAndGet();
+                Object item = items[i];
+
+                if (item instanceof Throwable) {
+                    sink.error((Throwable) item);
+                    return;
+                }
+                sink.next((String) item);
+            }
+            sink.complete();
+        });
+    }
+
 
     private Observable<String> observableOf(Object... items) {
         AtomicInteger pos = new AtomicInteger();
