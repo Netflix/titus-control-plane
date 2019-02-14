@@ -16,6 +16,7 @@
 
 package com.netflix.titus.master.jobmanager.service.service.action;
 
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
@@ -30,6 +31,7 @@ import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
+import jdk.nashorn.internal.codegen.CompilerConstants;
 import rx.Observable;
 
 public class BasicServiceJobActions {
@@ -37,7 +39,7 @@ public class BasicServiceJobActions {
     /**
      * Update job capacity.
      */
-    public static TitusChangeAction updateJobCapacityAction(ReconciliationEngine<JobManagerReconcilerEvent> engine, Capacity capacity, JobStore jobStore) {
+    public static TitusChangeAction updateJobCapacityAction(ReconciliationEngine<JobManagerReconcilerEvent> engine, Capacity capacity, JobStore jobStore, CallMetadata callMetadata) {
         return TitusChangeAction.newAction("updateJobCapacityAction")
                 .id(engine.getReferenceView().getId())
                 .trigger(V3JobOperations.Trigger.API)
@@ -50,7 +52,7 @@ public class BasicServiceJobActions {
 
                     Job<ServiceJobExt> updatedJob = JobFunctions.changeServiceJobCapacity(serviceJob, capacity);
 
-                    TitusModelAction modelAction = TitusModelAction.newModelUpdate(self).jobUpdate(jobHolder -> jobHolder.setEntity(updatedJob));
+                    TitusModelAction modelAction = TitusModelAction.newModelUpdate(self).jobUpdate(jobHolder -> jobHolder.setEntity(updatedJob).addTag("CALLMETADATA", callMetadata));
 
                     return jobStore.updateJob(updatedJob).andThen(Observable.just(ModelActionHolder.referenceAndStore(modelAction)));
                 });
@@ -59,7 +61,7 @@ public class BasicServiceJobActions {
     /**
      * Change job 'enable' status.
      */
-    public static TitusChangeAction updateJobEnableStatus(ReconciliationEngine<JobManagerReconcilerEvent> engine, boolean enabled, JobStore jobStore) {
+    public static TitusChangeAction updateJobEnableStatus(ReconciliationEngine<JobManagerReconcilerEvent> engine, boolean enabled, JobStore jobStore, CallMetadata callMetadata) {
         return TitusChangeAction.newAction("updateJobCapacityAction")
                 .id(engine.getReferenceView().getId())
                 .trigger(V3JobOperations.Trigger.API)
@@ -81,7 +83,7 @@ public class BasicServiceJobActions {
     /**
      * Change job service processes configuration.
      */
-    public static TitusChangeAction updateServiceJobProcesses(ReconciliationEngine<JobManagerReconcilerEvent> engine, ServiceJobProcesses processes, JobStore jobStore) {
+    public static TitusChangeAction updateServiceJobProcesses(ReconciliationEngine<JobManagerReconcilerEvent> engine, ServiceJobProcesses processes, JobStore jobStore, CallMetadata callMetadata) {
         return TitusChangeAction.newAction("updateServiceJobProcesses")
                 .id(engine.getReferenceView().getId())
                 .trigger(V3JobOperations.Trigger.API)
@@ -94,7 +96,7 @@ public class BasicServiceJobActions {
 
                     Job<ServiceJobExt> updatedJob = JobFunctions.changeServiceJobProcesses(serviceJob, processes);
 
-                    TitusModelAction modelAction = TitusModelAction.newModelUpdate(self).jobUpdate(jobHolder -> jobHolder.setEntity(updatedJob));
+                    TitusModelAction modelAction = TitusModelAction.newModelUpdate(self).jobUpdate(jobHolder -> jobHolder.setEntity(updatedJob).addTag("CALLMETADATA", callMetadata));
 
                     return jobStore.updateJob(updatedJob).andThen(Observable.just(ModelActionHolder.referenceAndStore(modelAction)));
                 });

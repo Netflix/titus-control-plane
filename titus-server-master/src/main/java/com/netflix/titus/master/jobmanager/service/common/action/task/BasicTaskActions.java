@@ -26,6 +26,7 @@ import java.util.function.Supplier;
 
 import com.netflix.fenzo.queues.QAttributes;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
@@ -68,7 +69,8 @@ public class BasicTaskActions {
                                                                 JobStore jobStore,
                                                                 Trigger trigger,
                                                                 String reason,
-                                                                TitusRuntime titusRuntime) {
+                                                                TitusRuntime titusRuntime,
+                                                                CallMetadata callMetadata) {
         return TitusChangeAction.newAction("updateTaskAndWriteItToStore")
                 .id(taskId)
                 .trigger(trigger)
@@ -136,7 +138,8 @@ public class BasicTaskActions {
                                                              ReconciliationEngine<JobManagerReconcilerEvent> engine,
                                                              Function<Task, Optional<Task>> changeFunction,
                                                              String reason,
-                                                             TitusRuntime titusRuntime) {
+                                                             TitusRuntime titusRuntime,
+                                                             CallMetadata callMetadata) {
         return TitusChangeAction.newAction("updateTaskInRunningModel")
                 .id(taskId)
                 .trigger(trigger)
@@ -170,7 +173,8 @@ public class BasicTaskActions {
                                         .build();
                                 newTaskHolder = taskHolder.
                                         setEntity(newTask)
-                                        .addTag(TaskRetryers.ATTR_TASK_RETRY_DELAY_MS, retryDelayMs);
+                                        .addTag(TaskRetryers.ATTR_TASK_RETRY_DELAY_MS, retryDelayMs)
+                                        .addTag("CALLMETADATA", callMetadata);
 
                                 modelActionHolders.add(
                                         ModelActionHolder.reference(TitusModelAction.newModelUpdate(self)

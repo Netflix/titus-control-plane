@@ -34,9 +34,9 @@ import com.netflix.titus.grpc.protogen.Pagination;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.runtime.endpoint.JobQueryCriteria;
-import com.netflix.titus.runtime.endpoint.metadata.CallMetadata;
-import com.netflix.titus.runtime.endpoint.metadata.Caller;
-import com.netflix.titus.runtime.endpoint.metadata.CallerType;
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
+import com.netflix.titus.api.jobmanager.model.Caller;
+import com.netflix.titus.api.jobmanager.model.CallerType;
 
 import static com.netflix.titus.common.util.CollectionsExt.asSet;
 import static com.netflix.titus.common.util.CollectionsExt.copyAndRemove;
@@ -68,6 +68,7 @@ public class CommonGrpcModelConverters {
                 .withDebug(grpcCallContext.getDebug())
                 .build();
     }
+
 
     public static CallerType toCoreCallerType(com.netflix.titus.grpc.protogen.CallMetadata.CallerType grpcCallerType) {
         switch (grpcCallerType) {

@@ -21,7 +21,7 @@ import java.time.Duration;
 import com.google.protobuf.Empty;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.runtime.endpoint.metadata.AnonymousCallMetadataResolver;
-import com.netflix.titus.runtime.endpoint.metadata.CallMetadata;
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.runtime.endpoint.metadata.SimpleGrpcCallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor;
 import com.netflix.titus.testing.SampleGrpcService.SampleContainer;
