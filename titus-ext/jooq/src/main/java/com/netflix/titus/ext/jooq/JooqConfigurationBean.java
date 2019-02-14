@@ -14,33 +14,28 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.endpoint.common.grpc;
+package com.netflix.titus.ext.jooq;
+
+import javax.inject.Inject;
+import javax.inject.Singleton;
 
 import com.netflix.titus.runtime.util.SpringConfigurationUtil;
 import org.springframework.core.env.Environment;
 
-public class GrpcEndpointConfigurationBean implements GrpcEndpointConfiguration {
+@Singleton
+public class JooqConfigurationBean implements JooqConfiguration {
+
+    private static final String PREFIX = "titus.ext.jooq.";
 
     private final Environment environment;
-    private final String prefix;
 
-    public GrpcEndpointConfigurationBean(Environment environment, String prefix) {
+    @Inject
+    public JooqConfigurationBean(Environment environment) {
         this.environment = environment;
-        this.prefix = prefix;
     }
 
     @Override
-    public int getPort() {
-        return SpringConfigurationUtil.getInt(environment, prefix + "port", 7104);
-    }
-
-    @Override
-    public long getShutdownTimeoutMs() {
-        return SpringConfigurationUtil.getLong(environment, prefix + "shutdownTimeoutMs", 30_000);
-    }
-
-    @Override
-    public long getMaxConnectionAgeMs() {
-        return SpringConfigurationUtil.getLong(environment, prefix + "maxConnectionAgeMs", 1800000);
+    public String getDatabaseUrl() {
+        return SpringConfigurationUtil.getString(environment, PREFIX + "databaseUrl", "jdbc://notSet");
     }
 }
