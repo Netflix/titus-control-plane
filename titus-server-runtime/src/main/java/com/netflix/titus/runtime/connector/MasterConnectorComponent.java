@@ -18,16 +18,12 @@ package com.netflix.titus.runtime.connector;
 
 import java.time.Duration;
 
-import com.netflix.titus.grpc.protogen.EvictionServiceGrpc.EvictionServiceStub;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
 import com.netflix.titus.grpc.protogen.TaskRelocationServiceGrpc;
 import com.netflix.titus.runtime.connector.common.reactor.ReactorToGrpcClientBuilder;
 import com.netflix.titus.runtime.connector.common.reactor.ReactorToGrpcClientFactory;
-import com.netflix.titus.runtime.connector.eviction.EvictionServiceClient;
-import com.netflix.titus.runtime.connector.eviction.client.GrpcEvictionServiceClient;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.runtime.connector.jobmanager.client.GrpcJobManagementClient;
-import com.netflix.titus.runtime.endpoint.common.grpc.ReactorGrpcClientAdapterFactory;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import io.grpc.stub.AbstractStub;
 import org.springframework.context.annotation.Bean;
@@ -64,11 +60,5 @@ public class MasterConnectorComponent {
                                                       JobManagementServiceStub clientStub,
                                                       CallMetadataResolver callMetadataResolver) {
         return new GrpcJobManagementClient(clientStub, callMetadataResolver, configuration);
-    }
-
-    @Bean
-    public EvictionServiceClient getEvictionServiceClient(ReactorGrpcClientAdapterFactory grpcClientAdapterFactory,
-                                                          EvictionServiceStub clientStub) {
-        return new GrpcEvictionServiceClient(grpcClientAdapterFactory, clientStub);
     }
 }

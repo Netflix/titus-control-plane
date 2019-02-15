@@ -25,15 +25,12 @@ import javax.inject.Singleton;
 
 import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
-import com.netflix.titus.grpc.protogen.EvictionServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceBlockingStub;
 import com.netflix.titus.runtime.connector.agent.ReactorAgentManagementServiceStub;
 import com.netflix.titus.runtime.connector.common.reactor.ReactorToGrpcClientBuilder;
 import com.netflix.titus.runtime.connector.eviction.EvictionServiceClient;
-import com.netflix.titus.runtime.connector.eviction.client.GrpcEvictionServiceClient;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
-import com.netflix.titus.runtime.endpoint.common.grpc.ReactorGrpcClientAdapterFactory;
 import com.netflix.titus.simulator.SimulatedAgentServiceGrpc;
 import com.netflix.titus.simulator.SimulatedAgentServiceGrpc.SimulatedAgentServiceStub;
 import com.netflix.titus.testkit.embedded.cloud.connector.remote.SimulatedAgentClient;
@@ -56,7 +53,7 @@ public class ExecutionContext {
     private final ReactorAgentManagementServiceStub agentManagementClient;
     private final ReadOnlyAgentOperations cachedAgentManagementClient;
 
-    private final GrpcEvictionServiceClient evictionServiceClient;
+    private final EvictionServiceClient evictionServiceClient;
 
     private final SimulatedAgentClient simulatedCloudClient;
 
@@ -65,9 +62,9 @@ public class ExecutionContext {
                             ReadOnlyJobOperations cachedJobManagementClient,
                             ReactorAgentManagementServiceStub agentManagementClient,
                             ReadOnlyAgentOperations cachedAgentManagementClient,
+                            EvictionServiceClient evictionServiceClient,
                             Channel titusGrpcChannel,
-                            @Named(SimulatedRemoteInstanceCloudConnector.SIMULATED_CLOUD) Channel cloudSimulatorGrpcChannel,
-                            ReactorGrpcClientAdapterFactory grpcClientAdapterFactory) {
+                            @Named(SimulatedRemoteInstanceCloudConnector.SIMULATED_CLOUD) Channel cloudSimulatorGrpcChannel) {
         this.sessionId = "session$" + TIMESTAMP_FORMATTER.format(Instant.now());
 
         this.jobManagementClient = jobManagementClient;
@@ -75,10 +72,7 @@ public class ExecutionContext {
         this.agentManagementClient = agentManagementClient;
         this.cachedAgentManagementClient = cachedAgentManagementClient;
         this.jobManagementClientBlocking = JobManagementServiceGrpc.newBlockingStub(titusGrpcChannel);
-        this.evictionServiceClient = new GrpcEvictionServiceClient(
-                grpcClientAdapterFactory,
-                EvictionServiceGrpc.newStub(titusGrpcChannel)
-        );
+        this.evictionServiceClient = evictionServiceClient;
 
         SimulatedAgentServiceStub simulatedCloudClientStub = SimulatedAgentServiceGrpc.newStub(cloudSimulatorGrpcChannel);
         this.simulatedCloudClient = ReactorToGrpcClientBuilder
