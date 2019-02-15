@@ -52,7 +52,7 @@ import com.netflix.titus.grpc.protogen.SupervisorServiceGrpc;
 import com.netflix.titus.grpc.protogen.TaskRelocationServiceGrpc;
 import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
 import com.netflix.titus.runtime.connector.common.reactor.ReactorToGrpcClientBuilder;
-import com.netflix.titus.runtime.connector.common.reactor.ReactorToGrpcClientFactory;
+import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorClientFactory;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import io.grpc.Channel;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
@@ -120,9 +120,9 @@ public class TitusMasterConnectorModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public ReactorToGrpcClientFactory getReactorGrpcClientAdapterFactory(GrpcClientConfiguration configuration,
+    public GrpcToReactorClientFactory getReactorGrpcClientAdapterFactory(GrpcClientConfiguration configuration,
                                                                          CallMetadataResolver callMetadataResolver) {
-        return new ReactorToGrpcClientFactory() {
+        return new GrpcToReactorClientFactory() {
             @Override
             public <GRPC_STUB extends AbstractStub<GRPC_STUB>, REACT_API> REACT_API apply(GRPC_STUB stub, Class<REACT_API> apiType) {
                 return ReactorToGrpcClientBuilder

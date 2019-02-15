@@ -25,6 +25,7 @@ import javax.inject.Singleton;
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
+import com.netflix.titus.api.agent.model.InstanceGroupLifecycleStatus;
 import com.netflix.titus.api.agent.model.event.AgentEvent;
 import com.netflix.titus.api.model.Page;
 import com.netflix.titus.api.model.PageResult;
@@ -99,10 +100,11 @@ public class RemoteAgentManagementClient implements AgentManagementClient {
     }
 
     @Override
-    public Mono<Void> updateInstanceGroupLifecycleState(String instanceGroupId, InstanceGroupLifecycleState lifecycleState) {
+    public Mono<Void> updateInstanceGroupLifecycleStatus(String instanceGroupId, InstanceGroupLifecycleStatus lifecycleStatus) {
         return stub.updateInstanceGroupLifecycleState(InstanceGroupLifecycleStateUpdate.newBuilder()
                 .setInstanceGroupId(instanceGroupId)
-                .setLifecycleState(GrpcAgentModelConverters.toGrpcLifecycleState(lifecycleState))
+                .setLifecycleState(GrpcAgentModelConverters.toGrpcLifecycleState(lifecycleStatus.getState()))
+                .setDetail(lifecycleStatus.getDetail())
                 .build()
         );
     }

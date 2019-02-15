@@ -20,8 +20,6 @@ import java.util.concurrent.CountDownLatch;
 
 import com.netflix.titus.testkit.cli.CliCommand;
 import com.netflix.titus.testkit.cli.CommandContext;
-import com.netflix.titus.testkit.rx.RxGrpcAgentManagementService;
-import com.netflix.titus.testkit.util.PrettyPrinters;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -62,11 +60,11 @@ public class AgentServerGroupGetCommand implements CliCommand {
 
     private void getServerGroup(CommandContext context, String id) throws InterruptedException {
         CountDownLatch latch = new CountDownLatch(1);
-        new RxGrpcAgentManagementService(context.createChannel())
+        context.getAgentManagementClient()
                 .getInstanceGroup(id)
-                .doOnUnsubscribe(latch::countDown)
+                .doOnSubscribe(s -> latch.countDown())
                 .subscribe(
-                        result -> logger.info("Found agent server group: " + PrettyPrinters.print(result)),
+                        result -> logger.info("Found agent server group: {}", result),
                         e -> logger.error("Command execution error", e)
                 );
         latch.await();
@@ -74,11 +72,11 @@ public class AgentServerGroupGetCommand implements CliCommand {
 
     private void getServerGroups(CommandContext context) throws InterruptedException {
         CountDownLatch latch = new CountDownLatch(1);
-        new RxGrpcAgentManagementService(context.createChannel())
+        context.getAgentManagementClient()
                 .getInstanceGroups()
-                .doOnUnsubscribe(latch::countDown)
+                .doOnSubscribe(s -> latch.countDown())
                 .subscribe(
-                        result -> logger.info("Found agent server group: " + PrettyPrinters.print(result)),
+                        result -> logger.info("Found agent server group: {}", result),
                         e -> logger.error("Command execution error", e)
                 );
         latch.await();

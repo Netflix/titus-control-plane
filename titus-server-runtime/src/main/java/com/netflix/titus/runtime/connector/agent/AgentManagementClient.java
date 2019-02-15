@@ -21,7 +21,7 @@ import java.util.Map;
 
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
-import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
+import com.netflix.titus.api.agent.model.InstanceGroupLifecycleStatus;
 import com.netflix.titus.api.agent.model.event.AgentEvent;
 import com.netflix.titus.api.model.Page;
 import com.netflix.titus.api.model.PageResult;
@@ -41,7 +41,7 @@ public interface AgentManagementClient {
 
     Mono<Void> updateInstanceGroupTier(String instanceGroupId, Tier tier);
 
-    Mono<Void> updateInstanceGroupLifecycleState(String instanceGroupId, InstanceGroupLifecycleState lifecycleState);
+    Mono<Void> updateInstanceGroupLifecycleStatus(String instanceGroupId, InstanceGroupLifecycleStatus lifecycleStatus);
 
     Mono<Void> updateInstanceGroupAttributes(String instanceGroupId, Map<String, String> attributes);
 

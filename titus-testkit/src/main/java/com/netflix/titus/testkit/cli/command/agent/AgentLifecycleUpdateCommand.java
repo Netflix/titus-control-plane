@@ -16,12 +16,11 @@
 
 package com.netflix.titus.testkit.cli.command.agent;
 
+import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
+import com.netflix.titus.api.agent.model.InstanceGroupLifecycleStatus;
 import com.netflix.titus.common.util.StringExt;
-import com.netflix.titus.grpc.protogen.InstanceGroupLifecycleState;
-import com.netflix.titus.grpc.protogen.InstanceGroupLifecycleStateUpdate;
 import com.netflix.titus.testkit.cli.CliCommand;
 import com.netflix.titus.testkit.cli.CommandContext;
-import com.netflix.titus.testkit.rx.RxGrpcAgentManagementService;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -53,22 +52,23 @@ public class AgentLifecycleUpdateCommand implements CliCommand {
     }
 
     @Override
-    public void execute(CommandContext context) throws Exception {
+    public void execute(CommandContext context) {
         CommandLine cli = context.getCLI();
         String id = cli.getOptionValue('i');
         InstanceGroupLifecycleState lifecycleState = StringExt.parseEnumIgnoreCase(cli.getOptionValue('s'), InstanceGroupLifecycleState.class);
 
-        Throwable error = new RxGrpcAgentManagementService(context.createChannel())
-                .updateLifecycle(InstanceGroupLifecycleStateUpdate.newBuilder()
-                        .setInstanceGroupId(id)
-                        .setLifecycleState(lifecycleState)
-                        .setDetail("Lifecycle update done by: " + System.getProperty("user.name"))
-                        .build()
-                ).get();
-        if (error == null) {
-            logger.info("Updated");
-        } else {
+        try {
+            context.getAgentManagementClient()
+                    .updateInstanceGroupLifecycleStatus(
+                            id,
+                            InstanceGroupLifecycleStatus.newBuilder()
+                                    .withState(lifecycleState)
+                                    .withDetail("Lifecycle update done by: " + System.getProperty("user.name"))
+                                    .build()
+                    ).block();
+        } catch (Exception error) {
             logger.error("Failure", error);
         }
+        logger.info("Updated");
     }
 }

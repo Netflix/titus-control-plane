@@ -21,7 +21,7 @@ import java.time.Duration;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
 import com.netflix.titus.grpc.protogen.TaskRelocationServiceGrpc;
 import com.netflix.titus.runtime.connector.common.reactor.ReactorToGrpcClientBuilder;
-import com.netflix.titus.runtime.connector.common.reactor.ReactorToGrpcClientFactory;
+import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorClientFactory;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.runtime.connector.jobmanager.client.GrpcJobManagementClient;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
@@ -39,9 +39,9 @@ public class MasterConnectorComponent {
     }
 
     @Bean
-    public ReactorToGrpcClientFactory getReactorGrpcClientAdapterFactory(GrpcClientConfiguration configuration,
+    public GrpcToReactorClientFactory getReactorGrpcClientAdapterFactory(GrpcClientConfiguration configuration,
                                                                          CallMetadataResolver callMetadataResolver) {
-        return new ReactorToGrpcClientFactory() {
+        return new GrpcToReactorClientFactory() {
             @Override
             public <GRPC_STUB extends AbstractStub<GRPC_STUB>, REACT_API> REACT_API apply(GRPC_STUB stub, Class<REACT_API> apiType) {
                 return ReactorToGrpcClientBuilder

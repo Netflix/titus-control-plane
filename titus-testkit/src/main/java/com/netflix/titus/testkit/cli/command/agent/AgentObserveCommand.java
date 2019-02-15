@@ -20,8 +20,6 @@ import java.util.concurrent.CountDownLatch;
 
 import com.netflix.titus.testkit.cli.CliCommand;
 import com.netflix.titus.testkit.cli.CommandContext;
-import com.netflix.titus.testkit.rx.RxGrpcAgentManagementService;
-import com.netflix.titus.testkit.util.PrettyPrinters;
 import org.apache.commons.cli.Options;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,11 +46,11 @@ public class AgentObserveCommand implements CliCommand {
     @Override
     public void execute(CommandContext context) throws Exception {
         CountDownLatch latch = new CountDownLatch(1);
-        new RxGrpcAgentManagementService(context.createChannel())
+        context.getAgentManagementClient()
                 .observeAgents()
-                .doOnUnsubscribe(latch::countDown)
+                .doOnSubscribe(s -> latch.countDown())
                 .subscribe(
-                        result -> logger.info("Agent event: " + PrettyPrinters.print(result)),
+                        result -> logger.info("Agent event: {}", result),
                         e -> logger.error("Command execution error", e)
                 );
         latch.await();

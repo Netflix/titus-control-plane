@@ -19,7 +19,7 @@ package com.netflix.titus.runtime.connector.eviction;
 import javax.inject.Named;
 
 import com.netflix.titus.grpc.protogen.EvictionServiceGrpc;
-import com.netflix.titus.runtime.connector.common.reactor.ReactorToGrpcClientFactory;
+import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorClientFactory;
 import com.netflix.titus.runtime.connector.titusmaster.TitusMasterConnectorModule;
 import io.grpc.Channel;
 import org.springframework.context.annotation.Bean;
@@ -29,7 +29,7 @@ import org.springframework.context.annotation.Configuration;
 public class EvictionConnectorComponent {
 
     @Bean
-    public ReactorEvictionServiceStub getReactorEvictionServiceStub(ReactorToGrpcClientFactory factory,
+    public ReactorEvictionServiceStub getReactorEvictionServiceStub(GrpcToReactorClientFactory factory,
                                                                     @Named(TitusMasterConnectorModule.MANAGED_CHANNEL_NAME) Channel channel) {
         return factory.apply(EvictionServiceGrpc.newStub(channel), ReactorEvictionServiceStub.class);
     }

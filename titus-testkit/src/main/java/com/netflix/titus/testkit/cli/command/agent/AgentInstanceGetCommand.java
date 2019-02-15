@@ -16,13 +16,12 @@
 
 package com.netflix.titus.testkit.cli.command.agent;
 
+import java.util.Collections;
 import java.util.concurrent.CountDownLatch;
 
-import com.netflix.titus.grpc.protogen.AgentQuery;
+import com.netflix.titus.api.model.Page;
 import com.netflix.titus.testkit.cli.CliCommand;
 import com.netflix.titus.testkit.cli.CommandContext;
-import com.netflix.titus.testkit.rx.RxGrpcAgentManagementService;
-import com.netflix.titus.testkit.util.PrettyPrinters;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -63,11 +62,11 @@ public class AgentInstanceGetCommand implements CliCommand {
 
     private void getInstance(CommandContext context, String id) throws InterruptedException {
         CountDownLatch latch = new CountDownLatch(1);
-        new RxGrpcAgentManagementService(context.createChannel())
+        context.getAgentManagementClient()
                 .getAgentInstance(id)
-                .doOnUnsubscribe(latch::countDown)
+                .doOnSubscribe(s -> latch.countDown())
                 .subscribe(
-                        result -> logger.info("Found agent: " + PrettyPrinters.print(result)),
+                        result -> logger.info("Found agent: {}", result),
                         e -> logger.error("Command execution error", e)
                 );
         latch.await();
@@ -75,11 +74,11 @@ public class AgentInstanceGetCommand implements CliCommand {
 
     private void getInstances(CommandContext context) throws InterruptedException {
         CountDownLatch latch = new CountDownLatch(1);
-        new RxGrpcAgentManagementService(context.createChannel())
-                .findAgentInstances(AgentQuery.getDefaultInstance())
-                .doOnUnsubscribe(latch::countDown)
+        context.getAgentManagementClient()
+                .findAgentInstances(Collections.emptyMap(), Page.unlimited())
+                .doOnSubscribe(s -> latch.countDown())
                 .subscribe(
-                        result -> logger.info("Found agent instances: " + PrettyPrinters.print(result)),
+                        result -> logger.info("Found agent instances: {}", result),
                         e -> logger.error("Command execution error", e)
                 );
         latch.await();

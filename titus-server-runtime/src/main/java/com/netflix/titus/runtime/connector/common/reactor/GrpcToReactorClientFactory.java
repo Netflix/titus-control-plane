@@ -18,7 +18,7 @@ package com.netflix.titus.runtime.connector.common.reactor;
 
 import io.grpc.stub.AbstractStub;
 
-public interface ReactorToGrpcClientFactory {
+public interface GrpcToReactorClientFactory {
 
     <GRPC_STUB extends AbstractStub<GRPC_STUB>, REACT_API> REACT_API apply(GRPC_STUB stub, Class<REACT_API> apiType);
 }
