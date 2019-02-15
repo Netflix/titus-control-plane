@@ -24,6 +24,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
@@ -56,7 +57,7 @@ public class KillInitiatedActions {
     /**
      * Move job to {@link JobState#KillInitiated} state in reference, running and store models.
      */
-    public static TitusChangeAction initiateJobKillAction(ReconciliationEngine<JobManagerReconcilerEvent> engine, JobStore titusStore, String reason) {
+    public static TitusChangeAction initiateJobKillAction(ReconciliationEngine<JobManagerReconcilerEvent> engine, JobStore titusStore, String reason, CallMetadata callMetadata) {
         String reasonMessage = String.format("Changing job state to KillInitiated (reason:%s)", reason);
         return TitusChangeAction.newAction("initiateJobKillAction")
                 .id(engine.getReferenceView().getId())
@@ -195,7 +196,8 @@ public class KillInitiatedActions {
                         jobStore,
                         V3JobOperations.Trigger.Reconciler,
                         reason,
-                        titusRuntime
+                        titusRuntime,
+                        CallMetadata.newBuilder().withCallerId("scheduler").build()
                 ));
             }
         });

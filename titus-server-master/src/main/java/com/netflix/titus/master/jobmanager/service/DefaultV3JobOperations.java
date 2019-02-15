@@ -281,7 +281,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
     }
 
     @Override
-    public Completable recordTaskPlacement(String taskId, Function<Task, Task> changeFunction) {
+    public Completable recordTaskPlacement(String taskId, Function<Task, Task> changeFunction, CallMetadata callMetadata) {
         Optional<ReconciliationEngine<JobManagerReconcilerEvent>> engineOpt = reconciliationFramework.findEngineByChildId(taskId).map(Pair::getLeft);
         if (!engineOpt.isPresent()) {
             return Completable.error(JobManagerException.taskNotFound(taskId));
@@ -346,7 +346,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
             if (serviceJob.getJobDescriptor().getExtensions().isEnabled() == enabled) {
                 return Observable.empty();
             }
-            return engine.changeReferenceModel(BasicServiceJobActions.updateJobEnableStatus(engine, enabled, store));
+            return engine.changeReferenceModel(BasicServiceJobActions.updateJobEnableStatus(engine, enabled, store, callMetadata));
         });
     }
 
@@ -355,7 +355,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
         return Mono.fromCallable(() ->
                 reconciliationFramework.findEngineByRootId(jobId).orElseThrow(() -> JobManagerException.jobNotFound(jobId))
         ).flatMap(engine -> {
-            Observable<Void> observableAction = engine.changeReferenceModel(BasicJobActions.updateJobDisruptionBudget(engine, disruptionBudget, store));
+            Observable<Void> observableAction = engine.changeReferenceModel(BasicJobActions.updateJobDisruptionBudget(engine, disruptionBudget, store, callMetadata));
             return ReactorExt.toMono(observableAction);
         });
     }
@@ -369,7 +369,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
                     if (jobState == JobState.KillInitiated || jobState == JobState.Finished) {
                         return Observable.<Void>error(JobManagerException.jobTerminating(job));
                     }
-                    return engine.changeReferenceModel(KillInitiatedActions.initiateJobKillAction(engine, store, reason));
+                    return engine.changeReferenceModel(KillInitiatedActions.initiateJobKillAction(engine, store, reason, callMetadata));
                 })
                 .orElse(Observable.error(JobManagerException.jobNotFound(jobId)));
     }

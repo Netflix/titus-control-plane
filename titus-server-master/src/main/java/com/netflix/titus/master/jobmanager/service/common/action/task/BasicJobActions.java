@@ -18,6 +18,7 @@ package com.netflix.titus.master.jobmanager.service.common.action.task;
 
 import java.util.Optional;
 
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
@@ -57,7 +58,7 @@ public class BasicJobActions {
                 });
     }
 
-    public static ChangeAction updateJobDisruptionBudget(ReconciliationEngine<JobManagerReconcilerEvent> engine, DisruptionBudget disruptionBudget, JobStore jobStore) {
+    public static ChangeAction updateJobDisruptionBudget(ReconciliationEngine<JobManagerReconcilerEvent> engine, DisruptionBudget disruptionBudget, JobStore jobStore, CallMetadata callMetadata) {
         return TitusChangeAction.newAction("updateDisruptionBudget")
                 .id(engine.getReferenceView().getId())
                 .trigger(V3JobOperations.Trigger.API)
