@@ -18,15 +18,12 @@ package com.netflix.titus.testkit.perf.load;
 
 import com.google.inject.AbstractModule;
 import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
-import com.netflix.titus.runtime.endpoint.common.grpc.DefaultReactorGrpcClientAdapterFactory;
-import com.netflix.titus.runtime.endpoint.common.grpc.ReactorGrpcClientAdapterFactory;
 import com.netflix.titus.runtime.endpoint.metadata.AnonymousCallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 
 public class LoadModule extends AbstractModule {
     @Override
     protected void configure() {
-        bind(ReactorGrpcClientAdapterFactory.class).to(DefaultReactorGrpcClientAdapterFactory.class);
         bind(GrpcClientConfiguration.class).toInstance(new GrpcClientConfiguration() {
             @Override
             public String getHostname() {

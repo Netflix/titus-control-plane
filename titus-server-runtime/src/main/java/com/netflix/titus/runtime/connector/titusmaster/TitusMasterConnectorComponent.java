@@ -22,10 +22,6 @@ import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.EvictionServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.SupervisorServiceGrpc;
-import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
-import com.netflix.titus.runtime.endpoint.common.grpc.DefaultReactorGrpcClientAdapterFactory;
-import com.netflix.titus.runtime.endpoint.common.grpc.ReactorGrpcClientAdapterFactory;
-import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import io.grpc.Channel;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -39,12 +35,6 @@ public class TitusMasterConnectorComponent {
     @Bean
     public TitusMasterClientConfiguration getTitusMasterClientConfiguration(Environment environment) {
         return new TitusMasterClientConfigurationBean(environment);
-    }
-
-    @Bean
-    public ReactorGrpcClientAdapterFactory getReactorGrpcClientAdapterFactory(GrpcClientConfiguration configuration,
-                                                                              CallMetadataResolver callMetadataResolver) {
-        return new DefaultReactorGrpcClientAdapterFactory(configuration, callMetadataResolver);
     }
 
     @Bean
