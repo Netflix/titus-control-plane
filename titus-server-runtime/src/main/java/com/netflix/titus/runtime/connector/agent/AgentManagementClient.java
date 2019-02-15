@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,36 +16,36 @@
 
 package com.netflix.titus.runtime.connector.agent;
 
-import com.netflix.titus.grpc.protogen.AgentChangeEvent;
-import com.netflix.titus.grpc.protogen.AgentInstance;
-import com.netflix.titus.grpc.protogen.AgentInstanceAttributesUpdate;
-import com.netflix.titus.grpc.protogen.AgentInstanceGroup;
-import com.netflix.titus.grpc.protogen.AgentInstanceGroups;
-import com.netflix.titus.grpc.protogen.AgentInstances;
-import com.netflix.titus.grpc.protogen.AgentQuery;
-import com.netflix.titus.grpc.protogen.InstanceGroupAttributesUpdate;
-import com.netflix.titus.grpc.protogen.InstanceGroupLifecycleStateUpdate;
-import com.netflix.titus.grpc.protogen.TierUpdate;
-import rx.Completable;
-import rx.Observable;
+import java.util.List;
+import java.util.Map;
+
+import com.netflix.titus.api.agent.model.AgentInstance;
+import com.netflix.titus.api.agent.model.AgentInstanceGroup;
+import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
+import com.netflix.titus.api.agent.model.event.AgentEvent;
+import com.netflix.titus.api.model.Page;
+import com.netflix.titus.api.model.PageResult;
+import com.netflix.titus.api.model.Tier;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 public interface AgentManagementClient {
 
-    Observable<AgentInstanceGroups> getInstanceGroups();
+    Mono<List<AgentInstanceGroup>> getInstanceGroups();
 
-    Observable<AgentInstanceGroup> getInstanceGroup(String id);
+    Mono<AgentInstanceGroup> getInstanceGroup(String id);
 
-    Observable<AgentInstance> getAgentInstance(String id);
+    Mono<AgentInstance> getAgentInstance(String id);
 
-    Observable<AgentInstances> findAgentInstances(AgentQuery query);
+    Mono<PageResult<AgentInstance>> findAgentInstances(Map<String, String> filteringCriteria, Page page);
 
-    Completable updateInstanceGroupTier(TierUpdate tierUpdate);
+    Mono<Void> updateInstanceGroupTier(String instanceGroupId, Tier tier);
 
-    Completable updateInstanceGroupLifecycle(InstanceGroupLifecycleStateUpdate lifecycleStateUpdate);
+    Mono<Void> updateInstanceGroupLifecycleState(String instanceGroupId, InstanceGroupLifecycleState lifecycleState);
 
-    Completable updateInstanceGroupAttributes(InstanceGroupAttributesUpdate attributesUpdate);
+    Mono<Void> updateInstanceGroupAttributes(String instanceGroupId, Map<String, String> attributes);
 
-    Completable updateAgentInstanceAttributes(AgentInstanceAttributesUpdate attributesUpdate);
+    Mono<Void> updateAgentInstanceAttributes(String instanceId, Map<String, String> attributes);
 
-    Observable<AgentChangeEvent> observeAgents();
+    Flux<AgentEvent> observeAgents();
 }

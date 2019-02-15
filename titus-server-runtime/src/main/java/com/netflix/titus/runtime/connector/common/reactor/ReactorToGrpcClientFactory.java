@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,16 +14,12 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.connector.relocation;
+package com.netflix.titus.runtime.connector.common.reactor;
 
-import com.netflix.titus.grpc.protogen.TaskRelocationPlans;
-import com.netflix.titus.grpc.protogen.TaskRelocationQuery;
-import reactor.core.publisher.Mono;
+import io.grpc.stub.AbstractStub;
 
-/**
- * Task relocation GRPC client with Spring/Reactor API.
- */
-public interface TransportRelocationServiceClient {
+public interface ReactorToGrpcClientFactory {
 
-    Mono<TaskRelocationPlans> getCurrentTaskRelocationPlans(TaskRelocationQuery query);
+    <GRPC_STUB extends AbstractStub<GRPC_STUB>, REACT_API> REACT_API apply(GRPC_STUB stub, Class<REACT_API> apiType);
 }
+

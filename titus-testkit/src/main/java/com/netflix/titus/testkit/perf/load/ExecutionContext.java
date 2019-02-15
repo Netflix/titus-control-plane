@@ -28,7 +28,7 @@ import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.grpc.protogen.EvictionServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceBlockingStub;
-import com.netflix.titus.runtime.connector.agent.AgentManagementClient;
+import com.netflix.titus.runtime.connector.agent.ReactorAgentManagementServiceStub;
 import com.netflix.titus.runtime.connector.common.reactor.ReactorToGrpcClientBuilder;
 import com.netflix.titus.runtime.connector.eviction.EvictionServiceClient;
 import com.netflix.titus.runtime.connector.eviction.client.GrpcEvictionServiceClient;
@@ -53,7 +53,7 @@ public class ExecutionContext {
     private final ReadOnlyJobOperations cachedJobManagementClient;
     private final JobManagementServiceBlockingStub jobManagementClientBlocking;
 
-    private final AgentManagementClient agentManagementClient;
+    private final ReactorAgentManagementServiceStub agentManagementClient;
     private final ReadOnlyAgentOperations cachedAgentManagementClient;
 
     private final GrpcEvictionServiceClient evictionServiceClient;
@@ -63,7 +63,7 @@ public class ExecutionContext {
     @Inject
     public ExecutionContext(JobManagementClient jobManagementClient,
                             ReadOnlyJobOperations cachedJobManagementClient,
-                            AgentManagementClient agentManagementClient,
+                            ReactorAgentManagementServiceStub agentManagementClient,
                             ReadOnlyAgentOperations cachedAgentManagementClient,
                             Channel titusGrpcChannel,
                             @Named(SimulatedRemoteInstanceCloudConnector.SIMULATED_CLOUD) Channel cloudSimulatorGrpcChannel,
@@ -102,7 +102,7 @@ public class ExecutionContext {
         return jobManagementClientBlocking;
     }
 
-    public AgentManagementClient getAgentManagementClient() {
+    public ReactorAgentManagementServiceStub getAgentManagementClient() {
         return agentManagementClient;
     }
 

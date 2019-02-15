@@ -24,23 +24,23 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.event.AgentEvent;
+import com.netflix.titus.api.agent.model.event.AgentInstanceGroupRemovedEvent;
+import com.netflix.titus.api.agent.model.event.AgentInstanceGroupUpdateEvent;
+import com.netflix.titus.api.agent.model.event.AgentInstanceRemovedEvent;
+import com.netflix.titus.api.agent.model.event.AgentInstanceUpdateEvent;
 import com.netflix.titus.api.agent.model.event.AgentSnapshotEndEvent;
 import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.common.util.rx.ReactorExt;
-import com.netflix.titus.grpc.protogen.AgentChangeEvent;
 import com.netflix.titus.runtime.connector.agent.AgentManagementClient;
 import com.netflix.titus.runtime.connector.agent.AgentSnapshot;
 import com.netflix.titus.runtime.connector.common.replicator.AbstractReplicatorEventStream;
 import com.netflix.titus.runtime.connector.common.replicator.DataReplicatorMetrics;
 import com.netflix.titus.runtime.connector.common.replicator.ReplicatorEvent;
-import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcAgentModelConverters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Scheduler;
-
-import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcAgentModelConverters.toCoreEvent;
 
 public class GrpcAgentReplicatorEventStream extends AbstractReplicatorEventStream<AgentSnapshot, AgentEvent> {
 
@@ -61,37 +61,32 @@ public class GrpcAgentReplicatorEventStream extends AbstractReplicatorEventStrea
         return Flux.defer(() -> {
             CacheUpdater cacheUpdater = new CacheUpdater();
             logger.info("Connecting to the agent event stream...");
-            return ReactorExt.toFlux(client.observeAgents()).flatMap(cacheUpdater::onEvent);
+            return client.observeAgents().flatMap(cacheUpdater::onEvent);
         });
     }
 
     private class CacheUpdater {
 
-        private final Map<String, AgentChangeEvent> snapshotEvents = new HashMap<>();
+        private final Map<String, AgentEvent> snapshotEvents = new HashMap<>();
         private final AtomicReference<AgentSnapshot> lastAgentSnapshotRef = new AtomicReference<>();
 
-        private Flux<ReplicatorEvent<AgentSnapshot, AgentEvent>> onEvent(AgentChangeEvent event) {
+        private Flux<ReplicatorEvent<AgentSnapshot, AgentEvent>> onEvent(AgentEvent event) {
             try {
                 if (lastAgentSnapshotRef.get() != null) {
                     return processSnapshotUpdate(event);
                 }
-                if (event.getEventCase() == AgentChangeEvent.EventCase.SNAPSHOTEND) {
+                if (event instanceof AgentSnapshotEndEvent) {
                     return buildInitialCache();
                 }
 
-                switch (event.getEventCase()) {
-                    case INSTANCEGROUPUPDATE:
-                        snapshotEvents.put(event.getInstanceGroupUpdate().getInstanceGroup().getId(), event);
-                        break;
-                    case INSTANCEGROUPREMOVED:
-                        snapshotEvents.remove(event.getInstanceGroupRemoved().getInstanceGroupId());
-                        break;
-                    case AGENTINSTANCEUPDATE:
-                        snapshotEvents.put(event.getAgentInstanceUpdate().getInstance().getId(), event);
-                        break;
-                    case AGENTINSTANCEREMOVED:
-                        snapshotEvents.remove(event.getInstanceGroupRemoved().getInstanceGroupId(), event);
-                        break;
+                if (event instanceof AgentInstanceGroupUpdateEvent) {
+                    snapshotEvents.put(((AgentInstanceGroupUpdateEvent) event).getAgentInstanceGroup().getId(), event);
+                } else if (event instanceof AgentInstanceGroupRemovedEvent) {
+                    snapshotEvents.remove(((AgentInstanceGroupRemovedEvent) event).getInstanceGroupId());
+                } else if (event instanceof AgentInstanceUpdateEvent) {
+                    snapshotEvents.put(((AgentInstanceUpdateEvent) event).getAgentInstance().getId(), event);
+                } else if (event instanceof AgentInstanceRemovedEvent) {
+                    snapshotEvents.remove(((AgentInstanceRemovedEvent) event).getAgentInstanceId(), event);
                 }
             } catch (Exception e) {
                 logger.warn("Unexpected error when handling the agent change notification: {}", event, e);
@@ -105,14 +100,11 @@ public class GrpcAgentReplicatorEventStream extends AbstractReplicatorEventStrea
             Map<String, List<com.netflix.titus.api.agent.model.AgentInstance>> instancesByGroupId = new HashMap<>();
 
             snapshotEvents.forEach((id, event) -> {
-                switch (event.getEventCase()) {
-                    case INSTANCEGROUPUPDATE:
-                        instanceGroupsById.put(id, GrpcAgentModelConverters.toCoreAgentInstanceGroup(event.getInstanceGroupUpdate().getInstanceGroup()));
-                        break;
-                    case AGENTINSTANCEUPDATE:
-                        com.netflix.titus.api.agent.model.AgentInstance instance = GrpcAgentModelConverters.toCoreAgentInstance(event.getAgentInstanceUpdate().getInstance());
-                        instancesByGroupId.computeIfAbsent(instance.getInstanceGroupId(), gid -> new ArrayList<>()).add(instance);
-                        break;
+                if (event instanceof AgentInstanceGroupUpdateEvent) {
+                    instanceGroupsById.put(id, ((AgentInstanceGroupUpdateEvent) event).getAgentInstanceGroup());
+                } else if (event instanceof AgentInstanceUpdateEvent) {
+                    AgentInstance instance = ((AgentInstanceUpdateEvent) event).getAgentInstance();
+                    instancesByGroupId.computeIfAbsent(instance.getInstanceGroupId(), gid -> new ArrayList<>()).add(instance);
                 }
             });
 
@@ -127,28 +119,23 @@ public class GrpcAgentReplicatorEventStream extends AbstractReplicatorEventStrea
             return Flux.just(new ReplicatorEvent<>(initialSnapshot, AgentSnapshotEndEvent.snapshotEnd(), titusRuntime.getClock().wallTime()));
         }
 
-        private Flux<ReplicatorEvent<AgentSnapshot, AgentEvent>> processSnapshotUpdate(AgentChangeEvent event) {
+        private Flux<ReplicatorEvent<AgentSnapshot, AgentEvent>> processSnapshotUpdate(AgentEvent event) {
             AgentSnapshot lastSnapshot = lastAgentSnapshotRef.get();
             Optional<AgentSnapshot> newSnapshot;
-            switch (event.getEventCase()) {
-                case INSTANCEGROUPUPDATE:
-                    newSnapshot = lastSnapshot.updateInstanceGroup(GrpcAgentModelConverters.toCoreAgentInstanceGroup(event.getInstanceGroupUpdate().getInstanceGroup()));
-                    break;
-                case INSTANCEGROUPREMOVED:
-                    newSnapshot = lastSnapshot.removeInstanceGroup(event.getInstanceGroupRemoved().getInstanceGroupId());
-                    break;
-                case AGENTINSTANCEUPDATE:
-                    newSnapshot = lastSnapshot.updateInstance(GrpcAgentModelConverters.toCoreAgentInstance(event.getAgentInstanceUpdate().getInstance()));
-                    break;
-                case AGENTINSTANCEREMOVED:
-                    newSnapshot = lastSnapshot.removeInstance(event.getAgentInstanceRemoved().getInstanceId());
-                    break;
-                default:
-                    newSnapshot = Optional.empty();
+            if (event instanceof AgentInstanceGroupUpdateEvent) {
+                newSnapshot = lastSnapshot.updateInstanceGroup(((AgentInstanceGroupUpdateEvent) event).getAgentInstanceGroup());
+            } else if (event instanceof AgentInstanceGroupRemovedEvent) {
+                newSnapshot = lastSnapshot.removeInstanceGroup(((AgentInstanceGroupRemovedEvent) event).getInstanceGroupId());
+            } else if (event instanceof AgentInstanceUpdateEvent) {
+                newSnapshot = lastSnapshot.updateInstance(((AgentInstanceUpdateEvent) event).getAgentInstance());
+            } else if (event instanceof AgentInstanceRemovedEvent) {
+                newSnapshot = lastSnapshot.removeInstance(((AgentInstanceRemovedEvent) event).getAgentInstanceId());
+            } else {
+                newSnapshot = Optional.empty();
             }
             if (newSnapshot.isPresent()) {
                 lastAgentSnapshotRef.set(newSnapshot.get());
-                return Flux.just(new ReplicatorEvent<>(newSnapshot.get(), toCoreEvent(event).get(), titusRuntime.getClock().wallTime()));
+                return Flux.just(new ReplicatorEvent<>(newSnapshot.get(), event, titusRuntime.getClock().wallTime()));
             }
             return Flux.empty();
         }

@@ -14,17 +14,16 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.endpoint.common.grpc;
+package com.netflix.titus.runtime.connector.relocation;
 
-import io.grpc.stub.AbstractStub;
+import com.netflix.titus.grpc.protogen.TaskRelocationPlans;
+import com.netflix.titus.grpc.protogen.TaskRelocationQuery;
+import reactor.core.publisher.Mono;
 
 /**
- * Factory for {@link ReactorGrpcClientAdapter}.
- *
- * @deprecated by {@link com.netflix.titus.runtime.connector.common.reactor.ReactorToGrpcClientFactory}
+ * Task relocation GRPC client with Spring/Reactor API.
  */
-@Deprecated
-public interface ReactorGrpcClientAdapterFactory {
+public interface ReactorRelocationServiceStub {
 
-    <CLIENT extends AbstractStub<CLIENT>> ReactorGrpcClientAdapter<CLIENT> newAdapter(CLIENT client);
+    Mono<TaskRelocationPlans> getCurrentTaskRelocationPlans(TaskRelocationQuery query);
 }

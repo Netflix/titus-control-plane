@@ -21,29 +21,29 @@ import javax.inject.Singleton;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
-import com.netflix.titus.runtime.connector.agent.client.GrpcAgentManagementClient;
 import com.netflix.titus.gateway.service.v3.internal.DefaultAutoScalingService;
 import com.netflix.titus.gateway.service.v3.internal.DefaultHealthService;
-import com.netflix.titus.gateway.service.v3.internal.GatewayJobManagementClient;
 import com.netflix.titus.gateway.service.v3.internal.DefaultLoadBalancerService;
 import com.netflix.titus.gateway.service.v3.internal.DefaultSchedulerService;
 import com.netflix.titus.gateway.service.v3.internal.DefaultTitusManagementService;
+import com.netflix.titus.gateway.service.v3.internal.GatewayJobManagementClient;
 import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
-import com.netflix.titus.runtime.connector.agent.AgentManagementClient;
-import com.netflix.titus.runtime.service.AutoScalingService;
+import com.netflix.titus.runtime.connector.agent.AgentManagerConnectorModule;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
+import com.netflix.titus.runtime.service.AutoScalingService;
 import com.netflix.titus.runtime.service.HealthService;
 import com.netflix.titus.runtime.service.LoadBalancerService;
 
 public class V3ServiceModule extends AbstractModule {
     @Override
     protected void configure() {
+        install(new AgentManagerConnectorModule());
+
         bind(HealthService.class).to(DefaultHealthService.class);
         bind(JobManagementClient.class).to(GatewayJobManagementClient.class);
         bind(AutoScalingService.class).to(DefaultAutoScalingService.class);
         bind(LoadBalancerService.class).to(DefaultLoadBalancerService.class);
         bind(TitusManagementService.class).to(DefaultTitusManagementService.class);
-        bind(AgentManagementClient.class).to(GrpcAgentManagementClient.class);
         bind(SchedulerService.class).to(DefaultSchedulerService.class);
     }
 

@@ -33,7 +33,10 @@ import reactor.core.publisher.Mono;
 
 /**
  * This class provides utilities for bridging GRPC client calls with Reactor Rx streams.
+ *
+ * @deprecated by {@link com.netflix.titus.runtime.connector.common.reactor.ReactorToGrpcClientFactory}
  */
+@Deprecated
 public class ReactorGrpcClientAdapter<CLIENT extends AbstractStub<CLIENT>> {
 
     private static final String CANCELLING_MESSAGE = "Cancelling the call";

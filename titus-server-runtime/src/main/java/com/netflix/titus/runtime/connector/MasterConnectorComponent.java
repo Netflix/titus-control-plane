@@ -16,17 +16,20 @@
 
 package com.netflix.titus.runtime.connector;
 
-import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.AgentManagementServiceStub;
+import java.time.Duration;
+
 import com.netflix.titus.grpc.protogen.EvictionServiceGrpc.EvictionServiceStub;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
-import com.netflix.titus.runtime.connector.agent.AgentManagementClient;
-import com.netflix.titus.runtime.connector.agent.client.GrpcAgentManagementClient;
+import com.netflix.titus.grpc.protogen.TaskRelocationServiceGrpc;
+import com.netflix.titus.runtime.connector.common.reactor.ReactorToGrpcClientBuilder;
+import com.netflix.titus.runtime.connector.common.reactor.ReactorToGrpcClientFactory;
 import com.netflix.titus.runtime.connector.eviction.EvictionServiceClient;
 import com.netflix.titus.runtime.connector.eviction.client.GrpcEvictionServiceClient;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.runtime.connector.jobmanager.client.GrpcJobManagementClient;
 import com.netflix.titus.runtime.endpoint.common.grpc.ReactorGrpcClientAdapterFactory;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
+import io.grpc.stub.AbstractStub;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
@@ -40,10 +43,20 @@ public class MasterConnectorComponent {
     }
 
     @Bean
-    public AgentManagementClient getAgentManagementClient(GrpcClientConfiguration configuration,
-                                                          AgentManagementServiceStub clientStub,
-                                                          CallMetadataResolver callMetadataResolver) {
-        return new GrpcAgentManagementClient(configuration, clientStub, callMetadataResolver);
+    public ReactorToGrpcClientFactory getReactorGrpcClientAdapterFactory(GrpcClientConfiguration configuration,
+                                                                         CallMetadataResolver callMetadataResolver) {
+        return new ReactorToGrpcClientFactory() {
+            @Override
+            public <GRPC_STUB extends AbstractStub<GRPC_STUB>, REACT_API> REACT_API apply(GRPC_STUB stub, Class<REACT_API> apiType) {
+                return ReactorToGrpcClientBuilder
+                        .newBuilder(
+                                apiType, stub, TaskRelocationServiceGrpc.getServiceDescriptor()
+                        )
+                        .withCallMetadataResolver(callMetadataResolver)
+                        .withTimeout(Duration.ofMillis(configuration.getRequestTimeout()))
+                        .build();
+            }
+        };
     }
 
     @Bean

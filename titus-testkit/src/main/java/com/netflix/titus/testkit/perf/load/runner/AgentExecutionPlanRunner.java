@@ -164,21 +164,21 @@ public class AgentExecutionPlanRunner extends ExecutionPlanRunner {
     }
 
     private Observable<Void> changePartitionTier(ChangeTierStep step) {
-        Completable action = context.getAgentManagementClient().updateInstanceGroupTier(TierUpdate.newBuilder()
+        Mono<Void> action = context.getAgentManagementClient().updateInstanceGroupTier(TierUpdate.newBuilder()
                 .setInstanceGroupId(step.getPartition())
                 .setTier(Tier.valueOf(step.getTier().name()))
                 .build()
         );
-        return action.toObservable();
+        return ReactorExt.toObservable(action);
     }
 
     private Observable<Void> changePartitionLifecycle(ChangeLifecycleStateStep step) {
-        Completable action = context.getAgentManagementClient().updateInstanceGroupLifecycle(InstanceGroupLifecycleStateUpdate.newBuilder()
+        Mono<Void> action = context.getAgentManagementClient().updateInstanceGroupLifecycleState(InstanceGroupLifecycleStateUpdate.newBuilder()
                 .setInstanceGroupId(step.getPartition())
                 .setLifecycleState(InstanceGroupLifecycleState.valueOf(step.getLifecycleState().name()))
                 .setDetail("Change")
                 .build()
         );
-        return action.toObservable();
+        return ReactorExt.toObservable(action);
     }
 }

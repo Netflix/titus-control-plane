@@ -16,6 +16,7 @@
 
 package com.netflix.titus.runtime.connector.titusmaster;
 
+import java.time.Duration;
 import java.util.Collections;
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -49,10 +50,16 @@ import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc.LoadBalancerServi
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc.SchedulerServiceStub;
 import com.netflix.titus.grpc.protogen.SupervisorServiceGrpc;
+import com.netflix.titus.grpc.protogen.TaskRelocationServiceGrpc;
+import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
+import com.netflix.titus.runtime.connector.common.reactor.ReactorToGrpcClientBuilder;
+import com.netflix.titus.runtime.connector.common.reactor.ReactorToGrpcClientFactory;
 import com.netflix.titus.runtime.endpoint.common.grpc.DefaultReactorGrpcClientAdapterFactory;
 import com.netflix.titus.runtime.endpoint.common.grpc.ReactorGrpcClientAdapterFactory;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import io.grpc.Channel;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
+import io.grpc.stub.AbstractStub;
 import okhttp3.Interceptor;
 
 public class TitusMasterConnectorModule extends AbstractModule {
@@ -114,6 +121,24 @@ public class TitusMasterConnectorModule extends AbstractModule {
                 .usePlaintext(true)
                 .maxHeaderListSize(65536)
                 .build();
+    }
+
+    @Provides
+    @Singleton
+    public ReactorToGrpcClientFactory getReactorGrpcClientAdapterFactory(GrpcClientConfiguration configuration,
+                                                                         CallMetadataResolver callMetadataResolver) {
+        return new ReactorToGrpcClientFactory() {
+            @Override
+            public <GRPC_STUB extends AbstractStub<GRPC_STUB>, REACT_API> REACT_API apply(GRPC_STUB stub, Class<REACT_API> apiType) {
+                return ReactorToGrpcClientBuilder
+                        .newBuilder(
+                                apiType, stub, TaskRelocationServiceGrpc.getServiceDescriptor()
+                        )
+                        .withCallMetadataResolver(callMetadataResolver)
+                        .withTimeout(Duration.ofMillis(configuration.getRequestTimeout()))
+                        .build();
+            }
+        };
     }
 
     @Provides
