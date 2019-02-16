@@ -36,13 +36,14 @@ public class AwsAssumePrincipal {
 
     @JsonCreator
     public AwsAssumePrincipal(@JsonProperty("Principal") List<String> principals) {
-        this.principals = principals;
+        if (null == principals) {
+            this.principals = Collections.emptyList();
+        } else {
+            this.principals = principals;
+        }
     }
 
     public List<String> getPrincipals() {
-        if (null == principals) {
-            return Collections.emptyList();
-        }
         return principals;
     }
 
