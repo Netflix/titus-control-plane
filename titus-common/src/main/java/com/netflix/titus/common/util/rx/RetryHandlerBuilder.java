@@ -197,10 +197,12 @@ public final class RetryHandlerBuilder {
     }
 
     private long buildDelay(int retry) {
-        final long backOffTime = (1 << retry) * retryDelayMs;
-        if (backOffTime < 0) {
+        // at retry == 31, delay expression [ (1 << retry) * retryDelayMs ] causes overflows for long value
+        // hence we fall back to maxDelay for subsequent retries
+        if (retry > 30) {
             return maxDelay;
         }
+        final long backOffTime = (1 << retry) * retryDelayMs;
         return Math.min(maxDelay, backOffTime);
     }
 
