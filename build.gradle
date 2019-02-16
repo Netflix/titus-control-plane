@@ -123,6 +123,10 @@ subprojects {
         resolutionStrategy {
             force 'org.bouncycastle:bcprov-jdk15on:1.50'
         }
+
+        // We need to exclude logback as it clashes with other logging engines.
+        exclude group: 'ch.qos.logback', module: 'logback-classic'
+        exclude group: 'ch.qos.logback', module: 'logback-core'
     }
 
     dependencies {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,16 +14,21 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.ext.jooq.relocation;
+package com.netflix.titus.supplementary.jobactivity;
 
-import com.google.inject.AbstractModule;
-import com.netflix.titus.supplementary.relocation.store.TaskRelocationResultStore;
-import com.netflix.titus.supplementary.relocation.store.TaskRelocationStore;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.runtime.TitusRuntimes;
+import org.springframework.context.annotation.Bean;
+import org.springframework.stereotype.Component;
 
-public class JooqRelocationModule extends AbstractModule {
-    @Override
-    protected void configure() {
-        bind(TaskRelocationStore.class).to(JooqTaskRelocationStore.class);
-        bind(TaskRelocationResultStore.class).to(JooqTaskRelocationResultStore.class);
+@Component
+public class JobActivityRuntimeComponent {
+
+    private final TitusRuntime titusRuntime = TitusRuntimes.internal();
+
+    @Bean
+    public TitusRuntime getTitusRuntime() {
+        return titusRuntime;
     }
+
 }

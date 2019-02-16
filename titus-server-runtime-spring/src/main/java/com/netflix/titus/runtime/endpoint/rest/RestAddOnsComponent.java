@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.supplementary.relocation.endpoint.rest;
+package com.netflix.titus.runtime.endpoint.rest;
 
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.runtime.endpoint.metadata.SimpleHttpCallMetadataResolver;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
@@ -23,7 +24,12 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.converter.protobuf.ProtobufHttpMessageConverter;
 
 @Configuration
-public class TaskRelocationRestComponent {
+public class RestAddOnsComponent {
+
+    @Bean
+    public LocalSchedulerSpringResource getLocalSchedulerSpringResource(TitusRuntime titusRuntime) {
+        return new LocalSchedulerSpringResource(titusRuntime);
+    }
 
     @Bean
     public FilterRegistrationBean<SimpleHttpCallMetadataResolver.CallMetadataInterceptorFilter> CallMetadataInterceptorFilter(SimpleHttpCallMetadataResolver resolver) {

@@ -17,12 +17,12 @@
 package com.netflix.titus.testkit.client;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 
 import com.netflix.titus.api.endpoint.v2.rest.representation.ApplicationSlaRepresentation;
-import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.web.reactive.function.BodyInserters;
@@ -51,12 +51,13 @@ public class ReactorTitusMasterClient implements TitusMasterClient {
                 .uri("/api/v2/management/applications")
                 .body(BodyInserters.fromObject(applicationSLA))
                 .exchange()
+                .flatMap(response -> response.toEntity(String.class))
                 .flatMap(response -> {
-                    if (!response.statusCode().is2xxSuccessful()) {
-                        return Mono.error(new IOException("Errored with HTTP status code " + response.statusCode()));
+                    if (!response.getStatusCode().is2xxSuccessful()) {
+                        return Mono.error(new IOException("Errored with HTTP status code " + response.getStatusCode()));
                     }
-                    List<String> locationHeader = response.headers().header("Location");
-                    if (CollectionsExt.isNullOrEmpty(locationHeader)) {
+                    List<String> locationHeader = response.getHeaders().getOrDefault("Location", Collections.emptyList());
+                    if (locationHeader.isEmpty()) {
                         return Mono.error(new IOException("Location header not found in response"));
                     }
                     return Mono.just(locationHeader.get(0));

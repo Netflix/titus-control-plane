@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+// Job Activity History IDL
+//
+
+package com.netflix.titus;
+
+import "netflix/titus/titus_base.proto";
+import "netflix/titus/titus_job_api.proto";
+
+option java_multiple_files = true;
+option java_package = "com.netflix.titus.grpc.protogen";
+option java_outer_classname = "JobActivityHistoryProto";
+
+option go_package = "titus";
+
+// ----------------------------------------------------------------------------
+// Data model.
+
+message JobActivityRecord {
+
+    CallMetadata callMetadata = 1;
+
+    message Change {
+        Job job = 2;
+        Task task = 3;
+    }
+
+    uint64 timestamp = 4;
+}
+
+// ----------------------------------------------------------------------------
+// Service
+
+message JobActivityQuery {
+    string id = 1;
+}
+
+message JobActivityQueryResult {
+    repeated JobActivityRecord records = 1;
+}
+
+service JobActivityService {
+
+    /// Get all known TitusMaster instances.
+    rpc GetJobActivityRecords (JobActivityQuery) returns (JobActivityQueryResult) {
+    }
+}
