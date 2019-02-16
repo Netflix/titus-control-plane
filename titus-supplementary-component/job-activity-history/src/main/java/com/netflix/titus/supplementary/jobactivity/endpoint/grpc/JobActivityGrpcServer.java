@@ -23,11 +23,11 @@ import com.netflix.titus.runtime.endpoint.common.grpc.AbstractTitusGrpcServer;
 import com.netflix.titus.runtime.endpoint.common.grpc.GrpcEndpointConfiguration;
 
 @Singleton
-public class JobActivityHistoryGrpcServer extends AbstractTitusGrpcServer {
+public class JobActivityGrpcServer extends AbstractTitusGrpcServer {
 
     @Inject
-    public JobActivityHistoryGrpcServer(GrpcEndpointConfiguration configuration,
-                                        JobActivityGrpcService jobActivityGrpcService) {
+    public JobActivityGrpcServer(GrpcEndpointConfiguration configuration,
+                                 JobActivityGrpcService jobActivityGrpcService) {
         super(configuration, jobActivityGrpcService);
     }
 }

@@ -16,21 +16,15 @@
 
 package com.netflix.titus.supplementary.relocation;
 
-import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.runtime.connector.MasterConnectorComponent;
 import com.netflix.titus.runtime.connector.MasterDataReplicationComponent;
-import com.netflix.titus.runtime.connector.titusmaster.ConfigurationLeaderResolver;
-import com.netflix.titus.runtime.connector.titusmaster.LeaderNameResolverFactory;
-import com.netflix.titus.runtime.connector.titusmaster.LeaderResolver;
-import com.netflix.titus.runtime.connector.titusmaster.TitusMasterClientConfiguration;
+import com.netflix.titus.runtime.connector.titusmaster.ConfigurationLeaderResolverComponent;
 import com.netflix.titus.runtime.connector.titusmaster.TitusMasterConnectorComponent;
 import com.netflix.titus.runtime.endpoint.common.grpc.GrpcEndpointConfiguration;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolveComponent;
 import com.netflix.titus.runtime.endpoint.rest.RestAddOnsComponent;
 import com.netflix.titus.supplementary.relocation.endpoint.grpc.TaskRelocationGrpcServer;
 import com.netflix.titus.supplementary.relocation.endpoint.grpc.TaskRelocationGrpcService;
-import io.grpc.Channel;
-import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -39,27 +33,13 @@ import org.springframework.context.annotation.Import;
 @SpringBootApplication
 @Import({
         CallMetadataResolveComponent.class,
+        ConfigurationLeaderResolverComponent.class,
         TitusMasterConnectorComponent.class,
         MasterConnectorComponent.class,
         MasterDataReplicationComponent.class,
         RestAddOnsComponent.class
 })
 public class RelocationMain {
-
-    @Bean
-    public LeaderResolver getLeaderResolver(TitusMasterClientConfiguration configuration) {
-        return new ConfigurationLeaderResolver(configuration);
-    }
-
-    @Bean(name = TitusMasterConnectorComponent.TITUS_MASTER_CHANNEL)
-    public Channel getManagedChannel(TitusMasterClientConfiguration configuration, LeaderResolver leaderResolver, TitusRuntime titusRuntime) {
-        return NettyChannelBuilder
-                .forTarget("leader://titusmaster")
-                .nameResolverFactory(new LeaderNameResolverFactory(leaderResolver, configuration.getMasterGrpcPort(), titusRuntime))
-                .usePlaintext(true)
-                .maxHeaderListSize(65536)
-                .build();
-    }
 
     @Bean
     public TaskRelocationGrpcServer getTaskRelocationGrpcServer(GrpcEndpointConfiguration configuration,

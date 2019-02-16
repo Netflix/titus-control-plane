@@ -16,21 +16,15 @@
 
 package com.netflix.titus.supplementary.jobactivity;
 
-import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.runtime.connector.MasterConnectorComponent;
 import com.netflix.titus.runtime.connector.MasterDataReplicationComponent;
-import com.netflix.titus.runtime.connector.titusmaster.ConfigurationLeaderResolver;
-import com.netflix.titus.runtime.connector.titusmaster.LeaderNameResolverFactory;
-import com.netflix.titus.runtime.connector.titusmaster.LeaderResolver;
-import com.netflix.titus.runtime.connector.titusmaster.TitusMasterClientConfiguration;
+import com.netflix.titus.runtime.connector.titusmaster.ConfigurationLeaderResolverComponent;
 import com.netflix.titus.runtime.connector.titusmaster.TitusMasterConnectorComponent;
 import com.netflix.titus.runtime.endpoint.common.grpc.GrpcEndpointConfiguration;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolveComponent;
 import com.netflix.titus.runtime.endpoint.rest.RestAddOnsComponent;
 import com.netflix.titus.supplementary.jobactivity.endpoint.grpc.JobActivityGrpcService;
-import com.netflix.titus.supplementary.jobactivity.endpoint.grpc.JobActivityHistoryGrpcServer;
-import io.grpc.Channel;
-import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
+import com.netflix.titus.supplementary.jobactivity.endpoint.grpc.JobActivityGrpcServer;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -39,6 +33,7 @@ import org.springframework.context.annotation.Import;
 @SpringBootApplication
 @Import({
         CallMetadataResolveComponent.class,
+        ConfigurationLeaderResolverComponent.class,
         TitusMasterConnectorComponent.class,
         MasterConnectorComponent.class,
         MasterDataReplicationComponent.class,
@@ -47,24 +42,9 @@ import org.springframework.context.annotation.Import;
 public class JobActivityMain {
 
     @Bean
-    public LeaderResolver getLeaderResolver(TitusMasterClientConfiguration configuration) {
-        return new ConfigurationLeaderResolver(configuration);
-    }
-
-    @Bean(name = TitusMasterConnectorComponent.TITUS_MASTER_CHANNEL)
-    public Channel getManagedChannel(TitusMasterClientConfiguration configuration, LeaderResolver leaderResolver, TitusRuntime titusRuntime) {
-        return NettyChannelBuilder
-                .forTarget("leader://titusmaster")
-                .nameResolverFactory(new LeaderNameResolverFactory(leaderResolver, configuration.getMasterGrpcPort(), titusRuntime))
-                .usePlaintext(true)
-                .maxHeaderListSize(65536)
-                .build();
-    }
-
-    @Bean
-    public JobActivityHistoryGrpcServer getTaskRelocationGrpcServer(GrpcEndpointConfiguration configuration,
-                                                                    JobActivityGrpcService jobActivityGrpcService) {
-        return new JobActivityHistoryGrpcServer(configuration, jobActivityGrpcService);
+    public JobActivityGrpcServer getJobActivityHistoryGrpcServer(GrpcEndpointConfiguration configuration,
+                                                                 JobActivityGrpcService jobActivityGrpcService) {
+        return new JobActivityGrpcServer(configuration, jobActivityGrpcService);
     }
 
     public static void main(String[] args) {
