@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,28 +14,21 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.common.network.client;
+package com.netflix.titus.api.connector.cloud.noop;
 
-import java.util.Collections;
-import java.util.List;
+import com.netflix.titus.api.connector.cloud.IamConnector;
+import com.netflix.titus.api.iam.model.IamRole;
+import reactor.core.publisher.Mono;
 
-import com.netflix.archaius.api.annotations.DefaultValue;
+public class NoOpIamConnector implements IamConnector {
 
-/**
- * Configuration interface for {@link RxRestClient}.
- */
-public interface RxRestClientConfiguration {
+    @Override
+    public Mono<IamRole> getIamRole(String iamRoleName) {
+        return Mono.empty();
+    }
 
-    @DefaultValue("3")
-    int getRetryCount();
-
-    @DefaultValue("2000")
-    long getRequestTimeoutMs();
-
-    @DefaultValue("200")
-    long getRetryDelayMs();
-
-    default List<String> getNoRetryStatuses() {
-        return Collections.emptyList();
+    @Override
+    public Mono<Void> canIamAssume(String iamRoleName, String assumeResourceName) {
+        return Mono.empty();
     }
 }

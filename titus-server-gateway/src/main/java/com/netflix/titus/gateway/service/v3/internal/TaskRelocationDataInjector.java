@@ -31,7 +31,7 @@ import com.netflix.titus.api.FeatureActivationConfiguration;
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.rx.ReactorExt;
-import com.netflix.titus.gateway.service.v3.JobManagerConfiguration;
+import com.netflix.titus.runtime.jobmanager.JobManagerConfiguration;
 import com.netflix.titus.grpc.protogen.MigrationDetails;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;

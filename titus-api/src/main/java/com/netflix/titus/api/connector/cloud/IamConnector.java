@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,28 +14,24 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.common.network.client;
+package com.netflix.titus.api.connector.cloud;
 
-import java.util.Collections;
-import java.util.List;
-
-import com.netflix.archaius.api.annotations.DefaultValue;
+import com.netflix.titus.api.iam.model.IamRole;
+import reactor.core.publisher.Mono;
 
 /**
- * Configuration interface for {@link RxRestClient}.
+ * The primary API to interact with IAM cloud providers.
  */
-public interface RxRestClientConfiguration {
+public interface IamConnector {
 
-    @DefaultValue("3")
-    int getRetryCount();
+    /**
+     * Get an IAM Role descriptor.
+     */
+    Mono<IamRole> getIamRole(String iamRoleName);
 
-    @DefaultValue("2000")
-    long getRequestTimeoutMs();
-
-    @DefaultValue("200")
-    long getRetryDelayMs();
-
-    default List<String> getNoRetryStatuses() {
-        return Collections.emptyList();
-    }
+    /**
+     * Returns a successful Mono if the specified IAM Role can be assumed
+     * into by the provided assuming Role.
+     */
+    Mono<Void> canIamAssume(String iamRoleName, String assumeResourceName);
 }
