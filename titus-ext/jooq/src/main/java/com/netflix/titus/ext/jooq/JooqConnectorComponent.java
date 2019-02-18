@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,30 +18,25 @@ package com.netflix.titus.ext.jooq;
 
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import javax.inject.Singleton;
 
-import com.google.inject.AbstractModule;
-import com.google.inject.Provides;
-import com.netflix.archaius.ConfigProxyFactory;
 import org.jooq.ConnectionProvider;
 import org.jooq.DSLContext;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DefaultConnectionProvider;
 import org.jooq.impl.DefaultDSLContext;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 
-public class JooqConnectorModule extends AbstractModule {
-    @Override
-    protected void configure() {
+@Configuration
+public class JooqConnectorComponent {
+
+    @Bean
+    public JooqConfiguration getJooqConfiguration(Environment environment) {
+        return new JooqConfigurationBean(environment);
     }
 
-    @Provides
-    @Singleton
-    public JooqConfiguration getJooqConfiguration(ConfigProxyFactory factory) {
-        return factory.newProxy(JooqConfiguration.class);
-    }
-
-    @Provides
-    @Singleton
+    @Bean
     public DSLContext getDSLContext(JooqConfiguration configuration) {
         ConnectionProvider connectionProvider;
         try {

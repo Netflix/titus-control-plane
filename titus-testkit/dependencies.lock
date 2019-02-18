@@ -1292,13 +1292,13 @@
             ]
         },
         "org.apache.logging.log4j:log4j-api": {
-            "locked": "2.11.1",
+            "locked": "2.11.2",
             "transitive": [
                 "org.apache.logging.log4j:log4j-to-slf4j"
             ]
         },
         "org.apache.logging.log4j:log4j-to-slf4j": {
-            "locked": "2.11.1",
+            "locked": "2.11.2",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-logging"
             ]
@@ -1715,55 +1715,55 @@
             ]
         },
         "org.springframework.boot:spring-boot": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-autoconfigure",
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
         "org.springframework.boot:spring-boot-autoconfigure": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
         "org.springframework.boot:spring-boot-starter": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-webflux"
             ]
         },
         "org.springframework.boot:spring-boot-starter-json": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-webflux"
             ]
         },
         "org.springframework.boot:spring-boot-starter-logging": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
         "org.springframework.boot:spring-boot-starter-reactor-netty": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-webflux"
             ]
         },
         "org.springframework.boot:spring-boot-starter-webflux": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "requested": "2.1.+"
         },
         "org.springframework:spring-aop": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-beans": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
                 "org.springframework:spring-context",
@@ -1772,14 +1772,14 @@
             ]
         },
         "org.springframework:spring-context": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-server-runtime",
                 "org.springframework.boot:spring-boot"
             ]
         },
         "org.springframework:spring-core": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot",
                 "org.springframework.boot:spring-boot-starter",
@@ -1792,20 +1792,20 @@
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-jcl": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
             ]
         },
         "org.springframework:spring-web": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-webflux",
@@ -1813,7 +1813,7 @@
             ]
         },
         "org.springframework:spring-webflux": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-webflux"
@@ -3160,13 +3160,13 @@
             ]
         },
         "org.apache.logging.log4j:log4j-api": {
-            "locked": "2.11.1",
+            "locked": "2.11.2",
             "transitive": [
                 "org.apache.logging.log4j:log4j-to-slf4j"
             ]
         },
         "org.apache.logging.log4j:log4j-to-slf4j": {
-            "locked": "2.11.1",
+            "locked": "2.11.2",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-logging"
             ]
@@ -3583,55 +3583,55 @@
             ]
         },
         "org.springframework.boot:spring-boot": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-autoconfigure",
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
         "org.springframework.boot:spring-boot-autoconfigure": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
         "org.springframework.boot:spring-boot-starter": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-webflux"
             ]
         },
         "org.springframework.boot:spring-boot-starter-json": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-webflux"
             ]
         },
         "org.springframework.boot:spring-boot-starter-logging": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
         "org.springframework.boot:spring-boot-starter-reactor-netty": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-webflux"
             ]
         },
         "org.springframework.boot:spring-boot-starter-webflux": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "requested": "2.1.+"
         },
         "org.springframework:spring-aop": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-beans": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
                 "org.springframework:spring-context",
@@ -3640,14 +3640,14 @@
             ]
         },
         "org.springframework:spring-context": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-server-runtime",
                 "org.springframework.boot:spring-boot"
             ]
         },
         "org.springframework:spring-core": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot",
                 "org.springframework.boot:spring-boot-starter",
@@ -3660,20 +3660,20 @@
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-jcl": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
             ]
         },
         "org.springframework:spring-web": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-webflux",
@@ -3681,7 +3681,7 @@
             ]
         },
         "org.springframework:spring-webflux": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-webflux"
@@ -5028,13 +5028,13 @@
             ]
         },
         "org.apache.logging.log4j:log4j-api": {
-            "locked": "2.11.1",
+            "locked": "2.11.2",
             "transitive": [
                 "org.apache.logging.log4j:log4j-to-slf4j"
             ]
         },
         "org.apache.logging.log4j:log4j-to-slf4j": {
-            "locked": "2.11.1",
+            "locked": "2.11.2",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-logging"
             ]
@@ -5452,55 +5452,55 @@
             ]
         },
         "org.springframework.boot:spring-boot": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-autoconfigure",
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
         "org.springframework.boot:spring-boot-autoconfigure": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
         "org.springframework.boot:spring-boot-starter": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-webflux"
             ]
         },
         "org.springframework.boot:spring-boot-starter-json": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-webflux"
             ]
         },
         "org.springframework.boot:spring-boot-starter-logging": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
         "org.springframework.boot:spring-boot-starter-reactor-netty": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-webflux"
             ]
         },
         "org.springframework.boot:spring-boot-starter-webflux": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "requested": "2.1.+"
         },
         "org.springframework:spring-aop": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-beans": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
                 "org.springframework:spring-context",
@@ -5509,14 +5509,14 @@
             ]
         },
         "org.springframework:spring-context": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-server-runtime",
                 "org.springframework.boot:spring-boot"
             ]
         },
         "org.springframework:spring-core": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot",
                 "org.springframework.boot:spring-boot-starter",
@@ -5529,20 +5529,20 @@
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-jcl": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
             ]
         },
         "org.springframework:spring-web": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-webflux",
@@ -5550,7 +5550,7 @@
             ]
         },
         "org.springframework:spring-webflux": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-webflux"
@@ -6960,13 +6960,13 @@
             ]
         },
         "org.apache.logging.log4j:log4j-api": {
-            "locked": "2.11.1",
+            "locked": "2.11.2",
             "transitive": [
                 "org.apache.logging.log4j:log4j-to-slf4j"
             ]
         },
         "org.apache.logging.log4j:log4j-to-slf4j": {
-            "locked": "2.11.1",
+            "locked": "2.11.2",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-logging"
             ]
@@ -7384,55 +7384,55 @@
             ]
         },
         "org.springframework.boot:spring-boot": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-autoconfigure",
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
         "org.springframework.boot:spring-boot-autoconfigure": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
         "org.springframework.boot:spring-boot-starter": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-webflux"
             ]
         },
         "org.springframework.boot:spring-boot-starter-json": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-webflux"
             ]
         },
         "org.springframework.boot:spring-boot-starter-logging": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
         "org.springframework.boot:spring-boot-starter-reactor-netty": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-webflux"
             ]
         },
         "org.springframework.boot:spring-boot-starter-webflux": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "requested": "2.1.+"
         },
         "org.springframework:spring-aop": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-beans": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
                 "org.springframework:spring-context",
@@ -7441,14 +7441,14 @@
             ]
         },
         "org.springframework:spring-context": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-server-runtime",
                 "org.springframework.boot:spring-boot"
             ]
         },
         "org.springframework:spring-core": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot",
                 "org.springframework.boot:spring-boot-starter",
@@ -7461,20 +7461,20 @@
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-jcl": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
             ]
         },
         "org.springframework:spring-web": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-webflux",
@@ -7482,7 +7482,7 @@
             ]
         },
         "org.springframework:spring-webflux": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-webflux"
@@ -8829,13 +8829,13 @@
             ]
         },
         "org.apache.logging.log4j:log4j-api": {
-            "locked": "2.11.1",
+            "locked": "2.11.2",
             "transitive": [
                 "org.apache.logging.log4j:log4j-to-slf4j"
             ]
         },
         "org.apache.logging.log4j:log4j-to-slf4j": {
-            "locked": "2.11.1",
+            "locked": "2.11.2",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-logging"
             ]
@@ -9253,55 +9253,55 @@
             ]
         },
         "org.springframework.boot:spring-boot": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-autoconfigure",
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
         "org.springframework.boot:spring-boot-autoconfigure": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
         "org.springframework.boot:spring-boot-starter": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-webflux"
             ]
         },
         "org.springframework.boot:spring-boot-starter-json": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-webflux"
             ]
         },
         "org.springframework.boot:spring-boot-starter-logging": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
         "org.springframework.boot:spring-boot-starter-reactor-netty": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-webflux"
             ]
         },
         "org.springframework.boot:spring-boot-starter-webflux": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "requested": "2.1.+"
         },
         "org.springframework:spring-aop": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-beans": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
                 "org.springframework:spring-context",
@@ -9310,14 +9310,14 @@
             ]
         },
         "org.springframework:spring-context": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-server-runtime",
                 "org.springframework.boot:spring-boot"
             ]
         },
         "org.springframework:spring-core": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot",
                 "org.springframework.boot:spring-boot-starter",
@@ -9330,20 +9330,20 @@
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-jcl": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
             ]
         },
         "org.springframework:spring-web": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-webflux",
@@ -9351,7 +9351,7 @@
             ]
         },
         "org.springframework:spring-webflux": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-webflux"
@@ -10713,13 +10713,13 @@
             ]
         },
         "org.apache.logging.log4j:log4j-api": {
-            "locked": "2.11.1",
+            "locked": "2.11.2",
             "transitive": [
                 "org.apache.logging.log4j:log4j-to-slf4j"
             ]
         },
         "org.apache.logging.log4j:log4j-to-slf4j": {
-            "locked": "2.11.1",
+            "locked": "2.11.2",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-logging"
             ]
@@ -11140,55 +11140,55 @@
             ]
         },
         "org.springframework.boot:spring-boot": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-autoconfigure",
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
         "org.springframework.boot:spring-boot-autoconfigure": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
         "org.springframework.boot:spring-boot-starter": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-webflux"
             ]
         },
         "org.springframework.boot:spring-boot-starter-json": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-webflux"
             ]
         },
         "org.springframework.boot:spring-boot-starter-logging": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
         "org.springframework.boot:spring-boot-starter-reactor-netty": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-webflux"
             ]
         },
         "org.springframework.boot:spring-boot-starter-webflux": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "requested": "2.1.+"
         },
         "org.springframework:spring-aop": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-beans": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
                 "org.springframework:spring-context",
@@ -11197,14 +11197,14 @@
             ]
         },
         "org.springframework:spring-context": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-server-runtime",
                 "org.springframework.boot:spring-boot"
             ]
         },
         "org.springframework:spring-core": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot",
                 "org.springframework.boot:spring-boot-starter",
@@ -11217,20 +11217,20 @@
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-jcl": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
             ]
         },
         "org.springframework:spring-web": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-webflux",
@@ -11238,7 +11238,7 @@
             ]
         },
         "org.springframework:spring-webflux": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-webflux"
@@ -12600,13 +12600,13 @@
             ]
         },
         "org.apache.logging.log4j:log4j-api": {
-            "locked": "2.11.1",
+            "locked": "2.11.2",
             "transitive": [
                 "org.apache.logging.log4j:log4j-to-slf4j"
             ]
         },
         "org.apache.logging.log4j:log4j-to-slf4j": {
-            "locked": "2.11.1",
+            "locked": "2.11.2",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-logging"
             ]
@@ -13027,55 +13027,55 @@
             ]
         },
         "org.springframework.boot:spring-boot": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-autoconfigure",
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
         "org.springframework.boot:spring-boot-autoconfigure": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
         "org.springframework.boot:spring-boot-starter": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-webflux"
             ]
         },
         "org.springframework.boot:spring-boot-starter-json": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-webflux"
             ]
         },
         "org.springframework.boot:spring-boot-starter-logging": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
         "org.springframework.boot:spring-boot-starter-reactor-netty": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-webflux"
             ]
         },
         "org.springframework.boot:spring-boot-starter-webflux": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "requested": "2.1.+"
         },
         "org.springframework:spring-aop": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-beans": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
                 "org.springframework:spring-context",
@@ -13084,14 +13084,14 @@
             ]
         },
         "org.springframework:spring-context": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-server-runtime",
                 "org.springframework.boot:spring-boot"
             ]
         },
         "org.springframework:spring-core": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot",
                 "org.springframework.boot:spring-boot-starter",
@@ -13104,20 +13104,20 @@
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-jcl": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
             ]
         },
         "org.springframework:spring-web": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-webflux",
@@ -13125,7 +13125,7 @@
             ]
         },
         "org.springframework:spring-webflux": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-webflux"
@@ -14487,13 +14487,13 @@
             ]
         },
         "org.apache.logging.log4j:log4j-api": {
-            "locked": "2.11.1",
+            "locked": "2.11.2",
             "transitive": [
                 "org.apache.logging.log4j:log4j-to-slf4j"
             ]
         },
         "org.apache.logging.log4j:log4j-to-slf4j": {
-            "locked": "2.11.1",
+            "locked": "2.11.2",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-logging"
             ]
@@ -14915,55 +14915,55 @@
             ]
         },
         "org.springframework.boot:spring-boot": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-autoconfigure",
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
         "org.springframework.boot:spring-boot-autoconfigure": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
         "org.springframework.boot:spring-boot-starter": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-webflux"
             ]
         },
         "org.springframework.boot:spring-boot-starter-json": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-webflux"
             ]
         },
         "org.springframework.boot:spring-boot-starter-logging": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
         "org.springframework.boot:spring-boot-starter-reactor-netty": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-webflux"
             ]
         },
         "org.springframework.boot:spring-boot-starter-webflux": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "requested": "2.1.+"
         },
         "org.springframework:spring-aop": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-beans": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
                 "org.springframework:spring-context",
@@ -14972,14 +14972,14 @@
             ]
         },
         "org.springframework:spring-context": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-server-runtime",
                 "org.springframework.boot:spring-boot"
             ]
         },
         "org.springframework:spring-core": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot",
                 "org.springframework.boot:spring-boot-starter",
@@ -14992,20 +14992,20 @@
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-jcl": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
             ]
         },
         "org.springframework:spring-web": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-webflux",
@@ -15013,7 +15013,7 @@
             ]
         },
         "org.springframework:spring-webflux": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-webflux"
@@ -16375,13 +16375,13 @@
             ]
         },
         "org.apache.logging.log4j:log4j-api": {
-            "locked": "2.11.1",
+            "locked": "2.11.2",
             "transitive": [
                 "org.apache.logging.log4j:log4j-to-slf4j"
             ]
         },
         "org.apache.logging.log4j:log4j-to-slf4j": {
-            "locked": "2.11.1",
+            "locked": "2.11.2",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-logging"
             ]
@@ -16803,55 +16803,55 @@
             ]
         },
         "org.springframework.boot:spring-boot": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-autoconfigure",
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
         "org.springframework.boot:spring-boot-autoconfigure": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
         "org.springframework.boot:spring-boot-starter": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-webflux"
             ]
         },
         "org.springframework.boot:spring-boot-starter-json": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-webflux"
             ]
         },
         "org.springframework.boot:spring-boot-starter-logging": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
         "org.springframework.boot:spring-boot-starter-reactor-netty": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-webflux"
             ]
         },
         "org.springframework.boot:spring-boot-starter-webflux": {
-            "locked": "2.1.2.RELEASE",
+            "locked": "2.1.3.RELEASE",
             "requested": "2.1.+"
         },
         "org.springframework:spring-aop": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-beans": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
                 "org.springframework:spring-context",
@@ -16860,14 +16860,14 @@
             ]
         },
         "org.springframework:spring-context": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-server-runtime",
                 "org.springframework.boot:spring-boot"
             ]
         },
         "org.springframework:spring-core": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot",
                 "org.springframework.boot:spring-boot-starter",
@@ -16880,20 +16880,20 @@
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-jcl": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
             ]
         },
         "org.springframework:spring-web": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-webflux",
@@ -16901,7 +16901,7 @@
             ]
         },
         "org.springframework:spring-webflux": {
-            "locked": "5.1.4.RELEASE",
+            "locked": "5.1.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-webflux"

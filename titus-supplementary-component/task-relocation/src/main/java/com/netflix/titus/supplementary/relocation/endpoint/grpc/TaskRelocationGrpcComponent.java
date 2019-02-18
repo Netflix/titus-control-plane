@@ -18,6 +18,7 @@ package com.netflix.titus.supplementary.relocation.endpoint.grpc;
 
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.runtime.endpoint.common.grpc.GrpcEndpointConfiguration;
+import com.netflix.titus.runtime.endpoint.common.grpc.GrpcEndpointConfigurationBean;
 import com.netflix.titus.supplementary.relocation.store.TaskRelocationResultStore;
 import com.netflix.titus.supplementary.relocation.workflow.RelocationWorkflowExecutor;
 import org.springframework.context.annotation.Bean;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.supplementary.relocation.endpoint.rest;
+package com.netflix.titus.runtime.endpoint.rest;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -31,9 +31,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
-/**
- * TODO Move to the titus-common package
- */
 @RestController
 @RequestMapping(path = "/api/diagnostic/localScheduler")
 public class LocalSchedulerSpringResource {

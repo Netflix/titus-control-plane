@@ -26,12 +26,6 @@ plugins {
 
 apply plugin: 'io.spring.dependency-management'
 
-configurations.all {
-    // We need to exclude logback as it clashes with other logging engines.
-    exclude group: 'ch.qos.logback', module: 'logback-classic'
-    exclude group: 'ch.qos.logback', module: 'logback-core'
-}
-
 dependencies {
     compile project(':titus-supplementary-component-task-relocation')
 
