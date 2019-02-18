@@ -94,7 +94,7 @@ public class CreateOrReplaceServiceTaskActions {
         actions.add(ModelActionHolder.reference(modelBuilder.addTaskHolder(
                 EntityHolder.newRoot(newTask.getId(), newTask).addTag(TaskRetryers.ATTR_TASK_RETRY, newRetryer)
         )));
-        actions.add(ModelActionHolder.store(modelBuilder.taskUpdate(newTask, CallMetadata.newBuilder().withCallReason("Creating new task entity holder").build())));
+        actions.add(ModelActionHolder.store(modelBuilder.taskUpdate(newTask, CallMetadata.newBuilder().withCallReason("Creating new task entity holder").withCallerId("task actions").build())));
 
         return actions;
     }

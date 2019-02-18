@@ -132,7 +132,7 @@ public class MoveTaskBetweenJobsAction implements MultiEngineChangeAction {
                 .job(updatedJobTo)
                 .trigger(Trigger.API)
                 .summary("Received task from another job: jobFrom=" + updatedJobFrom.getId())
-                .taskUpdate(taskToUpdated, CallMetadata.newBuilder().withCallReason("Move task").build());
+                .taskUpdate(taskToUpdated, CallMetadata.newBuilder().withCallReason("Move task").withCallerId("scheduler").build());
 
         if (taskFromRunningHolder.isPresent()) {
             actions.addAll(ModelActionHolder.allModels(addTaskAction));

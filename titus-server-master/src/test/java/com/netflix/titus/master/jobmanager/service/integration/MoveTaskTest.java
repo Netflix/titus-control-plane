@@ -19,6 +19,7 @@ package com.netflix.titus.master.jobmanager.service.integration;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
@@ -43,6 +44,8 @@ public class MoveTaskTest {
 
     private final TestScheduler testScheduler = jobsScenarioBuilder.getTestScheduler();
 
+    private final CallMetadata callMetadata = CallMetadata.newBuilder().withCallReason("Testing move task").withCallerId("testkit").build();
+
     @Test
     public void testMove() {
         JobDescriptor<ServiceJobExt> jobDescriptor = oneTaskServiceJobDescriptor();
@@ -59,7 +62,7 @@ public class MoveTaskTest {
     @Test
     public void testMoveWithInvalidTaskId() {
         ExtTestSubscriber<Void> testSubscriber = new ExtTestSubscriber<>();
-        jobsScenarioBuilder.getJobOperations().moveServiceTask("sourceJobId", "someJobId", "someTaskId").subscribe(testSubscriber);
+        jobsScenarioBuilder.getJobOperations().moveServiceTask("sourceJobId", "someJobId", "someTaskId", callMetadata).subscribe(testSubscriber);
 
         assertThat(testSubscriber.isError()).isTrue();
         assertThat(((JobManagerException) testSubscriber.getError()).getErrorCode()).isEqualTo(JobManagerException.ErrorCode.TaskNotFound);
@@ -141,7 +144,7 @@ public class MoveTaskTest {
                 .inTask(0, 0, task -> {
                     ExtTestSubscriber<Void> testSubscriber = new ExtTestSubscriber<>();
                     jobsScenarioBuilder.getJobOperations()
-                            .moveServiceTask(sourceJobId, targetJobId, task.getId())
+                            .moveServiceTask(sourceJobId, targetJobId, task.getId(), callMetadata)
                             .timeout(1, TimeUnit.SECONDS, testScheduler)
                             .subscribe(testSubscriber);
                     testScheduler.advanceTimeBy(2, TimeUnit.SECONDS);

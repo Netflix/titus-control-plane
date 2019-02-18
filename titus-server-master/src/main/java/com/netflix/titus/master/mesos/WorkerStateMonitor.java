@@ -94,7 +94,7 @@ public class WorkerStateMonitor {
 
                                 // Failures are logged only, as the reconciler will take care of it if needed.
                                 final Function<Task, Optional<Task>> updater = JobManagerUtil.newMesosTaskStateUpdater(taskStatus, args.getTitusExecutorDetails(), titusRuntime);
-                                v3JobOperations.updateTask(task.getId(), updater, Trigger.Mesos, "Mesos -> " + taskStatus, CallMetadata.newBuilder().build()).subscribe(
+                                v3JobOperations.updateTask(task.getId(), updater, Trigger.Mesos, "Mesos -> " + taskStatus, CallMetadata.newBuilder().withCallerId("worker monitor").build()).subscribe(
                                         () -> logger.info("Changed task {} status state to {}", task.getId(), taskStatus),
                                         e -> logger.warn("Could not update task state of {} to {} ({})", args.getTaskId(), taskStatus, e.toString())
                                 );

@@ -22,6 +22,7 @@ import com.netflix.titus.api.eviction.model.EvictionQuota;
 import com.netflix.titus.api.eviction.model.event.EvictionEvent;
 import com.netflix.titus.api.eviction.service.EvictionException;
 import com.netflix.titus.api.eviction.service.EvictionOperations;
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
@@ -52,7 +53,7 @@ class StubbedEvictionOperations implements EvictionOperations {
                 throw EvictionException.noAvailableJobQuota(job, "No quota");
             }
 
-            jobOperations.killTask(taskId, false, "Eviction");
+            jobOperations.killTask(taskId, false, "Eviction", CallMetadata.newBuilder().withCallReason("Eviction").build());
             stubbedEvictionData.setJobQuota(job.getId(), quota - 1);
         });
     }

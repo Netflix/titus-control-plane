@@ -34,7 +34,7 @@ public abstract class JobModelReconcilerEvent extends JobManagerReconcilerEvent 
         private final EntityHolder newRoot;
 
         public JobNewModelReconcilerEvent(EntityHolder newRoot) {
-            super(newRoot.getEntity(), "-1", CallMetadata.newBuilder().build());
+            super(newRoot.getEntity(), "-1", CallMetadata.newBuilder().withCallerId("reconciler event").build());
             this.newRoot = newRoot;
         }
 

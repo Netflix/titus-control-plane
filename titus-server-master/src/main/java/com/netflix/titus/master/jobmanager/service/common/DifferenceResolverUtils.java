@@ -196,7 +196,7 @@ public class DifferenceResolverUtils {
                                             ),
                                             "TimedOut in KillInitiated state",
                                             titusRuntime,
-                                            CallMetadata.newBuilder().withCallReason("Kill initiated").build())
+                                            CallMetadata.newBuilder().withCallReason("Kill initiated").withCallerId("scheduler").build())
                             );
                         } else {
                             actions.add(TaskTimeoutChangeActions.incrementTaskKillAttempt(task.getId(), configuration.getTaskInKillInitiatedStateTimeoutMs(), clock));
