@@ -16,6 +16,7 @@
 
 package com.netflix.titus.master.jobmanager.service.event;
 
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 
 /**
@@ -24,10 +25,12 @@ public abstract class JobManagerReconcilerEvent {
 
     private final Job<?> job;
     private final String transactionId;
+    private final CallMetadata callMetadata;
 
-    JobManagerReconcilerEvent(Job<?> job, String transactionId) {
+    JobManagerReconcilerEvent(Job<?> job, String transactionId, CallMetadata callMetadata) {
         this.job = job;
         this.transactionId = transactionId;
+        this.callMetadata = callMetadata;
     }
 
     public Job<?> getJob() {
@@ -37,4 +40,6 @@ public abstract class JobManagerReconcilerEvent {
     public String getTransactionId() {
         return transactionId;
     }
+
+    public CallMetadata getCallMetadata() { return callMetadata; }
 }

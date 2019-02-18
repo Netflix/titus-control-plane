@@ -18,6 +18,7 @@ package com.netflix.titus.master.jobmanager.service.event;
 
 import java.util.Optional;
 
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
@@ -25,15 +26,15 @@ import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeActi
 
 public abstract class JobModelReconcilerEvent extends JobManagerReconcilerEvent {
 
-    protected JobModelReconcilerEvent(Job<?> job, String transactionId) {
-        super(job, transactionId);
+    protected JobModelReconcilerEvent(Job<?> job, String transactionId, CallMetadata callMetadata) {
+        super(job, transactionId, callMetadata);
     }
 
     public static class JobNewModelReconcilerEvent extends JobModelReconcilerEvent {
         private final EntityHolder newRoot;
 
         public JobNewModelReconcilerEvent(EntityHolder newRoot) {
-            super(newRoot.getEntity(), "-1");
+            super(newRoot.getEntity(), "-1", CallMetadata.newBuilder().build());
             this.newRoot = newRoot;
         }
 
@@ -54,8 +55,9 @@ public abstract class JobModelReconcilerEvent extends JobManagerReconcilerEvent 
                                              ModelActionHolder modelActionHolder,
                                              EntityHolder changedEntityHolder,
                                              Optional<EntityHolder> previousEntityHolder,
-                                             String transactionId) {
-            super(job, transactionId);
+                                             String transactionId,
+                                             CallMetadata callMetadata) {
+            super(job, transactionId, callMetadata);
             this.changeAction = changeAction;
             this.modelActionHolder = modelActionHolder;
             this.changedEntityHolder = changedEntityHolder;
@@ -91,8 +93,9 @@ public abstract class JobModelReconcilerEvent extends JobManagerReconcilerEvent 
                                                   ModelActionHolder modelActionHolder,
                                                   EntityHolder previousEntityHolder,
                                                   Throwable error,
-                                                  String transactionId) {
-            super(job, transactionId);
+                                                  String transactionId,
+                                                  CallMetadata callMetadata) {
+            super(job, transactionId, callMetadata);
             this.changeAction = changeAction;
             this.modelActionHolder = modelActionHolder;
             this.previousEntityHolder = previousEntityHolder;
