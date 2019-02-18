@@ -173,8 +173,8 @@ public class BasicTaskActions {
                                         .build();
                                 newTaskHolder = taskHolder.
                                         setEntity(newTask)
-                                        .addTag(TaskRetryers.ATTR_TASK_RETRY_DELAY_MS, retryDelayMs)
-                                        .addTag("CALLMETADATA", callMetadata);
+                                        .addTag("Callmetadata", callMetadata)
+                                        .addTag(TaskRetryers.ATTR_TASK_RETRY_DELAY_MS, retryDelayMs);
 
                                 modelActionHolders.add(
                                         ModelActionHolder.reference(TitusModelAction.newModelUpdate(self)

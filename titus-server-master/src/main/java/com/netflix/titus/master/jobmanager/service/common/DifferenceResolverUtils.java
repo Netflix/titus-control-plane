@@ -25,6 +25,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.ExecutableStatus;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -194,8 +195,8 @@ public class DifferenceResolverUtils {
                                                     .build()
                                             ),
                                             "TimedOut in KillInitiated state",
-                                            titusRuntime
-                                    )
+                                            titusRuntime,
+                                            CallMetadata.newBuilder().withCallReason("Kill initiated").build())
                             );
                         } else {
                             actions.add(TaskTimeoutChangeActions.incrementTaskKillAttempt(task.getId(), configuration.getTaskInKillInitiatedStateTimeoutMs(), clock));

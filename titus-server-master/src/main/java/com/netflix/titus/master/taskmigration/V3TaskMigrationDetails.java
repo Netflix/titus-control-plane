@@ -19,6 +19,7 @@ package com.netflix.titus.master.taskmigration;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -155,7 +156,7 @@ public class V3TaskMigrationDetails implements TaskMigrationDetails {
                         return Optional.of(serviceTask.toBuilder().withMigrationDetails(newMigrationDetails).build());
                     }
                     return Optional.empty();
-                }, Trigger.TaskMigration, "Updating migration details").await(30_000, TimeUnit.MILLISECONDS);
+                }, Trigger.TaskMigration, "Updating migration details", CallMetadata.newBuilder().build()).await(30_000, TimeUnit.MILLISECONDS);
             }
         }
     }

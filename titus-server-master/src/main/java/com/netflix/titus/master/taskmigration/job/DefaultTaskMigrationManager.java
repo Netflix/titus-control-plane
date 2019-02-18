@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
@@ -120,8 +121,9 @@ public class DefaultTaskMigrationManager implements TaskMigrationManager {
                     if (terminateTokenBucket.tryTake()) {
                         logger.info("Migrating task: {} of job: {}", task.getId(), jobId);
                         String reason = "Moving service task: " + task.getId() + " out of disabled VM";
+                        CallMetadata callMetadata = CallMetadata.newBuilder().withCallerId("task migraiton").build();
                         try {
-                            v3JobOperations.killTask(task.getId(), false, reason).toCompletable().await(KILL_TIMEOUT, TimeUnit.MILLISECONDS);
+                            v3JobOperations.killTask(task.getId(), false, reason, callMetadata).toCompletable().await(KILL_TIMEOUT, TimeUnit.MILLISECONDS);
                             lastMovedWorkerOnDisabledVM = System.currentTimeMillis();
                         } catch (Exception e) {
                             logger.error("Unable to kill task: {} with error: ", task.getId(), e);
