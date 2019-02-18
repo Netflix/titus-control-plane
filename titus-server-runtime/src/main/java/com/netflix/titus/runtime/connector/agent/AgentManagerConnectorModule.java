@@ -41,6 +41,6 @@ public class AgentManagerConnectorModule extends AbstractModule {
     @Singleton
     public ReactorAgentManagementServiceStub getReactorAgentManagementServiceStub(GrpcToReactorClientFactory factory,
                                                                                   @Named(MANAGED_CHANNEL_NAME) Channel channel) {
-        return factory.apply(AgentManagementServiceGrpc.newStub(channel), ReactorAgentManagementServiceStub.class);
+        return factory.apply(AgentManagementServiceGrpc.newStub(channel), ReactorAgentManagementServiceStub.class, AgentManagementServiceGrpc.getServiceDescriptor());
     }
 }

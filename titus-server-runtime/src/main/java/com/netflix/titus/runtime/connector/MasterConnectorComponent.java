@@ -16,16 +16,12 @@
 
 package com.netflix.titus.runtime.connector;
 
-import java.time.Duration;
-
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
-import com.netflix.titus.grpc.protogen.TaskRelocationServiceGrpc;
-import com.netflix.titus.runtime.connector.common.reactor.ReactorToGrpcClientBuilder;
+import com.netflix.titus.runtime.connector.common.reactor.DefaultGrpcToReactorClientFactory;
 import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorClientFactory;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.runtime.connector.jobmanager.client.GrpcJobManagementClient;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
-import io.grpc.stub.AbstractStub;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
@@ -41,18 +37,7 @@ public class MasterConnectorComponent {
     @Bean
     public GrpcToReactorClientFactory getReactorGrpcClientAdapterFactory(GrpcClientConfiguration configuration,
                                                                          CallMetadataResolver callMetadataResolver) {
-        return new GrpcToReactorClientFactory() {
-            @Override
-            public <GRPC_STUB extends AbstractStub<GRPC_STUB>, REACT_API> REACT_API apply(GRPC_STUB stub, Class<REACT_API> apiType) {
-                return ReactorToGrpcClientBuilder
-                        .newBuilder(
-                                apiType, stub, TaskRelocationServiceGrpc.getServiceDescriptor()
-                        )
-                        .withCallMetadataResolver(callMetadataResolver)
-                        .withTimeout(Duration.ofMillis(configuration.getRequestTimeout()))
-                        .build();
-            }
-        };
+        return new DefaultGrpcToReactorClientFactory(configuration, callMetadataResolver);
     }
 
     @Bean

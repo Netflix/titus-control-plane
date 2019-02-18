@@ -16,10 +16,13 @@
 
 package com.netflix.titus.runtime.connector.common.reactor;
 
+import io.grpc.ServiceDescriptor;
 import io.grpc.stub.AbstractStub;
 
 public interface GrpcToReactorClientFactory {
 
-    <GRPC_STUB extends AbstractStub<GRPC_STUB>, REACT_API> REACT_API apply(GRPC_STUB stub, Class<REACT_API> apiType);
+    <GRPC_STUB extends AbstractStub<GRPC_STUB>, REACT_API> REACT_API apply(GRPC_STUB stub,
+                                                                           Class<REACT_API> apiType,
+                                                                           ServiceDescriptor serviceDescriptor);
 }
 

@@ -37,6 +37,6 @@ public class EvictionConnectorModule extends AbstractModule {
     @Singleton
     public ReactorEvictionServiceStub getReactorEvictionServiceStub(GrpcToReactorClientFactory factory,
                                                                     @Named(MANAGED_CHANNEL_NAME) Channel channel) {
-        return factory.apply(EvictionServiceGrpc.newStub(channel), ReactorEvictionServiceStub.class);
+        return factory.apply(EvictionServiceGrpc.newStub(channel), ReactorEvictionServiceStub.class, EvictionServiceGrpc.getServiceDescriptor());
     }
 }

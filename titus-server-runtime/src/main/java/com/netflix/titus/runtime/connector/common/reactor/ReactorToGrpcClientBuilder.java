@@ -46,12 +46,19 @@ public class ReactorToGrpcClientBuilder<REACT_API, GRPC_STUB extends AbstractStu
      */
     private static final double RX_CLIENT_TIMEOUT_FACTOR = 1.2;
 
+    /**
+     * Event streams have unbounded lifetime, but we want to terminate them periodically to improve request distribution
+     * across multiple nodes.
+     */
+    private static final Duration DEFAULT_STREAMING_TIMEOUT = Duration.ofMinutes(30);
+
     private final Class<REACT_API> reactApi;
     private final GRPC_STUB grpcStub;
     private final ServiceDescriptor grpcServiceDescriptor;
 
     private Duration timeout;
     private Duration reactorTimeout;
+    private Duration streamingTimeout = DEFAULT_STREAMING_TIMEOUT;
     private CallMetadataResolver callMetadataResolver;
 
     private ReactorToGrpcClientBuilder(Class<REACT_API> reactApi, GRPC_STUB grpcStub, ServiceDescriptor grpcServiceDescriptor) {
@@ -63,6 +70,11 @@ public class ReactorToGrpcClientBuilder<REACT_API, GRPC_STUB extends AbstractStu
     public ReactorToGrpcClientBuilder<REACT_API, GRPC_STUB> withTimeout(Duration timeout) {
         this.timeout = timeout;
         this.reactorTimeout = Duration.ofMillis((long) (timeout.toMillis() * RX_CLIENT_TIMEOUT_FACTOR));
+        return this;
+    }
+
+    public ReactorToGrpcClientBuilder<REACT_API, GRPC_STUB> withStreamingTimeout(Duration streamingTimeout) {
+        this.streamingTimeout = streamingTimeout;
         return this;
     }
 
@@ -91,6 +103,7 @@ public class ReactorToGrpcClientBuilder<REACT_API, GRPC_STUB extends AbstractStu
 
     public REACT_API build() {
         Preconditions.checkNotNull(timeout, "GRPC request timeout not set");
+        Preconditions.checkNotNull(streamingTimeout, "GRPC streaming request timeout not set");
         Preconditions.checkNotNull(callMetadataResolver, "Call metadata resolver not set");
 
         Map<Method, Function<Object[], Publisher>> methodMap = buildMethodMap();
@@ -122,7 +135,7 @@ public class ReactorToGrpcClientBuilder<REACT_API, GRPC_STUB extends AbstractStu
                 callMetadataResolver.resolve()
                         .map(callMetadata -> V3HeaderInterceptor.attachCallMetadata(grpcStub, callMetadata))
                         .orElse(grpcStub)
-                        .withDeadline(Deadline.after(timeout.toMillis(), TimeUnit.MILLISECONDS));
+                        .withDeadline(Deadline.after(streamingTimeout.toMillis(), TimeUnit.MILLISECONDS));
     }
 
     private Function<Object[], Publisher> createGrpcBridge(Method reactMethod,
@@ -137,6 +150,12 @@ public class ReactorToGrpcClientBuilder<REACT_API, GRPC_STUB extends AbstractStu
                 .findFirst()
                 .map(m -> m.getType() == MethodDescriptor.MethodType.SERVER_STREAMING)
                 .orElse(false);
-        return new FluxMethodBridge<>(reactMethod, grpcMethod, streamingResponse ? grpcStreamingStubSupplier : grpcRequestResponseStubSupplier, reactorTimeout);
+        return new FluxMethodBridge<>(
+                reactMethod,
+                grpcMethod,
+                streamingResponse ? grpcStreamingStubSupplier : grpcRequestResponseStubSupplier,
+                streamingResponse,
+                reactorTimeout
+        );
     }
 }

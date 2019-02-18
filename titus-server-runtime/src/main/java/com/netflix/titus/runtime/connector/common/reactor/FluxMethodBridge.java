@@ -36,11 +36,14 @@ class FluxMethodBridge<GRPC_STUB extends AbstractStub<GRPC_STUB>> implements Fun
     private final Method grpcMethod;
     private final Supplier<GRPC_STUB> grpcStubSupplier;
     private final Duration reactorTimeout;
+    private final boolean streamingResponse;
 
     FluxMethodBridge(Method reactMethod,
                      Method grpcMethod,
                      Supplier<GRPC_STUB> grpcStubSupplier,
+                     boolean streamingResponse,
                      Duration reactorTimeout) {
+        this.streamingResponse = streamingResponse;
         Preconditions.checkArgument(
                 !GrpcToReactUtil.isEmptyToVoidResult(reactMethod, grpcMethod),
                 "Empty GRPC reply to Flux<Mono> mapping not supported (use Mono<Void> in API definition instead)"
@@ -52,7 +55,8 @@ class FluxMethodBridge<GRPC_STUB extends AbstractStub<GRPC_STUB>> implements Fun
 
     @Override
     public Publisher apply(Object[] args) {
-        return Flux.create(sink -> new FluxInvocation(sink, args)).timeout(reactorTimeout);
+        Flux<Object> publisher = Flux.create(sink -> new FluxInvocation(sink, args));
+        return streamingResponse ? publisher : publisher.timeout(reactorTimeout);
     }
 
     private class FluxInvocation {

@@ -31,6 +31,11 @@ public class EvictionConnectorComponent {
     @Bean
     public ReactorEvictionServiceStub getReactorEvictionServiceStub(GrpcToReactorClientFactory factory,
                                                                     @Named(TitusMasterConnectorModule.MANAGED_CHANNEL_NAME) Channel channel) {
-        return factory.apply(EvictionServiceGrpc.newStub(channel), ReactorEvictionServiceStub.class);
+        return factory.apply(EvictionServiceGrpc.newStub(channel), ReactorEvictionServiceStub.class, EvictionServiceGrpc.getServiceDescriptor());
+    }
+
+    @Bean
+    public EvictionServiceClient getEvictionServiceClient(ReactorEvictionServiceStub stub) {
+        return new RemoteEvictionServiceClient(stub);
     }
 }

@@ -29,8 +29,13 @@ import org.springframework.context.annotation.Configuration;
 public class AgentManagerConnectorComponent {
 
     @Bean
+    public AgentManagementClient getAgentManagementClient(ReactorAgentManagementServiceStub stub) {
+        return new RemoteAgentManagementClient(stub);
+    }
+
+    @Bean
     public ReactorAgentManagementServiceStub getReactorAgentManagementServiceStub(GrpcToReactorClientFactory factory,
                                                                                   @Named(TitusMasterConnectorModule.MANAGED_CHANNEL_NAME) Channel channel) {
-        return factory.apply(AgentManagementServiceGrpc.newStub(channel), ReactorAgentManagementServiceStub.class);
+        return factory.apply(AgentManagementServiceGrpc.newStub(channel), ReactorAgentManagementServiceStub.class, AgentManagementServiceGrpc.getServiceDescriptor());
     }
 }
