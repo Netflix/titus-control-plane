@@ -22,6 +22,7 @@ import com.amazonaws.services.autoscaling.AmazonAutoScaling;
 import com.amazonaws.services.autoscaling.AmazonAutoScalingAsync;
 import com.amazonaws.services.ec2.AmazonEC2Async;
 import com.amazonaws.services.elasticloadbalancingv2.AmazonElasticLoadBalancingAsync;
+import com.amazonaws.services.identitymanagement.AmazonIdentityManagementAsync;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
@@ -35,6 +36,7 @@ public class AwsModule extends AbstractModule {
         bind(AmazonAutoScalingAsync.class).toProvider(AmazonAutoScalingAsyncProvider.class);
         bind(AmazonElasticLoadBalancingAsync.class).toProvider(AmazonElasticLoadBalancingAsyncProvider.class);
         bind(AmazonAutoScaling.class).toProvider(AmazonAutoScalingProvider.class);
+        bind(AmazonIdentityManagementAsync.class).toProvider(AmazonIamAsyncProvider.class);
         bind(InstanceCloudConnector.class).to(AwsInstanceCloudConnector.class);
         bind(InstanceReaper.class).asEagerSingleton();
     }

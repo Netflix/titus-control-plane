@@ -24,6 +24,7 @@ dependencies {
     compile "com.amazonaws:aws-java-sdk-elasticloadbalancingv2:${awsSdkVersion}"
     compile "com.amazonaws:aws-java-sdk-cloudwatch:${awsSdkVersion}"
     compile "com.amazonaws:aws-java-sdk-applicationautoscaling:${awsSdkVersion}"
+    compile "com.amazonaws:aws-java-sdk-iam:${awsSdkVersion}"
 
     testCompile project(':titus-testkit')
 }

@@ -47,11 +47,12 @@ public class TitusValidatorModule extends AbstractModule {
     @Provides
     @Singleton
     public EntityValidator<JobDescriptor> getJobValidator(TitusValidatorConfiguration configuration,
-                                                          JobImageValidator jobImageValidator) {
+                                                          JobImageValidator jobImageValidator,
+                                                          JobIamValidator jobIamValidator) {
         return new AggregatingValidator(
                 configuration,
                 Collections.emptyList(), // No HARD validators
-                Arrays.asList(new PassJobValidator()),
+                Arrays.asList(new PassJobValidator(), jobIamValidator),
                 Arrays.asList(jobImageValidator));
     }
 }
