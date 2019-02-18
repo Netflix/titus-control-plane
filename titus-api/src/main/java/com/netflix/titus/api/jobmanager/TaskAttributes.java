@@ -54,6 +54,11 @@ public final class TaskAttributes {
     public static final String TASK_ATTRIBUTES_CELL = JobAttributes.JOB_ATTRIBUTES_CELL;
     public static final String TASK_ATTRIBUTES_STACK = JobAttributes.JOB_ATTRIBUTES_STACK;
 
+    /**
+     * Call metadata associated with a task
+     */
+    public static final String TASK_ATTRIBUTES_CALLMETADATA = "callmetadata";
+
     private TaskAttributes() {
     }
 }

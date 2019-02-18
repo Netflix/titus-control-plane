@@ -97,7 +97,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
     enum IndexKind {StatusCreationTime}
 
     private static final long RECONCILER_SHUTDOWN_TIMEOUT_MS = 30_000;
-    private static final String CALLMETADATA = "callmetadata";
+    private static final String ATTRIBUTE_CALLMETADATA = "callmetadata";
 
     private final JobStore store;
     private final VirtualMachineMasterService vmService;
@@ -197,7 +197,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
                     String jobId = job.getId();
 
                     return store.storeJob(job).toObservable()
-                            .concatWith(reconciliationFramework.newEngine(EntityHolder.newRoot(jobId, job).addTag(CALLMETADATA, callMetadata)))
+                            .concatWith(reconciliationFramework.newEngine(EntityHolder.newRoot(jobId, job).addTag(ATTRIBUTE_CALLMETADATA, callMetadata)))
                             .map(engine -> jobId)
                             .doOnTerminate(() -> jobSubmitLimiter.releaseId(jobDescriptor))
                             .doOnCompleted(() -> logger.info("Created job {} call metadata {}", jobId, callMetadata.getCallerId()))
@@ -313,7 +313,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
                                         return Observable.<List<ModelActionHolder>>error(e);
                                     }
 
-                                    TitusModelAction modelUpdate = TitusModelAction.newModelUpdate(self).taskUpdate(newTask);
+                                    TitusModelAction modelUpdate = TitusModelAction.newModelUpdate(self).taskUpdate(newTask, callMetadata);
                                     return store.updateTask(newTask).andThen(Observable.just(ModelActionHolder.allModels(modelUpdate)));
                                 })
                                 .orElseGet(() -> Observable.error(JobManagerException.taskNotFound(taskId)))
@@ -403,7 +403,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
                         reasonCode = TaskStatus.REASON_SCALED_DOWN;
                     }
                     ChangeAction killAction = KillInitiatedActions.userInitiateTaskKillAction(
-                            engineChildPair.getLeft(), vmService, store, task.getId(), shrink, reasonCode, String.format("%s (shrink=%s)", reason, shrink), titusRuntime
+                            engineChildPair.getLeft(), vmService, store, task.getId(), shrink, reasonCode, String.format("%s (shrink=%s)", reason, shrink), titusRuntime, callMetadata
                     );
                     return engineChildPair.getLeft().changeReferenceModel(killAction);
                 })

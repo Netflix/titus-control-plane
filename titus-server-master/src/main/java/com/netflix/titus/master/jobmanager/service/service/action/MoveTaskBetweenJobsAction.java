@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import com.google.common.collect.ImmutableMap;
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
@@ -131,7 +132,7 @@ public class MoveTaskBetweenJobsAction implements MultiEngineChangeAction {
                 .job(updatedJobTo)
                 .trigger(Trigger.API)
                 .summary("Received task from another job: jobFrom=" + updatedJobFrom.getId())
-                .taskUpdate(taskToUpdated);
+                .taskUpdate(taskToUpdated, CallMetadata.newBuilder().withCallReason("Move task").build());
 
         if (taskFromRunningHolder.isPresent()) {
             actions.addAll(ModelActionHolder.allModels(addTaskAction));

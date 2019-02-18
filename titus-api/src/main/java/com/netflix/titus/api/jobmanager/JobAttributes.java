@@ -69,6 +69,11 @@ public final class JobAttributes {
     public static final String JOB_PARAMETER_ATTRIBUTES_KILL_WAIT_SECONDS =
             TITUS_PARAMETER_ATTRIBUTE_PREFIX + "agent.killWaitSeconds";
 
+    /**
+     * Call metadata for a job mutation
+     */
+    public static final String JOB_ATTRIBUTE_CALLMETADATA = "callmetadata";
+
     private JobAttributes() {
     }
 }

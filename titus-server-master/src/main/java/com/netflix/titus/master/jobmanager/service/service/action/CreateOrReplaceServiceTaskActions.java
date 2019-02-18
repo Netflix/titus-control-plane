@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
@@ -93,7 +94,7 @@ public class CreateOrReplaceServiceTaskActions {
         actions.add(ModelActionHolder.reference(modelBuilder.addTaskHolder(
                 EntityHolder.newRoot(newTask.getId(), newTask).addTag(TaskRetryers.ATTR_TASK_RETRY, newRetryer)
         )));
-        actions.add(ModelActionHolder.store(modelBuilder.taskUpdate(newTask)));
+        actions.add(ModelActionHolder.store(modelBuilder.taskUpdate(newTask, CallMetadata.newBuilder().withCallReason("Creating new task entity holder").build())));
 
         return actions;
     }

@@ -79,7 +79,7 @@ public class BasicTaskActions {
                         JobEntityHolders.expectTask(engine, taskId, titusRuntime)
                                 .map(task -> {
                                     Task newTask = changeFunction.apply(task);
-                                    TitusModelAction modelUpdate = TitusModelAction.newModelUpdate(self).taskUpdate(newTask);
+                                    TitusModelAction modelUpdate = TitusModelAction.newModelUpdate(self).taskUpdate(newTask, callMetadata);
                                     return jobStore.updateTask(newTask).andThen(Observable.just(ModelActionHolder.referenceAndStore(modelUpdate)));
                                 })
                                 .orElseGet(() -> Observable.error(JobManagerException.taskNotFound(taskId)))
@@ -173,7 +173,7 @@ public class BasicTaskActions {
                                         .build();
                                 newTaskHolder = taskHolder.
                                         setEntity(newTask)
-                                        .addTag("Callmetadata", callMetadata)
+                                        .addTag(TaskAttributes.TASK_ATTRIBUTES_CALLMETADATA, callMetadata)
                                         .addTag(TaskRetryers.ATTR_TASK_RETRY_DELAY_MS, retryDelayMs);
 
                                 modelActionHolders.add(
@@ -182,10 +182,10 @@ public class BasicTaskActions {
                                                 .addTaskHolder(newTaskHolder))
                                 );
                             } else {
-                                modelActionHolders.add(ModelActionHolder.reference(TitusModelAction.newModelUpdate(self).taskUpdate(newTask)));
+                                modelActionHolders.add(ModelActionHolder.reference(TitusModelAction.newModelUpdate(self).taskUpdate(newTask, callMetadata)));
                             }
 
-                            modelActionHolders.add(ModelActionHolder.running(TitusModelAction.newModelUpdate(self).taskUpdate(newTask)));
+                            modelActionHolders.add(ModelActionHolder.running(TitusModelAction.newModelUpdate(self).taskUpdate(newTask, callMetadata)));
 
                             return modelActionHolders;
                         }

@@ -24,6 +24,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
+import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
@@ -90,7 +91,8 @@ public class KillInitiatedActions {
                                                           boolean shrink,
                                                           String reasonCode,
                                                           String reason,
-                                                          TitusRuntime titusRuntime) {
+                                                          TitusRuntime titusRuntime,
+                                                          CallMetadata callMetadata) {
         return TitusChangeAction.newAction("userInitiateTaskKill")
                 .id(taskId)
                 .trigger(V3JobOperations.Trigger.API)
@@ -107,7 +109,7 @@ public class KillInitiatedActions {
                             Callable<List<ModelActionHolder>> modelUpdateActions = () -> JobEntityHolders.expectTask(engine, task.getId(), titusRuntime).map(current -> {
                                 List<ModelActionHolder> updateActions = new ArrayList<>();
 
-                                TitusModelAction stateUpdateAction = TitusModelAction.newModelUpdate(self).taskUpdate(taskWithKillInitiated);
+                                TitusModelAction stateUpdateAction = TitusModelAction.newModelUpdate(self).taskUpdate(taskWithKillInitiated, callMetadata);
                                 updateActions.addAll(ModelActionHolder.allModels(stateUpdateAction));
 
                                 if (shrink) {
@@ -146,7 +148,8 @@ public class KillInitiatedActions {
                             }
 
                             Task taskWithKillInitiated = JobFunctions.changeTaskStatus(currentTask, TaskState.KillInitiated, reasonCode, reason);
-                            TitusModelAction taskUpdateAction = TitusModelAction.newModelUpdate(self).taskUpdate(taskWithKillInitiated);
+                            TitusModelAction taskUpdateAction = TitusModelAction.newModelUpdate(self).taskUpdate(taskWithKillInitiated,
+                                    CallMetadata.newBuilder().withCallerId("scheduler").withCallReason(reason).build());
 
                             // If already in KillInitiated state, do not store eagerly, just call Mesos kill again.
                             if (taskState == TaskState.KillInitiated) {
@@ -225,7 +228,7 @@ public class KillInitiatedActions {
                                             .withExtensions(oldExt.toBuilder().withCapacity(newCapacity).build())
                                             .build())
                             .build();
-                    return jobHolder.setEntity(newJob);
+                    return jobHolder.setEntity(newJob).addTag(JobAttributes.JOB_ATTRIBUTE_CALLMETADATA, CallMetadata.newBuilder().withCallerId("scheduler").withCallReason("Shrinking job").build());
                 });
     }
 }

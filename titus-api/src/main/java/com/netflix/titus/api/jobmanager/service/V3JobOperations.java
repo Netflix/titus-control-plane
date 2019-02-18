@@ -20,7 +20,10 @@ import java.util.Optional;
 import java.util.function.Function;
 
 import com.netflix.titus.api.jobmanager.model.CallMetadata;
-import com.netflix.titus.api.jobmanager.model.job.*;
+import com.netflix.titus.api.jobmanager.model.job.Capacity;
+import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
+import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import reactor.core.publisher.Mono;

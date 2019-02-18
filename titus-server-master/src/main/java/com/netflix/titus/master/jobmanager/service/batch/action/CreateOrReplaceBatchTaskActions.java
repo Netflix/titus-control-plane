@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
@@ -36,6 +37,7 @@ import com.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
 import com.netflix.titus.master.jobmanager.service.common.action.TaskRetryers;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
+import jdk.nashorn.internal.codegen.CompilerConstants;
 import rx.Observable;
 
 /**
@@ -97,7 +99,7 @@ public class CreateOrReplaceBatchTaskActions {
         actions.add(ModelActionHolder.reference(modelBuilder.addTaskHolder(
                 EntityHolder.newRoot(newTask.getId(), newTask).addTag(TaskRetryers.ATTR_TASK_RETRY, nextTaskRetryer)
         )));
-        actions.add(ModelActionHolder.store(modelBuilder.taskUpdate(newTask)));
+        actions.add(ModelActionHolder.store(modelBuilder.taskUpdate(newTask, CallMetadata.newBuilder().withCallReason("create new task entity holder").build())));
 
         return actions;
     }

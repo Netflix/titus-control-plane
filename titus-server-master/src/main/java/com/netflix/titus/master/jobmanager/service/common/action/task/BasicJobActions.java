@@ -18,6 +18,7 @@ package com.netflix.titus.master.jobmanager.service.common.action.task;
 
 import java.util.Optional;
 
+import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
@@ -68,7 +69,7 @@ public class BasicJobActions {
                     Job<?> job = engine.getReferenceView().getEntity();
                     Job<?> updatedJob = JobFunctions.changeDisruptionBudget(job, disruptionBudget);
 
-                    TitusModelAction modelAction = TitusModelAction.newModelUpdate(self).jobUpdate(jobHolder -> jobHolder.setEntity(updatedJob));
+                    TitusModelAction modelAction = TitusModelAction.newModelUpdate(self).jobUpdate(jobHolder -> jobHolder.setEntity(updatedJob).addTag(JobAttributes.JOB_ATTRIBUTE_CALLMETADATA, callMetadata));
 
                     return jobStore.updateJob(updatedJob).andThen(Observable.just(ModelActionHolder.referenceAndStore(modelAction)));
                 });
