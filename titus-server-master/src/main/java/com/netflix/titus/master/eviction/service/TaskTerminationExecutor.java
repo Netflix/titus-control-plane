@@ -86,7 +86,7 @@ class TaskTerminationExecutor {
                     Task task = jobTaskPair.getRight();
 
                     return serializedInvoker
-                            .submit(doTerminateTask(taskId, reason, job, task))
+                            .submit(doTerminateTask(taskId, reason, job, task, callerId))
                             .doOnSuccess(next -> onSuccessfulTermination(job, taskId, reason, callerId))
                             .doOnError(error -> onTerminationError(job, taskId, reason, callerId, error));
                 });
@@ -98,12 +98,12 @@ class TaskTerminationExecutor {
                 .doOnError(error -> onValidationError(taskId, reason, callerId, error));
     }
 
-    private Mono<Void> doTerminateTask(String taskId, String reason, Job<?> job, Task task) {
+    private Mono<Void> doTerminateTask(String taskId, String reason, Job<?> job, Task task, String callerId) {
         return Mono.defer(() -> {
             ConsumptionResult consumptionResult = quotasManager.tryConsumeQuota(job, task);
 
             return consumptionResult.isApproved()
-                    ? ReactorExt.toMono(jobOperations.killTask(taskId, false, reason, CallMetadata.newBuilder().withCallerId("executor").build())).timeout(TASK_TERMINATE_TIMEOUT)
+                    ? ReactorExt.toMono(jobOperations.killTask(taskId, false, reason, CallMetadata.newBuilder().withCallerId(callerId).withCallReason(reason).build())).timeout(TASK_TERMINATE_TIMEOUT)
                     : Mono.error(EvictionException.noAvailableJobQuota(job, consumptionResult.getRejectionReason().get()));
         });
     }
