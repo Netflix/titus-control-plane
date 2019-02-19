@@ -39,7 +39,8 @@ public class JobEventFactory implements ReconcileEventFactory<JobManagerReconcil
     public JobManagerReconcilerEvent newBeforeChangeEvent(ReconciliationEngine<JobManagerReconcilerEvent> engine,
                                                           ChangeAction changeAction,
                                                           String transactionId) {
-        return new JobBeforeChangeReconcilerEvent(engine.getReferenceView().getEntity(), (TitusChangeAction) changeAction, transactionId, engine.getReferenceView().getEntity());
+        return new JobBeforeChangeReconcilerEvent(engine.getReferenceView().getEntity(), (TitusChangeAction) changeAction, transactionId,
+                (CallMetadata)engine.getReferenceView().getAttributes().get(JobAttributes.JOB_ATTRIBUTE_CALLMETADATA));
     }
 
     @Override
