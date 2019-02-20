@@ -45,6 +45,8 @@ import rx.Observable;
  */
 public class CreateOrReplaceBatchTaskActions {
 
+    public static CallMetadata RECONCILER_CALLMETADATA = CallMetadata.newBuilder().withCallerId("Reconciler").build();
+
     public static TitusChangeAction createOrReplaceTaskAction(JobManagerConfiguration configuration, JobStore jobStore, EntityHolder jobHolder, int index, Clock clock) {
         return jobHolder.getChildren().stream()
                 .filter(taskHolder -> {
@@ -99,7 +101,7 @@ public class CreateOrReplaceBatchTaskActions {
         actions.add(ModelActionHolder.reference(modelBuilder.addTaskHolder(
                 EntityHolder.newRoot(newTask.getId(), newTask).addTag(TaskRetryers.ATTR_TASK_RETRY, nextTaskRetryer)
         )));
-        actions.add(ModelActionHolder.store(modelBuilder.taskUpdate(newTask, CallMetadata.newBuilder().withCallReason("create new task entity holder").withCallerId("task actions").build())));
+        actions.add(ModelActionHolder.store(modelBuilder.taskUpdate(newTask, RECONCILER_CALLMETADATA.toBuilder().withCallReason("Creating new task entity holder").build())));
 
         return actions;
     }

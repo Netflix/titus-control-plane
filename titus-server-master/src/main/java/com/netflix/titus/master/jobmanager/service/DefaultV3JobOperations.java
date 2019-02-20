@@ -28,6 +28,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.netflix.titus.api.FeatureActivationConfiguration;
+import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
@@ -97,7 +98,6 @@ public class DefaultV3JobOperations implements V3JobOperations {
     enum IndexKind {StatusCreationTime}
 
     private static final long RECONCILER_SHUTDOWN_TIMEOUT_MS = 30_000;
-    private static final String ATTRIBUTE_CALLMETADATA = "callmetadata";
 
     private final JobStore store;
     private final VirtualMachineMasterService vmService;
@@ -197,7 +197,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
                     String jobId = job.getId();
 
                     return store.storeJob(job).toObservable()
-                            .concatWith(reconciliationFramework.newEngine(EntityHolder.newRoot(jobId, job).addTag(ATTRIBUTE_CALLMETADATA, callMetadata)))
+                            .concatWith(reconciliationFramework.newEngine(EntityHolder.newRoot(jobId, job).addTag(JobAttributes.JOB_ATTRIBUTE_CALLMETADATA, callMetadata)))
                             .map(engine -> jobId)
                             .doOnTerminate(() -> jobSubmitLimiter.releaseId(jobDescriptor))
                             .doOnCompleted(() -> logger.info("Created job {} call metadata {}", jobId, callMetadata.getCallerId()))

@@ -55,6 +55,8 @@ import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEve
  */
 public class DifferenceResolverUtils {
 
+    public static CallMetadata RECONCILER_CALLMETADATA = CallMetadata.newBuilder().withCallerId("Reconciler").build();
+
     public static boolean isDone(Job<?> job, Task task) {
         return task.getStatus().getState() == TaskState.Finished && !shouldRetry(job, task);
     }
@@ -196,7 +198,7 @@ public class DifferenceResolverUtils {
                                             ),
                                             "TimedOut in KillInitiated state",
                                             titusRuntime,
-                                            CallMetadata.newBuilder().withCallReason("Kill initiated").withCallerId("scheduler").build())
+                                            RECONCILER_CALLMETADATA.toBuilder().withCallReason("Kill initiated").build())
                             );
                         } else {
                             actions.add(TaskTimeoutChangeActions.incrementTaskKillAttempt(task.getId(), configuration.getTaskInKillInitiatedStateTimeoutMs(), clock));

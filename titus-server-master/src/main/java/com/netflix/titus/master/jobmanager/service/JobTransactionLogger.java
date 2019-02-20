@@ -249,7 +249,7 @@ class JobTransactionLogger {
                                    String callerID,
                                    String callReason) {
         return String.format(
-                "jobId=%s entity=%s transactionId=%-5s target=%-4s status=%-5s type=%-22s action=%-45s trigger=%-10s %-16s %-15s summary=%s",
+                "jobId=%s entity=%s transactionId=%-5s target=%-4s status=%-5s type=%-22s action=%-45s trigger=%-10s %-16s %-15s callerId=%-15s callReason=%-15s summary=%s",
                 jobId,
                 entityId,
                 transactionId,
@@ -258,12 +258,12 @@ class JobTransactionLogger {
                 type,
                 action,
                 trigger,
+                "caller id=" + callerID,
+                "call reason=" + callReason,
                 "waited=" + waitTimeMs + "ms",
                 "elapsed=" + executionTime + "ms",
-                summary,
-                "caller id=" + callerID,
-                "call reason=" + callReason
-        );
+                summary
+                );
     }
 
     private static String toTargetName(String jobId, String entityId) {

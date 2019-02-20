@@ -154,7 +154,7 @@ public abstract class TitusModelAction implements ModelAction {
         }
 
         public TitusModelAction taskUpdate(Task newTask, CallMetadata callMetadata) {
-            return taskUpdate(jobHolder -> JobEntityHolders.addTask(jobHolder.addTag(TaskAttributes.TASK_ATTRIBUTES_CALLMETADATA, callMetadata), newTask));
+            return taskUpdate(jobHolder -> JobEntityHolders.addTask(jobHolder, newTask, callMetadata));
         }
 
         public TitusModelAction addTaskHolder(EntityHolder taskHolder) {
