@@ -46,6 +46,8 @@ public class WorkerStateMonitor {
     private final VirtualMachineMasterService vmService;
     private AtomicBoolean shutdownFlag = new AtomicBoolean();
 
+    private static CallMetadata MESOS_CALL_METADATA = CallMetadata.newBuilder().withCallerId("Mesos").build();
+
     @Inject
     public WorkerStateMonitor(VirtualMachineMasterService vmService,
                               V3JobOperations v3JobOperations,
@@ -94,7 +96,7 @@ public class WorkerStateMonitor {
 
                                 // Failures are logged only, as the reconciler will take care of it if needed.
                                 final Function<Task, Optional<Task>> updater = JobManagerUtil.newMesosTaskStateUpdater(taskStatus, args.getTitusExecutorDetails(), titusRuntime);
-                                v3JobOperations.updateTask(task.getId(), updater, Trigger.Mesos, "Mesos -> " + taskStatus, CallMetadata.newBuilder().withCallerId("worker monitor").build()).subscribe(
+                                v3JobOperations.updateTask(task.getId(), updater, Trigger.Mesos, "Mesos -> " + taskStatus, MESOS_CALL_METADATA.toBuilder().withCallReason("Mesos task change").build()).subscribe(
                                         () -> logger.info("Changed task {} status state to {}", task.getId(), taskStatus),
                                         e -> logger.warn("Could not update task state of {} to {} ({})", args.getTaskId(), taskStatus, e.toString())
                                 );

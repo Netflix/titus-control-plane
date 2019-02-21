@@ -45,6 +45,8 @@ public class DefaultTaskMigrationManager implements TaskMigrationManager {
 
     private State state;
     private long lastMovedWorkerOnDisabledVM;
+    private CallMetadata TASK_MIGRATOR_CALL_METADATA = CallMetadata.newBuilder().withCallerId("task migration").build();
+
 
     public DefaultTaskMigrationManager(ServiceJobTaskMigratorConfig config, TokenBucket terminateTokenBucket) {
         this.config = config;
@@ -121,9 +123,8 @@ public class DefaultTaskMigrationManager implements TaskMigrationManager {
                     if (terminateTokenBucket.tryTake()) {
                         logger.info("Migrating task: {} of job: {}", task.getId(), jobId);
                         String reason = "Moving service task: " + task.getId() + " out of disabled VM";
-                        CallMetadata callMetadata = CallMetadata.newBuilder().withCallerId("task migraiton").build();
                         try {
-                            v3JobOperations.killTask(task.getId(), false, reason, callMetadata).toCompletable().await(KILL_TIMEOUT, TimeUnit.MILLISECONDS);
+                            v3JobOperations.killTask(task.getId(), false, reason, TASK_MIGRATOR_CALL_METADATA.toBuilder().withCallReason(reason).build()).toCompletable().await(KILL_TIMEOUT, TimeUnit.MILLISECONDS);
                             lastMovedWorkerOnDisabledVM = System.currentTimeMillis();
                         } catch (Exception e) {
                             logger.error("Unable to kill task: {} with error: ", task.getId(), e);

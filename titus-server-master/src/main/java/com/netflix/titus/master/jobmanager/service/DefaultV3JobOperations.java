@@ -452,7 +452,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
             }
 
             return reconciliationFramework.changeReferenceModel(
-                    new MoveTaskBetweenJobsAction(engineFrom, engineTo, taskId, store),
+                    new MoveTaskBetweenJobsAction(engineFrom, engineTo, taskId, store, callMetadata),
                     (rootId, modelUpdatesObservable) -> {
                         String name;
                         String summary;

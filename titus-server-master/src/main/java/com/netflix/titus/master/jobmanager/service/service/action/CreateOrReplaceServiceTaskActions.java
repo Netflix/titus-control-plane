@@ -44,6 +44,7 @@ import rx.Observable;
  * Create a new task or replace a completed task, and persist it into the store. Update reference/store models.
  */
 public class CreateOrReplaceServiceTaskActions {
+    public static CallMetadata RECONCILER_CALLMETADATA = CallMetadata.newBuilder().withCallerId("Reconciler").build();
 
     public static TitusChangeAction createOrReplaceTaskAction(JobManagerConfiguration configuration, JobStore jobStore, EntityHolder jobHolder, Optional<EntityHolder> previousTaskHolder, Clock clock) {
         Job<ServiceJobExt> job = jobHolder.getEntity();
@@ -89,12 +90,13 @@ public class CreateOrReplaceServiceTaskActions {
 
     private static List<ModelActionHolder> createNewTaskModelAction(TitusChangeAction.Builder changeActionBuilder, ServiceJobTask newTask, Retryer newRetryer) {
         List<ModelActionHolder> actions = new ArrayList<>();
+        String summary = "Creating new task entity holder";
 
-        TitusModelAction.Builder modelBuilder = TitusModelAction.newModelUpdate(changeActionBuilder).summary("Creating new task entity holder");
+        TitusModelAction.Builder modelBuilder = TitusModelAction.newModelUpdate(changeActionBuilder).summary(summary);
         actions.add(ModelActionHolder.reference(modelBuilder.addTaskHolder(
                 EntityHolder.newRoot(newTask.getId(), newTask).addTag(TaskRetryers.ATTR_TASK_RETRY, newRetryer)
         )));
-        actions.add(ModelActionHolder.store(modelBuilder.taskUpdate(newTask, CallMetadata.newBuilder().withCallReason("Creating new task entity holder").withCallerId("task actions").build())));
+        actions.add(ModelActionHolder.store(modelBuilder.taskUpdate(newTask, RECONCILER_CALLMETADATA.toBuilder().withCallReason(summary).build())));
 
         return actions;
     }

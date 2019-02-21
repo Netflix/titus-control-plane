@@ -18,6 +18,7 @@ package com.netflix.titus.master.jobmanager.service.event;
 
 import java.util.Optional;
 
+import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.common.framework.reconciler.EntityHolder;
@@ -34,7 +35,7 @@ public abstract class JobModelReconcilerEvent extends JobManagerReconcilerEvent 
         private final EntityHolder newRoot;
 
         public JobNewModelReconcilerEvent(EntityHolder newRoot) {
-            super(newRoot.getEntity(), "-1", CallMetadata.newBuilder().withCallerId("reconciler event").build());
+            super(newRoot.getEntity(), "-1", (CallMetadata)newRoot.getAttributes().get(JobAttributes.JOB_ATTRIBUTE_CALLMETADATA));
             this.newRoot = newRoot;
         }
 

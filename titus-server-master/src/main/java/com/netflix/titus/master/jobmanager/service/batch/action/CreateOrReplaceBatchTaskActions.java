@@ -37,7 +37,6 @@ import com.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
 import com.netflix.titus.master.jobmanager.service.common.action.TaskRetryers;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
-import jdk.nashorn.internal.codegen.CompilerConstants;
 import rx.Observable;
 
 /**

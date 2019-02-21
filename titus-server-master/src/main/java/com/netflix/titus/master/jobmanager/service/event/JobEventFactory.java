@@ -35,6 +35,9 @@ import com.netflix.titus.master.jobmanager.service.event.JobChangeReconcilerEven
  */
 public class JobEventFactory implements ReconcileEventFactory<JobManagerReconcilerEvent> {
 
+    // TODO: Verify we generate events only for reference view,if not this will fail in fun and interesting ways
+    public static final CallMetadata UNDEFINED_CALL_METADATA = null;
+
     @Override
     public JobManagerReconcilerEvent newBeforeChangeEvent(ReconciliationEngine<JobManagerReconcilerEvent> engine,
                                                           ChangeAction changeAction,
@@ -77,8 +80,8 @@ public class JobEventFactory implements ReconcileEventFactory<JobManagerReconcil
                                                          EntityHolder changedEntityHolder,
                                                          Optional<EntityHolder> previousEntityHolder,
                                                          String transactionId) {
-        return new JobModelReconcilerEvent.JobModelUpdateReconcilerEvent(getJob(engine, modelActionHolder), (TitusChangeAction) changeAction, modelActionHolder, changedEntityHolder, previousEntityHolder, transactionId,
-                (CallMetadata)getEntityHolder(engine, modelActionHolder).getAttributes().get(JobAttributes.JOB_ATTRIBUTE_CALLMETADATA));
+        return new JobModelReconcilerEvent.JobModelUpdateReconcilerEvent(getJob(engine, modelActionHolder), (TitusChangeAction) changeAction, modelActionHolder, changedEntityHolder, previousEntityHolder,
+                transactionId, getCallMetadata(engine, modelActionHolder));
     }
 
     @Override
@@ -89,18 +92,22 @@ public class JobEventFactory implements ReconcileEventFactory<JobManagerReconcil
                                                               Throwable error,
                                                               String transactionId) {
         return new JobModelReconcilerEvent.JobModelUpdateErrorReconcilerEvent(getJob(engine, modelActionHolder), (TitusChangeAction) changeAction, modelActionHolder, previousEntityHolder, error, transactionId,
-                (CallMetadata)getEntityHolder(engine, modelActionHolder).getAttributes().get(JobAttributes.JOB_ATTRIBUTE_CALLMETADATA));
+                getCallMetadata(engine, modelActionHolder));
     }
 
-    private EntityHolder getEntityHolder(ReconciliationEngine<JobManagerReconcilerEvent> engine, ModelActionHolder modelActionHolder) {
+    private CallMetadata getCallMetadata(ReconciliationEngine<JobManagerReconcilerEvent> engine, ModelActionHolder modelActionHolder) {
         switch (modelActionHolder.getModel()) {
             case Running:
-                return engine.getRunningView();
+                if (engine.getRunningView().getAttributes().get(JobAttributes.JOB_ATTRIBUTE_CALLMETADATA) == null){
+                    return UNDEFINED_CALL_METADATA;
+                }
             case Store:
-                return engine.getStoreView();
+                if (engine.getStoreView().getAttributes().get(JobAttributes.JOB_ATTRIBUTE_CALLMETADATA) == null) {
+                    return UNDEFINED_CALL_METADATA;
+                }
             case Reference:
             default:
-                return engine.getReferenceView();
+                return (CallMetadata)engine.getRunningView().getAttributes().get(JobAttributes.JOB_ATTRIBUTE_CALLMETADATA);
         }
     }
 

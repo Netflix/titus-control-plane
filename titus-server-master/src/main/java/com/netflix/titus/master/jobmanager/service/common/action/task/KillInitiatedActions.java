@@ -55,6 +55,8 @@ import rx.functions.Action0;
  */
 public class KillInitiatedActions {
 
+    public static CallMetadata RECONCILER_CALLMETADATA = CallMetadata.newBuilder().withCallerId("Reconciler").build();
+
     /**
      * Move job to {@link JobState#KillInitiated} state in reference, running and store models.
      */
@@ -200,7 +202,7 @@ public class KillInitiatedActions {
                         V3JobOperations.Trigger.Reconciler,
                         reason,
                         titusRuntime,
-                        CallMetadata.newBuilder().withCallerId("scheduler").build()
+                        RECONCILER_CALLMETADATA.toBuilder().withCallReason(reason).build()
                 ));
             }
         });
@@ -228,7 +230,7 @@ public class KillInitiatedActions {
                                             .withExtensions(oldExt.toBuilder().withCapacity(newCapacity).build())
                                             .build())
                             .build();
-                    return jobHolder.setEntity(newJob).addTag(JobAttributes.JOB_ATTRIBUTE_CALLMETADATA, CallMetadata.newBuilder().withCallerId("scheduler").withCallReason("Shrinking job").build());
+                    return jobHolder.setEntity(newJob).addTag(JobAttributes.JOB_ATTRIBUTE_CALLMETADATA, RECONCILER_CALLMETADATA.toBuilder().withCallReason("Shrinking job as a result of terminate and shrink request").build());
                 });
     }
 }
