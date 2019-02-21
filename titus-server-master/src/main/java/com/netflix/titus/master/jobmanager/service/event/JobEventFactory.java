@@ -35,7 +35,6 @@ import com.netflix.titus.master.jobmanager.service.event.JobChangeReconcilerEven
  */
 public class JobEventFactory implements ReconcileEventFactory<JobManagerReconcilerEvent> {
 
-    // TODO: Verify we generate events only for reference view,if not this will fail in fun and interesting ways
     public static final CallMetadata UNDEFINED_CALL_METADATA = null;
 
     @Override
