@@ -75,7 +75,7 @@ public class KillInitiatedActions {
                     Job jobWithKillInitiated = JobFunctions.changeJobStatus(job, newStatus);
 
                     TitusModelAction modelUpdateAction = TitusModelAction.newModelUpdate(self)
-                            .jobMaybeUpdate(entityHolder -> Optional.of(entityHolder.setEntity(jobWithKillInitiated)));
+                            .jobMaybeUpdate(entityHolder -> Optional.of(entityHolder.setEntity(jobWithKillInitiated).addTag(JobAttributes.JOB_ATTRIBUTE_CALLMETADATA, callMetadata)));
 
                     return titusStore.updateJob(jobWithKillInitiated).andThen(Observable.just(ModelActionHolder.allModels(modelUpdateAction)));
                 });
@@ -151,7 +151,7 @@ public class KillInitiatedActions {
 
                             Task taskWithKillInitiated = JobFunctions.changeTaskStatus(currentTask, TaskState.KillInitiated, reasonCode, reason);
                             TitusModelAction taskUpdateAction = TitusModelAction.newModelUpdate(self).taskUpdate(taskWithKillInitiated,
-                                    CallMetadata.newBuilder().withCallerId("scheduler").withCallReason(reason).build());
+                                    RECONCILER_CALLMETADATA.toBuilder().withCallReason(reason).build());
 
                             // If already in KillInitiated state, do not store eagerly, just call Mesos kill again.
                             if (taskState == TaskState.KillInitiated) {
