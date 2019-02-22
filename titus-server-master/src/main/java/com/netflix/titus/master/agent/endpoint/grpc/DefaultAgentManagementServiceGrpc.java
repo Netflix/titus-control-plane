@@ -39,6 +39,8 @@ import com.netflix.titus.grpc.protogen.AgentInstanceGroups;
 import com.netflix.titus.grpc.protogen.AgentInstances;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.AgentManagementServiceImplBase;
 import com.netflix.titus.grpc.protogen.AgentQuery;
+import com.netflix.titus.grpc.protogen.DeleteAgentInstanceAttributesRequest;
+import com.netflix.titus.grpc.protogen.DeleteInstanceGroupAttributesRequest;
 import com.netflix.titus.grpc.protogen.Id;
 import com.netflix.titus.grpc.protogen.InstanceGroupAttributesUpdate;
 import com.netflix.titus.grpc.protogen.InstanceGroupLifecycleStateUpdate;
@@ -156,8 +158,30 @@ public class DefaultAgentManagementServiceGrpc extends AgentManagementServiceImp
     }
 
     @Override
+    public void deleteInstanceGroupAttributes(DeleteInstanceGroupAttributesRequest request, StreamObserver<Empty> responseObserver) {
+        agentManagementService.deleteInstanceGroupAttributes(request.getInstanceGroupId(), request.getKeysList()).subscribe(
+                () -> {
+                    responseObserver.onNext(Empty.getDefaultInstance());
+                    responseObserver.onCompleted();
+                },
+                responseObserver::onError
+        );
+    }
+
+    @Override
     public void updateAgentInstanceAttributes(AgentInstanceAttributesUpdate request, StreamObserver<Empty> responseObserver) {
         agentManagementService.updateAgentInstanceAttributes(request.getAgentInstanceId(), request.getAttributesMap()).subscribe(
+                () -> {
+                    responseObserver.onNext(Empty.getDefaultInstance());
+                    responseObserver.onCompleted();
+                },
+                responseObserver::onError
+        );
+    }
+
+    @Override
+    public void deleteAgentInstanceAttributes(DeleteAgentInstanceAttributesRequest request, StreamObserver<Empty> responseObserver) {
+        agentManagementService.deleteAgentInstanceAttributes(request.getAgentInstanceId(), request.getKeysList()).subscribe(
                 () -> {
                     responseObserver.onNext(Empty.getDefaultInstance());
                     responseObserver.onCompleted();

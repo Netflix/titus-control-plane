@@ -34,8 +34,8 @@ import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.agent.service.AgentStatusMonitor;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.model.Tier;
-import com.netflix.titus.master.agent.AgentAttributes;
 import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
+import com.netflix.titus.master.scheduler.SchedulerAttributes;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 import org.apache.mesos.Protos;
 import org.junit.Before;
@@ -86,13 +86,23 @@ public class AgentManagementConstraintTest {
     }
 
     @Test
-    public void instanceGroupNoPlacement() {
-        AgentInstanceGroup agentInstanceGroup = createAgentInstanceGroup(InstanceGroupLifecycleState.Active, Tier.Flex, Collections.singletonMap(AgentAttributes.NO_PLACEMENT, "true"));
+    public void instanceGroupSystemNoPlacement() {
+        AgentInstanceGroup agentInstanceGroup = createAgentInstanceGroup(InstanceGroupLifecycleState.Active, Tier.Flex, Collections.singletonMap(SchedulerAttributes.SYSTEM_NO_PLACEMENT, "true"));
         when(agentManagementService.findInstanceGroup("instanceGroupId")).thenReturn(Optional.of(agentInstanceGroup));
         Result result = agentManagementConstraint.evaluate(createTaskRequest(),
                 createVirtualMachineCurrentStateMock("1234", "instanceGroupId"), mock(TaskTrackerState.class));
         assertThat(result.isSuccessful()).isFalse();
-        assertThat(result.getFailureReason()).isEqualToIgnoringCase("Cannot place on instance group due to noPlacement attribute");
+        assertThat(result.getFailureReason()).isEqualToIgnoringCase("Cannot place on instance group or agent instance due to systemNoPlacement attribute");
+    }
+
+    @Test
+    public void instanceGroupNoPlacement() {
+        AgentInstanceGroup agentInstanceGroup = createAgentInstanceGroup(InstanceGroupLifecycleState.Active, Tier.Flex, Collections.singletonMap(SchedulerAttributes.NO_PLACEMENT, "true"));
+        when(agentManagementService.findInstanceGroup("instanceGroupId")).thenReturn(Optional.of(agentInstanceGroup));
+        Result result = agentManagementConstraint.evaluate(createTaskRequest(),
+                createVirtualMachineCurrentStateMock("1234", "instanceGroupId"), mock(TaskTrackerState.class));
+        assertThat(result.isSuccessful()).isFalse();
+        assertThat(result.getFailureReason()).isEqualToIgnoringCase("Cannot place on instance group or agent instance due to noPlacement attribute");
     }
 
     @Test

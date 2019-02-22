@@ -22,6 +22,8 @@ import javax.inject.Singleton;
 
 import com.google.protobuf.Empty;
 import com.netflix.titus.grpc.protogen.Job;
+import com.netflix.titus.grpc.protogen.JobAttributesDeleteRequest;
+import com.netflix.titus.grpc.protogen.JobAttributesUpdate;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
@@ -33,6 +35,7 @@ import com.netflix.titus.grpc.protogen.JobQuery;
 import com.netflix.titus.grpc.protogen.JobQueryResult;
 import com.netflix.titus.grpc.protogen.JobStatusUpdate;
 import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
+import com.netflix.titus.grpc.protogen.TaskAttributesDeleteRequest;
 import com.netflix.titus.grpc.protogen.TaskAttributesUpdate;
 import com.netflix.titus.grpc.protogen.TaskId;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
@@ -122,6 +125,28 @@ public class GrpcJobManagementClient implements JobManagementClient {
     }
 
     @Override
+    public Mono<Void> updateJobAttributes(JobAttributesUpdate request) {
+        return createMonoVoidRequest(
+                emitter -> {
+                    StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientMonoResponse(emitter);
+                    createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).updateJobAttributes(request, streamObserver);
+                },
+                configuration.getRequestTimeout()
+        ).ignoreElement().cast(Void.class);
+    }
+
+    @Override
+    public Mono<Void> deleteJobAttributes(JobAttributesDeleteRequest request) {
+        return createMonoVoidRequest(
+                emitter -> {
+                    StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientMonoResponse(emitter);
+                    createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).deleteJobAttributes(request, streamObserver);
+                },
+                configuration.getRequestTimeout()
+        ).ignoreElement().cast(Void.class);
+    }
+
+    @Override
     public Observable<Job> findJob(String jobId) {
         Observable<Job> observable = createRequestObservable(emitter -> {
             StreamObserver<Job> streamObserver = createSimpleClientResponseObserver(emitter);
@@ -189,10 +214,18 @@ public class GrpcJobManagementClient implements JobManagementClient {
     }
 
     @Override
-    public Completable updateTaskAttributes(TaskAttributesUpdate taskUpdateRequest) {
+    public Completable updateTaskAttributes(TaskAttributesUpdate attributesUpdate) {
         return createRequestCompletable(emitter -> {
             StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
-            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).updateTaskAttributes(taskUpdateRequest, streamObserver);
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).updateTaskAttributes(attributesUpdate, streamObserver);
+        }, configuration.getRequestTimeout());
+    }
+
+    @Override
+    public Completable deleteTaskAttributes(TaskAttributesDeleteRequest deleteRequest) {
+        return createRequestCompletable(emitter -> {
+            StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).deleteTaskAttributes(deleteRequest, streamObserver);
         }, configuration.getRequestTimeout());
     }
 

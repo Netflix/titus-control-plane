@@ -16,15 +16,18 @@
 
 package com.netflix.titus.gateway.endpoint.v3.rest;
 
+import java.util.List;
 import java.util.Objects;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
@@ -40,6 +43,8 @@ import com.netflix.titus.grpc.protogen.AgentInstanceGroup;
 import com.netflix.titus.grpc.protogen.AgentInstanceGroups;
 import com.netflix.titus.grpc.protogen.AgentInstances;
 import com.netflix.titus.grpc.protogen.AgentQuery;
+import com.netflix.titus.grpc.protogen.DeleteAgentInstanceAttributesRequest;
+import com.netflix.titus.grpc.protogen.DeleteInstanceGroupAttributesRequest;
 import com.netflix.titus.grpc.protogen.InstanceGroupAttributesUpdate;
 import com.netflix.titus.grpc.protogen.InstanceGroupLifecycleStateUpdate;
 import com.netflix.titus.grpc.protogen.TierUpdate;
@@ -132,6 +137,18 @@ public class AgentManagementResource {
         return Responses.fromCompletable(agentManagementService.updateInstanceGroupAttributes(attributesUpdate));
     }
 
+    @DELETE
+    @ApiOperation("Delete attributes of an instance group with the specified key names")
+    @Path("/instanceGroups/{id}/attributes")
+    public Response deleteTaskAttributes(@PathParam("id") String id,
+                                         @QueryParam("keys") final List<String> keys) {
+        DeleteInstanceGroupAttributesRequest request = DeleteInstanceGroupAttributesRequest.newBuilder()
+                .setInstanceGroupId(id)
+                .addAllKeys(keys)
+                .build();
+        return Responses.fromCompletable(agentManagementService.deleteInstanceGroupAttributes(request));
+    }
+
     @PUT
     @ApiOperation("Update agent instance attributes")
     @Path("/instances/{id}/attributes")
@@ -144,5 +161,17 @@ public class AgentManagementResource {
         }
 
         return Responses.fromCompletable(agentManagementService.updateAgentInstanceAttributes(attributesUpdate));
+    }
+
+    @DELETE
+    @ApiOperation("Delete attributes of an agent instance with the specified key names")
+    @Path("/instances/{id}/attributes")
+    public Response deleteAgentInstanceAttributes(@PathParam("id") String id,
+                                                  @QueryParam("keys") final List<String> keys) {
+        DeleteAgentInstanceAttributesRequest request = DeleteAgentInstanceAttributesRequest.newBuilder()
+                .setAgentInstanceId(id)
+                .addAllKeys(keys)
+                .build();
+        return Responses.fromCompletable(agentManagementService.deleteAgentInstanceAttributes(request));
     }
 }

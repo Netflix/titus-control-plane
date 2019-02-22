@@ -197,6 +197,7 @@ public class SimulatedRemoteInstanceCloudConnector implements InstanceCloudConne
                 .withIsLaunchSuspended(false)
                 .withIsTerminateSuspended(false)
                 .withLaunchConfigurationName(simulated.getId())
+                .withInstanceType(simulated.getInstanceType())
                 .withAttributes(Collections.emptyMap())
                 .build();
     }

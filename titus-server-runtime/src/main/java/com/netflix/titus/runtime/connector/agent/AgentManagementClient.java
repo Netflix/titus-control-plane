@@ -23,6 +23,8 @@ import com.netflix.titus.grpc.protogen.AgentInstanceGroup;
 import com.netflix.titus.grpc.protogen.AgentInstanceGroups;
 import com.netflix.titus.grpc.protogen.AgentInstances;
 import com.netflix.titus.grpc.protogen.AgentQuery;
+import com.netflix.titus.grpc.protogen.DeleteAgentInstanceAttributesRequest;
+import com.netflix.titus.grpc.protogen.DeleteInstanceGroupAttributesRequest;
 import com.netflix.titus.grpc.protogen.InstanceGroupAttributesUpdate;
 import com.netflix.titus.grpc.protogen.InstanceGroupLifecycleStateUpdate;
 import com.netflix.titus.grpc.protogen.TierUpdate;
@@ -45,7 +47,11 @@ public interface AgentManagementClient {
 
     Completable updateInstanceGroupAttributes(InstanceGroupAttributesUpdate attributesUpdate);
 
+    Completable deleteInstanceGroupAttributes(DeleteInstanceGroupAttributesRequest deleteRequest);
+
     Completable updateAgentInstanceAttributes(AgentInstanceAttributesUpdate attributesUpdate);
+
+    Completable deleteAgentInstanceAttributes(DeleteAgentInstanceAttributesRequest deleteRequest);
 
     Observable<AgentChangeEvent> observeAgents();
 }

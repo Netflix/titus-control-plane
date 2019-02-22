@@ -23,6 +23,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -44,8 +45,10 @@ import org.slf4j.LoggerFactory;
 import rx.Completable;
 import rx.Observable;
 import rx.Scheduler;
+import rx.Single;
 import rx.Subscription;
 import rx.functions.Action0;
+import rx.functions.Func0;
 import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 
@@ -219,6 +222,43 @@ public class DefaultAgentCache implements AgentCache {
     }
 
     @Override
+    public Single<AgentInstanceGroup> getAndUpdateInstanceGroupStore(String instanceGroupId, Function<AgentInstanceGroup, AgentInstanceGroup> function) {
+        Single<AgentInstanceGroup> single = onEventLoopWithSubscription(() -> {
+            AgentInstanceGroup instanceGroup = getInstanceGroup(instanceGroupId);
+            Set<AgentInstance> agentInstances = dataSnapshot.getInstances(instanceGroup.getId());
+            if (agentInstances == null) {
+                agentInstances = Collections.emptySet();
+            }
+            AgentInstanceGroup updatedInstanceGroup = function.apply(instanceGroup);
+            setDataSnapshot(dataSnapshot.updateInstanceGroup(updatedInstanceGroup, agentInstances));
+            eventSubject.onNext(new CacheUpdateEvent(CacheUpdateType.InstanceGroup, instanceGroupId));
+            return updatedInstanceGroup;
+        });
+        return single.flatMap(ig -> agentStore.storeAgentInstanceGroup(ig).toSingle(() -> ig));
+    }
+
+    @Override
+    public Single<AgentInstanceGroup> getAndUpdateInstanceGroupStoreAndSyncCloud(String instanceGroupId, Function<AgentInstanceGroup, AgentInstanceGroup> function) {
+        return getAndUpdateInstanceGroupStore(instanceGroupId, function)
+                .flatMap(ig -> {
+                    instanceCache.refreshInstanceGroup(instanceGroupId);
+                    return Single.just(ig);
+                });
+    }
+
+    @Override
+    public Single<AgentInstance> getAndUpdateAgentInstanceStore(String instanceId, Function<AgentInstance, AgentInstance> function) {
+        Single<AgentInstance> single = onEventLoopWithSubscription(() -> {
+            AgentInstance agentInstance = getAgentInstance(instanceId);
+            AgentInstance updatedAgentInstance = function.apply(agentInstance);
+            setDataSnapshot(dataSnapshot.updateAgentInstance(updatedAgentInstance));
+            eventSubject.onNext(new CacheUpdateEvent(CacheUpdateType.Instance, instanceId));
+            return updatedAgentInstance;
+        });
+        return single.flatMap(ai -> agentStore.storeAgentInstance(ai).toSingle(() -> ai));
+    }
+
+    @Override
     public Completable removeInstances(String instanceGroupId, Set<String> agentInstanceIds) {
         return onEventLoopWithSubscription(() ->
                 setDataSnapshot(dataSnapshot.removeInstances(instanceGroupId, agentInstanceIds))
@@ -281,7 +321,7 @@ public class DefaultAgentCache implements AgentCache {
         AgentInstanceGroup agentInstanceGroup;
         List<AgentInstance> agentInstances;
         if (previous == null) {
-            String instanceType = instanceGroup.getAttributes().getOrDefault(InstanceCache.ATTR_INSTANCE_TYPE, "unknown");
+            String instanceType = instanceGroup.getInstanceType();
             ResourceDimension instanceResourceDimension;
             try {
                 instanceResourceDimension = connector.getInstanceTypeResourceDimension(instanceType);
@@ -365,6 +405,19 @@ public class DefaultAgentCache implements AgentCache {
             });
             subscriber.add(subscription);
         }).toCompletable();
+    }
+
+    private <T> Single<T> onEventLoopWithSubscription(Func0<T> function) {
+        return Single.create(subscriber -> {
+            Subscription subscription = worker.schedule(() -> {
+                try {
+                    subscriber.onSuccess(function.call());
+                } catch (Throwable e) {
+                    subscriber.onError(e);
+                }
+            });
+            subscriber.add(subscription);
+        });
     }
 
     private void setDataSnapshot(AgentDataSnapshot dataSnapshot) {

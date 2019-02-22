@@ -19,6 +19,8 @@ package com.netflix.titus.runtime.connector.jobmanager;
 import java.util.Set;
 
 import com.netflix.titus.grpc.protogen.Job;
+import com.netflix.titus.grpc.protogen.JobAttributesDeleteRequest;
+import com.netflix.titus.grpc.protogen.JobAttributesUpdate;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
@@ -29,6 +31,7 @@ import com.netflix.titus.grpc.protogen.JobQueryResult;
 import com.netflix.titus.grpc.protogen.JobStatusUpdate;
 import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
 import com.netflix.titus.grpc.protogen.Task;
+import com.netflix.titus.grpc.protogen.TaskAttributesDeleteRequest;
 import com.netflix.titus.grpc.protogen.TaskAttributesUpdate;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskMoveRequest;
@@ -59,6 +62,10 @@ public interface JobManagementClient {
 
     Mono<Void> updateJobDisruptionBudget(JobDisruptionBudgetUpdate request);
 
+    Mono<Void> updateJobAttributes(JobAttributesUpdate request);
+
+    Mono<Void> deleteJobAttributes(JobAttributesDeleteRequest request);
+
     Observable<Job> findJob(String jobId);
 
     Observable<JobQueryResult> findJobs(JobQuery jobQuery);
@@ -75,7 +82,9 @@ public interface JobManagementClient {
 
     Completable killTask(TaskKillRequest taskKillRequest);
 
-    Completable updateTaskAttributes(TaskAttributesUpdate taskMoveRequest);
+    Completable updateTaskAttributes(TaskAttributesUpdate request);
+
+    Completable deleteTaskAttributes(TaskAttributesDeleteRequest request);
 
     Completable moveTask(TaskMoveRequest taskMoveRequest);
 }

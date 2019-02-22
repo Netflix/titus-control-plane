@@ -50,7 +50,6 @@ import com.netflix.titus.common.util.rx.ObservableExt;
 import com.netflix.titus.common.util.rx.SchedulerExt;
 import com.netflix.titus.common.util.tuple.Either;
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.master.agent.AgentAttributes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;
@@ -154,10 +153,10 @@ public class ClusterRemovableAgentRemover {
                         .stream()
                         .filter(i -> {
                             Map<String, String> attributes = i.getAttributes();
-                            if (attributes.containsKey(AgentAttributes.NOT_REMOVABLE)) {
+                            if (attributes.containsKey(ClusterOperationsAttributes.NOT_REMOVABLE)) {
                                 return false;
                             }
-                            String removableTimestampValue = attributes.get(AgentAttributes.REMOVABLE);
+                            String removableTimestampValue = attributes.get(ClusterOperationsAttributes.REMOVABLE);
                             if (!Strings.isNullOrEmpty(removableTimestampValue)) {
                                 Long parsedRemovableTimestamp = Longs.tryParse(removableTimestampValue);
                                 long removableTimestamp = parsedRemovableTimestamp == null ? 0L : parsedRemovableTimestamp;

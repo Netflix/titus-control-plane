@@ -45,7 +45,6 @@ import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.CollectionsExt;
-import com.netflix.titus.master.agent.AgentAttributes;
 import com.netflix.titus.master.scheduler.SchedulingService;
 import com.netflix.titus.master.scheduler.TaskPlacementFailure;
 import org.junit.Before;
@@ -404,7 +403,7 @@ public class ClusterAgentAutoScalerTest {
     }
 
     private Map<String, String> createAgentAttributesWithRemovable(long timestamp) {
-        return Collections.singletonMap(AgentAttributes.REMOVABLE, String.valueOf(timestamp));
+        return Collections.singletonMap(ClusterOperationsAttributes.REMOVABLE, String.valueOf(timestamp));
     }
 
     private List<AgentInstance> createAgents(int count, String instanceGroupId, boolean removable) {

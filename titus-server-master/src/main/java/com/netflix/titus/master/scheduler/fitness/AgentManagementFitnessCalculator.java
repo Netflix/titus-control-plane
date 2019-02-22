@@ -27,14 +27,13 @@ import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.master.scheduler.AgentQualityTracker;
+import com.netflix.titus.master.scheduler.SchedulerAttributes;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.netflix.titus.master.agent.AgentAttributes.PREFER_NO_PLACEMENT;
-
 /**
- *
+ * Calculate fitness scores based on agent management data.
  */
 @Singleton
 public class AgentManagementFitnessCalculator implements VMTaskFitnessCalculator {
@@ -86,7 +85,7 @@ public class AgentManagementFitnessCalculator implements VMTaskFitnessCalculator
             if (instanceGroup.getLifecycleStatus().getState() == InstanceGroupLifecycleState.Active) {
                 return quality * ACTIVE_INSTANCE_GROUP_SCORE;
             } else if (instanceGroup.getLifecycleStatus().getState() == InstanceGroupLifecycleState.PhasedOut ||
-                    instanceGroup.getAttributes().containsKey(PREFER_NO_PLACEMENT)) {
+                    instanceGroup.getAttributes().containsKey(SchedulerAttributes.PREFER_NO_PLACEMENT)) {
                 return quality * PREFER_NO_PLACEMENT_SCORE;
             }
         }

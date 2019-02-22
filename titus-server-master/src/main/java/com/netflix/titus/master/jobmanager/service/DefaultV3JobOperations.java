@@ -17,6 +17,7 @@
 package com.netflix.titus.master.jobmanager.service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
@@ -365,6 +366,26 @@ public class DefaultV3JobOperations implements V3JobOperations {
                 reconciliationFramework.findEngineByRootId(jobId).orElseThrow(() -> JobManagerException.jobNotFound(jobId))
         ).flatMap(engine -> {
             Observable<Void> observableAction = engine.changeReferenceModel(BasicJobActions.updateJobDisruptionBudget(engine, disruptionBudget, store));
+            return ReactorExt.toMono(observableAction);
+        });
+    }
+
+    @Override
+    public Mono<Void> updateJobAttributes(String jobId, Map<String, String> attributes) {
+        return Mono.fromCallable(() ->
+                reconciliationFramework.findEngineByRootId(jobId).orElseThrow(() -> JobManagerException.jobNotFound(jobId))
+        ).flatMap(engine -> {
+            Observable<Void> observableAction = engine.changeReferenceModel(BasicJobActions.updateJobAttributes(engine, attributes, store));
+            return ReactorExt.toMono(observableAction);
+        });
+    }
+
+    @Override
+    public Mono<Void> deleteJobAttributes(String jobId, List<String> keys) {
+        return Mono.fromCallable(() ->
+                reconciliationFramework.findEngineByRootId(jobId).orElseThrow(() -> JobManagerException.jobNotFound(jobId))
+        ).flatMap(engine -> {
+            Observable<Void> observableAction = engine.changeReferenceModel(BasicJobActions.deleteJobAttributes(engine, keys, store));
             return ReactorExt.toMono(observableAction);
         });
     }

@@ -28,6 +28,8 @@ import com.netflix.titus.grpc.protogen.AgentInstanceGroups;
 import com.netflix.titus.grpc.protogen.AgentInstances;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.AgentManagementServiceStub;
 import com.netflix.titus.grpc.protogen.AgentQuery;
+import com.netflix.titus.grpc.protogen.DeleteAgentInstanceAttributesRequest;
+import com.netflix.titus.grpc.protogen.DeleteInstanceGroupAttributesRequest;
 import com.netflix.titus.grpc.protogen.Id;
 import com.netflix.titus.grpc.protogen.InstanceGroupAttributesUpdate;
 import com.netflix.titus.grpc.protogen.InstanceGroupLifecycleStateUpdate;
@@ -118,10 +120,26 @@ public class GrpcAgentManagementClient implements AgentManagementClient {
     }
 
     @Override
+    public Completable deleteInstanceGroupAttributes(DeleteInstanceGroupAttributesRequest deleteRequest) {
+        return createRequestCompletable(emitter -> {
+            StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).deleteInstanceGroupAttributes(deleteRequest, streamObserver);
+        }, configuration.getRequestTimeout());
+    }
+
+    @Override
     public Completable updateAgentInstanceAttributes(AgentInstanceAttributesUpdate attributesUpdate) {
         return createRequestCompletable(emitter -> {
             StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
             createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).updateAgentInstanceAttributes(attributesUpdate, streamObserver);
+        }, configuration.getRequestTimeout());
+    }
+
+    @Override
+    public Completable deleteAgentInstanceAttributes(DeleteAgentInstanceAttributesRequest deleteRequest) {
+        return createRequestCompletable(emitter -> {
+            StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).deleteAgentInstanceAttributes(deleteRequest, streamObserver);
         }, configuration.getRequestTimeout());
     }
 

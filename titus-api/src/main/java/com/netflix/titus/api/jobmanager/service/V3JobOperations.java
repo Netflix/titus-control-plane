@@ -16,6 +16,8 @@
 
 package com.netflix.titus.api.jobmanager.service;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -71,6 +73,10 @@ public interface V3JobOperations extends ReadOnlyJobOperations {
     }
 
     Mono<Void> updateJobDisruptionBudget(String jobId, DisruptionBudget disruptionBudget);
+
+    Mono<Void> updateJobAttributes(String jobId, Map<String, String> attributes);
+
+    Mono<Void> deleteJobAttributes(String jobId, List<String> keys);
 
     /**
      * @deprecated Use {@link #killJobReactor(String, String)}

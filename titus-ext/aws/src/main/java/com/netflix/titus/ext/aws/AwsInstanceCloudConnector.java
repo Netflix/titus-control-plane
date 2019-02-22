@@ -46,6 +46,7 @@ import com.amazonaws.services.autoscaling.model.DetachInstancesRequest;
 import com.amazonaws.services.autoscaling.model.DetachInstancesResult;
 import com.amazonaws.services.autoscaling.model.LaunchConfiguration;
 import com.amazonaws.services.autoscaling.model.SuspendedProcess;
+import com.amazonaws.services.autoscaling.model.TagDescription;
 import com.amazonaws.services.autoscaling.model.UpdateAutoScalingGroupRequest;
 import com.amazonaws.services.autoscaling.model.UpdateAutoScalingGroupResult;
 import com.amazonaws.services.ec2.AmazonEC2Async;
@@ -101,6 +102,7 @@ public class AwsInstanceCloudConnector implements InstanceCloudConnector {
     static final String TAG_TERMINATE = "TitusAgentPendingTermination";
     static final String TAG_ASG_NAME = "aws:autoscaling:groupName";
     static final String TAG_ASG_FILTER_NAME = "tag:" + TAG_ASG_NAME;
+    static final String DEFAULT_INSTANCE_TYPE = "unknown";
 
     private static final int PENDING = 0;
     private static final int RUNNING = 16;
@@ -442,15 +444,19 @@ public class AwsInstanceCloudConnector implements InstanceCloudConnector {
                 isTerminateSuspended = true;
             }
         }
+        Map<String, String> attributes = CollectionsExt.isNullOrEmpty(awsScalingGroup.getTags())
+                ? Collections.emptyMap()
+                : awsScalingGroup.getTags().stream().collect(Collectors.toMap(TagDescription::getKey, TagDescription::getValue));
         return new InstanceGroup(
                 awsScalingGroup.getAutoScalingGroupName(),
                 awsScalingGroup.getLaunchConfigurationName(),
+                DEFAULT_INSTANCE_TYPE,
                 awsScalingGroup.getMinSize(),
                 awsScalingGroup.getDesiredCapacity(),
                 awsScalingGroup.getMaxSize(),
                 isLaunchSuspended,
                 isTerminateSuspended,
-                Collections.emptyMap(),
+                attributes,
                 awsScalingGroup.getInstances().stream().map(com.amazonaws.services.autoscaling.model.Instance::getInstanceId).collect(Collectors.toList())
         );
     }

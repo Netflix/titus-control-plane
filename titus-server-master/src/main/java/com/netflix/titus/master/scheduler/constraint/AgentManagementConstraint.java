@@ -35,7 +35,7 @@ import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.agent.service.AgentStatusMonitor;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.util.CollectionsExt;
-import com.netflix.titus.master.agent.AgentAttributes;
+import com.netflix.titus.master.scheduler.SchedulerAttributes;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 
 import static com.netflix.titus.master.scheduler.SchedulerUtils.getAttributeValueOrEmptyString;
@@ -57,17 +57,13 @@ public class AgentManagementConstraint implements SystemConstraint {
     private static final Result INSTANCE_GROUP_DOES_NOT_HAVE_GPUS = new Result(false, "Instance group does not have gpus");
     private static final Result INSTANCE_GROUP_CANNOT_RUN_NON_GPU_TASKS = new Result(false, "Instance group does not run non gpu tasks");
 
-    private static final Result INSTANCE_GROUP_NO_PLACEMENT = new Result(false, "Cannot place on instance group due to noPlacement attribute");
-
     private static final Result MISSING_INSTANCE_ATTRIBUTE = new Result(false, "Missing instance attribute");
     private static final Result INSTANCE_NOT_FOUND = new Result(false, "Instance not found");
     private static final Result INSTANCE_NOT_STARTED = new Result(false, "Instance not in Started state");
     private static final Result INSTANCE_UNHEALTHY = new Result(false, "Unhealthy agent");
 
-    private static final Result INSTANCE_NO_PLACEMENT = new Result(false, "Cannot place on instance due to noPlacement agent attribute");
-    private static final Result INSTANCE_REMOVABLE = new Result(false, "Cannot place on instance due to removable agent attribute");
-    private static final Result INSTANCE_EVICTABLE = new Result(false, "Cannot place on instance due to evictable agent attribute");
-    private static final Result INSTANCE_EVICTABLE_IMMEDIATELY = new Result(false, "Cannot place on instance due to evictableImmediately agent attribute");
+    private static final Result SYSTEM_NO_PLACEMENT = new Result(false, "Cannot place on instance group or agent instance due to systemNoPlacement attribute");
+    private static final Result NO_PLACEMENT = new Result(false, "Cannot place on instance group or agent instance due to noPlacement attribute");
 
     private static final Result TRUE_RESULT = new Result(true, null);
 
@@ -82,10 +78,8 @@ public class AgentManagementConstraint implements SystemConstraint {
             INSTANCE_NOT_FOUND.getFailureReason(),
             INSTANCE_NOT_STARTED.getFailureReason(),
             INSTANCE_UNHEALTHY.getFailureReason(),
-            INSTANCE_NO_PLACEMENT.getFailureReason(),
-            INSTANCE_REMOVABLE.getFailureReason(),
-            INSTANCE_EVICTABLE.getFailureReason(),
-            INSTANCE_EVICTABLE_IMMEDIATELY.getFailureReason()
+            SYSTEM_NO_PLACEMENT.getFailureReason(),
+            NO_PLACEMENT.getFailureReason()
     );
 
     private final SchedulerConfiguration schedulerConfiguration;
@@ -208,9 +202,14 @@ public class AgentManagementConstraint implements SystemConstraint {
 
     private Result evaluateInstanceGroupAttributes(AgentInstanceGroup instanceGroup) {
         Map<String, String> attributes = instanceGroup.getAttributes();
-        boolean noPlacement = Boolean.parseBoolean(attributes.get(AgentAttributes.NO_PLACEMENT));
+        boolean systemNoPlacement = Boolean.parseBoolean(attributes.get(SchedulerAttributes.SYSTEM_NO_PLACEMENT));
+        if (systemNoPlacement) {
+            return SYSTEM_NO_PLACEMENT;
+        }
+
+        boolean noPlacement = Boolean.parseBoolean(attributes.get(SchedulerAttributes.NO_PLACEMENT));
         if (noPlacement) {
-            return INSTANCE_GROUP_NO_PLACEMENT;
+            return NO_PLACEMENT;
         }
 
         return TRUE_RESULT;
@@ -218,25 +217,16 @@ public class AgentManagementConstraint implements SystemConstraint {
 
     private Result evaluateAgentInstanceAttributes(AgentInstance agentInstance) {
         Map<String, String> attributes = agentInstance.getAttributes();
-        boolean noPlacement = Boolean.parseBoolean(attributes.get(AgentAttributes.NO_PLACEMENT));
+        boolean systemNoPlacement = Boolean.parseBoolean(attributes.get(SchedulerAttributes.SYSTEM_NO_PLACEMENT));
+        if (systemNoPlacement) {
+            return SYSTEM_NO_PLACEMENT;
+        }
+
+        boolean noPlacement = Boolean.parseBoolean(attributes.get(SchedulerAttributes.NO_PLACEMENT));
         if (noPlacement) {
-            return INSTANCE_NO_PLACEMENT;
+            return NO_PLACEMENT;
         }
 
-        boolean removable = attributes.containsKey(AgentAttributes.REMOVABLE);
-        if (removable) {
-            return INSTANCE_REMOVABLE;
-        }
-
-        boolean evictable = Boolean.parseBoolean(attributes.get(AgentAttributes.EVICTABLE));
-        if (evictable) {
-            return INSTANCE_EVICTABLE;
-        }
-
-        boolean evictableImmediately = Boolean.parseBoolean(attributes.get(AgentAttributes.EVICTABLE_IMMEDIATELY));
-        if (evictableImmediately) {
-            return INSTANCE_EVICTABLE_IMMEDIATELY;
-        }
         return TRUE_RESULT;
     }
 }

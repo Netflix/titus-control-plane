@@ -17,6 +17,7 @@
 package com.netflix.titus.master.agent.service.cache;
 
 import java.util.Collections;
+import java.util.Map;
 
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
@@ -28,6 +29,7 @@ import com.netflix.titus.api.connector.cloud.Instance;
 import com.netflix.titus.api.connector.cloud.InstanceGroup;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.model.Tier;
+import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.Evaluators;
 
 class DataConverters {
@@ -35,8 +37,6 @@ class DataConverters {
     static AgentInstanceGroup toAgentInstanceGroup(InstanceGroup instanceGroup,
                                                    ResourceDimension instanceResourceDimension) {
         long now = System.currentTimeMillis();
-        String instanceType = instanceGroup.getAttributes().getOrDefault(InstanceCache.ATTR_INSTANCE_TYPE, "unknown");
-
         return AgentInstanceGroup.newBuilder()
                 .withId(instanceGroup.getId())
                 .withLifecycleStatus(InstanceGroupLifecycleStatus.newBuilder()
@@ -46,13 +46,13 @@ class DataConverters {
                         .build()
                 )
                 .withTier(Tier.Flex)
-                .withInstanceType(instanceType)
+                .withInstanceType(instanceGroup.getInstanceType())
                 .withResourceDimension(instanceResourceDimension)
                 .withMin(instanceGroup.getMin())
                 .withDesired(instanceGroup.getDesired())
                 .withMax(instanceGroup.getMax())
                 .withLaunchTimestamp(now)
-                .withAttributes(Collections.emptyMap())
+                .withAttributes(instanceGroup.getAttributes())
                 .withCurrent(instanceGroup.getInstanceIds().size())
                 .withIsLaunchEnabled(!instanceGroup.isLaunchSuspended())
                 .withIsTerminateEnabled(!instanceGroup.isTerminateSuspended())
@@ -62,7 +62,7 @@ class DataConverters {
 
     static AgentInstanceGroup updateAgentInstanceGroup(AgentInstanceGroup original, InstanceGroup instanceGroup) {
         long now = System.currentTimeMillis();
-
+        Map<String, String> updatedAttributes = CollectionsExt.merge(original.getAttributes(), instanceGroup.getAttributes());
         return original.toBuilder()
                 .withMin(instanceGroup.getMin())
                 .withDesired(instanceGroup.getDesired())
@@ -71,12 +71,13 @@ class DataConverters {
                 .withIsLaunchEnabled(!instanceGroup.isLaunchSuspended())
                 .withIsTerminateEnabled(!instanceGroup.isTerminateSuspended())
                 .withTimestamp(now)
+                .withAttributes(updatedAttributes)
                 .build();
     }
 
     static AgentInstance toAgentInstance(Instance instance) {
         AgentInstance.Builder builder = AgentInstance.newBuilder();
-        return updateInstanceAttributes(builder, instance)
+        return updateInstanceAttributes(builder, instance, Collections.emptyMap())
                 .withId(instance.getId())
                 .withIpAddress(instance.getIpAddress())
                 .withHostname(instance.getHostname())
@@ -88,14 +89,15 @@ class DataConverters {
 
     static AgentInstance updateAgentInstance(AgentInstance original, Instance instance) {
         AgentInstance.Builder builder = original.toBuilder();
-        return updateInstanceAttributes(builder, instance).withDeploymentStatus(toDeploymentStatus(instance)).build();
+        return updateInstanceAttributes(builder, instance, original.getAttributes()).withDeploymentStatus(toDeploymentStatus(instance)).build();
     }
 
-    private static AgentInstance.Builder updateInstanceAttributes(AgentInstance.Builder builder, Instance instance) {
+    private static AgentInstance.Builder updateInstanceAttributes(AgentInstance.Builder builder, Instance instance, Map<String, String> originalAttributes) {
+        Map<String, String> updatedAttributes = CollectionsExt.merge(originalAttributes, instance.getAttributes());
         return builder.withIpAddress(Evaluators.getOrDefault(instance.getIpAddress(), "0.0.0.0"))
                 .withInstanceGroupId(Evaluators.getOrDefault(instance.getInstanceGroupId(), "detached"))
                 .withHostname(Evaluators.getOrDefault(instance.getHostname(), "0_0_0_0"))
-                .withAttributes(instance.getAttributes())
+                .withAttributes(updatedAttributes)
                 .withTimestamp(System.currentTimeMillis());
     }
 

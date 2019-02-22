@@ -19,11 +19,13 @@ package com.netflix.titus.master.agent.service.cache;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import rx.Completable;
 import rx.Observable;
+import rx.Single;
 
 public interface AgentCache {
     List<AgentInstanceGroup> getInstanceGroups();
@@ -43,6 +45,12 @@ public interface AgentCache {
     Completable updateInstanceGroupStoreAndSyncCloud(AgentInstanceGroup instanceGroup);
 
     Completable updateAgentInstanceStore(AgentInstance agentInstance);
+
+    Single<AgentInstanceGroup> getAndUpdateInstanceGroupStore(String instanceGroupId, Function<AgentInstanceGroup, AgentInstanceGroup> function);
+
+    Single<AgentInstanceGroup> getAndUpdateInstanceGroupStoreAndSyncCloud(String instanceGroupId, Function<AgentInstanceGroup, AgentInstanceGroup> function);
+
+    Single<AgentInstance> getAndUpdateAgentInstanceStore(String instanceId, Function<AgentInstance, AgentInstance> function);
 
     Completable removeInstances(String instanceGroupId, Set<String> agentInstanceIds);
 

@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
@@ -140,44 +139,68 @@ public class DefaultAgentManagementService implements AgentManagementService {
 
     @Override
     public Completable updateInstanceGroupTier(String instanceGroupId, Tier tier) {
-        return updateServerGroupInStore(
+        return agentCache.getAndUpdateInstanceGroupStore(
                 instanceGroupId,
                 instanceGroup -> instanceGroup.toBuilder().withTier(tier).build()
-        );
+        ).toCompletable();
     }
 
     @Override
     public Completable updateInstanceGroupLifecycle(String instanceGroupId, InstanceGroupLifecycleStatus instanceGroupLifecycleStatus) {
-        return Observable.fromCallable(() -> getInstanceGroup(instanceGroupId))
-                .flatMap(instanceGroup -> {
-                    AgentInstanceGroup newInstanceGroup = instanceGroup.toBuilder().withLifecycleStatus(instanceGroupLifecycleStatus).build();
-                    Completable updateStoreCompletable = agentCache.updateInstanceGroupStore(newInstanceGroup);
-
-                    if (instanceGroupLifecycleStatus.getState() == InstanceGroupLifecycleState.Removable) {
-                        // Force the min to 0 when we change the state to Removable
-                        return updateStoreCompletable.andThen(internalUpdateCapacity(newInstanceGroup, Optional.of(0), Optional.empty())).toObservable();
-                    } else {
-                        return updateStoreCompletable.toObservable();
-                    }
-                }).toCompletable();
+        return agentCache.getAndUpdateInstanceGroupStore(
+                instanceGroupId,
+                instanceGroup -> instanceGroup.toBuilder().withLifecycleStatus(instanceGroupLifecycleStatus).build()
+        ).flatMapCompletable(instanceGroup -> {
+            if (instanceGroupLifecycleStatus.getState() == InstanceGroupLifecycleState.Removable) {
+                // Force the min to 0 when we change the state to Removable
+                return internalUpdateCapacity(instanceGroup, Optional.of(0), Optional.empty());
+            }
+            return Completable.complete();
+        });
     }
 
     @Override
     public Completable updateInstanceGroupAttributes(String instanceGroupId, Map<String, String> attributes) {
-        return Observable.fromCallable(() -> getInstanceGroup(instanceGroupId))
-                .flatMap(instanceGroup -> {
-                    AgentInstanceGroup newInstanceGroup = instanceGroup.toBuilder().withAttributes(attributes).build();
-                    return agentCache.updateInstanceGroupStore(newInstanceGroup).toObservable();
-                }).toCompletable();
+        return agentCache.getAndUpdateInstanceGroupStore(
+                instanceGroupId,
+                instanceGroup -> {
+                    Map<String, String> updatedAttributes = CollectionsExt.merge(instanceGroup.getAttributes(), attributes);
+                    return instanceGroup.toBuilder().withAttributes(updatedAttributes).build();
+                }
+        ).toCompletable();
+    }
+
+    @Override
+    public Completable deleteInstanceGroupAttributes(String instanceGroupId, List<String> keys) {
+        return agentCache.getAndUpdateInstanceGroupStore(
+                instanceGroupId,
+                instanceGroup -> {
+                    Map<String, String> updatedAttributes = CollectionsExt.copyAndRemove(instanceGroup.getAttributes(), keys);
+                    return instanceGroup.toBuilder().withAttributes(updatedAttributes).build();
+                }
+        ).toCompletable();
     }
 
     @Override
     public Completable updateAgentInstanceAttributes(String instanceId, Map<String, String> attributes) {
-        return Observable.fromCallable(() -> getAgentInstance(instanceId))
-                .flatMap(instance -> {
-                    AgentInstance newAgentInstance = instance.toBuilder().withAttributes(attributes).build();
-                    return agentCache.updateAgentInstanceStore(newAgentInstance).toObservable();
-                }).toCompletable();
+        return agentCache.getAndUpdateAgentInstanceStore(
+                instanceId,
+                agentInstance -> {
+                    Map<String, String> updatedAttributes = CollectionsExt.merge(agentInstance.getAttributes(), attributes);
+                    return agentInstance.toBuilder().withAttributes(updatedAttributes).build();
+                }
+        ).toCompletable();
+    }
+
+    @Override
+    public Completable deleteAgentInstanceAttributes(String instanceId, List<String> keys) {
+        return agentCache.getAndUpdateAgentInstanceStore(
+                instanceId,
+                agentInstance -> {
+                    Map<String, String> updatedAttributes = CollectionsExt.copyAndRemove(agentInstance.getAttributes(), keys);
+                    return agentInstance.toBuilder().withAttributes(updatedAttributes).build();
+                }
+        ).toCompletable();
     }
 
     @Override
@@ -204,10 +227,10 @@ public class DefaultAgentManagementService implements AgentManagementService {
         return Observable.fromCallable(() -> agentCache.getInstanceGroup(instanceGroupId))
                 .flatMap(instanceGroup -> {
                             Completable cloudUpdate = instanceCloudConnector.scaleUp(instanceGroup.getId(), scaleUpCount);
-
-                            AgentInstanceGroup updated = instanceGroup.toBuilder().withDesired(instanceGroup.getDesired() + scaleUpCount).build();
-                            Completable cacheUpdate = agentCache.updateInstanceGroupStoreAndSyncCloud(updated);
-
+                            Completable cacheUpdate = agentCache.getAndUpdateInstanceGroupStoreAndSyncCloud(
+                                    instanceGroup.getId(),
+                                    ig -> ig.toBuilder().withDesired(ig.getDesired() + scaleUpCount).build()
+                            ).toCompletable();
                             return cloudUpdate.concatWith(cacheUpdate).toObservable();
                         }
                 )
@@ -272,14 +295,6 @@ public class DefaultAgentManagementService implements AgentManagementService {
         });
     }
 
-    private Completable updateServerGroupInStore(String instanceGroupId, Function<AgentInstanceGroup, AgentInstanceGroup> updater) {
-        return Observable.fromCallable(() -> getInstanceGroup(instanceGroupId))
-                .flatMap(instanceGroup -> {
-                    AgentInstanceGroup newServerGroup = updater.apply(instanceGroup);
-                    return agentCache.updateInstanceGroupStore(newServerGroup).toObservable();
-                }).toCompletable();
-    }
-
     private String resolveInstanceGroup(List<String> instanceIds) {
         Set<String> instanceGroupIds = instanceIds.stream()
                 .map(instanceId -> agentCache.getAgentInstance(instanceId).getInstanceGroupId())
@@ -294,10 +309,12 @@ public class DefaultAgentManagementService implements AgentManagementService {
     private Completable internalUpdateCapacity(AgentInstanceGroup instanceGroup, Optional<Integer> min, Optional<Integer> desired) {
         Completable cloudUpdate = instanceCloudConnector.updateCapacity(instanceGroup.getId(), min, desired);
 
-        AgentInstanceGroup.Builder builder = instanceGroup.toBuilder();
-        min.ifPresent(builder::withMin);
-        desired.ifPresent(builder::withDesired);
-        Completable cacheUpdate = agentCache.updateInstanceGroupStoreAndSyncCloud(builder.build());
+        Completable cacheUpdate = agentCache.getAndUpdateInstanceGroupStoreAndSyncCloud(instanceGroup.getId(), ig -> {
+            AgentInstanceGroup.Builder builder = ig.toBuilder();
+            min.ifPresent(builder::withMin);
+            desired.ifPresent(builder::withDesired);
+            return builder.build();
+        }).toCompletable();
 
         return cloudUpdate.concatWith(cacheUpdate);
     }

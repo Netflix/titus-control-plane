@@ -18,11 +18,13 @@ package com.netflix.titus.api.connector.cloud;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class InstanceGroup {
 
     private final String id;
     private final String launchConfigurationName;
+    private final String instanceType;
     private final int min;
     private final int desired;
     private final int max;
@@ -33,6 +35,7 @@ public class InstanceGroup {
 
     public InstanceGroup(String id,
                          String launchConfigurationName,
+                         String instanceType,
                          int min,
                          int desired,
                          int max,
@@ -42,6 +45,7 @@ public class InstanceGroup {
                          List<String> instanceIds) {
         this.id = id;
         this.launchConfigurationName = launchConfigurationName;
+        this.instanceType = instanceType;
         this.min = min;
         this.desired = desired;
         this.max = max;
@@ -57,6 +61,10 @@ public class InstanceGroup {
 
     public String getLaunchConfigurationName() {
         return launchConfigurationName;
+    }
+
+    public String getInstanceType() {
+        return instanceType;
     }
 
     public int getMin() {
@@ -95,48 +103,22 @@ public class InstanceGroup {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
         InstanceGroup that = (InstanceGroup) o;
-
-        if (min != that.min) {
-            return false;
-        }
-        if (desired != that.desired) {
-            return false;
-        }
-        if (max != that.max) {
-            return false;
-        }
-        if (isLaunchSuspended != that.isLaunchSuspended) {
-            return false;
-        }
-        if (isTerminateSuspended != that.isTerminateSuspended) {
-            return false;
-        }
-        if (id != null ? !id.equals(that.id) : that.id != null) {
-            return false;
-        }
-        if (launchConfigurationName != null ? !launchConfigurationName.equals(that.launchConfigurationName) : that.launchConfigurationName != null) {
-            return false;
-        }
-        if (attributes != null ? !attributes.equals(that.attributes) : that.attributes != null) {
-            return false;
-        }
-        return instanceIds != null ? instanceIds.equals(that.instanceIds) : that.instanceIds == null;
+        return min == that.min &&
+                desired == that.desired &&
+                max == that.max &&
+                isLaunchSuspended == that.isLaunchSuspended &&
+                isTerminateSuspended == that.isTerminateSuspended &&
+                Objects.equals(id, that.id) &&
+                Objects.equals(launchConfigurationName, that.launchConfigurationName) &&
+                Objects.equals(instanceType, that.instanceType) &&
+                Objects.equals(attributes, that.attributes) &&
+                Objects.equals(instanceIds, that.instanceIds);
     }
 
     @Override
     public int hashCode() {
-        int result = id != null ? id.hashCode() : 0;
-        result = 31 * result + (launchConfigurationName != null ? launchConfigurationName.hashCode() : 0);
-        result = 31 * result + min;
-        result = 31 * result + desired;
-        result = 31 * result + max;
-        result = 31 * result + (isLaunchSuspended ? 1 : 0);
-        result = 31 * result + (isTerminateSuspended ? 1 : 0);
-        result = 31 * result + (attributes != null ? attributes.hashCode() : 0);
-        result = 31 * result + (instanceIds != null ? instanceIds.hashCode() : 0);
-        return result;
+        return Objects.hash(id, launchConfigurationName, instanceType, min, desired, max, isLaunchSuspended, isTerminateSuspended, attributes, instanceIds);
     }
 
     @Override
@@ -144,6 +126,7 @@ public class InstanceGroup {
         return "InstanceGroup{" +
                 "id='" + id + '\'' +
                 ", launchConfigurationName='" + launchConfigurationName + '\'' +
+                ", instanceType='" + instanceType + '\'' +
                 ", min=" + min +
                 ", desired=" + desired +
                 ", max=" + max +
@@ -158,6 +141,7 @@ public class InstanceGroup {
         return newBuilder()
                 .withId(id)
                 .withLaunchConfigurationName(launchConfigurationName)
+                .withInstanceType(instanceType)
                 .withMin(min)
                 .withDesired(desired)
                 .withMax(max)
@@ -174,6 +158,7 @@ public class InstanceGroup {
     public static final class Builder {
         private String id;
         private String launchConfigurationName;
+        private String instanceType;
         private int min;
         private int desired;
         private int max;
@@ -192,6 +177,11 @@ public class InstanceGroup {
 
         public Builder withLaunchConfigurationName(String launchConfigurationName) {
             this.launchConfigurationName = launchConfigurationName;
+            return this;
+        }
+
+        public Builder withInstanceType(String instanceType) {
+            this.instanceType = instanceType;
             return this;
         }
 
@@ -234,6 +224,7 @@ public class InstanceGroup {
             return newBuilder()
                     .withId(id)
                     .withLaunchConfigurationName(launchConfigurationName)
+                    .withInstanceType(instanceType)
                     .withMin(min)
                     .withDesired(desired)
                     .withMax(max)
@@ -244,8 +235,8 @@ public class InstanceGroup {
         }
 
         public InstanceGroup build() {
-            InstanceGroup instanceGroup = new InstanceGroup(id, launchConfigurationName, min, desired, max, isLaunchSuspended, isTerminateSuspended, attributes, instanceIds);
-            return instanceGroup;
+            return new InstanceGroup(id, launchConfigurationName, instanceType, min, desired, max,
+                    isLaunchSuspended, isTerminateSuspended, attributes, instanceIds);
         }
     }
 }

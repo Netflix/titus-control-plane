@@ -36,6 +36,7 @@ public final class InstanceGenerators {
         return range(1).map(idx -> InstanceGroup.newBuilder()
                 .withId("instanceGroup-" + idx)
                 .withLaunchConfigurationName("launchConfiguration-" + idx)
+                .withInstanceType("instanceType-" + idx)
                 .withMin(0)
                 .withDesired(desiredSize)
                 .withMax(desiredSize)

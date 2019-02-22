@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import com.netflix.titus.api.agent.model.AgentInstance;
@@ -50,6 +51,7 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import rx.Completable;
 import rx.Observable;
+import rx.Single;
 import rx.subjects.PublishSubject;
 
 import static com.netflix.titus.testkit.model.agent.AgentGenerator.agentInstances;
@@ -57,6 +59,7 @@ import static com.netflix.titus.testkit.model.agent.AgentGenerator.agentServerGr
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -135,11 +138,14 @@ public class DefaultAgentManagementServiceTest {
     @Test
     public void testUpdateTier() {
         ExtTestSubscriber<Object> testSubscriber = new ExtTestSubscriber<>();
-        service.updateInstanceGroupTier(instanceGroups.get(0).getId(), Tier.Critical).toObservable().subscribe(testSubscriber);
+        AgentInstanceGroup instanceGroup = instanceGroups.get(0);
+        String instanceGroupId = instanceGroup.getId();
 
-        ArgumentCaptor<AgentInstanceGroup> captor = ArgumentCaptor.forClass(AgentInstanceGroup.class);
-        verify(agentCache, times(1)).updateInstanceGroupStore(captor.capture());
-        assertThat(captor.getValue().getTier()).isEqualTo(Tier.Critical);
+        when(agentCache.getAndUpdateInstanceGroupStore(eq(instanceGroupId), any()))
+                .thenReturn(Single.just(instanceGroup.toBuilder().withTier(Tier.Critical).build()));
+        service.updateInstanceGroupTier(instanceGroupId, Tier.Critical).toObservable().subscribe(testSubscriber);
+
+        verify(agentCache, times(1)).getAndUpdateInstanceGroupStore(eq(instanceGroupId), any());
     }
 
     @Test
@@ -147,62 +153,73 @@ public class DefaultAgentManagementServiceTest {
         InstanceGroupLifecycleStatus updatedInstanceGroupLifecycleStatus = InstanceGroupLifecycleStatus.newBuilder().withState(InstanceGroupLifecycleState.Removable).build();
 
         ExtTestSubscriber<Object> testSubscriber = new ExtTestSubscriber<>();
-        service.updateInstanceGroupLifecycle(instanceGroups.get(0).getId(), updatedInstanceGroupLifecycleStatus).toObservable().subscribe(testSubscriber);
+        AgentInstanceGroup instanceGroup = instanceGroups.get(0);
+        String instanceGroupId = instanceGroup.getId();
 
-        ArgumentCaptor<AgentInstanceGroup> captor = ArgumentCaptor.forClass(AgentInstanceGroup.class);
-        verify(agentCache, times(1)).updateInstanceGroupStore(captor.capture());
-        assertThat(captor.getValue().getLifecycleStatus()).isEqualTo(updatedInstanceGroupLifecycleStatus);
+        when(agentCache.getAndUpdateInstanceGroupStore(eq(instanceGroupId), any()))
+                .thenReturn(Single.just(instanceGroup.toBuilder().withLifecycleStatus(updatedInstanceGroupLifecycleStatus).build()));
+        service.updateInstanceGroupLifecycle(instanceGroupId, updatedInstanceGroupLifecycleStatus).toObservable().subscribe(testSubscriber);
+
+        verify(agentCache, times(1)).getAndUpdateInstanceGroupStore(eq(instanceGroupId), any());
     }
 
     @Test
     public void testUpdateInstanceGroupAttributes() {
         ExtTestSubscriber<Object> testSubscriber = new ExtTestSubscriber<>();
         AgentInstanceGroup instanceGroup = instanceGroups.get(0);
-        assertThat(instanceGroup.getAttributes()).isEmpty();
-        service.updateInstanceGroupAttributes(instanceGroup.getId(), Collections.singletonMap("a", "1")).toObservable().subscribe(testSubscriber);
+        String instanceGroupId = instanceGroup.getId();
 
-        ArgumentCaptor<AgentInstanceGroup> captor = ArgumentCaptor.forClass(AgentInstanceGroup.class);
-        verify(agentCache, times(1)).updateInstanceGroupStore(captor.capture());
-        assertThat(captor.getValue().getAttributes()).containsOnlyKeys("a").containsValue("1");
+        Map<String, String> attributes = Collections.singletonMap("a", "1");
+        when(agentCache.getAndUpdateInstanceGroupStore(eq(instanceGroupId), any()))
+                .thenReturn(Single.just(instanceGroup.toBuilder().withAttributes(attributes).build()));
+        service.updateInstanceGroupAttributes(instanceGroupId, attributes).toObservable().subscribe(testSubscriber);
+
+        verify(agentCache, times(1)).getAndUpdateInstanceGroupStore(eq(instanceGroupId), any());
     }
 
     @Test
     public void testUpdateAgentInstanceAttributes() {
         ExtTestSubscriber<Object> testSubscriber = new ExtTestSubscriber<>();
         AgentInstance agentInstance = instanceSet0.get(0);
+        String agentInstanceId = agentInstance.getId();
         assertThat(agentInstance.getAttributes()).isEmpty();
-        service.updateAgentInstanceAttributes(agentInstance.getId(), Collections.singletonMap("a", "1")).toObservable().subscribe(testSubscriber);
+        Map<String, String> attributes = Collections.singletonMap("a", "1");
+        when(agentCache.getAndUpdateAgentInstanceStore(eq(agentInstanceId), any()))
+                .thenReturn(Single.just(agentInstance.toBuilder().withAttributes(attributes).build()));
+        service.updateAgentInstanceAttributes(agentInstance.getId(), attributes).toObservable().subscribe(testSubscriber);
 
-        ArgumentCaptor<AgentInstance> captor = ArgumentCaptor.forClass(AgentInstance.class);
-        verify(agentCache, times(1)).updateAgentInstanceStore(captor.capture());
-        assertThat(captor.getValue().getAttributes()).containsOnlyKeys("a").containsValue("1");
+        verify(agentCache, times(1)).getAndUpdateAgentInstanceStore(eq(agentInstanceId), any());
     }
 
     @Test
     public void testUpdateCapacity() {
         ExtTestSubscriber<Object> testSubscriber = new ExtTestSubscriber<>();
+        AgentInstanceGroup instanceGroup = instanceGroups.get(0);
+        String instanceGroupId = instanceGroup.getId();
+
+        when(agentCache.getAndUpdateInstanceGroupStoreAndSyncCloud(eq(instanceGroupId), any()))
+                .thenReturn(Single.just(instanceGroup));
+
         service.updateCapacity(instanceGroups.get(0).getId(), Optional.of(100), Optional.of(1000)).toObservable().subscribe(testSubscriber);
 
         verify(connector, times(1)).updateCapacity(instanceGroups.get(0).getId(), Optional.of(100), Optional.of(1000));
 
-        ArgumentCaptor<AgentInstanceGroup> captor = ArgumentCaptor.forClass(AgentInstanceGroup.class);
-        verify(agentCache, times(1)).updateInstanceGroupStoreAndSyncCloud(captor.capture());
-        assertThat(captor.getValue().getMin()).isEqualTo(100);
-        assertThat(captor.getValue().getDesired()).isEqualTo(1000);
+        verify(agentCache, times(1)).getAndUpdateInstanceGroupStoreAndSyncCloud(eq(instanceGroupId), any());
     }
 
     @Test
     public void testScaleUp() {
-        AgentInstanceGroup instanceGroup = instanceGroups.get(0);
-
         ExtTestSubscriber<Object> testSubscriber = new ExtTestSubscriber<>();
+        AgentInstanceGroup instanceGroup = instanceGroups.get(0);
+        String instanceGroupId = instanceGroup.getId();
+
+        when(agentCache.getAndUpdateInstanceGroupStoreAndSyncCloud(eq(instanceGroupId), any()))
+                .thenReturn(Single.just(instanceGroup));
         service.scaleUp(instanceGroup.getId(), 500).toObservable().subscribe(testSubscriber);
 
         verify(connector, times(1)).scaleUp(instanceGroup.getId(), 500);
 
-        ArgumentCaptor<AgentInstanceGroup> captor = ArgumentCaptor.forClass(AgentInstanceGroup.class);
-        verify(agentCache, times(1)).updateInstanceGroupStoreAndSyncCloud(captor.capture());
-        assertThat(captor.getValue().getDesired()).isEqualTo(instanceGroup.getDesired() + 500);
+        verify(agentCache, times(1)).getAndUpdateInstanceGroupStoreAndSyncCloud(eq(instanceGroupId), any());
     }
 
     @Test

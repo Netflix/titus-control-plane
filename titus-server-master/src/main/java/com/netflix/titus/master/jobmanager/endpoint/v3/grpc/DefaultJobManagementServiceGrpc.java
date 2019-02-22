@@ -19,6 +19,7 @@ package com.netflix.titus.master.jobmanager.endpoint.v3.grpc;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
@@ -44,10 +45,13 @@ import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.model.validator.ValidationError;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.ProtobufExt;
 import com.netflix.titus.common.util.rx.ObservableExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.Job;
+import com.netflix.titus.grpc.protogen.JobAttributesDeleteRequest;
+import com.netflix.titus.grpc.protogen.JobAttributesUpdate;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
@@ -61,6 +65,7 @@ import com.netflix.titus.grpc.protogen.JobQueryResult;
 import com.netflix.titus.grpc.protogen.JobStatusUpdate;
 import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
 import com.netflix.titus.grpc.protogen.Task;
+import com.netflix.titus.grpc.protogen.TaskAttributesDeleteRequest;
 import com.netflix.titus.grpc.protogen.TaskAttributesUpdate;
 import com.netflix.titus.grpc.protogen.TaskId;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
@@ -454,6 +459,40 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     }
 
     @Override
+    public void updateJobAttributes(JobAttributesUpdate request, StreamObserver<Empty> responseObserver) {
+        execute(callMetadataResolver, responseObserver, callMetadata -> {
+            authorizeJobUpdate(callMetadata, request.getJobId())
+                    .concatWith(jobOperations.updateJobAttributes(request.getJobId(), request.getAttributesMap()))
+                    .subscribe(
+                            nothing -> {
+                            },
+                            e -> safeOnError(logger, e, responseObserver),
+                            () -> {
+                                responseObserver.onNext(Empty.getDefaultInstance());
+                                responseObserver.onCompleted();
+                            }
+                    );
+        });
+    }
+
+    @Override
+    public void deleteJobAttributes(JobAttributesDeleteRequest request, StreamObserver<Empty> responseObserver) {
+        execute(callMetadataResolver, responseObserver, callMetadata -> {
+            authorizeJobUpdate(callMetadata, request.getJobId())
+                    .concatWith(jobOperations.deleteJobAttributes(request.getJobId(), request.getKeysList()))
+                    .subscribe(
+                            nothing -> {
+                            },
+                            e -> safeOnError(logger, e, responseObserver),
+                            () -> {
+                                responseObserver.onNext(Empty.getDefaultInstance());
+                                responseObserver.onCompleted();
+                            }
+                    );
+        });
+    }
+
+    @Override
     public void killTask(TaskKillRequest request, StreamObserver<Empty> responseObserver) {
         execute(callMetadataResolver, responseObserver, callMetadata -> {
             String reason = String.format("User initiated task kill: %s", CallMetadataUtils.toReasonString(callMetadata));
@@ -491,7 +530,31 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
         execute(callMetadataResolver, responseObserver, callMetadata -> {
             jobOperations.updateTask(
                     request.getTaskId(),
-                    task -> Optional.of(task.toBuilder().withAttributes(request.getAttributesMap()).build()),
+                    task -> {
+                        Map<String, String> updatedAttributes = CollectionsExt.merge(task.getAttributes(), request.getAttributesMap());
+                        return Optional.of(task.toBuilder().withAttributes(updatedAttributes).build());
+                    },
+                    V3JobOperations.Trigger.API,
+                    "User request: userId=" + callMetadata.getCallerId()
+            ).subscribe(
+                    () -> {
+                        responseObserver.onNext(Empty.getDefaultInstance());
+                        responseObserver.onCompleted();
+                    },
+                    e -> safeOnError(logger, e, responseObserver)
+            );
+        });
+    }
+
+    @Override
+    public void deleteTaskAttributes(TaskAttributesDeleteRequest request, StreamObserver<Empty> responseObserver) {
+        execute(callMetadataResolver, responseObserver, callMetadata -> {
+            jobOperations.updateTask(
+                    request.getTaskId(),
+                    task -> {
+                        Map<String, String> updatedAttributes = CollectionsExt.copyAndRemove(task.getAttributes(), request.getKeysList());
+                        return Optional.of(task.toBuilder().withAttributes(updatedAttributes).build());
+                    },
                     V3JobOperations.Trigger.API,
                     "User request: userId=" + callMetadata.getCallerId()
             ).subscribe(
