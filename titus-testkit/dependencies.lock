@@ -12,22 +12,6 @@
                 "org.quartz-scheduler:quartz"
             ]
         },
-        "ch.qos.logback:logback-classic": {
-            "locked": "1.2.3",
-            "transitive": [
-                "org.mock-server:mockserver-client-java",
-                "org.mock-server:mockserver-core",
-                "org.mock-server:mockserver-logging",
-                "org.mock-server:mockserver-netty",
-                "org.springframework.boot:spring-boot-starter-logging"
-            ]
-        },
-        "ch.qos.logback:logback-core": {
-            "locked": "1.2.3",
-            "transitive": [
-                "ch.qos.logback:logback-classic"
-            ]
-        },
         "com.addthis.metrics:reporter-config-base": {
             "locked": "3.0.0",
             "transitive": [
@@ -1537,7 +1521,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.24.0",
+            "locked": "2.24.5",
             "requested": "2.+"
         },
         "org.mozilla:rhino": {
@@ -1656,7 +1640,6 @@
             "locked": "1.7.25",
             "requested": "1.7.0",
             "transitive": [
-                "ch.qos.logback:logback-classic",
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
                 "com.datastax.cassandra:cassandra-driver-core",
@@ -1880,22 +1863,6 @@
                 "org.quartz-scheduler:quartz"
             ]
         },
-        "ch.qos.logback:logback-classic": {
-            "locked": "1.2.3",
-            "transitive": [
-                "org.mock-server:mockserver-client-java",
-                "org.mock-server:mockserver-core",
-                "org.mock-server:mockserver-logging",
-                "org.mock-server:mockserver-netty",
-                "org.springframework.boot:spring-boot-starter-logging"
-            ]
-        },
-        "ch.qos.logback:logback-core": {
-            "locked": "1.2.3",
-            "transitive": [
-                "ch.qos.logback:logback-classic"
-            ]
-        },
         "com.addthis.metrics:reporter-config-base": {
             "locked": "3.0.0",
             "transitive": [
@@ -3405,7 +3372,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.24.0",
+            "locked": "2.24.5",
             "requested": "2.+"
         },
         "org.mozilla:rhino": {
@@ -3524,7 +3491,6 @@
             "locked": "1.7.25",
             "requested": "1.7.0",
             "transitive": [
-                "ch.qos.logback:logback-classic",
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
                 "com.datastax.cassandra:cassandra-driver-core",
@@ -3748,22 +3714,6 @@
                 "org.quartz-scheduler:quartz"
             ]
         },
-        "ch.qos.logback:logback-classic": {
-            "locked": "1.2.3",
-            "transitive": [
-                "org.mock-server:mockserver-client-java",
-                "org.mock-server:mockserver-core",
-                "org.mock-server:mockserver-logging",
-                "org.mock-server:mockserver-netty",
-                "org.springframework.boot:spring-boot-starter-logging"
-            ]
-        },
-        "ch.qos.logback:logback-core": {
-            "locked": "1.2.3",
-            "transitive": [
-                "ch.qos.logback:logback-classic"
-            ]
-        },
         "com.addthis.metrics:reporter-config-base": {
             "locked": "3.0.0",
             "transitive": [
@@ -5273,7 +5223,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.24.0",
+            "locked": "2.24.5",
             "requested": "2.+"
         },
         "org.mozilla:rhino": {
@@ -5392,7 +5342,6 @@
             "locked": "1.7.25",
             "requested": "1.7.0",
             "transitive": [
-                "ch.qos.logback:logback-classic",
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
                 "com.datastax.cassandra:cassandra-driver-core",
@@ -5680,22 +5629,6 @@
                 "org.quartz-scheduler:quartz"
             ]
         },
-        "ch.qos.logback:logback-classic": {
-            "locked": "1.2.3",
-            "transitive": [
-                "org.mock-server:mockserver-client-java",
-                "org.mock-server:mockserver-core",
-                "org.mock-server:mockserver-logging",
-                "org.mock-server:mockserver-netty",
-                "org.springframework.boot:spring-boot-starter-logging"
-            ]
-        },
-        "ch.qos.logback:logback-core": {
-            "locked": "1.2.3",
-            "transitive": [
-                "ch.qos.logback:logback-classic"
-            ]
-        },
         "com.addthis.metrics:reporter-config-base": {
             "locked": "3.0.0",
             "transitive": [
@@ -7205,7 +7138,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.24.0",
+            "locked": "2.24.5",
             "requested": "2.+"
         },
         "org.mozilla:rhino": {
@@ -7324,7 +7257,6 @@
             "locked": "1.7.25",
             "requested": "1.7.0",
             "transitive": [
-                "ch.qos.logback:logback-classic",
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
                 "com.datastax.cassandra:cassandra-driver-core",
@@ -7549,22 +7481,6 @@
                 "org.quartz-scheduler:quartz"
             ]
         },
-        "ch.qos.logback:logback-classic": {
-            "locked": "1.2.3",
-            "transitive": [
-                "org.mock-server:mockserver-client-java",
-                "org.mock-server:mockserver-core",
-                "org.mock-server:mockserver-logging",
-                "org.mock-server:mockserver-netty",
-                "org.springframework.boot:spring-boot-starter-logging"
-            ]
-        },
-        "ch.qos.logback:logback-core": {
-            "locked": "1.2.3",
-            "transitive": [
-                "ch.qos.logback:logback-classic"
-            ]
-        },
         "com.addthis.metrics:reporter-config-base": {
             "locked": "3.0.0",
             "transitive": [
@@ -9074,7 +8990,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.24.0",
+            "locked": "2.24.5",
             "requested": "2.+"
         },
         "org.mozilla:rhino": {
@@ -9193,7 +9109,6 @@
             "locked": "1.7.25",
             "requested": "1.7.0",
             "transitive": [
-                "ch.qos.logback:logback-classic",
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
                 "com.datastax.cassandra:cassandra-driver-core",
@@ -9424,22 +9339,6 @@
                 "com.jayway.awaitility:awaitility"
             ]
         },
-        "ch.qos.logback:logback-classic": {
-            "locked": "1.2.3",
-            "transitive": [
-                "org.mock-server:mockserver-client-java",
-                "org.mock-server:mockserver-core",
-                "org.mock-server:mockserver-logging",
-                "org.mock-server:mockserver-netty",
-                "org.springframework.boot:spring-boot-starter-logging"
-            ]
-        },
-        "ch.qos.logback:logback-core": {
-            "locked": "1.2.3",
-            "transitive": [
-                "ch.qos.logback:logback-classic"
-            ]
-        },
         "com.addthis.metrics:reporter-config-base": {
             "locked": "3.0.0",
             "transitive": [
@@ -10961,7 +10860,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.24.0",
+            "locked": "2.24.5",
             "requested": "2.+"
         },
         "org.mozilla:rhino": {
@@ -11081,7 +10980,6 @@
             "locked": "1.7.25",
             "requested": "1.7.0",
             "transitive": [
-                "ch.qos.logback:logback-classic",
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
                 "com.datastax.cassandra:cassandra-driver-core",
@@ -11311,22 +11209,6 @@
                 "com.jayway.awaitility:awaitility"
             ]
         },
-        "ch.qos.logback:logback-classic": {
-            "locked": "1.2.3",
-            "transitive": [
-                "org.mock-server:mockserver-client-java",
-                "org.mock-server:mockserver-core",
-                "org.mock-server:mockserver-logging",
-                "org.mock-server:mockserver-netty",
-                "org.springframework.boot:spring-boot-starter-logging"
-            ]
-        },
-        "ch.qos.logback:logback-core": {
-            "locked": "1.2.3",
-            "transitive": [
-                "ch.qos.logback:logback-classic"
-            ]
-        },
         "com.addthis.metrics:reporter-config-base": {
             "locked": "3.0.0",
             "transitive": [
@@ -12848,7 +12730,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.24.0",
+            "locked": "2.24.5",
             "requested": "2.+"
         },
         "org.mozilla:rhino": {
@@ -12968,7 +12850,6 @@
             "locked": "1.7.25",
             "requested": "1.7.0",
             "transitive": [
-                "ch.qos.logback:logback-classic",
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
                 "com.datastax.cassandra:cassandra-driver-core",
@@ -13198,22 +13079,6 @@
                 "com.jayway.awaitility:awaitility"
             ]
         },
-        "ch.qos.logback:logback-classic": {
-            "locked": "1.2.3",
-            "transitive": [
-                "org.mock-server:mockserver-client-java",
-                "org.mock-server:mockserver-core",
-                "org.mock-server:mockserver-logging",
-                "org.mock-server:mockserver-netty",
-                "org.springframework.boot:spring-boot-starter-logging"
-            ]
-        },
-        "ch.qos.logback:logback-core": {
-            "locked": "1.2.3",
-            "transitive": [
-                "ch.qos.logback:logback-classic"
-            ]
-        },
         "com.addthis.metrics:reporter-config-base": {
             "locked": "3.0.0",
             "transitive": [
@@ -14735,7 +14600,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.24.0",
+            "locked": "2.24.5",
             "requested": "2.+"
         },
         "org.mozilla:rhino": {
@@ -14855,7 +14720,6 @@
             "locked": "1.7.25",
             "requested": "1.7.0",
             "transitive": [
-                "ch.qos.logback:logback-classic",
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
                 "com.datastax.cassandra:cassandra-driver-core",
@@ -15086,22 +14950,6 @@
                 "com.jayway.awaitility:awaitility"
             ]
         },
-        "ch.qos.logback:logback-classic": {
-            "locked": "1.2.3",
-            "transitive": [
-                "org.mock-server:mockserver-client-java",
-                "org.mock-server:mockserver-core",
-                "org.mock-server:mockserver-logging",
-                "org.mock-server:mockserver-netty",
-                "org.springframework.boot:spring-boot-starter-logging"
-            ]
-        },
-        "ch.qos.logback:logback-core": {
-            "locked": "1.2.3",
-            "transitive": [
-                "ch.qos.logback:logback-classic"
-            ]
-        },
         "com.addthis.metrics:reporter-config-base": {
             "locked": "3.0.0",
             "transitive": [
@@ -16623,7 +16471,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.24.0",
+            "locked": "2.24.5",
             "requested": "2.+"
         },
         "org.mozilla:rhino": {
@@ -16743,7 +16591,6 @@
             "locked": "1.7.25",
             "requested": "1.7.0",
             "transitive": [
-                "ch.qos.logback:logback-classic",
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
                 "com.datastax.cassandra:cassandra-driver-core",
