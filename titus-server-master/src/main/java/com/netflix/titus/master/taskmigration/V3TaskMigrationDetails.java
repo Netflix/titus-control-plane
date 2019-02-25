@@ -157,7 +157,7 @@ public class V3TaskMigrationDetails implements TaskMigrationDetails {
                         return Optional.of(serviceTask.toBuilder().withMigrationDetails(newMigrationDetails).build());
                     }
                     return Optional.empty();
-                }, Trigger.TaskMigration, "Updating migration details", JobManagerConstants.SCHEDULER_CALLMETADATA.toBuilder().withCallReason("task migration").build()).await(30_000, TimeUnit.MILLISECONDS);
+                }, Trigger.TaskMigration, "Updating migration details", JobManagerConstants.TASK_MIGRATOR_CALLMETADATA.toBuilder().withCallReason("task migration").build()).await(30_000, TimeUnit.MILLISECONDS);
             }
         }
     }
