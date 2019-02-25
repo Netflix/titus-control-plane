@@ -6,21 +6,6 @@
                 "com.google.inject:guice"
             ]
         },
-        "ch.qos.logback:logback-classic": {
-            "locked": "1.1.3",
-            "transitive": [
-                "org.mock-server:mockserver-client-java",
-                "org.mock-server:mockserver-core",
-                "org.mock-server:mockserver-logging",
-                "org.mock-server:mockserver-netty"
-            ]
-        },
-        "ch.qos.logback:logback-core": {
-            "locked": "1.1.3",
-            "transitive": [
-                "ch.qos.logback:logback-classic"
-            ]
-        },
         "com.fasterxml.jackson.core:jackson-annotations": {
             "locked": "2.9.0",
             "transitive": [
@@ -1100,7 +1085,6 @@
             "locked": "1.7.25",
             "requested": "1.7.0",
             "transitive": [
-                "ch.qos.logback:logback-classic",
                 "com.netflix.archaius:archaius2-core",
                 "com.netflix.governator:governator-core",
                 "com.netflix.spectator:spectator-api",
@@ -1216,21 +1200,6 @@
                 "com.google.inject:guice"
             ]
         },
-        "ch.qos.logback:logback-classic": {
-            "locked": "1.1.3",
-            "transitive": [
-                "org.mock-server:mockserver-client-java",
-                "org.mock-server:mockserver-core",
-                "org.mock-server:mockserver-logging",
-                "org.mock-server:mockserver-netty"
-            ]
-        },
-        "ch.qos.logback:logback-core": {
-            "locked": "1.1.3",
-            "transitive": [
-                "ch.qos.logback:logback-classic"
-            ]
-        },
         "com.fasterxml.jackson.core:jackson-annotations": {
             "locked": "2.9.0",
             "transitive": [
@@ -2310,7 +2279,6 @@
             "locked": "1.7.25",
             "requested": "1.7.0",
             "transitive": [
-                "ch.qos.logback:logback-classic",
                 "com.netflix.archaius:archaius2-core",
                 "com.netflix.governator:governator-core",
                 "com.netflix.spectator:spectator-api",
@@ -2426,21 +2394,6 @@
                 "com.google.inject:guice"
             ]
         },
-        "ch.qos.logback:logback-classic": {
-            "locked": "1.1.3",
-            "transitive": [
-                "org.mock-server:mockserver-client-java",
-                "org.mock-server:mockserver-core",
-                "org.mock-server:mockserver-logging",
-                "org.mock-server:mockserver-netty"
-            ]
-        },
-        "ch.qos.logback:logback-core": {
-            "locked": "1.1.3",
-            "transitive": [
-                "ch.qos.logback:logback-classic"
-            ]
-        },
         "com.fasterxml.jackson.core:jackson-annotations": {
             "locked": "2.9.0",
             "transitive": [
@@ -3520,7 +3473,6 @@
             "locked": "1.7.25",
             "requested": "1.7.0",
             "transitive": [
-                "ch.qos.logback:logback-classic",
                 "com.netflix.archaius:archaius2-core",
                 "com.netflix.governator:governator-core",
                 "com.netflix.spectator:spectator-api",
@@ -3700,21 +3652,6 @@
                 "com.google.inject:guice"
             ]
         },
-        "ch.qos.logback:logback-classic": {
-            "locked": "1.1.3",
-            "transitive": [
-                "org.mock-server:mockserver-client-java",
-                "org.mock-server:mockserver-core",
-                "org.mock-server:mockserver-logging",
-                "org.mock-server:mockserver-netty"
-            ]
-        },
-        "ch.qos.logback:logback-core": {
-            "locked": "1.1.3",
-            "transitive": [
-                "ch.qos.logback:logback-classic"
-            ]
-        },
         "com.fasterxml.jackson.core:jackson-annotations": {
             "locked": "2.9.0",
             "transitive": [
@@ -4794,7 +4731,6 @@
             "locked": "1.7.25",
             "requested": "1.7.0",
             "transitive": [
-                "ch.qos.logback:logback-classic",
                 "com.netflix.archaius:archaius2-core",
                 "com.netflix.governator:governator-core",
                 "com.netflix.spectator:spectator-api",
@@ -4911,21 +4847,6 @@
                 "com.google.inject:guice"
             ]
         },
-        "ch.qos.logback:logback-classic": {
-            "locked": "1.1.3",
-            "transitive": [
-                "org.mock-server:mockserver-client-java",
-                "org.mock-server:mockserver-core",
-                "org.mock-server:mockserver-logging",
-                "org.mock-server:mockserver-netty"
-            ]
-        },
-        "ch.qos.logback:logback-core": {
-            "locked": "1.1.3",
-            "transitive": [
-                "ch.qos.logback:logback-classic"
-            ]
-        },
         "com.fasterxml.jackson.core:jackson-annotations": {
             "locked": "2.9.0",
             "transitive": [
@@ -6005,7 +5926,6 @@
             "locked": "1.7.25",
             "requested": "1.7.0",
             "transitive": [
-                "ch.qos.logback:logback-classic",
                 "com.netflix.archaius:archaius2-core",
                 "com.netflix.governator:governator-core",
                 "com.netflix.spectator:spectator-api",
@@ -6132,22 +6052,6 @@
             "locked": "3.1",
             "transitive": [
                 "com.jayway.awaitility:awaitility"
-            ]
-        },
-        "ch.qos.logback:logback-classic": {
-            "locked": "1.2.3",
-            "transitive": [
-                "org.mock-server:mockserver-client-java",
-                "org.mock-server:mockserver-core",
-                "org.mock-server:mockserver-logging",
-                "org.mock-server:mockserver-netty",
-                "org.springframework.boot:spring-boot-starter-logging"
-            ]
-        },
-        "ch.qos.logback:logback-core": {
-            "locked": "1.2.3",
-            "transitive": [
-                "ch.qos.logback:logback-classic"
             ]
         },
         "com.addthis.metrics:reporter-config-base": {
@@ -7729,7 +7633,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.24.0",
+            "locked": "2.24.5",
             "requested": "2.+",
             "transitive": [
                 "com.netflix.governator:governator-test-junit",
@@ -7854,7 +7758,6 @@
             "locked": "1.7.25",
             "requested": "1.7.0",
             "transitive": [
-                "ch.qos.logback:logback-classic",
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
                 "com.datastax.cassandra:cassandra-driver-core",
@@ -8088,22 +7991,6 @@
                 "com.jayway.awaitility:awaitility"
             ]
         },
-        "ch.qos.logback:logback-classic": {
-            "locked": "1.2.3",
-            "transitive": [
-                "org.mock-server:mockserver-client-java",
-                "org.mock-server:mockserver-core",
-                "org.mock-server:mockserver-logging",
-                "org.mock-server:mockserver-netty",
-                "org.springframework.boot:spring-boot-starter-logging"
-            ]
-        },
-        "ch.qos.logback:logback-core": {
-            "locked": "1.2.3",
-            "transitive": [
-                "ch.qos.logback:logback-classic"
-            ]
-        },
         "com.addthis.metrics:reporter-config-base": {
             "locked": "3.0.0",
             "transitive": [
@@ -9683,7 +9570,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.24.0",
+            "locked": "2.24.5",
             "requested": "2.+",
             "transitive": [
                 "com.netflix.governator:governator-test-junit",
@@ -9808,7 +9695,6 @@
             "locked": "1.7.25",
             "requested": "1.7.0",
             "transitive": [
-                "ch.qos.logback:logback-classic",
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
                 "com.datastax.cassandra:cassandra-driver-core",
@@ -10042,22 +9928,6 @@
                 "com.jayway.awaitility:awaitility"
             ]
         },
-        "ch.qos.logback:logback-classic": {
-            "locked": "1.2.3",
-            "transitive": [
-                "org.mock-server:mockserver-client-java",
-                "org.mock-server:mockserver-core",
-                "org.mock-server:mockserver-logging",
-                "org.mock-server:mockserver-netty",
-                "org.springframework.boot:spring-boot-starter-logging"
-            ]
-        },
-        "ch.qos.logback:logback-core": {
-            "locked": "1.2.3",
-            "transitive": [
-                "ch.qos.logback:logback-classic"
-            ]
-        },
         "com.addthis.metrics:reporter-config-base": {
             "locked": "3.0.0",
             "transitive": [
@@ -11637,7 +11507,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.24.0",
+            "locked": "2.24.5",
             "requested": "2.+",
             "transitive": [
                 "com.netflix.governator:governator-test-junit",
@@ -11762,7 +11632,6 @@
             "locked": "1.7.25",
             "requested": "1.7.0",
             "transitive": [
-                "ch.qos.logback:logback-classic",
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
                 "com.datastax.cassandra:cassandra-driver-core",
@@ -11997,22 +11866,6 @@
                 "com.jayway.awaitility:awaitility"
             ]
         },
-        "ch.qos.logback:logback-classic": {
-            "locked": "1.2.3",
-            "transitive": [
-                "org.mock-server:mockserver-client-java",
-                "org.mock-server:mockserver-core",
-                "org.mock-server:mockserver-logging",
-                "org.mock-server:mockserver-netty",
-                "org.springframework.boot:spring-boot-starter-logging"
-            ]
-        },
-        "ch.qos.logback:logback-core": {
-            "locked": "1.2.3",
-            "transitive": [
-                "ch.qos.logback:logback-classic"
-            ]
-        },
         "com.addthis.metrics:reporter-config-base": {
             "locked": "3.0.0",
             "transitive": [
@@ -13592,7 +13445,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.24.0",
+            "locked": "2.24.5",
             "requested": "2.+",
             "transitive": [
                 "com.netflix.governator:governator-test-junit",
@@ -13717,7 +13570,6 @@
             "locked": "1.7.25",
             "requested": "1.7.0",
             "transitive": [
-                "ch.qos.logback:logback-classic",
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
                 "com.datastax.cassandra:cassandra-driver-core",
