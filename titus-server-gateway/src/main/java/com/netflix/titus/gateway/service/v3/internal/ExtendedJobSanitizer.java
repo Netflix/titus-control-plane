@@ -50,7 +50,9 @@ import static com.netflix.titus.common.util.feature.FeatureComplianceTypes.merge
  */
 class ExtendedJobSanitizer implements EntitySanitizer {
 
-    private static final String TITUS_NON_COMPLIANT = "titus.noncompliant.";
+    private static final String TITUS_NON_COMPLIANT_ROOT_NAME = "titus.noncompliant";
+
+    private static final String TITUS_NON_COMPLIANT = TITUS_NON_COMPLIANT_ROOT_NAME + ".";
 
     @VisibleForTesting
     static final String TITUS_NON_COMPLIANT_FEATURES = TITUS_NON_COMPLIANT + "features";
@@ -99,14 +101,16 @@ class ExtendedJobSanitizer implements EntitySanitizer {
         return entity == sanitized ? Optional.empty() : Optional.of(sanitized);
     }
 
-    private JobDescriptor<?> sanitizeJobDescriptor(JobDescriptor<?> jobDescriptor) {
-        return jobComplianceChecker.checkCompliance(jobDescriptor).map(violations -> {
+    private JobDescriptor<?> sanitizeJobDescriptor(JobDescriptor<?> providedJobDescriptor) {
+        JobDescriptor<?> jobDescriptorWithAllowedAttributes = resetAttributes(providedJobDescriptor);
 
-            JobDescriptor sanitized = jobDescriptor;
+        return jobComplianceChecker.checkCompliance(jobDescriptorWithAllowedAttributes).map(violations -> {
 
-            if (!securityGroupsRequiredPredicate.test(jobDescriptor)) {
+            JobDescriptor sanitized = jobDescriptorWithAllowedAttributes;
+
+            if (!securityGroupsRequiredPredicate.test(jobDescriptorWithAllowedAttributes)) {
                 // Missing security groups
-                SecurityProfile.Builder securityProfileBuilder = jobDescriptor.getContainer().getSecurityProfile().toBuilder();
+                SecurityProfile.Builder securityProfileBuilder = jobDescriptorWithAllowedAttributes.getContainer().getSecurityProfile().toBuilder();
                 violations.findViolation(SECURITY_GROUPS_REQUIRED_FEATURE).ifPresent(report ->
                         securityProfileBuilder.withSecurityGroups(jobManagerConfiguration.getDefaultSecurityGroups())
                 );
@@ -138,15 +142,33 @@ class ExtendedJobSanitizer implements EntitySanitizer {
             // TODO Once not needed, remove this code and add the field level validator which invokes method JobAssertions#validateEnvironmentVariableNames.
             // We have to throw the exception here, as we cannot conditionally check violations using annotations.
             violations.findViolation(ENVIRONMENT_VARIABLE_NAMES_STRICT_VALIDATION_FEATURE).ifPresent(nonCompliance -> {
-                if (environmentVariableNamesStrictValidationPredicate.test(jobDescriptor)) {
+                if (environmentVariableNamesStrictValidationPredicate.test(jobDescriptorWithAllowedAttributes)) {
                     throw TitusServiceException.invalidArgument(nonCompliance.toErrorMessage());
                 }
             });
 
             return sanitized.toBuilder()
-                    .withAttributes(CollectionsExt.merge(jobDescriptor.getAttributes(), buildNonComplianceJobAttributeMap(violations)))
+                    .withAttributes(CollectionsExt.merge(jobDescriptorWithAllowedAttributes.getAttributes(), buildNonComplianceJobAttributeMap(violations)))
                     .build();
-        }).orElse(jobDescriptor);
+        }).orElse(jobDescriptorWithAllowedAttributes);
+    }
+
+    private JobDescriptor<?> resetAttributes(JobDescriptor<?> jobDescriptor) {
+        Map<String, String> attributes = jobDescriptor.getAttributes();
+        if (attributes.isEmpty()) {
+            return jobDescriptor;
+        }
+
+        Map<String, String> allowedAttributes = new HashMap<>();
+        attributes.forEach((key, value) -> {
+            if (!key.startsWith(TITUS_NON_COMPLIANT_ROOT_NAME)) {
+                allowedAttributes.put(key, value);
+            }
+        });
+
+        return allowedAttributes.size() == attributes.size()
+                ? jobDescriptor
+                : jobDescriptor.toBuilder().withAttributes(allowedAttributes).build();
     }
 
     private Map<String, String> buildNonComplianceJobAttributeMap(FeatureCompliance.NonComplianceList<JobDescriptor<?>> violations) {

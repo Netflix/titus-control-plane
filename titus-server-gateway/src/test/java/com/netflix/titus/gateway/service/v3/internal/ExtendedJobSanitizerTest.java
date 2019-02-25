@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import com.google.common.collect.ImmutableMap;
 import com.netflix.titus.api.FeatureRolloutPlans;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.SecurityProfile;
@@ -195,6 +196,23 @@ public class ExtendedJobSanitizerTest {
         ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, jd -> false, jd -> true, titusRuntime);
 
         sanitizer.sanitize(jobDescriptor);
+    }
+
+    @Test
+    public void testTitusAttributesAreResetIfProvidedByUser() {
+        JobDescriptor jobDescriptor = JobDescriptorGenerator.batchJobDescriptors().getValue().toBuilder()
+                .withAttributes(ImmutableMap.<String, String>builder()
+                        .put("myApp.a", "b")
+                        .put(TITUS_NON_COMPLIANT_FEATURES + "a", "b")
+                        .build()
+                )
+                .build();
+
+        ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, jd -> false, jd -> false, titusRuntime);
+
+        Optional<JobDescriptor> sanitized = sanitizer.sanitize(jobDescriptor);
+        assertThat(sanitized).isNotEmpty();
+        assertThat(sanitized.get().getAttributes()).containsOnlyKeys("myApp.a");
     }
 
     private JobDescriptor newJobDescriptorWithSecurityProfile(List<String> securityGroups, String iamRole) {
