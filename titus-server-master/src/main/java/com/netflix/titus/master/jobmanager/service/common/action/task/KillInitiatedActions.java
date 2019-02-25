@@ -54,9 +54,7 @@ import rx.functions.Action0;
  * A collection of {@link ChangeAction}s for task termination.
  */
 public class KillInitiatedActions {
-
-    public static CallMetadata RECONCILER_CALLMETADATA = CallMetadata.newBuilder().withCallerId("Reconciler").build();
-
+    
     /**
      * Move job to {@link JobState#KillInitiated} state in reference, running and store models.
      */
@@ -151,7 +149,7 @@ public class KillInitiatedActions {
 
                             Task taskWithKillInitiated = JobFunctions.changeTaskStatus(currentTask, TaskState.KillInitiated, reasonCode, reason);
                             TitusModelAction taskUpdateAction = TitusModelAction.newModelUpdate(self).taskUpdate(taskWithKillInitiated,
-                                    RECONCILER_CALLMETADATA.toBuilder().withCallReason(reason).build());
+                                    JobManagerConstants.RECONCILER_CALLMETADATA.toBuilder().withCallReason(reason).build());
 
                             // If already in KillInitiated state, do not store eagerly, just call Mesos kill again.
                             if (taskState == TaskState.KillInitiated) {
@@ -202,7 +200,7 @@ public class KillInitiatedActions {
                         V3JobOperations.Trigger.Reconciler,
                         reason,
                         titusRuntime,
-                        RECONCILER_CALLMETADATA.toBuilder().withCallReason(reason).build()
+                        JobManagerConstants.RECONCILER_CALLMETADATA.toBuilder().withCallReason(reason).build()
                 ));
             }
         });
@@ -230,7 +228,7 @@ public class KillInitiatedActions {
                                             .withExtensions(oldExt.toBuilder().withCapacity(newCapacity).build())
                                             .build())
                             .build();
-                    return jobHolder.setEntity(newJob).addTag(JobManagerConstants.JOB_MANAGER_ATTRIBUTE_CALLMETADATA, RECONCILER_CALLMETADATA.toBuilder().withCallReason("Shrinking job as a result of terminate and shrink request").build());
+                    return jobHolder.setEntity(newJob).addTag(JobManagerConstants.JOB_MANAGER_ATTRIBUTE_CALLMETADATA, JobManagerConstants.RECONCILER_CALLMETADATA.toBuilder().withCallReason("Shrinking job as a result of terminate and shrink request").build());
                 });
     }
 }

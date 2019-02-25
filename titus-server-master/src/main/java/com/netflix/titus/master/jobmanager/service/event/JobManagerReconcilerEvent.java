@@ -41,5 +41,7 @@ public abstract class JobManagerReconcilerEvent {
         return transactionId;
     }
 
-    public CallMetadata getCallMetadata() { return callMetadata; }
+    public CallMetadata getCallMetadata() {
+        return callMetadata;
+    }
 }

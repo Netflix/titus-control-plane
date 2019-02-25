@@ -69,7 +69,6 @@ public class CommonGrpcModelConverters {
                 .build();
     }
 
-
     public static CallerType toCoreCallerType(com.netflix.titus.grpc.protogen.CallMetadata.CallerType grpcCallerType) {
         switch (grpcCallerType) {
             case Application:

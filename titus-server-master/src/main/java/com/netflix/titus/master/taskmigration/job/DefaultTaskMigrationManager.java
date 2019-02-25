@@ -30,6 +30,7 @@ import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.common.util.limiter.tokenbucket.TokenBucket;
+import com.netflix.titus.master.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.master.taskmigration.TaskMigrationDetails;
 import com.netflix.titus.master.taskmigration.TaskMigrationManager;
 import com.netflix.titus.master.taskmigration.V3TaskMigrationDetails;
@@ -45,8 +46,6 @@ public class DefaultTaskMigrationManager implements TaskMigrationManager {
 
     private State state;
     private long lastMovedWorkerOnDisabledVM;
-    private CallMetadata TASK_MIGRATOR_CALL_METADATA = CallMetadata.newBuilder().withCallerId("task migration").build();
-
 
     public DefaultTaskMigrationManager(ServiceJobTaskMigratorConfig config, TokenBucket terminateTokenBucket) {
         this.config = config;
@@ -124,7 +123,7 @@ public class DefaultTaskMigrationManager implements TaskMigrationManager {
                         logger.info("Migrating task: {} of job: {}", task.getId(), jobId);
                         String reason = "Moving service task: " + task.getId() + " out of disabled VM";
                         try {
-                            v3JobOperations.killTask(task.getId(), false, reason, TASK_MIGRATOR_CALL_METADATA.toBuilder().withCallReason(reason).build()).toCompletable().await(KILL_TIMEOUT, TimeUnit.MILLISECONDS);
+                            v3JobOperations.killTask(task.getId(), false, reason, JobManagerConstants.TASK_MIGRATOR_CALLMETADATA.toBuilder().withCallReason(reason).build()).toCompletable().await(KILL_TIMEOUT, TimeUnit.MILLISECONDS);
                             lastMovedWorkerOnDisabledVM = System.currentTimeMillis();
                         } catch (Exception e) {
                             logger.error("Unable to kill task: {} with error: ", task.getId(), e);

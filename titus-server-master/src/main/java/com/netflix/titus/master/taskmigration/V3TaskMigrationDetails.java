@@ -34,6 +34,7 @@ import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.master.jobmanager.service.JobManagerConstants;
 
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID;
 import static com.netflix.titus.api.jobmanager.model.job.TaskState.Launched;
@@ -156,7 +157,7 @@ public class V3TaskMigrationDetails implements TaskMigrationDetails {
                         return Optional.of(serviceTask.toBuilder().withMigrationDetails(newMigrationDetails).build());
                     }
                     return Optional.empty();
-                }, Trigger.TaskMigration, "Updating migration details", CallMetadata.newBuilder().withCallerId("task migrations").withCallReason("migration").build()).await(30_000, TimeUnit.MILLISECONDS);
+                }, Trigger.TaskMigration, "Updating migration details", JobManagerConstants.SCHEDULER_CALLMETADATA.toBuilder().withCallReason("task migration").build()).await(30_000, TimeUnit.MILLISECONDS);
             }
         }
     }

@@ -34,6 +34,7 @@ import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import com.netflix.titus.common.util.retry.Retryer;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
+import com.netflix.titus.master.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.master.jobmanager.service.common.action.TaskRetryers;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
@@ -43,8 +44,6 @@ import rx.Observable;
  * Create a new task or replace a completed task, and persist it into the store. Update reference/store models.
  */
 public class CreateOrReplaceBatchTaskActions {
-
-    public static CallMetadata RECONCILER_CALLMETADATA = CallMetadata.newBuilder().withCallerId("Reconciler").build();
 
     public static TitusChangeAction createOrReplaceTaskAction(JobManagerConfiguration configuration, JobStore jobStore, EntityHolder jobHolder, int index, Clock clock) {
         return jobHolder.getChildren().stream()
@@ -100,7 +99,7 @@ public class CreateOrReplaceBatchTaskActions {
         actions.add(ModelActionHolder.reference(modelBuilder.addTaskHolder(
                 EntityHolder.newRoot(newTask.getId(), newTask).addTag(TaskRetryers.ATTR_TASK_RETRY, nextTaskRetryer)
         )));
-        actions.add(ModelActionHolder.store(modelBuilder.taskUpdate(newTask, RECONCILER_CALLMETADATA.toBuilder().withCallReason("Creating new task entity holder").build())));
+        actions.add(ModelActionHolder.store(modelBuilder.taskUpdate(newTask, JobManagerConstants.RECONCILER_CALLMETADATA.toBuilder().withCallReason("Creating new task entity holder").build())));
 
         return actions;
     }

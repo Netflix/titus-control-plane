@@ -46,6 +46,7 @@ import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.config.MasterConfiguration;
+import com.netflix.titus.master.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import com.netflix.titus.master.mesos.TaskInfoFactory;
 import com.netflix.titus.master.model.job.TitusQueuableTask;
@@ -68,7 +69,6 @@ class TaskPlacementRecorder {
     private final V3JobOperations v3JobOperations;
     private final TaskInfoFactory<Protos.TaskInfo> v3TaskInfoFactory;
     private final Clock clock;
-    private final CallMetadata SCHEDULER_CALL_METADATA = CallMetadata.newBuilder().withCallerId("task migrator").build();
 
     @Inject
     TaskPlacementRecorder(Config config,
@@ -145,7 +145,7 @@ class TaskPlacementRecorder {
                             masterConfiguration.getHostZoneAttributeName(), lease, consumeResult,
                             executorUriOverrideOpt, attributesMap, getTierName(fenzoTask)
                     ).apply(oldTask),
-                    SCHEDULER_CALL_METADATA.toBuilder().withCallReason("Record task placement").build()
+                    JobManagerConstants.SCHEDULER_CALLMETADATA.toBuilder().withCallReason("Record task placement").build()
             ).toObservable().cast(Protos.TaskInfo.class).concatWith(Observable.fromCallable(() ->
                     v3TaskInfoFactory.newTaskInfo(
                             fenzoTask, v3Job, v3Task, lease.hostname(), attributesMap, lease.getOffer().getSlaveId(),
@@ -176,7 +176,7 @@ class TaskPlacementRecorder {
 
     private void killBrokenV3Task(TitusQueuableTask task, String reason) {
         v3JobOperations.killTask(task.getId(), false, String.format("Failed to launch task %s due to %s", task.getId(), reason),
-                SCHEDULER_CALL_METADATA.toBuilder().withCallReason("kill broken task").build()).subscribe(
+                JobManagerConstants.SCHEDULER_CALLMETADATA.toBuilder().withCallReason("kill broken task").build()).subscribe(
                 next -> {
                 },
                 e -> {

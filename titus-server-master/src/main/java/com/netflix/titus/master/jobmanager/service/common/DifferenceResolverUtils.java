@@ -43,6 +43,7 @@ import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.time.Clock;
+import com.netflix.titus.master.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
 import com.netflix.titus.master.jobmanager.service.common.action.task.BasicTaskActions;
@@ -54,8 +55,6 @@ import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEve
  * Collection of functions useful for batch and service difference resolvers.
  */
 public class DifferenceResolverUtils {
-
-    public static CallMetadata RECONCILER_CALLMETADATA = CallMetadata.newBuilder().withCallerId("Reconciler").build();
 
     public static boolean isDone(Job<?> job, Task task) {
         return task.getStatus().getState() == TaskState.Finished && !shouldRetry(job, task);
@@ -198,7 +197,7 @@ public class DifferenceResolverUtils {
                                             ),
                                             "TimedOut in KillInitiated state",
                                             titusRuntime,
-                                            RECONCILER_CALLMETADATA.toBuilder().withCallReason("Kill initiated").build())
+                                            JobManagerConstants.RECONCILER_CALLMETADATA.toBuilder().withCallReason("Kill initiated").build())
                             );
                         } else {
                             actions.add(TaskTimeoutChangeActions.incrementTaskKillAttempt(task.getId(), configuration.getTaskInKillInitiatedStateTimeoutMs(), clock));

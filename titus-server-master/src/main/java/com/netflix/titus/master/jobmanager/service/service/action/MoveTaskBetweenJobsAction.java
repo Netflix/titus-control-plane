@@ -130,13 +130,13 @@ public class MoveTaskBetweenJobsAction implements MultiEngineChangeAction {
 
     private List<ModelActionHolder> createModelUpdateActionsTo(Job<ServiceJobExt> updatedJobFrom, Job<?> updatedJobTo, Task taskToUpdated, Optional<EntityHolder> taskFromRunningHolder) {
         List<ModelActionHolder> actions = new ArrayList<>();
-
+        String summary = "Received task from another job: jobFrom=" + updatedJobFrom.getId();
         // Add task
         TitusModelAction addTaskAction = TitusModelAction.newModelUpdate("moveTask")
                 .job(updatedJobTo)
                 .trigger(Trigger.API)
-                .summary("Received task from another job: jobFrom=" + updatedJobFrom.getId())
-                .taskUpdate(taskToUpdated, CallMetadata.newBuilder().withCallReason("test").withCallerId("test").build());
+                .summary(summary)
+                .taskUpdate(taskToUpdated, callMetadata.toBuilder().withCallReason(summary).build());
 
         if (taskFromRunningHolder.isPresent()) {
             actions.addAll(ModelActionHolder.allModels(addTaskAction));
