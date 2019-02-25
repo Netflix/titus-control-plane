@@ -22,7 +22,6 @@ import java.util.Map;
 import java.util.Optional;
 
 import com.google.common.collect.ImmutableMap;
-import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
@@ -37,6 +36,7 @@ import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import com.netflix.titus.common.framework.reconciler.MultiEngineChangeAction;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
+import com.netflix.titus.master.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
 import rx.Observable;
@@ -122,7 +122,7 @@ public class MoveTaskBetweenJobsAction implements MultiEngineChangeAction {
                 .job(updatedJobFrom)
                 .trigger(Trigger.API)
                 .summary(summary)
-                .jobUpdate(jobHolder -> jobHolder.setEntity(updatedJobFrom).addTag(JobAttributes.JOB_ATTRIBUTE_CALLMETADATA, callMetadata.toBuilder().withCallReason(summary).build()));
+                .jobUpdate(jobHolder -> jobHolder.setEntity(updatedJobFrom).addTag(JobManagerConstants.JOB_MANAGER_ATTRIBUTE_CALLMETADATA, callMetadata.toBuilder().withCallReason(summary).build()));
         actions.addAll(ModelActionHolder.referenceAndStore(modelAction));
 
         return actions;
@@ -149,7 +149,7 @@ public class MoveTaskBetweenJobsAction implements MultiEngineChangeAction {
                 .job(updatedJobTo)
                 .trigger(Trigger.API)
                 .summary("Incremented the desired job size by one, as it got a task from another job: jobFrom=" + updatedJobFrom.getId())
-                .jobUpdate(jobHolder -> jobHolder.setEntity(updatedJobTo).addTag(JobAttributes.JOB_ATTRIBUTE_CALLMETADATA,
+                .jobUpdate(jobHolder -> jobHolder.setEntity(updatedJobTo).addTag(JobManagerConstants.JOB_MANAGER_ATTRIBUTE_CALLMETADATA,
                         callMetadata.toBuilder().withCallReason("Incremented the desired job size by one, as it got a task from another job").build()));
         actions.addAll(ModelActionHolder.referenceAndStore(modelAction));
 

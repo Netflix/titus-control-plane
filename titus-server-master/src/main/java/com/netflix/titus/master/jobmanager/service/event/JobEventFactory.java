@@ -18,7 +18,6 @@ package com.netflix.titus.master.jobmanager.service.event;
 
 import java.util.Optional;
 
-import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.common.framework.reconciler.ChangeAction;
@@ -26,6 +25,7 @@ import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import com.netflix.titus.common.framework.reconciler.ReconcileEventFactory;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
+import com.netflix.titus.master.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import com.netflix.titus.master.jobmanager.service.event.JobChangeReconcilerEvent.JobAfterChangeReconcilerEvent;
 import com.netflix.titus.master.jobmanager.service.event.JobChangeReconcilerEvent.JobBeforeChangeReconcilerEvent;
@@ -42,7 +42,7 @@ public class JobEventFactory implements ReconcileEventFactory<JobManagerReconcil
                                                           ChangeAction changeAction,
                                                           String transactionId) {
         return new JobBeforeChangeReconcilerEvent(engine.getReferenceView().getEntity(), (TitusChangeAction) changeAction, transactionId,
-                (CallMetadata)engine.getReferenceView().getAttributes().get(JobAttributes.JOB_ATTRIBUTE_CALLMETADATA));
+                (CallMetadata)engine.getReferenceView().getAttributes().get(JobManagerConstants.JOB_MANAGER_ATTRIBUTE_CALLMETADATA));
     }
 
     @Override
@@ -52,7 +52,7 @@ public class JobEventFactory implements ReconcileEventFactory<JobManagerReconcil
                                                          long executionTimeMs,
                                                          String transactionId) {
         return new JobAfterChangeReconcilerEvent(engine.getReferenceView().getEntity(), (TitusChangeAction) changeAction, waitTimeMs, executionTimeMs, transactionId,
-                (CallMetadata)engine.getReferenceView().getAttributes().get(JobAttributes.JOB_ATTRIBUTE_CALLMETADATA));
+                (CallMetadata)engine.getReferenceView().getAttributes().get(JobManagerConstants.JOB_MANAGER_ATTRIBUTE_CALLMETADATA));
     }
 
     @Override
@@ -63,7 +63,7 @@ public class JobEventFactory implements ReconcileEventFactory<JobManagerReconcil
                                                          long executionTimeMs,
                                                          String transactionId) {
         return new JobChangeErrorReconcilerEvent(engine.getReferenceView().getEntity(), (TitusChangeAction) changeAction, error, waitTimeMs, executionTimeMs, transactionId,
-                (CallMetadata)engine.getReferenceView().getAttributes().get(JobAttributes.JOB_ATTRIBUTE_CALLMETADATA));
+                (CallMetadata)engine.getReferenceView().getAttributes().get(JobManagerConstants.JOB_MANAGER_ATTRIBUTE_CALLMETADATA));
     }
 
     @Override
@@ -97,16 +97,16 @@ public class JobEventFactory implements ReconcileEventFactory<JobManagerReconcil
     private CallMetadata getCallMetadata(ReconciliationEngine<JobManagerReconcilerEvent> engine, ModelActionHolder modelActionHolder) {
         switch (modelActionHolder.getModel()) {
             case Running:
-                if (engine.getRunningView().getAttributes().get(JobAttributes.JOB_ATTRIBUTE_CALLMETADATA) == null){
+                if (engine.getRunningView().getAttributes().get(JobManagerConstants.JOB_MANAGER_ATTRIBUTE_CALLMETADATA) == null){
                     return UNDEFINED_CALL_METADATA;
                 }
             case Store:
-                if (engine.getStoreView().getAttributes().get(JobAttributes.JOB_ATTRIBUTE_CALLMETADATA) == null) {
+                if (engine.getStoreView().getAttributes().get(JobManagerConstants.JOB_MANAGER_ATTRIBUTE_CALLMETADATA) == null) {
                     return UNDEFINED_CALL_METADATA;
                 }
             case Reference:
             default:
-                return (CallMetadata)engine.getRunningView().getAttributes().get(JobAttributes.JOB_ATTRIBUTE_CALLMETADATA);
+                return (CallMetadata)engine.getRunningView().getAttributes().get(JobManagerConstants.JOB_MANAGER_ATTRIBUTE_CALLMETADATA);
         }
     }
 
