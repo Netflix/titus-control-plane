@@ -22,6 +22,7 @@ import java.util.Optional;
 import java.util.function.Consumer;
 
 import com.google.common.collect.ImmutableMap;
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.util.StringExt;
 import io.grpc.stub.StreamObserver;

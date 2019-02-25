@@ -111,6 +111,8 @@ class JobTransactionLogger {
                 entityId,
                 0,
                 0,
+                event.getCallMetadata().getCallerId(),
+                event.getCallMetadata().getCallReason(),
                 changeAction.getSummary()
         );
     }
@@ -131,6 +133,8 @@ class JobTransactionLogger {
                 entityId,
                 event.getWaitTimeMs(),
                 event.getExecutionTimeMs(),
+                event.getCallMetadata().getCallerId(),
+                event.getCallMetadata().getCallReason(),
                 changeAction.getSummary()
         );
     }
@@ -151,6 +155,8 @@ class JobTransactionLogger {
                 entityId,
                 event.getWaitTimeMs(),
                 event.getExecutionTimeMs(),
+                event.getCallMetadata().getCallerId(),
+                event.getCallMetadata().getCallReason(),
                 event.getError().getMessage() + '(' + changeAction.getSummary() + ')'
         );
     }
@@ -168,6 +174,8 @@ class JobTransactionLogger {
                 jobId,
                 0,
                 0,
+                event.getCallMetadata().getCallerId(),
+                event.getCallMetadata().getCallReason(),
                 "New job created"
         );
     }
@@ -193,6 +201,8 @@ class JobTransactionLogger {
                 entityId,
                 0,
                 0,
+                event.getCallMetadata().getCallerId(),
+                event.getCallMetadata().getCallReason(),
                 summary
         );
     }
@@ -219,6 +229,8 @@ class JobTransactionLogger {
                 entityId,
                 0,
                 0,
+                event.getCallMetadata().getCallerId(),
+                event.getCallMetadata().getCallReason(),
                 action.getSummary()
         );
     }
@@ -233,9 +245,11 @@ class JobTransactionLogger {
                                    String entityId,
                                    long waitTimeMs,
                                    long executionTime,
+                                   String callerID,
+                                   String callReason,
                                    String summary) {
         return String.format(
-                "jobId=%s entity=%s transactionId=%-5s target=%-4s status=%-5s type=%-22s action=%-45s trigger=%-10s %-16s %-15s summary=%s",
+                "jobId=%s entity=%s transactionId=%-5s target=%-4s status=%-5s type=%-22s action=%-45s trigger=%-10s %-16s %-15s callerId=%-15s callReason=%-15s summary=%s",
                 jobId,
                 entityId,
                 transactionId,
@@ -244,10 +258,12 @@ class JobTransactionLogger {
                 type,
                 action,
                 trigger,
+                callerID,
+                callReason,
                 "waited=" + waitTimeMs + "ms",
                 "elapsed=" + executionTime + "ms",
                 summary
-        );
+                );
     }
 
     private static String toTargetName(String jobId, String entityId) {

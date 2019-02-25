@@ -24,6 +24,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
@@ -39,6 +40,7 @@ import com.netflix.titus.common.framework.reconciler.ChangeAction;
 import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.master.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.jobmanager.service.common.action.JobEntityHolders;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
@@ -52,11 +54,11 @@ import rx.functions.Action0;
  * A collection of {@link ChangeAction}s for task termination.
  */
 public class KillInitiatedActions {
-
+    
     /**
      * Move job to {@link JobState#KillInitiated} state in reference, running and store models.
      */
-    public static TitusChangeAction initiateJobKillAction(ReconciliationEngine<JobManagerReconcilerEvent> engine, JobStore titusStore, String reason) {
+    public static TitusChangeAction initiateJobKillAction(ReconciliationEngine<JobManagerReconcilerEvent> engine, JobStore titusStore, String reason, CallMetadata callMetadata) {
         String reasonMessage = String.format("Changing job state to KillInitiated (reason:%s)", reason);
         return TitusChangeAction.newAction("initiateJobKillAction")
                 .id(engine.getReferenceView().getId())
@@ -71,7 +73,7 @@ public class KillInitiatedActions {
                     Job jobWithKillInitiated = JobFunctions.changeJobStatus(job, newStatus);
 
                     TitusModelAction modelUpdateAction = TitusModelAction.newModelUpdate(self)
-                            .jobMaybeUpdate(entityHolder -> Optional.of(entityHolder.setEntity(jobWithKillInitiated)));
+                            .jobMaybeUpdate(entityHolder -> Optional.of(entityHolder.setEntity(jobWithKillInitiated).addTag(JobManagerConstants.JOB_MANAGER_ATTRIBUTE_CALLMETADATA, callMetadata)));
 
                     return titusStore.updateJob(jobWithKillInitiated).andThen(Observable.just(ModelActionHolder.allModels(modelUpdateAction)));
                 });
@@ -89,7 +91,8 @@ public class KillInitiatedActions {
                                                           boolean shrink,
                                                           String reasonCode,
                                                           String reason,
-                                                          TitusRuntime titusRuntime) {
+                                                          TitusRuntime titusRuntime,
+                                                          CallMetadata callMetadata) {
         return TitusChangeAction.newAction("userInitiateTaskKill")
                 .id(taskId)
                 .trigger(V3JobOperations.Trigger.API)
@@ -106,7 +109,7 @@ public class KillInitiatedActions {
                             Callable<List<ModelActionHolder>> modelUpdateActions = () -> JobEntityHolders.expectTask(engine, task.getId(), titusRuntime).map(current -> {
                                 List<ModelActionHolder> updateActions = new ArrayList<>();
 
-                                TitusModelAction stateUpdateAction = TitusModelAction.newModelUpdate(self).taskUpdate(taskWithKillInitiated);
+                                TitusModelAction stateUpdateAction = TitusModelAction.newModelUpdate(self).taskUpdate(taskWithKillInitiated, callMetadata);
                                 updateActions.addAll(ModelActionHolder.allModels(stateUpdateAction));
 
                                 if (shrink) {
@@ -145,7 +148,8 @@ public class KillInitiatedActions {
                             }
 
                             Task taskWithKillInitiated = JobFunctions.changeTaskStatus(currentTask, TaskState.KillInitiated, reasonCode, reason);
-                            TitusModelAction taskUpdateAction = TitusModelAction.newModelUpdate(self).taskUpdate(taskWithKillInitiated);
+                            TitusModelAction taskUpdateAction = TitusModelAction.newModelUpdate(self).taskUpdate(taskWithKillInitiated,
+                                    JobManagerConstants.RECONCILER_CALLMETADATA.toBuilder().withCallReason(reason).build());
 
                             // If already in KillInitiated state, do not store eagerly, just call Mesos kill again.
                             if (taskState == TaskState.KillInitiated) {
@@ -195,7 +199,8 @@ public class KillInitiatedActions {
                         jobStore,
                         V3JobOperations.Trigger.Reconciler,
                         reason,
-                        titusRuntime
+                        titusRuntime,
+                        JobManagerConstants.RECONCILER_CALLMETADATA.toBuilder().withCallReason(reason).build()
                 ));
             }
         });
@@ -223,7 +228,7 @@ public class KillInitiatedActions {
                                             .withExtensions(oldExt.toBuilder().withCapacity(newCapacity).build())
                                             .build())
                             .build();
-                    return jobHolder.setEntity(newJob);
+                    return jobHolder.setEntity(newJob).addTag(JobManagerConstants.JOB_MANAGER_ATTRIBUTE_CALLMETADATA, JobManagerConstants.RECONCILER_CALLMETADATA.toBuilder().withCallReason("Shrinking job as a result of terminate and shrink request").build());
                 });
     }
 }

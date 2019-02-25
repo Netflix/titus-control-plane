@@ -76,6 +76,7 @@ import com.netflix.titus.master.jobmanager.service.service.action.BasicServiceJo
 import com.netflix.titus.master.jobmanager.service.service.action.MoveTaskBetweenJobsAction;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.service.management.ManagementSubsystemInitializer;
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -179,10 +180,9 @@ public class DefaultV3JobOperations implements V3JobOperations {
     }
 
     @Override
-    public Observable<String> createJob(JobDescriptor<?> jobDescriptor) {
+    public Observable<String> createJob(JobDescriptor<?> jobDescriptor, CallMetadata callMetadata) {
         return Observable.fromCallable(() -> jobSubmitLimiter.reserveId(jobDescriptor))
                 .flatMap(reservationFailure -> {
-
                     if (reservationFailure.isPresent()) {
                         return Observable.error(JobManagerException.jobCreateLimited(reservationFailure.get()));
                     }
@@ -196,10 +196,10 @@ public class DefaultV3JobOperations implements V3JobOperations {
                     String jobId = job.getId();
 
                     return store.storeJob(job).toObservable()
-                            .concatWith(reconciliationFramework.newEngine(EntityHolder.newRoot(jobId, job)))
+                            .concatWith(reconciliationFramework.newEngine(EntityHolder.newRoot(jobId, job).addTag(JobManagerConstants.JOB_MANAGER_ATTRIBUTE_CALLMETADATA, callMetadata)))
                             .map(engine -> jobId)
                             .doOnTerminate(() -> jobSubmitLimiter.releaseId(jobDescriptor))
-                            .doOnCompleted(() -> logger.info("Created job {}", jobId))
+                            .doOnCompleted(() -> logger.info("Created job {} call metadata {}", jobId, callMetadata.getCallerId()))
                             .doOnError(e -> logger.info("Job {} creation failure", jobId, e));
                 });
     }
@@ -279,18 +279,18 @@ public class DefaultV3JobOperations implements V3JobOperations {
     }
 
     @Override
-    public Completable updateTask(String taskId, Function<Task, Optional<Task>> changeFunction, Trigger trigger, String reason) {
+    public Completable updateTask(String taskId, Function<Task, Optional<Task>> changeFunction, Trigger trigger, String reason, CallMetadata callMetadata) {
         Optional<ReconciliationEngine<JobManagerReconcilerEvent>> engineOpt = reconciliationFramework.findEngineByChildId(taskId).map(Pair::getLeft);
         if (!engineOpt.isPresent()) {
             return Completable.error(JobManagerException.taskNotFound(taskId));
         }
         ReconciliationEngine<JobManagerReconcilerEvent> engine = engineOpt.get();
-        TitusChangeAction changeAction = BasicTaskActions.updateTaskInRunningModel(taskId, trigger, jobManagerConfiguration, engine, changeFunction, reason, titusRuntime);
+        TitusChangeAction changeAction = BasicTaskActions.updateTaskInRunningModel(taskId, trigger, jobManagerConfiguration, engine, changeFunction, reason, titusRuntime, callMetadata);
         return engine.changeReferenceModel(changeAction, taskId).toCompletable();
     }
 
     @Override
-    public Completable recordTaskPlacement(String taskId, Function<Task, Task> changeFunction) {
+    public Completable recordTaskPlacement(String taskId, Function<Task, Task> changeFunction, CallMetadata callMetadata) {
         Optional<ReconciliationEngine<JobManagerReconcilerEvent>> engineOpt = reconciliationFramework.findEngineByChildId(taskId).map(Pair::getLeft);
         if (!engineOpt.isPresent()) {
             return Completable.error(JobManagerException.taskNotFound(taskId));
@@ -312,7 +312,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
                                         return Observable.<List<ModelActionHolder>>error(e);
                                     }
 
-                                    TitusModelAction modelUpdate = TitusModelAction.newModelUpdate(self).taskUpdate(newTask);
+                                    TitusModelAction modelUpdate = TitusModelAction.newModelUpdate(self).taskUpdate(newTask, callMetadata);
                                     return store.updateTask(newTask).andThen(Observable.just(ModelActionHolder.allModels(modelUpdate)));
                                 })
                                 .orElseGet(() -> Observable.error(JobManagerException.taskNotFound(taskId)))
@@ -321,7 +321,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
     }
 
     @Override
-    public Observable<Void> updateJobCapacity(String jobId, Capacity capacity) {
+    public Observable<Void> updateJobCapacity(String jobId, Capacity capacity, CallMetadata callMetadata) {
         return inServiceJob(jobId).flatMap(engine -> {
                     Job<ServiceJobExt> serviceJob = engine.getReferenceView().getEntity();
                     if (serviceJob.getJobDescriptor().getExtensions().getCapacity().equals(capacity)) {
@@ -331,46 +331,46 @@ public class DefaultV3JobOperations implements V3JobOperations {
                         return Observable.error(JobManagerException.invalidDesiredCapacity(jobId, capacity.getDesired(),
                                 serviceJob.getJobDescriptor().getExtensions().getServiceJobProcesses()));
                     }
-                    return engine.changeReferenceModel(BasicServiceJobActions.updateJobCapacityAction(engine, capacity, store));
+                    return engine.changeReferenceModel(BasicServiceJobActions.updateJobCapacityAction(engine, capacity, store, callMetadata));
                 }
         );
     }
 
     @Override
-    public Observable<Void> updateServiceJobProcesses(String jobId, ServiceJobProcesses serviceJobProcesses) {
+    public Observable<Void> updateServiceJobProcesses(String jobId, ServiceJobProcesses serviceJobProcesses, CallMetadata callMetadata) {
         return inServiceJob(jobId).flatMap(engine -> {
                     Job<?> job = engine.getReferenceView().getEntity();
                     if (!(job.getJobDescriptor().getExtensions() instanceof ServiceJobExt)) {
                         return Observable.error(JobManagerException.notServiceJob(jobId));
                     }
-                    return engine.changeReferenceModel(BasicServiceJobActions.updateServiceJobProcesses(engine, serviceJobProcesses, store));
+                    return engine.changeReferenceModel(BasicServiceJobActions.updateServiceJobProcesses(engine, serviceJobProcesses, store, callMetadata));
                 }
         );
     }
 
     @Override
-    public Observable<Void> updateJobStatus(String jobId, boolean enabled) {
+    public Observable<Void> updateJobStatus(String jobId, boolean enabled, CallMetadata callMetadata) {
         return inServiceJob(jobId).flatMap(engine -> {
             Job<ServiceJobExt> serviceJob = engine.getReferenceView().getEntity();
             if (serviceJob.getJobDescriptor().getExtensions().isEnabled() == enabled) {
                 return Observable.empty();
             }
-            return engine.changeReferenceModel(BasicServiceJobActions.updateJobEnableStatus(engine, enabled, store));
+            return engine.changeReferenceModel(BasicServiceJobActions.updateJobEnableStatus(engine, enabled, store, callMetadata));
         });
     }
 
     @Override
-    public Mono<Void> updateJobDisruptionBudget(String jobId, DisruptionBudget disruptionBudget) {
+    public Mono<Void> updateJobDisruptionBudget(String jobId, DisruptionBudget disruptionBudget, CallMetadata callMetadata) {
         return Mono.fromCallable(() ->
                 reconciliationFramework.findEngineByRootId(jobId).orElseThrow(() -> JobManagerException.jobNotFound(jobId))
         ).flatMap(engine -> {
-            Observable<Void> observableAction = engine.changeReferenceModel(BasicJobActions.updateJobDisruptionBudget(engine, disruptionBudget, store));
+            Observable<Void> observableAction = engine.changeReferenceModel(BasicJobActions.updateJobDisruptionBudget(engine, disruptionBudget, store, callMetadata));
             return ReactorExt.toMono(observableAction);
         });
     }
 
     @Override
-    public Observable<Void> killJob(String jobId, String reason) {
+    public Observable<Void> killJob(String jobId, String reason, CallMetadata callMetadata) {
         return reconciliationFramework.findEngineByRootId(jobId)
                 .map(engine -> {
                     Job<?> job = engine.getReferenceView().getEntity();
@@ -378,13 +378,13 @@ public class DefaultV3JobOperations implements V3JobOperations {
                     if (jobState == JobState.KillInitiated || jobState == JobState.Finished) {
                         return Observable.<Void>error(JobManagerException.jobTerminating(job));
                     }
-                    return engine.changeReferenceModel(KillInitiatedActions.initiateJobKillAction(engine, store, reason));
+                    return engine.changeReferenceModel(KillInitiatedActions.initiateJobKillAction(engine, store, reason, callMetadata));
                 })
                 .orElse(Observable.error(JobManagerException.jobNotFound(jobId)));
     }
 
     @Override
-    public Observable<Void> killTask(String taskId, boolean shrink, String reason) {
+    public Observable<Void> killTask(String taskId, boolean shrink, String reason, CallMetadata callMetadata) {
         return reconciliationFramework.findEngineByChildId(taskId)
                 .map(engineChildPair -> {
                     Task task = engineChildPair.getRight().getEntity();
@@ -402,7 +402,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
                         reasonCode = TaskStatus.REASON_SCALED_DOWN;
                     }
                     ChangeAction killAction = KillInitiatedActions.userInitiateTaskKillAction(
-                            engineChildPair.getLeft(), vmService, store, task.getId(), shrink, reasonCode, String.format("%s (shrink=%s)", reason, shrink), titusRuntime
+                            engineChildPair.getLeft(), vmService, store, task.getId(), shrink, reasonCode, String.format("%s (shrink=%s)", reason, shrink), titusRuntime, callMetadata
                     );
                     return engineChildPair.getLeft().changeReferenceModel(killAction);
                 })
@@ -410,7 +410,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
     }
 
     @Override
-    public Observable<Void> moveServiceTask(String sourceJobId, String targetJobId, String taskId) {
+    public Observable<Void> moveServiceTask(String sourceJobId, String targetJobId, String taskId, CallMetadata callMetadata) {
         if (!featureActivationConfiguration.isMoveTaskApiEnabled()) {
             throw JobManagerException.notEnabled("Move task");
         }
@@ -451,7 +451,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
             }
 
             return reconciliationFramework.changeReferenceModel(
-                    new MoveTaskBetweenJobsAction(engineFrom, engineTo, taskId, store),
+                    new MoveTaskBetweenJobsAction(engineFrom, engineTo, taskId, store, callMetadata),
                     (rootId, modelUpdatesObservable) -> {
                         String name;
                         String summary;

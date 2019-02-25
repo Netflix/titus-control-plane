@@ -35,6 +35,7 @@ import com.netflix.fenzo.TaskAssignmentResult;
 import com.netflix.fenzo.TaskSchedulingService;
 import com.netflix.fenzo.VMAssignmentResult;
 import com.netflix.fenzo.VirtualMachineLease;
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
@@ -45,6 +46,7 @@ import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.config.MasterConfiguration;
+import com.netflix.titus.master.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import com.netflix.titus.master.mesos.TaskInfoFactory;
 import com.netflix.titus.master.model.job.TitusQueuableTask;
@@ -137,13 +139,13 @@ class TaskPlacementRecorder {
 
             Map<String, String> attributesMap = assignment.getAttributesMap();
             Optional<String> executorUriOverrideOpt = JobManagerUtil.getExecutorUriOverride(config, attributesMap);
-
             return v3JobOperations.recordTaskPlacement(
                     fenzoTask.getId(),
                     oldTask -> JobManagerUtil.newTaskLaunchConfigurationUpdater(
                             masterConfiguration.getHostZoneAttributeName(), lease, consumeResult,
                             executorUriOverrideOpt, attributesMap, getTierName(fenzoTask)
-                    ).apply(oldTask)
+                    ).apply(oldTask),
+                    JobManagerConstants.SCHEDULER_CALLMETADATA.toBuilder().withCallReason("Record task placement").build()
             ).toObservable().cast(Protos.TaskInfo.class).concatWith(Observable.fromCallable(() ->
                     v3TaskInfoFactory.newTaskInfo(
                             fenzoTask, v3Job, v3Task, lease.hostname(), attributesMap, lease.getOffer().getSlaveId(),
@@ -173,7 +175,8 @@ class TaskPlacementRecorder {
     }
 
     private void killBrokenV3Task(TitusQueuableTask task, String reason) {
-        v3JobOperations.killTask(task.getId(), false, String.format("Failed to launch task %s due to %s", task.getId(), reason)).subscribe(
+        v3JobOperations.killTask(task.getId(), false, String.format("Failed to launch task %s due to %s", task.getId(), reason),
+                JobManagerConstants.SCHEDULER_CALLMETADATA.toBuilder().withCallReason("kill broken task").build()).subscribe(
                 next -> {
                 },
                 e -> {

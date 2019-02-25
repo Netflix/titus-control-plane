@@ -33,6 +33,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
@@ -78,6 +79,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
     private final StubbedVirtualMachineMasterService vmService;
     private final TestScheduler testScheduler;
     private final boolean batchJob;
+    private final CallMetadata callMetadata = CallMetadata.newBuilder().withCallReason("Testing call metadata").withCallerId("test").build();
 
     public JobScenarioBuilder(String jobId,
                               EventHolder<JobManagerEvent<?>> jobEventsSubscriber,
@@ -198,7 +200,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
 
     public JobScenarioBuilder<E> changeCapacity(Capacity newCapacity) {
         ExtTestSubscriber<Void> subscriber = new ExtTestSubscriber<>();
-        jobOperations.updateJobCapacity(jobId, newCapacity).subscribe(subscriber);
+        jobOperations.updateJobCapacity(jobId, newCapacity, callMetadata).subscribe(subscriber);
 
         autoAdvanceUntilSuccessful(() -> checkOperationSubscriberAndThrowExceptionIfError(subscriber));
 
@@ -207,7 +209,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
 
     public JobScenarioBuilder<E> changeJobEnabledStatus(boolean enabled) {
         ExtTestSubscriber<Void> subscriber = new ExtTestSubscriber<>();
-        jobOperations.updateJobStatus(jobId, enabled).subscribe(subscriber);
+        jobOperations.updateJobStatus(jobId, enabled, callMetadata).subscribe(subscriber);
 
         autoAdvanceUntilSuccessful(() -> checkOperationSubscriberAndThrowExceptionIfError(subscriber));
 
@@ -216,7 +218,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
 
     public JobScenarioBuilder<E> changServiceJobProcesses(ServiceJobProcesses processes) {
         ExtTestSubscriber<Void> subscriber = new ExtTestSubscriber<>();
-        jobOperations.updateServiceJobProcesses(jobId, processes).subscribe(subscriber);
+        jobOperations.updateServiceJobProcesses(jobId, processes, callMetadata).subscribe(subscriber);
 
         autoAdvanceUntilSuccessful(() -> checkOperationSubscriberAndThrowExceptionIfError(subscriber));
 
@@ -225,7 +227,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
 
     public JobScenarioBuilder<E> changeDisruptionBudget(DisruptionBudget disruptionBudget) {
         TitusRxSubscriber<Void> subscriber = new TitusRxSubscriber<>();
-        jobOperations.updateJobDisruptionBudget(jobId, disruptionBudget).subscribe(subscriber);
+        jobOperations.updateJobDisruptionBudget(jobId, disruptionBudget, callMetadata).subscribe(subscriber);
 
         autoAdvanceUntilSuccessful(() -> checkOperationSubscriberAndThrowExceptionIfError(subscriber));
 
@@ -234,7 +236,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
 
     public JobScenarioBuilder<E> killJob() {
         ExtTestSubscriber<Void> subscriber = new ExtTestSubscriber<>();
-        jobOperations.killJob(jobId, "Testing").subscribe(subscriber);
+        jobOperations.killJob(jobId, "Testing", callMetadata).subscribe(subscriber);
 
         autoAdvanceUntilSuccessful(() -> checkOperationSubscriberAndThrowExceptionIfError(subscriber));
 
@@ -243,7 +245,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
 
     public JobScenarioBuilder<E> killTask(Task task) {
         ExtTestSubscriber<Void> subscriber = new ExtTestSubscriber<>();
-        jobOperations.killTask(task.getId(), false, "Task kill requested by a user").subscribe(subscriber);
+        jobOperations.killTask(task.getId(), false, "Task kill requested by a user", callMetadata).subscribe(subscriber);
 
         autoAdvanceUntilSuccessful(() -> checkOperationSubscriberAndThrowExceptionIfError(subscriber));
 
@@ -256,7 +258,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
 
     public JobScenarioBuilder<E> killTaskAndShrink(Task task) {
         ExtTestSubscriber<Void> subscriber = new ExtTestSubscriber<>();
-        jobOperations.killTask(task.getId(), true, "Task terminate & shrink requested by a user").subscribe(subscriber);
+        jobOperations.killTask(task.getId(), true, "Task terminate & shrink requested by a user", callMetadata).subscribe(subscriber);
 
         autoAdvanceUntilSuccessful(() -> checkOperationSubscriberAndThrowExceptionIfError(subscriber));
 
@@ -271,7 +273,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         Task task = findTaskInActiveState(taskIdx, resubmit);
 
         ExtTestSubscriber<Void> subscriber = new ExtTestSubscriber<>();
-        jobOperations.moveServiceTask(sourceJobId, targetJobId, task.getId()).subscribe(subscriber);
+        jobOperations.moveServiceTask(sourceJobId, targetJobId, task.getId(), callMetadata).subscribe(subscriber);
 
         autoAdvanceUntilSuccessful(() -> checkOperationSubscriberAndThrowExceptionIfError(subscriber));
 
@@ -462,7 +464,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
 
         AtomicBoolean done = new AtomicBoolean();
         AtomicReference<Throwable> failed = new AtomicReference<>();
-        jobOperations.recordTaskPlacement(task.getId(), changeFunction).subscribe(() -> done.set(true), failed::set);
+        jobOperations.recordTaskPlacement(task.getId(), changeFunction, callMetadata).subscribe(() -> done.set(true), failed::set);
         autoAdvanceUntil(() -> failed.get() != null || done.get());
         if (failed.get() != null) {
             ExceptionExt.rethrow(failed.get());
@@ -485,7 +487,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         );
 
         AtomicReference<Throwable> failed = new AtomicReference<>();
-        jobOperations.recordTaskPlacement(task.getId(), changeFunction).subscribe(
+        jobOperations.recordTaskPlacement(task.getId(), changeFunction, callMetadata).subscribe(
                 () -> {
                 },
                 failed::set
@@ -583,7 +585,8 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         jobOperations.updateTask(task.getId(),
                 changeFunction,
                 Trigger.Mesos,
-                String.format("Mesos callback taskStatus=%s, reason=%s (%s)", taskState, reason, reasonMessage)
+                String.format("Mesos callback taskStatus=%s, reason=%s (%s)", taskState, reason, reasonMessage),
+                callMetadata
         ).subscribe(() -> done.set(true));
         autoAdvanceUntil(done::get);
         assertThat(done.get()).isTrue();

@@ -20,6 +20,8 @@ import java.util.Optional;
 import java.util.function.Function;
 
 import com.google.common.base.Preconditions;
+import com.netflix.titus.api.jobmanager.TaskAttributes;
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
@@ -151,8 +153,8 @@ public abstract class TitusModelAction implements ModelAction {
             return taskMaybeUpdate(eh -> Optional.of(taskHolderFun.apply(eh)));
         }
 
-        public TitusModelAction taskUpdate(Task newTask) {
-            return taskUpdate(jobHolder -> JobEntityHolders.addTask(jobHolder, newTask));
+        public TitusModelAction taskUpdate(Task newTask, CallMetadata callMetadata) {
+            return taskUpdate(jobHolder -> JobEntityHolders.addTask(jobHolder, newTask, callMetadata));
         }
 
         public TitusModelAction addTaskHolder(EntityHolder taskHolder) {
