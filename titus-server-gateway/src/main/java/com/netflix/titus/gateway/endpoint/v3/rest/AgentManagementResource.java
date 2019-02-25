@@ -40,10 +40,11 @@ import com.netflix.titus.grpc.protogen.AgentInstanceGroup;
 import com.netflix.titus.grpc.protogen.AgentInstanceGroups;
 import com.netflix.titus.grpc.protogen.AgentInstances;
 import com.netflix.titus.grpc.protogen.AgentQuery;
+import com.netflix.titus.grpc.protogen.Id;
 import com.netflix.titus.grpc.protogen.InstanceGroupAttributesUpdate;
 import com.netflix.titus.grpc.protogen.InstanceGroupLifecycleStateUpdate;
 import com.netflix.titus.grpc.protogen.TierUpdate;
-import com.netflix.titus.runtime.connector.agent.AgentManagementClient;
+import com.netflix.titus.runtime.connector.agent.ReactorAgentManagementServiceStub;
 import com.netflix.titus.runtime.endpoint.common.rest.Responses;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcAgentModelConverters;
 import io.swagger.annotations.Api;
@@ -60,10 +61,10 @@ import static com.netflix.titus.runtime.endpoint.v3.rest.RestUtil.getFilteringCr
 @Singleton
 public class AgentManagementResource {
 
-    private final AgentManagementClient agentManagementService;
+    private final ReactorAgentManagementServiceStub agentManagementService;
 
     @Inject
-    public AgentManagementResource(AgentManagementClient agentManagementService) {
+    public AgentManagementResource(ReactorAgentManagementServiceStub agentManagementService) {
         this.agentManagementService = agentManagementService;
     }
 
@@ -71,21 +72,21 @@ public class AgentManagementResource {
     @ApiOperation("Get all agent instance groups")
     @Path("/instanceGroups")
     public AgentInstanceGroups getInstanceGroups() {
-        return Responses.fromSingleValueObservable(agentManagementService.getInstanceGroups());
+        return Responses.fromMono(agentManagementService.getInstanceGroups());
     }
 
     @GET
     @ApiOperation("Get an agent instance group with the given id")
     @Path("/instanceGroups/{id}")
     public AgentInstanceGroup getInstanceGroup(@PathParam("id") String id) {
-        return Responses.fromSingleValueObservable(agentManagementService.getInstanceGroup(id));
+        return Responses.fromMono(agentManagementService.getInstanceGroup(Id.newBuilder().setId(id).build()));
     }
 
     @GET
     @ApiOperation("Get an agent instance with the given id")
     @Path("/instances/{id}")
     public AgentInstance getAgentInstance(@PathParam("id") String id) {
-        return Responses.fromSingleValueObservable(agentManagementService.getAgentInstance(id));
+        return Responses.fromMono(agentManagementService.getAgentInstance(Id.newBuilder().setId(id).build()));
     }
 
     @GET
@@ -97,7 +98,7 @@ public class AgentManagementResource {
         queryBuilder.setPage(createPage(queryParameters));
         queryBuilder.putAllFilteringCriteria(getFilteringCriteria(queryParameters));
         queryBuilder.addAllFields(getFieldsParameter(queryParameters));
-        return Responses.fromSingleValueObservable(agentManagementService.findAgentInstances(queryBuilder.build()));
+        return Responses.fromMono(agentManagementService.findAgentInstances(queryBuilder.build()));
     }
 
     @PUT
@@ -108,14 +109,14 @@ public class AgentManagementResource {
                 .setInstanceGroupId(instanceGroupId)
                 .setTier(GrpcAgentModelConverters.toGrpcTier(tierWrapper.getTier()))
                 .build();
-        return Responses.fromCompletable(agentManagementService.updateInstanceGroupTier(tierUpdate));
+        return Responses.fromVoidMono(agentManagementService.updateInstanceGroupTier(tierUpdate));
     }
 
     @PUT
     @ApiOperation("Update instance group lifecycle configuration")
     @Path("/instanceGroups/{id}/lifecycle")
     public Response updateInstanceGroupLifecycle(InstanceGroupLifecycleStateUpdate lifecycleStateUpdate) {
-        return Responses.fromCompletable(agentManagementService.updateInstanceGroupLifecycle(lifecycleStateUpdate));
+        return Responses.fromVoidMono(agentManagementService.updateInstanceGroupLifecycleState(lifecycleStateUpdate));
     }
 
     @PUT
@@ -129,7 +130,7 @@ public class AgentManagementResource {
                     + attributesUpdate.getInstanceGroupId());
         }
 
-        return Responses.fromCompletable(agentManagementService.updateInstanceGroupAttributes(attributesUpdate));
+        return Responses.fromVoidMono(agentManagementService.updateInstanceGroupAttributes(attributesUpdate));
     }
 
     @PUT
@@ -143,6 +144,6 @@ public class AgentManagementResource {
                     + attributesUpdate.getAgentInstanceId());
         }
 
-        return Responses.fromCompletable(agentManagementService.updateAgentInstanceAttributes(attributesUpdate));
+        return Responses.fromVoidMono(agentManagementService.updateAgentInstanceAttributes(attributesUpdate));
     }
 }

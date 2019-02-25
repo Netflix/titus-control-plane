@@ -36,14 +36,14 @@ import static com.netflix.titus.runtime.relocation.endpoint.RelocationGrpcModelC
  * {@link RelocationServiceClient} implementation that translates all invocation into underlying GRPC calls.
  */
 @Singleton
-public class RelocationServiceClientGrpcBridge implements RelocationServiceClient {
+public class RemoteRelocationServiceClient implements RelocationServiceClient {
 
     private static final Page ONE_ITEM_PAGE = Page.newBuilder().setPageSize(1).build();
 
-    private final TransportRelocationServiceClient transportRelocationClient;
+    private final ReactorRelocationServiceStub transportRelocationClient;
 
     @Inject
-    public RelocationServiceClientGrpcBridge(TransportRelocationServiceClient transportRelocationClient) {
+    public RemoteRelocationServiceClient(ReactorRelocationServiceStub transportRelocationClient) {
         this.transportRelocationClient = transportRelocationClient;
     }
 

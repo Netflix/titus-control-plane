@@ -18,13 +18,19 @@ package com.netflix.titus.supplementary.relocation;
 
 import com.netflix.titus.runtime.connector.MasterConnectorComponent;
 import com.netflix.titus.runtime.connector.MasterDataReplicationComponent;
+import com.netflix.titus.runtime.connector.agent.AgentManagementDataReplicationComponent;
+import com.netflix.titus.runtime.connector.agent.AgentManagerConnectorComponent;
+import com.netflix.titus.runtime.connector.eviction.EvictionConnectorComponent;
 import com.netflix.titus.runtime.connector.titusmaster.ConfigurationLeaderResolverComponent;
 import com.netflix.titus.runtime.connector.titusmaster.TitusMasterConnectorComponent;
+import com.netflix.titus.runtime.connector.titusmaster.TitusMasterConnectorModule;
 import com.netflix.titus.runtime.endpoint.common.grpc.GrpcEndpointConfiguration;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolveComponent;
 import com.netflix.titus.runtime.endpoint.rest.RestAddOnsComponent;
 import com.netflix.titus.supplementary.relocation.endpoint.grpc.TaskRelocationGrpcServer;
 import com.netflix.titus.supplementary.relocation.endpoint.grpc.TaskRelocationGrpcService;
+import io.grpc.Channel;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -37,6 +43,9 @@ import org.springframework.context.annotation.Import;
         TitusMasterConnectorComponent.class,
         MasterConnectorComponent.class,
         MasterDataReplicationComponent.class,
+        AgentManagerConnectorComponent.class,
+        AgentManagementDataReplicationComponent.class,
+        EvictionConnectorComponent.class,
         RestAddOnsComponent.class
 })
 public class RelocationMain {
@@ -45,6 +54,11 @@ public class RelocationMain {
     public TaskRelocationGrpcServer getTaskRelocationGrpcServer(GrpcEndpointConfiguration configuration,
                                                                 TaskRelocationGrpcService taskRelocationGrpcService) {
         return new TaskRelocationGrpcServer(configuration, taskRelocationGrpcService);
+    }
+
+    @Bean(name = TitusMasterConnectorModule.MANAGED_CHANNEL_NAME)
+    public Channel getChannel(@Qualifier(TitusMasterConnectorComponent.TITUS_MASTER_CHANNEL) Channel channel) {
+        return channel;
     }
 
     public static void main(String[] args) {

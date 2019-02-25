@@ -16,16 +16,27 @@
 
 package com.netflix.titus.testkit.cli;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
+import com.netflix.titus.runtime.connector.agent.AgentManagementClient;
+import com.netflix.titus.runtime.connector.agent.ReactorAgentManagementServiceStub;
+import com.netflix.titus.runtime.connector.agent.RemoteAgentManagementClient;
+import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorClientFactory;
+import com.netflix.titus.runtime.connector.common.reactor.ReactorToGrpcClientBuilder;
+import com.netflix.titus.runtime.endpoint.metadata.AnonymousCallMetadataResolver;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import io.grpc.ServiceDescriptor;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
+import io.grpc.stub.AbstractStub;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.ParseException;
 
 /**
+ *
  */
 public class CommandContext {
 
@@ -63,6 +74,30 @@ public class CommandContext {
 
         channels.add(channel);
         return channel;
+    }
+
+    public GrpcToReactorClientFactory getGrpcToReactorClientFactory() {
+        return new GrpcToReactorClientFactory() {
+            @Override
+            public <GRPC_STUB extends AbstractStub<GRPC_STUB>, REACT_API> REACT_API apply(GRPC_STUB stub, Class<REACT_API> apiType, ServiceDescriptor serviceDescriptor) {
+                return ReactorToGrpcClientBuilder
+                        .newBuilder(
+                                apiType, stub, serviceDescriptor
+                        )
+                        .withCallMetadataResolver(AnonymousCallMetadataResolver.getInstance())
+                        .withTimeout(Duration.ofSeconds(5))
+                        .build();
+            }
+        };
+    }
+
+    public AgentManagementClient getAgentManagementClient() {
+        ReactorAgentManagementServiceStub reactorStub = getGrpcToReactorClientFactory().apply(
+                AgentManagementServiceGrpc.newStub(createChannel()),
+                ReactorAgentManagementServiceStub.class,
+                AgentManagementServiceGrpc.getServiceDescriptor()
+        );
+        return new RemoteAgentManagementClient(reactorStub);
     }
 
     public void shutdown() {

@@ -16,14 +16,10 @@
 
 package com.netflix.titus.runtime.connector;
 
-import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
 import com.netflix.titus.api.eviction.service.ReadOnlyEvictionOperations;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.runtime.connector.agent.AgentDataReplicator;
-import com.netflix.titus.runtime.connector.agent.AgentManagementClient;
-import com.netflix.titus.runtime.connector.agent.CachedReadOnlyAgentOperations;
-import com.netflix.titus.runtime.connector.agent.replicator.AgentDataReplicatorProvider;
+import com.netflix.titus.runtime.connector.agent.AgentManagementDataReplicationComponent;
 import com.netflix.titus.runtime.connector.eviction.CachedReadOnlyEvictionOperations;
 import com.netflix.titus.runtime.connector.eviction.EvictionDataReplicator;
 import com.netflix.titus.runtime.connector.eviction.EvictionServiceClient;
@@ -34,19 +30,13 @@ import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.runtime.connector.jobmanager.replicator.JobDataReplicatorProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 
 @Configuration
+@Import({
+        AgentManagementDataReplicationComponent.class
+})
 public class MasterDataReplicationComponent {
-
-    @Bean
-    public AgentDataReplicator getAgentDataReplicator(AgentManagementClient client, TitusRuntime titusRuntime) {
-        return new AgentDataReplicatorProvider(client, titusRuntime).get();
-    }
-
-    @Bean
-    public ReadOnlyAgentOperations getReadOnlyAgentOperations(AgentDataReplicator replicator) {
-        return new CachedReadOnlyAgentOperations(replicator);
-    }
 
     @Bean
     public JobDataReplicator getJobDataReplicator(JobManagementClient client, TitusRuntime titusRuntime) {

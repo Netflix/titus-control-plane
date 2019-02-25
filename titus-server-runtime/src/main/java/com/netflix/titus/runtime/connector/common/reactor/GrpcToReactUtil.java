@@ -35,13 +35,13 @@ class GrpcToReactUtil {
         Preconditions.checkArgument(parameterTypes.length <= 1, "Expected method with none or one protobuf object parameter but is: %s", method);
 
         Class<?> requestType = parameterTypes.length == 0 ? Empty.class : parameterTypes[0];
-        Preconditions.checkArgument(Message.class.isAssignableFrom(requestType), "Not protobuf message in method parameter: %s", requestType);
+        Preconditions.checkArgument(Message.class.isAssignableFrom(requestType), "Not protobuf message in method parameter: %s", method);
 
         Class<?> returnType = method.getReturnType();
         Preconditions.checkArgument(Flux.class.isAssignableFrom(returnType) || Mono.class.isAssignableFrom(returnType), "Flux or Mono return type expected but is: %s", returnType);
 
         try {
-            return grpcStub.getClass().getMethod(method.getName(), new Class[]{requestType, StreamObserver.class});
+            return grpcStub.getClass().getMethod(method.getName(), requestType, StreamObserver.class);
         } catch (NoSuchMethodException e) {
             throw new IllegalArgumentException("React method does not match any of the available GRPC stub methods: " + method);
         }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,34 +14,34 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.endpoint.common.grpc;
+package com.netflix.titus.runtime.connector.common.reactor;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import java.time.Duration;
 
 import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
+import io.grpc.ServiceDescriptor;
 import io.grpc.stub.AbstractStub;
 
-@Singleton
-public class DefaultReactorGrpcClientAdapterFactory implements ReactorGrpcClientAdapterFactory {
+public class DefaultGrpcToReactorClientFactory implements GrpcToReactorClientFactory {
 
     private final GrpcClientConfiguration configuration;
     private final CallMetadataResolver callMetadataResolver;
 
-    private final ConcurrentMap<AbstractStub, ReactorGrpcClientAdapter> adapters = new ConcurrentHashMap<>();
-
-    @Inject
-    public DefaultReactorGrpcClientAdapterFactory(GrpcClientConfiguration configuration,
-                                                  CallMetadataResolver callMetadataResolver) {
+    public DefaultGrpcToReactorClientFactory(GrpcClientConfiguration configuration,
+                                             CallMetadataResolver callMetadataResolver) {
         this.configuration = configuration;
         this.callMetadataResolver = callMetadataResolver;
     }
 
     @Override
-    public <CLIENT extends AbstractStub<CLIENT>> ReactorGrpcClientAdapter<CLIENT> newAdapter(CLIENT client) {
-        return adapters.computeIfAbsent(client, c -> new ReactorGrpcClientAdapter<>(client, callMetadataResolver, configuration));
+    public <GRPC_STUB extends AbstractStub<GRPC_STUB>, REACT_API> REACT_API apply(GRPC_STUB stub, Class<REACT_API> apiType, ServiceDescriptor serviceDescriptor) {
+        return ReactorToGrpcClientBuilder
+                .newBuilder(
+                        apiType, stub, serviceDescriptor
+                )
+                .withCallMetadataResolver(callMetadataResolver)
+                .withTimeout(Duration.ofMillis(configuration.getRequestTimeout()))
+                .build();
     }
 }

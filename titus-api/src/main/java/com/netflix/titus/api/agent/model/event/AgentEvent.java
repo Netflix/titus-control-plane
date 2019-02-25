@@ -17,12 +17,4 @@
 package com.netflix.titus.api.agent.model.event;
 
 public abstract class AgentEvent {
-
-    public enum EventType {
-        InstanceGroupUpdate,
-        InstanceGroupRemoved,
-        AgentInstanceUpdate,
-        AgentInstanceRemoved,
-        SnapshotEnd
-    }
 }

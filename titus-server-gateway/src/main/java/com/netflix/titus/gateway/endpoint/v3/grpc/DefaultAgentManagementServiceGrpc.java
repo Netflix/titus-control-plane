@@ -32,11 +32,11 @@ import com.netflix.titus.grpc.protogen.Id;
 import com.netflix.titus.grpc.protogen.InstanceGroupAttributesUpdate;
 import com.netflix.titus.grpc.protogen.InstanceGroupLifecycleStateUpdate;
 import com.netflix.titus.grpc.protogen.TierUpdate;
-import com.netflix.titus.runtime.connector.agent.AgentManagementClient;
+import com.netflix.titus.runtime.connector.agent.ReactorAgentManagementServiceStub;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import rx.Subscription;
+import reactor.core.Disposable;
 
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.attachCancellingCallback;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.safeOnError;
@@ -46,16 +46,16 @@ public class DefaultAgentManagementServiceGrpc extends AgentManagementServiceImp
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultAgentManagementServiceGrpc.class);
 
-    private final AgentManagementClient agentManagementService;
+    private final ReactorAgentManagementServiceStub agentManagementService;
 
     @Inject
-    public DefaultAgentManagementServiceGrpc(AgentManagementClient agentManagementService) {
+    public DefaultAgentManagementServiceGrpc(ReactorAgentManagementServiceStub agentManagementService) {
         this.agentManagementService = agentManagementService;
     }
 
     @Override
     public void getInstanceGroups(Empty request, StreamObserver<AgentInstanceGroups> responseObserver) {
-        Subscription subscription = agentManagementService.getInstanceGroups().subscribe(
+        Disposable subscription = agentManagementService.getInstanceGroups().subscribe(
                 responseObserver::onNext,
                 e -> safeOnError(logger, e, responseObserver),
                 responseObserver::onCompleted
@@ -65,7 +65,7 @@ public class DefaultAgentManagementServiceGrpc extends AgentManagementServiceImp
 
     @Override
     public void getInstanceGroup(Id request, StreamObserver<AgentInstanceGroup> responseObserver) {
-        Subscription subscription = agentManagementService.getInstanceGroup(request.getId()).subscribe(
+        Disposable subscription = agentManagementService.getInstanceGroup(request).subscribe(
                 responseObserver::onNext,
                 e -> safeOnError(logger, e, responseObserver),
                 responseObserver::onCompleted
@@ -75,7 +75,7 @@ public class DefaultAgentManagementServiceGrpc extends AgentManagementServiceImp
 
     @Override
     public void getAgentInstance(Id request, StreamObserver<AgentInstance> responseObserver) {
-        Subscription subscription = agentManagementService.getAgentInstance(request.getId()).subscribe(
+        Disposable subscription = agentManagementService.getAgentInstance(request).subscribe(
                 responseObserver::onNext,
                 e -> safeOnError(logger, e, responseObserver),
                 responseObserver::onCompleted
@@ -85,7 +85,7 @@ public class DefaultAgentManagementServiceGrpc extends AgentManagementServiceImp
 
     @Override
     public void findAgentInstances(AgentQuery request, StreamObserver<AgentInstances> responseObserver) {
-        Subscription subscription = agentManagementService.findAgentInstances(request).subscribe(
+        Disposable subscription = agentManagementService.findAgentInstances(request).subscribe(
                 responseObserver::onNext,
                 e -> safeOnError(logger, e, responseObserver),
                 responseObserver::onCompleted
@@ -95,43 +95,55 @@ public class DefaultAgentManagementServiceGrpc extends AgentManagementServiceImp
 
     @Override
     public void updateInstanceGroupTier(TierUpdate request, StreamObserver<Empty> responseObserver) {
-        Subscription subscription = agentManagementService.updateInstanceGroupTier(request).subscribe(
-                () -> emitEmptyReply(responseObserver),
-                e -> safeOnError(logger, e, responseObserver)
+        Disposable subscription = agentManagementService.updateInstanceGroupTier(request).subscribe(
+                next -> {
+                    // Never
+                },
+                e -> safeOnError(logger, e, responseObserver),
+                () -> emitEmptyReply(responseObserver)
         );
         attachCancellingCallback(responseObserver, subscription);
     }
 
     @Override
     public void updateInstanceGroupLifecycleState(InstanceGroupLifecycleStateUpdate request, StreamObserver<Empty> responseObserver) {
-        Subscription subscription = agentManagementService.updateInstanceGroupLifecycle(request).subscribe(
-                () -> emitEmptyReply(responseObserver),
-                e -> safeOnError(logger, e, responseObserver)
+        Disposable subscription = agentManagementService.updateInstanceGroupLifecycleState(request).subscribe(
+                next -> {
+                    // Never
+                },
+                e -> safeOnError(logger, e, responseObserver),
+                () -> emitEmptyReply(responseObserver)
         );
         attachCancellingCallback(responseObserver, subscription);
     }
 
     @Override
     public void updateInstanceGroupAttributes(InstanceGroupAttributesUpdate request, StreamObserver<Empty> responseObserver) {
-        Subscription subscription = agentManagementService.updateInstanceGroupAttributes(request).subscribe(
-                () -> emitEmptyReply(responseObserver),
-                e -> safeOnError(logger, e, responseObserver)
+        Disposable subscription = agentManagementService.updateInstanceGroupAttributes(request).subscribe(
+                next -> {
+                    // Never
+                },
+                e -> safeOnError(logger, e, responseObserver),
+                () -> emitEmptyReply(responseObserver)
         );
         attachCancellingCallback(responseObserver, subscription);
     }
 
     @Override
     public void updateAgentInstanceAttributes(AgentInstanceAttributesUpdate request, StreamObserver<Empty> responseObserver) {
-        Subscription subscription = agentManagementService.updateAgentInstanceAttributes(request).subscribe(
-                () -> emitEmptyReply(responseObserver),
-                e -> safeOnError(logger, e, responseObserver)
+        Disposable subscription = agentManagementService.updateAgentInstanceAttributes(request).subscribe(
+                next -> {
+                    // Never
+                },
+                e -> safeOnError(logger, e, responseObserver),
+                () -> emitEmptyReply(responseObserver)
         );
         attachCancellingCallback(responseObserver, subscription);
     }
 
     @Override
     public void observeAgents(Empty request, StreamObserver<AgentChangeEvent> responseObserver) {
-        Subscription subscription = agentManagementService.observeAgents().subscribe(
+        Disposable subscription = agentManagementService.observeAgents().subscribe(
                 responseObserver::onNext,
                 e -> safeOnError(logger, e, responseObserver),
                 responseObserver::onCompleted

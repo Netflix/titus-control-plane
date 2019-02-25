@@ -39,7 +39,6 @@ import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.AgentManagementServiceStub;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc.AutoScalingServiceStub;
-import com.netflix.titus.grpc.protogen.EvictionServiceGrpc;
 import com.netflix.titus.grpc.protogen.HealthGrpc;
 import com.netflix.titus.grpc.protogen.HealthGrpc.HealthStub;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
@@ -49,8 +48,10 @@ import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc.LoadBalancerServi
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc.SchedulerServiceStub;
 import com.netflix.titus.grpc.protogen.SupervisorServiceGrpc;
-import com.netflix.titus.runtime.endpoint.common.grpc.DefaultReactorGrpcClientAdapterFactory;
-import com.netflix.titus.runtime.endpoint.common.grpc.ReactorGrpcClientAdapterFactory;
+import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
+import com.netflix.titus.runtime.connector.common.reactor.DefaultGrpcToReactorClientFactory;
+import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorClientFactory;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import io.grpc.Channel;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import okhttp3.Interceptor;
@@ -69,8 +70,6 @@ public class TitusMasterConnectorModule extends AbstractModule {
         bind(LeaderResolver.class).to(ConfigurationLeaderResolver.class);
         bind(LoadBalancerResourceValidator.class).to(DefaultLoadBalancerResourceValidator.class);
         bind(LoadBalancerConnector.class).to(NoOpLoadBalancerConnector.class);
-
-        bind(ReactorGrpcClientAdapterFactory.class).to(DefaultReactorGrpcClientAdapterFactory.class);
     }
 
     @Provides
@@ -118,6 +117,13 @@ public class TitusMasterConnectorModule extends AbstractModule {
 
     @Provides
     @Singleton
+    public GrpcToReactorClientFactory getReactorGrpcClientAdapterFactory(GrpcClientConfiguration configuration,
+                                                                         CallMetadataResolver callMetadataResolver) {
+        return new DefaultGrpcToReactorClientFactory(configuration, callMetadataResolver);
+    }
+
+    @Provides
+    @Singleton
     HealthStub healthClient(final @Named(MANAGED_CHANNEL_NAME) Channel channel) {
         return HealthGrpc.newStub(channel);
     }
@@ -144,12 +150,6 @@ public class TitusMasterConnectorModule extends AbstractModule {
     @Singleton
     SchedulerServiceStub schedulerClient(final @Named(MANAGED_CHANNEL_NAME) Channel channel) {
         return SchedulerServiceGrpc.newStub(channel);
-    }
-
-    @Provides
-    @Singleton
-    EvictionServiceGrpc.EvictionServiceStub evictionClient(final @Named(MANAGED_CHANNEL_NAME) Channel channel) {
-        return EvictionServiceGrpc.newStub(channel);
     }
 
     @Provides

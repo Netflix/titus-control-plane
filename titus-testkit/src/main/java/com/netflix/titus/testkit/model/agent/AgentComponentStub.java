@@ -16,17 +16,15 @@
 
 package com.netflix.titus.testkit.model.agent;
 
-import java.util.Optional;
-
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.model.InstanceLifecycleStatus;
+import com.netflix.titus.api.agent.model.event.AgentEvent;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.agent.service.AgentStatusMonitor;
 import com.netflix.titus.api.model.Tier;
-import com.netflix.titus.grpc.protogen.AgentChangeEvent;
-import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcAgentModelConverters;
-import rx.Observable;
+import com.netflix.titus.common.util.rx.ReactorExt;
+import reactor.core.publisher.Flux;
 
 /**
  * A stub for the agent management subsystem to be used in unit tests. Provides means to create/update/delete agent test data.
@@ -52,11 +50,8 @@ public class AgentComponentStub {
         return stubbedAgentData.getFirstInstance();
     }
 
-    public Observable<AgentChangeEvent> grpcObserveAgents(boolean snapshot) {
-        return stubbedAgentData.observeAgents(snapshot)
-                .map(event -> GrpcAgentModelConverters.toGrpcEvent(event, agentStatusMonitor))
-                .filter(Optional::isPresent)
-                .map(Optional::get);
+    public Flux<AgentEvent> grpcObserveAgents(boolean snapshot) {
+        return ReactorExt.toFlux(stubbedAgentData.observeAgents(snapshot));
     }
 
     public AgentComponentStub addInstanceGroup(AgentInstanceGroup instanceGroup) {
