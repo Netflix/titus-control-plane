@@ -16,11 +16,16 @@
 package com.netflix.titus.es.publish;
 
 import java.time.Duration;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
+import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.es.publish.config.EsPublisherConfiguration;
-import io.grpc.ManagedChannel;
-import io.grpc.netty.shaded.io.grpc.netty.NegotiationType;
-import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
+import com.netflix.titus.grpc.protogen.Task;
+import com.netflix.titus.runtime.endpoint.common.EmptyLogStorageInfo;
+import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
+import com.netflix.titus.testkit.model.job.JobGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.reactive.function.client.ClientResponse;
@@ -117,5 +122,11 @@ public class TestUtils {
         if (response == null || !response.statusCode().is2xxSuccessful()) {
             throw new RuntimeException("Server not ready");
         }
+    }
+
+    static List<Task> generateSampleTasks(int numTasks) {
+        return IntStream.range(0, numTasks)
+                .mapToObj(ignored -> V3GrpcModelConverters.toGrpcTask(JobGenerator.oneBatchTask(), new EmptyLogStorageInfo<>()))
+                .collect(Collectors.toList());
     }
 }

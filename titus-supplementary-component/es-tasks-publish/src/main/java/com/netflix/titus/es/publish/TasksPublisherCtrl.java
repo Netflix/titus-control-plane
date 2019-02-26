@@ -103,7 +103,6 @@ public class TasksPublisherCtrl {
                 .flatMap(taskMonoPair -> {
                     final Task task = taskMonoPair.getLeft();
                     return taskMonoPair.getRight()
-
                             .map(job -> {
                                 final com.netflix.titus.api.jobmanager.model.job.Job coreJob = V3GrpcModelConverters.toCoreJob(job);
                                 final com.netflix.titus.api.jobmanager.model.job.Task coreTask = V3GrpcModelConverters.toCoreTask(coreJob, task);

@@ -63,7 +63,7 @@ public class TitusClientImplTest {
 
         @Override
         public void observeJobs(ObserveJobsQuery request, StreamObserver<JobChangeNotification> responseObserver) {
-            final List<BatchJobTask> batchJobTasks = Arrays.asList(taskOne, taskTwo, taskThree, taskFive, taskFive);
+            final List<BatchJobTask> batchJobTasks = Arrays.asList(taskOne, taskTwo, taskThree, taskFour, taskFive);
             batchJobTasks.forEach(task -> {
                 final Task grpcTask = V3GrpcModelConverters.toGrpcTask(task, new EmptyLogStorageInfo<>());
                 responseObserver.onNext(buildJobChangeNotification(grpcTask));

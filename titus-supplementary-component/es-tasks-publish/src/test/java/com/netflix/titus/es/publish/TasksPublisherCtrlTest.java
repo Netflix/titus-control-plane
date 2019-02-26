@@ -15,59 +15,89 @@
  */
 package com.netflix.titus.es.publish;
 
-import com.netflix.titus.testkit.junit.category.IntegrationTest;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.experimental.categories.Category;
+import java.time.Duration;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
+import com.netflix.spectator.api.DefaultRegistry;
+import com.netflix.titus.ext.elasticsearch.TaskDocument;
+import com.netflix.titus.runtime.endpoint.common.EmptyLogStorageInfo;
+import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
+import com.netflix.titus.testkit.model.job.JobGenerator;
+import org.junit.Test;
+import org.mockito.stubbing.Answer;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
+
+import static org.assertj.core.api.Fail.fail;
+import static org.assertj.core.api.Java6Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 
-@Category(IntegrationTest.class)
 public class TasksPublisherCtrlTest {
-    private static final String TEST_CONTAINER_NAME = "taskPublisherTest";
 
-    @Before
-    public void setup() throws Exception {
-        TestUtils.runLocalDockerCmd(TestUtils.buildDockerRunCmd(TEST_CONTAINER_NAME));
-        TestUtils.waitForLocalElasticServerReadiness(10);
+    private TitusClient mockTitusClient(int numTasks) {
+        TitusClient titusClient = mock(TitusClient.class);
+        when(titusClient.getTaskUpdates()).thenReturn(Flux.fromIterable(TestUtils.generateSampleTasks(numTasks)));
+        when(titusClient.getTask(anyString())).thenReturn(Mono.just(V3GrpcModelConverters.toGrpcTask(JobGenerator.oneBatchTask(), new EmptyLogStorageInfo<>())));
+        when(titusClient.getJobById(anyString())).thenReturn(Mono.just(V3GrpcModelConverters.toGrpcJob(JobGenerator.oneBatchJob())));
+        return titusClient;
     }
 
-    @After
-    public void cleanup() throws Exception {
-        TestUtils.runLocalDockerCmd(TestUtils.buildDockerStopCmd(TEST_CONTAINER_NAME));
+    private EsClient mockElasticSearchClient() {
+        EsClient esClient = mock(EsClient.class);
+        when(esClient.bulkIndexTaskDocument(anyList())).thenAnswer((Answer<Mono<EsClient.BulkEsIndexResp>>) invocation -> {
+            final List<TaskDocument> documents = invocation.getArgument(0);
+            final List<EsClient.BulkEsIndexRespItem> bulkEsIndexRespItemList = documents.stream().map(doc -> {
+                final EsClient.BulkEsIndexRespItem bulkEsIndexRespItem = new EsClient.BulkEsIndexRespItem();
+                bulkEsIndexRespItem.index = new EsClient.EsIndexResp();
+                bulkEsIndexRespItem.index.created = true;
+                bulkEsIndexRespItem.index.result = "created";
+                bulkEsIndexRespItem.index._id = doc.getId();
+                return bulkEsIndexRespItem;
+            }).collect(Collectors.toList());
+
+            final EsClient.BulkEsIndexResp bulkEsIndexResp = new EsClient.BulkEsIndexResp();
+            bulkEsIndexResp.items = bulkEsIndexRespItemList;
+            return Mono.just(bulkEsIndexResp);
+        });
+        return esClient;
     }
 
-    /*
     @Test
-    public void verifyEndToEndWorkflow() {
-        final EsPublisherConfiguration esPublisherConfiguration = TestUtils.buildEsPublisherConfiguration();
-        final TitusClientUtils titusClientUtils = new TitusClientUtils(esPublisherConfiguration);
-        final TitusClientImpl titusClient = new TitusClientImpl(TestUtils.buildTitusGrpcChannel(titusClientUtils), new DefaultRegistry());
-        final EsClientHttp esClientHttp = new EsClientHttp(TestUtils.buildEsPublisherConfiguration());
+    public void checkPublisherState() {
+        int numTasks = 5;
 
-        final TasksPublisherCtrl tasksPublisherCtrl = new TasksPublisherCtrl(esClientHttp, titusClient, titusClientUtils,
+        final TasksPublisherCtrl tasksPublisherCtrl = new TasksPublisherCtrl(
+                mockElasticSearchClient(),
+                mockTitusClient(numTasks),
+                Collections.emptyMap(),
                 new DefaultRegistry());
         tasksPublisherCtrl.start();
 
         final CountDownLatch latch = new CountDownLatch(1);
-        Flux.interval(Duration.ofSeconds(10), Schedulers.elastic())
+        Flux.interval(Duration.ofSeconds(1), Schedulers.elastic())
                 .take(1)
                 .doOnNext(i -> {
                     final int numTimesIndexUpdated = tasksPublisherCtrl.getNumIndexUpdated().get();
                     final int numTasksUpdated = tasksPublisherCtrl.getNumTasksUpdated().get();
                     final int numErrors = tasksPublisherCtrl.getNumErrors().get();
-
                     assertThat(numErrors).isEqualTo(0);
-                    assertThat(numTimesIndexUpdated).isGreaterThanOrEqualTo(numTasksUpdated);
-                    TestUtils.verifyLocalEsRecordCount(esClientHttp, numTasksUpdated);
-
+                    assertThat(numTasksUpdated).isEqualTo(numTasks);
+                    assertThat(numTimesIndexUpdated).isEqualTo(numTasks);
                     latch.countDown();
                 }).subscribe();
-
         try {
             latch.await(2, TimeUnit.MINUTES);
         } catch (InterruptedException e) {
-            fail("Timeout in verifyTasksPublished ", e);
+            fail("Timeout in checkPublisherState ", e);
         }
     }
-    */
 }
