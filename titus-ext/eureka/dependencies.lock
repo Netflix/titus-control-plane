@@ -649,6 +649,12 @@
                 "com.twitter:util-logging_2.11"
             ]
         },
+        "commons-cli:commons-cli": {
+            "locked": "1.2",
+            "transitive": [
+                "org.apache.zookeeper:zookeeper"
+            ]
+        },
         "commons-codec:commons-codec": {
             "locked": "1.9",
             "transitive": [
@@ -738,7 +744,7 @@
             ]
         },
         "io.netty:netty": {
-            "locked": "3.10.1.Final",
+            "locked": "3.10.6.Final",
             "transitive": [
                 "com.twitter:finagle-core_2.11",
                 "org.apache.zookeeper:zookeeper"
@@ -1009,12 +1015,6 @@
                 "io.swagger:swagger-jaxrs"
             ]
         },
-        "jline:jline": {
-            "locked": "0.9.94",
-            "transitive": [
-                "org.apache.zookeeper:zookeeper"
-            ]
-        },
         "joda-time:joda-time": {
             "locked": "2.9.9",
             "transitive": [
@@ -1077,20 +1077,20 @@
             ]
         },
         "org.apache.curator:curator-client": {
-            "locked": "2.11.0",
+            "locked": "4.1.0",
             "transitive": [
                 "org.apache.curator:curator-framework"
             ]
         },
         "org.apache.curator:curator-framework": {
-            "locked": "2.11.0",
+            "locked": "4.1.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master",
                 "org.apache.curator:curator-recipes"
             ]
         },
         "org.apache.curator:curator-recipes": {
-            "locked": "2.11.0",
+            "locked": "4.1.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -1115,8 +1115,14 @@
                 "com.netflix.titus:titus-server-master"
             ]
         },
+        "org.apache.yetus:audience-annotations": {
+            "locked": "0.5.0",
+            "transitive": [
+                "org.apache.zookeeper:zookeeper"
+            ]
+        },
         "org.apache.zookeeper:zookeeper": {
-            "locked": "3.4.6",
+            "locked": "3.5.4-beta",
             "transitive": [
                 "org.apache.curator:curator-client"
             ]
@@ -2128,6 +2134,12 @@
                 "com.twitter:util-logging_2.11"
             ]
         },
+        "commons-cli:commons-cli": {
+            "locked": "1.2",
+            "transitive": [
+                "org.apache.zookeeper:zookeeper"
+            ]
+        },
         "commons-codec:commons-codec": {
             "locked": "1.9",
             "transitive": [
@@ -2217,7 +2229,7 @@
             ]
         },
         "io.netty:netty": {
-            "locked": "3.10.1.Final",
+            "locked": "3.10.6.Final",
             "transitive": [
                 "com.twitter:finagle-core_2.11",
                 "org.apache.zookeeper:zookeeper"
@@ -2488,12 +2500,6 @@
                 "io.swagger:swagger-jaxrs"
             ]
         },
-        "jline:jline": {
-            "locked": "0.9.94",
-            "transitive": [
-                "org.apache.zookeeper:zookeeper"
-            ]
-        },
         "joda-time:joda-time": {
             "locked": "2.9.9",
             "transitive": [
@@ -2556,20 +2562,20 @@
             ]
         },
         "org.apache.curator:curator-client": {
-            "locked": "2.11.0",
+            "locked": "4.1.0",
             "transitive": [
                 "org.apache.curator:curator-framework"
             ]
         },
         "org.apache.curator:curator-framework": {
-            "locked": "2.11.0",
+            "locked": "4.1.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master",
                 "org.apache.curator:curator-recipes"
             ]
         },
         "org.apache.curator:curator-recipes": {
-            "locked": "2.11.0",
+            "locked": "4.1.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -2594,8 +2600,14 @@
                 "com.netflix.titus:titus-server-master"
             ]
         },
+        "org.apache.yetus:audience-annotations": {
+            "locked": "0.5.0",
+            "transitive": [
+                "org.apache.zookeeper:zookeeper"
+            ]
+        },
         "org.apache.zookeeper:zookeeper": {
-            "locked": "3.4.6",
+            "locked": "3.5.4-beta",
             "transitive": [
                 "org.apache.curator:curator-client"
             ]
@@ -3607,6 +3619,12 @@
                 "com.twitter:util-logging_2.11"
             ]
         },
+        "commons-cli:commons-cli": {
+            "locked": "1.2",
+            "transitive": [
+                "org.apache.zookeeper:zookeeper"
+            ]
+        },
         "commons-codec:commons-codec": {
             "locked": "1.9",
             "transitive": [
@@ -3696,7 +3714,7 @@
             ]
         },
         "io.netty:netty": {
-            "locked": "3.10.1.Final",
+            "locked": "3.10.6.Final",
             "transitive": [
                 "com.twitter:finagle-core_2.11",
                 "org.apache.zookeeper:zookeeper"
@@ -3967,12 +3985,6 @@
                 "io.swagger:swagger-jaxrs"
             ]
         },
-        "jline:jline": {
-            "locked": "0.9.94",
-            "transitive": [
-                "org.apache.zookeeper:zookeeper"
-            ]
-        },
         "joda-time:joda-time": {
             "locked": "2.9.9",
             "transitive": [
@@ -4035,20 +4047,20 @@
             ]
         },
         "org.apache.curator:curator-client": {
-            "locked": "2.11.0",
+            "locked": "4.1.0",
             "transitive": [
                 "org.apache.curator:curator-framework"
             ]
         },
         "org.apache.curator:curator-framework": {
-            "locked": "2.11.0",
+            "locked": "4.1.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master",
                 "org.apache.curator:curator-recipes"
             ]
         },
         "org.apache.curator:curator-recipes": {
-            "locked": "2.11.0",
+            "locked": "4.1.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -4073,8 +4085,14 @@
                 "com.netflix.titus:titus-server-master"
             ]
         },
+        "org.apache.yetus:audience-annotations": {
+            "locked": "0.5.0",
+            "transitive": [
+                "org.apache.zookeeper:zookeeper"
+            ]
+        },
         "org.apache.zookeeper:zookeeper": {
-            "locked": "3.4.6",
+            "locked": "3.5.4-beta",
             "transitive": [
                 "org.apache.curator:curator-client"
             ]
@@ -5150,6 +5168,12 @@
                 "com.twitter:util-logging_2.11"
             ]
         },
+        "commons-cli:commons-cli": {
+            "locked": "1.2",
+            "transitive": [
+                "org.apache.zookeeper:zookeeper"
+            ]
+        },
         "commons-codec:commons-codec": {
             "locked": "1.9",
             "transitive": [
@@ -5239,7 +5263,7 @@
             ]
         },
         "io.netty:netty": {
-            "locked": "3.10.1.Final",
+            "locked": "3.10.6.Final",
             "transitive": [
                 "com.twitter:finagle-core_2.11",
                 "org.apache.zookeeper:zookeeper"
@@ -5510,12 +5534,6 @@
                 "io.swagger:swagger-jaxrs"
             ]
         },
-        "jline:jline": {
-            "locked": "0.9.94",
-            "transitive": [
-                "org.apache.zookeeper:zookeeper"
-            ]
-        },
         "joda-time:joda-time": {
             "locked": "2.9.9",
             "transitive": [
@@ -5578,20 +5596,20 @@
             ]
         },
         "org.apache.curator:curator-client": {
-            "locked": "2.11.0",
+            "locked": "4.1.0",
             "transitive": [
                 "org.apache.curator:curator-framework"
             ]
         },
         "org.apache.curator:curator-framework": {
-            "locked": "2.11.0",
+            "locked": "4.1.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master",
                 "org.apache.curator:curator-recipes"
             ]
         },
         "org.apache.curator:curator-recipes": {
-            "locked": "2.11.0",
+            "locked": "4.1.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -5616,8 +5634,14 @@
                 "com.netflix.titus:titus-server-master"
             ]
         },
+        "org.apache.yetus:audience-annotations": {
+            "locked": "0.5.0",
+            "transitive": [
+                "org.apache.zookeeper:zookeeper"
+            ]
+        },
         "org.apache.zookeeper:zookeeper": {
-            "locked": "3.4.6",
+            "locked": "3.5.4-beta",
             "transitive": [
                 "org.apache.curator:curator-client"
             ]
@@ -6630,6 +6654,12 @@
                 "com.twitter:util-logging_2.11"
             ]
         },
+        "commons-cli:commons-cli": {
+            "locked": "1.2",
+            "transitive": [
+                "org.apache.zookeeper:zookeeper"
+            ]
+        },
         "commons-codec:commons-codec": {
             "locked": "1.9",
             "transitive": [
@@ -6719,7 +6749,7 @@
             ]
         },
         "io.netty:netty": {
-            "locked": "3.10.1.Final",
+            "locked": "3.10.6.Final",
             "transitive": [
                 "com.twitter:finagle-core_2.11",
                 "org.apache.zookeeper:zookeeper"
@@ -6990,12 +7020,6 @@
                 "io.swagger:swagger-jaxrs"
             ]
         },
-        "jline:jline": {
-            "locked": "0.9.94",
-            "transitive": [
-                "org.apache.zookeeper:zookeeper"
-            ]
-        },
         "joda-time:joda-time": {
             "locked": "2.9.9",
             "transitive": [
@@ -7058,20 +7082,20 @@
             ]
         },
         "org.apache.curator:curator-client": {
-            "locked": "2.11.0",
+            "locked": "4.1.0",
             "transitive": [
                 "org.apache.curator:curator-framework"
             ]
         },
         "org.apache.curator:curator-framework": {
-            "locked": "2.11.0",
+            "locked": "4.1.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master",
                 "org.apache.curator:curator-recipes"
             ]
         },
         "org.apache.curator:curator-recipes": {
-            "locked": "2.11.0",
+            "locked": "4.1.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -7096,8 +7120,14 @@
                 "com.netflix.titus:titus-server-master"
             ]
         },
+        "org.apache.yetus:audience-annotations": {
+            "locked": "0.5.0",
+            "transitive": [
+                "org.apache.zookeeper:zookeeper"
+            ]
+        },
         "org.apache.zookeeper:zookeeper": {
-            "locked": "3.4.6",
+            "locked": "3.5.4-beta",
             "transitive": [
                 "org.apache.curator:curator-client"
             ]
@@ -8307,7 +8337,8 @@
             "transitive": [
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-testkit",
-                "org.apache.cassandra:cassandra-all"
+                "org.apache.cassandra:cassandra-all",
+                "org.apache.zookeeper:zookeeper"
             ]
         },
         "commons-codec:commons-codec": {
@@ -8422,7 +8453,7 @@
             ]
         },
         "io.netty:netty": {
-            "locked": "3.10.1.Final",
+            "locked": "3.10.6.Final",
             "transitive": [
                 "com.twitter:finagle-core_2.11",
                 "org.apache.zookeeper:zookeeper"
@@ -8717,12 +8748,6 @@
                 "io.swagger:swagger-jaxrs"
             ]
         },
-        "jline:jline": {
-            "locked": "0.9.94",
-            "transitive": [
-                "org.apache.zookeeper:zookeeper"
-            ]
-        },
         "joda-time:joda-time": {
             "locked": "2.9.9",
             "transitive": [
@@ -8857,20 +8882,20 @@
             ]
         },
         "org.apache.curator:curator-client": {
-            "locked": "2.11.0",
+            "locked": "4.1.0",
             "transitive": [
                 "org.apache.curator:curator-framework"
             ]
         },
         "org.apache.curator:curator-framework": {
-            "locked": "2.11.0",
+            "locked": "4.1.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master",
                 "org.apache.curator:curator-recipes"
             ]
         },
         "org.apache.curator:curator-recipes": {
-            "locked": "2.11.0",
+            "locked": "4.1.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -8915,8 +8940,14 @@
                 "org.apache.cassandra:cassandra-thrift"
             ]
         },
+        "org.apache.yetus:audience-annotations": {
+            "locked": "0.5.0",
+            "transitive": [
+                "org.apache.zookeeper:zookeeper"
+            ]
+        },
         "org.apache.zookeeper:zookeeper": {
-            "locked": "3.4.6",
+            "locked": "3.5.4-beta",
             "transitive": [
                 "org.apache.curator:curator-client"
             ]
@@ -10352,7 +10383,8 @@
             "transitive": [
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-testkit",
-                "org.apache.cassandra:cassandra-all"
+                "org.apache.cassandra:cassandra-all",
+                "org.apache.zookeeper:zookeeper"
             ]
         },
         "commons-codec:commons-codec": {
@@ -10467,7 +10499,7 @@
             ]
         },
         "io.netty:netty": {
-            "locked": "3.10.1.Final",
+            "locked": "3.10.6.Final",
             "transitive": [
                 "com.twitter:finagle-core_2.11",
                 "org.apache.zookeeper:zookeeper"
@@ -10762,12 +10794,6 @@
                 "io.swagger:swagger-jaxrs"
             ]
         },
-        "jline:jline": {
-            "locked": "0.9.94",
-            "transitive": [
-                "org.apache.zookeeper:zookeeper"
-            ]
-        },
         "joda-time:joda-time": {
             "locked": "2.9.9",
             "transitive": [
@@ -10902,20 +10928,20 @@
             ]
         },
         "org.apache.curator:curator-client": {
-            "locked": "2.11.0",
+            "locked": "4.1.0",
             "transitive": [
                 "org.apache.curator:curator-framework"
             ]
         },
         "org.apache.curator:curator-framework": {
-            "locked": "2.11.0",
+            "locked": "4.1.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master",
                 "org.apache.curator:curator-recipes"
             ]
         },
         "org.apache.curator:curator-recipes": {
-            "locked": "2.11.0",
+            "locked": "4.1.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -10960,8 +10986,14 @@
                 "org.apache.cassandra:cassandra-thrift"
             ]
         },
+        "org.apache.yetus:audience-annotations": {
+            "locked": "0.5.0",
+            "transitive": [
+                "org.apache.zookeeper:zookeeper"
+            ]
+        },
         "org.apache.zookeeper:zookeeper": {
-            "locked": "3.4.6",
+            "locked": "3.5.4-beta",
             "transitive": [
                 "org.apache.curator:curator-client"
             ]
@@ -12397,7 +12429,8 @@
             "transitive": [
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-testkit",
-                "org.apache.cassandra:cassandra-all"
+                "org.apache.cassandra:cassandra-all",
+                "org.apache.zookeeper:zookeeper"
             ]
         },
         "commons-codec:commons-codec": {
@@ -12512,7 +12545,7 @@
             ]
         },
         "io.netty:netty": {
-            "locked": "3.10.1.Final",
+            "locked": "3.10.6.Final",
             "transitive": [
                 "com.twitter:finagle-core_2.11",
                 "org.apache.zookeeper:zookeeper"
@@ -12807,12 +12840,6 @@
                 "io.swagger:swagger-jaxrs"
             ]
         },
-        "jline:jline": {
-            "locked": "0.9.94",
-            "transitive": [
-                "org.apache.zookeeper:zookeeper"
-            ]
-        },
         "joda-time:joda-time": {
             "locked": "2.9.9",
             "transitive": [
@@ -12947,20 +12974,20 @@
             ]
         },
         "org.apache.curator:curator-client": {
-            "locked": "2.11.0",
+            "locked": "4.1.0",
             "transitive": [
                 "org.apache.curator:curator-framework"
             ]
         },
         "org.apache.curator:curator-framework": {
-            "locked": "2.11.0",
+            "locked": "4.1.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master",
                 "org.apache.curator:curator-recipes"
             ]
         },
         "org.apache.curator:curator-recipes": {
-            "locked": "2.11.0",
+            "locked": "4.1.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -13005,8 +13032,14 @@
                 "org.apache.cassandra:cassandra-thrift"
             ]
         },
+        "org.apache.yetus:audience-annotations": {
+            "locked": "0.5.0",
+            "transitive": [
+                "org.apache.zookeeper:zookeeper"
+            ]
+        },
         "org.apache.zookeeper:zookeeper": {
-            "locked": "3.4.6",
+            "locked": "3.5.4-beta",
             "transitive": [
                 "org.apache.curator:curator-client"
             ]
@@ -14443,7 +14476,8 @@
             "transitive": [
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-testkit",
-                "org.apache.cassandra:cassandra-all"
+                "org.apache.cassandra:cassandra-all",
+                "org.apache.zookeeper:zookeeper"
             ]
         },
         "commons-codec:commons-codec": {
@@ -14558,7 +14592,7 @@
             ]
         },
         "io.netty:netty": {
-            "locked": "3.10.1.Final",
+            "locked": "3.10.6.Final",
             "transitive": [
                 "com.twitter:finagle-core_2.11",
                 "org.apache.zookeeper:zookeeper"
@@ -14853,12 +14887,6 @@
                 "io.swagger:swagger-jaxrs"
             ]
         },
-        "jline:jline": {
-            "locked": "0.9.94",
-            "transitive": [
-                "org.apache.zookeeper:zookeeper"
-            ]
-        },
         "joda-time:joda-time": {
             "locked": "2.9.9",
             "transitive": [
@@ -14993,20 +15021,20 @@
             ]
         },
         "org.apache.curator:curator-client": {
-            "locked": "2.11.0",
+            "locked": "4.1.0",
             "transitive": [
                 "org.apache.curator:curator-framework"
             ]
         },
         "org.apache.curator:curator-framework": {
-            "locked": "2.11.0",
+            "locked": "4.1.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master",
                 "org.apache.curator:curator-recipes"
             ]
         },
         "org.apache.curator:curator-recipes": {
-            "locked": "2.11.0",
+            "locked": "4.1.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -15051,8 +15079,14 @@
                 "org.apache.cassandra:cassandra-thrift"
             ]
         },
+        "org.apache.yetus:audience-annotations": {
+            "locked": "0.5.0",
+            "transitive": [
+                "org.apache.zookeeper:zookeeper"
+            ]
+        },
         "org.apache.zookeeper:zookeeper": {
-            "locked": "3.4.6",
+            "locked": "3.5.4-beta",
             "transitive": [
                 "org.apache.curator:curator-client"
             ]
