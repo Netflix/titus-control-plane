@@ -16,16 +16,8 @@
 package com.netflix.titus.es.publish;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
-import com.netflix.spectator.api.DefaultRegistry;
-import com.netflix.titus.es.publish.config.EsPublisherConfiguration;
-import com.netflix.titus.ext.elasticsearch.TaskDocument;
-import com.netflix.titus.grpc.protogen.Job;
-import com.netflix.titus.grpc.protogen.Task;
-import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import org.junit.After;
 import org.junit.Before;

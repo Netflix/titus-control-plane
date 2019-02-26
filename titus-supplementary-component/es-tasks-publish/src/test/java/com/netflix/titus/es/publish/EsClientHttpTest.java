@@ -15,6 +15,7 @@ import com.netflix.titus.testkit.model.job.JobGenerator;
 import org.apache.log4j.Logger;
 import org.junit.Test;
 
+
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;

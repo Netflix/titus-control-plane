@@ -30,6 +30,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.assertj.core.api.Java6Assertions.fail;
 
@@ -142,7 +143,6 @@ public class TitusClientImplTest {
         }, e -> fail("getTaskUpdates exception {}", e));
         try {
             latch.await(1, TimeUnit.SECONDS);
-
         } catch (InterruptedException e) {
             fail("getTaskUpdates Timeout ", e);
         }

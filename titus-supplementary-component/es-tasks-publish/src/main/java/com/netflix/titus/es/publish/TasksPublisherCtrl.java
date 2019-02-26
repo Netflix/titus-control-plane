@@ -48,6 +48,7 @@ import reactor.core.scheduler.Schedulers;
 
 import static com.netflix.titus.es.publish.TitusClientComponent.TASK_DOCUMENT_CONTEXT;
 
+
 @Component
 public class TasksPublisherCtrl {
     private static final Logger logger = LoggerFactory.getLogger(TasksPublisherCtrl.class);
@@ -102,6 +103,7 @@ public class TasksPublisherCtrl {
                 .flatMap(taskMonoPair -> {
                     final Task task = taskMonoPair.getLeft();
                     return taskMonoPair.getRight()
+
                             .map(job -> {
                                 final com.netflix.titus.api.jobmanager.model.job.Job coreJob = V3GrpcModelConverters.toCoreJob(job);
                                 final com.netflix.titus.api.jobmanager.model.job.Task coreTask = V3GrpcModelConverters.toCoreTask(coreJob, task);

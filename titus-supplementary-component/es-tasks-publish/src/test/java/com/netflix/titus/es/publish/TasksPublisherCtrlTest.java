@@ -15,22 +15,10 @@
  */
 package com.netflix.titus.es.publish;
 
-import java.time.Duration;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-
-import com.netflix.spectator.api.DefaultRegistry;
-import com.netflix.titus.es.publish.config.EsPublisherConfiguration;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import reactor.core.publisher.Flux;
-import reactor.core.scheduler.Schedulers;
-
-import static org.assertj.core.api.Java6Assertions.assertThat;
-import static org.assertj.core.api.Java6Assertions.fail;
 
 
 @Category(IntegrationTest.class)

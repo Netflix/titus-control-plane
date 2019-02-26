@@ -70,6 +70,7 @@ public class TestUtils {
     }
     */
 
+
     static EsPublisherConfiguration buildEsPublisherConfiguration() {
         return new EsPublisherConfiguration(
                 "us-east-1",
