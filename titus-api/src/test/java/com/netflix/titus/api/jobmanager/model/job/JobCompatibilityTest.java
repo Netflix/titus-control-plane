@@ -123,7 +123,8 @@ public class JobCompatibilityTest {
         JobDescriptor<ServiceJobExt> other = reference.toBuilder()
                 .withContainer(reference.getContainer().but(container ->
                         container.toBuilder()
-                                .withAttributes(CollectionsExt.copyAndAdd(container.getAttributes(), "NETFLIX_APP_METADATA_SIG", "some signature"))
+                                .withAttributes(CollectionsExt.copyAndAdd(container.getAttributes(),
+                                        "some.app.attribute", "some value"))
                                 .build()
                 ))
                 .build();
@@ -133,7 +134,40 @@ public class JobCompatibilityTest {
         JobDescriptor<ServiceJobExt> incompatible = reference.toBuilder()
                 .withContainer(reference.getContainer().but(container ->
                         container.toBuilder()
-                                .withAttributes(CollectionsExt.copyAndAdd(container.getAttributes(), "titusParameter.cpu.burstEnabled", "true"))
+                                .withAttributes(CollectionsExt.copyAndAdd(container.getAttributes(),
+                                        "titusParameter.cpu.burstEnabled", "true"))
+                                .build()
+                ))
+                .build();
+        JobCompatibility compatibility2 = JobCompatibility.of(reference, incompatible);
+        assertThat(compatibility2.isCompatible()).isFalse();
+    }
+
+    @Test
+    public void testSecurityAttributesNotPrefixedWithTitusAreCompatible() {
+        JobDescriptor<ServiceJobExt> reference = JobDescriptorGenerator.oneTaskServiceJobDescriptor();
+        JobDescriptor<ServiceJobExt> other = reference.toBuilder()
+                .withContainer(reference.getContainer().but(container ->
+                        container.toBuilder()
+                                .withSecurityProfile(container.getSecurityProfile().toBuilder()
+                                        .withAttributes(CollectionsExt.copyAndAdd(
+                                                container.getSecurityProfile().getAttributes(),
+                                                "NETFLIX_APP_METADATA_SIG", "some signature")
+                                        ).build())
+                                .build()
+                ))
+                .build();
+        JobCompatibility compatibility1 = JobCompatibility.of(reference, other);
+        assertThat(compatibility1.isCompatible()).isTrue();
+
+        JobDescriptor<ServiceJobExt> incompatible = reference.toBuilder()
+                .withContainer(reference.getContainer().but(container ->
+                        container.toBuilder()
+                                .withSecurityProfile(container.getSecurityProfile().toBuilder()
+                                        .withAttributes(CollectionsExt.copyAndAdd(
+                                                container.getSecurityProfile().getAttributes(),
+                                                "titus.secure.attribute", "false")
+                                        ).build())
                                 .build()
                 ))
                 .build();
