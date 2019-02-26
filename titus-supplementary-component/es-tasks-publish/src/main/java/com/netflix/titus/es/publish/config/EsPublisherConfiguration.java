@@ -25,6 +25,8 @@ public class EsPublisherConfiguration {
     private String account;
     private String region;
 
+    private final String getTaskDocumentEsHostName;
+    private final int getTaskDocumentEsPort;
     private String taskDocumentEsIndexDateSuffixPattern;
     private String taskDocumentEsIndexName;
     private boolean isLocalMode;
@@ -34,13 +36,16 @@ public class EsPublisherConfiguration {
             @Value("#{ @environment['EC2_REGION'] }") String region,
             @Value("#{ @environment['NETFLIX_ENVIRONMENT'] }") String env,
             @Value("#{ @environment['NETFLIX_ACCOUNT'] }") String account,
+            @Value("#{ @environment['titus.es.host'] }") String getTaskDocumentEsHostName,
+            @Value("#{ @environment['titus.es.port'] }") int getTaskDocumentEsPort,
             @Value("#{ @environment['titus.es.taskDocumentEsIndexDateSuffixPattern'] ?: 'yyyyMM'}") String esIndexDateSuffixPattern,
             @Value("#{ @environment['titus.es.taskDocumentEsIndexName'] ?: 'titustasks_'}") String esIndexName,
             @Value("#{ @environment['titus.es.localMode'] ?: false}") boolean isLocalMode) {
         this.region = region;
         this.env = env;
         this.account = account;
-
+        this.getTaskDocumentEsHostName = getTaskDocumentEsHostName;
+        this.getTaskDocumentEsPort = getTaskDocumentEsPort;
         this.taskDocumentEsIndexDateSuffixPattern = esIndexDateSuffixPattern;
         this.taskDocumentEsIndexName = esIndexName;
         this.isLocalMode = isLocalMode;
@@ -70,4 +75,11 @@ public class EsPublisherConfiguration {
         return region;
     }
 
+    public String getGetTaskDocumentEsHostName() {
+        return getTaskDocumentEsHostName;
+    }
+
+    public int getGetTaskDocumentEsPort() {
+        return getTaskDocumentEsPort;
+    }
 }

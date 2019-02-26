@@ -15,5 +15,9 @@
  */
 package com.netflix.titus.es.publish;
 
-public interface IntegrationTest {
+public class EsTaskPublisherMetrics {
+
+    public static final String METRIC_ROOT = "titus.";
+    public static final String METRIC_ES_PUBLISHER = METRIC_ROOT + "tasks.es.publish.";
+
 }

@@ -60,6 +60,7 @@ public class TestUtils {
         return "docker stop " + containerName;
     }
 
+    /*
     static ManagedChannel buildTitusGrpcChannel(TitusClientUtils titusClientUtils) {
         return NettyChannelBuilder.forAddress(titusClientUtils.buildTitusApiHost(), 7104)
                 .userAgent("testClient")
@@ -67,12 +68,15 @@ public class TestUtils {
                 .negotiationType(NegotiationType.TLS)
                 .build();
     }
+    */
 
     static EsPublisherConfiguration buildEsPublisherConfiguration() {
         return new EsPublisherConfiguration(
                 "us-east-1",
                 "test",
                 "test",
+                "localhost",
+                9200,
                 "yyyyMM",
                 "titustasks_",
                 true

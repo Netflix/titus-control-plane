@@ -25,7 +25,5 @@ public interface TitusClient {
 
     Flux<Task> getTaskUpdates();
 
-    Flux<Task> getRunningTasks();
-
     Mono<Job> getJobById(String jobId);
 }

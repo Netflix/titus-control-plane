@@ -16,6 +16,7 @@
 package com.netflix.titus.es.publish;
 
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -23,12 +24,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import javax.annotation.PostConstruct;
+import javax.inject.Named;
 
 import com.netflix.spectator.api.Functions;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.patterns.PolledMeter;
 import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.common.util.rx.RetryHandlerBuilder;
+import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.ext.elasticsearch.TaskDocument;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.Task;
@@ -38,17 +41,18 @@ import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.util.Pair;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
+import static com.netflix.titus.es.publish.TitusClientComponent.TASK_DOCUMENT_CONTEXT;
+
 @Component
 public class TasksPublisherCtrl {
     private static final Logger logger = LoggerFactory.getLogger(TasksPublisherCtrl.class);
     private final EsClient esClient;
-    private final String titusApiHost;
+    private Map<String, String> taskDocumentBaseContext;
     private Registry registry;
     private TitusClient titusClient;
 
@@ -63,10 +67,13 @@ public class TasksPublisherCtrl {
 
 
     @Autowired
-    public TasksPublisherCtrl(EsClient esClient, TitusClient titusClient, TitusClientUtils titusClientUtils, Registry registry) {
+    public TasksPublisherCtrl(EsClient esClient,
+                              TitusClient titusClient,
+                              @Named(TASK_DOCUMENT_CONTEXT) Map<String, String> taskDocumentBaseContext,
+                              Registry registry) {
         this.esClient = esClient;
         this.titusClient = titusClient;
-        this.titusApiHost = titusClientUtils.buildTitusApiHost();
+        this.taskDocumentBaseContext = taskDocumentBaseContext;
         this.registry = registry;
         configureMetrics();
     }
@@ -93,8 +100,8 @@ public class TasksPublisherCtrl {
                     return Pair.of(task, jobById);
                 })
                 .flatMap(taskMonoPair -> {
-                    final Task task = taskMonoPair.getFirst();
-                    return taskMonoPair.getSecond()
+                    final Task task = taskMonoPair.getLeft();
+                    return taskMonoPair.getRight()
                             .map(job -> {
                                 final com.netflix.titus.api.jobmanager.model.job.Job coreJob = V3GrpcModelConverters.toCoreJob(job);
                                 final com.netflix.titus.api.jobmanager.model.job.Task coreTask = V3GrpcModelConverters.toCoreTask(coreJob, task);
@@ -126,25 +133,13 @@ public class TasksPublisherCtrl {
     }
 
     private Map<String, String> buildTaskContext(Task task) {
-        String env = "prod";
-        if (titusApiHost.contains("test")) {
-            env = "test";
-        }
-
-        String account = "test";
-        if (titusApiHost.contains("streamingprod")) {
-            account = "prod";
-        } else if (titusApiHost.contains("mceprod")) {
-            account = "mceprod";
-        } else if (titusApiHost.contains("mcetest")) {
-            account = "mcetest";
-        }
-
         String stack = "";
         if (task.getTaskContextMap().containsKey(JobAttributes.JOB_ATTRIBUTES_CELL)) {
             stack = task.getTaskContextMap().get(JobAttributes.JOB_ATTRIBUTES_CELL);
         }
-        return ElasticSearchUtils.buildContextMapForTaskDocument(account, env, stack);
+        final HashMap<String, String> taskContext = new HashMap<>(taskDocumentBaseContext);
+        taskContext.put("stack", stack);
+        return taskContext;
     }
 
     private Function<Flux<Throwable>, Publisher<?>> buildUnlimitedRetryHandler() {
@@ -165,17 +160,17 @@ public class TasksPublisherCtrl {
 
     private void configureMetrics() {
         PolledMeter.using(registry)
-                .withId(registry.createId(MetricConstants.METRIC_ES_PUBLISHER + "errors"))
+                .withId(registry.createId(EsTaskPublisherMetrics.METRIC_ES_PUBLISHER + "errors"))
                 .monitorValue(numErrors);
         PolledMeter.using(registry)
-                .withId(registry.createId(MetricConstants.METRIC_ES_PUBLISHER + "numIndexUpdated"))
+                .withId(registry.createId(EsTaskPublisherMetrics.METRIC_ES_PUBLISHER + "numIndexUpdated"))
                 .monitorValue(numIndexUpdated);
         PolledMeter.using(registry)
-                .withId(registry.createId(MetricConstants.METRIC_ES_PUBLISHER + "numTasksUpdated"))
+                .withId(registry.createId(EsTaskPublisherMetrics.METRIC_ES_PUBLISHER + "numTasksUpdated"))
                 .monitorValue(numTasksUpdated);
 
         lastPublishedTimestamp = PolledMeter.using(registry)
-                .withId(registry.createId(MetricConstants.METRIC_ES_PUBLISHER + "lastPublishedTimestamp"))
+                .withId(registry.createId(EsTaskPublisherMetrics.METRIC_ES_PUBLISHER + "lastPublishedTimestamp"))
                 .monitorValue(new AtomicLong(registry.clock().wallTime()), Functions.AGE);
     }
 

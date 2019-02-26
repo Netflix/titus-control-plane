@@ -16,8 +16,6 @@
 package com.netflix.titus.es.publish;
 
 import java.text.SimpleDateFormat;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.TimeZone;
 
 import org.slf4j.Logger;
@@ -25,20 +23,10 @@ import org.slf4j.LoggerFactory;
 
 class ElasticSearchUtils {
     private static final Logger logger = LoggerFactory.getLogger(ElasticSearchUtils.class);
-
     static final SimpleDateFormat dateFormat;
 
     static {
         dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
         dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-    }
-
-
-    static Map<String, String> buildContextMapForTaskDocument(String account, String env, String stack) {
-        Map<String, String> context = new HashMap<>(3);
-        context.put("account", account);
-        context.put("stack", stack);
-        context.put("env", env);
-        return context;
     }
 }

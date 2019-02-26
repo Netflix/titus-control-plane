@@ -1,45 +1,117 @@
 package com.netflix.titus.es.publish;
 
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.netflix.spectator.api.DefaultRegistry;
-import com.netflix.titus.es.publish.config.EsPublisherConfiguration;
-import org.junit.BeforeClass;
+import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
+import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
+import com.netflix.titus.grpc.protogen.JobChangeNotification;
+import com.netflix.titus.grpc.protogen.JobId;
+import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
+import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
+import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
+import com.netflix.titus.grpc.protogen.Task;
+import com.netflix.titus.grpc.protogen.TaskId;
+import com.netflix.titus.runtime.endpoint.common.EmptyLogStorageInfo;
+import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
+import com.netflix.titus.testkit.model.job.JobGenerator;
+import io.grpc.ManagedChannel;
+import io.grpc.Server;
+import io.grpc.inprocess.InProcessChannelBuilder;
+import io.grpc.inprocess.InProcessServerBuilder;
+import io.grpc.stub.StreamObserver;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
-import org.junit.experimental.categories.Category;
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.assertj.core.api.Java6Assertions.fail;
 
-@Category(IntegrationTest.class)
 public class TitusClientImplTest {
 
-    private static EsPublisherConfiguration getConfig() {
-        return new EsPublisherConfiguration("us-east-1", "test", "test",
-                "", "", true);
+    private static TitusClient titusClient;
+    private static Server testServer;
+
+    private static BatchJobTask taskOne = JobGenerator.oneBatchTask();
+    private static BatchJobTask taskTwo = JobGenerator.oneBatchTask();
+    private static BatchJobTask taskThree = JobGenerator.oneBatchTask();
+    private static BatchJobTask taskFour = JobGenerator.oneBatchTask();
+    private static BatchJobTask taskFive = JobGenerator.oneBatchTask();
+    private static Job<BatchJobExt> jobOne = JobGenerator.oneBatchJob();
+
+    public static class MockJobManagerService extends JobManagementServiceGrpc.JobManagementServiceImplBase {
+        @Override
+        public void findTask(TaskId request, StreamObserver<Task> responseObserver) {
+            final Task grpcTask = V3GrpcModelConverters.toGrpcTask(taskOne, new EmptyLogStorageInfo<>());
+            responseObserver.onNext(grpcTask);
+            responseObserver.onCompleted();
+        }
+
+        @Override
+        public void findJob(JobId request, StreamObserver<com.netflix.titus.grpc.protogen.Job> responseObserver) {
+            final com.netflix.titus.grpc.protogen.Job grpcJob = V3GrpcModelConverters.toGrpcJob(jobOne);
+            responseObserver.onNext(grpcJob);
+            responseObserver.onCompleted();
+        }
+
+        @Override
+        public void observeJobs(ObserveJobsQuery request, StreamObserver<JobChangeNotification> responseObserver) {
+            final List<BatchJobTask> batchJobTasks = Arrays.asList(taskOne, taskTwo, taskThree, taskFive, taskFive);
+            batchJobTasks.forEach(task -> {
+                final Task grpcTask = V3GrpcModelConverters.toGrpcTask(task, new EmptyLogStorageInfo<>());
+                responseObserver.onNext(buildJobChangeNotification(grpcTask));
+            });
+            responseObserver.onCompleted();
+        }
+
+        private JobChangeNotification buildJobChangeNotification(Task task) {
+            return JobChangeNotification.newBuilder()
+                    .setTaskUpdate(JobChangeNotification.TaskUpdate.newBuilder().setTask(task).build())
+                    .build();
+        }
     }
 
-    private static TitusClient titusClient;
-    private static String TASK_ID = "7c10a5e0-2811-4d4a-9db2-08d883b5c766";
-    private static String JOB_ID = "75df0af3-d896-45af-87a6-21d3bfce5480";
+    @Before
+    public void setup() throws IOException {
+        final MockJobManagerService mockJobManagerService = new MockJobManagerService();
 
-    @BeforeClass
-    public static void setup() {
-        final TitusClientUtils titusClientUtils = new TitusClientUtils(getConfig());
-        titusClient = new TitusClientImpl(TestUtils.buildTitusGrpcChannel(titusClientUtils), new DefaultRegistry());
+        testServer = InProcessServerBuilder
+                .forName("testServer")
+                .directExecutor()
+                .addService(mockJobManagerService)
+                .build()
+                .start();
+
+        final ManagedChannel channel = InProcessChannelBuilder
+                .forName("testServer")
+                .directExecutor()
+                .usePlaintext(true)
+                .build();
+        final JobManagementServiceStub jobManagementServiceStub = JobManagementServiceGrpc.newStub(channel);
+        titusClient = new TitusClientImpl(jobManagementServiceStub, new DefaultRegistry());
+    }
+
+    @After
+    public void cleanup() {
+        testServer.shutdownNow();
     }
 
     @Test
     public void getTaskById() {
         final CountDownLatch latch = new CountDownLatch(1);
-        titusClient.getTask(TASK_ID).subscribe(task -> {
-            assertThat(task.getId()).isEqualTo(TASK_ID);
+        titusClient.getTask(taskOne.getId()).subscribe(task -> {
+            assertThat(task.getId()).isEqualTo(taskOne.getId());
+            assertThat(task.getJobId()).isEqualTo(taskOne.getJobId());
             latch.countDown();
         });
         try {
-            latch.await(5, TimeUnit.SECONDS);
+            latch.await(1, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             fail("getTaskById Timeout ", e);
         }
@@ -48,31 +120,14 @@ public class TitusClientImplTest {
     @Test
     public void getJobById() {
         final CountDownLatch latch = new CountDownLatch(1);
-        titusClient.getJobById(JOB_ID).subscribe(job -> {
-            assertThat(job.getId()).isEqualTo(JOB_ID);
+        titusClient.getJobById(jobOne.getId()).subscribe(job -> {
+            assertThat(job.getId()).isEqualTo(jobOne.getId());
             latch.countDown();
         });
         try {
-            latch.await(5, TimeUnit.SECONDS);
+            latch.await(1, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             fail("getJobById Timeout ", e);
-        }
-    }
-
-    @Test
-    public void getRunningTasks() {
-        final CountDownLatch latch = new CountDownLatch(1);
-        final AtomicInteger tasksCount = new AtomicInteger(0);
-        titusClient.getRunningTasks().subscribe(task -> tasksCount.incrementAndGet(),
-                e -> fail("getRunningTasks exception {}", e),
-                () -> {
-                    latch.countDown();
-                    assertThat(tasksCount.get()).isGreaterThan(0);
-                });
-        try {
-            latch.await(5, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            fail("getRunningTasks Timeout ", e);
         }
     }
 
@@ -81,12 +136,13 @@ public class TitusClientImplTest {
         final CountDownLatch latch = new CountDownLatch(1);
         final AtomicInteger tasksCount = new AtomicInteger(0);
         titusClient.getTaskUpdates().subscribe(task -> {
-            if (tasksCount.incrementAndGet() == 10) {
+            if (tasksCount.incrementAndGet() == 5) {
                 latch.countDown();
             }
         }, e -> fail("getTaskUpdates exception {}", e));
         try {
-            latch.await(5, TimeUnit.SECONDS);
+            latch.await(1, TimeUnit.SECONDS);
+
         } catch (InterruptedException e) {
             fail("getTaskUpdates Timeout ", e);
         }

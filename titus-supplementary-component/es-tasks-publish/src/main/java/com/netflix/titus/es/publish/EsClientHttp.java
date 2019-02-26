@@ -91,17 +91,16 @@ public class EsClientHttp implements EsClient {
                 });
     }
 
+    @VisibleForTesting
     String buildEsUrl() {
-        if (esPublisherConfiguration.isLocalMode()) {
-            return "http://localhost:9200";
-        }
-        return String.format("http://es_titus_tasks_%s.%s.dynprod.netflix.net:7104", buildEsRegion(), esPublisherConfiguration.getRegion());
+        return String.format("http://%s:%s", esPublisherConfiguration.getGetTaskDocumentEsHostName(),
+                esPublisherConfiguration.getGetTaskDocumentEsPort());
     }
 
+    @VisibleForTesting
     String buildEsIndexNameCurrent() {
-        return String.format("%s%s_%s",
+        return String.format("%s%s",
                 esPublisherConfiguration.getTaskDocumentEsIndexName(),
-                buildEsRegion(),
                 indexDateFormat.format(new Date()));
 
     }
@@ -131,10 +130,6 @@ public class EsClientHttp implements EsClient {
             }
         });
         return sb.toString();
-    }
-
-    private String buildEsRegion() {
-        return esPublisherConfiguration.getRegion().replaceAll("-", "");
     }
 
     private HttpClient buildHttpClient() {
