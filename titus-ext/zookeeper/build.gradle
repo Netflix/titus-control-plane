@@ -17,6 +17,9 @@
 dependencies {
     compile project(':titus-server-master')
 
-    testCompile "com.101tec:zkclient:${zkVersion}"
+    // 'curator-test' must be pinned to this version (see https://curator.apache.org/zk-compatibility.html)
+    testCompile('org.apache.curator:curator-test:2.12.0') {
+        exclude group: 'org.apache.zookeeper', module: 'zookeeper'
+    }
     testCompile project(':titus-testkit')
 }
