@@ -26,7 +26,9 @@ import com.netflix.titus.gateway.service.v3.internal.DefaultHealthService;
 import com.netflix.titus.gateway.service.v3.internal.DefaultLoadBalancerService;
 import com.netflix.titus.gateway.service.v3.internal.DefaultSchedulerService;
 import com.netflix.titus.gateway.service.v3.internal.DefaultTitusManagementService;
+import com.netflix.titus.gateway.service.v3.internal.GatewayConfiguration;
 import com.netflix.titus.gateway.service.v3.internal.GatewayJobManagementClient;
+import com.netflix.titus.runtime.connector.ChannelTunablesConfiguration;
 import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
 import com.netflix.titus.runtime.connector.agent.AgentManagerConnectorModule;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
@@ -58,5 +60,17 @@ public class V3ServiceModule extends AbstractModule {
     @Singleton
     public JobManagerConfiguration getJobManagerConfiguration(ConfigProxyFactory factory) {
         return factory.newProxy(JobManagerConfiguration.class);
+    }
+
+    @Provides
+    @Singleton
+    public ChannelTunablesConfiguration getChannelTunablesConfiguration(ConfigProxyFactory factory) {
+        return factory.newProxy(ChannelTunablesConfiguration.class);
+    }
+
+    @Provides
+    @Singleton
+    public GatewayConfiguration getGatewayConfiguration(ConfigProxyFactory factory) {
+        return factory.newProxy(GatewayConfiguration.class);
     }
 }

@@ -14,34 +14,32 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.connector;
+package com.netflix.titus.runtime.connector.jobmanager;
 
+import javax.inject.Named;
+
+import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
-import com.netflix.titus.runtime.connector.common.reactor.DefaultGrpcToReactorClientFactory;
-import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorClientFactory;
-import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
+import com.netflix.titus.runtime.connector.ChannelTunablesConfiguration;
 import com.netflix.titus.runtime.connector.jobmanager.client.GrpcJobManagementClient;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
+import io.grpc.Channel;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.env.Environment;
 
 @Configuration
-public class MasterConnectorComponent {
+public class JobManagerConnectorComponent {
+
+    public static final String JOB_MANAGER_CHANNEL = "jobManagerChannel";
 
     @Bean
-    public GrpcClientConfiguration getGrpcClientConfiguration(Environment environment) {
-        return new GrpcClientConfigurationBean(environment);
+    public JobManagementServiceStub getJobManagementClientGrpcStub(final @Named(JOB_MANAGER_CHANNEL) Channel channel) {
+        return JobManagementServiceGrpc.newStub(channel);
     }
 
-    @Bean
-    public GrpcToReactorClientFactory getReactorGrpcClientAdapterFactory(GrpcClientConfiguration configuration,
-                                                                         CallMetadataResolver callMetadataResolver) {
-        return new DefaultGrpcToReactorClientFactory(configuration, callMetadataResolver);
-    }
 
     @Bean
-    public JobManagementClient getJobManagementClient(GrpcClientConfiguration configuration,
+    public JobManagementClient getJobManagementClient(ChannelTunablesConfiguration configuration,
                                                       JobManagementServiceStub clientStub,
                                                       CallMetadataResolver callMetadataResolver) {
         return new GrpcJobManagementClient(clientStub, callMetadataResolver, configuration);

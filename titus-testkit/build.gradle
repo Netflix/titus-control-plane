@@ -8,6 +8,7 @@ dependencies {
     compile "commons-cli:commons-cli:${apacheCommonsCliVersion}"
 
     compile "org.springframework.boot:spring-boot-starter-webflux:${springBootVersion}"
+    compile "org.springframework.boot:spring-boot-starter-web:${springBootVersion}"
 
     compile("com.netflix.governator:governator-jetty:${governatorVersion}") { transitive = false }
     compile "org.eclipse.jetty:jetty-servlet:${jettyVersion}"

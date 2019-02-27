@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,32 +14,17 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.connector;
+package com.netflix.titus.gateway.service.v3.internal;
 
 import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
 
-@Configuration(prefix = "titus.grpcClient")
-public interface GrpcClientConfiguration {
+@Configuration(prefix = "titusGateway")
+public interface GatewayConfiguration {
 
     /**
-     * GRPC server hostname.
+     * Maximum number of tasks in a page. This limit exists due to the GRPC buffer limits.
      */
-    @DefaultValue("localhost")
-    String getHostname();
-
-    /**
-     * GRPC server port number.
-     */
-    @DefaultValue("7004")
-    int getGrpcPort();
-
-    /**
-     * GRPC operation timeout.
-     *
-     * @deprecated Use {@link ChannelTunablesConfiguration} instead
-     */
-    @DefaultValue("10000")
-    @Deprecated
-    long getRequestTimeout();
+    @DefaultValue("5000")
+    int getMaxTaskPageSize();
 }

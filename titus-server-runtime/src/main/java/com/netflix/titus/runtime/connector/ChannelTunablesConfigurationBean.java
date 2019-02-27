@@ -16,31 +16,24 @@
 
 package com.netflix.titus.runtime.connector;
 
+import javax.inject.Inject;
+import javax.inject.Singleton;
+
 import com.netflix.titus.runtime.util.SpringConfigurationUtil;
 import org.springframework.core.env.Environment;
 
-public class GrpcClientConfigurationBean implements GrpcClientConfiguration {
-
-    private static final String PREFIX = "titus.grpcClient.";
+@Singleton
+public class ChannelTunablesConfigurationBean implements ChannelTunablesConfiguration {
 
     private final Environment environment;
 
-    public GrpcClientConfigurationBean(Environment environment) {
+    @Inject
+    public ChannelTunablesConfigurationBean(Environment environment) {
         this.environment = environment;
     }
 
     @Override
-    public String getHostname() {
-        return SpringConfigurationUtil.getString(environment, PREFIX + "hostname", "localhost");
-    }
-
-    @Override
-    public int getGrpcPort() {
-        return SpringConfigurationUtil.getInt(environment, PREFIX + "grpcPort", 7104);
-    }
-
-    @Override
     public long getRequestTimeout() {
-        return SpringConfigurationUtil.getLong(environment, PREFIX + "requestTimeout", 10000);
+        return SpringConfigurationUtil.getLong(environment, "titus.connector.channelTunables.requestTimeoutMs", 10_000);
     }
 }

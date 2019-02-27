@@ -91,8 +91,10 @@ public class JobTerminator {
 
     private boolean doTry(Set<String> jobIdsToRemove, Set<String> unknownJobs) {
         try {
-            Iterator<JobChangeNotification> it = context.getJobManagementClientBlocking()
-                    .observeJobs(ObserveJobsQuery.newBuilder().build());
+            Iterator<JobChangeNotification> it = context.getJobManagementClient()
+                    .observeJobs(ObserveJobsQuery.newBuilder().build())
+                    .toBlocking()
+                    .getIterator();
             while (it.hasNext()) {
                 JobChangeNotification event = it.next();
                 if (event.getNotificationCase() == JobChangeNotification.NotificationCase.SNAPSHOTEND) {

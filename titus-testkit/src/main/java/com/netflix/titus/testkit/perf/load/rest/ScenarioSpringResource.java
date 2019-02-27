@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,14 +25,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
-import javax.inject.Singleton;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import com.google.common.collect.ImmutableMap;
@@ -49,10 +43,16 @@ import com.netflix.titus.testkit.perf.load.runner.AgentTerminator;
 import com.netflix.titus.testkit.perf.load.runner.JobTerminator;
 import com.netflix.titus.testkit.perf.load.runner.Orchestrator;
 import com.netflix.titus.testkit.perf.load.runner.ScenarioRunner;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-@Path("/")
-@Singleton
-public class ScenarioResource {
+@RestController
+@RequestMapping(path = "/")
+public class ScenarioSpringResource {
 
     private static final Map<String, ScenarioRepresentation> SCENARIOS = ImmutableMap.<String, ScenarioRepresentation>builder()
             .put("empty", new ScenarioRepresentation(
@@ -82,23 +82,21 @@ public class ScenarioResource {
     private final JobTerminator jobTerminator;
 
     @Inject
-    public ScenarioResource(Orchestrator orchestrator,
-                            AgentTerminator agentTerminator,
-                            JobTerminator jobTerminator) {
+    public ScenarioSpringResource(Orchestrator orchestrator,
+                                  AgentTerminator agentTerminator,
+                                  JobTerminator jobTerminator) {
         this.orchestrator = orchestrator;
         this.agentTerminator = agentTerminator;
         this.jobTerminator = jobTerminator;
     }
 
-    @GET
-    @Path("/scenarios")
+    @RequestMapping(method = RequestMethod.GET, path = "/scenarios", produces = MediaType.APPLICATION_JSON)
     public List<ScenarioRepresentation> getScenarios() {
         return new ArrayList<>(SCENARIOS.values());
     }
 
-    @GET
-    @Path("/scenarios/{name}")
-    public ScenarioRepresentation getScenario(@QueryParam("name") String name) {
+    @RequestMapping(method = RequestMethod.GET, path = "/scenarios/{name}", produces = MediaType.APPLICATION_JSON)
+    public ScenarioRepresentation getScenario(@PathVariable("name") String name) {
         ScenarioRepresentation scenario = SCENARIOS.get(name);
         if (scenario == null) {
             throw new WebApplicationException(Response.Status.NOT_FOUND);
@@ -106,9 +104,8 @@ public class ScenarioResource {
         return scenario;
     }
 
-    @POST
-    @Path("/executions")
-    public Response startScenario(StartScenarioRequest request) throws URISyntaxException {
+    @RequestMapping(method = RequestMethod.POST, path = "/executions", consumes = MediaType.APPLICATION_JSON)
+    public Response startScenario(@RequestBody StartScenarioRequest request) throws URISyntaxException {
         String jobPlan = request.getJobPlan();
         JobExecutableGenerator jobExecutableGenerator;
 
@@ -144,17 +141,15 @@ public class ScenarioResource {
         return Response.created(new URI((runner.getScenarioExecutionId()))).build();
     }
 
-    @GET
-    @Path("/executions")
+    @RequestMapping(method = RequestMethod.GET, path = "/executions", produces = MediaType.APPLICATION_JSON)
     public List<ScenarioExecutionRepresentation> getScenarioExecutions() {
         return orchestrator.getScenarioRunners().values().stream()
-                .map(ScenarioResource::toRepresentation)
+                .map(ScenarioSpringResource::toRepresentation)
                 .collect(Collectors.toList());
     }
 
-    @GET
-    @Path("/executions/{id}")
-    public ScenarioExecutionRepresentation getScenarioExecutions(@PathParam("id") String id) {
+    @RequestMapping(method = RequestMethod.GET, path = "/executions/{id}", produces = MediaType.APPLICATION_JSON)
+    public ScenarioExecutionRepresentation getScenarioExecutions(@PathVariable("id") String id) {
         ScenarioRunner runner = orchestrator.getScenarioRunners().get(id);
         if (runner == null) {
             throw new WebApplicationException(Response.Status.NOT_FOUND);
@@ -162,9 +157,8 @@ public class ScenarioResource {
         return toRepresentation(runner);
     }
 
-    @DELETE
-    @Path("/executions/{id}")
-    public Response stopScenarioExecution(@PathParam("id") String id) {
+    @RequestMapping(method = RequestMethod.DELETE, path = "/executions/{id}")
+    public Response stopScenarioExecution(@PathVariable("id") String id) {
         ScenarioRunner runner = orchestrator.getScenarioRunners().get(id);
         if (runner == null) {
             throw new WebApplicationException(Response.Status.NOT_FOUND);
@@ -173,9 +167,8 @@ public class ScenarioResource {
         return Response.noContent().build();
     }
 
-    @DELETE
-    @Path("/executions")
-    public Response stopAllScenarios(@QueryParam("orphaned") boolean orphaned) {
+    @RequestMapping(method = RequestMethod.DELETE, path = "/executions")
+    public Response stopAllScenarios(@RequestParam(name = "orphaned", required = false) boolean orphaned) {
         orchestrator.getScenarioRunners().forEach((id, runner) -> orchestrator.stopScenarioExecution(id));
         if (orphaned) {
             jobTerminator.doClean();
@@ -183,15 +176,13 @@ public class ScenarioResource {
         return Response.noContent().build();
     }
 
-    @DELETE
-    @Path("/agents")
+    @RequestMapping(method = RequestMethod.DELETE, path = "/agents")
     public Response removeAllAgents() {
         agentTerminator.doClean();
         return Response.noContent().build();
     }
 
-    @GET
-    @Path("/report/metrics")
+    @RequestMapping(method = RequestMethod.GET, path = "/report/metrics", produces = MediaType.APPLICATION_JSON)
     public Map<String, Object> getMetrics() {
         MetricsCollector metrics = orchestrator.getMetricsCollector();
 

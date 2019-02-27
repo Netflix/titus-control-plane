@@ -17,11 +17,14 @@
 package com.netflix.titus.testkit.embedded;
 
 import com.google.common.base.Preconditions;
+import com.google.inject.AbstractModule;
+import com.netflix.governator.InjectorBuilder;
 import com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCell;
 import com.netflix.titus.testkit.embedded.cell.gateway.EmbeddedTitusGateway;
 import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMaster;
+import com.netflix.titus.testkit.embedded.cloud.EmbeddedCloudModule;
+import com.netflix.titus.testkit.embedded.cloud.SimulatedCloudConfiguration;
 import com.netflix.titus.testkit.embedded.federation.EmbeddedTitusFederation;
-import com.netflix.titus.testkit.perf.load.LoadGenerator;
 import com.netflix.titus.testkit.util.cli.CommandLineBuilder;
 import com.netflix.titus.testkit.util.cli.CommandLineFacade;
 import org.apache.commons.cli.Option;
@@ -30,7 +33,7 @@ import org.apache.log4j.PropertyConfigurator;
 public class EmbeddedTitusStackRunner {
 
     static {
-        PropertyConfigurator.configure(LoadGenerator.class.getClassLoader().getResource("embedded-log4j.properties"));
+        PropertyConfigurator.configure(EmbeddedTitusStackRunner.class.getClassLoader().getResource("embedded-log4j.properties"));
     }
 
     public static void main(String[] args) throws InterruptedException {
@@ -46,6 +49,21 @@ public class EmbeddedTitusStackRunner {
         if (cloudSimulatorHost != null) {
             int port = Preconditions.checkNotNull(cliFacade.getInt("p"), "cloud simulator port not provided (-p option) ");
             masterBuilder.withRemoteCloud(cloudSimulatorHost, port);
+        } else {
+            InjectorBuilder.fromModule(new EmbeddedCloudModule())
+                    .overrideWith(new AbstractModule() {
+                        @Override
+                        protected void configure() {
+                            bind(SimulatedCloudConfiguration.class).toInstance(new SimulatedCloudConfiguration() {
+                                @Override
+                                public int getGrpcPort() {
+                                    return 8093;
+                                }
+                            });
+                        }
+                    })
+                    .createInjector();
+            masterBuilder.withRemoteCloud("localhost", 8093);
         }
 
         EmbeddedTitusMaster titusMaster = masterBuilder.build();

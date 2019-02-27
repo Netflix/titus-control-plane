@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,30 +16,13 @@
 
 package com.netflix.titus.runtime.connector;
 
-import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
 
-@Configuration(prefix = "titus.grpcClient")
-public interface GrpcClientConfiguration {
-
-    /**
-     * GRPC server hostname.
-     */
-    @DefaultValue("localhost")
-    String getHostname();
-
-    /**
-     * GRPC server port number.
-     */
-    @DefaultValue("7004")
-    int getGrpcPort();
+public interface ChannelTunablesConfiguration {
 
     /**
      * GRPC operation timeout.
-     *
-     * @deprecated Use {@link ChannelTunablesConfiguration} instead
      */
     @DefaultValue("10000")
-    @Deprecated
     long getRequestTimeout();
 }
