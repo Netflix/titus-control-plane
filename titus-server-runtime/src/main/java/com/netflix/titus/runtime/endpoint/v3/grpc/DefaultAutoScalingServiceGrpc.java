@@ -36,7 +36,8 @@ import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.safeOnErro
 
 @Singleton
 public class DefaultAutoScalingServiceGrpc extends AutoScalingServiceGrpc.AutoScalingServiceImplBase {
-    private static Logger log = LoggerFactory.getLogger(DefaultAutoScalingServiceGrpc.class);
+    private static final Logger logger = LoggerFactory.getLogger(DefaultAutoScalingServiceGrpc.class);
+
     private final AutoScalingService autoScalingService;
 
     @Inject
@@ -49,7 +50,7 @@ public class DefaultAutoScalingServiceGrpc extends AutoScalingServiceGrpc.AutoSc
                                       io.grpc.stub.StreamObserver<com.netflix.titus.grpc.protogen.GetPolicyResult> responseObserver) {
         Subscription subscription = autoScalingService.getAllScalingPolicies().subscribe(
                 responseObserver::onNext,
-                e -> safeOnError(log, e, responseObserver),
+                e -> safeOnError(logger, e, responseObserver),
                 responseObserver::onCompleted
         );
 
@@ -61,7 +62,7 @@ public class DefaultAutoScalingServiceGrpc extends AutoScalingServiceGrpc.AutoSc
                                  io.grpc.stub.StreamObserver<com.netflix.titus.grpc.protogen.GetPolicyResult> responseObserver) {
         Subscription subscription = autoScalingService.getScalingPolicy(request).subscribe(
                 responseObserver::onNext,
-                e -> safeOnError(log, e, responseObserver),
+                e -> safeOnError(logger, e, responseObserver),
                 responseObserver::onCompleted
         );
         attachCancellingCallback(responseObserver, subscription);
@@ -69,11 +70,9 @@ public class DefaultAutoScalingServiceGrpc extends AutoScalingServiceGrpc.AutoSc
 
     @Override
     public void getJobScalingPolicies(JobId request, StreamObserver<GetPolicyResult> responseObserver) {
-        log.info("Gateway getAutoScalingPolicy (gRPC) with request {}", request);
-
         Subscription subscription = autoScalingService.getJobScalingPolicies(request).subscribe(
                 responseObserver::onNext,
-                e -> safeOnError(log, e, responseObserver),
+                e -> safeOnError(logger, e, responseObserver),
                 responseObserver::onCompleted
         );
         attachCancellingCallback(responseObserver, subscription);
@@ -84,7 +83,7 @@ public class DefaultAutoScalingServiceGrpc extends AutoScalingServiceGrpc.AutoSc
                                      io.grpc.stub.StreamObserver<com.netflix.titus.grpc.protogen.ScalingPolicyID> responseObserver) {
         Subscription subscription = autoScalingService.setAutoScalingPolicy(request).subscribe(
                 responseObserver::onNext,
-                e -> safeOnError(log, e, responseObserver),
+                e -> safeOnError(logger, e, responseObserver),
                 responseObserver::onCompleted
         );
         attachCancellingCallback(responseObserver, subscription);
@@ -98,7 +97,7 @@ public class DefaultAutoScalingServiceGrpc extends AutoScalingServiceGrpc.AutoSc
                     responseObserver.onNext(Empty.getDefaultInstance());
                     responseObserver.onCompleted();
                 },
-                e -> safeOnError(log, e, responseObserver)
+                e -> safeOnError(logger, e, responseObserver)
         );
         attachCancellingCallback(responseObserver, subscription);
     }
@@ -110,7 +109,7 @@ public class DefaultAutoScalingServiceGrpc extends AutoScalingServiceGrpc.AutoSc
                     responseObserver.onNext(Empty.getDefaultInstance());
                     responseObserver.onCompleted();
                 },
-                e -> safeOnError(log, e, responseObserver)
+                e -> safeOnError(logger, e, responseObserver)
         );
         attachCancellingCallback(responseObserver, subscription);
     }
