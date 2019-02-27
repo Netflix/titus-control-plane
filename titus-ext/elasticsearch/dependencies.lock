@@ -201,7 +201,6 @@
                 "io.opencensus:opencensus-api",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-jaxrs",
-                "org.apache.curator:curator-client",
                 "org.elasticsearch:elasticsearch",
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core",
@@ -611,7 +610,6 @@
         "commons-cli:commons-cli": {
             "locked": "1.3.1",
             "transitive": [
-                "org.apache.zookeeper:zookeeper",
                 "org.elasticsearch:elasticsearch"
             ]
         },
@@ -686,7 +684,6 @@
             "locked": "3.10.6.Final",
             "transitive": [
                 "com.twitter:finagle-core_2.11",
-                "org.apache.zookeeper:zookeeper",
                 "org.elasticsearch:elasticsearch"
             ]
         },
@@ -972,7 +969,6 @@
         "log4j:log4j": {
             "locked": "1.2.17",
             "transitive": [
-                "org.apache.zookeeper:zookeeper",
                 "org.slf4j:slf4j-log4j12"
             ]
         },
@@ -995,25 +991,6 @@
                 "io.swagger:swagger-core",
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core"
-            ]
-        },
-        "org.apache.curator:curator-client": {
-            "locked": "4.1.0",
-            "transitive": [
-                "org.apache.curator:curator-framework"
-            ]
-        },
-        "org.apache.curator:curator-framework": {
-            "locked": "4.1.0",
-            "transitive": [
-                "com.netflix.titus:titus-server-master",
-                "org.apache.curator:curator-recipes"
-            ]
-        },
-        "org.apache.curator:curator-recipes": {
-            "locked": "4.1.0",
-            "transitive": [
-                "com.netflix.titus:titus-server-master"
             ]
         },
         "org.apache.lucene:lucene-analyzers-common": {
@@ -1123,18 +1100,6 @@
             "transitive": [
                 "com.netflix.fenzo:fenzo-core",
                 "com.netflix.titus:titus-server-master"
-            ]
-        },
-        "org.apache.yetus:audience-annotations": {
-            "locked": "0.5.0",
-            "transitive": [
-                "org.apache.zookeeper:zookeeper"
-            ]
-        },
-        "org.apache.zookeeper:zookeeper": {
-            "locked": "3.5.4-beta",
-            "transitive": [
-                "org.apache.curator:curator-client"
             ]
         },
         "org.bouncycastle:bcmail-jdk15on": {
@@ -1369,8 +1334,6 @@
                 "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
-                "org.apache.curator:curator-client",
-                "org.apache.zookeeper:zookeeper",
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-logging",
@@ -1680,7 +1643,6 @@
                 "io.opencensus:opencensus-api",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-jaxrs",
-                "org.apache.curator:curator-client",
                 "org.elasticsearch:elasticsearch",
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core",
@@ -2090,7 +2052,6 @@
         "commons-cli:commons-cli": {
             "locked": "1.3.1",
             "transitive": [
-                "org.apache.zookeeper:zookeeper",
                 "org.elasticsearch:elasticsearch"
             ]
         },
@@ -2165,7 +2126,6 @@
             "locked": "3.10.6.Final",
             "transitive": [
                 "com.twitter:finagle-core_2.11",
-                "org.apache.zookeeper:zookeeper",
                 "org.elasticsearch:elasticsearch"
             ]
         },
@@ -2451,7 +2411,6 @@
         "log4j:log4j": {
             "locked": "1.2.17",
             "transitive": [
-                "org.apache.zookeeper:zookeeper",
                 "org.slf4j:slf4j-log4j12"
             ]
         },
@@ -2474,25 +2433,6 @@
                 "io.swagger:swagger-core",
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core"
-            ]
-        },
-        "org.apache.curator:curator-client": {
-            "locked": "4.1.0",
-            "transitive": [
-                "org.apache.curator:curator-framework"
-            ]
-        },
-        "org.apache.curator:curator-framework": {
-            "locked": "4.1.0",
-            "transitive": [
-                "com.netflix.titus:titus-server-master",
-                "org.apache.curator:curator-recipes"
-            ]
-        },
-        "org.apache.curator:curator-recipes": {
-            "locked": "4.1.0",
-            "transitive": [
-                "com.netflix.titus:titus-server-master"
             ]
         },
         "org.apache.lucene:lucene-analyzers-common": {
@@ -2602,18 +2542,6 @@
             "transitive": [
                 "com.netflix.fenzo:fenzo-core",
                 "com.netflix.titus:titus-server-master"
-            ]
-        },
-        "org.apache.yetus:audience-annotations": {
-            "locked": "0.5.0",
-            "transitive": [
-                "org.apache.zookeeper:zookeeper"
-            ]
-        },
-        "org.apache.zookeeper:zookeeper": {
-            "locked": "3.5.4-beta",
-            "transitive": [
-                "org.apache.curator:curator-client"
             ]
         },
         "org.bouncycastle:bcmail-jdk15on": {
@@ -2848,8 +2776,6 @@
                 "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
-                "org.apache.curator:curator-client",
-                "org.apache.zookeeper:zookeeper",
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-logging",
@@ -3159,7 +3085,6 @@
                 "io.opencensus:opencensus-api",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-jaxrs",
-                "org.apache.curator:curator-client",
                 "org.elasticsearch:elasticsearch",
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core",
@@ -3569,7 +3494,6 @@
         "commons-cli:commons-cli": {
             "locked": "1.3.1",
             "transitive": [
-                "org.apache.zookeeper:zookeeper",
                 "org.elasticsearch:elasticsearch"
             ]
         },
@@ -3644,7 +3568,6 @@
             "locked": "3.10.6.Final",
             "transitive": [
                 "com.twitter:finagle-core_2.11",
-                "org.apache.zookeeper:zookeeper",
                 "org.elasticsearch:elasticsearch"
             ]
         },
@@ -3930,7 +3853,6 @@
         "log4j:log4j": {
             "locked": "1.2.17",
             "transitive": [
-                "org.apache.zookeeper:zookeeper",
                 "org.slf4j:slf4j-log4j12"
             ]
         },
@@ -3953,25 +3875,6 @@
                 "io.swagger:swagger-core",
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core"
-            ]
-        },
-        "org.apache.curator:curator-client": {
-            "locked": "4.1.0",
-            "transitive": [
-                "org.apache.curator:curator-framework"
-            ]
-        },
-        "org.apache.curator:curator-framework": {
-            "locked": "4.1.0",
-            "transitive": [
-                "com.netflix.titus:titus-server-master",
-                "org.apache.curator:curator-recipes"
-            ]
-        },
-        "org.apache.curator:curator-recipes": {
-            "locked": "4.1.0",
-            "transitive": [
-                "com.netflix.titus:titus-server-master"
             ]
         },
         "org.apache.lucene:lucene-analyzers-common": {
@@ -4081,18 +3984,6 @@
             "transitive": [
                 "com.netflix.fenzo:fenzo-core",
                 "com.netflix.titus:titus-server-master"
-            ]
-        },
-        "org.apache.yetus:audience-annotations": {
-            "locked": "0.5.0",
-            "transitive": [
-                "org.apache.zookeeper:zookeeper"
-            ]
-        },
-        "org.apache.zookeeper:zookeeper": {
-            "locked": "3.5.4-beta",
-            "transitive": [
-                "org.apache.curator:curator-client"
             ]
         },
         "org.bouncycastle:bcmail-jdk15on": {
@@ -4327,8 +4218,6 @@
                 "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
-                "org.apache.curator:curator-client",
-                "org.apache.zookeeper:zookeeper",
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-logging",
@@ -4702,7 +4591,6 @@
                 "io.opencensus:opencensus-api",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-jaxrs",
-                "org.apache.curator:curator-client",
                 "org.elasticsearch:elasticsearch",
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core",
@@ -5112,7 +5000,6 @@
         "commons-cli:commons-cli": {
             "locked": "1.3.1",
             "transitive": [
-                "org.apache.zookeeper:zookeeper",
                 "org.elasticsearch:elasticsearch"
             ]
         },
@@ -5187,7 +5074,6 @@
             "locked": "3.10.6.Final",
             "transitive": [
                 "com.twitter:finagle-core_2.11",
-                "org.apache.zookeeper:zookeeper",
                 "org.elasticsearch:elasticsearch"
             ]
         },
@@ -5473,7 +5359,6 @@
         "log4j:log4j": {
             "locked": "1.2.17",
             "transitive": [
-                "org.apache.zookeeper:zookeeper",
                 "org.slf4j:slf4j-log4j12"
             ]
         },
@@ -5496,25 +5381,6 @@
                 "io.swagger:swagger-core",
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core"
-            ]
-        },
-        "org.apache.curator:curator-client": {
-            "locked": "4.1.0",
-            "transitive": [
-                "org.apache.curator:curator-framework"
-            ]
-        },
-        "org.apache.curator:curator-framework": {
-            "locked": "4.1.0",
-            "transitive": [
-                "com.netflix.titus:titus-server-master",
-                "org.apache.curator:curator-recipes"
-            ]
-        },
-        "org.apache.curator:curator-recipes": {
-            "locked": "4.1.0",
-            "transitive": [
-                "com.netflix.titus:titus-server-master"
             ]
         },
         "org.apache.lucene:lucene-analyzers-common": {
@@ -5624,18 +5490,6 @@
             "transitive": [
                 "com.netflix.fenzo:fenzo-core",
                 "com.netflix.titus:titus-server-master"
-            ]
-        },
-        "org.apache.yetus:audience-annotations": {
-            "locked": "0.5.0",
-            "transitive": [
-                "org.apache.zookeeper:zookeeper"
-            ]
-        },
-        "org.apache.zookeeper:zookeeper": {
-            "locked": "3.5.4-beta",
-            "transitive": [
-                "org.apache.curator:curator-client"
             ]
         },
         "org.bouncycastle:bcmail-jdk15on": {
@@ -5870,8 +5724,6 @@
                 "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
-                "org.apache.curator:curator-client",
-                "org.apache.zookeeper:zookeeper",
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-logging",
@@ -6182,7 +6034,6 @@
                 "io.opencensus:opencensus-api",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-jaxrs",
-                "org.apache.curator:curator-client",
                 "org.elasticsearch:elasticsearch",
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core",
@@ -6592,7 +6443,6 @@
         "commons-cli:commons-cli": {
             "locked": "1.3.1",
             "transitive": [
-                "org.apache.zookeeper:zookeeper",
                 "org.elasticsearch:elasticsearch"
             ]
         },
@@ -6667,7 +6517,6 @@
             "locked": "3.10.6.Final",
             "transitive": [
                 "com.twitter:finagle-core_2.11",
-                "org.apache.zookeeper:zookeeper",
                 "org.elasticsearch:elasticsearch"
             ]
         },
@@ -6953,7 +6802,6 @@
         "log4j:log4j": {
             "locked": "1.2.17",
             "transitive": [
-                "org.apache.zookeeper:zookeeper",
                 "org.slf4j:slf4j-log4j12"
             ]
         },
@@ -6976,25 +6824,6 @@
                 "io.swagger:swagger-core",
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core"
-            ]
-        },
-        "org.apache.curator:curator-client": {
-            "locked": "4.1.0",
-            "transitive": [
-                "org.apache.curator:curator-framework"
-            ]
-        },
-        "org.apache.curator:curator-framework": {
-            "locked": "4.1.0",
-            "transitive": [
-                "com.netflix.titus:titus-server-master",
-                "org.apache.curator:curator-recipes"
-            ]
-        },
-        "org.apache.curator:curator-recipes": {
-            "locked": "4.1.0",
-            "transitive": [
-                "com.netflix.titus:titus-server-master"
             ]
         },
         "org.apache.lucene:lucene-analyzers-common": {
@@ -7104,18 +6933,6 @@
             "transitive": [
                 "com.netflix.fenzo:fenzo-core",
                 "com.netflix.titus:titus-server-master"
-            ]
-        },
-        "org.apache.yetus:audience-annotations": {
-            "locked": "0.5.0",
-            "transitive": [
-                "org.apache.zookeeper:zookeeper"
-            ]
-        },
-        "org.apache.zookeeper:zookeeper": {
-            "locked": "3.5.4-beta",
-            "transitive": [
-                "org.apache.curator:curator-client"
             ]
         },
         "org.bouncycastle:bcmail-jdk15on": {
@@ -7350,8 +7167,6 @@
                 "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
-                "org.apache.curator:curator-client",
-                "org.apache.zookeeper:zookeeper",
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-logging",
@@ -7668,7 +7483,6 @@
                 "io.opencensus:opencensus-api",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-jaxrs",
-                "org.apache.curator:curator-client",
                 "org.elasticsearch:elasticsearch",
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core",
@@ -8082,7 +7896,6 @@
         "commons-cli:commons-cli": {
             "locked": "1.3.1",
             "transitive": [
-                "org.apache.zookeeper:zookeeper",
                 "org.elasticsearch:elasticsearch"
             ]
         },
@@ -8157,7 +7970,6 @@
             "locked": "3.10.6.Final",
             "transitive": [
                 "com.twitter:finagle-core_2.11",
-                "org.apache.zookeeper:zookeeper",
                 "org.elasticsearch:elasticsearch"
             ]
         },
@@ -8452,7 +8264,6 @@
         "log4j:log4j": {
             "locked": "1.2.17",
             "transitive": [
-                "org.apache.zookeeper:zookeeper",
                 "org.slf4j:slf4j-log4j12"
             ]
         },
@@ -8487,25 +8298,6 @@
                 "io.swagger:swagger-core",
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core"
-            ]
-        },
-        "org.apache.curator:curator-client": {
-            "locked": "4.1.0",
-            "transitive": [
-                "org.apache.curator:curator-framework"
-            ]
-        },
-        "org.apache.curator:curator-framework": {
-            "locked": "4.1.0",
-            "transitive": [
-                "com.netflix.titus:titus-server-master",
-                "org.apache.curator:curator-recipes"
-            ]
-        },
-        "org.apache.curator:curator-recipes": {
-            "locked": "4.1.0",
-            "transitive": [
-                "com.netflix.titus:titus-server-master"
             ]
         },
         "org.apache.lucene:lucene-analyzers-common": {
@@ -8615,18 +8407,6 @@
             "transitive": [
                 "com.netflix.fenzo:fenzo-core",
                 "com.netflix.titus:titus-server-master"
-            ]
-        },
-        "org.apache.yetus:audience-annotations": {
-            "locked": "0.5.0",
-            "transitive": [
-                "org.apache.zookeeper:zookeeper"
-            ]
-        },
-        "org.apache.zookeeper:zookeeper": {
-            "locked": "3.5.4-beta",
-            "transitive": [
-                "org.apache.curator:curator-client"
             ]
         },
         "org.assertj:assertj-core": {
@@ -8886,8 +8666,6 @@
                 "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
-                "org.apache.curator:curator-client",
-                "org.apache.zookeeper:zookeeper",
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-logging",
@@ -9203,7 +8981,6 @@
                 "io.opencensus:opencensus-api",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-jaxrs",
-                "org.apache.curator:curator-client",
                 "org.elasticsearch:elasticsearch",
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core",
@@ -9617,7 +9394,6 @@
         "commons-cli:commons-cli": {
             "locked": "1.3.1",
             "transitive": [
-                "org.apache.zookeeper:zookeeper",
                 "org.elasticsearch:elasticsearch"
             ]
         },
@@ -9692,7 +9468,6 @@
             "locked": "3.10.6.Final",
             "transitive": [
                 "com.twitter:finagle-core_2.11",
-                "org.apache.zookeeper:zookeeper",
                 "org.elasticsearch:elasticsearch"
             ]
         },
@@ -9987,7 +9762,6 @@
         "log4j:log4j": {
             "locked": "1.2.17",
             "transitive": [
-                "org.apache.zookeeper:zookeeper",
                 "org.slf4j:slf4j-log4j12"
             ]
         },
@@ -10022,25 +9796,6 @@
                 "io.swagger:swagger-core",
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core"
-            ]
-        },
-        "org.apache.curator:curator-client": {
-            "locked": "4.1.0",
-            "transitive": [
-                "org.apache.curator:curator-framework"
-            ]
-        },
-        "org.apache.curator:curator-framework": {
-            "locked": "4.1.0",
-            "transitive": [
-                "com.netflix.titus:titus-server-master",
-                "org.apache.curator:curator-recipes"
-            ]
-        },
-        "org.apache.curator:curator-recipes": {
-            "locked": "4.1.0",
-            "transitive": [
-                "com.netflix.titus:titus-server-master"
             ]
         },
         "org.apache.lucene:lucene-analyzers-common": {
@@ -10150,18 +9905,6 @@
             "transitive": [
                 "com.netflix.fenzo:fenzo-core",
                 "com.netflix.titus:titus-server-master"
-            ]
-        },
-        "org.apache.yetus:audience-annotations": {
-            "locked": "0.5.0",
-            "transitive": [
-                "org.apache.zookeeper:zookeeper"
-            ]
-        },
-        "org.apache.zookeeper:zookeeper": {
-            "locked": "3.5.4-beta",
-            "transitive": [
-                "org.apache.curator:curator-client"
             ]
         },
         "org.assertj:assertj-core": {
@@ -10421,8 +10164,6 @@
                 "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
-                "org.apache.curator:curator-client",
-                "org.apache.zookeeper:zookeeper",
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-logging",
@@ -10738,7 +10479,6 @@
                 "io.opencensus:opencensus-api",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-jaxrs",
-                "org.apache.curator:curator-client",
                 "org.elasticsearch:elasticsearch",
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core",
@@ -11152,7 +10892,6 @@
         "commons-cli:commons-cli": {
             "locked": "1.3.1",
             "transitive": [
-                "org.apache.zookeeper:zookeeper",
                 "org.elasticsearch:elasticsearch"
             ]
         },
@@ -11227,7 +10966,6 @@
             "locked": "3.10.6.Final",
             "transitive": [
                 "com.twitter:finagle-core_2.11",
-                "org.apache.zookeeper:zookeeper",
                 "org.elasticsearch:elasticsearch"
             ]
         },
@@ -11522,7 +11260,6 @@
         "log4j:log4j": {
             "locked": "1.2.17",
             "transitive": [
-                "org.apache.zookeeper:zookeeper",
                 "org.slf4j:slf4j-log4j12"
             ]
         },
@@ -11557,25 +11294,6 @@
                 "io.swagger:swagger-core",
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core"
-            ]
-        },
-        "org.apache.curator:curator-client": {
-            "locked": "4.1.0",
-            "transitive": [
-                "org.apache.curator:curator-framework"
-            ]
-        },
-        "org.apache.curator:curator-framework": {
-            "locked": "4.1.0",
-            "transitive": [
-                "com.netflix.titus:titus-server-master",
-                "org.apache.curator:curator-recipes"
-            ]
-        },
-        "org.apache.curator:curator-recipes": {
-            "locked": "4.1.0",
-            "transitive": [
-                "com.netflix.titus:titus-server-master"
             ]
         },
         "org.apache.lucene:lucene-analyzers-common": {
@@ -11685,18 +11403,6 @@
             "transitive": [
                 "com.netflix.fenzo:fenzo-core",
                 "com.netflix.titus:titus-server-master"
-            ]
-        },
-        "org.apache.yetus:audience-annotations": {
-            "locked": "0.5.0",
-            "transitive": [
-                "org.apache.zookeeper:zookeeper"
-            ]
-        },
-        "org.apache.zookeeper:zookeeper": {
-            "locked": "3.5.4-beta",
-            "transitive": [
-                "org.apache.curator:curator-client"
             ]
         },
         "org.assertj:assertj-core": {
@@ -11956,8 +11662,6 @@
                 "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
-                "org.apache.curator:curator-client",
-                "org.apache.zookeeper:zookeeper",
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-logging",
@@ -12274,7 +11978,6 @@
                 "io.opencensus:opencensus-api",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-jaxrs",
-                "org.apache.curator:curator-client",
                 "org.elasticsearch:elasticsearch",
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core",
@@ -12688,7 +12391,6 @@
         "commons-cli:commons-cli": {
             "locked": "1.3.1",
             "transitive": [
-                "org.apache.zookeeper:zookeeper",
                 "org.elasticsearch:elasticsearch"
             ]
         },
@@ -12763,7 +12465,6 @@
             "locked": "3.10.6.Final",
             "transitive": [
                 "com.twitter:finagle-core_2.11",
-                "org.apache.zookeeper:zookeeper",
                 "org.elasticsearch:elasticsearch"
             ]
         },
@@ -13058,7 +12759,6 @@
         "log4j:log4j": {
             "locked": "1.2.17",
             "transitive": [
-                "org.apache.zookeeper:zookeeper",
                 "org.slf4j:slf4j-log4j12"
             ]
         },
@@ -13093,25 +12793,6 @@
                 "io.swagger:swagger-core",
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core"
-            ]
-        },
-        "org.apache.curator:curator-client": {
-            "locked": "4.1.0",
-            "transitive": [
-                "org.apache.curator:curator-framework"
-            ]
-        },
-        "org.apache.curator:curator-framework": {
-            "locked": "4.1.0",
-            "transitive": [
-                "com.netflix.titus:titus-server-master",
-                "org.apache.curator:curator-recipes"
-            ]
-        },
-        "org.apache.curator:curator-recipes": {
-            "locked": "4.1.0",
-            "transitive": [
-                "com.netflix.titus:titus-server-master"
             ]
         },
         "org.apache.lucene:lucene-analyzers-common": {
@@ -13221,18 +12902,6 @@
             "transitive": [
                 "com.netflix.fenzo:fenzo-core",
                 "com.netflix.titus:titus-server-master"
-            ]
-        },
-        "org.apache.yetus:audience-annotations": {
-            "locked": "0.5.0",
-            "transitive": [
-                "org.apache.zookeeper:zookeeper"
-            ]
-        },
-        "org.apache.zookeeper:zookeeper": {
-            "locked": "3.5.4-beta",
-            "transitive": [
-                "org.apache.curator:curator-client"
             ]
         },
         "org.assertj:assertj-core": {
@@ -13492,8 +13161,6 @@
                 "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
-                "org.apache.curator:curator-client",
-                "org.apache.zookeeper:zookeeper",
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-logging",

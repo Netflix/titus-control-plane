@@ -33,8 +33,8 @@ import com.netflix.titus.master.supervisor.service.LeaderActivator;
 import com.netflix.titus.master.supervisor.service.MasterDescription;
 import com.netflix.titus.testkit.junit.category.IntegrationNotParallelizableTest;
 import com.netflix.titus.testkit.junit.resource.CloseableExternalResource;
+import org.apache.curator.CuratorConnectionLossException;
 import org.apache.curator.framework.CuratorFramework;
-import org.apache.zookeeper.KeeperException;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -84,7 +84,7 @@ public class ZookeeperLeaderElectorTest {
             elector.join();
             fail("The elector should fail fast");
         } catch (IllegalStateException e) {
-            assertEquals("The cause should be from ZK connection failure", KeeperException.ConnectionLossException.class, e.getCause().getClass());
+            assertEquals("The cause should be from ZK connection failure", CuratorConnectionLossException.class, e.getCause().getClass());
             assertTrue("The error message is unexpected: " + e.getMessage(), e.getCause().getMessage().contains("ConnectionLoss"));
         }
     }

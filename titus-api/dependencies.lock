@@ -3172,7 +3172,6 @@
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-jaxrs",
                 "org.apache.cassandra:cassandra-all",
-                "org.apache.curator:curator-client",
                 "org.caffinitas.ohc:ohc-core",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-client-java",
@@ -3646,8 +3645,7 @@
             "transitive": [
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-testkit",
-                "org.apache.cassandra:cassandra-all",
-                "org.apache.zookeeper:zookeeper"
+                "org.apache.cassandra:cassandra-all"
             ]
         },
         "commons-codec:commons-codec": {
@@ -3741,10 +3739,9 @@
             ]
         },
         "io.netty:netty": {
-            "locked": "3.10.6.Final",
+            "locked": "3.10.1.Final",
             "transitive": [
-                "com.twitter:finagle-core_2.11",
-                "org.apache.zookeeper:zookeeper"
+                "com.twitter:finagle-core_2.11"
             ]
         },
         "io.netty:netty-buffer": {
@@ -4061,7 +4058,6 @@
         "log4j:log4j": {
             "locked": "1.2.17",
             "transitive": [
-                "org.apache.zookeeper:zookeeper",
                 "org.slf4j:slf4j-log4j12"
             ]
         },
@@ -4160,25 +4156,6 @@
                 "org.apache.cassandra:cassandra-all"
             ]
         },
-        "org.apache.curator:curator-client": {
-            "locked": "4.1.0",
-            "transitive": [
-                "org.apache.curator:curator-framework"
-            ]
-        },
-        "org.apache.curator:curator-framework": {
-            "locked": "4.1.0",
-            "transitive": [
-                "com.netflix.titus:titus-server-master",
-                "org.apache.curator:curator-recipes"
-            ]
-        },
-        "org.apache.curator:curator-recipes": {
-            "locked": "4.1.0",
-            "transitive": [
-                "com.netflix.titus:titus-server-master"
-            ]
-        },
         "org.apache.logging.log4j:log4j-api": {
             "locked": "2.11.2",
             "transitive": [
@@ -4204,18 +4181,6 @@
                 "com.thinkaurelius.thrift:thrift-server",
                 "org.apache.cassandra:cassandra-all",
                 "org.apache.cassandra:cassandra-thrift"
-            ]
-        },
-        "org.apache.yetus:audience-annotations": {
-            "locked": "0.5.0",
-            "transitive": [
-                "org.apache.zookeeper:zookeeper"
-            ]
-        },
-        "org.apache.zookeeper:zookeeper": {
-            "locked": "3.5.4-beta",
-            "transitive": [
-                "org.apache.curator:curator-client"
             ]
         },
         "org.assertj:assertj-core": {
@@ -4586,10 +4551,8 @@
                 "io.swagger:swagger-models",
                 "org.apache.cassandra:cassandra-all",
                 "org.apache.cassandra:cassandra-thrift",
-                "org.apache.curator:curator-client",
                 "org.apache.logging.log4j:log4j-to-slf4j",
                 "org.apache.thrift:libthrift",
-                "org.apache.zookeeper:zookeeper",
                 "org.caffinitas.ohc:ohc-core",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-client-java",
@@ -5071,7 +5034,6 @@
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-jaxrs",
                 "org.apache.cassandra:cassandra-all",
-                "org.apache.curator:curator-client",
                 "org.caffinitas.ohc:ohc-core",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-client-java",
@@ -5545,8 +5507,7 @@
             "transitive": [
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-testkit",
-                "org.apache.cassandra:cassandra-all",
-                "org.apache.zookeeper:zookeeper"
+                "org.apache.cassandra:cassandra-all"
             ]
         },
         "commons-codec:commons-codec": {
@@ -5640,10 +5601,9 @@
             ]
         },
         "io.netty:netty": {
-            "locked": "3.10.6.Final",
+            "locked": "3.10.1.Final",
             "transitive": [
-                "com.twitter:finagle-core_2.11",
-                "org.apache.zookeeper:zookeeper"
+                "com.twitter:finagle-core_2.11"
             ]
         },
         "io.netty:netty-buffer": {
@@ -5960,7 +5920,6 @@
         "log4j:log4j": {
             "locked": "1.2.17",
             "transitive": [
-                "org.apache.zookeeper:zookeeper",
                 "org.slf4j:slf4j-log4j12"
             ]
         },
@@ -6059,25 +6018,6 @@
                 "org.apache.cassandra:cassandra-all"
             ]
         },
-        "org.apache.curator:curator-client": {
-            "locked": "4.1.0",
-            "transitive": [
-                "org.apache.curator:curator-framework"
-            ]
-        },
-        "org.apache.curator:curator-framework": {
-            "locked": "4.1.0",
-            "transitive": [
-                "com.netflix.titus:titus-server-master",
-                "org.apache.curator:curator-recipes"
-            ]
-        },
-        "org.apache.curator:curator-recipes": {
-            "locked": "4.1.0",
-            "transitive": [
-                "com.netflix.titus:titus-server-master"
-            ]
-        },
         "org.apache.logging.log4j:log4j-api": {
             "locked": "2.11.2",
             "transitive": [
@@ -6103,18 +6043,6 @@
                 "com.thinkaurelius.thrift:thrift-server",
                 "org.apache.cassandra:cassandra-all",
                 "org.apache.cassandra:cassandra-thrift"
-            ]
-        },
-        "org.apache.yetus:audience-annotations": {
-            "locked": "0.5.0",
-            "transitive": [
-                "org.apache.zookeeper:zookeeper"
-            ]
-        },
-        "org.apache.zookeeper:zookeeper": {
-            "locked": "3.5.4-beta",
-            "transitive": [
-                "org.apache.curator:curator-client"
             ]
         },
         "org.assertj:assertj-core": {
@@ -6485,10 +6413,8 @@
                 "io.swagger:swagger-models",
                 "org.apache.cassandra:cassandra-all",
                 "org.apache.cassandra:cassandra-thrift",
-                "org.apache.curator:curator-client",
                 "org.apache.logging.log4j:log4j-to-slf4j",
                 "org.apache.thrift:libthrift",
-                "org.apache.zookeeper:zookeeper",
                 "org.caffinitas.ohc:ohc-core",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-client-java",
@@ -6970,7 +6896,6 @@
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-jaxrs",
                 "org.apache.cassandra:cassandra-all",
-                "org.apache.curator:curator-client",
                 "org.caffinitas.ohc:ohc-core",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-client-java",
@@ -7444,8 +7369,7 @@
             "transitive": [
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-testkit",
-                "org.apache.cassandra:cassandra-all",
-                "org.apache.zookeeper:zookeeper"
+                "org.apache.cassandra:cassandra-all"
             ]
         },
         "commons-codec:commons-codec": {
@@ -7539,10 +7463,9 @@
             ]
         },
         "io.netty:netty": {
-            "locked": "3.10.6.Final",
+            "locked": "3.10.1.Final",
             "transitive": [
-                "com.twitter:finagle-core_2.11",
-                "org.apache.zookeeper:zookeeper"
+                "com.twitter:finagle-core_2.11"
             ]
         },
         "io.netty:netty-buffer": {
@@ -7859,7 +7782,6 @@
         "log4j:log4j": {
             "locked": "1.2.17",
             "transitive": [
-                "org.apache.zookeeper:zookeeper",
                 "org.slf4j:slf4j-log4j12"
             ]
         },
@@ -7958,25 +7880,6 @@
                 "org.apache.cassandra:cassandra-all"
             ]
         },
-        "org.apache.curator:curator-client": {
-            "locked": "4.1.0",
-            "transitive": [
-                "org.apache.curator:curator-framework"
-            ]
-        },
-        "org.apache.curator:curator-framework": {
-            "locked": "4.1.0",
-            "transitive": [
-                "com.netflix.titus:titus-server-master",
-                "org.apache.curator:curator-recipes"
-            ]
-        },
-        "org.apache.curator:curator-recipes": {
-            "locked": "4.1.0",
-            "transitive": [
-                "com.netflix.titus:titus-server-master"
-            ]
-        },
         "org.apache.logging.log4j:log4j-api": {
             "locked": "2.11.2",
             "transitive": [
@@ -8002,18 +7905,6 @@
                 "com.thinkaurelius.thrift:thrift-server",
                 "org.apache.cassandra:cassandra-all",
                 "org.apache.cassandra:cassandra-thrift"
-            ]
-        },
-        "org.apache.yetus:audience-annotations": {
-            "locked": "0.5.0",
-            "transitive": [
-                "org.apache.zookeeper:zookeeper"
-            ]
-        },
-        "org.apache.zookeeper:zookeeper": {
-            "locked": "3.5.4-beta",
-            "transitive": [
-                "org.apache.curator:curator-client"
             ]
         },
         "org.assertj:assertj-core": {
@@ -8384,10 +8275,8 @@
                 "io.swagger:swagger-models",
                 "org.apache.cassandra:cassandra-all",
                 "org.apache.cassandra:cassandra-thrift",
-                "org.apache.curator:curator-client",
                 "org.apache.logging.log4j:log4j-to-slf4j",
                 "org.apache.thrift:libthrift",
-                "org.apache.zookeeper:zookeeper",
                 "org.caffinitas.ohc:ohc-core",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-client-java",
@@ -8870,7 +8759,6 @@
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-jaxrs",
                 "org.apache.cassandra:cassandra-all",
-                "org.apache.curator:curator-client",
                 "org.caffinitas.ohc:ohc-core",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-client-java",
@@ -9344,8 +9232,7 @@
             "transitive": [
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-testkit",
-                "org.apache.cassandra:cassandra-all",
-                "org.apache.zookeeper:zookeeper"
+                "org.apache.cassandra:cassandra-all"
             ]
         },
         "commons-codec:commons-codec": {
@@ -9439,10 +9326,9 @@
             ]
         },
         "io.netty:netty": {
-            "locked": "3.10.6.Final",
+            "locked": "3.10.1.Final",
             "transitive": [
-                "com.twitter:finagle-core_2.11",
-                "org.apache.zookeeper:zookeeper"
+                "com.twitter:finagle-core_2.11"
             ]
         },
         "io.netty:netty-buffer": {
@@ -9759,7 +9645,6 @@
         "log4j:log4j": {
             "locked": "1.2.17",
             "transitive": [
-                "org.apache.zookeeper:zookeeper",
                 "org.slf4j:slf4j-log4j12"
             ]
         },
@@ -9858,25 +9743,6 @@
                 "org.apache.cassandra:cassandra-all"
             ]
         },
-        "org.apache.curator:curator-client": {
-            "locked": "4.1.0",
-            "transitive": [
-                "org.apache.curator:curator-framework"
-            ]
-        },
-        "org.apache.curator:curator-framework": {
-            "locked": "4.1.0",
-            "transitive": [
-                "com.netflix.titus:titus-server-master",
-                "org.apache.curator:curator-recipes"
-            ]
-        },
-        "org.apache.curator:curator-recipes": {
-            "locked": "4.1.0",
-            "transitive": [
-                "com.netflix.titus:titus-server-master"
-            ]
-        },
         "org.apache.logging.log4j:log4j-api": {
             "locked": "2.11.2",
             "transitive": [
@@ -9902,18 +9768,6 @@
                 "com.thinkaurelius.thrift:thrift-server",
                 "org.apache.cassandra:cassandra-all",
                 "org.apache.cassandra:cassandra-thrift"
-            ]
-        },
-        "org.apache.yetus:audience-annotations": {
-            "locked": "0.5.0",
-            "transitive": [
-                "org.apache.zookeeper:zookeeper"
-            ]
-        },
-        "org.apache.zookeeper:zookeeper": {
-            "locked": "3.5.4-beta",
-            "transitive": [
-                "org.apache.curator:curator-client"
             ]
         },
         "org.assertj:assertj-core": {
@@ -10284,10 +10138,8 @@
                 "io.swagger:swagger-models",
                 "org.apache.cassandra:cassandra-all",
                 "org.apache.cassandra:cassandra-thrift",
-                "org.apache.curator:curator-client",
                 "org.apache.logging.log4j:log4j-to-slf4j",
                 "org.apache.thrift:libthrift",
-                "org.apache.zookeeper:zookeeper",
                 "org.caffinitas.ohc:ohc-core",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-client-java",
