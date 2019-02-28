@@ -65,7 +65,7 @@ subprojects {
         jacksonVersion = '2.9.+'
         slf4jVersion = '1.7.0'
         cliParserVersion = '1.1.1'
-        curatorVersion = '2.11.0'
+        curatorVersion = '4.+'
         governatorVersion = '1.15.+'
         jettyVersion = '9.2.12.v20150709'
         jerseyVersion = '1.19.1'
@@ -79,7 +79,6 @@ subprojects {
         googleTruthVersion = '0.34' // pinned to avoid a transitive dependency on guava > 20.x
         swaggerVersion = '1.5.12'
         jsonVersion = '20140107'
-        zkVersion = '0.4'
         guiceVersion = '4.1.+'
         hibernateValidatorVersion = '5.4.+'
         runtimeHealthVersion = '1.1.+'

@@ -139,7 +139,7 @@ public class DefaultAgentManagementService implements AgentManagementService {
 
     @Override
     public Completable updateInstanceGroupTier(String instanceGroupId, Tier tier) {
-        return agentCache.getAndUpdateInstanceGroupStore(
+        return agentCache.updateInstanceGroupStore(
                 instanceGroupId,
                 instanceGroup -> instanceGroup.toBuilder().withTier(tier).build()
         ).toCompletable();
@@ -147,7 +147,7 @@ public class DefaultAgentManagementService implements AgentManagementService {
 
     @Override
     public Completable updateInstanceGroupLifecycle(String instanceGroupId, InstanceGroupLifecycleStatus instanceGroupLifecycleStatus) {
-        return agentCache.getAndUpdateInstanceGroupStore(
+        return agentCache.updateInstanceGroupStore(
                 instanceGroupId,
                 instanceGroup -> instanceGroup.toBuilder().withLifecycleStatus(instanceGroupLifecycleStatus).build()
         ).flatMapCompletable(instanceGroup -> {
@@ -161,7 +161,7 @@ public class DefaultAgentManagementService implements AgentManagementService {
 
     @Override
     public Completable updateInstanceGroupAttributes(String instanceGroupId, Map<String, String> attributes) {
-        return agentCache.getAndUpdateInstanceGroupStore(
+        return agentCache.updateInstanceGroupStore(
                 instanceGroupId,
                 instanceGroup -> {
                     Map<String, String> updatedAttributes = CollectionsExt.merge(instanceGroup.getAttributes(), attributes);
@@ -171,8 +171,8 @@ public class DefaultAgentManagementService implements AgentManagementService {
     }
 
     @Override
-    public Completable deleteInstanceGroupAttributes(String instanceGroupId, List<String> keys) {
-        return agentCache.getAndUpdateInstanceGroupStore(
+    public Completable deleteInstanceGroupAttributes(String instanceGroupId, Set<String> keys) {
+        return agentCache.updateInstanceGroupStore(
                 instanceGroupId,
                 instanceGroup -> {
                     Map<String, String> updatedAttributes = CollectionsExt.copyAndRemove(instanceGroup.getAttributes(), keys);
@@ -183,7 +183,7 @@ public class DefaultAgentManagementService implements AgentManagementService {
 
     @Override
     public Completable updateAgentInstanceAttributes(String instanceId, Map<String, String> attributes) {
-        return agentCache.getAndUpdateAgentInstanceStore(
+        return agentCache.updateAgentInstanceStore(
                 instanceId,
                 agentInstance -> {
                     Map<String, String> updatedAttributes = CollectionsExt.merge(agentInstance.getAttributes(), attributes);
@@ -193,8 +193,8 @@ public class DefaultAgentManagementService implements AgentManagementService {
     }
 
     @Override
-    public Completable deleteAgentInstanceAttributes(String instanceId, List<String> keys) {
-        return agentCache.getAndUpdateAgentInstanceStore(
+    public Completable deleteAgentInstanceAttributes(String instanceId, Set<String> keys) {
+        return agentCache.updateAgentInstanceStore(
                 instanceId,
                 agentInstance -> {
                     Map<String, String> updatedAttributes = CollectionsExt.copyAndRemove(agentInstance.getAttributes(), keys);
@@ -227,7 +227,7 @@ public class DefaultAgentManagementService implements AgentManagementService {
         return Observable.fromCallable(() -> agentCache.getInstanceGroup(instanceGroupId))
                 .flatMap(instanceGroup -> {
                             Completable cloudUpdate = instanceCloudConnector.scaleUp(instanceGroup.getId(), scaleUpCount);
-                            Completable cacheUpdate = agentCache.getAndUpdateInstanceGroupStoreAndSyncCloud(
+                            Completable cacheUpdate = agentCache.updateInstanceGroupStoreAndSyncCloud(
                                     instanceGroup.getId(),
                                     ig -> ig.toBuilder().withDesired(ig.getDesired() + scaleUpCount).build()
                             ).toCompletable();
@@ -309,7 +309,7 @@ public class DefaultAgentManagementService implements AgentManagementService {
     private Completable internalUpdateCapacity(AgentInstanceGroup instanceGroup, Optional<Integer> min, Optional<Integer> desired) {
         Completable cloudUpdate = instanceCloudConnector.updateCapacity(instanceGroup.getId(), min, desired);
 
-        Completable cacheUpdate = agentCache.getAndUpdateInstanceGroupStoreAndSyncCloud(instanceGroup.getId(), ig -> {
+        Completable cacheUpdate = agentCache.updateInstanceGroupStoreAndSyncCloud(instanceGroup.getId(), ig -> {
             AgentInstanceGroup.Builder builder = ig.toBuilder();
             min.ifPresent(builder::withMin);
             desired.ifPresent(builder::withDesired);

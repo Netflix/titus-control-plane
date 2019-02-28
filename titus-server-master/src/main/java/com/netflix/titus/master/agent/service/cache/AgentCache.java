@@ -40,17 +40,11 @@ public interface AgentCache {
 
     Optional<AgentInstance> findAgentInstance(String instanceId);
 
-    Completable updateInstanceGroupStore(AgentInstanceGroup instanceGroup);
+    Single<AgentInstanceGroup> updateInstanceGroupStore(String instanceGroupId, Function<AgentInstanceGroup, AgentInstanceGroup> function);
 
-    Completable updateInstanceGroupStoreAndSyncCloud(AgentInstanceGroup instanceGroup);
+    Single<AgentInstanceGroup> updateInstanceGroupStoreAndSyncCloud(String instanceGroupId, Function<AgentInstanceGroup, AgentInstanceGroup> function);
 
-    Completable updateAgentInstanceStore(AgentInstance agentInstance);
-
-    Single<AgentInstanceGroup> getAndUpdateInstanceGroupStore(String instanceGroupId, Function<AgentInstanceGroup, AgentInstanceGroup> function);
-
-    Single<AgentInstanceGroup> getAndUpdateInstanceGroupStoreAndSyncCloud(String instanceGroupId, Function<AgentInstanceGroup, AgentInstanceGroup> function);
-
-    Single<AgentInstance> getAndUpdateAgentInstanceStore(String instanceId, Function<AgentInstance, AgentInstance> function);
+    Single<AgentInstance> updateAgentInstanceStore(String instanceId, Function<AgentInstance, AgentInstance> function);
 
     Completable removeInstances(String instanceGroupId, Set<String> agentInstanceIds);
 

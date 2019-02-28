@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Optional;
 
 import com.netflix.titus.api.jobmanager.TaskAttributes;
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -158,7 +159,7 @@ public class GrpcJobReplicatorEventStreamTest {
                             .haveExactly(1, new Condition<>(t -> t.getId().equals(task.getId()), "found the task"));
                 })
                 .then(() -> dataGenerator.getJobOperations()
-                        .moveServiceTask(sourceJobId, targetJobId, task.getId())
+                        .moveServiceTask(sourceJobId, targetJobId, task.getId(), CallMetadata.newBuilder().withCallerId("Test").withCallReason("testing").build())
                         .test()
                         .awaitTerminalEvent()
                         .assertNoErrors()

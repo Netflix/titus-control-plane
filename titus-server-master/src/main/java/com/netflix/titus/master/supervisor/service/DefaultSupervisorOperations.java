@@ -38,7 +38,7 @@ import com.netflix.titus.master.supervisor.model.MasterState;
 import com.netflix.titus.master.supervisor.model.event.MasterInstanceRemovedEvent;
 import com.netflix.titus.master.supervisor.model.event.MasterInstanceUpdateEvent;
 import com.netflix.titus.master.supervisor.model.event.SupervisorEvent;
-import com.netflix.titus.runtime.endpoint.metadata.CallMetadata;
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

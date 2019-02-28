@@ -16,8 +16,8 @@
 
 package com.netflix.titus.gateway.endpoint.v3.rest;
 
-import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
@@ -27,7 +27,6 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
@@ -36,6 +35,7 @@ import javax.ws.rs.core.UriInfo;
 
 import com.google.common.base.Strings;
 import com.netflix.titus.api.service.TitusServiceException;
+import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.gateway.endpoint.v3.rest.representation.TierWrapper;
 import com.netflix.titus.grpc.protogen.AgentInstance;
 import com.netflix.titus.grpc.protogen.AgentInstanceAttributesUpdate;
@@ -45,10 +45,11 @@ import com.netflix.titus.grpc.protogen.AgentInstances;
 import com.netflix.titus.grpc.protogen.AgentQuery;
 import com.netflix.titus.grpc.protogen.DeleteAgentInstanceAttributesRequest;
 import com.netflix.titus.grpc.protogen.DeleteInstanceGroupAttributesRequest;
+import com.netflix.titus.grpc.protogen.Id;
 import com.netflix.titus.grpc.protogen.InstanceGroupAttributesUpdate;
 import com.netflix.titus.grpc.protogen.InstanceGroupLifecycleStateUpdate;
 import com.netflix.titus.grpc.protogen.TierUpdate;
-import com.netflix.titus.runtime.connector.agent.AgentManagementClient;
+import com.netflix.titus.runtime.connector.agent.ReactorAgentManagementServiceStub;
 import com.netflix.titus.runtime.endpoint.common.rest.Responses;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcAgentModelConverters;
 import io.swagger.annotations.Api;
@@ -65,10 +66,10 @@ import static com.netflix.titus.runtime.endpoint.v3.rest.RestUtil.getFilteringCr
 @Singleton
 public class AgentManagementResource {
 
-    private final AgentManagementClient agentManagementService;
+    private final ReactorAgentManagementServiceStub agentManagementService;
 
     @Inject
-    public AgentManagementResource(AgentManagementClient agentManagementService) {
+    public AgentManagementResource(ReactorAgentManagementServiceStub agentManagementService) {
         this.agentManagementService = agentManagementService;
     }
 
@@ -76,21 +77,21 @@ public class AgentManagementResource {
     @ApiOperation("Get all agent instance groups")
     @Path("/instanceGroups")
     public AgentInstanceGroups getInstanceGroups() {
-        return Responses.fromSingleValueObservable(agentManagementService.getInstanceGroups());
+        return Responses.fromMono(agentManagementService.getInstanceGroups());
     }
 
     @GET
     @ApiOperation("Get an agent instance group with the given id")
     @Path("/instanceGroups/{id}")
     public AgentInstanceGroup getInstanceGroup(@PathParam("id") String id) {
-        return Responses.fromSingleValueObservable(agentManagementService.getInstanceGroup(id));
+        return Responses.fromMono(agentManagementService.getInstanceGroup(Id.newBuilder().setId(id).build()));
     }
 
     @GET
     @ApiOperation("Get an agent instance with the given id")
     @Path("/instances/{id}")
     public AgentInstance getAgentInstance(@PathParam("id") String id) {
-        return Responses.fromSingleValueObservable(agentManagementService.getAgentInstance(id));
+        return Responses.fromMono(agentManagementService.getAgentInstance(Id.newBuilder().setId(id).build()));
     }
 
     @GET
@@ -102,7 +103,7 @@ public class AgentManagementResource {
         queryBuilder.setPage(createPage(queryParameters));
         queryBuilder.putAllFilteringCriteria(getFilteringCriteria(queryParameters));
         queryBuilder.addAllFields(getFieldsParameter(queryParameters));
-        return Responses.fromSingleValueObservable(agentManagementService.findAgentInstances(queryBuilder.build()));
+        return Responses.fromMono(agentManagementService.findAgentInstances(queryBuilder.build()));
     }
 
     @PUT
@@ -113,20 +114,20 @@ public class AgentManagementResource {
                 .setInstanceGroupId(instanceGroupId)
                 .setTier(GrpcAgentModelConverters.toGrpcTier(tierWrapper.getTier()))
                 .build();
-        return Responses.fromCompletable(agentManagementService.updateInstanceGroupTier(tierUpdate));
+        return Responses.fromVoidMono(agentManagementService.updateInstanceGroupTier(tierUpdate));
     }
 
     @PUT
     @ApiOperation("Update instance group lifecycle configuration")
     @Path("/instanceGroups/{id}/lifecycle")
     public Response updateInstanceGroupLifecycle(InstanceGroupLifecycleStateUpdate lifecycleStateUpdate) {
-        return Responses.fromCompletable(agentManagementService.updateInstanceGroupLifecycle(lifecycleStateUpdate));
+        return Responses.fromVoidMono(agentManagementService.updateInstanceGroupLifecycleState(lifecycleStateUpdate));
     }
 
     @PUT
     @ApiOperation("Update instance group attributes")
     @Path("/instanceGroups/{id}/attributes")
-    public Response updateInstanceGroupLifecycle(@PathParam("id") String instanceGroupId, InstanceGroupAttributesUpdate attributesUpdate) {
+    public Response updateInstanceGroupAttributes(@PathParam("id") String instanceGroupId, InstanceGroupAttributesUpdate attributesUpdate) {
         if (Strings.isNullOrEmpty(attributesUpdate.getInstanceGroupId())) {
             attributesUpdate = attributesUpdate.toBuilder().setInstanceGroupId(instanceGroupId).build();
         } else if (!Objects.equals(instanceGroupId, attributesUpdate.getInstanceGroupId())) {
@@ -134,19 +135,27 @@ public class AgentManagementResource {
                     + attributesUpdate.getInstanceGroupId());
         }
 
-        return Responses.fromCompletable(agentManagementService.updateInstanceGroupAttributes(attributesUpdate));
+        return Responses.fromVoidMono(agentManagementService.updateInstanceGroupAttributes(attributesUpdate));
     }
 
     @DELETE
-    @ApiOperation("Delete attributes of an instance group with the specified key names")
+    @ApiOperation("Delete instance group attributes")
     @Path("/instanceGroups/{id}/attributes")
-    public Response deleteTaskAttributes(@PathParam("id") String id,
-                                         @QueryParam("keys") final List<String> keys) {
+    public Response deleteInstanceGroupAttributes(@PathParam("id") String instanceGroupId, @PathParam("keys") String delimitedKeys) {
+        if (Strings.isNullOrEmpty(delimitedKeys)) {
+            throw TitusServiceException.invalidArgument("Path parameter keys cannot be empty");
+        }
+
+        Set<String> keys = StringExt.splitByCommaIntoSet(delimitedKeys);
+        if (keys.isEmpty()) {
+            throw TitusServiceException.invalidArgument("Parsed path parameter keys cannot be empty");
+        }
+
         DeleteInstanceGroupAttributesRequest request = DeleteInstanceGroupAttributesRequest.newBuilder()
-                .setInstanceGroupId(id)
+                .setInstanceGroupId(instanceGroupId)
                 .addAllKeys(keys)
                 .build();
-        return Responses.fromCompletable(agentManagementService.deleteInstanceGroupAttributes(request));
+        return Responses.fromVoidMono(agentManagementService.deleteInstanceGroupAttributes(request));
     }
 
     @PUT
@@ -160,18 +169,26 @@ public class AgentManagementResource {
                     + attributesUpdate.getAgentInstanceId());
         }
 
-        return Responses.fromCompletable(agentManagementService.updateAgentInstanceAttributes(attributesUpdate));
+        return Responses.fromVoidMono(agentManagementService.updateAgentInstanceAttributes(attributesUpdate));
     }
 
     @DELETE
-    @ApiOperation("Delete attributes of an agent instance with the specified key names")
+    @ApiOperation("Delete agent instance attributes")
     @Path("/instances/{id}/attributes")
-    public Response deleteAgentInstanceAttributes(@PathParam("id") String id,
-                                                  @QueryParam("keys") final List<String> keys) {
+    public Response deleteAgentInstanceAttributes(@PathParam("id") String agentInstanceId, @PathParam("keys") String delimitedKeys) {
+        if (Strings.isNullOrEmpty(delimitedKeys)) {
+            throw TitusServiceException.invalidArgument("Path parameter keys cannot be empty");
+        }
+
+        Set<String> keys = StringExt.splitByCommaIntoSet(delimitedKeys);
+        if (keys.isEmpty()) {
+            throw TitusServiceException.invalidArgument("Parsed path parameter keys cannot be empty");
+        }
+
         DeleteAgentInstanceAttributesRequest request = DeleteAgentInstanceAttributesRequest.newBuilder()
-                .setAgentInstanceId(id)
+                .setAgentInstanceId(agentInstanceId)
                 .addAllKeys(keys)
                 .build();
-        return Responses.fromCompletable(agentManagementService.deleteAgentInstanceAttributes(request));
+        return Responses.fromVoidMono(agentManagementService.deleteAgentInstanceAttributes(request));
     }
 }

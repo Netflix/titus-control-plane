@@ -28,6 +28,7 @@ import com.netflix.fenzo.TaskRequest;
 import com.netflix.fenzo.TaskTrackerState;
 import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.titus.api.FeatureActivationConfiguration;
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor.JobDescriptorExt;
 import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
@@ -270,7 +271,7 @@ public class JobsScenarioBuilder {
         JobScenarioBuilder.EventHolder<Pair<StoreEvent, ?>> storeEventsSubscriber = new JobScenarioBuilder.EventHolder<>(jobStore);
         AtomicReference<String> jobIdRef = new AtomicReference<>();
 
-        jobOperations.createJob(jobDescriptor).doOnNext(jobId -> {
+        jobOperations.createJob(jobDescriptor, CallMetadata.newBuilder().withCallerId("Testing").withCallReason("Testing job creation").build()).doOnNext(jobId -> {
             jobOperations.observeJob(jobId).subscribe(jobEventsSubscriber);
             jobStore.events(jobId).subscribe(storeEventsSubscriber);
         }).subscribe(jobIdRef::set);

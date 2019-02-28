@@ -18,20 +18,18 @@ package com.netflix.titus.runtime.connector.titusmaster;
 
 import javax.inject.Named;
 
-import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
-import com.netflix.titus.grpc.protogen.EvictionServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.SupervisorServiceGrpc;
-import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
-import com.netflix.titus.runtime.endpoint.common.grpc.DefaultReactorGrpcClientAdapterFactory;
-import com.netflix.titus.runtime.endpoint.common.grpc.ReactorGrpcClientAdapterFactory;
-import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import io.grpc.Channel;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 
+/**
+ * Each connector has its own Spring configuration.
+ */
 @Configuration
+@Deprecated
 public class TitusMasterConnectorComponent {
 
     public static final String TITUS_MASTER_CHANNEL = "TitusMasterChannel";
@@ -42,28 +40,12 @@ public class TitusMasterConnectorComponent {
     }
 
     @Bean
-    public ReactorGrpcClientAdapterFactory getReactorGrpcClientAdapterFactory(GrpcClientConfiguration configuration,
-                                                                              CallMetadataResolver callMetadataResolver) {
-        return new DefaultReactorGrpcClientAdapterFactory(configuration, callMetadataResolver);
-    }
-
-    @Bean
     public SupervisorServiceGrpc.SupervisorServiceStub getSupervisorClientGrpcStub(final @Named(TITUS_MASTER_CHANNEL) Channel channel) {
         return SupervisorServiceGrpc.newStub(channel);
     }
 
     @Bean
-    public AgentManagementServiceGrpc.AgentManagementServiceStub getAgentManagementClientGrpcStub(final @Named(TITUS_MASTER_CHANNEL) Channel channel) {
-        return AgentManagementServiceGrpc.newStub(channel);
-    }
-
-    @Bean
     public JobManagementServiceGrpc.JobManagementServiceStub getJobManagementClientGrpcStub(final @Named(TITUS_MASTER_CHANNEL) Channel channel) {
         return JobManagementServiceGrpc.newStub(channel);
-    }
-
-    @Bean
-    public EvictionServiceGrpc.EvictionServiceStub evictionClient(final @Named(TITUS_MASTER_CHANNEL) Channel channel) {
-        return EvictionServiceGrpc.newStub(channel);
     }
 }

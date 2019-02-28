@@ -16,10 +16,11 @@
 
 package com.netflix.titus.master.jobmanager.service.common.action.task;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
@@ -31,6 +32,7 @@ import com.netflix.titus.common.framework.reconciler.ChangeAction;
 import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
+import com.netflix.titus.master.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
@@ -60,9 +62,9 @@ public class BasicJobActions {
     }
 
     /**
-     * Update the disruption budget of a job.
+     * Update job disruption budet.
      */
-    public static ChangeAction updateJobDisruptionBudget(ReconciliationEngine<JobManagerReconcilerEvent> engine, DisruptionBudget disruptionBudget, JobStore jobStore) {
+    public static ChangeAction updateJobDisruptionBudget(ReconciliationEngine<JobManagerReconcilerEvent> engine, DisruptionBudget disruptionBudget, JobStore jobStore, CallMetadata callMetadata) {
         return TitusChangeAction.newAction("updateDisruptionBudget")
                 .id(engine.getReferenceView().getId())
                 .trigger(V3JobOperations.Trigger.API)
@@ -72,7 +74,7 @@ public class BasicJobActions {
                     Job<?> job = engine.getReferenceView().getEntity();
                     Job<?> updatedJob = JobFunctions.changeDisruptionBudget(job, disruptionBudget);
 
-                    TitusModelAction modelAction = TitusModelAction.newModelUpdate(self).jobUpdate(jobHolder -> jobHolder.setEntity(updatedJob));
+                    TitusModelAction modelAction = TitusModelAction.newModelUpdate(self).jobUpdate(jobHolder -> jobHolder.setEntity(updatedJob).addTag(JobManagerConstants.JOB_MANAGER_ATTRIBUTE_CALLMETADATA, callMetadata));
 
                     return jobStore.updateJob(updatedJob).andThen(Observable.just(ModelActionHolder.referenceAndStore(modelAction)));
                 });
@@ -81,7 +83,7 @@ public class BasicJobActions {
     /**
      * Update the attributes of a job. This will either create new attributes or replacing an existing ones with the same key.
      */
-    public static ChangeAction updateJobAttributes(ReconciliationEngine<JobManagerReconcilerEvent> engine, Map<String, String> attributes, JobStore jobStore) {
+    public static ChangeAction updateJobAttributes(ReconciliationEngine<JobManagerReconcilerEvent> engine, Map<String, String> attributes, JobStore jobStore, CallMetadata callMetadata) {
         return TitusChangeAction.newAction("updateJobAttributes")
                 .id(engine.getReferenceView().getId())
                 .trigger(V3JobOperations.Trigger.API)
@@ -99,7 +101,7 @@ public class BasicJobActions {
     /**
      * Delete the attributes of a job with the specified key names.
      */
-    public static ChangeAction deleteJobAttributes(ReconciliationEngine<JobManagerReconcilerEvent> engine, List<String> keys, JobStore jobStore) {
+    public static ChangeAction deleteJobAttributes(ReconciliationEngine<JobManagerReconcilerEvent> engine, Set<String> keys, JobStore jobStore, CallMetadata callMetadata) {
         return TitusChangeAction.newAction("updateJobAttributes")
                 .id(engine.getReferenceView().getId())
                 .trigger(V3JobOperations.Trigger.API)
@@ -108,7 +110,7 @@ public class BasicJobActions {
                     Job<?> job = engine.getReferenceView().getEntity();
                     Job<?> updatedJob = JobFunctions.deleteJobAttributes(job, keys);
 
-                    TitusModelAction modelAction = TitusModelAction.newModelUpdate(self).jobUpdate(jobHolder -> jobHolder.setEntity(updatedJob));
+                    TitusModelAction modelAction = TitusModelAction.newModelUpdate(self).jobUpdate(jobHolder -> jobHolder.setEntity(updatedJob).addTag(JobManagerConstants.JOB_MANAGER_ATTRIBUTE_CALLMETADATA, callMetadata));
 
                     return jobStore.updateJob(updatedJob).andThen(Observable.just(ModelActionHolder.referenceAndStore(modelAction)));
                 });

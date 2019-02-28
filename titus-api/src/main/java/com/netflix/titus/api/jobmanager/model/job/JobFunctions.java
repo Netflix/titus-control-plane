@@ -392,7 +392,7 @@ public final class JobFunctions {
         return input.toBuilder().withJobDescriptor(jobDescriptor.toBuilder().withAttributes(updatedAttributes).build()).build();
     }
 
-    public static <E extends JobDescriptorExt> Job<E> deleteJobAttributes(Job<E> input, List<String> keys) {
+    public static <E extends JobDescriptorExt> Job<E> deleteJobAttributes(Job<E> input, Set<String> keys) {
         JobDescriptor<E> jobDescriptor = input.getJobDescriptor();
         Map<String, String> updatedAttributes = CollectionsExt.copyAndRemove(jobDescriptor.getAttributes(), keys);
         return input.toBuilder().withJobDescriptor(jobDescriptor.toBuilder().withAttributes(updatedAttributes).build()).build();

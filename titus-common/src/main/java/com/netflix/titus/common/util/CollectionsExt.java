@@ -209,7 +209,7 @@ public final class CollectionsExt {
         return copyAndRemove(original, Arrays.asList(keys));
     }
 
-    public static <K, V> Map<K, V> copyAndRemove(Map<K, V> original, List<K> keys) {
+    public static <K, V> Map<K, V> copyAndRemove(Map<K, V> original, Collection<K> keys) {
         Map<K, V> result = new HashMap<>(original);
         for (K key : keys) {
             if (key != null) {

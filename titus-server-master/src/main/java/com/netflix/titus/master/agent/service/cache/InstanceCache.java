@@ -218,7 +218,7 @@ class InstanceCache {
                                         return null;
                                     })
                                     .filter(Objects::nonNull)
-                                    .map(pair -> addInstanceType(pair.getRight(), pair.getLeft()))
+                                    .map(pair -> updateAttributes(pair.getRight(), pair.getLeft()))
                                     .collect(Collectors.toList())
                     );
                 })
@@ -320,7 +320,7 @@ class InstanceCache {
             return;
         }
 
-        InstanceGroup effectiveInstanceGroup = decorate(updatedInstanceGroup, oldInstanceGroup);
+        InstanceGroup effectiveInstanceGroup = updatedAttributes(updatedInstanceGroup, oldInstanceGroup);
         boolean instanceGroupChanged = !oldInstanceGroup.equals(effectiveInstanceGroup);
         boolean instancesChanged = oldInstanceGroup.getInstanceIds().size() != updatedInstanceGroup.getInstanceIds().size();
 
@@ -347,13 +347,13 @@ class InstanceCache {
         }
     }
 
-    private InstanceGroup addInstanceType(InstanceGroup instanceGroup, InstanceLaunchConfiguration launchConfiguration) {
+    private InstanceGroup updateAttributes(InstanceGroup instanceGroup, InstanceLaunchConfiguration launchConfiguration) {
         return instanceGroup.toBuilder()
                 .withInstanceType(launchConfiguration.getInstanceType())
                 .build();
     }
 
-    private InstanceGroup decorate(InstanceGroup newInstanceGroup, InstanceGroup oldInstanceGroup) {
+    private InstanceGroup updatedAttributes(InstanceGroup newInstanceGroup, InstanceGroup oldInstanceGroup) {
         Map<String, String> updatedAttributes = CollectionsExt.merge(
                 oldInstanceGroup.getAttributes(),
                 newInstanceGroup.getAttributes()

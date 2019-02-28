@@ -31,6 +31,9 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
+import com.netflix.titus.api.jobmanager.model.Caller;
+import com.netflix.titus.api.jobmanager.model.CallerType;
 import com.netflix.titus.common.util.StringExt;
 
 import static com.netflix.titus.common.util.Evaluators.getOrDefault;

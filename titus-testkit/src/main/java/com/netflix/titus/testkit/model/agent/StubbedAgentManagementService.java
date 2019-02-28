@@ -19,6 +19,7 @@ package com.netflix.titus.testkit.model.agent;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -88,7 +89,7 @@ class StubbedAgentManagementService implements AgentManagementService {
     }
 
     @Override
-    public Completable deleteInstanceGroupAttributes(String instanceGroupId, List<String> keys) {
+    public Completable deleteInstanceGroupAttributes(String instanceGroupId, Set<String> keys) {
         return Completable.defer(() -> {
             stubbedAgentData.changeInstanceGroup(instanceGroupId, previous -> {
                 Map<String, String> updatedAttributes = CollectionsExt.copyAndRemove(previous.getAttributes(), keys);
@@ -108,7 +109,7 @@ class StubbedAgentManagementService implements AgentManagementService {
     }
 
     @Override
-    public Completable deleteAgentInstanceAttributes(String instanceId, List<String> keys) {
+    public Completable deleteAgentInstanceAttributes(String instanceId, Set<String> keys) {
         return Completable.defer(() -> {
             stubbedAgentData.changeInstance(instanceId, previous -> {
                 Map<String, String> updatedAttributes = CollectionsExt.copyAndRemove(previous.getAttributes(), keys);

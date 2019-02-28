@@ -19,6 +19,7 @@ package com.netflix.titus.master.jobmanager.service;
 import java.util.Optional;
 import java.util.UUID;
 
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobModel;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
@@ -68,7 +69,8 @@ public class JobTransactionLoggerTest {
                 modelActionHolder,
                 EntityHolder.newRoot(currentJob.getId(), currentJob),
                 Optional.of(EntityHolder.newRoot(previousJob.getId(), previousJob)),
-                "1"
+                "1",
+                CallMetadata.newBuilder().withCallerId("LoggerTest").withCallReason("Testing logger transaction").build()
         );
         String logLine = JobTransactionLogger.doFormat(jobReconcilerEvent);
         assertThat(logLine).isNotEmpty();

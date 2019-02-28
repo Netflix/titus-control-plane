@@ -24,6 +24,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -48,7 +49,6 @@ import rx.Scheduler;
 import rx.Single;
 import rx.Subscription;
 import rx.functions.Action0;
-import rx.functions.Func0;
 import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 
@@ -194,7 +194,6 @@ public class DefaultAgentCache implements AgentCache {
         return Optional.ofNullable(dataSnapshot.getInstance(instanceId));
     }
 
-    @Override
     public Completable updateInstanceGroupStore(AgentInstanceGroup instanceGroup) {
         return onEventLoopWithSubscription(() -> {
             getInstanceGroup(instanceGroup.getId());
@@ -207,12 +206,10 @@ public class DefaultAgentCache implements AgentCache {
         }).concatWith(agentStore.storeAgentInstanceGroup(instanceGroup));
     }
 
-    @Override
     public Completable updateInstanceGroupStoreAndSyncCloud(AgentInstanceGroup instanceGroup) {
         return updateInstanceGroupStore(instanceGroup).doOnCompleted(() -> instanceCache.refreshInstanceGroup(instanceGroup.getId()));
     }
 
-    @Override
     public Completable updateAgentInstanceStore(AgentInstance agentInstance) {
         return onEventLoopWithSubscription(() -> {
             getInstanceGroup(agentInstance.getInstanceGroupId());
@@ -222,7 +219,7 @@ public class DefaultAgentCache implements AgentCache {
     }
 
     @Override
-    public Single<AgentInstanceGroup> getAndUpdateInstanceGroupStore(String instanceGroupId, Function<AgentInstanceGroup, AgentInstanceGroup> function) {
+    public Single<AgentInstanceGroup> updateInstanceGroupStore(String instanceGroupId, Function<AgentInstanceGroup, AgentInstanceGroup> function) {
         Single<AgentInstanceGroup> single = onEventLoopWithSubscription(() -> {
             AgentInstanceGroup instanceGroup = getInstanceGroup(instanceGroupId);
             Set<AgentInstance> agentInstances = dataSnapshot.getInstances(instanceGroup.getId());
@@ -238,8 +235,8 @@ public class DefaultAgentCache implements AgentCache {
     }
 
     @Override
-    public Single<AgentInstanceGroup> getAndUpdateInstanceGroupStoreAndSyncCloud(String instanceGroupId, Function<AgentInstanceGroup, AgentInstanceGroup> function) {
-        return getAndUpdateInstanceGroupStore(instanceGroupId, function)
+    public Single<AgentInstanceGroup> updateInstanceGroupStoreAndSyncCloud(String instanceGroupId, Function<AgentInstanceGroup, AgentInstanceGroup> function) {
+        return updateInstanceGroupStore(instanceGroupId, function)
                 .flatMap(ig -> {
                     instanceCache.refreshInstanceGroup(instanceGroupId);
                     return Single.just(ig);
@@ -247,7 +244,7 @@ public class DefaultAgentCache implements AgentCache {
     }
 
     @Override
-    public Single<AgentInstance> getAndUpdateAgentInstanceStore(String instanceId, Function<AgentInstance, AgentInstance> function) {
+    public Single<AgentInstance> updateAgentInstanceStore(String instanceId, Function<AgentInstance, AgentInstance> function) {
         Single<AgentInstance> single = onEventLoopWithSubscription(() -> {
             AgentInstance agentInstance = getAgentInstance(instanceId);
             AgentInstance updatedAgentInstance = function.apply(agentInstance);
@@ -407,11 +404,11 @@ public class DefaultAgentCache implements AgentCache {
         }).toCompletable();
     }
 
-    private <T> Single<T> onEventLoopWithSubscription(Func0<T> function) {
+    private <T> Single<T> onEventLoopWithSubscription(Supplier<T> supplier) {
         return Single.create(subscriber -> {
             Subscription subscription = worker.schedule(() -> {
                 try {
-                    subscriber.onSuccess(function.call());
+                    subscriber.onSuccess(supplier.get());
                 } catch (Throwable e) {
                     subscriber.onError(e);
                 }

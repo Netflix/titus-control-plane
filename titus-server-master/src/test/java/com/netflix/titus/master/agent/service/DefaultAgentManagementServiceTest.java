@@ -48,7 +48,6 @@ import com.netflix.titus.master.model.ResourceDimensions;
 import com.netflix.titus.testkit.rx.ExtTestSubscriber;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
 import rx.Completable;
 import rx.Observable;
 import rx.Single;
@@ -141,11 +140,11 @@ public class DefaultAgentManagementServiceTest {
         AgentInstanceGroup instanceGroup = instanceGroups.get(0);
         String instanceGroupId = instanceGroup.getId();
 
-        when(agentCache.getAndUpdateInstanceGroupStore(eq(instanceGroupId), any()))
+        when(agentCache.updateInstanceGroupStore(eq(instanceGroupId), any()))
                 .thenReturn(Single.just(instanceGroup.toBuilder().withTier(Tier.Critical).build()));
         service.updateInstanceGroupTier(instanceGroupId, Tier.Critical).toObservable().subscribe(testSubscriber);
 
-        verify(agentCache, times(1)).getAndUpdateInstanceGroupStore(eq(instanceGroupId), any());
+        verify(agentCache, times(1)).updateInstanceGroupStore(eq(instanceGroupId), any());
     }
 
     @Test
@@ -156,11 +155,11 @@ public class DefaultAgentManagementServiceTest {
         AgentInstanceGroup instanceGroup = instanceGroups.get(0);
         String instanceGroupId = instanceGroup.getId();
 
-        when(agentCache.getAndUpdateInstanceGroupStore(eq(instanceGroupId), any()))
+        when(agentCache.updateInstanceGroupStore(eq(instanceGroupId), any()))
                 .thenReturn(Single.just(instanceGroup.toBuilder().withLifecycleStatus(updatedInstanceGroupLifecycleStatus).build()));
         service.updateInstanceGroupLifecycle(instanceGroupId, updatedInstanceGroupLifecycleStatus).toObservable().subscribe(testSubscriber);
 
-        verify(agentCache, times(1)).getAndUpdateInstanceGroupStore(eq(instanceGroupId), any());
+        verify(agentCache, times(1)).updateInstanceGroupStore(eq(instanceGroupId), any());
     }
 
     @Test
@@ -170,11 +169,11 @@ public class DefaultAgentManagementServiceTest {
         String instanceGroupId = instanceGroup.getId();
 
         Map<String, String> attributes = Collections.singletonMap("a", "1");
-        when(agentCache.getAndUpdateInstanceGroupStore(eq(instanceGroupId), any()))
+        when(agentCache.updateInstanceGroupStore(eq(instanceGroupId), any()))
                 .thenReturn(Single.just(instanceGroup.toBuilder().withAttributes(attributes).build()));
         service.updateInstanceGroupAttributes(instanceGroupId, attributes).toObservable().subscribe(testSubscriber);
 
-        verify(agentCache, times(1)).getAndUpdateInstanceGroupStore(eq(instanceGroupId), any());
+        verify(agentCache, times(1)).updateInstanceGroupStore(eq(instanceGroupId), any());
     }
 
     @Test
@@ -184,11 +183,11 @@ public class DefaultAgentManagementServiceTest {
         String agentInstanceId = agentInstance.getId();
         assertThat(agentInstance.getAttributes()).isEmpty();
         Map<String, String> attributes = Collections.singletonMap("a", "1");
-        when(agentCache.getAndUpdateAgentInstanceStore(eq(agentInstanceId), any()))
+        when(agentCache.updateAgentInstanceStore(eq(agentInstanceId), any()))
                 .thenReturn(Single.just(agentInstance.toBuilder().withAttributes(attributes).build()));
         service.updateAgentInstanceAttributes(agentInstance.getId(), attributes).toObservable().subscribe(testSubscriber);
 
-        verify(agentCache, times(1)).getAndUpdateAgentInstanceStore(eq(agentInstanceId), any());
+        verify(agentCache, times(1)).updateAgentInstanceStore(eq(agentInstanceId), any());
     }
 
     @Test
@@ -197,14 +196,14 @@ public class DefaultAgentManagementServiceTest {
         AgentInstanceGroup instanceGroup = instanceGroups.get(0);
         String instanceGroupId = instanceGroup.getId();
 
-        when(agentCache.getAndUpdateInstanceGroupStoreAndSyncCloud(eq(instanceGroupId), any()))
+        when(agentCache.updateInstanceGroupStoreAndSyncCloud(eq(instanceGroupId), any()))
                 .thenReturn(Single.just(instanceGroup));
 
         service.updateCapacity(instanceGroups.get(0).getId(), Optional.of(100), Optional.of(1000)).toObservable().subscribe(testSubscriber);
 
         verify(connector, times(1)).updateCapacity(instanceGroups.get(0).getId(), Optional.of(100), Optional.of(1000));
 
-        verify(agentCache, times(1)).getAndUpdateInstanceGroupStoreAndSyncCloud(eq(instanceGroupId), any());
+        verify(agentCache, times(1)).updateInstanceGroupStoreAndSyncCloud(eq(instanceGroupId), any());
     }
 
     @Test
@@ -213,13 +212,13 @@ public class DefaultAgentManagementServiceTest {
         AgentInstanceGroup instanceGroup = instanceGroups.get(0);
         String instanceGroupId = instanceGroup.getId();
 
-        when(agentCache.getAndUpdateInstanceGroupStoreAndSyncCloud(eq(instanceGroupId), any()))
+        when(agentCache.updateInstanceGroupStoreAndSyncCloud(eq(instanceGroupId), any()))
                 .thenReturn(Single.just(instanceGroup));
         service.scaleUp(instanceGroup.getId(), 500).toObservable().subscribe(testSubscriber);
 
         verify(connector, times(1)).scaleUp(instanceGroup.getId(), 500);
 
-        verify(agentCache, times(1)).getAndUpdateInstanceGroupStoreAndSyncCloud(eq(instanceGroupId), any());
+        verify(agentCache, times(1)).updateInstanceGroupStoreAndSyncCloud(eq(instanceGroupId), any());
     }
 
     @Test

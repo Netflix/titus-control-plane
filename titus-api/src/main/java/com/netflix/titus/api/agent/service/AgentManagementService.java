@@ -68,7 +68,7 @@ public interface AgentManagementService extends ReadOnlyAgentOperations {
      *
      * @return AgentManagementException if the instance group is not found
      */
-    Completable deleteInstanceGroupAttributes(String instanceGroupId, List<String> keys);
+    Completable deleteInstanceGroupAttributes(String instanceGroupId, Set<String> keys);
 
     /**
      * Adds attributes to an agent instance. Existing key names will be overwritten.
@@ -82,7 +82,7 @@ public interface AgentManagementService extends ReadOnlyAgentOperations {
      *
      * @return AgentManagementException if the agent instance is not found
      */
-    Completable deleteAgentInstanceAttributes(String instanceId, List<String> keys);
+    Completable deleteAgentInstanceAttributes(String instanceId, Set<String> keys);
 
     /**
      * Updates instance group capacity. If only min value is provided, the desired size is adjusted to be no less than min.

@@ -250,11 +250,11 @@ public class DefaultAgentCacheTest {
         ExtTestSubscriber<Object> testSubscriber = new ExtTestSubscriber<>();
 
         if (withCloudSync) {
-            cache.getAndUpdateInstanceGroupStoreAndSyncCloud(instanceGroupId,
+            cache.updateInstanceGroupStoreAndSyncCloud(instanceGroupId,
                     ig -> ig.toBuilder().withLifecycleStatus(InstanceGroupLifecycleStatus.newBuilder().withState(InstanceGroupLifecycleState.Removable).build()).build()
             ).toObservable().subscribe(testSubscriber);
         } else {
-            cache.getAndUpdateInstanceGroupStore(instanceGroupId,
+            cache.updateInstanceGroupStore(instanceGroupId,
                     ig -> ig.toBuilder().withLifecycleStatus(InstanceGroupLifecycleStatus.newBuilder().withState(InstanceGroupLifecycleState.Removable).build()).build()
             ).toObservable().subscribe(testSubscriber);
         }
@@ -276,7 +276,7 @@ public class DefaultAgentCacheTest {
 
         Map<String, String> updatedAttributes = CollectionsExt.merge(agentInstance.getAttributes(), Collections.singletonMap("a", "1"));
 
-        cache.getAndUpdateAgentInstanceStore(instanceId,
+        cache.updateAgentInstanceStore(instanceId,
                 ig -> ig.toBuilder().withAttributes(updatedAttributes).build()
         ).toObservable().subscribe(testSubscriber);
 

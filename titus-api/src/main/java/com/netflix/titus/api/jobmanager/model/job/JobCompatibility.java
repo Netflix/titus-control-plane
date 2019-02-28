@@ -39,6 +39,7 @@ import com.netflix.titus.api.jobmanager.model.job.retry.ImmediateRetryPolicy;
  * <li>Disruption budget</li>
  * <li>Any attributes not prefixed with <tt>titus.</tt> or <tt>titusParameter.</tt></li>
  * <li>Any container attributes not prefixed with <tt>titus.</tt> or <tt>titusParameter.</tt></li>
+ * <li>Any container.securityProfile attributes not prefixed with <tt>titus.</tt> or <tt>titusParameter.</tt></li>
  * <li>All information {@link ServiceJobExt specific to Service jobs}: capacity, retry policy, etc</li>
  * </ol>
  */
@@ -66,24 +67,22 @@ public class JobCompatibility {
     }
 
     private static JobDescriptor<ServiceJobExt> unsetIgnoredFieldsForCompatibility(JobDescriptor<ServiceJobExt> descriptor) {
-        Map<String, String> onlyTitusAttributes = new HashMap<>(descriptor.getAttributes());
-        onlyTitusAttributes.entrySet().removeIf(entry ->
-                !entry.getKey().startsWith(JobAttributes.TITUS_ATTRIBUTE_PREFIX) &&
-                        !entry.getKey().startsWith(JobAttributes.TITUS_PARAMETER_ATTRIBUTE_PREFIX)
-        );
-        Map<String, String> onlyTitusContainerAttributes = new HashMap<>(descriptor.getContainer().getAttributes());
-        onlyTitusContainerAttributes.entrySet().removeIf(entry ->
-                !entry.getKey().startsWith(JobAttributes.TITUS_ATTRIBUTE_PREFIX) &&
-                        !entry.getKey().startsWith(JobAttributes.TITUS_PARAMETER_ATTRIBUTE_PREFIX)
-        );
+        Container container = descriptor.getContainer();
+        SecurityProfile securityProfile = container.getSecurityProfile();
+        Map<String, String> onlyTitusAttributes = filterOutNonTitusAttributes(descriptor.getAttributes());
+        Map<String, String> onlyTitusContainerAttributes = filterOutNonTitusAttributes(container.getAttributes());
+        Map<String, String> onlyTitusSecurityAttributes = filterOutNonTitusAttributes(securityProfile.getAttributes());
 
         return descriptor.toBuilder()
                 .withOwner(Owner.newBuilder().withTeamEmail("").build())
                 .withApplicationName("")
                 .withJobGroupInfo(JobGroupInfo.newBuilder().build())
                 .withAttributes(onlyTitusAttributes)
-                .withContainer(descriptor.getContainer().toBuilder()
+                .withContainer(container.toBuilder()
                         .withAttributes(onlyTitusContainerAttributes)
+                        .withSecurityProfile(securityProfile.toBuilder()
+                                .withAttributes(onlyTitusSecurityAttributes)
+                                .build())
                         .build())
                 .withExtensions(ServiceJobExt.newBuilder()
                         .withRetryPolicy(ImmediateRetryPolicy.newBuilder().withRetries(0).build())
@@ -94,6 +93,15 @@ public class JobCompatibility {
                         .build())
                 .withDisruptionBudget(DisruptionBudget.none())
                 .build();
+    }
+
+    private static Map<String, String> filterOutNonTitusAttributes(Map<String, String> attributes) {
+        Map<String, String> onlyTitus = new HashMap<>(attributes);
+        onlyTitus.entrySet().removeIf(entry ->
+                !entry.getKey().startsWith(JobAttributes.TITUS_ATTRIBUTE_PREFIX) &&
+                        !entry.getKey().startsWith(JobAttributes.TITUS_PARAMETER_ATTRIBUTE_PREFIX)
+        );
+        return onlyTitus;
     }
 
     /**

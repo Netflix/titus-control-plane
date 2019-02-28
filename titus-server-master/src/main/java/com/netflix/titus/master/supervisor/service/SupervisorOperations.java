@@ -21,7 +21,7 @@ import java.util.Optional;
 
 import com.netflix.titus.master.supervisor.model.MasterInstance;
 import com.netflix.titus.master.supervisor.model.event.SupervisorEvent;
-import com.netflix.titus.runtime.endpoint.metadata.CallMetadata;
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import rx.Observable;
 
 public interface SupervisorOperations {

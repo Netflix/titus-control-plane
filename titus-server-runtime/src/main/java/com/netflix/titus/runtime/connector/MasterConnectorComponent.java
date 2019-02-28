@@ -16,16 +16,11 @@
 
 package com.netflix.titus.runtime.connector;
 
-import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.AgentManagementServiceStub;
-import com.netflix.titus.grpc.protogen.EvictionServiceGrpc.EvictionServiceStub;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
-import com.netflix.titus.runtime.connector.agent.AgentManagementClient;
-import com.netflix.titus.runtime.connector.agent.client.GrpcAgentManagementClient;
-import com.netflix.titus.runtime.connector.eviction.EvictionServiceClient;
-import com.netflix.titus.runtime.connector.eviction.client.GrpcEvictionServiceClient;
+import com.netflix.titus.runtime.connector.common.reactor.DefaultGrpcToReactorClientFactory;
+import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorClientFactory;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.runtime.connector.jobmanager.client.GrpcJobManagementClient;
-import com.netflix.titus.runtime.endpoint.common.grpc.ReactorGrpcClientAdapterFactory;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -40,10 +35,9 @@ public class MasterConnectorComponent {
     }
 
     @Bean
-    public AgentManagementClient getAgentManagementClient(GrpcClientConfiguration configuration,
-                                                          AgentManagementServiceStub clientStub,
-                                                          CallMetadataResolver callMetadataResolver) {
-        return new GrpcAgentManagementClient(configuration, clientStub, callMetadataResolver);
+    public GrpcToReactorClientFactory getReactorGrpcClientAdapterFactory(GrpcClientConfiguration configuration,
+                                                                         CallMetadataResolver callMetadataResolver) {
+        return new DefaultGrpcToReactorClientFactory(configuration, callMetadataResolver);
     }
 
     @Bean
@@ -51,11 +45,5 @@ public class MasterConnectorComponent {
                                                       JobManagementServiceStub clientStub,
                                                       CallMetadataResolver callMetadataResolver) {
         return new GrpcJobManagementClient(clientStub, callMetadataResolver, configuration);
-    }
-
-    @Bean
-    public EvictionServiceClient getEvictionServiceClient(ReactorGrpcClientAdapterFactory grpcClientAdapterFactory,
-                                                          EvictionServiceStub clientStub) {
-        return new GrpcEvictionServiceClient(grpcClientAdapterFactory, clientStub);
     }
 }

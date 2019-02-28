@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.endpoint.metadata;
+package com.netflix.titus.api.jobmanager.model;
 
 import java.util.Map;
 import java.util.Objects;

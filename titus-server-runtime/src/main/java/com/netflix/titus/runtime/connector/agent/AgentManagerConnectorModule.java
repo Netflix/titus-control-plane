@@ -16,17 +16,31 @@
 
 package com.netflix.titus.runtime.connector.agent;
 
+import javax.inject.Named;
+
 import com.google.inject.AbstractModule;
+import com.google.inject.Provides;
+import com.google.inject.Singleton;
 import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
-import com.netflix.titus.runtime.connector.agent.client.GrpcAgentManagementClient;
+import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.runtime.connector.agent.replicator.AgentDataReplicatorProvider;
+import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorClientFactory;
+import io.grpc.Channel;
+
+import static com.netflix.titus.runtime.connector.titusmaster.TitusMasterConnectorModule.MANAGED_CHANNEL_NAME;
 
 public class AgentManagerConnectorModule extends AbstractModule {
     @Override
     protected void configure() {
-        bind(AgentManagementClient.class).to(GrpcAgentManagementClient.class);
-
+        bind(AgentManagementClient.class).to(RemoteAgentManagementClient.class);
         bind(AgentDataReplicator.class).toProvider(AgentDataReplicatorProvider.class);
         bind(ReadOnlyAgentOperations.class).to(CachedReadOnlyAgentOperations.class);
+    }
+
+    @Provides
+    @Singleton
+    public ReactorAgentManagementServiceStub getReactorAgentManagementServiceStub(GrpcToReactorClientFactory factory,
+                                                                                  @Named(MANAGED_CHANNEL_NAME) Channel channel) {
+        return factory.apply(AgentManagementServiceGrpc.newStub(channel), ReactorAgentManagementServiceStub.class, AgentManagementServiceGrpc.getServiceDescriptor());
     }
 }

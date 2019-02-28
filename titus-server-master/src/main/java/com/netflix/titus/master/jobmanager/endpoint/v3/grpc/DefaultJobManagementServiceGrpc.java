@@ -31,6 +31,7 @@ import javax.inject.Singleton;
 import com.google.protobuf.Empty;
 import com.netflix.titus.api.FeatureRolloutPlans;
 import com.netflix.titus.api.agent.service.AgentManagementService;
+import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
@@ -82,7 +83,7 @@ import com.netflix.titus.master.service.management.ApplicationSlaManagementServi
 import com.netflix.titus.runtime.endpoint.JobQueryCriteria;
 import com.netflix.titus.runtime.endpoint.authorization.AuthorizationService;
 import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
-import com.netflix.titus.runtime.endpoint.metadata.CallMetadata;
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataUtils;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
@@ -102,9 +103,8 @@ import rx.Subscription;
 import static com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_STRICT_SANITIZER;
 import static com.netflix.titus.runtime.connector.jobmanager.JobManagementClient.JOB_MINIMUM_FIELD_SET;
 import static com.netflix.titus.runtime.connector.jobmanager.JobManagementClient.TASK_MINIMUM_FIELD_SET;
-import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toGrpcPagination;
-import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toJobQueryCriteria;
-import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toPage;
+import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.*;
+import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.call;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.safeOnError;
 import static com.netflix.titus.runtime.endpoint.metadata.CallMetadataUtils.execute;
 import static com.netflix.titus.runtime.endpoint.v3.grpc.TitusPaginationUtils.checkPageIsValid;
@@ -159,7 +159,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     public void createJob(JobDescriptor jobDescriptor, StreamObserver<JobId> responseObserver) {
         execute(callMetadataResolver, responseObserver, callMetadata ->
                 validateAndConvertJobDescriptorToCoreModel(jobDescriptor, responseObserver).ifPresent(sanitized ->
-                        jobOperations.createJob(sanitized).subscribe(
+                        jobOperations.createJob(sanitized, callMetadata).subscribe(
                                 jobId -> responseObserver.onNext(JobId.newBuilder().setId(jobId).build()),
                                 e -> safeOnError(logger, e, responseObserver),
                                 responseObserver::onCompleted
@@ -338,7 +338,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
             }
 
             authorizeJobUpdate(callMetadata, request.getJobId())
-                    .concatWith(jobOperations.updateJobCapacityReactor(request.getJobId(), newCapacity))
+                    .concatWith(jobOperations.updateJobCapacityReactor(request.getJobId(), newCapacity, callMetadata))
                     .subscribe(
                             nothing -> {
                             },
@@ -357,7 +357,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
             ServiceJobProcesses serviceJobProcesses = V3GrpcModelConverters.toCoreServiceJobProcesses(request.getServiceJobProcesses());
 
             authorizeJobUpdate(callMetadata, request.getJobId())
-                    .concatWith(jobOperations.updateServiceJobProcessesReactor(request.getJobId(), serviceJobProcesses))
+                    .concatWith(jobOperations.updateServiceJobProcessesReactor(request.getJobId(), serviceJobProcesses, callMetadata))
                     .subscribe(
                             nothing -> {
                             },
@@ -374,7 +374,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     public void updateJobStatus(JobStatusUpdate request, StreamObserver<Empty> responseObserver) {
         execute(callMetadataResolver, responseObserver, callMetadata -> {
             authorizeJobUpdate(callMetadata, request.getId())
-                    .concatWith(jobOperations.updateJobStatusReactor(request.getId(), request.getEnableStatus()))
+                    .concatWith(jobOperations.updateJobStatusReactor(request.getId(), request.getEnableStatus(), callMetadata))
                     .subscribe(
                             nothing -> {
                             },
@@ -398,7 +398,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
             validateAndConvertJobDisruptionBudgetToCoreModel(job, request.getDisruptionBudget(), responseObserver).ifPresent(sanitized ->
 
                     authorizeJobUpdate(callMetadata, job)
-                            .concatWith(jobOperations.updateJobDisruptionBudget(request.getJobId(), sanitized))
+                            .concatWith(jobOperations.updateJobDisruptionBudget(request.getJobId(), sanitized, callMetadata))
                             .subscribe(
                                     nothing -> {
                                     },
@@ -445,7 +445,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
         execute(callMetadataResolver, responseObserver, callMetadata -> {
             String reason = String.format("User initiated job kill: %s", CallMetadataUtils.toReasonString(callMetadata));
             authorizeJobUpdate(callMetadata, request.getId())
-                    .concatWith(jobOperations.killJobReactor(request.getId(), reason))
+                    .concatWith(jobOperations.killJobReactor(request.getId(), reason, callMetadata))
                     .subscribe(
                             nothing -> {
                             },
@@ -462,7 +462,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     public void updateJobAttributes(JobAttributesUpdate request, StreamObserver<Empty> responseObserver) {
         execute(callMetadataResolver, responseObserver, callMetadata -> {
             authorizeJobUpdate(callMetadata, request.getJobId())
-                    .concatWith(jobOperations.updateJobAttributes(request.getJobId(), request.getAttributesMap()))
+                    .concatWith(jobOperations.updateJobAttributes(request.getJobId(), request.getAttributesMap(), callMetadata))
                     .subscribe(
                             nothing -> {
                             },
@@ -479,7 +479,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     public void deleteJobAttributes(JobAttributesDeleteRequest request, StreamObserver<Empty> responseObserver) {
         execute(callMetadataResolver, responseObserver, callMetadata -> {
             authorizeJobUpdate(callMetadata, request.getJobId())
-                    .concatWith(jobOperations.deleteJobAttributes(request.getJobId(), request.getKeysList()))
+                    .concatWith(jobOperations.deleteJobAttributes(request.getJobId(), new HashSet<>(request.getKeysList()), callMetadata))
                     .subscribe(
                             nothing -> {
                             },
@@ -497,7 +497,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
         execute(callMetadataResolver, responseObserver, callMetadata -> {
             String reason = String.format("User initiated task kill: %s", CallMetadataUtils.toReasonString(callMetadata));
             authorizeTaskUpdate(callMetadata, request.getTaskId())
-                    .concatWith(jobOperations.killTaskReactor(request.getTaskId(), request.getShrink(), reason))
+                    .concatWith(jobOperations.killTaskReactor(request.getTaskId(), request.getShrink(), reason, callMetadata))
                     .subscribe(
                             nothing -> {
                             },
@@ -513,7 +513,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     @Override
     public void moveTask(TaskMoveRequest request, StreamObserver<Empty> responseObserver) {
         execute(callMetadataResolver, responseObserver, callMetadata -> {
-            jobOperations.moveServiceTask(request.getSourceJobId(), request.getTargetJobId(), request.getTaskId()).subscribe(
+            jobOperations.moveServiceTask(request.getSourceJobId(), request.getTargetJobId(), request.getTaskId(), callMetadata).subscribe(
                     nothing -> {
                     },
                     e -> safeOnError(logger, e, responseObserver),
@@ -535,7 +535,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
                         return Optional.of(task.toBuilder().withAttributes(updatedAttributes).build());
                     },
                     V3JobOperations.Trigger.API,
-                    "User request: userId=" + callMetadata.getCallerId()
+                    "User request: userId=" + callMetadata.getCallerId(), callMetadata
             ).subscribe(
                     () -> {
                         responseObserver.onNext(Empty.getDefaultInstance());
@@ -556,7 +556,8 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
                         return Optional.of(task.toBuilder().withAttributes(updatedAttributes).build());
                     },
                     V3JobOperations.Trigger.API,
-                    "User request: userId=" + callMetadata.getCallerId()
+                    "User request: userId=" + callMetadata.getCallerId(),
+                    callMetadata
             ).subscribe(
                     () -> {
                         responseObserver.onNext(Empty.getDefaultInstance());

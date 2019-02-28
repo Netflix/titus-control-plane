@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import com.google.common.collect.ImmutableMap;
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
@@ -35,6 +36,7 @@ import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import com.netflix.titus.common.framework.reconciler.MultiEngineChangeAction;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
+import com.netflix.titus.master.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
 import rx.Observable;
@@ -45,15 +47,18 @@ public class MoveTaskBetweenJobsAction implements MultiEngineChangeAction {
     private final ReconciliationEngine<JobManagerReconcilerEvent> engineTo;
     private final String taskId;
     private final JobStore titusStore;
+    private final CallMetadata callMetadata;
 
     public MoveTaskBetweenJobsAction(ReconciliationEngine<JobManagerReconcilerEvent> engineFrom,
                                      ReconciliationEngine<JobManagerReconcilerEvent> engineTo,
                                      String taskId,
-                                     JobStore titusStore) {
+                                     JobStore titusStore,
+                                     CallMetadata callMetadata) {
         this.engineFrom = engineFrom;
         this.engineTo = engineTo;
         this.taskId = taskId;
         this.titusStore = titusStore;
+        this.callMetadata = callMetadata;
     }
 
     @Override
@@ -111,13 +116,13 @@ public class MoveTaskBetweenJobsAction implements MultiEngineChangeAction {
                 .summary("Task moved to another job: jobTo=" + updatedJobTo.getId())
                 .removeTask(taskFrom);
         actions.addAll(ModelActionHolder.allModels(removeTaskAction));
-
+        String summary = "Decremented the desired job size by one, as its task was moved to another job: jobTo=" + updatedJobTo.getId();
         // Change job size
         TitusModelAction modelAction = TitusModelAction.newModelUpdate("decrementJobSize")
                 .job(updatedJobFrom)
                 .trigger(Trigger.API)
-                .summary("Decremented the desired job size by one, as its task was moved to another job: jobTo=" + updatedJobTo.getId())
-                .jobUpdate(jobHolder -> jobHolder.setEntity(updatedJobFrom));
+                .summary(summary)
+                .jobUpdate(jobHolder -> jobHolder.setEntity(updatedJobFrom).addTag(JobManagerConstants.JOB_MANAGER_ATTRIBUTE_CALLMETADATA, callMetadata.toBuilder().withCallReason(summary).build()));
         actions.addAll(ModelActionHolder.referenceAndStore(modelAction));
 
         return actions;
@@ -125,13 +130,13 @@ public class MoveTaskBetweenJobsAction implements MultiEngineChangeAction {
 
     private List<ModelActionHolder> createModelUpdateActionsTo(Job<ServiceJobExt> updatedJobFrom, Job<?> updatedJobTo, Task taskToUpdated, Optional<EntityHolder> taskFromRunningHolder) {
         List<ModelActionHolder> actions = new ArrayList<>();
-
+        String summary = "Received task from another job: jobFrom=" + updatedJobFrom.getId();
         // Add task
         TitusModelAction addTaskAction = TitusModelAction.newModelUpdate("moveTask")
                 .job(updatedJobTo)
                 .trigger(Trigger.API)
-                .summary("Received task from another job: jobFrom=" + updatedJobFrom.getId())
-                .taskUpdate(taskToUpdated);
+                .summary(summary)
+                .taskUpdate(taskToUpdated, callMetadata.toBuilder().withCallReason(summary).build());
 
         if (taskFromRunningHolder.isPresent()) {
             actions.addAll(ModelActionHolder.allModels(addTaskAction));
@@ -144,7 +149,8 @@ public class MoveTaskBetweenJobsAction implements MultiEngineChangeAction {
                 .job(updatedJobTo)
                 .trigger(Trigger.API)
                 .summary("Incremented the desired job size by one, as it got a task from another job: jobFrom=" + updatedJobFrom.getId())
-                .jobUpdate(jobHolder -> jobHolder.setEntity(updatedJobTo));
+                .jobUpdate(jobHolder -> jobHolder.setEntity(updatedJobTo).addTag(JobManagerConstants.JOB_MANAGER_ATTRIBUTE_CALLMETADATA,
+                        callMetadata.toBuilder().withCallReason("Incremented the desired job size by one, as it got a task from another job").build()));
         actions.addAll(ModelActionHolder.referenceAndStore(modelAction));
 
         return actions;

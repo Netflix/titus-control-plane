@@ -452,7 +452,7 @@ public class ClusterAgentAutoScaler {
     private Completable createResetOverrideStatusesCompletable(List<AgentInstance> removableInstances) {
         List<Completable> actions = new ArrayList<>();
         for (AgentInstance agentInstance : removableInstances) {
-            List<String> attributeKeys = Arrays.asList(ClusterOperationsAttributes.REMOVABLE, SchedulerAttributes.SYSTEM_NO_PLACEMENT);
+            Set<String> attributeKeys = new HashSet<>(Arrays.asList(ClusterOperationsAttributes.REMOVABLE, SchedulerAttributes.SYSTEM_NO_PLACEMENT));
             Completable completable = agentManagementService.deleteAgentInstanceAttributes(agentInstance.getId(), attributeKeys);
             actions.add(completable);
         }

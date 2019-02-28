@@ -35,7 +35,7 @@ public class RelocationClientModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        bind(RelocationServiceClient.class).to(RelocationServiceClientGrpcBridge.class);
+        bind(RelocationServiceClient.class).to(RemoteRelocationServiceClient.class);
     }
 
     @Provides
@@ -46,12 +46,12 @@ public class RelocationClientModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public TransportRelocationServiceClient getGrpcRelocationServiceClient(TaskRelocationServiceStub stub,
-                                                                           CallMetadataResolver metadataResolver,
-                                                                           @Named(RELOCATION_CLIENT) GrpcClientConfiguration configuration) {
+    public ReactorRelocationServiceStub getGrpcRelocationServiceClient(TaskRelocationServiceStub stub,
+                                                                       CallMetadataResolver metadataResolver,
+                                                                       @Named(RELOCATION_CLIENT) GrpcClientConfiguration configuration) {
         return ReactorToGrpcClientBuilder
                 .newBuilder(
-                        TransportRelocationServiceClient.class, stub, TaskRelocationServiceGrpc.getServiceDescriptor()
+                        ReactorRelocationServiceStub.class, stub, TaskRelocationServiceGrpc.getServiceDescriptor()
                 )
                 .withCallMetadataResolver(metadataResolver)
                 .withTimeout(Duration.ofMillis(configuration.getRequestTimeout()))

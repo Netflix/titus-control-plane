@@ -23,7 +23,7 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.runtime.endpoint.authorization.AuthorizationService;
 import com.netflix.titus.runtime.endpoint.authorization.AuthorizationStatus;
-import com.netflix.titus.runtime.endpoint.metadata.CallMetadata;
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import reactor.core.publisher.Mono;
 
 

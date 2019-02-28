@@ -19,11 +19,13 @@ package com.netflix.titus.testkit.model.job;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -141,27 +143,27 @@ class StubbedJobOperations implements V3JobOperations {
     }
 
     @Override
-    public Observable<String> createJob(JobDescriptor<?> jobDescriptor) {
+    public Observable<String> createJob(JobDescriptor<?> jobDescriptor, CallMetadata callMetadata) {
         return defer(() -> stubbedJobData.createJob(jobDescriptor));
     }
 
     @Override
-    public Observable<Void> updateJobCapacity(String jobId, Capacity capacity) {
+    public Observable<Void> updateJobCapacity(String jobId, Capacity capacity, CallMetadata callMetadata) {
         return updateServiceJob(jobId, job -> changeServiceJobCapacity(job, capacity));
     }
 
     @Override
-    public Observable<Void> updateServiceJobProcesses(String jobId, ServiceJobProcesses serviceJobProcesses) {
+    public Observable<Void> updateServiceJobProcesses(String jobId, ServiceJobProcesses serviceJobProcesses, CallMetadata callMetadata) {
         return updateServiceJob(jobId, job -> changeServiceJobProcesses(job, serviceJobProcesses));
     }
 
     @Override
-    public Observable<Void> updateJobStatus(String serviceJobId, boolean enabled) {
+    public Observable<Void> updateJobStatus(String serviceJobId, boolean enabled, CallMetadata callMetadata) {
         return updateServiceJob(serviceJobId, job -> JobFunctions.changeJobEnabledStatus(job, enabled));
     }
 
     @Override
-    public Mono<Void> updateJobDisruptionBudget(String jobId, DisruptionBudget disruptionBudget) {
+    public Mono<Void> updateJobDisruptionBudget(String jobId, DisruptionBudget disruptionBudget, CallMetadata callMetadata) {
         Observable<Void> observableAction = defer(() -> {
             stubbedJobData.changeJob(jobId, job -> JobFunctions.changeDisruptionBudget(job, disruptionBudget));
         });
@@ -169,7 +171,7 @@ class StubbedJobOperations implements V3JobOperations {
     }
 
     @Override
-    public Mono<Void> updateJobAttributes(String jobId, Map<String, String> attributes) {
+    public Mono<Void> updateJobAttributes(String jobId, Map<String, String> attributes, CallMetadata callMetadata) {
         Observable<Void> observableAction = defer(() -> {
             stubbedJobData.changeJob(jobId, job -> JobFunctions.updateJobAttributes(job, attributes));
         });
@@ -177,7 +179,7 @@ class StubbedJobOperations implements V3JobOperations {
     }
 
     @Override
-    public Mono<Void> deleteJobAttributes(String jobId, List<String> keys) {
+    public Mono<Void> deleteJobAttributes(String jobId, Set<String> keys, CallMetadata callMetadata) {
         Observable<Void> observableAction = defer(() -> {
             stubbedJobData.changeJob(jobId, job -> JobFunctions.deleteJobAttributes(job, keys));
         });
@@ -191,17 +193,17 @@ class StubbedJobOperations implements V3JobOperations {
     }
 
     @Override
-    public Observable<Void> killJob(String jobId, String reason) {
+    public Observable<Void> killJob(String jobId, String reason, CallMetadata callMetadata) {
         return defer(() -> stubbedJobData.killJob(jobId));
     }
 
     @Override
-    public Observable<Void> killTask(String taskId, boolean shrink, String reason) {
+    public Observable<Void> killTask(String taskId, boolean shrink, String reason, CallMetadata callMetadata) {
         return defer(() -> stubbedJobData.killTask(taskId, shrink, reason));
     }
 
     @Override
-    public Observable<Void> moveServiceTask(String sourceJobId, String targetJobId, String taskId) {
+    public Observable<Void> moveServiceTask(String sourceJobId, String targetJobId, String taskId, CallMetadata callMetadata) {
         return defer(() -> {
             stubbedJobData.changeJob(sourceJobId, job -> JobFunctions.incrementJobSize(job, -1));
             stubbedJobData.changeJob(targetJobId, job -> JobFunctions.incrementJobSize(job, 1));
@@ -210,12 +212,12 @@ class StubbedJobOperations implements V3JobOperations {
     }
 
     @Override
-    public Completable updateTask(String taskId, Function<Task, Optional<Task>> changeFunction, Trigger trigger, String reason) {
+    public Completable updateTask(String taskId, Function<Task, Optional<Task>> changeFunction, Trigger trigger, String reason, CallMetadata callMetadata) {
         return deferCompletable(() -> stubbedJobData.changeTask(taskId, task -> changeFunction.apply(task).orElse(task)));
     }
 
     @Override
-    public Completable recordTaskPlacement(String taskId, Function<Task, Task> changeFunction) {
+    public Completable recordTaskPlacement(String taskId, Function<Task, Task> changeFunction, CallMetadata callMetadata) {
         return deferCompletable(() -> stubbedJobData.changeTask(taskId, changeFunction::apply));
     }
 

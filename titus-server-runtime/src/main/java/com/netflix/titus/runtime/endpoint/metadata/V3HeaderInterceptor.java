@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters;
 import io.grpc.Context;
 import io.grpc.Contexts;
