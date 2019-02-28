@@ -16,7 +16,7 @@
 
 package com.netflix.titus.runtime.endpoint.v3.rest;
 
-import java.util.List;
+import java.util.Set;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
@@ -35,7 +35,10 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
+import com.google.common.base.Strings;
+import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.runtime.SystemLogService;
+import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.grpc.protogen.Capacity;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobAttributesDeleteRequest;
@@ -150,8 +153,16 @@ public class JobManagementResource {
     @DELETE
     @ApiOperation("Delete attributes of a job with the specified key names")
     @Path("/jobs/{jobId}/attributes")
-    public Response deleteJobAttributes(@PathParam("jobId") String jobId,
-                                        @QueryParam("keys") final List<String> keys) {
+    public Response deleteJobAttributes(@PathParam("jobId") String jobId, @QueryParam("keys") String delimitedKeys) {
+        if (Strings.isNullOrEmpty(delimitedKeys)) {
+            throw TitusServiceException.invalidArgument("Path parameter 'keys' cannot be empty");
+        }
+
+        Set<String> keys = StringExt.splitByCommaIntoSet(delimitedKeys);
+        if (keys.isEmpty()) {
+            throw TitusServiceException.invalidArgument("Parsed path parameter 'keys' cannot be empty");
+        }
+
         JobAttributesDeleteRequest request = JobAttributesDeleteRequest.newBuilder()
                 .setJobId(jobId)
                 .addAllKeys(keys)
@@ -261,8 +272,16 @@ public class JobManagementResource {
     @DELETE
     @ApiOperation("Delete attributes of a task with the specified key names")
     @Path("/tasks/{taskId}/attributes")
-    public Response deleteTaskAttributes(@PathParam("taskId") String taskId,
-                                         @QueryParam("keys") final List<String> keys) {
+    public Response deleteTaskAttributes(@PathParam("taskId") String taskId, @QueryParam("keys") String delimitedKeys) {
+        if (Strings.isNullOrEmpty(delimitedKeys)) {
+            throw TitusServiceException.invalidArgument("Path parameter 'keys' cannot be empty");
+        }
+
+        Set<String> keys = StringExt.splitByCommaIntoSet(delimitedKeys);
+        if (keys.isEmpty()) {
+            throw TitusServiceException.invalidArgument("Parsed path parameter 'keys' cannot be empty");
+        }
+
         TaskAttributesDeleteRequest request = TaskAttributesDeleteRequest.newBuilder()
                 .setTaskId(taskId)
                 .addAllKeys(keys)

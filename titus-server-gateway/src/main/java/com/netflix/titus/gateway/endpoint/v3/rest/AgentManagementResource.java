@@ -27,6 +27,7 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
@@ -141,14 +142,14 @@ public class AgentManagementResource {
     @DELETE
     @ApiOperation("Delete instance group attributes")
     @Path("/instanceGroups/{id}/attributes")
-    public Response deleteInstanceGroupAttributes(@PathParam("id") String instanceGroupId, @PathParam("keys") String delimitedKeys) {
+    public Response deleteInstanceGroupAttributes(@PathParam("id") String instanceGroupId, @QueryParam("keys") String delimitedKeys) {
         if (Strings.isNullOrEmpty(delimitedKeys)) {
-            throw TitusServiceException.invalidArgument("Path parameter keys cannot be empty");
+            throw TitusServiceException.invalidArgument("Path parameter 'keys' cannot be empty");
         }
 
         Set<String> keys = StringExt.splitByCommaIntoSet(delimitedKeys);
         if (keys.isEmpty()) {
-            throw TitusServiceException.invalidArgument("Parsed path parameter keys cannot be empty");
+            throw TitusServiceException.invalidArgument("Parsed path parameter 'keys' cannot be empty");
         }
 
         DeleteInstanceGroupAttributesRequest request = DeleteInstanceGroupAttributesRequest.newBuilder()
@@ -175,14 +176,14 @@ public class AgentManagementResource {
     @DELETE
     @ApiOperation("Delete agent instance attributes")
     @Path("/instances/{id}/attributes")
-    public Response deleteAgentInstanceAttributes(@PathParam("id") String agentInstanceId, @PathParam("keys") String delimitedKeys) {
+    public Response deleteAgentInstanceAttributes(@PathParam("id") String agentInstanceId, @QueryParam("keys") String delimitedKeys) {
         if (Strings.isNullOrEmpty(delimitedKeys)) {
-            throw TitusServiceException.invalidArgument("Path parameter keys cannot be empty");
+            throw TitusServiceException.invalidArgument("Path parameter 'keys' cannot be empty");
         }
 
         Set<String> keys = StringExt.splitByCommaIntoSet(delimitedKeys);
         if (keys.isEmpty()) {
-            throw TitusServiceException.invalidArgument("Parsed path parameter keys cannot be empty");
+            throw TitusServiceException.invalidArgument("Parsed path parameter 'keys' cannot be empty");
         }
 
         DeleteAgentInstanceAttributesRequest request = DeleteAgentInstanceAttributesRequest.newBuilder()
