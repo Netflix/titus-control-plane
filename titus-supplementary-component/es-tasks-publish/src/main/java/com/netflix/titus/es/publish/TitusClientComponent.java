@@ -48,7 +48,11 @@ public class TitusClientComponent {
     }
 
     @Bean
-    public ManagedChannel getTitusGrpcChannel() {
+    public JobManagementServiceStub getJobManagementServiceStub() {
+        return JobManagementServiceGrpc.newStub(getTitusGrpcChannel());
+    }
+
+    private ManagedChannel getTitusGrpcChannel() {
         return NettyChannelBuilder.forAddress(titusApiHost, titusApiPort)
                 .loadBalancerFactory(RoundRobinLoadBalancerFactory.getInstance())
                 .keepAliveTime(GRPC_KEEP_ALIVE_TIME, TimeUnit.SECONDS)
@@ -56,10 +60,5 @@ public class TitusClientComponent {
                 .userAgent(GRPC_CLIENT_AGENT)
                 .usePlaintext(true)
                 .build();
-    }
-
-    @Bean
-    public JobManagementServiceStub getJobManagementServiceStub() {
-        return JobManagementServiceGrpc.newStub(getTitusGrpcChannel());
     }
 }

@@ -19,6 +19,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
+import javax.inject.Inject;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
@@ -34,6 +36,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -41,7 +44,7 @@ import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.tcp.TcpClient;
 
-@Service
+@Component
 public class EsClientHttp implements EsClient {
     private static final Logger logger = LoggerFactory.getLogger(EsClientHttp.class);
     private static final String ES_RECORD_TYPE = "default";
@@ -50,7 +53,7 @@ public class EsClientHttp implements EsClient {
     private EsPublisherConfiguration esPublisherConfiguration;
 
 
-    @Autowired
+    @Inject
     public EsClientHttp(EsPublisherConfiguration esPublisherConfiguration) {
         this.esPublisherConfiguration = esPublisherConfiguration;
         tasksClient = WebClient.builder().clientConnector(new ReactorClientHttpConnector(buildHttpClient()))

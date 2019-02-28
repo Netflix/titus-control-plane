@@ -16,6 +16,7 @@
 package com.netflix.titus.es.publish;
 
 import java.util.concurrent.atomic.AtomicInteger;
+import javax.inject.Inject;
 
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.patterns.PolledMeter;
@@ -29,12 +30,11 @@ import com.netflix.titus.grpc.protogen.TaskId;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-@Service
+@Component
 public class TitusClientImpl implements TitusClient {
     private static final Logger logger = LoggerFactory.getLogger(TitusClientImpl.class);
     private final JobManagementServiceGrpc.JobManagementServiceStub jobManagementService;
@@ -44,7 +44,7 @@ public class TitusClientImpl implements TitusClient {
     private AtomicInteger apiErrors = new AtomicInteger(0);
 
 
-    @Autowired
+    @Inject
     public TitusClientImpl(JobManagementServiceGrpc.JobManagementServiceStub jobManagementService,
                            Registry registry) {
         this.jobManagementService = jobManagementService;

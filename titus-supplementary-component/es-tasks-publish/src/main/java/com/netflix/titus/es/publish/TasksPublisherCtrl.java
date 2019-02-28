@@ -24,6 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import javax.annotation.PostConstruct;
+import javax.inject.Inject;
 import javax.inject.Named;
 
 import com.netflix.spectator.api.Functions;
@@ -42,6 +43,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -67,7 +69,7 @@ public class TasksPublisherCtrl {
     private static final long MAX_RETRY_DELAY_MS = 2_000;
 
 
-    @Autowired
+    @Inject
     public TasksPublisherCtrl(EsClient esClient,
                               TitusClient titusClient,
                               @Named(TASK_DOCUMENT_CONTEXT) Map<String, String> taskDocumentBaseContext,
