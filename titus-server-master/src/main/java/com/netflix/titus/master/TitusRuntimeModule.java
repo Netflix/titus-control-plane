@@ -52,7 +52,7 @@ import com.netflix.titus.common.util.rx.eventbus.internal.DefaultRxEventBus;
 import com.netflix.titus.master.mesos.MesosStatusOverrideFitAction;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.scheduler.SchedulingService;
-import com.netflix.titus.master.supervisor.service.LeaderActivator;
+import com.netflix.titus.api.supervisor.service.LeaderActivator;
 import com.netflix.titus.runtime.Fit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -33,7 +33,7 @@ import javax.ws.rs.core.Response;
 
 import com.netflix.titus.grpc.protogen.MasterInstance;
 import com.netflix.titus.master.supervisor.endpoint.grpc.SupervisorGrpcModelConverters;
-import com.netflix.titus.master.supervisor.service.SupervisorOperations;
+import com.netflix.titus.api.supervisor.service.SupervisorOperations;
 import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataUtils;

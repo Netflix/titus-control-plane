@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,18 +14,19 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.supervisor.service;
+package com.netflix.titus.api.supervisor.service;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.MoreObjects;
+import com.netflix.titus.api.supervisor.model.MasterInstance;
 
 /**
  * A JSON-serializable data transfer object for Titus master descriptions. It's used to transfer
  * metadata between master and workers.
  *
- * Use {@link com.netflix.titus.master.supervisor.model.MasterInstance} instead.
+ * Use {@link MasterInstance} instead.
  */
 @Deprecated
 public class MasterDescription {

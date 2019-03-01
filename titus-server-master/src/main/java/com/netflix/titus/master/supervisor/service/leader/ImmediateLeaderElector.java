@@ -20,9 +20,9 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.netflix.titus.master.supervisor.model.MasterState;
-import com.netflix.titus.master.supervisor.service.LeaderActivator;
-import com.netflix.titus.master.supervisor.service.LeaderElector;
+import com.netflix.titus.api.supervisor.model.MasterState;
+import com.netflix.titus.api.supervisor.service.LeaderActivator;
+import com.netflix.titus.api.supervisor.service.LeaderElector;
 import rx.Observable;
 
 @Singleton

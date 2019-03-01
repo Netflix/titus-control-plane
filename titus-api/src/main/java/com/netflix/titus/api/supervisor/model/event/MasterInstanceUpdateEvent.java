@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.supervisor.model.event;
+package com.netflix.titus.api.supervisor.model.event;
 
 import java.util.Objects;
 
-import com.netflix.titus.master.supervisor.model.MasterInstance;
+import com.netflix.titus.api.supervisor.model.MasterInstance;
 
 public class MasterInstanceUpdateEvent extends SupervisorEvent {
 

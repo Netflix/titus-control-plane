@@ -20,7 +20,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 import com.netflix.titus.master.config.MasterConfiguration;
-import com.netflix.titus.master.supervisor.service.MasterDescription;
+import com.netflix.titus.api.supervisor.service.MasterDescription;
 
 /**
  */

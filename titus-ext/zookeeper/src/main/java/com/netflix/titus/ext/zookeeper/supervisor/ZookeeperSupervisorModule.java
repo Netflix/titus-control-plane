@@ -17,8 +17,8 @@
 package com.netflix.titus.ext.zookeeper.supervisor;
 
 import com.google.inject.AbstractModule;
-import com.netflix.titus.master.supervisor.service.LeaderElector;
-import com.netflix.titus.master.supervisor.service.MasterMonitor;
+import com.netflix.titus.api.supervisor.service.LeaderElector;
+import com.netflix.titus.api.supervisor.service.MasterMonitor;
 
 public final class ZookeeperSupervisorModule extends AbstractModule {
     @Override

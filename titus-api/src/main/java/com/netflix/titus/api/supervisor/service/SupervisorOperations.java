@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.supervisor.service;
+package com.netflix.titus.api.supervisor.service;
 
 import java.util.List;
 import java.util.Optional;
 
-import com.netflix.titus.master.supervisor.model.MasterInstance;
-import com.netflix.titus.master.supervisor.model.event.SupervisorEvent;
+import com.netflix.titus.api.supervisor.model.MasterInstance;
+import com.netflix.titus.api.supervisor.model.event.SupervisorEvent;
 import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import rx.Observable;
 

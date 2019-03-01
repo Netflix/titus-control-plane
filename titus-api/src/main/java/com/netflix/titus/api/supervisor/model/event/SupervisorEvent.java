@@ -14,20 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.supervisor.model;
+package com.netflix.titus.api.supervisor.model.event;
 
-public enum MasterState {
-    Starting,
-    Inactive,
-    NonLeader,
-    LeaderActivating,
-    LeaderActivated;
-
-    public static boolean isLeader(MasterState state) {
-        return state == MasterState.LeaderActivating || state == MasterState.LeaderActivated;
-    }
-
-    public static boolean isAfter(MasterState before, MasterState after) {
-        return before.ordinal() < after.ordinal();
-    }
+public abstract class SupervisorEvent {
 }

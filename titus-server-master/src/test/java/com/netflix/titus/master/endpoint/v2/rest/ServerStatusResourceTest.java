@@ -25,7 +25,7 @@ import com.netflix.titus.common.util.guice.ActivationLifecycle;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.config.CellInfoResolver;
 import com.netflix.titus.master.health.service.DefaultHealthService;
-import com.netflix.titus.master.supervisor.service.LeaderActivator;
+import com.netflix.titus.api.supervisor.service.LeaderActivator;
 import com.netflix.titus.runtime.endpoint.common.rest.JsonMessageReaderWriter;
 import com.netflix.titus.runtime.endpoint.common.rest.TitusExceptionMapper;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;

@@ -27,7 +27,7 @@ import com.netflix.titus.grpc.protogen.MasterInstanceId;
 import com.netflix.titus.grpc.protogen.MasterInstances;
 import com.netflix.titus.grpc.protogen.SupervisorEvent;
 import com.netflix.titus.grpc.protogen.SupervisorServiceGrpc;
-import com.netflix.titus.master.supervisor.service.SupervisorOperations;
+import com.netflix.titus.api.supervisor.service.SupervisorOperations;
 import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import io.grpc.Status;

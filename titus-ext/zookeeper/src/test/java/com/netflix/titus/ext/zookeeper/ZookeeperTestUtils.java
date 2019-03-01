@@ -20,10 +20,10 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Collections;
 
-import com.netflix.titus.master.supervisor.model.MasterInstance;
-import com.netflix.titus.master.supervisor.model.MasterState;
-import com.netflix.titus.master.supervisor.model.MasterStatus;
-import com.netflix.titus.master.supervisor.service.MasterDescription;
+import com.netflix.titus.api.supervisor.model.MasterInstance;
+import com.netflix.titus.api.supervisor.model.MasterState;
+import com.netflix.titus.api.supervisor.model.MasterStatus;
+import com.netflix.titus.api.supervisor.service.MasterDescription;
 
 import static org.mockito.Mockito.when;
 

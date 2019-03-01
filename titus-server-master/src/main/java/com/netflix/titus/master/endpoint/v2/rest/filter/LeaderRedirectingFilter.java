@@ -31,11 +31,11 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import com.netflix.titus.master.supervisor.service.LeaderActivator;
+import com.netflix.titus.api.supervisor.service.LeaderActivator;
 import com.netflix.titus.master.config.MasterConfiguration;
 import com.netflix.titus.master.endpoint.v2.rest.Util;
-import com.netflix.titus.master.supervisor.service.MasterDescription;
-import com.netflix.titus.master.supervisor.service.MasterMonitor;
+import com.netflix.titus.api.supervisor.service.MasterDescription;
+import com.netflix.titus.api.supervisor.service.MasterMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

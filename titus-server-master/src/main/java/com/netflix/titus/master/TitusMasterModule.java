@@ -47,7 +47,7 @@ import com.netflix.titus.master.scheduler.SchedulerModule;
 import com.netflix.titus.master.service.management.ManagementModule;
 import com.netflix.titus.master.store.StoreModule;
 import com.netflix.titus.master.supervisor.endpoint.SupervisorEndpointModule;
-import com.netflix.titus.master.supervisor.service.MasterDescription;
+import com.netflix.titus.api.supervisor.service.MasterDescription;
 import com.netflix.titus.master.supervisor.service.SupervisorServiceModule;
 import com.netflix.titus.master.taskmigration.TaskMigratorModule;
 import com.netflix.titus.runtime.FeatureFlagModule;

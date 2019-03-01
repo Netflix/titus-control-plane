@@ -22,11 +22,11 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.netflix.titus.common.util.rx.ObservableExt;
-import com.netflix.titus.master.supervisor.model.MasterInstance;
-import com.netflix.titus.master.supervisor.model.MasterState;
-import com.netflix.titus.master.supervisor.model.MasterStatus;
-import com.netflix.titus.master.supervisor.service.MasterDescription;
-import com.netflix.titus.master.supervisor.service.MasterMonitor;
+import com.netflix.titus.api.supervisor.model.MasterInstance;
+import com.netflix.titus.api.supervisor.model.MasterState;
+import com.netflix.titus.api.supervisor.model.MasterStatus;
+import com.netflix.titus.api.supervisor.service.MasterDescription;
+import com.netflix.titus.api.supervisor.service.MasterMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;
