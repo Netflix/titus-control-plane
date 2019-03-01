@@ -18,6 +18,8 @@ package com.netflix.titus.master.supervisor.service.leader;
 
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
+import java.util.function.Supplier;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -151,10 +153,13 @@ public class LeaderElectionOrchestrator {
                 localMasterInstanceResolver.observeLocalMasterInstanceUpdates(),
                 leaderElector.awaitElection()
         ).compose(
-                ObservableExt.mapWithState(masterMonitor.getCurrentMasterInstance(), (change, currentMaster) ->
-                        processChange(change, currentMaster)
-                                .map(newMasterInstance -> Pair.of(Optional.of(newMasterInstance), newMasterInstance))
-                                .orElseGet(() -> Pair.of(Optional.empty(), currentMaster)))
+                ObservableExt.mapWithState(
+                        (Supplier<MasterInstance>) masterMonitor::getCurrentMasterInstance,
+                        (BiFunction<Object, MasterInstance, Pair<Optional<MasterInstance>, MasterInstance>>) (change, currentMaster) ->
+                                processChange(change, currentMaster)
+                                        .map(newMasterInstance -> Pair.of(Optional.of(newMasterInstance), newMasterInstance))
+                                        .orElseGet(() -> Pair.of(Optional.empty(), currentMaster))
+                )
         ).flatMapCompletable(this::updateOwnMasterInstanceIfChanged);
 
         return titusRuntime.persistentStream(updateStream).subscribe();
