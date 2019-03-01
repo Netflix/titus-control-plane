@@ -42,7 +42,7 @@ import org.apache.curator.framework.recipes.leader.LeaderLatchListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
-import rx.subjects.PublishSubject;
+import rx.subjects.BehaviorSubject;
 
 import static org.apache.zookeeper.KeeperException.Code.OK;
 
@@ -59,7 +59,7 @@ public class ZookeeperLeaderElector implements LeaderElector {
     // The path where a selected leader announces itself.
     private final String leaderPath;
 
-    private final PublishSubject<MasterState> electionSubject = PublishSubject.create();
+    private final BehaviorSubject<MasterState> electionSubject = BehaviorSubject.create();
     private final Observable<MasterState> electionObserver = ObservableExt.protectFromMissingExceptionHandlers(electionSubject, logger);
 
     private final AtomicReference<LeaderElectionProcess> leaderElectionProcessRef = new AtomicReference<>();

@@ -19,6 +19,7 @@ package com.netflix.titus.common.util.rx;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import com.netflix.titus.common.util.tuple.Either;
 import com.netflix.titus.common.util.tuple.Pair;
@@ -30,12 +31,12 @@ import rx.Subscription;
  */
 class MapWithStateTransformer<T, R, S> implements Observable.Transformer<T, R> {
 
-    private final S zero;
+    private final Supplier<S> zeroSupplier;
     private final BiFunction<T, S, Pair<R, S>> transformer;
     private final Observable<Function<S, Pair<R, S>>> cleanupActions;
 
-    MapWithStateTransformer(S zero, BiFunction<T, S, Pair<R, S>> transformer, Observable<Function<S, Pair<R, S>>> cleanupActions) {
-        this.zero = zero;
+    MapWithStateTransformer(Supplier<S> zeroSupplier, BiFunction<T, S, Pair<R, S>> transformer, Observable<Function<S, Pair<R, S>>> cleanupActions) {
+        this.zeroSupplier = zeroSupplier;
         this.transformer = transformer;
         this.cleanupActions = cleanupActions;
     }
@@ -43,7 +44,7 @@ class MapWithStateTransformer<T, R, S> implements Observable.Transformer<T, R> {
     @Override
     public Observable<R> call(Observable<T> source) {
         return Observable.unsafeCreate(subscriber -> {
-            AtomicReference<S> lastState = new AtomicReference<>(zero);
+            AtomicReference<S> lastState = new AtomicReference<>(zeroSupplier.get());
 
             Observable<Either<T, Function<S, Pair<R, S>>>> sourceEither = source.map(Either::ofValue);
             Observable<Either<T, Function<S, Pair<R, S>>>> cleanupEither = cleanupActions.map(Either::ofError);

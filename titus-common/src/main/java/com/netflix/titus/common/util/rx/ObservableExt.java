@@ -129,7 +129,14 @@ public class ObservableExt {
      * when next item is emitted.
      */
     public static <T, R, S> Observable.Transformer<T, R> mapWithState(S zero, BiFunction<T, S, Pair<R, S>> transformer) {
-        return new MapWithStateTransformer<>(zero, transformer, Observable.empty());
+        return new MapWithStateTransformer<>(() -> zero, transformer, Observable.empty());
+    }
+
+    /**
+     * See {@link #mapWithState(Object, BiFunction)}. The difference is that the initial value is computed on each subscription.
+     */
+    public static <T, R, S> Observable.Transformer<T, R> mapWithState(Supplier<S> zeroSupplier, BiFunction<T, S, Pair<R, S>> transformer) {
+        return new MapWithStateTransformer<>(zeroSupplier, transformer, Observable.empty());
     }
 
     /**
@@ -138,7 +145,7 @@ public class ObservableExt {
     public static <T, R, S> Observable.Transformer<T, R> mapWithState(S zero,
                                                                       BiFunction<T, S, Pair<R, S>> transformer,
                                                                       Observable<Function<S, Pair<R, S>>> cleanupActions) {
-        return new MapWithStateTransformer<>(zero, transformer, cleanupActions);
+        return new MapWithStateTransformer<>(() -> zero, transformer, cleanupActions);
     }
 
     /**
