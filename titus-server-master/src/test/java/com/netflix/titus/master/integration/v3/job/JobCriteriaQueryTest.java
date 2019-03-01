@@ -172,12 +172,6 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
         assertThat(serviceQueryTasks.getItems(0).getId()).isEqualTo(serviceTaskId);
     }
 
-    /**
-     * V3 only.
-     * <p>
-     * V2 jobState query not supported, as effectively there is one state 'Accepted'. Once job moves to 'Finished' state
-     * it is removed from TitusMaster.
-     */
     @Test(timeout = 30_000)
     public void testSearchByJobState() throws Exception {
         JobDescriptor<BatchJobExt> jobDescriptor = batchJobDescriptors().getValue().toBuilder().withApplicationName(V3_ENGINE_APP).build();

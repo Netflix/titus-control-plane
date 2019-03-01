@@ -108,7 +108,6 @@ public class TitusMasterModule extends AbstractModule {
         install(new ManagementModule());
 
         // REST/GRPC
-        bind(JerseyModule.V2_LOG_STORAGE_INFO).toInstance(EmptyLogStorageInfo.INSTANCE);
         bind(V3EndpointModule.V3_LOG_STORAGE_INFO).toInstance(EmptyLogStorageInfo.INSTANCE);
         bind(ContextResolver.class).toInstance(EmptyContextResolver.INSTANCE);
 

@@ -21,15 +21,12 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.google.inject.Provides;
-import com.google.inject.TypeLiteral;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.governator.guice.jersey.GovernatorServletContainer;
 import com.netflix.governator.providers.Advises;
-import com.netflix.titus.api.store.v2.V2WorkerMetadata;
 import com.netflix.titus.common.framework.scheduler.endpoint.LocalSchedulerResource;
 import com.netflix.titus.master.endpoint.v2.rest.filter.LeaderRedirectingFilter;
 import com.netflix.titus.master.supervisor.endpoint.http.SupervisorResource;
-import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
 import com.netflix.titus.runtime.endpoint.common.rest.JsonMessageReaderWriter;
 import com.netflix.titus.runtime.endpoint.common.rest.RestServerConfiguration;
 import com.netflix.titus.runtime.endpoint.common.rest.TitusExceptionMapper;
@@ -44,10 +41,6 @@ import com.sun.jersey.guice.JerseyServletModule;
  * We use this module to wire up our endpoints.
  */
 public class JerseyModule extends JerseyServletModule {
-
-    public static final TypeLiteral<LogStorageInfo<V2WorkerMetadata>> V2_LOG_STORAGE_INFO =
-            new TypeLiteral<LogStorageInfo<V2WorkerMetadata>>() {
-            };
 
     @Override
     protected void configureServlets() {
