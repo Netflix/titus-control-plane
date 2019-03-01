@@ -60,7 +60,7 @@ class InstanceCacheDataSnapshot {
 
     InstanceCacheDataSnapshot updateInstances(List<Instance> instances) {
         HashMap<String, Instance> newInstanceMap = new HashMap<>(instanceMap);
-        instances.forEach(updated -> newInstanceMap.put(updated.getId(), updated));
+        instances.forEach(instance -> newInstanceMap.put(instance.getId(), instance));
         return new InstanceCacheDataSnapshot(instanceGroupMap, newInstanceMap);
     }
 

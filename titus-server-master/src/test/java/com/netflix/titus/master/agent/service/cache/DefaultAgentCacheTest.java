@@ -138,9 +138,9 @@ public class DefaultAgentCacheTest {
                 ).build();
         ExtTestSubscriber<Object> testSubscriber = new ExtTestSubscriber<>();
         if (withCloudSync) {
-            cache.updateInstanceGroupStoreAndSyncCloud(updatedInstanceGroup).toObservable().subscribe(testSubscriber);
+            cache.updateInstanceGroupStoreAndSyncCloud(updatedInstanceGroup.getId(), ig -> updatedInstanceGroup).toObservable().subscribe(testSubscriber);
         } else {
-            cache.updateInstanceGroupStore(updatedInstanceGroup).toObservable().subscribe(testSubscriber);
+            cache.updateInstanceGroupStore(updatedInstanceGroup.getId(), ig -> updatedInstanceGroup).toObservable().subscribe(testSubscriber);
         }
 
         testScheduler.triggerActions();
@@ -196,7 +196,7 @@ public class DefaultAgentCacheTest {
         Set<AgentInstance> instances = cache.getAgentInstances(agentInstance.getInstanceGroupId());
 
         ExtTestSubscriber<Object> testSubscriber = new ExtTestSubscriber<>();
-        cache.updateAgentInstanceStore(agentInstance).toObservable().subscribe(testSubscriber);
+        cache.updateAgentInstanceStore(agentInstance.getId(), ai -> agentInstance).toObservable().subscribe(testSubscriber);
 
         testScheduler.triggerActions();
 
@@ -235,16 +235,16 @@ public class DefaultAgentCacheTest {
     }
 
     @Test
-    public void testGetAndUpdateInstanceGroupStore() {
-        testGetAndInstanceGroupUpdate(false);
+    public void testUpdateInstanceGroupStore() {
+        testUpdateInstanceGroup(false);
     }
 
     @Test
-    public void testGetAndUpdateInstanceGroupStoreAndCloudSync() {
-        testGetAndInstanceGroupUpdate(true);
+    public void testUpdateInstanceGroupStoreAndCloudSync() {
+        testUpdateInstanceGroup(true);
     }
 
-    private void testGetAndInstanceGroupUpdate(boolean withCloudSync) {
+    private void testUpdateInstanceGroup(boolean withCloudSync) {
         AgentInstanceGroup instanceGroup = cache.getInstanceGroups().get(0);
         String instanceGroupId = instanceGroup.getId();
         ExtTestSubscriber<Object> testSubscriber = new ExtTestSubscriber<>();
@@ -265,7 +265,7 @@ public class DefaultAgentCacheTest {
     }
 
     @Test
-    public void testGetAndUpdateAgentInstanceStore() {
+    public void testUpdateAgentInstanceStore() {
         AgentInstanceGroup instanceGroup = cache.getInstanceGroups().get(0);
         String instanceGroupId = instanceGroup.getId();
         AgentInstance agentInstance = CollectionsExt.first(cache.getAgentInstances(instanceGroupId));

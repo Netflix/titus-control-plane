@@ -194,30 +194,6 @@ public class DefaultAgentCache implements AgentCache {
         return Optional.ofNullable(dataSnapshot.getInstance(instanceId));
     }
 
-    public Completable updateInstanceGroupStore(AgentInstanceGroup instanceGroup) {
-        return onEventLoopWithSubscription(() -> {
-            getInstanceGroup(instanceGroup.getId());
-            Set<AgentInstance> agentInstances = dataSnapshot.getInstances(instanceGroup.getId());
-            if (agentInstances == null) {
-                agentInstances = Collections.emptySet();
-            }
-            setDataSnapshot(dataSnapshot.updateInstanceGroup(instanceGroup, agentInstances));
-            eventSubject.onNext(new CacheUpdateEvent(CacheUpdateType.InstanceGroup, instanceGroup.getId()));
-        }).concatWith(agentStore.storeAgentInstanceGroup(instanceGroup));
-    }
-
-    public Completable updateInstanceGroupStoreAndSyncCloud(AgentInstanceGroup instanceGroup) {
-        return updateInstanceGroupStore(instanceGroup).doOnCompleted(() -> instanceCache.refreshInstanceGroup(instanceGroup.getId()));
-    }
-
-    public Completable updateAgentInstanceStore(AgentInstance agentInstance) {
-        return onEventLoopWithSubscription(() -> {
-            getInstanceGroup(agentInstance.getInstanceGroupId());
-            setDataSnapshot(dataSnapshot.updateAgentInstance(agentInstance));
-            eventSubject.onNext(new CacheUpdateEvent(CacheUpdateType.Instance, agentInstance.getId()));
-        }).concatWith(agentStore.storeAgentInstance(agentInstance));
-    }
-
     @Override
     public Single<AgentInstanceGroup> updateInstanceGroupStore(String instanceGroupId, Function<AgentInstanceGroup, AgentInstanceGroup> function) {
         Single<AgentInstanceGroup> single = onEventLoopWithSubscription(() -> {

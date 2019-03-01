@@ -320,7 +320,7 @@ class InstanceCache {
             return;
         }
 
-        InstanceGroup effectiveInstanceGroup = updatedAttributes(updatedInstanceGroup, oldInstanceGroup);
+        InstanceGroup effectiveInstanceGroup = updateAttributes(updatedInstanceGroup, oldInstanceGroup);
         boolean instanceGroupChanged = !oldInstanceGroup.equals(effectiveInstanceGroup);
         boolean instancesChanged = oldInstanceGroup.getInstanceIds().size() != updatedInstanceGroup.getInstanceIds().size();
 
@@ -353,7 +353,7 @@ class InstanceCache {
                 .build();
     }
 
-    private InstanceGroup updatedAttributes(InstanceGroup newInstanceGroup, InstanceGroup oldInstanceGroup) {
+    private InstanceGroup updateAttributes(InstanceGroup newInstanceGroup, InstanceGroup oldInstanceGroup) {
         Map<String, String> updatedAttributes = CollectionsExt.merge(
                 oldInstanceGroup.getAttributes(),
                 newInstanceGroup.getAttributes()
