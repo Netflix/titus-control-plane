@@ -13,31 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.netflix.titus.es.publish;
+package com.netflix.titus.supplementary.es.publish;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
-
 import javax.inject.Inject;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.netflix.titus.api.json.ObjectMappers;
-import com.netflix.titus.es.publish.config.EsPublisherConfiguration;
+import com.netflix.titus.supplementary.es.publish.config.EsPublisherConfiguration;
 import com.netflix.titus.ext.elasticsearch.TaskDocument;
 import io.netty.channel.ChannelOption;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.handler.timeout.WriteTimeoutHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
@@ -96,8 +93,8 @@ public class EsClientHttp implements EsClient {
 
     @VisibleForTesting
     String buildEsUrl() {
-        return String.format("http://%s:%s", esPublisherConfiguration.getGetTaskDocumentEsHostName(),
-                esPublisherConfiguration.getGetTaskDocumentEsPort());
+        return String.format("http://%s:%s", esPublisherConfiguration.getEsHostName(),
+                esPublisherConfiguration.getEsPort());
     }
 
     @VisibleForTesting

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.netflix.titus.es.publish;
+package com.netflix.titus.supplementary.es.publish;
 
 import java.time.Duration;
 import java.util.Collections;

@@ -13,20 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.netflix.titus.es.publish;
+package com.netflix.titus.supplementary.es.publish;
 
-import java.text.SimpleDateFormat;
-import java.util.TimeZone;
+public class EsTaskPublisherMetrics {
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+    public static final String METRIC_ROOT = "titus.";
+    public static final String METRIC_ES_PUBLISHER = METRIC_ROOT + "tasks.es.publish.";
 
-class ElasticSearchUtils {
-    private static final Logger logger = LoggerFactory.getLogger(ElasticSearchUtils.class);
-    static final SimpleDateFormat dateFormat;
-
-    static {
-        dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
-        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-    }
 }

@@ -1,4 +1,4 @@
-package com.netflix.titus.es.publish;
+package com.netflix.titus.supplementary.es.publish;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

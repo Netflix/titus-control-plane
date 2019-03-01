@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.netflix.titus.es.publish;
+package com.netflix.titus.supplementary.es.publish;
 
 import java.time.Duration;
 import java.util.HashMap;
@@ -25,7 +25,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
-import javax.inject.Named;
 
 import com.netflix.spectator.api.Functions;
 import com.netflix.spectator.api.Registry;
@@ -41,19 +40,17 @@ import org.eclipse.jetty.util.ConcurrentHashSet;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
-import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
-
-import static com.netflix.titus.es.publish.TitusClientComponent.TASK_DOCUMENT_CONTEXT;
 
 
 @Component
 public class TasksPublisherCtrl {
     private static final Logger logger = LoggerFactory.getLogger(TasksPublisherCtrl.class);
+    public static final String TASK_DOCUMENT_CONTEXT = "taskDocumentContext";
     private final EsClient esClient;
     private Map<String, String> taskDocumentBaseContext;
     private Registry registry;
@@ -72,7 +69,7 @@ public class TasksPublisherCtrl {
     @Inject
     public TasksPublisherCtrl(EsClient esClient,
                               TitusClient titusClient,
-                              @Named(TASK_DOCUMENT_CONTEXT) Map<String, String> taskDocumentBaseContext,
+                              @Qualifier(TASK_DOCUMENT_CONTEXT) Map<String, String> taskDocumentBaseContext,
                               Registry registry) {
         this.esClient = esClient;
         this.titusClient = titusClient;

@@ -13,19 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.netflix.titus.es.publish;
+package com.netflix.titus.supplementary.es.publish;
 
 
 import java.util.concurrent.TimeUnit;
+import javax.inject.Inject;
 
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
 import io.grpc.ManagedChannel;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import io.grpc.util.RoundRobinLoadBalancerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -33,21 +34,21 @@ public class TitusClientComponent {
     private static final String GRPC_CLIENT_AGENT = "EsTaskPublisher";
     private static final int GRPC_KEEP_ALIVE_TIME = 5;
     private static final int GRPC_KEEP_ALIVE_TIMEOUT = 10;
-    public static final String TASK_DOCUMENT_CONTEXT = "taskDocumentContext";
 
 
     private final String titusApiHost;
     private final int titusApiPort;
 
-    @Autowired
+    @Inject
     public TitusClientComponent(
-            @Value("#{ @environment['titus.api.host'] }") String titusApiHost,
-            @Value("#{ @environment['titus.api.port'] }") int titusApiPort) {
+            @Value("#{ @environment['titus.api.host'] ?: 'localhost' }") String titusApiHost,
+            @Value("#{ @environment['titus.api.port'] ?: 7001 }") int titusApiPort) {
         this.titusApiHost = titusApiHost;
         this.titusApiPort = titusApiPort;
     }
 
-    @Bean
+//    @Lazy
+//    @Bean
     public JobManagementServiceStub getJobManagementServiceStub() {
         return JobManagementServiceGrpc.newStub(getTitusGrpcChannel());
     }

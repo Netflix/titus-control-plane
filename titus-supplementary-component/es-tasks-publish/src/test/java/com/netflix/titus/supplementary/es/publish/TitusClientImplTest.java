@@ -1,4 +1,4 @@
-package com.netflix.titus.es.publish;
+package com.netflix.titus.supplementary.es.publish;
 
 import java.io.IOException;
 import java.util.Arrays;

@@ -1,4 +1,4 @@
-package com.netflix.titus.es.publish;
+package com.netflix.titus.supplementary.es.publish;
 
 import java.text.SimpleDateFormat;
 import java.util.Collections;
@@ -9,7 +9,7 @@ import java.util.stream.Collectors;
 
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Job;
-import com.netflix.titus.es.publish.config.EsPublisherConfiguration;
+import com.netflix.titus.supplementary.es.publish.config.EsPublisherConfiguration;
 import com.netflix.titus.ext.elasticsearch.TaskDocument;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import org.apache.log4j.Logger;
@@ -25,8 +25,8 @@ public class EsClientHttpTest {
 
     private EsPublisherConfiguration getConfig() {
         final EsPublisherConfiguration esPublisherConfiguration = mock(EsPublisherConfiguration.class);
-        when(esPublisherConfiguration.getGetTaskDocumentEsHostName()).thenReturn("localhost");
-        when(esPublisherConfiguration.getGetTaskDocumentEsPort()).thenReturn(9200);
+        when(esPublisherConfiguration.getEsHostName()).thenReturn("localhost");
+        when(esPublisherConfiguration.getEsPort()).thenReturn(9200);
         when(esPublisherConfiguration.getTaskDocumentEsIndexDateSuffixPattern()).thenReturn("yyyyMM");
         when(esPublisherConfiguration.getTaskDocumentEsIndexName()).thenReturn("titustasks_");
         return esPublisherConfiguration;

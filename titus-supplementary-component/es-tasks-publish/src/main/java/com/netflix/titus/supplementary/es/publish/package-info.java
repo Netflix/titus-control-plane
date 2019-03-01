@@ -5,4 +5,4 @@
  * @see <a href="https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#using-boot-using-springbootapplication-annotation">@SpringBootApplication Reference</a>
  * @see <a href="https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#boot-features-embedded-container-context-initializer">Spring Servlet 3.0+ Support via WebApplicationInitializer</a>
  */
-package com.netflix.titus.es.publish;
+package com.netflix.titus.supplementary.es.publish;

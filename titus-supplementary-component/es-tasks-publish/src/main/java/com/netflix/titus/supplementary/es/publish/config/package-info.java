@@ -6,4 +6,4 @@
  * @see <a href="https://docs.spring.io/spring/docs/current/spring-framework-reference/htmlsingle/#beans-java-basic-concepts">Spring @Configuration Reference Docs</a>
  * @see <a href="https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#using-boot-structuring-your-code">Spring Boot Project Structure Best Practices</a>
  */
-package com.netflix.titus.es.publish.config;
+package com.netflix.titus.supplementary.es.publish.config;
