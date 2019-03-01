@@ -17,6 +17,8 @@
 package com.netflix.titus.runtime.connector.jobmanager.client;
 
 import com.netflix.titus.grpc.protogen.Job;
+import com.netflix.titus.grpc.protogen.JobAttributesDeleteRequest;
+import com.netflix.titus.grpc.protogen.JobAttributesUpdate;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
@@ -27,6 +29,7 @@ import com.netflix.titus.grpc.protogen.JobQueryResult;
 import com.netflix.titus.grpc.protogen.JobStatusUpdate;
 import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
 import com.netflix.titus.grpc.protogen.Task;
+import com.netflix.titus.grpc.protogen.TaskAttributesDeleteRequest;
 import com.netflix.titus.grpc.protogen.TaskAttributesUpdate;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskMoveRequest;
@@ -66,8 +69,18 @@ public class JobManagementClientDelegate implements JobManagementClient {
     }
 
     @Override
-    public Mono<Void> updateJobDisruptionBudget(JobDisruptionBudgetUpdate disruptionBudget) {
-        return delegate.updateJobDisruptionBudget(disruptionBudget);
+    public Mono<Void> updateJobDisruptionBudget(JobDisruptionBudgetUpdate request) {
+        return delegate.updateJobDisruptionBudget(request);
+    }
+
+    @Override
+    public Mono<Void> updateJobAttributes(JobAttributesUpdate request) {
+        return delegate.updateJobAttributes(request);
+    }
+
+    @Override
+    public Mono<Void> deleteJobAttributes(JobAttributesDeleteRequest request) {
+        return delegate.deleteJobAttributes(request);
     }
 
     @Override
@@ -111,8 +124,13 @@ public class JobManagementClientDelegate implements JobManagementClient {
     }
 
     @Override
-    public Completable updateTaskAttributes(TaskAttributesUpdate taskUpdateRequest) {
-        return delegate.updateTaskAttributes(taskUpdateRequest);
+    public Completable updateTaskAttributes(TaskAttributesUpdate attributesUpdate) {
+        return delegate.updateTaskAttributes(attributesUpdate);
+    }
+
+    @Override
+    public Completable deleteTaskAttributes(TaskAttributesDeleteRequest deleteRequest) {
+        return delegate.deleteTaskAttributes(deleteRequest);
     }
 
     @Override

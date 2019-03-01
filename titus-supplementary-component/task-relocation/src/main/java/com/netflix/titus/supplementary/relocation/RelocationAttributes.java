@@ -25,29 +25,29 @@ public final class RelocationAttributes {
     /**
      * If set to true, marks an object as needing migration. Applicable to an agent instance and a task.
      */
-    public static String RELOCATION_REQUIRED = "titus.relocation.required";
+    public static final String RELOCATION_REQUIRED = "titus.relocation.required";
 
     /**
      * Like {@link #RELOCATION_REQUIRED}, but the safeguards (system eviction limits, job disruption budget)
      * for the object termination are ignored.
      */
-    public static String RELOCATION_REQUIRED_IMMEDIATELY = "titus.relocation.requiredImmediately";
+    public static final String RELOCATION_REQUIRED_IMMEDIATELY = "titus.relocation.requiredImmediately";
 
     /**
      * If set to true, marks an object as needing immediate migration if its creation time happened before the time set as
      * an attribute value. The timestamp value is an epoch.
      * Settable on a job, and applied to all tasks belonging to the given job.
      */
-    public static String RELOCATION_REQUIRED_BY = "titus.relocation.requiredBy";
+    public static final String RELOCATION_REQUIRED_BY = "titus.relocation.requiredBy";
 
     /**
      * Like {@link #RELOCATION_REQUIRED_BY}, but the safeguards (system eviction limits, job disruption budget)
      * for the object termination are ignored.
      */
-    public static String RELOCATION_REQUIRED_BY_IMMEDIATELY = "titus.relocation.requiredByImmediately";
+    public static final String RELOCATION_REQUIRED_BY_IMMEDIATELY = "titus.relocation.requiredByImmediately";
 
     /**
      * If set to true, turns off the relocation process for an object. Applicable to an agent, a job and a task.
      */
-    public static String RELOCATION_NOT_ALLOWED = "titus.relocation.notAllowed";
+    public static final String RELOCATION_NOT_ALLOWED = "titus.relocation.notAllowed";
 }

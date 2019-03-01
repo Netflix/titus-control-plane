@@ -16,6 +16,8 @@
 
 package com.netflix.titus.master.agent.service.cache;
 
+import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -31,6 +33,7 @@ import com.netflix.titus.api.agent.store.AgentStore;
 import com.netflix.titus.api.connector.cloud.Instance;
 import com.netflix.titus.api.connector.cloud.InstanceGroup;
 import com.netflix.titus.common.data.generator.DataGenerator;
+import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.master.agent.service.AgentManagementConfiguration;
 import com.netflix.titus.testkit.rx.ExtTestSubscriber;
 import com.netflix.titus.testkit.stub.connector.cloud.InstanceGenerators;
@@ -135,9 +138,9 @@ public class DefaultAgentCacheTest {
                 ).build();
         ExtTestSubscriber<Object> testSubscriber = new ExtTestSubscriber<>();
         if (withCloudSync) {
-            cache.updateInstanceGroupStoreAndSyncCloud(updatedInstanceGroup).toObservable().subscribe(testSubscriber);
+            cache.updateInstanceGroupStoreAndSyncCloud(updatedInstanceGroup.getId(), ig -> updatedInstanceGroup).toObservable().subscribe(testSubscriber);
         } else {
-            cache.updateInstanceGroupStore(updatedInstanceGroup).toObservable().subscribe(testSubscriber);
+            cache.updateInstanceGroupStore(updatedInstanceGroup.getId(), ig -> updatedInstanceGroup).toObservable().subscribe(testSubscriber);
         }
 
         testScheduler.triggerActions();
@@ -193,7 +196,7 @@ public class DefaultAgentCacheTest {
         Set<AgentInstance> instances = cache.getAgentInstances(agentInstance.getInstanceGroupId());
 
         ExtTestSubscriber<Object> testSubscriber = new ExtTestSubscriber<>();
-        cache.updateAgentInstanceStore(agentInstance).toObservable().subscribe(testSubscriber);
+        cache.updateAgentInstanceStore(agentInstance.getId(), ai -> agentInstance).toObservable().subscribe(testSubscriber);
 
         testScheduler.triggerActions();
 
@@ -229,5 +232,57 @@ public class DefaultAgentCacheTest {
         cache.removeInstances(instanceGroupId, instanceIds);
 
         verify(agentStore, times(1)).removeAgentInstances(any());
+    }
+
+    @Test
+    public void testUpdateInstanceGroupStore() {
+        testUpdateInstanceGroup(false);
+    }
+
+    @Test
+    public void testUpdateInstanceGroupStoreAndCloudSync() {
+        testUpdateInstanceGroup(true);
+    }
+
+    private void testUpdateInstanceGroup(boolean withCloudSync) {
+        AgentInstanceGroup instanceGroup = cache.getInstanceGroups().get(0);
+        String instanceGroupId = instanceGroup.getId();
+        ExtTestSubscriber<Object> testSubscriber = new ExtTestSubscriber<>();
+
+        if (withCloudSync) {
+            cache.updateInstanceGroupStoreAndSyncCloud(instanceGroupId,
+                    ig -> ig.toBuilder().withLifecycleStatus(InstanceGroupLifecycleStatus.newBuilder().withState(InstanceGroupLifecycleState.Removable).build()).build()
+            ).toObservable().subscribe(testSubscriber);
+        } else {
+            cache.updateInstanceGroupStore(instanceGroupId,
+                    ig -> ig.toBuilder().withLifecycleStatus(InstanceGroupLifecycleStatus.newBuilder().withState(InstanceGroupLifecycleState.Removable).build()).build()
+            ).toObservable().subscribe(testSubscriber);
+        }
+
+        testScheduler.triggerActions();
+
+        assertThat(cache.getInstanceGroup(instanceGroupId).getLifecycleStatus().getState()).isEqualTo(InstanceGroupLifecycleState.Removable);
+    }
+
+    @Test
+    public void testUpdateAgentInstanceStore() {
+        AgentInstanceGroup instanceGroup = cache.getInstanceGroups().get(0);
+        String instanceGroupId = instanceGroup.getId();
+        AgentInstance agentInstance = CollectionsExt.first(cache.getAgentInstances(instanceGroupId));
+        assertThat(agentInstance).isNotNull();
+        String instanceId = agentInstance.getId();
+
+        ExtTestSubscriber<Object> testSubscriber = new ExtTestSubscriber<>();
+
+        Map<String, String> updatedAttributes = CollectionsExt.merge(agentInstance.getAttributes(), Collections.singletonMap("a", "1"));
+
+        cache.updateAgentInstanceStore(instanceId,
+                ig -> ig.toBuilder().withAttributes(updatedAttributes).build()
+        ).toObservable().subscribe(testSubscriber);
+
+        testScheduler.triggerActions();
+
+        AgentInstance cachedAgentInstance = cache.getAgentInstance(instanceId);
+        assertThat(cachedAgentInstance.getAttributes()).containsKey("a").containsValue("1");
     }
 }

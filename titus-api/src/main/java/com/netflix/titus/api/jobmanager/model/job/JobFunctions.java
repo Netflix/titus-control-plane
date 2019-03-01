@@ -386,6 +386,18 @@ public final class JobFunctions {
         return input.toBuilder().withJobDescriptor(changeDisruptionBudget(input.getJobDescriptor(), disruptionBudget)).build();
     }
 
+    public static <E extends JobDescriptorExt> Job<E> updateJobAttributes(Job<E> input, Map<String, String> attributes) {
+        JobDescriptor<E> jobDescriptor = input.getJobDescriptor();
+        Map<String, String> updatedAttributes = CollectionsExt.merge(jobDescriptor.getAttributes(), attributes);
+        return input.toBuilder().withJobDescriptor(jobDescriptor.toBuilder().withAttributes(updatedAttributes).build()).build();
+    }
+
+    public static <E extends JobDescriptorExt> Job<E> deleteJobAttributes(Job<E> input, Set<String> keys) {
+        JobDescriptor<E> jobDescriptor = input.getJobDescriptor();
+        Map<String, String> updatedAttributes = CollectionsExt.copyAndRemove(jobDescriptor.getAttributes(), keys);
+        return input.toBuilder().withJobDescriptor(jobDescriptor.toBuilder().withAttributes(updatedAttributes).build()).build();
+    }
+
     public static Optional<Long> getTimeInState(Task task, TaskState checkedState, Clock clock) {
         return findTaskStatus(task, checkedState).map(checkedStatus -> {
             TaskState currentState = task.getStatus().getState();

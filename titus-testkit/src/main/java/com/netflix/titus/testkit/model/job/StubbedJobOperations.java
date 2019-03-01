@@ -17,7 +17,9 @@
 package com.netflix.titus.testkit.model.job;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -164,6 +166,22 @@ class StubbedJobOperations implements V3JobOperations {
     public Mono<Void> updateJobDisruptionBudget(String jobId, DisruptionBudget disruptionBudget, CallMetadata callMetadata) {
         Observable<Void> observableAction = defer(() -> {
             stubbedJobData.changeJob(jobId, job -> JobFunctions.changeDisruptionBudget(job, disruptionBudget));
+        });
+        return ReactorExt.toMono(observableAction);
+    }
+
+    @Override
+    public Mono<Void> updateJobAttributes(String jobId, Map<String, String> attributes, CallMetadata callMetadata) {
+        Observable<Void> observableAction = defer(() -> {
+            stubbedJobData.changeJob(jobId, job -> JobFunctions.updateJobAttributes(job, attributes));
+        });
+        return ReactorExt.toMono(observableAction);
+    }
+
+    @Override
+    public Mono<Void> deleteJobAttributes(String jobId, Set<String> keys, CallMetadata callMetadata) {
+        Observable<Void> observableAction = defer(() -> {
+            stubbedJobData.changeJob(jobId, job -> JobFunctions.deleteJobAttributes(job, keys));
         });
         return ReactorExt.toMono(observableAction);
     }

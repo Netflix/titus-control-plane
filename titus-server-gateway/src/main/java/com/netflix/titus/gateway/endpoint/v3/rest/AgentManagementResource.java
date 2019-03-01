@@ -17,14 +17,17 @@
 package com.netflix.titus.gateway.endpoint.v3.rest;
 
 import java.util.Objects;
+import java.util.Set;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
@@ -33,6 +36,7 @@ import javax.ws.rs.core.UriInfo;
 
 import com.google.common.base.Strings;
 import com.netflix.titus.api.service.TitusServiceException;
+import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.gateway.endpoint.v3.rest.representation.TierWrapper;
 import com.netflix.titus.grpc.protogen.AgentInstance;
 import com.netflix.titus.grpc.protogen.AgentInstanceAttributesUpdate;
@@ -40,6 +44,8 @@ import com.netflix.titus.grpc.protogen.AgentInstanceGroup;
 import com.netflix.titus.grpc.protogen.AgentInstanceGroups;
 import com.netflix.titus.grpc.protogen.AgentInstances;
 import com.netflix.titus.grpc.protogen.AgentQuery;
+import com.netflix.titus.grpc.protogen.DeleteAgentInstanceAttributesRequest;
+import com.netflix.titus.grpc.protogen.DeleteInstanceGroupAttributesRequest;
 import com.netflix.titus.grpc.protogen.Id;
 import com.netflix.titus.grpc.protogen.InstanceGroupAttributesUpdate;
 import com.netflix.titus.grpc.protogen.InstanceGroupLifecycleStateUpdate;
@@ -122,7 +128,7 @@ public class AgentManagementResource {
     @PUT
     @ApiOperation("Update instance group attributes")
     @Path("/instanceGroups/{id}/attributes")
-    public Response updateInstanceGroupLifecycle(@PathParam("id") String instanceGroupId, InstanceGroupAttributesUpdate attributesUpdate) {
+    public Response updateInstanceGroupAttributes(@PathParam("id") String instanceGroupId, InstanceGroupAttributesUpdate attributesUpdate) {
         if (Strings.isNullOrEmpty(attributesUpdate.getInstanceGroupId())) {
             attributesUpdate = attributesUpdate.toBuilder().setInstanceGroupId(instanceGroupId).build();
         } else if (!Objects.equals(instanceGroupId, attributesUpdate.getInstanceGroupId())) {
@@ -131,6 +137,26 @@ public class AgentManagementResource {
         }
 
         return Responses.fromVoidMono(agentManagementService.updateInstanceGroupAttributes(attributesUpdate));
+    }
+
+    @DELETE
+    @ApiOperation("Delete instance group attributes")
+    @Path("/instanceGroups/{id}/attributes")
+    public Response deleteInstanceGroupAttributes(@PathParam("id") String instanceGroupId, @QueryParam("keys") String delimitedKeys) {
+        if (Strings.isNullOrEmpty(delimitedKeys)) {
+            throw TitusServiceException.invalidArgument("Path parameter 'keys' cannot be empty");
+        }
+
+        Set<String> keys = StringExt.splitByCommaIntoSet(delimitedKeys);
+        if (keys.isEmpty()) {
+            throw TitusServiceException.invalidArgument("Parsed path parameter 'keys' cannot be empty");
+        }
+
+        DeleteInstanceGroupAttributesRequest request = DeleteInstanceGroupAttributesRequest.newBuilder()
+                .setInstanceGroupId(instanceGroupId)
+                .addAllKeys(keys)
+                .build();
+        return Responses.fromVoidMono(agentManagementService.deleteInstanceGroupAttributes(request));
     }
 
     @PUT
@@ -145,5 +171,25 @@ public class AgentManagementResource {
         }
 
         return Responses.fromVoidMono(agentManagementService.updateAgentInstanceAttributes(attributesUpdate));
+    }
+
+    @DELETE
+    @ApiOperation("Delete agent instance attributes")
+    @Path("/instances/{id}/attributes")
+    public Response deleteAgentInstanceAttributes(@PathParam("id") String agentInstanceId, @QueryParam("keys") String delimitedKeys) {
+        if (Strings.isNullOrEmpty(delimitedKeys)) {
+            throw TitusServiceException.invalidArgument("Path parameter 'keys' cannot be empty");
+        }
+
+        Set<String> keys = StringExt.splitByCommaIntoSet(delimitedKeys);
+        if (keys.isEmpty()) {
+            throw TitusServiceException.invalidArgument("Parsed path parameter 'keys' cannot be empty");
+        }
+
+        DeleteAgentInstanceAttributesRequest request = DeleteAgentInstanceAttributesRequest.newBuilder()
+                .setAgentInstanceId(agentInstanceId)
+                .addAllKeys(keys)
+                .build();
+        return Responses.fromVoidMono(agentManagementService.deleteAgentInstanceAttributes(request));
     }
 }

@@ -72,8 +72,6 @@ class InstanceCache {
 
     private static final Logger logger = LoggerFactory.getLogger(InstanceCache.class);
 
-    static String ATTR_INSTANCE_TYPE = "instanceType";
-
     private static final long BOOT_TIMEOUT_MS = 60_000;
     private static final int BOOT_RETRY_COUNT = 10;
     private static final long BOOT_RETRY_DELAYS_MS = 1_000;
@@ -186,9 +184,9 @@ class InstanceCache {
                         getInstanceGroupPattern()
                                 .map(p -> Observable.just(findOurInstanceGroups(p, unfiltered)))
                                 .orElse(Observable.empty()))
-                .flatMap(newInstanceGroups -> {
+                .flatMap(instanceGroups -> {
                     Set<String> allKnownIds = cacheSnapshot.getInstanceGroups().stream().map(InstanceGroup::getId).collect(Collectors.toSet());
-                    Set<String> allDiscoveredIds = newInstanceGroups.stream().map(InstanceGroup::getId).collect(Collectors.toSet());
+                    Set<String> allDiscoveredIds = instanceGroups.stream().map(InstanceGroup::getId).collect(Collectors.toSet());
                     Set<String> newArrivalIds = CollectionsExt.copyAndRemove(allDiscoveredIds, allKnownIds);
 
                     logger.debug("Performing full instance group refresh: knownIds={}, foundIds={}, newIds={}",
@@ -200,7 +198,7 @@ class InstanceCache {
 
                     logger.info("Performing full instance group refresh: newIds={}", newArrivalIds);
 
-                    Map<String, InstanceGroup> newArrivalsById = newInstanceGroups.stream()
+                    Map<String, InstanceGroup> newArrivalsById = instanceGroups.stream()
                             .filter(instanceGroup -> newArrivalIds.contains(instanceGroup.getId()))
                             .collect(Collectors.toMap(InstanceGroup::getId, Function.identity()));
 
@@ -220,7 +218,7 @@ class InstanceCache {
                                         return null;
                                     })
                                     .filter(Objects::nonNull)
-                                    .map(pair -> decorate(pair.getRight(), pair.getLeft()))
+                                    .map(pair -> updateAttributes(pair.getRight(), pair.getLeft()))
                                     .collect(Collectors.toList())
                     );
                 })
@@ -322,7 +320,7 @@ class InstanceCache {
             return;
         }
 
-        InstanceGroup effectiveInstanceGroup = decorate(updatedInstanceGroup, oldInstanceGroup);
+        InstanceGroup effectiveInstanceGroup = updateAttributes(updatedInstanceGroup, oldInstanceGroup);
         boolean instanceGroupChanged = !oldInstanceGroup.equals(effectiveInstanceGroup);
         boolean instancesChanged = oldInstanceGroup.getInstanceIds().size() != updatedInstanceGroup.getInstanceIds().size();
 
@@ -349,22 +347,18 @@ class InstanceCache {
         }
     }
 
-    private InstanceGroup decorate(InstanceGroup instanceGroup, InstanceLaunchConfiguration launchConfiguration) {
-        Map<String, String> newAttributes = CollectionsExt.copyAndAdd(
-                instanceGroup.getAttributes(),
-                ATTR_INSTANCE_TYPE, launchConfiguration.getInstanceType()
-        );
+    private InstanceGroup updateAttributes(InstanceGroup instanceGroup, InstanceLaunchConfiguration launchConfiguration) {
         return instanceGroup.toBuilder()
-                .withAttributes(newAttributes)
+                .withInstanceType(launchConfiguration.getInstanceType())
                 .build();
     }
 
-    private InstanceGroup decorate(InstanceGroup newInstanceGroup, InstanceGroup oldInstanceGroup) {
-        Map<String, String> newAttributes = CollectionsExt.copyAndAdd(
-                newInstanceGroup.getAttributes(),
-                ATTR_INSTANCE_TYPE, oldInstanceGroup.getAttributes().get(ATTR_INSTANCE_TYPE)
+    private InstanceGroup updateAttributes(InstanceGroup newInstanceGroup, InstanceGroup oldInstanceGroup) {
+        Map<String, String> updatedAttributes = CollectionsExt.merge(
+                oldInstanceGroup.getAttributes(),
+                newInstanceGroup.getAttributes()
         );
-        return newInstanceGroup.toBuilder().withAttributes(newAttributes).build();
+        return newInstanceGroup.toBuilder().withAttributes(updatedAttributes).build();
     }
 
     private void removeInstanceGroup(String removedInstanceGroupId) {

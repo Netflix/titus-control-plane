@@ -156,6 +156,7 @@ public class SimulatedLocalInstanceCloudConnector implements InstanceCloudConnec
                 .withDesired(agentCluster.getAgents().size())
                 .withMax(agentCluster.getMaxSize())
                 .withLaunchConfigurationName(agentCluster.getName())
+                .withInstanceType(agentCluster.getInstanceType().getDescriptor().getId())
                 .withIsLaunchSuspended(false)
                 .withIsTerminateSuspended(false)
                 .build();

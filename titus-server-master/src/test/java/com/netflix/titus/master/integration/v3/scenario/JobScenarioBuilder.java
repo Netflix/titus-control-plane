@@ -42,6 +42,8 @@ import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import com.netflix.titus.grpc.protogen.JobAttributesDeleteRequest;
+import com.netflix.titus.grpc.protogen.JobAttributesUpdate;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobChangeNotification.NotificationCase;
@@ -71,6 +73,7 @@ import static com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters.t
 import static com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters.toGrpcDisruptionBudget;
 
 /**
+ *
  */
 public class JobScenarioBuilder {
 
@@ -267,6 +270,50 @@ public class JobScenarioBuilder {
         expectJobUpdateEvent(job -> job.getJobDescriptor().getDisruptionBudget().equals(disruptionBudget), "Job disruption budget update did not complete in time");
 
         logger.info("[{}] Changing job {} disruption budget to {} finished in {}ms", discoverActiveTest(), jobId, disruptionBudget, stopWatch.elapsed(TimeUnit.MILLISECONDS));
+        return this;
+    }
+
+    public JobScenarioBuilder updateJobAttributes(Map<String, String> attributes) {
+        logger.info("[{}] Updating job {} attributes with {}", discoverActiveTest(), jobId, attributes);
+        Stopwatch stopWatch = Stopwatch.createStarted();
+
+        TestStreamObserver<Empty> responseObserver = new TestStreamObserver<>();
+        client.updateJobAttributes(JobAttributesUpdate.newBuilder()
+                        .setJobId(jobId)
+                        .putAllAttributes(attributes)
+                        .build(),
+                responseObserver
+        );
+        rethrow(() -> responseObserver.awaitDone(TIMEOUT_MS, TimeUnit.MILLISECONDS));
+
+        expectJobUpdateEvent(job -> {
+            Map<String, String> updatedAttributes = job.getJobDescriptor().getAttributes();
+            return updatedAttributes.entrySet().containsAll(attributes.entrySet());
+        }, "Job attributes update did not complete in time");
+
+        logger.info("[{}] Changing job {} attributes with {} finished in {}ms", discoverActiveTest(), jobId, attributes, stopWatch.elapsed(TimeUnit.MILLISECONDS));
+        return this;
+    }
+
+    public JobScenarioBuilder deleteJobAttributes(List<String> keys) {
+        logger.info("[{}] Deleting job {} attributes with keys: {}", discoverActiveTest(), jobId, keys);
+        Stopwatch stopWatch = Stopwatch.createStarted();
+
+        TestStreamObserver<Empty> responseObserver = new TestStreamObserver<>();
+        client.deleteJobAttributes(JobAttributesDeleteRequest.newBuilder()
+                        .setJobId(jobId)
+                        .addAllKeys(keys)
+                        .build(),
+                responseObserver
+        );
+        rethrow(() -> responseObserver.awaitDone(TIMEOUT_MS, TimeUnit.MILLISECONDS));
+
+        expectJobUpdateEvent(job -> {
+            Map<String, String> updatedAttributes = job.getJobDescriptor().getAttributes();
+            return !updatedAttributes.keySet().containsAll(keys);
+        }, "Job attributes update did not complete in time");
+
+        logger.info("[{}] Changing job {} attributes with keys: {} finished in {}ms", discoverActiveTest(), jobId, keys, stopWatch.elapsed(TimeUnit.MILLISECONDS));
         return this;
     }
 

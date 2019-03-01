@@ -17,6 +17,7 @@
 package com.netflix.titus.common.util;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -205,6 +206,10 @@ public final class CollectionsExt {
     }
 
     public static <K, V> Map<K, V> copyAndRemove(Map<K, V> original, K... keys) {
+        return copyAndRemove(original, Arrays.asList(keys));
+    }
+
+    public static <K, V> Map<K, V> copyAndRemove(Map<K, V> original, Collection<K> keys) {
         Map<K, V> result = new HashMap<>(original);
         for (K key : keys) {
             if (key != null) {

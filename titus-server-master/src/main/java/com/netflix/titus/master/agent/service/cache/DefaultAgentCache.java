@@ -23,6 +23,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -44,6 +46,7 @@ import org.slf4j.LoggerFactory;
 import rx.Completable;
 import rx.Observable;
 import rx.Scheduler;
+import rx.Single;
 import rx.Subscription;
 import rx.functions.Action0;
 import rx.schedulers.Schedulers;
@@ -192,30 +195,40 @@ public class DefaultAgentCache implements AgentCache {
     }
 
     @Override
-    public Completable updateInstanceGroupStore(AgentInstanceGroup instanceGroup) {
-        return onEventLoopWithSubscription(() -> {
-            getInstanceGroup(instanceGroup.getId());
+    public Single<AgentInstanceGroup> updateInstanceGroupStore(String instanceGroupId, Function<AgentInstanceGroup, AgentInstanceGroup> function) {
+        Single<AgentInstanceGroup> single = onEventLoopWithSubscription(() -> {
+            AgentInstanceGroup instanceGroup = getInstanceGroup(instanceGroupId);
             Set<AgentInstance> agentInstances = dataSnapshot.getInstances(instanceGroup.getId());
             if (agentInstances == null) {
                 agentInstances = Collections.emptySet();
             }
-            setDataSnapshot(dataSnapshot.updateInstanceGroup(instanceGroup, agentInstances));
-            eventSubject.onNext(new CacheUpdateEvent(CacheUpdateType.InstanceGroup, instanceGroup.getId()));
-        }).concatWith(agentStore.storeAgentInstanceGroup(instanceGroup));
+            AgentInstanceGroup updatedInstanceGroup = function.apply(instanceGroup);
+            setDataSnapshot(dataSnapshot.updateInstanceGroup(updatedInstanceGroup, agentInstances));
+            eventSubject.onNext(new CacheUpdateEvent(CacheUpdateType.InstanceGroup, instanceGroupId));
+            return updatedInstanceGroup;
+        });
+        return single.flatMap(ig -> agentStore.storeAgentInstanceGroup(ig).toSingle(() -> ig));
     }
 
     @Override
-    public Completable updateInstanceGroupStoreAndSyncCloud(AgentInstanceGroup instanceGroup) {
-        return updateInstanceGroupStore(instanceGroup).doOnCompleted(() -> instanceCache.refreshInstanceGroup(instanceGroup.getId()));
+    public Single<AgentInstanceGroup> updateInstanceGroupStoreAndSyncCloud(String instanceGroupId, Function<AgentInstanceGroup, AgentInstanceGroup> function) {
+        return updateInstanceGroupStore(instanceGroupId, function)
+                .flatMap(ig -> {
+                    instanceCache.refreshInstanceGroup(instanceGroupId);
+                    return Single.just(ig);
+                });
     }
 
     @Override
-    public Completable updateAgentInstanceStore(AgentInstance agentInstance) {
-        return onEventLoopWithSubscription(() -> {
-            getInstanceGroup(agentInstance.getInstanceGroupId());
-            setDataSnapshot(dataSnapshot.updateAgentInstance(agentInstance));
-            eventSubject.onNext(new CacheUpdateEvent(CacheUpdateType.Instance, agentInstance.getId()));
-        }).concatWith(agentStore.storeAgentInstance(agentInstance));
+    public Single<AgentInstance> updateAgentInstanceStore(String instanceId, Function<AgentInstance, AgentInstance> function) {
+        Single<AgentInstance> single = onEventLoopWithSubscription(() -> {
+            AgentInstance agentInstance = getAgentInstance(instanceId);
+            AgentInstance updatedAgentInstance = function.apply(agentInstance);
+            setDataSnapshot(dataSnapshot.updateAgentInstance(updatedAgentInstance));
+            eventSubject.onNext(new CacheUpdateEvent(CacheUpdateType.Instance, instanceId));
+            return updatedAgentInstance;
+        });
+        return single.flatMap(ai -> agentStore.storeAgentInstance(ai).toSingle(() -> ai));
     }
 
     @Override
@@ -281,7 +294,7 @@ public class DefaultAgentCache implements AgentCache {
         AgentInstanceGroup agentInstanceGroup;
         List<AgentInstance> agentInstances;
         if (previous == null) {
-            String instanceType = instanceGroup.getAttributes().getOrDefault(InstanceCache.ATTR_INSTANCE_TYPE, "unknown");
+            String instanceType = instanceGroup.getInstanceType();
             ResourceDimension instanceResourceDimension;
             try {
                 instanceResourceDimension = connector.getInstanceTypeResourceDimension(instanceType);
@@ -365,6 +378,19 @@ public class DefaultAgentCache implements AgentCache {
             });
             subscriber.add(subscription);
         }).toCompletable();
+    }
+
+    private <T> Single<T> onEventLoopWithSubscription(Supplier<T> supplier) {
+        return Single.create(subscriber -> {
+            Subscription subscription = worker.schedule(() -> {
+                try {
+                    subscriber.onSuccess(supplier.get());
+                } catch (Throwable e) {
+                    subscriber.onError(e);
+                }
+            });
+            subscriber.add(subscription);
+        });
     }
 
     private void setDataSnapshot(AgentDataSnapshot dataSnapshot) {

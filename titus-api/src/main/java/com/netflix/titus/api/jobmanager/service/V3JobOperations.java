@@ -16,7 +16,9 @@
 
 package com.netflix.titus.api.jobmanager.service;
 
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 
 import com.netflix.titus.api.jobmanager.model.CallMetadata;
@@ -72,6 +74,10 @@ public interface V3JobOperations extends ReadOnlyJobOperations {
     }
 
     Mono<Void> updateJobDisruptionBudget(String jobId, DisruptionBudget disruptionBudget, CallMetadata callMetadata);
+
+    Mono<Void> updateJobAttributes(String jobId, Map<String, String> attributes, CallMetadata callMetadata);
+
+    Mono<Void> deleteJobAttributes(String jobId, Set<String> keys, CallMetadata callMetadata);
 
     /**
      * @deprecated Use {@link #killJobReactor(String, String, CallMetadata)}

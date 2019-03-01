@@ -31,7 +31,6 @@ import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.tuple.Either;
-import com.netflix.titus.master.agent.AgentAttributes;
 import org.junit.Before;
 import org.junit.Test;
 import rx.Observable;
@@ -81,7 +80,7 @@ public class ClusterRemovableAgentRemoverTest {
         AgentInstance agentInstance1 = AgentInstance.newBuilder()
                 .withId("agentInstance1")
                 .withInstanceGroupId("instanceGroup1")
-                .withAttributes(Collections.singletonMap(AgentAttributes.REMOVABLE, removableTimestampValue))
+                .withAttributes(Collections.singletonMap(ClusterOperationsAttributes.REMOVABLE, removableTimestampValue))
                 .build();
         AgentInstance agentInstance2 = AgentInstance.newBuilder()
                 .withId("agentInstance2")

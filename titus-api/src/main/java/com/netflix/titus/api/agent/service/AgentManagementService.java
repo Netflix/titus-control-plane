@@ -19,16 +19,13 @@ package com.netflix.titus.api.agent.service;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Predicate;
+import java.util.Set;
 
-import com.netflix.titus.api.agent.model.AgentInstance;
-import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleStatus;
 import com.netflix.titus.api.agent.model.event.AgentEvent;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.util.tuple.Either;
-import com.netflix.titus.common.util.tuple.Pair;
 import rx.Completable;
 import rx.Observable;
 
@@ -60,18 +57,32 @@ public interface AgentManagementService extends ReadOnlyAgentOperations {
     Completable updateInstanceGroupLifecycle(String instanceGroupId, InstanceGroupLifecycleStatus instanceGroupLifecycleStatus);
 
     /**
-     * Changes attributes of an instance group.
+     * Adds attributes to an instance group. Existing key names will be overwritten.
      *
      * @return AgentManagementException if the instance group is not found
      */
     Completable updateInstanceGroupAttributes(String instanceGroupId, Map<String, String> attributes);
 
     /**
-     * Changes attributes of an agent instance.
+     * Deletes attributes of an instance group based on the key names.
+     *
+     * @return AgentManagementException if the instance group is not found
+     */
+    Completable deleteInstanceGroupAttributes(String instanceGroupId, Set<String> keys);
+
+    /**
+     * Adds attributes to an agent instance. Existing key names will be overwritten.
      *
      * @return AgentManagementException if the agent instance is not found
      */
     Completable updateAgentInstanceAttributes(String instanceId, Map<String, String> attributes);
+
+    /**
+     * Deletes attributes of an agent instance based on the key names.
+     *
+     * @return AgentManagementException if the agent instance is not found
+     */
+    Completable deleteAgentInstanceAttributes(String instanceId, Set<String> keys);
 
     /**
      * Updates instance group capacity. If only min value is provided, the desired size is adjusted to be no less than min.

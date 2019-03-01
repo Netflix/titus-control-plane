@@ -18,6 +18,7 @@ package com.netflix.titus.runtime.connector.agent;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
@@ -45,7 +46,11 @@ public interface AgentManagementClient {
 
     Mono<Void> updateInstanceGroupAttributes(String instanceGroupId, Map<String, String> attributes);
 
+    Mono<Void> deleteInstanceGroupAttributes(String instanceGroupId, Set<String> keys);
+
     Mono<Void> updateAgentInstanceAttributes(String instanceId, Map<String, String> attributes);
+
+    Mono<Void> deleteAgentInstanceAttributes(String instanceId, Set<String> keys);
 
     Flux<AgentEvent> observeAgents();
 }

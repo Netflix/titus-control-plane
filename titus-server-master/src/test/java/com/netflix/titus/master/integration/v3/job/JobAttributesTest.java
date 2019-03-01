@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Netflix, Inc.
+ * Copyright 2018 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,16 +34,12 @@ import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
 import static com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCells.basicCell;
-import static com.netflix.titus.testkit.junit.master.TitusStackResource.V3_ENGINE_APP_PREFIX;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskServiceJobDescriptor;
-import static org.assertj.core.api.Assertions.assertThat;
 
 @Category(IntegrationTest.class)
-public class TaskAttributesTest extends BaseIntegrationTest {
+public class JobAttributesTest extends BaseIntegrationTest {
 
-    private static final JobDescriptor<ServiceJobExt> ONE_TASK_SERVICE_JOB = oneTaskServiceJobDescriptor().toBuilder().withApplicationName(V3_ENGINE_APP_PREFIX).build();
-
-    private final TitusStackResource titusStackResource = new TitusStackResource(basicCell(1), true);
+    private final TitusStackResource titusStackResource = new TitusStackResource(basicCell(2));
 
     private final JobsScenarioBuilder jobsScenarioBuilder = new JobsScenarioBuilder(titusStackResource);
 
@@ -57,27 +53,24 @@ public class TaskAttributesTest extends BaseIntegrationTest {
         instanceGroupsScenarioBuilder.synchronizeWithCloud().template(InstanceGroupScenarioTemplates.basicCloudActivation());
     }
 
-    @Test(timeout = 30_000)
-    public void testUpdateTaskAttributes() throws Exception {
-        jobsScenarioBuilder.schedule(ONE_TASK_SERVICE_JOB, jobScenarioBuilder -> jobScenarioBuilder
-                .template(ScenarioTemplates.startTasksInNewJob())
-                .inTask(0, taskScenarioBuilder -> taskScenarioBuilder
-                        .updateTaskAttributes(Collections.singletonMap("attributeA", "value123"))
-                        .assertTaskUpdate(task -> assertThat(task.getAttributes()).containsEntry("attributeA", "value123"))
-                )
+    @Test(timeout = TEST_TIMEOUT_MS)
+    public void testUpdateJobAttributes() throws Exception {
+        JobDescriptor<ServiceJobExt> job = oneTaskServiceJobDescriptor();
+
+        jobsScenarioBuilder.schedule(job, jobScenarioBuilder -> jobScenarioBuilder
+                .template(ScenarioTemplates.jobAccepted())
+                .updateJobAttributes(Collections.singletonMap("a", "1"))
         );
     }
 
-    @Test(timeout = 30_000)
-    public void testDeleteTaskAttributes() throws Exception {
-        jobsScenarioBuilder.schedule(ONE_TASK_SERVICE_JOB, jobScenarioBuilder -> jobScenarioBuilder
-                .template(ScenarioTemplates.startTasksInNewJob())
-                .inTask(0, taskScenarioBuilder -> taskScenarioBuilder
-                        .updateTaskAttributes(Collections.singletonMap("attributeA", "value123"))
-                        .assertTaskUpdate(task -> assertThat(task.getAttributes()).containsEntry("attributeA", "value123"))
-                        .deleteTaskAttributes(Collections.singletonList("attributeA"))
-                        .assertTaskUpdate(task -> assertThat(task.getAttributes()).doesNotContainKeys("attributeA"))
-                )
+    @Test(timeout = TEST_TIMEOUT_MS)
+    public void testDeleteJobAttributes() throws Exception {
+        JobDescriptor<ServiceJobExt> job = oneTaskServiceJobDescriptor();
+
+        jobsScenarioBuilder.schedule(job, jobScenarioBuilder -> jobScenarioBuilder
+                .template(ScenarioTemplates.jobAccepted())
+                .updateJobAttributes(Collections.singletonMap("a", "1"))
+                .deleteJobAttributes(Collections.singletonList("a"))
         );
     }
 }

@@ -19,6 +19,7 @@ package com.netflix.titus.testkit.model.agent;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -31,6 +32,7 @@ import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.aws.AwsInstanceType;
+import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.tuple.Either;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.model.ResourceDimensions;
@@ -78,15 +80,41 @@ class StubbedAgentManagementService implements AgentManagementService {
     @Override
     public Completable updateInstanceGroupAttributes(String instanceGroupId, Map<String, String> attributes) {
         return Completable.defer(() -> {
-            stubbedAgentData.changeInstanceGroup(instanceGroupId, previous -> previous.toBuilder().withAttributes(attributes).build());
+            stubbedAgentData.changeInstanceGroup(instanceGroupId, previous -> {
+                Map<String, String> updatedAttributes = CollectionsExt.merge(previous.getAttributes(), attributes);
+                return previous.toBuilder().withAttributes(updatedAttributes).build();
+            });
+            return Completable.complete();
+        });
+    }
+
+    @Override
+    public Completable deleteInstanceGroupAttributes(String instanceGroupId, Set<String> keys) {
+        return Completable.defer(() -> {
+            stubbedAgentData.changeInstanceGroup(instanceGroupId, previous -> {
+                Map<String, String> updatedAttributes = CollectionsExt.copyAndRemove(previous.getAttributes(), keys);
+                return previous.toBuilder().withAttributes(updatedAttributes).build();
+            });
             return Completable.complete();
         });
     }
 
     @Override
     public Completable updateAgentInstanceAttributes(String instanceId, Map<String, String> attributes) {
+        stubbedAgentData.changeInstance(instanceId, previous -> {
+            Map<String, String> updatedAttributes = CollectionsExt.merge(previous.getAttributes(), attributes);
+            return previous.toBuilder().withAttributes(updatedAttributes).build();
+        });
+        return Completable.complete();
+    }
+
+    @Override
+    public Completable deleteAgentInstanceAttributes(String instanceId, Set<String> keys) {
         return Completable.defer(() -> {
-            stubbedAgentData.changeInstance(instanceId, previous -> previous.toBuilder().withAttributes(attributes).build());
+            stubbedAgentData.changeInstance(instanceId, previous -> {
+                Map<String, String> updatedAttributes = CollectionsExt.copyAndRemove(previous.getAttributes(), keys);
+                return previous.toBuilder().withAttributes(updatedAttributes).build();
+            });
             return Completable.complete();
         });
     }

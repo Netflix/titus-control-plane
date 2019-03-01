@@ -16,6 +16,7 @@
 
 package com.netflix.titus.master.agent.endpoint.grpc;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -30,6 +31,7 @@ import com.netflix.titus.api.agent.model.event.AgentInstanceUpdateEvent;
 import com.netflix.titus.api.agent.model.monitor.AgentStatus;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.agent.service.AgentStatusMonitor;
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.grpc.protogen.AgentChangeEvent;
 import com.netflix.titus.grpc.protogen.AgentInstance;
@@ -39,11 +41,12 @@ import com.netflix.titus.grpc.protogen.AgentInstanceGroups;
 import com.netflix.titus.grpc.protogen.AgentInstances;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.AgentManagementServiceImplBase;
 import com.netflix.titus.grpc.protogen.AgentQuery;
+import com.netflix.titus.grpc.protogen.DeleteAgentInstanceAttributesRequest;
+import com.netflix.titus.grpc.protogen.DeleteInstanceGroupAttributesRequest;
 import com.netflix.titus.grpc.protogen.Id;
 import com.netflix.titus.grpc.protogen.InstanceGroupAttributesUpdate;
 import com.netflix.titus.grpc.protogen.InstanceGroupLifecycleStateUpdate;
 import com.netflix.titus.grpc.protogen.TierUpdate;
-import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcAgentModelConverters;
 import io.grpc.StatusRuntimeException;
@@ -156,8 +159,30 @@ public class DefaultAgentManagementServiceGrpc extends AgentManagementServiceImp
     }
 
     @Override
+    public void deleteInstanceGroupAttributes(DeleteInstanceGroupAttributesRequest request, StreamObserver<Empty> responseObserver) {
+        agentManagementService.deleteInstanceGroupAttributes(request.getInstanceGroupId(), new HashSet<>(request.getKeysList())).subscribe(
+                () -> {
+                    responseObserver.onNext(Empty.getDefaultInstance());
+                    responseObserver.onCompleted();
+                },
+                responseObserver::onError
+        );
+    }
+
+    @Override
     public void updateAgentInstanceAttributes(AgentInstanceAttributesUpdate request, StreamObserver<Empty> responseObserver) {
         agentManagementService.updateAgentInstanceAttributes(request.getAgentInstanceId(), request.getAttributesMap()).subscribe(
+                () -> {
+                    responseObserver.onNext(Empty.getDefaultInstance());
+                    responseObserver.onCompleted();
+                },
+                responseObserver::onError
+        );
+    }
+
+    @Override
+    public void deleteAgentInstanceAttributes(DeleteAgentInstanceAttributesRequest request, StreamObserver<Empty> responseObserver) {
+        agentManagementService.deleteAgentInstanceAttributes(request.getAgentInstanceId(), new HashSet<>(request.getKeysList())).subscribe(
                 () -> {
                     responseObserver.onNext(Empty.getDefaultInstance());
                     responseObserver.onCompleted();

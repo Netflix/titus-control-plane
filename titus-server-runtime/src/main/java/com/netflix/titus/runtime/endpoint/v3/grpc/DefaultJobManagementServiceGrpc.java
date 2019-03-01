@@ -22,6 +22,8 @@ import javax.inject.Singleton;
 import com.google.protobuf.Empty;
 import com.netflix.titus.common.runtime.SystemLogService;
 import com.netflix.titus.grpc.protogen.Job;
+import com.netflix.titus.grpc.protogen.JobAttributesDeleteRequest;
+import com.netflix.titus.grpc.protogen.JobAttributesUpdate;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
@@ -34,6 +36,7 @@ import com.netflix.titus.grpc.protogen.JobQueryResult;
 import com.netflix.titus.grpc.protogen.JobStatusUpdate;
 import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
 import com.netflix.titus.grpc.protogen.Task;
+import com.netflix.titus.grpc.protogen.TaskAttributesDeleteRequest;
 import com.netflix.titus.grpc.protogen.TaskAttributesUpdate;
 import com.netflix.titus.grpc.protogen.TaskId;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
@@ -128,6 +131,16 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     }
 
     @Override
+    public void updateJobAttributes(JobAttributesUpdate request, StreamObserver<Empty> responseObserver) {
+        streamMonoResponse(jobManagementClient.updateJobAttributes(request), responseObserver);
+    }
+
+    @Override
+    public void deleteJobAttributes(JobAttributesDeleteRequest request, StreamObserver<Empty> responseObserver) {
+        streamMonoResponse(jobManagementClient.deleteJobAttributes(request), responseObserver);
+    }
+
+    @Override
     public void observeJobs(ObserveJobsQuery request, StreamObserver<JobChangeNotification> responseObserver) {
         Subscription subscription = jobManagementClient.observeJobs(request).subscribe(
                 responseObserver::onNext,
@@ -184,6 +197,11 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     @Override
     public void updateTaskAttributes(TaskAttributesUpdate request, StreamObserver<Empty> responseObserver) {
         streamCompletableResponse(jobManagementClient.updateTaskAttributes(request), responseObserver);
+    }
+
+    @Override
+    public void deleteTaskAttributes(TaskAttributesDeleteRequest request, StreamObserver<Empty> responseObserver) {
+        streamCompletableResponse(jobManagementClient.deleteTaskAttributes(request), responseObserver);
     }
 
     @Override

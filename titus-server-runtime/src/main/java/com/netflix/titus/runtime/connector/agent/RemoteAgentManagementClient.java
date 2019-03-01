@@ -18,13 +18,13 @@ package com.netflix.titus.runtime.connector.agent;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
-import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleStatus;
 import com.netflix.titus.api.agent.model.event.AgentEvent;
 import com.netflix.titus.api.model.Page;
@@ -33,6 +33,8 @@ import com.netflix.titus.api.model.Pagination;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.grpc.protogen.AgentInstanceAttributesUpdate;
 import com.netflix.titus.grpc.protogen.AgentQuery;
+import com.netflix.titus.grpc.protogen.DeleteAgentInstanceAttributesRequest;
+import com.netflix.titus.grpc.protogen.DeleteInstanceGroupAttributesRequest;
 import com.netflix.titus.grpc.protogen.Id;
 import com.netflix.titus.grpc.protogen.InstanceGroupAttributesUpdate;
 import com.netflix.titus.grpc.protogen.InstanceGroupLifecycleStateUpdate;
@@ -119,10 +121,28 @@ public class RemoteAgentManagementClient implements AgentManagementClient {
     }
 
     @Override
+    public Mono<Void> deleteInstanceGroupAttributes(String instanceGroupId, Set<String> keys) {
+        return stub.deleteInstanceGroupAttributes(DeleteInstanceGroupAttributesRequest.newBuilder()
+                .setInstanceGroupId(instanceGroupId)
+                .addAllKeys(keys)
+                .build()
+        );
+    }
+
+    @Override
     public Mono<Void> updateAgentInstanceAttributes(String instanceId, Map<String, String> attributes) {
         return stub.updateAgentInstanceAttributes(AgentInstanceAttributesUpdate.newBuilder()
                 .setAgentInstanceId(instanceId)
                 .putAllAttributes(attributes)
+                .build()
+        );
+    }
+
+    @Override
+    public Mono<Void> deleteAgentInstanceAttributes(String instanceId, Set<String> keys) {
+        return stub.deleteAgentInstanceAttributes(DeleteAgentInstanceAttributesRequest.newBuilder()
+                .setAgentInstanceId(instanceId)
+                .addAllKeys(keys)
                 .build()
         );
     }

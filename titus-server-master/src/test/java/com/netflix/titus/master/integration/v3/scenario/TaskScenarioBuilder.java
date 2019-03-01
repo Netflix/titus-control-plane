@@ -16,6 +16,7 @@
 
 package com.netflix.titus.master.integration.v3.scenario;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -32,6 +33,7 @@ import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.common.aws.AwsInstanceType;
 import com.netflix.titus.grpc.protogen.EvictionServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
+import com.netflix.titus.grpc.protogen.TaskAttributesDeleteRequest;
 import com.netflix.titus.grpc.protogen.TaskAttributesUpdate;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskMoveRequest;
@@ -152,6 +154,19 @@ public class TaskScenarioBuilder {
 
         TestStreamObserver<Empty> responseObserver = new TestStreamObserver<>();
         jobClient.updateTaskAttributes(TaskAttributesUpdate.newBuilder().setTaskId(taskId).putAllAttributes(attributes).build(), responseObserver);
+        rethrow(() -> responseObserver.awaitDone(TIMEOUT_MS, TimeUnit.MILLISECONDS));
+
+        logger.info("[{}] Task {} updated in {}[ms]", discoverActiveTest(), taskId, stopWatch.elapsed(TimeUnit.MILLISECONDS));
+        return this;
+    }
+
+    public TaskScenarioBuilder deleteTaskAttributes(List<String> keys) {
+        String taskId = getTask().getId();
+        logger.info("[{}] Deleting attributes of task {} of job {}...", discoverActiveTest(), taskId, jobScenarioBuilder.getJobId());
+        Stopwatch stopWatch = Stopwatch.createStarted();
+
+        TestStreamObserver<Empty> responseObserver = new TestStreamObserver<>();
+        jobClient.deleteTaskAttributes(TaskAttributesDeleteRequest.newBuilder().setTaskId(taskId).addAllKeys(keys).build(), responseObserver);
         rethrow(() -> responseObserver.awaitDone(TIMEOUT_MS, TimeUnit.MILLISECONDS));
 
         logger.info("[{}] Task {} updated in {}[ms]", discoverActiveTest(), taskId, stopWatch.elapsed(TimeUnit.MILLISECONDS));

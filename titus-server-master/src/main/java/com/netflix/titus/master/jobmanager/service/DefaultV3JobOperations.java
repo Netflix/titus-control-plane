@@ -17,7 +17,9 @@
 package com.netflix.titus.master.jobmanager.service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -29,6 +31,7 @@ import javax.inject.Singleton;
 
 import com.netflix.titus.api.FeatureActivationConfiguration;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobCompatibility;
@@ -76,7 +79,6 @@ import com.netflix.titus.master.jobmanager.service.service.action.BasicServiceJo
 import com.netflix.titus.master.jobmanager.service.service.action.MoveTaskBetweenJobsAction;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.service.management.ManagementSubsystemInitializer;
-import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -365,6 +367,26 @@ public class DefaultV3JobOperations implements V3JobOperations {
                 reconciliationFramework.findEngineByRootId(jobId).orElseThrow(() -> JobManagerException.jobNotFound(jobId))
         ).flatMap(engine -> {
             Observable<Void> observableAction = engine.changeReferenceModel(BasicJobActions.updateJobDisruptionBudget(engine, disruptionBudget, store, callMetadata));
+            return ReactorExt.toMono(observableAction);
+        });
+    }
+
+    @Override
+    public Mono<Void> updateJobAttributes(String jobId, Map<String, String> attributes, CallMetadata callMetadata) {
+        return Mono.fromCallable(() ->
+                reconciliationFramework.findEngineByRootId(jobId).orElseThrow(() -> JobManagerException.jobNotFound(jobId))
+        ).flatMap(engine -> {
+            Observable<Void> observableAction = engine.changeReferenceModel(BasicJobActions.updateJobAttributes(engine, attributes, store, callMetadata));
+            return ReactorExt.toMono(observableAction);
+        });
+    }
+
+    @Override
+    public Mono<Void> deleteJobAttributes(String jobId, Set<String> keys, CallMetadata callMetadata) {
+        return Mono.fromCallable(() ->
+                reconciliationFramework.findEngineByRootId(jobId).orElseThrow(() -> JobManagerException.jobNotFound(jobId))
+        ).flatMap(engine -> {
+            Observable<Void> observableAction = engine.changeReferenceModel(BasicJobActions.deleteJobAttributes(engine, keys, store, callMetadata));
             return ReactorExt.toMono(observableAction);
         });
     }

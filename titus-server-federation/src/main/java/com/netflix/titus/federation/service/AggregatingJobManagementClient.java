@@ -41,6 +41,8 @@ import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.federation.startup.GrpcConfiguration;
 import com.netflix.titus.federation.startup.TitusFederationConfiguration;
 import com.netflix.titus.grpc.protogen.Job;
+import com.netflix.titus.grpc.protogen.JobAttributesDeleteRequest;
+import com.netflix.titus.grpc.protogen.JobAttributesUpdate;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobChangeNotification.JobUpdate;
@@ -57,6 +59,7 @@ import com.netflix.titus.grpc.protogen.JobStatusUpdate;
 import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
 import com.netflix.titus.grpc.protogen.Pagination;
 import com.netflix.titus.grpc.protogen.Task;
+import com.netflix.titus.grpc.protogen.TaskAttributesDeleteRequest;
 import com.netflix.titus.grpc.protogen.TaskAttributesUpdate;
 import com.netflix.titus.grpc.protogen.TaskId;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
@@ -186,6 +189,28 @@ public class AggregatingJobManagementClient implements JobManagementClient {
         Mono<Empty> result = jobManagementServiceHelper.findJobInAllCellsReact(request.getJobId())
                 .flatMap(response -> singleCellCallReact(response.getCell(),
                         (client, streamObserver) -> wrap(context, client).updateJobDisruptionBudget(request, streamObserver))
+                );
+        return result.ignoreElement().cast(Void.class);
+    }
+
+    @Override
+    public Mono<Void> updateJobAttributes(JobAttributesUpdate request) {
+        Optional<CallMetadata> context = callMetadataResolver.resolve();
+
+        Mono<Empty> result = jobManagementServiceHelper.findJobInAllCellsReact(request.getJobId())
+                .flatMap(response -> singleCellCallReact(response.getCell(),
+                        (client, streamObserver) -> wrap(context, client).updateJobAttributes(request, streamObserver))
+                );
+        return result.ignoreElement().cast(Void.class);
+    }
+
+    @Override
+    public Mono<Void> deleteJobAttributes(JobAttributesDeleteRequest request) {
+        Optional<CallMetadata> context = callMetadataResolver.resolve();
+
+        Mono<Empty> result = jobManagementServiceHelper.findJobInAllCellsReact(request.getJobId())
+                .flatMap(response -> singleCellCallReact(response.getCell(),
+                        (client, streamObserver) -> wrap(context, client).deleteJobAttributes(request, streamObserver))
                 );
         return result.ignoreElement().cast(Void.class);
     }
@@ -397,10 +422,18 @@ public class AggregatingJobManagementClient implements JobManagementClient {
     }
 
     @Override
-    public Completable updateTaskAttributes(TaskAttributesUpdate taskUpdateRequest) {
-        Observable<Empty> result = findTaskInAllCells(taskUpdateRequest.getTaskId())
+    public Completable updateTaskAttributes(TaskAttributesUpdate attributesUpdate) {
+        Observable<Empty> result = findTaskInAllCells(attributesUpdate.getTaskId())
                 .flatMap(response -> singleCellCall(response.getCell(),
-                        (client, streamObserver) -> client.updateTaskAttributes(taskUpdateRequest, streamObserver)));
+                        (client, streamObserver) -> client.updateTaskAttributes(attributesUpdate, streamObserver)));
+        return result.toCompletable();
+    }
+
+    @Override
+    public Completable deleteTaskAttributes(TaskAttributesDeleteRequest deleteRequest) {
+        Observable<Empty> result = findTaskInAllCells(deleteRequest.getTaskId())
+                .flatMap(response -> singleCellCall(response.getCell(),
+                        (client, streamObserver) -> client.deleteTaskAttributes(deleteRequest, streamObserver)));
         return result.toCompletable();
     }
 

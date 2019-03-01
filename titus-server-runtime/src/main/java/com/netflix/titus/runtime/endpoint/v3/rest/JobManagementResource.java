@@ -16,6 +16,7 @@
 
 package com.netflix.titus.runtime.endpoint.v3.rest;
 
+import java.util.Set;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
@@ -34,9 +35,14 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
+import com.google.common.base.Strings;
+import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.runtime.SystemLogService;
+import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.grpc.protogen.Capacity;
 import com.netflix.titus.grpc.protogen.Job;
+import com.netflix.titus.grpc.protogen.JobAttributesDeleteRequest;
+import com.netflix.titus.grpc.protogen.JobAttributesUpdate;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.JobDisruptionBudget;
@@ -49,6 +55,7 @@ import com.netflix.titus.grpc.protogen.JobStatusUpdate;
 import com.netflix.titus.grpc.protogen.Page;
 import com.netflix.titus.grpc.protogen.ServiceJobSpec;
 import com.netflix.titus.grpc.protogen.Task;
+import com.netflix.titus.grpc.protogen.TaskAttributesDeleteRequest;
 import com.netflix.titus.grpc.protogen.TaskAttributesUpdate;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskMoveRequest;
@@ -124,6 +131,43 @@ public class JobManagementResource {
                 .setDisruptionBudget(jobDisruptionBudget)
                 .build();
         return Responses.fromVoidMono(jobManagementClient.updateJobDisruptionBudget(request));
+    }
+
+    @PUT
+    @ApiOperation("Update attributes of a job")
+    @Path("/jobs/{jobId}/attributes")
+    public Response updateJobAttributes(@PathParam("jobId") String jobId,
+                                        JobAttributesUpdate request) {
+        JobAttributesUpdate sanitizedRequest;
+        if (request.getJobId().isEmpty()) {
+            sanitizedRequest = request.toBuilder().setJobId(jobId).build();
+        } else {
+            if (!jobId.equals(request.getJobId())) {
+                return Response.status(Response.Status.BAD_REQUEST).build();
+            }
+            sanitizedRequest = request;
+        }
+        return Responses.fromVoidMono(jobManagementClient.updateJobAttributes(sanitizedRequest));
+    }
+
+    @DELETE
+    @ApiOperation("Delete attributes of a job with the specified key names")
+    @Path("/jobs/{jobId}/attributes")
+    public Response deleteJobAttributes(@PathParam("jobId") String jobId, @QueryParam("keys") String delimitedKeys) {
+        if (Strings.isNullOrEmpty(delimitedKeys)) {
+            throw TitusServiceException.invalidArgument("Path parameter 'keys' cannot be empty");
+        }
+
+        Set<String> keys = StringExt.splitByCommaIntoSet(delimitedKeys);
+        if (keys.isEmpty()) {
+            throw TitusServiceException.invalidArgument("Parsed path parameter 'keys' cannot be empty");
+        }
+
+        JobAttributesDeleteRequest request = JobAttributesDeleteRequest.newBuilder()
+                .setJobId(jobId)
+                .addAllKeys(keys)
+                .build();
+        return Responses.fromVoidMono(jobManagementClient.deleteJobAttributes(request));
     }
 
     @POST
@@ -209,7 +253,7 @@ public class JobManagementResource {
     }
 
     @PUT
-    @ApiOperation("Change attributes of a task")
+    @ApiOperation("Update attributes of a task")
     @Path("/tasks/{taskId}/attributes")
     public Response updateTaskAttributes(@PathParam("taskId") String taskId,
                                          TaskAttributesUpdate request) {
@@ -223,6 +267,26 @@ public class JobManagementResource {
             sanitizedRequest = request;
         }
         return Responses.fromCompletable(jobManagementClient.updateTaskAttributes(sanitizedRequest));
+    }
+
+    @DELETE
+    @ApiOperation("Delete attributes of a task with the specified key names")
+    @Path("/tasks/{taskId}/attributes")
+    public Response deleteTaskAttributes(@PathParam("taskId") String taskId, @QueryParam("keys") String delimitedKeys) {
+        if (Strings.isNullOrEmpty(delimitedKeys)) {
+            throw TitusServiceException.invalidArgument("Path parameter 'keys' cannot be empty");
+        }
+
+        Set<String> keys = StringExt.splitByCommaIntoSet(delimitedKeys);
+        if (keys.isEmpty()) {
+            throw TitusServiceException.invalidArgument("Parsed path parameter 'keys' cannot be empty");
+        }
+
+        TaskAttributesDeleteRequest request = TaskAttributesDeleteRequest.newBuilder()
+                .setTaskId(taskId)
+                .addAllKeys(keys)
+                .build();
+        return Responses.fromCompletable(jobManagementClient.deleteTaskAttributes(request));
     }
 
     @POST

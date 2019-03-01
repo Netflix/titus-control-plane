@@ -134,6 +134,7 @@ public class VmOperationsInstanceCloudConnector implements InstanceCloudConnecto
                     .withDesired(numberOfInstances)
                     .withMax(numberOfInstances)
                     .withLaunchConfigurationName(instanceGroupId + "-launchConfigurationName")
+                    .withInstanceType("unknown")
                     .withIsLaunchSuspended(true)
                     .withIsTerminateSuspended(true)
                     .build();

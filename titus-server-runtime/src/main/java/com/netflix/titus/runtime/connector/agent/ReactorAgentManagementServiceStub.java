@@ -23,6 +23,8 @@ import com.netflix.titus.grpc.protogen.AgentInstanceGroup;
 import com.netflix.titus.grpc.protogen.AgentInstanceGroups;
 import com.netflix.titus.grpc.protogen.AgentInstances;
 import com.netflix.titus.grpc.protogen.AgentQuery;
+import com.netflix.titus.grpc.protogen.DeleteAgentInstanceAttributesRequest;
+import com.netflix.titus.grpc.protogen.DeleteInstanceGroupAttributesRequest;
 import com.netflix.titus.grpc.protogen.Id;
 import com.netflix.titus.grpc.protogen.InstanceGroupAttributesUpdate;
 import com.netflix.titus.grpc.protogen.InstanceGroupLifecycleStateUpdate;
@@ -44,9 +46,13 @@ public interface ReactorAgentManagementServiceStub {
 
     Mono<Void> updateInstanceGroupLifecycleState(InstanceGroupLifecycleStateUpdate lifecycleStateUpdate);
 
-    Mono<Void> updateInstanceGroupAttributes(InstanceGroupAttributesUpdate attributesUpdate);
+    Mono<Void> updateInstanceGroupAttributes(InstanceGroupAttributesUpdate request);
 
-    Mono<Void> updateAgentInstanceAttributes(AgentInstanceAttributesUpdate attributesUpdate);
+    Mono<Void> deleteInstanceGroupAttributes(DeleteInstanceGroupAttributesRequest request);
+
+    Mono<Void> updateAgentInstanceAttributes(AgentInstanceAttributesUpdate request);
+
+    Mono<Void> deleteAgentInstanceAttributes(DeleteAgentInstanceAttributesRequest request);
 
     Flux<AgentChangeEvent> observeAgents();
 }
