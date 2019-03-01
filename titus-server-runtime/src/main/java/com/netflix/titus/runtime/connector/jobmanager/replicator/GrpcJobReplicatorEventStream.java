@@ -22,6 +22,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
@@ -47,6 +48,7 @@ import reactor.core.scheduler.Scheduler;
 public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<JobSnapshot, JobManagerEvent<?>> {
 
     private static final Logger logger = LoggerFactory.getLogger(GrpcJobReplicatorEventStream.class);
+    public static final CallMetadata GRPC_REPLICATOR_CALL_METADATA = CallMetadata.newBuilder().withCallerId("JobReplicatorEvent").withCallReason("Replication").build();
 
     private final JobManagementClient client;
 
@@ -176,11 +178,11 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
 
         private JobManagerEvent<?> toTaskCoreEvent(Job<?> job, Task newTask, boolean moved) {
             if (moved) {
-                return TaskUpdateEvent.newTaskFromAnotherJob(job, newTask);
+                return TaskUpdateEvent.newTaskFromAnotherJob(job, newTask, GRPC_REPLICATOR_CALL_METADATA);
             }
             return lastJobSnapshotRef.get().findTaskById(newTask.getId())
-                    .map(jobTaskPair -> TaskUpdateEvent.taskChange(job, newTask, jobTaskPair.getRight()))
-                    .orElseGet(() -> TaskUpdateEvent.newTask(job, newTask));
+                    .map(jobTaskPair -> TaskUpdateEvent.taskChange(job, newTask, jobTaskPair.getRight(), GRPC_REPLICATOR_CALL_METADATA))
+                    .orElseGet(() -> TaskUpdateEvent.newTask(job, newTask, GRPC_REPLICATOR_CALL_METADATA));
         }
     }
 }

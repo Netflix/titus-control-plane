@@ -46,4 +46,9 @@ public class JobManagerConstants {
      * Call metadata for an undefined job/task mutation
      */
     public static final CallMetadata UNDEFINED_CALL_METADATA = CallMetadata.newBuilder().withCallerId("Unknown").withCallReason("Unknown").build();
+
+    /**
+     * Call metadata for replicator event stream
+     */
+    public static final CallMetadata GRPC_REPLICATOR_CALL_METADATA = CallMetadata.newBuilder().withCallerId("JobReplictorEvent").withCallReason("Replication").build();
 }

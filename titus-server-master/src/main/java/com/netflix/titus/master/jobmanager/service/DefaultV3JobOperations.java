@@ -612,11 +612,12 @@ public class DefaultV3JobOperations implements V3JobOperations {
                     : Optional.empty();
         }
         Task previous = modelUpdateEvent.getPreviousEntityHolder().get().getEntity();
+        CallMetadata callMetadata = (CallMetadata)modelUpdateEvent.getChangedEntityHolder().getAttributes().get(JobManagerConstants.JOB_MANAGER_ATTRIBUTE_CALLMETADATA);
         if (changed.equals(previous)) {
             return Optional.empty();
         }
         return tasksPredicate.test(Pair.of(job, changed))
-                ? Optional.of(TaskUpdateEvent.taskChange(job, changed, previous))
+                ? Optional.of(TaskUpdateEvent.taskChange(job, changed, previous, callMetadata))
                 : Optional.empty();
     }
 
