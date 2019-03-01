@@ -16,49 +16,49 @@
 
 package com.netflix.titus.supplementary.jobactivity;
 
-import com.netflix.titus.runtime.connector.MasterConnectorComponent;
-import com.netflix.titus.runtime.connector.MasterDataReplicationComponent;
-import com.netflix.titus.runtime.connector.agent.AgentManagementDataReplicationComponent;
-import com.netflix.titus.runtime.connector.agent.AgentManagerConnectorComponent;
-import com.netflix.titus.runtime.connector.eviction.EvictionConnectorComponent;
+import javax.inject.Named;
+
+import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorClientFactoryComponent;
+import com.netflix.titus.runtime.connector.jobmanager.JobManagementDataReplicationComponent;
+import com.netflix.titus.runtime.connector.jobmanager.JobManagerConnectorComponent;
 import com.netflix.titus.runtime.connector.titusmaster.ConfigurationLeaderResolverComponent;
-import com.netflix.titus.runtime.connector.titusmaster.TitusMasterConnectorComponent;
-import com.netflix.titus.runtime.connector.titusmaster.TitusMasterConnectorModule;
 import com.netflix.titus.runtime.endpoint.common.grpc.GrpcEndpointConfiguration;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolveComponent;
 import com.netflix.titus.runtime.endpoint.rest.RestAddOnsComponent;
 import com.netflix.titus.supplementary.jobactivity.endpoint.grpc.JobActivityGrpcServer;
 import com.netflix.titus.supplementary.jobactivity.endpoint.grpc.JobActivityGrpcService;
 import io.grpc.Channel;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 
+import static com.netflix.titus.runtime.connector.titusmaster.ConfigurationLeaderResolverComponent.TITUS_MASTER_CHANNEL;
+
 @SpringBootApplication
 @Import({
         CallMetadataResolveComponent.class,
         ConfigurationLeaderResolverComponent.class,
-        TitusMasterConnectorComponent.class,
-        MasterConnectorComponent.class,
-        MasterDataReplicationComponent.class,
-        AgentManagerConnectorComponent.class,
-        AgentManagementDataReplicationComponent.class,
-        EvictionConnectorComponent.class,
+        GrpcToReactorClientFactoryComponent.class,
+
+        // Job connector
+        JobManagerConnectorComponent.class,
+        JobManagementDataReplicationComponent.class,
+
         RestAddOnsComponent.class
 })
 public class JobActivityMain {
 
     @Bean
+    @Named(JobManagerConnectorComponent.JOB_MANAGER_CHANNEL)
+    public Channel getJobManagerChannel(@Named(TITUS_MASTER_CHANNEL) Channel channel) {
+        return channel;
+    }
+
+    @Bean
     public JobActivityGrpcServer getJobActivityHistoryGrpcServer(GrpcEndpointConfiguration configuration,
                                                                  JobActivityGrpcService jobActivityGrpcService) {
         return new JobActivityGrpcServer(configuration, jobActivityGrpcService);
-    }
-
-    @Bean(name = TitusMasterConnectorModule.MANAGED_CHANNEL_NAME)
-    public Channel getChannel(@Qualifier(TitusMasterConnectorComponent.TITUS_MASTER_CHANNEL) Channel channel) {
-        return channel;
     }
 
     public static void main(String[] args) {

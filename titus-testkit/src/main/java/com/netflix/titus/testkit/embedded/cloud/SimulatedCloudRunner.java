@@ -20,13 +20,12 @@ import com.netflix.governator.InjectorBuilder;
 import com.netflix.governator.LifecycleInjector;
 import com.netflix.titus.common.aws.AwsInstanceType;
 import com.netflix.titus.testkit.embedded.cloud.model.SimulatedAgentGroupDescriptor;
-import com.netflix.titus.testkit.perf.load.LoadGenerator;
 import org.apache.log4j.PropertyConfigurator;
 
 public class SimulatedCloudRunner {
 
     static {
-        PropertyConfigurator.configure(LoadGenerator.class.getClassLoader().getResource("cloud-log4j.properties"));
+        PropertyConfigurator.configure(SimulatedCloudRunner.class.getClassLoader().getResource("cloud-log4j.properties"));
     }
 
     public static void main(String[] args) throws InterruptedException {

@@ -25,8 +25,6 @@ import javax.inject.Singleton;
 
 import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
-import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
-import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceBlockingStub;
 import com.netflix.titus.runtime.connector.agent.ReactorAgentManagementServiceStub;
 import com.netflix.titus.runtime.connector.common.reactor.ReactorToGrpcClientBuilder;
 import com.netflix.titus.runtime.connector.eviction.EvictionServiceClient;
@@ -48,7 +46,6 @@ public class ExecutionContext {
 
     private final JobManagementClient jobManagementClient;
     private final ReadOnlyJobOperations cachedJobManagementClient;
-    private final JobManagementServiceBlockingStub jobManagementClientBlocking;
 
     private final ReactorAgentManagementServiceStub agentManagementClient;
     private final ReadOnlyAgentOperations cachedAgentManagementClient;
@@ -63,7 +60,6 @@ public class ExecutionContext {
                             ReactorAgentManagementServiceStub agentManagementClient,
                             ReadOnlyAgentOperations cachedAgentManagementClient,
                             EvictionServiceClient evictionServiceClient,
-                            Channel titusGrpcChannel,
                             @Named(SimulatedRemoteInstanceCloudConnector.SIMULATED_CLOUD) Channel cloudSimulatorGrpcChannel) {
         this.sessionId = "session$" + TIMESTAMP_FORMATTER.format(Instant.now());
 
@@ -71,7 +67,6 @@ public class ExecutionContext {
         this.cachedJobManagementClient = cachedJobManagementClient;
         this.agentManagementClient = agentManagementClient;
         this.cachedAgentManagementClient = cachedAgentManagementClient;
-        this.jobManagementClientBlocking = JobManagementServiceGrpc.newBlockingStub(titusGrpcChannel);
         this.evictionServiceClient = evictionServiceClient;
 
         SimulatedAgentServiceStub simulatedCloudClientStub = SimulatedAgentServiceGrpc.newStub(cloudSimulatorGrpcChannel);
@@ -90,10 +85,6 @@ public class ExecutionContext {
 
     public ReadOnlyJobOperations getCachedJobManagementClient() {
         return cachedJobManagementClient;
-    }
-
-    public JobManagementServiceBlockingStub getJobManagementClientBlocking() {
-        return jobManagementClientBlocking;
     }
 
     public ReactorAgentManagementServiceStub getAgentManagementClient() {

@@ -49,7 +49,6 @@ import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.runtime.jobmanager.JobManagerConfiguration;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.JobId;
@@ -59,7 +58,7 @@ import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskId;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
-import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
+import com.netflix.titus.runtime.connector.ChannelTunablesConfiguration;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.runtime.connector.jobmanager.client.GrpcJobManagementClient;
 import com.netflix.titus.runtime.connector.jobmanager.client.JobManagementClientDelegate;
@@ -67,6 +66,7 @@ import com.netflix.titus.runtime.connector.jobmanager.client.SanitizingJobManage
 import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
+import com.netflix.titus.runtime.jobmanager.JobManagerConfiguration;
 import com.netflix.titus.runtime.jobmanager.JobManagerCursors;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
@@ -94,7 +94,8 @@ public class GatewayJobManagementClient extends JobManagementClientDelegate {
 
     private static final int MAX_CONCURRENT_JOBS_TO_RETRIEVE = 10;
 
-    private final GrpcClientConfiguration configuration;
+    private final ChannelTunablesConfiguration tunablesConfiguration;
+    private final GatewayConfiguration gatewayConfiguration;
     private final JobManagementServiceStub client;
     private final CallMetadataResolver callMetadataResolver;
     private final JobStore store;
@@ -105,7 +106,8 @@ public class GatewayJobManagementClient extends JobManagementClientDelegate {
     private final Clock clock;
 
     @Inject
-    public GatewayJobManagementClient(GrpcClientConfiguration configuration,
+    public GatewayJobManagementClient(ChannelTunablesConfiguration tunablesConfiguration,
+                                      GatewayConfiguration gatewayConfiguration,
                                       JobManagerConfiguration jobManagerConfiguration,
                                       JobManagementServiceStub client,
                                       CallMetadataResolver callMetadataResolver,
@@ -122,12 +124,12 @@ public class GatewayJobManagementClient extends JobManagementClientDelegate {
                 new GrpcJobManagementClient(
                         client,
                         callMetadataResolver,
-
-                        configuration
+                        tunablesConfiguration
                 ),
                 new ExtendedJobSanitizer(jobManagerConfiguration, jobAssertions, entitySanitizer, securityGroupsRequiredPredicate, environmentVariableNamesStrictValidationPredicate, titusRuntime)
         ));
-        this.configuration = configuration;
+        this.tunablesConfiguration = tunablesConfiguration;
+        this.gatewayConfiguration = gatewayConfiguration;
         this.client = client;
         this.callMetadataResolver = callMetadataResolver;
         this.store = store;
@@ -173,8 +175,8 @@ public class GatewayJobManagementClient extends JobManagementClientDelegate {
     public Observable<Job> findJob(String jobId) {
         Observable<Job> observable = createRequestObservable(emitter -> {
             StreamObserver<Job> streamObserver = createSimpleClientResponseObserver(emitter);
-            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).findJob(JobId.newBuilder().setId(jobId).build(), streamObserver);
-        }, configuration.getRequestTimeout());
+            createWrappedStub(client, callMetadataResolver, tunablesConfiguration.getRequestTimeout()).findJob(JobId.newBuilder().setId(jobId).build(), streamObserver);
+        }, tunablesConfiguration.getRequestTimeout());
 
         return observable.onErrorResumeNext(e -> {
             if (e instanceof StatusRuntimeException &&
@@ -183,7 +185,7 @@ public class GatewayJobManagementClient extends JobManagementClientDelegate {
             } else {
                 return Observable.error(e);
             }
-        }).timeout(configuration.getRequestTimeout(), TimeUnit.MILLISECONDS);
+        }).timeout(tunablesConfiguration.getRequestTimeout(), TimeUnit.MILLISECONDS);
     }
 
     @Override
@@ -191,9 +193,9 @@ public class GatewayJobManagementClient extends JobManagementClientDelegate {
         Observable<Task> observable = createRequestObservable(
                 emitter -> {
                     StreamObserver<Task> streamObserver = createSimpleClientResponseObserver(emitter);
-                    createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).findTask(TaskId.newBuilder().setId(taskId).build(), streamObserver);
+                    createWrappedStub(client, callMetadataResolver, tunablesConfiguration.getRequestTimeout()).findTask(TaskId.newBuilder().setId(taskId).build(), streamObserver);
                 },
-                configuration.getRequestTimeout()
+                tunablesConfiguration.getRequestTimeout()
         );
         observable = taskRelocationDataInjector.injectIntoTask(taskId, observable);
 
@@ -206,7 +208,7 @@ public class GatewayJobManagementClient extends JobManagementClientDelegate {
             }
         });
 
-        return observable.timeout(configuration.getRequestTimeout(), TimeUnit.MILLISECONDS);
+        return observable.timeout(tunablesConfiguration.getRequestTimeout(), TimeUnit.MILLISECONDS);
     }
 
     @Override
@@ -232,7 +234,7 @@ public class GatewayJobManagementClient extends JobManagementClientDelegate {
                     // In this case we ask for active and archived tasks using a page number > 0. Because of that
                     // we have to fetch as much tasks from master as we can. Tasks that we do not fetch, will not be
                     // visible to the client.
-                    TaskQuery largePageQuery = taskQuery.toBuilder().setPage(taskQuery.getPage().toBuilder().setPageNumber(0).setPageSize(configuration.getMaxTaskPageSize())).build();
+                    TaskQuery largePageQuery = taskQuery.toBuilder().setPage(taskQuery.getPage().toBuilder().setPageNumber(0).setPageSize(gatewayConfiguration.getMaxTaskPageSize())).build();
                     observable = newActiveTaskQueryAction(largePageQuery);
                 } else {
                     observable = newActiveTaskQueryAction(taskQuery);
@@ -244,14 +246,14 @@ public class GatewayJobManagementClient extends JobManagementClientDelegate {
             }
         }
 
-        return taskRelocationDataInjector.injectIntoTaskQueryResult(observable.timeout(configuration.getRequestTimeout(), TimeUnit.MILLISECONDS));
+        return taskRelocationDataInjector.injectIntoTaskQueryResult(observable.timeout(tunablesConfiguration.getRequestTimeout(), TimeUnit.MILLISECONDS));
     }
 
     private Observable<TaskQueryResult> newActiveTaskQueryAction(TaskQuery taskQuery) {
         return createRequestObservable(emitter -> {
             StreamObserver<TaskQueryResult> streamObserver = createSimpleClientResponseObserver(emitter);
-            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).findTasks(taskQuery, streamObserver);
-        }, configuration.getRequestTimeout());
+            createWrappedStub(client, callMetadataResolver, tunablesConfiguration.getRequestTimeout()).findTasks(taskQuery, streamObserver);
+        }, tunablesConfiguration.getRequestTimeout());
     }
 
     private Observable<Job> retrieveArchivedJob(String jobId) {

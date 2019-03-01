@@ -20,13 +20,14 @@ import javax.inject.Named;
 
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorClientFactory;
-import com.netflix.titus.runtime.connector.titusmaster.TitusMasterConnectorModule;
 import io.grpc.Channel;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class AgentManagerConnectorComponent {
+
+    public static final String AGENT_CHANNEL = "agentChannel";
 
     @Bean
     public AgentManagementClient getAgentManagementClient(ReactorAgentManagementServiceStub stub) {
@@ -35,7 +36,7 @@ public class AgentManagerConnectorComponent {
 
     @Bean
     public ReactorAgentManagementServiceStub getReactorAgentManagementServiceStub(GrpcToReactorClientFactory factory,
-                                                                                  @Named(TitusMasterConnectorModule.MANAGED_CHANNEL_NAME) Channel channel) {
+                                                                                  @Named(AGENT_CHANNEL) Channel channel) {
         return factory.apply(AgentManagementServiceGrpc.newStub(channel), ReactorAgentManagementServiceStub.class, AgentManagementServiceGrpc.getServiceDescriptor());
     }
 }

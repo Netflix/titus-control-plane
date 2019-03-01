@@ -14,39 +14,16 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.connector;
+package com.netflix.titus.runtime.connector.eviction;
 
 import com.netflix.titus.api.eviction.service.ReadOnlyEvictionOperations;
-import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.runtime.connector.agent.AgentManagementDataReplicationComponent;
-import com.netflix.titus.runtime.connector.eviction.CachedReadOnlyEvictionOperations;
-import com.netflix.titus.runtime.connector.eviction.EvictionDataReplicator;
-import com.netflix.titus.runtime.connector.eviction.EvictionServiceClient;
 import com.netflix.titus.runtime.connector.eviction.replicator.EvictionDataReplicatorProvider;
-import com.netflix.titus.runtime.connector.jobmanager.CachedReadOnlyJobOperations;
-import com.netflix.titus.runtime.connector.jobmanager.JobDataReplicator;
-import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
-import com.netflix.titus.runtime.connector.jobmanager.replicator.JobDataReplicatorProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Import;
 
 @Configuration
-@Import({
-        AgentManagementDataReplicationComponent.class
-})
-public class MasterDataReplicationComponent {
-
-    @Bean
-    public JobDataReplicator getJobDataReplicator(JobManagementClient client, TitusRuntime titusRuntime) {
-        return new JobDataReplicatorProvider(client, titusRuntime).get();
-    }
-
-    @Bean
-    public ReadOnlyJobOperations getReadOnlyJobOperations(JobDataReplicator replicator) {
-        return new CachedReadOnlyJobOperations(replicator);
-    }
+public class EvictionDataReplicationComponent {
 
     @Bean
     public EvictionDataReplicator getEvictionDataReplicator(EvictionServiceClient client, TitusRuntime titusRuntime) {

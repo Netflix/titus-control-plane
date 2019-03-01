@@ -42,7 +42,7 @@ import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskMoveRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
-import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
+import com.netflix.titus.runtime.connector.ChannelTunablesConfiguration;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
@@ -65,12 +65,12 @@ public class GrpcJobManagementClient implements JobManagementClient {
 
     private final JobManagementServiceGrpc.JobManagementServiceStub client;
     private final CallMetadataResolver callMetadataResolver;
-    private final GrpcClientConfiguration configuration;
+    private final ChannelTunablesConfiguration configuration;
 
     @Inject
     public GrpcJobManagementClient(JobManagementServiceGrpc.JobManagementServiceStub client,
                                    CallMetadataResolver callMetadataResolver,
-                                   GrpcClientConfiguration configuration) {
+                                   ChannelTunablesConfiguration configuration) {
         this.client = client;
         this.callMetadataResolver = callMetadataResolver;
         this.configuration = configuration;
