@@ -27,8 +27,8 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
 import com.netflix.titus.api.endpoint.v2.rest.representation.LeaderRepresentation;
-import com.netflix.titus.master.supervisor.service.MasterDescription;
-import com.netflix.titus.master.supervisor.service.MasterMonitor;
+import com.netflix.titus.api.supervisor.service.MasterDescription;
+import com.netflix.titus.api.supervisor.service.MasterMonitor;
 import com.netflix.titus.master.mesos.MesosMasterResolver;
 
 /**

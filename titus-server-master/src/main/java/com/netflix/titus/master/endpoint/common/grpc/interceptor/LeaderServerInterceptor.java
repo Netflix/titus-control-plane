@@ -20,7 +20,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.netflix.titus.grpc.protogen.SupervisorServiceGrpc;
-import com.netflix.titus.master.supervisor.service.LeaderActivator;
+import com.netflix.titus.api.supervisor.service.LeaderActivator;
 import io.grpc.Metadata;
 import io.grpc.ServerCall;
 import io.grpc.ServerCall.Listener;

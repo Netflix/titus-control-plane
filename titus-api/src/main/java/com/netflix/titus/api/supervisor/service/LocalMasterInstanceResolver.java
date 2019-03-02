@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,12 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.supervisor.model.event;
+package com.netflix.titus.api.supervisor.service;
 
-public abstract class SupervisorEvent {
+import com.netflix.titus.api.supervisor.model.MasterInstance;
+import rx.Observable;
+
+public interface LocalMasterInstanceResolver {
+
+    Observable<MasterInstance> observeLocalMasterInstanceUpdates();
 }

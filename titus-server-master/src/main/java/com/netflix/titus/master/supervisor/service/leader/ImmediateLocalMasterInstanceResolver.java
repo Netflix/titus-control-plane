@@ -20,11 +20,11 @@ import java.util.Collections;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.netflix.titus.master.supervisor.model.MasterInstance;
-import com.netflix.titus.master.supervisor.model.MasterState;
-import com.netflix.titus.master.supervisor.model.MasterStatus;
-import com.netflix.titus.master.supervisor.service.LocalMasterInstanceResolver;
-import com.netflix.titus.master.supervisor.service.MasterDescription;
+import com.netflix.titus.api.supervisor.model.MasterInstance;
+import com.netflix.titus.api.supervisor.model.MasterState;
+import com.netflix.titus.api.supervisor.model.MasterStatus;
+import com.netflix.titus.api.supervisor.service.LocalMasterInstanceResolver;
+import com.netflix.titus.api.supervisor.service.MasterDescription;
 import rx.Observable;
 
 @Singleton

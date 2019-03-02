@@ -24,9 +24,9 @@ import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.netflix.titus.master.supervisor.service.LeaderActivator;
-import com.netflix.titus.master.supervisor.service.MasterDescription;
-import com.netflix.titus.master.supervisor.service.MasterMonitor;
+import com.netflix.titus.api.supervisor.service.LeaderActivator;
+import com.netflix.titus.api.supervisor.service.MasterDescription;
+import com.netflix.titus.api.supervisor.service.MasterMonitor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

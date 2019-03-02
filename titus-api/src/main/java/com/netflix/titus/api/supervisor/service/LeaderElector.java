@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.supervisor.service;
+package com.netflix.titus.api.supervisor.service;
 
-import com.netflix.titus.master.supervisor.model.MasterState;
+import com.netflix.titus.api.supervisor.model.MasterState;
 import rx.Observable;
 
 /**

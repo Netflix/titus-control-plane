@@ -37,7 +37,7 @@ import com.netflix.titus.master.scheduler.AgentQualityTracker;
 import com.netflix.titus.master.scheduler.ContainerFailureBasedAgentQualityTracker;
 import com.netflix.titus.master.scheduler.DefaultSchedulingService;
 import com.netflix.titus.master.scheduler.SchedulingService;
-import com.netflix.titus.master.supervisor.service.LeaderActivator;
+import com.netflix.titus.api.supervisor.service.LeaderActivator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

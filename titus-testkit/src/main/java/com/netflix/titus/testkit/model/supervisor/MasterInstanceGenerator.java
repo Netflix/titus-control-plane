@@ -21,9 +21,9 @@ import java.util.Collections;
 import java.util.List;
 
 import com.netflix.titus.common.data.generator.DataGenerator;
-import com.netflix.titus.master.supervisor.model.MasterInstance;
-import com.netflix.titus.master.supervisor.model.MasterState;
-import com.netflix.titus.master.supervisor.model.MasterStatus;
+import com.netflix.titus.api.supervisor.model.MasterInstance;
+import com.netflix.titus.api.supervisor.model.MasterState;
+import com.netflix.titus.api.supervisor.model.MasterStatus;
 
 public class MasterInstanceGenerator {
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,26 +14,20 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.supervisor.service;
+package com.netflix.titus.api.supervisor.model;
 
-/**
- * Counterpart of {@link LeaderElector} that performs lead activation/inactivation mechanics.
- */
-public interface LeaderActivator {
+public enum MasterState {
+    Starting,
+    Inactive,
+    NonLeader,
+    LeaderActivating,
+    LeaderActivated;
 
-    String COMPONENT = "clusterManager";
+    public static boolean isLeader(MasterState state) {
+        return state == MasterState.LeaderActivating || state == MasterState.LeaderActivated;
+    }
 
-    long getElectionTimestamp();
-
-    long getActivationEndTimestamp();
-
-    long getActivationTime();
-
-    boolean isLeader();
-
-    boolean isActivated();
-
-    void becomeLeader();
-
-    void stopBeingLeader();
+    public static boolean isAfter(MasterState before, MasterState after) {
+        return before.ordinal() < after.ordinal();
+    }
 }
