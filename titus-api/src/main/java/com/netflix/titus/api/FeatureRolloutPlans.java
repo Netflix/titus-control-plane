@@ -76,4 +76,11 @@ public interface FeatureRolloutPlans {
             description = "Allowing job mutations for authorized users only "
     )
     String JOB_AUTHORIZATION_FEATURE = "jobAuthorizationFeature";
+
+    @FeatureRollout(
+            featureId = "jobActivityPublishFeature",
+            deadline = "05/01/2019",
+            description = "Allows publishing of job activity events"
+    )
+    String JOB_ACTIVITY_PUBLISH_FEATURE = "jobActivityPublishFeature";
 }

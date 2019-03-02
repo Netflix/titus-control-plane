@@ -62,7 +62,7 @@ public class DefaultJobActivityPublisherServiceTest {
     public void setUp() {
         publisherStore = new InMemoryJobActivityPublisherStore();
         jobUpdateEvents = createJobUpdateEvents(numBatchJobs);
-        publisherService = new DefaultJobActivityPublisherService(publisherStore, v3JobOperations, titusRuntime);
+        publisherService = new DefaultJobActivityPublisherService(publisherStore, v3JobOperations, job -> true, titusRuntime);
     }
 
     // Tests that emitted V3 events are consumed and written to the publisher store

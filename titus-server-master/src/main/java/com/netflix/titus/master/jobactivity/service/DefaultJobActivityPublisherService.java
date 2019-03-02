@@ -16,14 +16,18 @@
 
 package com.netflix.titus.master.jobactivity.service;
 
+import java.util.function.Predicate;
 import javax.inject.Inject;
+import javax.inject.Named;
 import javax.inject.Singleton;
 
+import com.netflix.titus.api.FeatureRolloutPlans;
 import com.netflix.titus.api.jobactivity.service.JobActivityPublisherMetrics;
 import com.netflix.titus.api.jobactivity.service.JobActivityPublisherService;
 import com.netflix.titus.api.jobactivity.store.JobActivityPublisherRecord;
 import com.netflix.titus.api.jobactivity.store.JobActivityPublisherStore;
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
@@ -56,12 +60,16 @@ public class DefaultJobActivityPublisherService implements JobActivityPublisherS
     private final TitusRuntime runtime;
     private final JobActivityPublisherMetrics metrics;
 
+    private final Predicate<Job> jobActivityPublisherEnabledPredicate;
+
     @Inject
     public DefaultJobActivityPublisherService(JobActivityPublisherStore publisher,
                                               V3JobOperations v3JobOperations,
+                                              @Named(FeatureRolloutPlans.JOB_ACTIVITY_PUBLISH_FEATURE) Predicate<JobDescriptor> jobActivityPublishPredicate,
                                               TitusRuntime runtime) {
         this.publisher = publisher;
         this.v3JobOperations = v3JobOperations;
+        this.jobActivityPublisherEnabledPredicate = job -> jobActivityPublishPredicate.test(job.getJobDescriptor());
         this.runtime = runtime;
         this.metrics = new JobActivityPublisherMetrics(runtime.getRegistry());
     }
@@ -120,6 +128,11 @@ public class DefaultJobActivityPublisherService implements JobActivityPublisherS
 
     private void handleJobUpdateEvent(JobUpdateEvent jobUpdateEvent) {
         Job<?> job = jobUpdateEvent.getCurrent();
+        if (!jobActivityPublisherEnabledPredicate.test(job)) {
+            logger.info("Skipping job activity publish because feature is disabled for this job");
+            return;
+        }
+
         publisher.publishJob(job).subscribe(
                 voidResult -> {},
                 e -> {
@@ -134,7 +147,13 @@ public class DefaultJobActivityPublisherService implements JobActivityPublisherS
     }
 
     private void handleTaskUpdateEvent(TaskUpdateEvent taskUpdateEvent) {
+        Job<?> job = taskUpdateEvent.getCurrentJob();
         Task task = taskUpdateEvent.getCurrentTask();
+        if (!jobActivityPublisherEnabledPredicate.test(job)) {
+            logger.info("Skipping job activity publish because feature is disabled for this task's job");
+            return;
+        }
+
         publisher.publishTask(task).subscribe(
                 voidResult -> {},
                 e -> {
