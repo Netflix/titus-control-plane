@@ -12,7 +12,7 @@ include 'titus-api',\
 [
         'job-activity-history', 'job-activity-history-springboot',
         'task-relocation', 'task-relocation-springboot',
-        'es-tasks-publish', 'es-tasks-publish-springboot'
+        'tasks-publisher', 'tasks-publisher-springboot'
 ].each {
     def projectName = "titus-supplementary-component-$it"
     include projectName
