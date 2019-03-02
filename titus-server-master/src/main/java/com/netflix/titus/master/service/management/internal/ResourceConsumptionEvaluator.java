@@ -40,7 +40,6 @@ import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.model.Tier;
-import com.netflix.titus.api.model.v2.V2JobState;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.model.ResourceDimensions;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
@@ -185,7 +184,7 @@ class ResourceConsumptionEvaluator {
 
     private Map<String, Object> getWorkerStateMap(List<Task> tasks) {
         Map<String, Object> tasksStates = newTaskStateMap();
-        tasks.stream().map(task -> JobFunctions.toV2JobState(task.getStatus().getState())).forEach(taskState ->
+        tasks.stream().map(task -> task.getStatus().getState()).forEach(taskState ->
                 tasksStates.put(taskState.name(), (int) tasksStates.get(taskState.name()) + 1)
         );
         return tasksStates;
@@ -193,7 +192,7 @@ class ResourceConsumptionEvaluator {
 
     private Map<String, Object> newTaskStateMap() {
         Map<String, Object> tasksStates = new HashMap<>();
-        for (V2JobState state : V2JobState.values()) {
+        for (TaskState state : TaskState.values()) {
             tasksStates.put(state.name(), 0);
         }
         return tasksStates;

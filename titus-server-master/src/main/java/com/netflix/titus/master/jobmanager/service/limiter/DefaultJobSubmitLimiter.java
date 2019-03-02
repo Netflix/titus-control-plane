@@ -27,8 +27,6 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobGroupInfo;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
-import com.netflix.titus.api.model.v2.V2JobDefinition;
-import com.netflix.titus.api.model.v2.parameter.Parameters;
 import com.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
 
 @Singleton
@@ -49,8 +47,8 @@ public class DefaultJobSubmitLimiter implements JobSubmitLimiter {
     @Override
     public <JOB_DESCR> Optional<String> checkIfAllowed(JOB_DESCR jobDescriptor) {
         Preconditions.checkArgument(
-                jobDescriptor instanceof JobDescriptor || jobDescriptor instanceof V2JobDefinition,
-                "Not V2 or V3 job descriptor"
+                jobDescriptor instanceof JobDescriptor,
+                "Not V3 job descriptor"
         );
 
         Optional<String> activeJobLimit = checkActiveJobLimit();
@@ -102,9 +100,7 @@ public class DefaultJobSubmitLimiter implements JobSubmitLimiter {
     }
 
     private <JOB_DESCR> String createJobIdSequenceFrom(JOB_DESCR jobDescriptor) {
-        return jobDescriptor instanceof JobDescriptor
-                ? formatJobGroupName((JobDescriptor<?>) jobDescriptor)
-                : Parameters.getJobIdSequence(((V2JobDefinition) jobDescriptor).getParameters());
+        return formatJobGroupName((JobDescriptor<?>) jobDescriptor);
     }
 
     private Optional<String> isJobSequenceUsed(String newJobIdSequence) {

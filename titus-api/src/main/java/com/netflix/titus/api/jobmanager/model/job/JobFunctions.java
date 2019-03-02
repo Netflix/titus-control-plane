@@ -39,7 +39,6 @@ import com.netflix.titus.api.jobmanager.model.job.retry.ExponentialBackoffRetryP
 import com.netflix.titus.api.jobmanager.model.job.retry.ImmediateRetryPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
-import com.netflix.titus.api.model.v2.V2JobState;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.retry.Retryer;
 import com.netflix.titus.common.util.retry.Retryers;
@@ -62,24 +61,6 @@ public final class JobFunctions {
 
     public static DisruptionBudget getNoDisruptionBudgetMarker() {
         return NO_DISRUPTION_BUDGET_MARKER;
-    }
-
-    @Deprecated
-    public static V2JobState toV2JobState(TaskState v3TaskState) {
-        switch (v3TaskState) {
-            case Accepted:
-                return V2JobState.Accepted;
-            case Launched:
-                return V2JobState.Launched;
-            case StartInitiated:
-                return V2JobState.StartInitiated;
-            case Started:
-            case KillInitiated:
-                return V2JobState.Started;
-            case Finished:
-                return V2JobState.Completed;
-        }
-        throw new IllegalStateException("Unexpected V3 task state: " + v3TaskState);
     }
 
     public static boolean isBatchJob(Job<?> job) {
