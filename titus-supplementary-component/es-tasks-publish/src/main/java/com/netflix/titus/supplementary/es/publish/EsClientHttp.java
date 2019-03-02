@@ -18,14 +18,13 @@ package com.netflix.titus.supplementary.es.publish;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
-import javax.inject.Inject;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.netflix.titus.api.json.ObjectMappers;
-import com.netflix.titus.supplementary.es.publish.config.EsPublisherConfiguration;
 import com.netflix.titus.ext.elasticsearch.TaskDocument;
+import com.netflix.titus.supplementary.es.publish.config.EsPublisherConfiguration;
 import io.netty.channel.ChannelOption;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.handler.timeout.WriteTimeoutHandler;
@@ -34,14 +33,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
-import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
 import reactor.netty.tcp.TcpClient;
 
-@Component
 public class EsClientHttp implements EsClient {
     private static final Logger logger = LoggerFactory.getLogger(EsClientHttp.class);
     private static final String ES_RECORD_TYPE = "default";
@@ -50,7 +47,6 @@ public class EsClientHttp implements EsClient {
     private EsPublisherConfiguration esPublisherConfiguration;
 
 
-    @Inject
     public EsClientHttp(EsPublisherConfiguration esPublisherConfiguration) {
         this.esPublisherConfiguration = esPublisherConfiguration;
         tasksClient = WebClient.builder().clientConnector(new ReactorClientHttpConnector(buildHttpClient()))

@@ -1,6 +1,7 @@
 dependencies {
     compile "org.springframework:spring-web:${springVersion}"
     compile "org.springframework.boot:spring-boot:${springBootVersion}"
+    compile "org.springframework.boot:spring-boot-autoconfigure:${springBootVersion}"
 
     compile project(':titus-server-runtime-spring')
     compile project(':titus-ext-elasticsearch')

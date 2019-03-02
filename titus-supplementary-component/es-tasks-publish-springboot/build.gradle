@@ -27,7 +27,7 @@ plugins {
 apply plugin: 'io.spring.dependency-management'
 
 dependencies {
-    compile project(':titus-supplementary-component-job-activity-history')
+    compile project(':titus-supplementary-component-es-tasks-publish')
 
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-tomcat'

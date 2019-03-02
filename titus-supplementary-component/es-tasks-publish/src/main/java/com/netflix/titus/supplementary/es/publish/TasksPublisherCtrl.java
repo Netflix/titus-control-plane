@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import javax.annotation.PostConstruct;
-import javax.inject.Inject;
+import javax.annotation.PreDestroy;
 
 import com.netflix.spectator.api.Functions;
 import com.netflix.spectator.api.Registry;
@@ -41,13 +41,12 @@ import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.stereotype.Component;
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 
-@Component
 public class TasksPublisherCtrl {
     private static final Logger logger = LoggerFactory.getLogger(TasksPublisherCtrl.class);
     public static final String TASK_DOCUMENT_CONTEXT = "taskDocumentContext";
@@ -64,9 +63,8 @@ public class TasksPublisherCtrl {
 
     private static final long INITIAL_RETRY_DELAY_MS = 500;
     private static final long MAX_RETRY_DELAY_MS = 2_000;
+    private Disposable subscription;
 
-
-    @Inject
     public TasksPublisherCtrl(EsClient esClient,
                               TitusClient titusClient,
                               @Qualifier(TASK_DOCUMENT_CONTEXT) Map<String, String> taskDocumentBaseContext,
@@ -93,7 +91,7 @@ public class TasksPublisherCtrl {
 
     @PostConstruct
     public void start() {
-        titusClient.getTaskUpdates()
+        subscription = titusClient.getTaskUpdates()
                 .publishOn(Schedulers.elastic())
                 .map(task -> {
                     final Mono<Job> jobById = titusClient.getJobById(task.getJobId());
@@ -130,6 +128,13 @@ public class TasksPublisherCtrl {
                             });
                         },
                         e -> logger.error("Error in indexing documents ", e));
+    }
+
+    @PreDestroy
+    public void stop() {
+        if (subscription != null) {
+            subscription.dispose();
+        }
     }
 
     private Map<String, String> buildTaskContext(Task task) {

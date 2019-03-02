@@ -13,45 +13,71 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.netflix.titus.supplementary.es.publish;
+package com.netflix.titus.supplementary.es.publish.config;
 
-
+import java.util.Collections;
 import java.util.concurrent.TimeUnit;
-import javax.inject.Inject;
 
+import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
+import com.netflix.titus.supplementary.es.publish.EsClient;
+import com.netflix.titus.supplementary.es.publish.EsClientHttp;
+import com.netflix.titus.supplementary.es.publish.TasksPublisherCtrl;
+import com.netflix.titus.supplementary.es.publish.TitusClient;
+import com.netflix.titus.supplementary.es.publish.TitusClientImpl;
 import io.grpc.ManagedChannel;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import io.grpc.util.RoundRobinLoadBalancerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Lazy;
-import org.springframework.stereotype.Component;
+import org.springframework.context.annotation.Configuration;
 
-@Component
-public class TitusClientComponent {
+
+@Configuration
+public class TasksPublisherConfiguration {
     private static final String GRPC_CLIENT_AGENT = "EsTaskPublisher";
     private static final int GRPC_KEEP_ALIVE_TIME = 5;
     private static final int GRPC_KEEP_ALIVE_TIMEOUT = 10;
 
 
-    private final String titusApiHost;
-    private final int titusApiPort;
+    @Autowired
+    @Value("${titus.api.host: 'localhost'}")
+    private String titusApiHost;
 
-    @Inject
-    public TitusClientComponent(
-            @Value("#{ @environment['titus.api.host'] ?: 'localhost' }") String titusApiHost,
-            @Value("#{ @environment['titus.api.port'] ?: 7001 }") int titusApiPort) {
-        this.titusApiHost = titusApiHost;
-        this.titusApiPort = titusApiPort;
-    }
+    @Autowired
+    @Value("${titus.api.port: 7001}")
+    private int titusApiPort;
 
-//    @Lazy
-//    @Bean
+
+    @Autowired
+    private EsPublisherConfiguration esPublisherConfiguration;
+
+
+    @Bean
+    @ConditionalOnMissingBean
     public JobManagementServiceStub getJobManagementServiceStub() {
         return JobManagementServiceGrpc.newStub(getTitusGrpcChannel());
     }
+
+
+    @Bean
+    public TitusClient getTitusClient() {
+        return new TitusClientImpl(getJobManagementServiceStub(), new DefaultRegistry());
+    }
+
+    @Bean
+    public EsClient getEsClient() {
+        return new EsClientHttp(esPublisherConfiguration);
+    }
+
+    @Bean
+    public TasksPublisherCtrl getTasksPublisherCtrl() {
+        return new TasksPublisherCtrl(getEsClient(), getTitusClient(), Collections.emptyMap(), new DefaultRegistry());
+    }
+
 
     private ManagedChannel getTitusGrpcChannel() {
         return NettyChannelBuilder.forAddress(titusApiHost, titusApiPort)
@@ -62,4 +88,6 @@ public class TitusClientComponent {
                 .usePlaintext(true)
                 .build();
     }
+
+
 }

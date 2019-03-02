@@ -16,9 +16,9 @@
 package com.netflix.titus.supplementary.es.publish.config;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
+import org.springframework.context.annotation.Configuration;
 
-@Component
+@Configuration
 public class EsPublisherConfiguration {
 
     @Value("#{ @environment['netflix.environment'] }")
