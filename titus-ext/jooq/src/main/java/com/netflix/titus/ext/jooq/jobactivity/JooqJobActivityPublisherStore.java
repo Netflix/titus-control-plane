@@ -1,19 +1,17 @@
 /*
+ * Copyright 2019 Netflix, Inc.
  *
- *  * Copyright 2019 Netflix, Inc.
- *  *
- *  * Licensed under the Apache License, Version 2.0 (the "License");
- *  * you may not use this file except in compliance with the License.
- *  * You may obtain a copy of the License at
- *  *
- *  *     http://www.apache.org/licenses/LICENSE-2.0
- *  *
- *  * Unless required by applicable law or agreed to in writing, software
- *  * distributed under the License is distributed on an "AS IS" BASIS,
- *  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  * See the License for the specific language governing permissions and
- *  * limitations under the License.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package com.netflix.titus.ext.jooq.jobactivity;
@@ -30,6 +28,7 @@ import com.netflix.titus.api.jobactivity.store.JobActivityPublisherStore;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.ext.jooq.activity.schema.JActivity;
+import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
 import com.netflix.titus.runtime.jobactivity.JobActivityPublisherRecordUtils;
 import org.jooq.DSLContext;
 import org.jooq.Record1;
@@ -49,6 +48,7 @@ import static org.jooq.impl.DSL.max;
 public class JooqJobActivityPublisherStore implements JobActivityPublisherStore {
     private static final Logger logger = LoggerFactory.getLogger(JooqJobActivityPublisherStore.class);
 
+    private final LogStorageInfo<Task> logStorageInfo;
     private final DSLContext dslContext;
 
     /**
@@ -62,12 +62,14 @@ public class JooqJobActivityPublisherStore implements JobActivityPublisherStore 
     private AtomicLong queueIndex;
 
     @Inject
-    public JooqJobActivityPublisherStore(DSLContext dslContext) {
-        this(dslContext, true);
+    public JooqJobActivityPublisherStore(DSLContext dslContext,
+                                         LogStorageInfo<Task> logStorageInfo) {
+        this(dslContext, logStorageInfo,true);
     }
 
     @VisibleForTesting
-    public JooqJobActivityPublisherStore(DSLContext dslContext, boolean createIfNotExist) {
+    public JooqJobActivityPublisherStore(DSLContext dslContext, LogStorageInfo<Task> logStorageInfo, boolean createIfNotExist) {
+        this.logStorageInfo = logStorageInfo;
         this.dslContext = dslContext;
 
         if (createIfNotExist) {
@@ -138,7 +140,8 @@ public class JooqJobActivityPublisherStore implements JobActivityPublisherStore 
     @Override
     public Mono<Void> publishTask(Task task) {
         return Mono.defer(() ->
-                publishByteString(JobActivityPublisherRecord.RecordType.TASK, task.getId(), JobActivityPublisherRecordUtils.taskToByteArray(task)));
+                publishByteString(JobActivityPublisherRecord.RecordType.TASK, task.getId(),
+                        JobActivityPublisherRecordUtils.taskToByteArray(task, logStorageInfo)));
     }
 
     private Mono<Void> publishByteString(JobActivityPublisherRecord.RecordType recordType, String recordId, byte[] serializedRecord) {
