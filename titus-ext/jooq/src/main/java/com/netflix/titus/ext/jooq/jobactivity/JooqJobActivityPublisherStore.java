@@ -16,6 +16,7 @@
 
 package com.netflix.titus.ext.jooq.jobactivity;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
 import javax.inject.Inject;
@@ -23,10 +24,12 @@ import javax.inject.Singleton;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.netflix.titus.api.jobactivity.service.JobActivityException;
+import com.netflix.titus.api.jobactivity.service.JobActivityPublisherMetrics;
 import com.netflix.titus.api.jobactivity.store.JobActivityPublisherRecord;
 import com.netflix.titus.api.jobactivity.store.JobActivityPublisherStore;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.ext.jooq.activity.schema.JActivity;
 import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
 import com.netflix.titus.runtime.jobactivity.JobActivityPublisherRecordUtils;
@@ -50,6 +53,7 @@ public class JooqJobActivityPublisherStore implements JobActivityPublisherStore 
 
     private final LogStorageInfo<Task> logStorageInfo;
     private final DSLContext dslContext;
+    private final JobActivityPublisherMetrics metrics;
 
     /**
      * Tracks the current queue index (e.g., head is the lowest index value). This approach has the following caveats:
@@ -63,14 +67,16 @@ public class JooqJobActivityPublisherStore implements JobActivityPublisherStore 
 
     @Inject
     public JooqJobActivityPublisherStore(DSLContext dslContext,
+                                         TitusRuntime runtime,
                                          LogStorageInfo<Task> logStorageInfo) {
-        this(dslContext, logStorageInfo,true);
+        this(dslContext, runtime, logStorageInfo,true);
     }
 
     @VisibleForTesting
-    public JooqJobActivityPublisherStore(DSLContext dslContext, LogStorageInfo<Task> logStorageInfo, boolean createIfNotExist) {
+    public JooqJobActivityPublisherStore(DSLContext dslContext, TitusRuntime runtime, LogStorageInfo<Task> logStorageInfo, boolean createIfNotExist) {
         this.logStorageInfo = logStorageInfo;
         this.dslContext = dslContext;
+        this.metrics = new JobActivityPublisherMetrics(runtime.getRegistry());
 
         if (createIfNotExist) {
             createSchemaIfNotExist();
@@ -98,10 +104,12 @@ public class JooqJobActivityPublisherStore implements JobActivityPublisherStore 
     }
 
     private long getInitialQueueIndex() {
+        long startTime = System.currentTimeMillis();
         Record1<Long> record = DSL.using(dslContext.configuration())
                 .select(max(ACTIVITY_QUEUE.QUEUE_INDEX))
                 .from(ACTIVITY_QUEUE)
                 .fetchOne();
+        metrics.registerSelectLatency(startTime);
 
         // No record is present, start index at 0
         if (null == record.value1()) {
@@ -148,6 +156,7 @@ public class JooqJobActivityPublisherStore implements JobActivityPublisherStore 
         long assignedQueueIndex = queueIndex.getAndIncrement();
 
         try {
+            long startTime = System.currentTimeMillis();
             int numRecordsInserted = DSL.using(dslContext.configuration())
                     .insertInto(ACTIVITY_QUEUE,
                             ACTIVITY_QUEUE.QUEUE_INDEX,
@@ -157,6 +166,7 @@ public class JooqJobActivityPublisherStore implements JobActivityPublisherStore 
                             (short) recordType.ordinal(),
                             serializedRecord)
                     .execute();
+            metrics.registerInsertLatency(recordType, 1, startTime);
             if (1 != numRecordsInserted) {
                 return Mono.error(
                         JobActivityException.jobActivityUpdateRecordException(recordId,
@@ -171,10 +181,15 @@ public class JooqJobActivityPublisherStore implements JobActivityPublisherStore 
     @Override
     public Flux<JobActivityPublisherRecord> getRecords() {
         return Mono.fromCompletionStage(
-                CompletableFuture.supplyAsync(() -> DSL.using(dslContext.configuration())
-                        .selectFrom(ACTIVITY_QUEUE)
-                        .orderBy(ACTIVITY_QUEUE.QUEUE_INDEX)
-                        .fetchInto(JobActivityPublisherRecord.class))
+                CompletableFuture.supplyAsync(() -> {
+                    long startTime = System.currentTimeMillis();
+                    List<JobActivityPublisherRecord> records = DSL.using(dslContext.configuration())
+                            .selectFrom(ACTIVITY_QUEUE)
+                            .orderBy(ACTIVITY_QUEUE.QUEUE_INDEX)
+                            .fetchInto(JobActivityPublisherRecord.class);
+                    metrics.registerScanLatency(startTime);
+                    return records;
+                })
         ).flatMapIterable(jobActivityPublisherRecords -> jobActivityPublisherRecords);
     }
 

@@ -25,6 +25,7 @@ import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.common.data.generator.DataGenerator;
+import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.ext.jooq.jobactivity.JooqJobActivityPublisherStore;
 import com.netflix.titus.ext.jooq.relocation.JooqResource;
 import com.netflix.titus.runtime.endpoint.common.EmptyLogStorageInfo;
@@ -133,7 +134,7 @@ public class JooqJobActivityPublisherStoreTest {
     }
 
     private void createJooqPublisherStore() {
-        publisher = new JooqJobActivityPublisherStore(jooqResource.getDslContext(), EmptyLogStorageInfo.empty());
+        publisher = new JooqJobActivityPublisherStore(jooqResource.getDslContext(), TitusRuntimes.internal(), EmptyLogStorageInfo.empty());
     }
 
     private Mono<Void> publishJobs(int count) {
