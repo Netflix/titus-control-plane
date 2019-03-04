@@ -22,7 +22,6 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
@@ -30,7 +29,7 @@ import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.common.util.limiter.tokenbucket.TokenBucket;
-import com.netflix.titus.master.jobmanager.service.JobManagerConstants;
+import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.master.taskmigration.TaskMigrationDetails;
 import com.netflix.titus.master.taskmigration.TaskMigrationManager;
 import com.netflix.titus.master.taskmigration.V3TaskMigrationDetails;

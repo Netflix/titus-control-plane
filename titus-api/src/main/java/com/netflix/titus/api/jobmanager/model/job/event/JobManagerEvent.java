@@ -21,6 +21,7 @@ import java.util.Optional;
 
 import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 
 public abstract class JobManagerEvent<TYPE> {
 
@@ -45,6 +46,9 @@ public abstract class JobManagerEvent<TYPE> {
     }
 
     public CallMetadata getCallMetadata() {
+        if (callMetadata == null) {
+            return JobManagerConstants.UNDEFINED_CALL_METADATA;
+        }
         return callMetadata;
     }
 

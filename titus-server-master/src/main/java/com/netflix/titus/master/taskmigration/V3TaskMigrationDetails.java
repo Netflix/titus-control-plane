@@ -19,7 +19,6 @@ package com.netflix.titus.master.taskmigration;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -34,7 +33,7 @@ import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.master.jobmanager.service.JobManagerConstants;
+import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID;
 import static com.netflix.titus.api.jobmanager.model.job.TaskState.Launched;

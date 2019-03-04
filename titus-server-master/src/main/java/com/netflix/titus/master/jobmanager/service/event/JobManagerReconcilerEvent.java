@@ -18,6 +18,7 @@ package com.netflix.titus.master.jobmanager.service.event;
 
 import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 
 /**
  */
@@ -42,6 +43,9 @@ public abstract class JobManagerReconcilerEvent {
     }
 
     public CallMetadata getCallMetadata() {
+        if(callMetadata == null) {
+            return JobManagerConstants.UNDEFINED_CALL_METADATA;
+        }
         return callMetadata;
     }
 }

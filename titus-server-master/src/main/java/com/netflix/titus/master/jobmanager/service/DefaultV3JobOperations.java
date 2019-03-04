@@ -48,6 +48,7 @@ import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.jobmanager.store.JobStore;
@@ -612,12 +613,11 @@ public class DefaultV3JobOperations implements V3JobOperations {
                     : Optional.empty();
         }
         Task previous = modelUpdateEvent.getPreviousEntityHolder().get().getEntity();
-        CallMetadata callMetadata = (CallMetadata)modelUpdateEvent.getChangedEntityHolder().getAttributes().get(JobManagerConstants.JOB_MANAGER_ATTRIBUTE_CALLMETADATA);
         if (changed.equals(previous)) {
             return Optional.empty();
         }
         return tasksPredicate.test(Pair.of(job, changed))
-                ? Optional.of(TaskUpdateEvent.taskChange(job, changed, previous, callMetadata))
+                ? Optional.of(TaskUpdateEvent.taskChange(job, changed, previous, modelUpdateEvent.getCallMetadata()))
                 : Optional.empty();
     }
 

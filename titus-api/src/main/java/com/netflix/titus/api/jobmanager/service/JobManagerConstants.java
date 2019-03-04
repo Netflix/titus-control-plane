@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.jobmanager.service;
+package com.netflix.titus.api.jobmanager.service;
 
 import com.netflix.titus.api.jobmanager.model.CallMetadata;
 

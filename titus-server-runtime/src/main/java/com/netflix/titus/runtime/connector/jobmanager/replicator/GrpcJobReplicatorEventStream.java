@@ -22,12 +22,12 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
-import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
+import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
@@ -48,7 +48,6 @@ import reactor.core.scheduler.Scheduler;
 public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<JobSnapshot, JobManagerEvent<?>> {
 
     private static final Logger logger = LoggerFactory.getLogger(GrpcJobReplicatorEventStream.class);
-    public static final CallMetadata GRPC_REPLICATOR_CALL_METADATA = CallMetadata.newBuilder().withCallerId("JobReplicatorEvent").withCallReason("Replication").build();
 
     private final JobManagementClient client;
 
@@ -172,17 +171,17 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
 
         private JobManagerEvent<?> toJobCoreEvent(Job newJob) {
             return lastJobSnapshotRef.get().findJob(newJob.getId())
-                    .map(previousJob -> JobUpdateEvent.jobChange(newJob, previousJob, GRPC_REPLICATOR_CALL_METADATA))
-                    .orElseGet(() -> JobUpdateEvent.newJob(newJob, GRPC_REPLICATOR_CALL_METADATA));
+                    .map(previousJob -> JobUpdateEvent.jobChange(newJob, previousJob, JobManagerConstants.GRPC_REPLICATOR_CALL_METADATA))
+                    .orElseGet(() -> JobUpdateEvent.newJob(newJob, JobManagerConstants.GRPC_REPLICATOR_CALL_METADATA));
         }
 
         private JobManagerEvent<?> toTaskCoreEvent(Job<?> job, Task newTask, boolean moved) {
             if (moved) {
-                return TaskUpdateEvent.newTaskFromAnotherJob(job, newTask, GRPC_REPLICATOR_CALL_METADATA);
+                return TaskUpdateEvent.newTaskFromAnotherJob(job, newTask, JobManagerConstants.GRPC_REPLICATOR_CALL_METADATA);
             }
             return lastJobSnapshotRef.get().findTaskById(newTask.getId())
-                    .map(jobTaskPair -> TaskUpdateEvent.taskChange(job, newTask, jobTaskPair.getRight(), GRPC_REPLICATOR_CALL_METADATA))
-                    .orElseGet(() -> TaskUpdateEvent.newTask(job, newTask, GRPC_REPLICATOR_CALL_METADATA));
+                    .map(jobTaskPair -> TaskUpdateEvent.taskChange(job, newTask, jobTaskPair.getRight(), JobManagerConstants.GRPC_REPLICATOR_CALL_METADATA))
+                    .orElseGet(() -> TaskUpdateEvent.newTask(job, newTask, JobManagerConstants.GRPC_REPLICATOR_CALL_METADATA));
         }
     }
 }
