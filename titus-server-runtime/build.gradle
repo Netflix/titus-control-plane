@@ -3,9 +3,6 @@ dependencies {
     compile project(':titus-api')
     compile project(':titus-grpc-api')
 
-    // Spring
-    compile "org.springframework:spring-context:${springVersion}"
-
     // Netflix dependencies
     compile "com.netflix.archaius:archaius2-guice:${archaius2Version}"
     compile "com.netflix.governator:governator-core:${governatorVersion}"

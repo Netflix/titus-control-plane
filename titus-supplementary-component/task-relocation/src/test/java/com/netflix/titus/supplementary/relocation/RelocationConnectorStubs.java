@@ -19,8 +19,6 @@ package com.netflix.titus.supplementary.relocation;
 import java.util.List;
 
 import com.google.common.base.Preconditions;
-import com.google.inject.AbstractModule;
-import com.google.inject.Module;
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
@@ -37,6 +35,8 @@ import com.netflix.titus.runtime.connector.jobmanager.JobDataReplicator;
 import com.netflix.titus.testkit.model.agent.AgentComponentStub;
 import com.netflix.titus.testkit.model.eviction.EvictionComponentStub;
 import com.netflix.titus.testkit.model.job.JobComponentStub;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.support.StaticApplicationContext;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -68,33 +68,32 @@ public class RelocationConnectorStubs {
         this.evictionComponentStub = new EvictionComponentStub(jobComponentStub, titusRuntime);
     }
 
-    public Module getModule() {
-        return new AbstractModule() {
-            @Override
-            protected void configure() {
-                bind(TitusRuntime.class).toInstance(titusRuntime);
+    public ApplicationContext getApplicationContext() {
+        StaticApplicationContext context = new StaticApplicationContext();
 
-                bind(ReadOnlyAgentOperations.class).toInstance(agentOperations);
+        context.getBeanFactory().registerSingleton("titusRuntime", titusRuntime);
 
-                bind(ReadOnlyJobOperations.class).toInstance(jobOperations);
+        context.getBeanFactory().registerSingleton("readOnlyAgentOperations", agentOperations);
+        context.getBeanFactory().registerSingleton("readOnlyJobOperations", jobOperations);
+        context.getBeanFactory().registerSingleton("readOnlyEvictionOperations", evictionComponentStub.getEvictionOperations());
+        context.getBeanFactory().registerSingleton("evictionServiceClient", evictionComponentStub.getEvictionServiceClient());
 
-                bind(ReadOnlyEvictionOperations.class).toInstance(evictionComponentStub.getEvictionOperations());
-                bind(EvictionServiceClient.class).toInstance(evictionComponentStub.getEvictionServiceClient());
+        // We care only about data staleness here
+        AgentDataReplicator agentDataReplicator = mock(AgentDataReplicator.class);
+        when(agentDataReplicator.getStalenessMs()).thenReturn(0L);
+        context.getBeanFactory().registerSingleton("agentOperations", agentDataReplicator);
 
-                // We care only about data staleness here
-                AgentDataReplicator agentDataReplicator = mock(AgentDataReplicator.class);
-                when(agentDataReplicator.getStalenessMs()).thenReturn(0L);
-                bind(AgentDataReplicator.class).toInstance(agentDataReplicator);
+        JobDataReplicator jobDataReplicator = mock(JobDataReplicator.class);
+        when(jobDataReplicator.getStalenessMs()).thenReturn(0L);
+        context.getBeanFactory().registerSingleton("jobDataReplicator", jobDataReplicator);
 
-                JobDataReplicator jobDataReplicator = mock(JobDataReplicator.class);
-                when(jobDataReplicator.getStalenessMs()).thenReturn(0L);
-                bind(JobDataReplicator.class).toInstance(jobDataReplicator);
+        EvictionDataReplicator evictionDataReplicator = mock(EvictionDataReplicator.class);
+        when(evictionDataReplicator.getStalenessMs()).thenReturn(0L);
+        context.getBeanFactory().registerSingleton("evictionDataReplicator", evictionDataReplicator);
 
-                EvictionDataReplicator evictionDataReplicator = mock(EvictionDataReplicator.class);
-                when(evictionDataReplicator.getStalenessMs()).thenReturn(0L);
-                bind(EvictionDataReplicator.class).toInstance(evictionDataReplicator);
-            }
-        };
+        context.refresh();
+
+        return context;
     }
 
     public TitusRuntime getTitusRuntime() {
