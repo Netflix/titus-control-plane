@@ -31,7 +31,6 @@ import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.Evaluators;
-import com.netflix.titus.master.agent.store.AgentStoreReaper;
 
 class DataConverters {
 
@@ -64,7 +63,6 @@ class DataConverters {
     static AgentInstanceGroup updateAgentInstanceGroup(AgentInstanceGroup original, InstanceGroup instanceGroup) {
         long now = System.currentTimeMillis();
         Map<String, String> updatedAttributes = CollectionsExt.merge(original.getAttributes(), instanceGroup.getAttributes());
-        updatedAttributes.remove(AgentStoreReaper.INSTANCE_GROUP_REMOVED_ATTRIBUTE);
         return original.toBuilder()
                 .withMin(instanceGroup.getMin())
                 .withDesired(instanceGroup.getDesired())

@@ -330,11 +330,6 @@ public class DefaultAgentCache implements AgentCache {
                     .filter(Objects::nonNull)
                     .collect(Collectors.toCollection(() -> new TreeSet<>(AgentInstance.idComparator())));
 
-            // Update store with removed attribute in case an instance group only temporarily was removed
-            if (isTaggedToRemove(existingInstanceGroup) && !isTaggedToRemove(agentInstanceGroup)) {
-                storeEagerly(agentInstanceGroup);
-            }
-
             if (isAgentInstanceGroupUpdated(existingInstanceGroup, agentInstanceGroup)
                     || isAgentInstancesUpdated(existingAgentInstances, agentInstances)) {
                 setDataSnapshot(dataSnapshot.updateInstanceGroup(agentInstanceGroup, agentInstances));
