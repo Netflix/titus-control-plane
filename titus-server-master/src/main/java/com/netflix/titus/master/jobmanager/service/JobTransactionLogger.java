@@ -249,7 +249,7 @@ class JobTransactionLogger {
                                    String callReason,
                                    String summary) {
         return String.format(
-                "jobId=%s entity=%s transactionId=%-5s target=%-4s status=%-5s type=%-22s action=%-45s trigger=%-10s %-16s %-15s callerId=%-15s callReason=%-15s summary=%s",
+                "jobId=%s entity=%s transactionId=%-5s target=%-4s status=%-5s type=%-22s action=%-45s trigger=%-10s callerId=%-15s callReason=%-20s %-16s %-15s summary=%s",
                 jobId,
                 entityId,
                 transactionId,
