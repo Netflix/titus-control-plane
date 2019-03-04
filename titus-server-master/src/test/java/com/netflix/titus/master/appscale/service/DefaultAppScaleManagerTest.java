@@ -31,6 +31,7 @@ import com.netflix.titus.api.appscale.model.AutoScalableTarget;
 import com.netflix.titus.api.appscale.model.AutoScalingPolicy;
 import com.netflix.titus.api.appscale.model.PolicyType;
 import com.netflix.titus.api.appscale.service.AutoScalePolicyException;
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -60,6 +61,7 @@ import static org.mockito.Mockito.when;
 
 public class DefaultAppScaleManagerTest {
     private static Logger log = LoggerFactory.getLogger(DefaultAppScaleManagerTest.class);
+    private CallMetadata callMetadata = CallMetadata.newBuilder().withCallerId("app scale test").build();
 
     @Test
     public void checkTargetTrackingPolicy() throws Exception {
@@ -359,7 +361,7 @@ public class DefaultAppScaleManagerTest {
 
             when(v3JobOperations.getJob(jobId)).thenReturn(Optional.of(job));
 
-            JobManagerEvent<?> jobUpdateEvent = JobUpdateEvent.newJob(job);
+            JobManagerEvent<?> jobUpdateEvent = JobUpdateEvent.newJob(job, callMetadata);
             when(v3JobOperations.observeJobs()).thenAnswer(invocation -> Observable.from(asList(jobUpdateEvent)));
         }
 
@@ -427,7 +429,7 @@ public class DefaultAppScaleManagerTest {
         when(v3JobOperations.getJob(jobIdOne)).thenReturn(Optional.of(jobOne));
         when(v3JobOperations.getJob(jobIdTwo)).thenReturn(Optional.of(jobTwo));
 
-        JobManagerEvent<?> jobUpdateEvent = JobUpdateEvent.newJob(jobTwo);
+        JobManagerEvent<?> jobUpdateEvent = JobUpdateEvent.newJob(jobTwo, callMetadata);
         when(v3JobOperations.observeJobs()).thenAnswer(invocation -> Observable.from(asList(jobUpdateEvent)));
 
         return v3JobOperations;

@@ -19,6 +19,7 @@ package com.netflix.titus.testkit.client;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
@@ -31,6 +32,8 @@ import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import rx.Observable;
 
 public class V3ClientUtils {
+
+    private static final CallMetadata callMetadata = CallMetadata.newBuilder().withCallerId("StubbedJobData").build();
 
     public static Observable<JobManagerEvent<?>> observeJobs(Observable<JobChangeNotification> grpcEvents) {
         return grpcEvents.filter(V3ClientUtils::isJobOrTaskUpdate)
@@ -45,9 +48,9 @@ public class V3ClientUtils {
             state.put(job.getId(), job);
 
             if (previous == null) {
-                return Pair.of(JobUpdateEvent.newJob(job), state);
+                return Pair.of(JobUpdateEvent.newJob(job, callMetadata), state);
             }
-            return Pair.of(JobUpdateEvent.jobChange(job, (Job<?>) previous), state);
+            return Pair.of(JobUpdateEvent.jobChange(job, (Job<?>) previous, callMetadata), state);
         }
 
         // Task update
@@ -60,11 +63,11 @@ public class V3ClientUtils {
         state.put(task.getId(), task);
 
         if (event.getTaskUpdate().getMovedFromAnotherJob()) {
-            return Pair.of(TaskUpdateEvent.newTaskFromAnotherJob(job, task), state);
+            return Pair.of(TaskUpdateEvent.newTaskFromAnotherJob(job, task, callMetadata), state);
         } else if (previous == null) {
-            return Pair.of(TaskUpdateEvent.newTask(job, task), state);
+            return Pair.of(TaskUpdateEvent.newTask(job, task, callMetadata), state);
         }
-        return Pair.of(TaskUpdateEvent.taskChange(job, task, (Task) previous), state);
+        return Pair.of(TaskUpdateEvent.taskChange(job, task, (Task) previous, callMetadata), state);
     }
 
     private static boolean isJobOrTaskUpdate(JobChangeNotification event) {
