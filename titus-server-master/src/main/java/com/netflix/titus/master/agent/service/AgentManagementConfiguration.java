@@ -28,6 +28,9 @@ public interface AgentManagementConfiguration {
     @DefaultValue("120000")
     long getFullCacheRefreshIntervalMs();
 
+    @DefaultValue("60000")
+    long getSynchronizeWithInstanceCacheIntervalMs();
+
     @DefaultValue(".*")
     String getAgentInstanceGroupPattern();
 

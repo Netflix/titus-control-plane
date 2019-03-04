@@ -43,7 +43,7 @@ import rx.schedulers.Schedulers;
 import static com.netflix.titus.master.MetricConstants.METRIC_AGENT;
 
 /**
- * Removes {@link AgentInstanceGroup} entities tagged with {@link AgentStoreReaper#ATTR_REMOVED} from the store,
+ * Removes {@link AgentInstanceGroup} entities tagged with {@link AgentStoreReaper#INSTANCE_GROUP_REMOVED_ATTRIBUTE} from the store,
  * including their associated instances.
  */
 @Singleton
@@ -51,7 +51,7 @@ public class AgentStoreReaper {
 
     private static final Logger logger = LoggerFactory.getLogger(AgentStoreReaper.class);
 
-    public static final String ATTR_REMOVED = "instanceGroupRemoved";
+    public static final String INSTANCE_GROUP_REMOVED_ATTRIBUTE = "titus.agentManagement.instanceGroupRemoved";
 
     @VisibleForTesting
     static final long MIN_EXPIRED_DATA_RETENTION_PERIOD_MS = 3600_000;
@@ -105,7 +105,7 @@ public class AgentStoreReaper {
     }
 
     private boolean shouldBeRemoved(AgentInstanceGroup sg) {
-        String removedTimestampStr = sg.getAttributes().get(ATTR_REMOVED);
+        String removedTimestampStr = sg.getAttributes().get(INSTANCE_GROUP_REMOVED_ATTRIBUTE);
         if (removedTimestampStr == null) {
             return false;
         }
@@ -114,7 +114,7 @@ public class AgentStoreReaper {
             long retentionPeriodMs = Math.max(MIN_EXPIRED_DATA_RETENTION_PERIOD_MS, configuration.getExpiredDataRetentionPeriodMs());
             return (removedTimestamp + retentionPeriodMs) <= scheduler.now();
         } catch (Exception e) {
-            logger.warn("Invalid " + ATTR_REMOVED + " value={} found for instance group record {}", removedTimestampStr, sg.getId());
+            logger.warn("Invalid " + INSTANCE_GROUP_REMOVED_ATTRIBUTE + " value={} found for instance group record {}", removedTimestampStr, sg.getId());
             return true;
         }
     }
@@ -146,12 +146,12 @@ public class AgentStoreReaper {
     }
 
     public static boolean isTaggedToRemove(AgentInstanceGroup instanceGroup) {
-        return instanceGroup.getAttributes().containsKey(ATTR_REMOVED);
+        return instanceGroup.getAttributes().containsKey(INSTANCE_GROUP_REMOVED_ATTRIBUTE);
     }
 
     public static AgentInstanceGroup tagToRemove(AgentInstanceGroup instanceGroup, Scheduler scheduler) {
         return instanceGroup.toBuilder()
-                .withAttributes(CollectionsExt.copyAndAdd(instanceGroup.getAttributes(), AgentStoreReaper.ATTR_REMOVED, Long.toString(scheduler.now())))
+                .withAttributes(CollectionsExt.copyAndAdd(instanceGroup.getAttributes(), AgentStoreReaper.INSTANCE_GROUP_REMOVED_ATTRIBUTE, Long.toString(scheduler.now())))
                 .build();
     }
 }

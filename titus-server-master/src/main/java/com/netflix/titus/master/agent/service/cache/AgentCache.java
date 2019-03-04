@@ -48,7 +48,5 @@ public interface AgentCache {
 
     Completable removeInstances(String instanceGroupId, Set<String> agentInstanceIds);
 
-    void forceRefresh();
-
     Observable<CacheUpdateEvent> events();
 }

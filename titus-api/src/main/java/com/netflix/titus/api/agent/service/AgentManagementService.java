@@ -117,11 +117,6 @@ public interface AgentManagementService extends ReadOnlyAgentOperations {
     Observable<List<Either<Boolean, Throwable>>> terminateAgents(String instanceGroupId, List<String> instanceIds, boolean shrink);
 
     /**
-     * Refresh any cached state now.
-     */
-    void forceRefresh();
-
-    /**
      * On subscription emit all known agent instance groups and instances, followed by a marker event. Next emit an
      * event for each instance group or agent instance change (add/update/remove).
      */

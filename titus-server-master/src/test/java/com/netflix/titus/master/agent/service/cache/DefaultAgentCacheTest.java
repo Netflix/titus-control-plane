@@ -17,6 +17,7 @@
 package com.netflix.titus.master.agent.service.cache;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -48,8 +49,10 @@ import rx.schedulers.TestScheduler;
 import static com.netflix.titus.common.util.ExceptionExt.doCatch;
 import static com.netflix.titus.master.agent.service.cache.InstanceTestUtils.CACHE_REFRESH_INTERVAL_MS;
 import static com.netflix.titus.master.agent.service.cache.InstanceTestUtils.FULL_CACHE_REFRESH_INTERVAL_MS;
+import static com.netflix.titus.master.agent.service.cache.InstanceTestUtils.SYNCNHRONIZE_WITH_INSTANCE_CACHE_INTERVAL;
 import static com.netflix.titus.master.agent.service.cache.InstanceTestUtils.expectInstanceGroupUpdateEvent;
 import static com.netflix.titus.master.agent.service.cache.InstanceTestUtils.expectInstanceUpdateEvent;
+import static com.netflix.titus.master.agent.service.cache.InstanceTestUtils.expectNoInstanceUpdateEvent;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -100,15 +103,15 @@ public class DefaultAgentCacheTest {
     @Test
     public void testDiscoverNewInstanceGroup() {
         int initialCount = cache.getInstanceGroups().size();
-        instanceGroupsGenerator = instanceGroupsGenerator.apply(testConnector::addInstanceGroup);
+        InstanceGroup instanceGroupToAdd = instanceGroupsGenerator.getValue();
+        testConnector.addInstanceGroup(instanceGroupToAdd);
 
         testScheduler.advanceTimeBy(FULL_CACHE_REFRESH_INTERVAL_MS, TimeUnit.MILLISECONDS);
         assertThat(cache.getInstanceGroups()).hasSize(initialCount + 1);
 
         // We need to count both the setup additions, and this one
         verify(agentStore, times(initialCount + 1)).storeAgentInstanceGroup(any());
-
-        expectInstanceGroupUpdateEvent(eventSubscriber, testConnector.takeInstanceGroup(2).getId());
+        expectInstanceGroupUpdateEvent(eventSubscriber, instanceGroupToAdd.getId());
     }
 
     @Test
@@ -121,36 +124,55 @@ public class DefaultAgentCacheTest {
     }
 
     @Test
-    public void testInstanceGroupStoreUpdate() {
-        testInstanceGroupUpdate(false);
+    public void testUpdateInstanceGroupStore() {
+        testUpdateInstanceGroup(false);
     }
 
     @Test
-    public void testInstanceGroupStoreUpdateAndCloudSync() {
-        testInstanceGroupUpdate(true);
+    public void testUpdateInstanceGroupStoreAndCloudSync() {
+        testUpdateInstanceGroup(true);
     }
 
-    private void testInstanceGroupUpdate(boolean withCloudSync) {
-        int initialCount = cache.getInstanceGroups().size();
-
-        AgentInstanceGroup updatedInstanceGroup = cache.getInstanceGroups().get(0).toBuilder()
-                .withLifecycleStatus(InstanceGroupLifecycleStatus.newBuilder().withState(InstanceGroupLifecycleState.Removable).build()
-                ).build();
+    private void testUpdateInstanceGroup(boolean withCloudSync) {
+        AgentInstanceGroup instanceGroup = cache.getInstanceGroups().get(0);
+        String instanceGroupId = instanceGroup.getId();
         ExtTestSubscriber<Object> testSubscriber = new ExtTestSubscriber<>();
+
         if (withCloudSync) {
-            cache.updateInstanceGroupStoreAndSyncCloud(updatedInstanceGroup.getId(), ig -> updatedInstanceGroup).toObservable().subscribe(testSubscriber);
+            cache.updateInstanceGroupStoreAndSyncCloud(instanceGroupId,
+                    ig -> ig.toBuilder().withLifecycleStatus(InstanceGroupLifecycleStatus.newBuilder().withState(InstanceGroupLifecycleState.Removable).build()).build()
+            ).toObservable().subscribe(testSubscriber);
         } else {
-            cache.updateInstanceGroupStore(updatedInstanceGroup.getId(), ig -> updatedInstanceGroup).toObservable().subscribe(testSubscriber);
+            cache.updateInstanceGroupStore(instanceGroupId,
+                    ig -> ig.toBuilder().withLifecycleStatus(InstanceGroupLifecycleStatus.newBuilder().withState(InstanceGroupLifecycleState.Removable).build()).build()
+            ).toObservable().subscribe(testSubscriber);
         }
 
         testScheduler.triggerActions();
 
-        assertThat(cache.getInstanceGroup(updatedInstanceGroup.getId()).getLifecycleStatus().getState()).isEqualTo(InstanceGroupLifecycleState.Removable);
+        assertThat(cache.getInstanceGroup(instanceGroupId).getLifecycleStatus().getState()).isEqualTo(InstanceGroupLifecycleState.Removable);
+    }
 
-        // We need to count both the setup additions, and this one
-        verify(agentStore, times(initialCount + 1)).storeAgentInstanceGroup(any());
+    @Test
+    public void testUpdateAgentInstanceStore() {
+        AgentInstanceGroup instanceGroup = cache.getInstanceGroups().get(0);
+        String instanceGroupId = instanceGroup.getId();
+        AgentInstance agentInstance = CollectionsExt.first(cache.getAgentInstances(instanceGroupId));
+        assertThat(agentInstance).isNotNull();
+        String instanceId = agentInstance.getId();
 
-        expectInstanceGroupUpdateEvent(eventSubscriber, updatedInstanceGroup.getId());
+        ExtTestSubscriber<Object> testSubscriber = new ExtTestSubscriber<>();
+
+        Map<String, String> updatedAttributes = CollectionsExt.merge(agentInstance.getAttributes(), Collections.singletonMap("a", "1"));
+
+        cache.updateAgentInstanceStore(instanceId,
+                ig -> ig.toBuilder().withAttributes(updatedAttributes).build()
+        ).toObservable().subscribe(testSubscriber);
+
+        testScheduler.triggerActions();
+
+        AgentInstance cachedAgentInstance = cache.getAgentInstance(instanceId);
+        assertThat(cachedAgentInstance.getAttributes()).containsKey("a").containsValue("1");
     }
 
     @Test
@@ -235,54 +257,26 @@ public class DefaultAgentCacheTest {
     }
 
     @Test
-    public void testUpdateInstanceGroupStore() {
-        testUpdateInstanceGroup(false);
-    }
+    public void testEventsAreNotDuplicated() {
+        List<InstanceGroup> instanceGroups = testConnector.getInstanceGroups().toBlocking().single();
+        InstanceGroup instanceGroupToRemove = instanceGroups.get(0);
+        InstanceGroup instanceGroupToUpdate = instanceGroups.get(1);
+        InstanceGroup instanceGroupToAdd = instanceGroupsGenerator.getValue();
 
-    @Test
-    public void testUpdateInstanceGroupStoreAndCloudSync() {
-        testUpdateInstanceGroup(true);
-    }
+        testConnector.addInstanceGroup(instanceGroupToAdd);
+        testScheduler.advanceTimeBy(SYNCNHRONIZE_WITH_INSTANCE_CACHE_INTERVAL * 3, TimeUnit.MILLISECONDS);
+        expectInstanceGroupUpdateEvent(eventSubscriber, instanceGroupToAdd.getId());
+        expectNoInstanceUpdateEvent(eventSubscriber);
 
-    private void testUpdateInstanceGroup(boolean withCloudSync) {
-        AgentInstanceGroup instanceGroup = cache.getInstanceGroups().get(0);
-        String instanceGroupId = instanceGroup.getId();
-        ExtTestSubscriber<Object> testSubscriber = new ExtTestSubscriber<>();
+        testConnector.removeInstanceGroup(instanceGroupToRemove.getId());
+        testScheduler.advanceTimeBy(SYNCNHRONIZE_WITH_INSTANCE_CACHE_INTERVAL * 3, TimeUnit.MILLISECONDS);
+        expectInstanceGroupUpdateEvent(eventSubscriber, instanceGroupToRemove.getId());
+        expectNoInstanceUpdateEvent(eventSubscriber);
 
-        if (withCloudSync) {
-            cache.updateInstanceGroupStoreAndSyncCloud(instanceGroupId,
-                    ig -> ig.toBuilder().withLifecycleStatus(InstanceGroupLifecycleStatus.newBuilder().withState(InstanceGroupLifecycleState.Removable).build()).build()
-            ).toObservable().subscribe(testSubscriber);
-        } else {
-            cache.updateInstanceGroupStore(instanceGroupId,
-                    ig -> ig.toBuilder().withLifecycleStatus(InstanceGroupLifecycleStatus.newBuilder().withState(InstanceGroupLifecycleState.Removable).build()).build()
-            ).toObservable().subscribe(testSubscriber);
-        }
-
-        testScheduler.triggerActions();
-
-        assertThat(cache.getInstanceGroup(instanceGroupId).getLifecycleStatus().getState()).isEqualTo(InstanceGroupLifecycleState.Removable);
-    }
-
-    @Test
-    public void testUpdateAgentInstanceStore() {
-        AgentInstanceGroup instanceGroup = cache.getInstanceGroups().get(0);
-        String instanceGroupId = instanceGroup.getId();
-        AgentInstance agentInstance = CollectionsExt.first(cache.getAgentInstances(instanceGroupId));
-        assertThat(agentInstance).isNotNull();
-        String instanceId = agentInstance.getId();
-
-        ExtTestSubscriber<Object> testSubscriber = new ExtTestSubscriber<>();
-
-        Map<String, String> updatedAttributes = CollectionsExt.merge(agentInstance.getAttributes(), Collections.singletonMap("a", "1"));
-
-        cache.updateAgentInstanceStore(instanceId,
-                ig -> ig.toBuilder().withAttributes(updatedAttributes).build()
-        ).toObservable().subscribe(testSubscriber);
-
-        testScheduler.triggerActions();
-
-        AgentInstance cachedAgentInstance = cache.getAgentInstance(instanceId);
-        assertThat(cachedAgentInstance.getAttributes()).containsKey("a").containsValue("1");
+        InstanceGroup updatedSecond = instanceGroupToUpdate.toBuilder().withMax(100).build();
+        testConnector.updateInstanceGroup(instanceGroupToUpdate.getId(), updatedSecond);
+        testScheduler.advanceTimeBy(SYNCNHRONIZE_WITH_INSTANCE_CACHE_INTERVAL * 3, TimeUnit.MILLISECONDS);
+        expectInstanceGroupUpdateEvent(eventSubscriber, instanceGroupToUpdate.getId());
+        expectNoInstanceUpdateEvent(eventSubscriber);
     }
 }

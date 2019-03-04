@@ -17,6 +17,7 @@
 package com.netflix.titus.master.agent.service.cache;
 
 import com.netflix.titus.master.agent.service.AgentManagementConfiguration;
+import com.netflix.titus.master.agent.service.cache.InstanceCacheEvent.InstanceCacheEventType;
 import com.netflix.titus.testkit.rx.ExtTestSubscriber;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -30,13 +31,34 @@ public final class InstanceTestUtils {
 
     public static final long CACHE_REFRESH_INTERVAL_MS = 1_000;
     public static final long FULL_CACHE_REFRESH_INTERVAL_MS = 10_000;
+    public static final long SYNCNHRONIZE_WITH_INSTANCE_CACHE_INTERVAL = 10_000;
 
     public static AgentManagementConfiguration mockedAgentManagementConfiguration() {
         AgentManagementConfiguration configuration = mock(AgentManagementConfiguration.class);
         when(configuration.getCacheRefreshIntervalMs()).thenReturn(CACHE_REFRESH_INTERVAL_MS);
         when(configuration.getFullCacheRefreshIntervalMs()).thenReturn(FULL_CACHE_REFRESH_INTERVAL_MS);
+        when(configuration.getSynchronizeWithInstanceCacheIntervalMs()).thenReturn(SYNCNHRONIZE_WITH_INSTANCE_CACHE_INTERVAL);
         when(configuration.getAgentInstanceGroupPattern()).thenReturn(".*");
         return configuration;
+    }
+
+    public static void expectInstanceGroupAddedEvent(ExtTestSubscriber<InstanceCacheEvent> eventSubscriber, String instanceGroupId) {
+        expectInstanceCacheEvent(eventSubscriber, InstanceCacheEventType.InstanceGroupAdded, instanceGroupId);
+    }
+
+    public static void expectInstanceGroupRemovedEvent(ExtTestSubscriber<InstanceCacheEvent> eventSubscriber, String instanceGroupId) {
+        expectInstanceCacheEvent(eventSubscriber, InstanceCacheEventType.InstanceGroupRemoved, instanceGroupId);
+    }
+
+    public static void expectInstanceGroupUpdatedEvent(ExtTestSubscriber<InstanceCacheEvent> eventSubscriber, String instanceGroupId) {
+        expectInstanceCacheEvent(eventSubscriber, InstanceCacheEventType.InstanceGroupUpdated, instanceGroupId);
+    }
+
+    public static void expectInstanceCacheEvent(ExtTestSubscriber<InstanceCacheEvent> eventSubscriber, InstanceCacheEventType type, String instanceGroupId) {
+        InstanceCacheEvent event = eventSubscriber.takeNext();
+        assertThat(event).isNotNull();
+        assertThat(event.getType()).isEqualTo(type);
+        assertThat(event.getResourceId()).isEqualTo(instanceGroupId);
     }
 
     public static void expectInstanceGroupUpdateEvent(ExtTestSubscriber<CacheUpdateEvent> eventSubscriber, String instanceGroupId) {
@@ -51,5 +73,10 @@ public final class InstanceTestUtils {
         assertThat(event).isNotNull();
         assertThat(event.getType()).isEqualTo(CacheUpdateType.Instance);
         assertThat(event.getResourceId()).isEqualTo(instanceId);
+    }
+
+    public static void expectNoInstanceUpdateEvent(ExtTestSubscriber<CacheUpdateEvent> eventSubscriber) {
+        CacheUpdateEvent event = eventSubscriber.takeNext();
+        assertThat(event).isNull();
     }
 }

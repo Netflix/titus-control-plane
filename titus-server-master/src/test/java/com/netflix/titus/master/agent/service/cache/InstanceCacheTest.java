@@ -29,6 +29,7 @@ import com.netflix.titus.api.agent.service.AgentManagementException.ErrorCode;
 import com.netflix.titus.api.connector.cloud.Instance;
 import com.netflix.titus.api.connector.cloud.InstanceGroup;
 import com.netflix.titus.common.data.generator.DataGenerator;
+import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.master.agent.service.AgentManagementConfiguration;
 import com.netflix.titus.testkit.rx.ExtTestSubscriber;
 import com.netflix.titus.testkit.stub.connector.cloud.InstanceGenerators;
@@ -41,7 +42,9 @@ import rx.schedulers.TestScheduler;
 import static com.netflix.titus.common.util.CollectionsExt.asSet;
 import static com.netflix.titus.master.agent.service.cache.InstanceTestUtils.CACHE_REFRESH_INTERVAL_MS;
 import static com.netflix.titus.master.agent.service.cache.InstanceTestUtils.FULL_CACHE_REFRESH_INTERVAL_MS;
-import static com.netflix.titus.master.agent.service.cache.InstanceTestUtils.expectInstanceGroupUpdateEvent;
+import static com.netflix.titus.master.agent.service.cache.InstanceTestUtils.expectInstanceGroupAddedEvent;
+import static com.netflix.titus.master.agent.service.cache.InstanceTestUtils.expectInstanceGroupRemovedEvent;
+import static com.netflix.titus.master.agent.service.cache.InstanceTestUtils.expectInstanceGroupUpdatedEvent;
 import static com.netflix.titus.master.agent.service.cache.InstanceTestUtils.mockedAgentManagementConfiguration;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -60,7 +63,7 @@ public class InstanceCacheTest {
     private DataGenerator<Instance> instanceGenerator2;
 
     private InstanceCache cache;
-    private ExtTestSubscriber<CacheUpdateEvent> eventSubscriber = new ExtTestSubscriber<>();
+    private ExtTestSubscriber<InstanceCacheEvent> eventSubscriber = new ExtTestSubscriber<>();
 
     @Before
     public void setUp() throws Exception {
@@ -77,11 +80,11 @@ public class InstanceCacheTest {
     public void testBootstrapWithoutKnownInstanceGroups() {
         assertThat(instanceGroupIds(cache.getInstanceGroups())).containsAll(testConnector.takeInstanceGroupIds());
         InstanceGroup firstInstanceGroup = testConnector.takeInstanceGroup(0);
-        assertThat(cache.getInstanceGroups().contains(firstInstanceGroup));
+        assertThat(cache.getInstanceGroups()).contains(firstInstanceGroup);
         assertThat(firstInstanceGroup.getInstanceIds()).containsAll(instanceIds(testConnector.takeInstances(0)));
 
         InstanceGroup secondInstanceGroup = testConnector.takeInstanceGroup(1);
-        assertThat(cache.getInstanceGroups().contains(secondInstanceGroup));
+        assertThat(cache.getInstanceGroups()).contains(secondInstanceGroup);
         assertThat(secondInstanceGroup.getInstanceIds()).containsAll(instanceIds(testConnector.takeInstances(1)));
 
         testScheduler.advanceTimeBy(CACHE_REFRESH_INTERVAL_MS, TimeUnit.MILLISECONDS);
@@ -106,24 +109,10 @@ public class InstanceCacheTest {
     public void testInstanceGroupAdded() {
         int initialCount = cache.getInstanceGroups().size();
         instanceGroupsGenerator = instanceGroupsGenerator.apply(testConnector::addInstanceGroup);
-
         testScheduler.advanceTimeBy(FULL_CACHE_REFRESH_INTERVAL_MS, TimeUnit.MILLISECONDS);
+        InstanceGroup instanceGroup = CollectionsExt.last(testConnector.getInstanceGroups().toBlocking().singleOrDefault(Collections.emptyList()));
         assertThat(cache.getInstanceGroups()).hasSize(initialCount + 1);
-
-        CacheUpdateEvent event = eventSubscriber.takeNext();
-        assertThat(event).isNotNull();
-        assertThat(event.getType()).isEqualTo(CacheUpdateType.Refreshed);
-    }
-
-    @Test
-    public void testInstanceGroupChanged() {
-        InstanceGroup updated = testConnector.takeInstanceGroup(0).toBuilder().withMax(100).build();
-        testConnector.addInstanceGroup(updated);
-
-        testScheduler.advanceTimeBy(CACHE_REFRESH_INTERVAL_MS, TimeUnit.MILLISECONDS);
-        assertThat(testConnector.takeInstanceGroup(0)).isEqualTo(updated);
-
-        expectInstanceGroupUpdateEvent(eventSubscriber, updated.getId());
+        expectInstanceGroupAddedEvent(eventSubscriber, instanceGroup.getId());
     }
 
     @Test
@@ -135,43 +124,19 @@ public class InstanceCacheTest {
 
         testScheduler.advanceTimeBy(CACHE_REFRESH_INTERVAL_MS, TimeUnit.MILLISECONDS);
         assertThat(cache.getInstanceGroups()).hasSize(initialCount - 1);
-        expectInstanceGroupUpdateEvent(eventSubscriber, removedInstanceGroupId);
+
+        expectInstanceGroupRemovedEvent(eventSubscriber, removedInstanceGroupId);
     }
 
     @Test
-    public void testInstanceAdded() {
-        String instanceGroupId = testConnector.takeInstanceGroup(0).getId();
-        int initialCount = cache.getInstanceGroup(instanceGroupId).getInstanceIds().size();
-
-        instanceGenerator1 = instanceGenerator1.apply(testConnector::addInstance);
-        testScheduler.advanceTimeBy(CACHE_REFRESH_INTERVAL_MS, TimeUnit.MILLISECONDS);
-
-        assertThat(cache.getInstanceGroup(instanceGroupId).getInstanceIds().size()).isEqualTo(initialCount + 1);
-        expectInstanceGroupUpdateEvent(eventSubscriber, instanceGroupId);
-    }
-
-    @Test
-    public void testInstanceChanged() {
-        Instance updatedInstance = testConnector.takeInstance(0, 0).toBuilder()
-                .withInstanceState(Instance.InstanceState.Terminated)
-                .build();
-        testConnector.addInstance(updatedInstance);
+    public void testInstanceGroupUpdated() {
+        InstanceGroup instanceGroup = testConnector.takeInstanceGroup(0).toBuilder().withMax(100).build();
+        testConnector.addInstanceGroup(instanceGroup);
 
         testScheduler.advanceTimeBy(CACHE_REFRESH_INTERVAL_MS, TimeUnit.MILLISECONDS);
-        assertThat(cache.getAgentInstance(updatedInstance.getId()).getInstanceState()).isEqualTo(Instance.InstanceState.Terminated);
-        expectInstanceGroupUpdateEvent(eventSubscriber, testConnector.takeInstanceGroup(0).getId());
-    }
+        assertThat(testConnector.takeInstanceGroup(0)).isEqualTo(instanceGroup);
 
-    @Test
-    public void testInstanceRemoved() {
-        String instanceGroupId = testConnector.takeInstanceGroup(0).getId();
-        int initialCount = cache.getInstanceGroup(instanceGroupId).getInstanceIds().size();
-
-        testConnector.removeInstance(testConnector.takeInstance(0, 0).getId());
-        testScheduler.advanceTimeBy(CACHE_REFRESH_INTERVAL_MS, TimeUnit.MILLISECONDS);
-
-        assertThat(cache.getInstanceGroup(instanceGroupId).getInstanceIds().size()).isEqualTo(initialCount - 1);
-        expectInstanceGroupUpdateEvent(eventSubscriber, instanceGroupId);
+        expectInstanceGroupUpdatedEvent(eventSubscriber, instanceGroup.getId());
     }
 
     private static List<String> instanceGroupIds(Collection<InstanceGroup> instanceGroups) {
