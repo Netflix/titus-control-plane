@@ -27,17 +27,15 @@ public class TaskUpdateEvent extends JobManagerEvent<Task> {
 
     private final Job<?> currentJob;
     private final boolean movedFromAnotherJob;
-    private final CallMetadata callMetadata;
 
     private TaskUpdateEvent(Job<?> currentJob, Task currentTask, CallMetadata callMetadata, Optional<Task> previousTask) {
         this(currentJob, currentTask, previousTask, false, callMetadata);
     }
 
     private TaskUpdateEvent(Job<?> currentJob, Task currentTask, Optional<Task> previousTask, boolean moved, CallMetadata callMetadata) {
-        super(currentTask, previousTask);
+        super(currentTask, previousTask, callMetadata);
         this.currentJob = currentJob;
         this.movedFromAnotherJob = moved;
-        this.callMetadata = callMetadata;
     }
 
     public Job<?> getCurrentJob() {
@@ -54,10 +52,6 @@ public class TaskUpdateEvent extends JobManagerEvent<Task> {
 
     public boolean isMovedFromAnotherJob() {
         return movedFromAnotherJob;
-    }
-
-    public CallMetadata getCallMetadata() {
-        return callMetadata;
     }
 
     @Override

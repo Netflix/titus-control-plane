@@ -33,6 +33,7 @@ import com.google.common.base.Preconditions;
 import com.netflix.titus.api.containerhealth.model.ContainerHealthState;
 import com.netflix.titus.api.containerhealth.model.ContainerHealthStatus;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
@@ -66,6 +67,8 @@ class StubbedJobData {
     private final ConcurrentMap<String, JobHolder> jobHoldersById = new ConcurrentHashMap<>();
 
     private final PublishSubject<JobManagerEvent<?>> observeJobsSubject = PublishSubject.create();
+
+    private final CallMetadata callMetadata = CallMetadata.newBuilder().withCallerId("StubbedData").build();
 
     StubbedJobData(TitusRuntime titusRuntime) {
         this.titusRuntime = titusRuntime;
@@ -106,7 +109,7 @@ class StubbedJobData {
 
     void addJob(Job<?> job) {
         jobHoldersById.put(job.getId(), new JobHolder(job));
-        observeJobsSubject.onNext(JobUpdateEvent.newJob(job));
+        observeJobsSubject.onNext(JobUpdateEvent.newJob(job, callMetadata));
     }
 
     String createJob(JobDescriptor<?> jobDescriptor) {
@@ -190,8 +193,8 @@ class StubbedJobData {
         List<JobManagerEvent<?>> events = new ArrayList<>();
 
         jobHoldersById.forEach((jobId, jobHolder) -> {
-            events.add(JobUpdateEvent.newJob(jobHolder.getJob()));
-            jobHolder.getTasksById().forEach((taskId, task) -> events.add(TaskUpdateEvent.newTask(jobHolder.getJob(), task)));
+            events.add(JobUpdateEvent.newJob(jobHolder.getJob(), callMetadata));
+            jobHolder.getTasksById().forEach((taskId, task) -> events.add(TaskUpdateEvent.newTask(jobHolder.getJob(), task, callMetadata)));
         });
 
         events.add(JobManagerEvent.snapshotMarker());
@@ -236,7 +239,7 @@ class StubbedJobData {
         Job<?> changeJob(Function<Job<?>, Job<?>> transformer) {
             Job<?> currentJob = job;
             this.job = transformer.apply(job);
-            observeJobsSubject.onNext(JobUpdateEvent.jobChange(job, currentJob));
+            observeJobsSubject.onNext(JobUpdateEvent.jobChange(job, currentJob, callMetadata.toBuilder().withCallReason("observe jobs").build()));
             return job;
         }
 
@@ -254,7 +257,7 @@ class StubbedJobData {
                                     .build()
                     ).build();
 
-            observeJobsSubject.onNext(JobUpdateEvent.jobChange(job, currentJob));
+            observeJobsSubject.onNext(JobUpdateEvent.jobChange(job, currentJob, callMetadata.toBuilder().withCallReason("call to moveJobToKillInitiatedState").build()));
 
             return job;
         }
@@ -279,7 +282,7 @@ class StubbedJobData {
                                     .build()
                     ).build();
 
-            observeJobsSubject.onNext(JobUpdateEvent.jobChange(job, currentJob));
+            observeJobsSubject.onNext(JobUpdateEvent.jobChange(job, currentJob, callMetadata.toBuilder().withCallReason("Call to finish job").build()));
 
             return job;
         }
@@ -291,7 +294,7 @@ class StubbedJobData {
             List<Task> newTasks = taskGenerator.getValues(missing);
             newTasks.forEach(task -> {
                 tasksById.put(task.getId(), task);
-                observeJobsSubject.onNext(TaskUpdateEvent.newTask(job, task));
+                observeJobsSubject.onNext(TaskUpdateEvent.newTask(job, task, callMetadata.toBuilder().withCallReason("create desired tasks").build()));
             });
 
             // Now replace finished tasks with new tasks
@@ -329,11 +332,11 @@ class StubbedJobData {
 
             TaskUpdateEvent taskUpdateEvent;
             if (moved) {
-                taskUpdateEvent = TaskUpdateEvent.newTaskFromAnotherJob(job, updatedTask);
+                taskUpdateEvent = TaskUpdateEvent.newTaskFromAnotherJob(job, updatedTask, callMetadata);
             } else if (currentTask != null) {
-                taskUpdateEvent = TaskUpdateEvent.taskChange(job, updatedTask, currentTask);
+                taskUpdateEvent = TaskUpdateEvent.taskChange(job, updatedTask, currentTask, callMetadata);
             } else {
-                taskUpdateEvent = TaskUpdateEvent.newTask(job, updatedTask);
+                taskUpdateEvent = TaskUpdateEvent.newTask(job, updatedTask, callMetadata);
             }
             observeJobsSubject.onNext(taskUpdateEvent);
 
@@ -365,7 +368,7 @@ class StubbedJobData {
                     ).build();
 
             tasksById.put(task.getId(), updatedTask);
-            observeJobsSubject.onNext(TaskUpdateEvent.taskChange(job, updatedTask, currentTask));
+            observeJobsSubject.onNext(TaskUpdateEvent.taskChange(job, updatedTask, currentTask, callMetadata));
 
             return updatedTask;
         }
@@ -388,7 +391,7 @@ class StubbedJobData {
                 case Finished:
                     break;
             }
-            observeJobsSubject.onNext(TaskUpdateEvent.taskChange(job, tasksById.get(taskId), currentTask));
+            observeJobsSubject.onNext(TaskUpdateEvent.taskChange(job, tasksById.get(taskId), currentTask, callMetadata));
 
             if (shrink) {
                 tasksById.remove(taskId);
@@ -412,7 +415,7 @@ class StubbedJobData {
                     newTask = newTask.toBuilder().withTaskContext(newContext).build();
                 }
                 tasksById.put(newTask.getId(), newTask);
-                observeJobsSubject.onNext(TaskUpdateEvent.newTask(job, newTask));
+                observeJobsSubject.onNext(TaskUpdateEvent.newTask(job, newTask, callMetadata));
             }
         }
 

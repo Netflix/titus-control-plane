@@ -172,8 +172,8 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
 
         private JobManagerEvent<?> toJobCoreEvent(Job newJob) {
             return lastJobSnapshotRef.get().findJob(newJob.getId())
-                    .map(previousJob -> JobUpdateEvent.jobChange(newJob, previousJob))
-                    .orElseGet(() -> JobUpdateEvent.newJob(newJob));
+                    .map(previousJob -> JobUpdateEvent.jobChange(newJob, previousJob, GRPC_REPLICATOR_CALL_METADATA))
+                    .orElseGet(() -> JobUpdateEvent.newJob(newJob, GRPC_REPLICATOR_CALL_METADATA));
         }
 
         private JobManagerEvent<?> toTaskCoreEvent(Job<?> job, Task newTask, boolean moved) {

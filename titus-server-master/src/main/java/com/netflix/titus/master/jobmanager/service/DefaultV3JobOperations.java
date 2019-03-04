@@ -576,7 +576,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
                 .map(EntityHolder::<Task>getEntity)
                 .collect(Collectors.toList());
         return jobsPredicate.test(Pair.of(job, tasks))
-                ? Optional.of(JobUpdateEvent.newJob(job))
+                ? Optional.of(JobUpdateEvent.newJob(job, newModelEvent.getCallMetadata()))
                 : Optional.empty();
     }
 
@@ -590,7 +590,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
 
         if (!modelUpdateEvent.getPreviousEntityHolder().isPresent()) {
             return jobsPredicate.test(Pair.of(changed, tasks))
-                    ? Optional.of(JobUpdateEvent.jobChange(changed, changed))
+                    ? Optional.of(JobUpdateEvent.jobChange(changed, changed, modelUpdateEvent.getCallMetadata()))
                     : Optional.empty();
         }
         Job<?> previous = modelUpdateEvent.getPreviousEntityHolder().get().getEntity();
@@ -598,7 +598,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
             return Optional.empty();
         }
         return jobsPredicate.test(Pair.of(changed, tasks))
-                ? Optional.of(JobUpdateEvent.jobChange(changed, previous))
+                ? Optional.of(JobUpdateEvent.jobChange(changed, previous, modelUpdateEvent.getCallMetadata()))
                 : Optional.empty();
     }
 
@@ -608,7 +608,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
         Task changed = modelUpdateEvent.getChangedEntityHolder().getEntity();
         if (!modelUpdateEvent.getPreviousEntityHolder().isPresent()) {
             return tasksPredicate.test(Pair.of(job, changed))
-                    ? Optional.of(toNewTaskUpdateEvent(job, changed))
+                    ? Optional.of(toNewTaskUpdateEvent(job, changed, modelUpdateEvent.getCallMetadata()))
                     : Optional.empty();
         }
         Task previous = modelUpdateEvent.getPreviousEntityHolder().get().getEntity();
@@ -626,11 +626,11 @@ public class DefaultV3JobOperations implements V3JobOperations {
      *
      * @return an event indicating if the task was moved from another job
      */
-    private TaskUpdateEvent toNewTaskUpdateEvent(Job<?> job, Task newTask) {
+    private TaskUpdateEvent toNewTaskUpdateEvent(Job<?> job, Task newTask, CallMetadata callMetadata) {
         if (newTask.getTaskContext().containsKey(TaskAttributes.TASK_ATTRIBUTES_MOVED_FROM_JOB)) {
-            return TaskUpdateEvent.newTaskFromAnotherJob(job, newTask);
+            return TaskUpdateEvent.newTaskFromAnotherJob(job, newTask, callMetadata);
         }
-        return TaskUpdateEvent.newTask(job, newTask);
+        return TaskUpdateEvent.newTask(job, newTask, callMetadata);
     }
 
     private boolean isDesiredCapacityInvalid(Capacity targetCapacity, Job<ServiceJobExt> serviceJob) {
