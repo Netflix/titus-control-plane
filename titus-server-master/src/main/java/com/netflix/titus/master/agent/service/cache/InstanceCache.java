@@ -45,6 +45,7 @@ import com.netflix.titus.common.util.rx.RetryHandlerBuilder;
 import com.netflix.titus.common.util.spectator.ContinuousSubscriptionMetrics;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.agent.service.AgentManagementConfiguration;
+import com.netflix.titus.master.agent.service.cache.InstanceCacheEvent.InstanceCacheEventType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;
@@ -84,10 +85,10 @@ class InstanceCache {
 
     private volatile InstanceCacheDataSnapshot cacheSnapshot;
 
-    private final Subscription fullInstanceGroupRefreshSubscription;
+    private final Subscription findNewInstanceGroupSubscription;
     private final Subscription instanceGroupRefreshSubscription;
 
-    private final PublishSubject<CacheUpdateEvent> eventSubject = PublishSubject.create();
+    private final PublishSubject<InstanceCacheEvent> eventSubject = PublishSubject.create();
 
     private ContinuousSubscriptionMetrics fullInstanceGroupRefreshMetricsTransformer;
     private Map<String, ContinuousSubscriptionMetrics> instanceGroupRefreshMetricsTransformers = new ConcurrentHashMap<>();
@@ -121,13 +122,13 @@ class InstanceCache {
             throw AgentManagementException.initializationError("Cannot extract instance group data from the cloud (known instance group ids: %s)", error, knownInstanceGroups);
         }
 
-        this.fullInstanceGroupRefreshSubscription = ObservableExt.schedule(
-                METRIC_AGENT_CACHE, registry, "doFullInstanceGroupRefresh", doFullInstanceGroupRefresh(),
+        this.findNewInstanceGroupSubscription = ObservableExt.schedule(
+                METRIC_AGENT_CACHE, registry, "doFindNewInstanceGroups", doFindNewInstanceGroups(),
                 0, configuration.getFullCacheRefreshIntervalMs(), TimeUnit.MILLISECONDS, scheduler
         ).subscribe(
-                next -> next.ifPresent(throwable -> logger.warn("Full refresh cycle failed with an error", throwable)),
-                e -> logger.error("Full cache refresh process terminated with an error", e),
-                () -> logger.info("Full cache refresh process terminated")
+                next -> next.ifPresent(throwable -> logger.warn("Find new instance groups failed with an error", throwable)),
+                e -> logger.error("Find new instance groups terminated with an error", e),
+                () -> logger.info("Find new instance groups terminated")
         );
 
         this.instanceGroupRefreshSubscription = ObservableExt.schedule(
@@ -143,8 +144,7 @@ class InstanceCache {
 
     void shutdown() {
         eventLoop.shutdown();
-        fullInstanceGroupRefreshSubscription.unsubscribe();
-        instanceGroupRefreshSubscription.unsubscribe();
+        ObservableExt.safeUnsubscribe(findNewInstanceGroupSubscription, instanceGroupRefreshSubscription);
         fullInstanceGroupRefreshMetricsTransformer.remove();
     }
 
@@ -171,14 +171,14 @@ class InstanceCache {
         }
     }
 
-    Observable<CacheUpdateEvent> events() {
-        return eventSubject;
+    Observable<InstanceCacheEvent> events() {
+        return eventSubject.asObservable();
     }
 
     /**
-     * Loads all known instance groups, to discover the newly created ones.
+     * Get all instance groups and add the new ones to the cache
      */
-    Completable doFullInstanceGroupRefresh() {
+    Completable doFindNewInstanceGroups() {
         Completable completable = connector.getInstanceGroups()
                 .flatMap(unfiltered ->
                         getInstanceGroupPattern()
@@ -189,14 +189,14 @@ class InstanceCache {
                     Set<String> allDiscoveredIds = instanceGroups.stream().map(InstanceGroup::getId).collect(Collectors.toSet());
                     Set<String> newArrivalIds = CollectionsExt.copyAndRemove(allDiscoveredIds, allKnownIds);
 
-                    logger.debug("Performing full instance group refresh: knownIds={}, foundIds={}, newIds={}",
+                    logger.debug("Finding new instance groups: knownIds={}, foundIds={}, newIds={}",
                             allKnownIds, allDiscoveredIds, newArrivalIds);
 
                     if (newArrivalIds.isEmpty()) {
                         return Observable.empty();
                     }
 
-                    logger.info("Performing full instance group refresh: newIds={}", newArrivalIds);
+                    logger.info("Finding new instance groups: newIds={}", newArrivalIds);
 
                     Map<String, InstanceGroup> newArrivalsById = instanceGroups.stream()
                             .filter(instanceGroup -> newArrivalIds.contains(instanceGroup.getId()))
@@ -225,8 +225,7 @@ class InstanceCache {
                 .doOnNext(instanceGroups ->
                         onEventLoop("addInstanceGroups", () -> {
                             this.cacheSnapshot = cacheSnapshot.addInstanceGroups(instanceGroups);
-                            eventSubject.onNext(new CacheUpdateEvent(CacheUpdateType.Refreshed, CacheUpdateEvent.EMPTY_ID));
-
+                            instanceGroups.forEach(instanceGroup -> eventSubject.onNext(new InstanceCacheEvent(InstanceCacheEventType.InstanceGroupAdded, instanceGroup.getId())));
                             instanceGroups.forEach(instanceGroup -> refreshInstanceGroup(instanceGroup.getId()));
                         })
                 ).toCompletable();
@@ -283,7 +282,6 @@ class InstanceCache {
                     if (result.isEmpty()) {
                         onEventLoop("removeInstanceGroup", () -> {
                             removeInstanceGroup(instanceGroupId);
-                            logger.info("Instance group: {} has been removed", instanceGroupId);
                         });
                         return Observable.empty();
                     }
@@ -316,7 +314,7 @@ class InstanceCache {
         if (oldInstanceGroup == null) {
             this.cacheSnapshot = cacheSnapshot.updateInstanceGroup(updatedInstanceGroup);
             this.cacheSnapshot = cacheSnapshot.updateInstances(updatedInstances);
-            eventSubject.onNext(new CacheUpdateEvent(CacheUpdateType.InstanceGroup, instanceGroupId));
+            eventSubject.onNext(new InstanceCacheEvent(InstanceCacheEventType.InstanceGroupUpdated, instanceGroupId));
             return;
         }
 
@@ -343,7 +341,7 @@ class InstanceCache {
             this.cacheSnapshot = cacheSnapshot.updateInstances(updatedInstances);
         }
         if (instanceGroupChanged || instancesChanged) {
-            eventSubject.onNext(new CacheUpdateEvent(CacheUpdateType.InstanceGroup, instanceGroupId));
+            eventSubject.onNext(new InstanceCacheEvent(InstanceCacheEventType.InstanceGroupUpdated, instanceGroupId));
         }
     }
 
@@ -361,13 +359,14 @@ class InstanceCache {
         return newInstanceGroup.toBuilder().withAttributes(updatedAttributes).build();
     }
 
-    private void removeInstanceGroup(String removedInstanceGroupId) {
-        this.cacheSnapshot = cacheSnapshot.removeInstanceGroup(removedInstanceGroupId);
-        eventSubject.onNext(new CacheUpdateEvent(CacheUpdateType.InstanceGroup, removedInstanceGroupId));
-        ContinuousSubscriptionMetrics transformer = instanceGroupRefreshMetricsTransformers.remove(removedInstanceGroupId);
+    private void removeInstanceGroup(String instanceGroupId) {
+        this.cacheSnapshot = cacheSnapshot.removeInstanceGroup(instanceGroupId);
+        eventSubject.onNext(new InstanceCacheEvent(InstanceCacheEventType.InstanceGroupRemoved, instanceGroupId));
+        ContinuousSubscriptionMetrics transformer = instanceGroupRefreshMetricsTransformers.remove(instanceGroupId);
         if (transformer != null) {
             transformer.remove();
         }
+        logger.info("Instance group: {} has been removed", instanceGroupId);
     }
 
     private void onEventLoop(String actionName, Action0 action) {

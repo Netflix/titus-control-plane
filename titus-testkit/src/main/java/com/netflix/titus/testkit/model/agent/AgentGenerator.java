@@ -141,10 +141,7 @@ public final class AgentGenerator {
                     builder.withIpAddress(ip);
                     builder.withHostname(ip.replace('.', '_') + ".titus.netflix.dev");
                 })
-                .map(builder -> builder
-                        .withTimestamp(System.currentTimeMillis())
-                        .build()
-                );
+                .map(AgentInstance.Builder::build);
     }
 
     public static DataGenerator<AgentInstance> agentInstances() {

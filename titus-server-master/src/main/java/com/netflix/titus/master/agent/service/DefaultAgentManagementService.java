@@ -272,11 +272,6 @@ public class DefaultAgentManagementService implements AgentManagementService {
     }
 
     @Override
-    public void forceRefresh() {
-        agentCache.forceRefresh();
-    }
-
-    @Override
     public Observable<AgentEvent> events(boolean includeSnapshot) {
         return Observable.fromCallable(() -> new AgentEventEmitter(agentCache)).flatMap(initial -> {
             Observable<AgentEvent> eventObservable = agentCache.events()

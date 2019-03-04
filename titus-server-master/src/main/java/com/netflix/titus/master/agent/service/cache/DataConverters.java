@@ -83,7 +83,6 @@ class DataConverters {
                 .withHostname(instance.getHostname())
                 .withDeploymentStatus(toDeploymentStatus(instance))
                 .withAttributes(instance.getAttributes())
-                .withTimestamp(System.currentTimeMillis())
                 .build();
     }
 
@@ -97,8 +96,7 @@ class DataConverters {
         return builder.withIpAddress(Evaluators.getOrDefault(instance.getIpAddress(), "0.0.0.0"))
                 .withInstanceGroupId(Evaluators.getOrDefault(instance.getInstanceGroupId(), "detached"))
                 .withHostname(Evaluators.getOrDefault(instance.getHostname(), "0_0_0_0"))
-                .withAttributes(updatedAttributes)
-                .withTimestamp(System.currentTimeMillis());
+                .withAttributes(updatedAttributes);
     }
 
     static InstanceLifecycleStatus toDeploymentStatus(Instance instance) {

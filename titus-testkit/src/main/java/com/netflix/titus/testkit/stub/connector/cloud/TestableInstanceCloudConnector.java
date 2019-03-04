@@ -25,6 +25,7 @@ import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import com.google.common.base.Preconditions;
 import com.netflix.titus.api.connector.cloud.Instance;
 import com.netflix.titus.api.connector.cloud.InstanceCloudConnector;
 import com.netflix.titus.api.connector.cloud.InstanceGroup;
@@ -149,6 +150,15 @@ public class TestableInstanceCloudConnector implements InstanceCloudConnector {
         InstanceGroup instanceGroup = instanceGroupEntry.getFirst();
         launchConfigurationsById.remove(instanceGroup.getLaunchConfigurationName());
         instanceGroup.getInstanceIds().forEach(instancesById::remove);
+    }
+
+    public void updateInstanceGroup(String instanceGroupid, InstanceGroup instanceGroup) {
+        Triple<InstanceGroup, Integer, Integer> existing = instanceGroupsById.get(instanceGroupid);
+        Preconditions.checkNotNull(existing);
+        instanceGroupsById.put(
+                instanceGroup.getId(),
+                existing.mapFirst(previous -> instanceGroup.toBuilder().withInstanceIds(previous.getInstanceIds()).build())
+        );
     }
 
     public void addInstance(Instance instance) {

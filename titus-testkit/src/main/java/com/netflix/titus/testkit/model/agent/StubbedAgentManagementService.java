@@ -149,10 +149,6 @@ class StubbedAgentManagementService implements AgentManagementService {
     }
 
     @Override
-    public void forceRefresh() {
-    }
-
-    @Override
     public Observable<AgentEvent> events(boolean includeSnapshot) {
         return stubbedAgentData.observeAgents(includeSnapshot);
     }

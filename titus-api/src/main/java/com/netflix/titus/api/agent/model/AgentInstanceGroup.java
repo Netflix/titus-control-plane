@@ -17,6 +17,7 @@
 package com.netflix.titus.api.agent.model;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Function;
 import javax.validation.Valid;
 import javax.validation.constraints.Min;
@@ -155,64 +156,25 @@ public class AgentInstanceGroup {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
         AgentInstanceGroup that = (AgentInstanceGroup) o;
-
-        if (min != that.min) {
-            return false;
-        }
-        if (desired != that.desired) {
-            return false;
-        }
-        if (current != that.current) {
-            return false;
-        }
-        if (max != that.max) {
-            return false;
-        }
-        if (isLaunchEnabled != that.isLaunchEnabled) {
-            return false;
-        }
-        if (isTerminateEnabled != that.isTerminateEnabled) {
-            return false;
-        }
-        if (launchTimestamp != that.launchTimestamp) {
-            return false;
-        }
-        if (id != null ? !id.equals(that.id) : that.id != null) {
-            return false;
-        }
-        if (instanceType != null ? !instanceType.equals(that.instanceType) : that.instanceType != null) {
-            return false;
-        }
-        if (tier != that.tier) {
-            return false;
-        }
-        if (resourceDimension != null ? !resourceDimension.equals(that.resourceDimension) : that.resourceDimension != null) {
-            return false;
-        }
-        if (lifecycleStatus != null ? !lifecycleStatus.equals(that.lifecycleStatus) : that.lifecycleStatus != null) {
-            return false;
-        }
-        return attributes != null ? attributes.equals(that.attributes) : that.attributes == null;
+        return min == that.min &&
+                desired == that.desired &&
+                current == that.current &&
+                max == that.max &&
+                isLaunchEnabled == that.isLaunchEnabled &&
+                isTerminateEnabled == that.isTerminateEnabled &&
+                launchTimestamp == that.launchTimestamp &&
+                Objects.equals(id, that.id) &&
+                Objects.equals(instanceType, that.instanceType) &&
+                tier == that.tier &&
+                Objects.equals(resourceDimension, that.resourceDimension) &&
+                Objects.equals(lifecycleStatus, that.lifecycleStatus) &&
+                Objects.equals(attributes, that.attributes);
     }
 
     @Override
     public int hashCode() {
-        int result = id != null ? id.hashCode() : 0;
-        result = 31 * result + (instanceType != null ? instanceType.hashCode() : 0);
-        result = 31 * result + (tier != null ? tier.hashCode() : 0);
-        result = 31 * result + (resourceDimension != null ? resourceDimension.hashCode() : 0);
-        result = 31 * result + min;
-        result = 31 * result + desired;
-        result = 31 * result + current;
-        result = 31 * result + max;
-        result = 31 * result + (isLaunchEnabled ? 1 : 0);
-        result = 31 * result + (isTerminateEnabled ? 1 : 0);
-        result = 31 * result + (lifecycleStatus != null ? lifecycleStatus.hashCode() : 0);
-        result = 31 * result + (int) (launchTimestamp ^ (launchTimestamp >>> 32));
-        result = 31 * result + (attributes != null ? attributes.hashCode() : 0);
-        return result;
+        return Objects.hash(id, instanceType, tier, resourceDimension, min, desired, current, max, isLaunchEnabled, isTerminateEnabled, lifecycleStatus, launchTimestamp, attributes);
     }
 
     @Override

@@ -18,6 +18,7 @@ package com.netflix.titus.api.agent.model;
 
 import java.util.Comparator;
 import java.util.Map;
+import java.util.Objects;
 
 import com.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
 import com.netflix.titus.common.model.sanitizer.CollectionInvariants;
@@ -86,36 +87,18 @@ public class AgentInstance {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
         AgentInstance that = (AgentInstance) o;
-
-        if (id != null ? !id.equals(that.id) : that.id != null) {
-            return false;
-        }
-        if (instanceGroupId != null ? !instanceGroupId.equals(that.instanceGroupId) : that.instanceGroupId != null) {
-            return false;
-        }
-        if (ipAddress != null ? !ipAddress.equals(that.ipAddress) : that.ipAddress != null) {
-            return false;
-        }
-        if (hostname != null ? !hostname.equals(that.hostname) : that.hostname != null) {
-            return false;
-        }
-        if (lifecycleStatus != null ? !lifecycleStatus.equals(that.lifecycleStatus) : that.lifecycleStatus != null) {
-            return false;
-        }
-        return attributes != null ? attributes.equals(that.attributes) : that.attributes == null;
+        return Objects.equals(id, that.id) &&
+                Objects.equals(instanceGroupId, that.instanceGroupId) &&
+                Objects.equals(ipAddress, that.ipAddress) &&
+                Objects.equals(hostname, that.hostname) &&
+                Objects.equals(lifecycleStatus, that.lifecycleStatus) &&
+                Objects.equals(attributes, that.attributes);
     }
 
     @Override
     public int hashCode() {
-        int result = id != null ? id.hashCode() : 0;
-        result = 31 * result + (instanceGroupId != null ? instanceGroupId.hashCode() : 0);
-        result = 31 * result + (ipAddress != null ? ipAddress.hashCode() : 0);
-        result = 31 * result + (hostname != null ? hostname.hashCode() : 0);
-        result = 31 * result + (lifecycleStatus != null ? lifecycleStatus.hashCode() : 0);
-        result = 31 * result + (attributes != null ? attributes.hashCode() : 0);
-        return result;
+        return Objects.hash(id, instanceGroupId, ipAddress, hostname, lifecycleStatus, attributes);
     }
 
     @Override
@@ -190,18 +173,12 @@ public class AgentInstance {
             return this;
         }
 
-        public Builder withTimestamp(long timestamp) {
-            this.timestamp = timestamp;
-            return this;
-        }
-
         public Builder but() {
-            return newBuilder().withId(id).withInstanceGroupId(instanceGroupId).withIpAddress(ipAddress).withHostname(hostname).withDeploymentStatus(instanceLifecycleStatus).withAttributes(attributes).withTimestamp(timestamp);
+            return newBuilder().withId(id).withInstanceGroupId(instanceGroupId).withIpAddress(ipAddress).withHostname(hostname).withDeploymentStatus(instanceLifecycleStatus).withAttributes(attributes);
         }
 
         public AgentInstance build() {
-            AgentInstance agentInstance = new AgentInstance(id, instanceGroupId, ipAddress, hostname, instanceLifecycleStatus, attributes);
-            return agentInstance;
+            return new AgentInstance(id, instanceGroupId, ipAddress, hostname, instanceLifecycleStatus, attributes);
         }
     }
 }

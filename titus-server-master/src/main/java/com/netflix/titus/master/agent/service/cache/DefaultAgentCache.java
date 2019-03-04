@@ -18,17 +18,20 @@ package com.netflix.titus.master.agent.service.cache;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.google.common.collect.Sets;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
@@ -40,6 +43,7 @@ import com.netflix.titus.api.connector.cloud.InstanceGroup;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.rx.ObservableExt;
+import com.netflix.titus.common.util.rx.SchedulerExt;
 import com.netflix.titus.master.agent.service.AgentManagementConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,9 +53,9 @@ import rx.Scheduler;
 import rx.Single;
 import rx.Subscription;
 import rx.functions.Action0;
-import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 
+import static com.netflix.titus.master.MetricConstants.METRIC_AGENT_CACHE;
 import static com.netflix.titus.master.agent.store.AgentStoreReaper.isTaggedToRemove;
 import static com.netflix.titus.master.agent.store.AgentStoreReaper.tagToRemove;
 
@@ -82,6 +86,7 @@ public class DefaultAgentCache implements AgentCache {
 
     private InstanceCache instanceCache;
     private Subscription instanceCacheSubscription;
+    private Subscription synchronizeWithInstanceCacheSubscription;
 
     private volatile AgentDataSnapshot dataSnapshot = new AgentDataSnapshot();
 
@@ -92,7 +97,7 @@ public class DefaultAgentCache implements AgentCache {
                              AgentStore agentStore,
                              InstanceCloudConnector connector,
                              Registry registry) {
-        this(configuration, agentStore, connector, registry, Schedulers.computation());
+        this(configuration, agentStore, connector, registry, SchedulerExt.createSingleThreadScheduler("agent-cache"));
     }
 
     DefaultAgentCache(AgentManagementConfiguration configuration,
@@ -132,36 +137,43 @@ public class DefaultAgentCache implements AgentCache {
         this.instanceCache = InstanceCache.newInstance(configuration, connector, knownInstanceGroupIds, registry, scheduler);
         setDataSnapshot(AgentDataSnapshot.initWithStaleDataSnapshot(persistedInstanceGroups, persistedInstances));
 
-        logger.info("Started AgentCache with: {}", dataSnapshot.getInstanceGroups());
+        logger.info("Started AgentCache with instance groups: {}", dataSnapshot.getInstanceGroups());
 
         this.instanceCacheSubscription = instanceCache.events()
-                .compose(ObservableExt.head(() ->
-                        Collections.singletonList(new CacheUpdateEvent(CacheUpdateType.Refreshed, CacheUpdateEvent.EMPTY_ID)))
-                )
                 .subscribe(
                         event -> {
                             switch (event.getType()) {
-                                case Refreshed:
-                                    onEventLoop(this::updateOnFullRefreshInstanceCacheEvent);
+                                case InstanceGroupAdded:
+                                    onEventLoop(() -> updateOnInstanceGroupAddEvent(event.getResourceId()));
                                     break;
-                                case InstanceGroup:
-                                    onEventLoop(() -> updateOnInstanceGroupInstanceCacheEvent(event.getResourceId()));
+                                case InstanceGroupRemoved:
+                                    onEventLoop(() -> updateOnInstanceGroupRemoveEvent(event.getResourceId()));
                                     break;
-                                case Instance:
-                                    // Ignore, as instance group, and its instances are refreshed at the same time
+                                case InstanceGroupUpdated:
+                                    onEventLoop(() -> updateOnInstanceGroupUpdateEvent(event.getResourceId()));
                                     break;
                             }
                         },
                         e -> logger.error("InstanceCache events stream completed with an error", e),
                         () -> logger.info("InstanceCache events stream completed")
                 );
+
+        this.synchronizeWithInstanceCacheSubscription = ObservableExt.schedule(
+                METRIC_AGENT_CACHE, registry, "synchronizeWithInstanceCache",
+                onEventLoopWithSubscription(this::synchronizeWithInstanceCache),
+                0, configuration.getSynchronizeWithInstanceCacheIntervalMs(), TimeUnit.MILLISECONDS, scheduler
+        ).subscribe(
+                next -> next.ifPresent(throwable -> logger.warn("Synchronizing with instance cache failed with an error", throwable)),
+                e -> logger.error("Synchronizing with instance cache terminated with an error", e),
+                () -> logger.info("Synchronizing with instance cache terminated")
+        );
     }
 
     public void shutdown() {
         if (instanceCache != null) {
             instanceCache.shutdown();
         }
-        ObservableExt.safeUnsubscribe(instanceCacheSubscription);
+        ObservableExt.safeUnsubscribe(instanceCacheSubscription, synchronizeWithInstanceCacheSubscription);
     }
 
     @Override
@@ -239,61 +251,27 @@ public class DefaultAgentCache implements AgentCache {
     }
 
     @Override
-    public void forceRefresh() {
-        instanceCache.doFullInstanceGroupRefresh().subscribe(
-                () -> logger.info("Forced full instance cache refresh finished"),
-                e -> logger.info("Forced full instance cache refresh failed", e)
-        );
-    }
-
-    @Override
     public Observable<CacheUpdateEvent> events() {
-        return eventSubject;
+        return eventSubject.asObservable();
     }
 
-    private void updateOnFullRefreshInstanceCacheEvent() {
-        Set<String> knownInstanceGroupIds = dataSnapshot.getInstanceGroupIds();
-        List<InstanceGroup> allInstanceGroups = instanceCache.getInstanceGroups();
-        Set<String> allInstanceGroupIds = allInstanceGroups.stream().map(InstanceGroup::getId).collect(Collectors.toSet());
+    private void synchronizeWithInstanceCache() {
+        Set<String> existingInstanceGroupIds = dataSnapshot.getInstanceGroupIds();
+        Set<String> allInstanceGroupIds = instanceCache.getInstanceGroups().stream().map(InstanceGroup::getId).collect(Collectors.toSet());
+        Set<String> newInstanceGroupIds = allInstanceGroupIds.stream().filter(id -> !existingInstanceGroupIds.contains(id)).collect(Collectors.toSet());
+        Set<String> removedInstanceGroupIds = existingInstanceGroupIds.stream().filter(id -> !allInstanceGroupIds.contains(id)).collect(Collectors.toSet());
+        Set<String> currentInstanceGroupIds = existingInstanceGroupIds.stream().filter(allInstanceGroupIds::contains).collect(Collectors.toSet());
 
-        Set<String> newInstanceGroupIds = allInstanceGroups.stream()
-                .map(InstanceGroup::getId)
-                .filter(id -> !knownInstanceGroupIds.contains(id))
-                .collect(Collectors.toSet());
-        Set<String> removedInstanceGroupIds = knownInstanceGroupIds.stream().filter(id -> !allInstanceGroupIds.contains(id)).collect(Collectors.toSet());
-        List<AgentInstanceGroup> removedInstanceGroups = removedInstanceGroupIds.stream().map(id -> dataSnapshot.getInstanceGroup(id)).collect(Collectors.toList());
-
-        newInstanceGroupIds.forEach(this::syncInstanceGroupWithInstanceCache);
-        removedInstanceGroupIds.forEach(this::syncInstanceGroupWithInstanceCache);
-
-        newInstanceGroupIds.forEach(this::storeEagerly);
-        removedInstanceGroups.forEach(this::storeEagerlyWithRemoveFlag);
+        newInstanceGroupIds.forEach(this::updateOnInstanceGroupAddEvent);
+        removedInstanceGroupIds.forEach(this::updateOnInstanceGroupRemoveEvent);
+        currentInstanceGroupIds.forEach(this::updateOnInstanceGroupUpdateEvent);
     }
 
-    private void updateOnInstanceGroupInstanceCacheEvent(String instanceGroupId) {
-        AgentInstanceGroup instanceGroup = getInstanceGroup(instanceGroupId);
-        if (instanceGroup != null) {
-            syncInstanceGroupWithInstanceCache(instanceGroupId);
-            if (instanceCache.getInstanceGroup(instanceGroupId) == null) {
-                storeEagerlyWithRemoveFlag(instanceGroup);
-            }
-        }
-    }
-
-    private void syncInstanceGroupWithInstanceCache(String instanceGroupId) {
+    private void updateOnInstanceGroupAddEvent(String instanceGroupId) {
         InstanceGroup instanceGroup = instanceCache.getInstanceGroup(instanceGroupId);
+        AgentInstanceGroup existingInstanceGroup = dataSnapshot.getInstanceGroup(instanceGroupId);
 
-        if (instanceGroup == null) {
-            setDataSnapshot(dataSnapshot.removeInstanceGroup(instanceGroupId));
-            eventSubject.onNext(new CacheUpdateEvent(CacheUpdateType.InstanceGroup, instanceGroupId));
-            logger.debug("instance group: {} no longer exists", instanceGroupId);
-            return;
-        }
-
-        AgentInstanceGroup previous = dataSnapshot.getInstanceGroup(instanceGroupId);
-        AgentInstanceGroup agentInstanceGroup;
-        List<AgentInstance> agentInstances;
-        if (previous == null) {
+        if (instanceGroup != null && existingInstanceGroup == null) {
             String instanceType = instanceGroup.getInstanceType();
             ResourceDimension instanceResourceDimension;
             try {
@@ -303,18 +281,41 @@ public class DefaultAgentCache implements AgentCache {
                 instanceResourceDimension = ResourceDimension.empty();
             }
 
-            agentInstanceGroup = DataConverters.toAgentInstanceGroup(
-                    instanceGroup,
-                    instanceResourceDimension
-            );
-            agentInstances = instanceGroup.getInstanceIds().stream()
+            AgentInstanceGroup agentInstanceGroup = DataConverters.toAgentInstanceGroup(instanceGroup, instanceResourceDimension);
+            Set<AgentInstance> agentInstances = instanceGroup.getInstanceIds().stream()
                     .map(instanceCache::getAgentInstance)
                     .filter(Objects::nonNull)
                     .map(DataConverters::toAgentInstance)
-                    .collect(Collectors.toList());
-        } else {
-            agentInstanceGroup = DataConverters.updateAgentInstanceGroup(previous, instanceGroup);
-            agentInstances = instanceGroup.getInstanceIds().stream()
+                    .collect(Collectors.toCollection(() -> new TreeSet<>(AgentInstance.idComparator())));
+
+            setDataSnapshot(dataSnapshot.updateInstanceGroup(agentInstanceGroup, agentInstances));
+            storeEagerly(agentInstanceGroup);
+            logger.info("Updated cache for added instance group: {} with instances: {}", instanceGroupId, agentInstances);
+            eventSubject.onNext(new CacheUpdateEvent(CacheUpdateType.InstanceGroup, instanceGroupId));
+        }
+    }
+
+    private void updateOnInstanceGroupRemoveEvent(String instanceGroupId) {
+        InstanceGroup instanceGroup = instanceCache.getInstanceGroup(instanceGroupId);
+        AgentInstanceGroup existingInstanceGroup = dataSnapshot.getInstanceGroup(instanceGroupId);
+
+        if (instanceGroup == null && existingInstanceGroup != null) {
+            setDataSnapshot(dataSnapshot.removeInstanceGroup(instanceGroupId));
+            storeEagerlyWithRemoveFlag(existingInstanceGroup);
+            logger.info("Updated cache for removed instance group: {}", instanceGroupId);
+            eventSubject.onNext(new CacheUpdateEvent(CacheUpdateType.InstanceGroup, instanceGroupId));
+        }
+    }
+
+    private void updateOnInstanceGroupUpdateEvent(String instanceGroupId) {
+        InstanceGroup instanceGroup = instanceCache.getInstanceGroup(instanceGroupId);
+        AgentInstanceGroup existingInstanceGroup = dataSnapshot.getInstanceGroup(instanceGroupId);
+
+        if (instanceGroup != null && existingInstanceGroup != null) {
+            Set<AgentInstance> existingAgentInstances = dataSnapshot.getInstances(instanceGroupId);
+
+            AgentInstanceGroup agentInstanceGroup = DataConverters.updateAgentInstanceGroup(existingInstanceGroup, instanceGroup);
+            Set<AgentInstance> agentInstances = instanceGroup.getInstanceIds().stream()
                     .map(id -> {
                         Instance instance = instanceCache.getAgentInstance(id);
                         if (instance == null) {
@@ -327,18 +328,18 @@ public class DefaultAgentCache implements AgentCache {
                         return DataConverters.updateAgentInstance(previousInstance, instance);
                     })
                     .filter(Objects::nonNull)
-                    .collect(Collectors.toList());
-        }
-        TreeSet<AgentInstance> agentInstanceSet = new TreeSet<>(AgentInstance.idComparator());
-        agentInstanceSet.addAll(agentInstances);
-        logger.debug("Creating new agent data snapshot for instance group: {} with instances: {}", instanceGroupId, agentInstanceSet);
+                    .collect(Collectors.toCollection(() -> new TreeSet<>(AgentInstance.idComparator())));
 
-        setDataSnapshot(dataSnapshot.updateInstanceGroup(agentInstanceGroup, agentInstanceSet));
-        eventSubject.onNext(new CacheUpdateEvent(CacheUpdateType.InstanceGroup, instanceGroupId));
+            if (isAgentInstanceGroupUpdated(existingInstanceGroup, agentInstanceGroup)
+                    || isAgentInstancesUpdated(existingAgentInstances, agentInstances)) {
+                setDataSnapshot(dataSnapshot.updateInstanceGroup(agentInstanceGroup, agentInstances));
+                logger.info("Updated cache for updated instance group: {} with instances: {}", instanceGroupId, agentInstances);
+                eventSubject.onNext(new CacheUpdateEvent(CacheUpdateType.InstanceGroup, instanceGroupId));
+            }
+        }
     }
 
-    private void storeEagerly(String instanceGroupId) {
-        AgentInstanceGroup instanceGroup = dataSnapshot.getInstanceGroup(instanceGroupId);
+    private void storeEagerly(AgentInstanceGroup instanceGroup) {
         if (instanceGroup != null) {
             agentStore.storeAgentInstanceGroup(instanceGroup).subscribe(
                     () -> logger.info("Persisted instance group: {} to the store", instanceGroup.getId()),
@@ -348,7 +349,7 @@ public class DefaultAgentCache implements AgentCache {
     }
 
     private void storeEagerlyWithRemoveFlag(AgentInstanceGroup instanceGroup) {
-        if (!isTaggedToRemove(instanceGroup)) {
+        if (instanceGroup != null && !isTaggedToRemove(instanceGroup)) {
             agentStore.storeAgentInstanceGroup(tagToRemove(instanceGroup, scheduler)).subscribe(
                     () -> logger.info("Tagging instance group: {} as removed", instanceGroup.getId()),
                     e -> logger.warn("Could not persist instance group: {} into the store", instanceGroup.getId(), e)
@@ -396,5 +397,22 @@ public class DefaultAgentCache implements AgentCache {
     private void setDataSnapshot(AgentDataSnapshot dataSnapshot) {
         this.dataSnapshot = dataSnapshot;
         metrics.refresh(dataSnapshot);
+    }
+
+    private boolean isAgentInstanceGroupUpdated(AgentInstanceGroup first, AgentInstanceGroup second) {
+        // equals cannot be used due to changing timestamps
+        boolean notUpdated = first.getMin() == second.getMin() && first.getDesired() == second.getDesired() && first.getCurrent() == second.getCurrent()
+                && first.getMax() == second.getMax() && first.isLaunchEnabled() == second.isLaunchEnabled()
+                && first.isTerminateEnabled() == second.isTerminateEnabled() && Objects.equals(first.getId(), second.getId())
+                && Objects.equals(first.getInstanceType(), second.getInstanceType()) && first.getTier() == second.getTier()
+                && Objects.equals(first.getResourceDimension(), second.getResourceDimension())
+                && Objects.equals(first.getLifecycleStatus(), second.getLifecycleStatus())
+                && Objects.equals(first.getAttributes(), second.getAttributes());
+        return !notUpdated;
+    }
+
+    private boolean isAgentInstancesUpdated(Set<AgentInstance> first, Set<AgentInstance> second) {
+        // convert into HashSet because TreeSet does not use equals
+        return !Sets.symmetricDifference(new HashSet<>(first), new HashSet<>(second)).isEmpty();
     }
 }
