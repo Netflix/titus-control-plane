@@ -20,19 +20,20 @@ import java.time.DayOfWeek;
 import java.time.LocalDateTime;
 import java.time.Month;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.concurrent.TimeUnit;
+
+import com.netflix.titus.common.util.DateTimeExt;
 
 class TestWorldClock implements TestClock {
 
     private OffsetDateTime dateTime;
 
-    TestWorldClock(int year, Month month, int day) {
-        this.dateTime = OffsetDateTime.of(year, month.getValue(), day, 0, 0, 0, 0, ZoneOffset.UTC);
+    TestWorldClock(String zoneId, int year, Month month, int day) {
+        this.dateTime = OffsetDateTime.of(year, month.getValue(), day, 0, 0, 0, 0, DateTimeExt.toZoneOffset(zoneId));
     }
 
-    TestWorldClock() {
-        this.dateTime = OffsetDateTime.of(LocalDateTime.now(), ZoneOffset.UTC);
+    TestWorldClock(String zoneId) {
+        this.dateTime = OffsetDateTime.of(LocalDateTime.now(), DateTimeExt.toZoneOffset(zoneId));
     }
 
     @Override

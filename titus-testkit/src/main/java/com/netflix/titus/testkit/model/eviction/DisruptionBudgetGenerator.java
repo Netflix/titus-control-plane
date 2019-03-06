@@ -77,6 +77,7 @@ public final class DisruptionBudgetGenerator {
         return TimeWindow.newBuilder()
                 .withDays(Day.weekdays())
                 .withwithHourlyTimeWindows(8, 17)
+                .withTimeZone("PST")
                 .build();
     }
 

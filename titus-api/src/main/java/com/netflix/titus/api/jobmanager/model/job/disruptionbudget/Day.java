@@ -18,6 +18,9 @@ package com.netflix.titus.api.jobmanager.model.job.disruptionbudget;
 
 import java.time.DayOfWeek;
 import java.util.EnumSet;
+import java.util.Map;
+
+import com.google.common.collect.ImmutableMap;
 
 public enum Day {
 
@@ -67,6 +70,16 @@ public enum Day {
     private static EnumSet<Day> WEEKDAYS = EnumSet.of(Monday, Tuesday, Wednesday, Thursday, Friday);
     private static EnumSet<Day> WEEKEND = EnumSet.of(Saturday, Sunday);
 
+    private static Map<DayOfWeek, Day> DAY_OF_WEEK_TO_DAY_MAP = new ImmutableMap.Builder<DayOfWeek, Day>()
+            .put(DayOfWeek.SUNDAY, Day.Sunday)
+            .put(DayOfWeek.MONDAY, Day.Monday)
+            .put(DayOfWeek.TUESDAY, Day.Tuesday)
+            .put(DayOfWeek.WEDNESDAY, Day.Wednesday)
+            .put(DayOfWeek.THURSDAY, Day.Thursday)
+            .put(DayOfWeek.FRIDAY, Day.Friday)
+            .put(DayOfWeek.SATURDAY, Day.Saturday)
+            .build();
+
     public abstract DayOfWeek toDayOfWeek();
 
     public static EnumSet<Day> weekdays() {
@@ -75,5 +88,9 @@ public enum Day {
 
     public static EnumSet<Day> weekend() {
         return WEEKEND;
+    }
+
+    public static Day fromDayOfWeek(DayOfWeek dayOfWeek) {
+        return DAY_OF_WEEK_TO_DAY_MAP.get(dayOfWeek);
     }
 }

@@ -16,6 +16,7 @@
 
 package com.netflix.titus.testkit.model.job;
 
+import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
@@ -33,14 +34,14 @@ import com.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
 import com.netflix.titus.common.data.generator.DataGenerator;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.testkit.model.PrimitiveValueGenerators;
+import com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator;
 
 import static com.netflix.titus.common.data.generator.DataGenerator.items;
 import static com.netflix.titus.common.data.generator.DataGenerator.union;
 
-/**
- */
 public final class JobDescriptorGenerator {
-    public static final String TEST_CELL_NAME = "tests";
+    public static final String TEST_STACK_NAME = "embedded";
+    public static final String TEST_CELL_NAME = "embeddedCell";
 
     private JobDescriptorGenerator() {
     }
@@ -110,7 +111,7 @@ public final class JobDescriptorGenerator {
         return withExtensions
                 .map(builder -> builder.withAttributes(CollectionsExt.<String, String>newHashMap()
                         .entry(JobAttributes.JOB_ATTRIBUTES_CELL, TEST_CELL_NAME)
-                        .entry(JobAttributes.JOB_ATTRIBUTES_STACK, TEST_CELL_NAME)
+                        .entry(JobAttributes.JOB_ATTRIBUTES_STACK, TEST_STACK_NAME)
                         .entry("labelA", "valueA")
                         .toMap()).build()
                 )
@@ -156,7 +157,7 @@ public final class JobDescriptorGenerator {
         );
         return withExtensions.map(builder -> builder.withAttributes(CollectionsExt.<String, String>newHashMap()
                 .entry(JobAttributes.JOB_ATTRIBUTES_CELL, TEST_CELL_NAME)
-                .entry(JobAttributes.JOB_ATTRIBUTES_STACK, TEST_CELL_NAME)
+                .entry(JobAttributes.JOB_ATTRIBUTES_STACK, TEST_STACK_NAME)
                 .entry("labelA", "valueA")
                 .toMap()).build());
     }
@@ -170,6 +171,11 @@ public final class JobDescriptorGenerator {
         Image imageWithTag = JobModel.newImage().withName("titusops/alpine").withTag("latest").build();
         return JobModel.newJobDescriptor(jobDescriptor)
                 .withContainer(JobModel.newContainer(jobDescriptor.getContainer()).withImage(imageWithTag).build())
+                .withDisruptionBudget(DisruptionBudgetGenerator.budget(
+                        DisruptionBudgetGenerator.perTaskRelocationLimitPolicy(3),
+                        DisruptionBudgetGenerator.hourlyRatePercentage(50),
+                        Collections.singletonList(DisruptionBudgetGenerator.officeHourTimeWindow())
+                ))
                 .withExtensions(JobModel.newBatchJobExt(jobDescriptor.getExtensions())
                         .withSize(1)
                         .withRetryPolicy(JobModel.newImmediateRetryPolicy().withRetries(0).build())

@@ -81,6 +81,9 @@ public class EmbeddedTitusFederation {
 
         String resourceDir = TitusMaster.class.getClassLoader().getResource("static").toExternalForm();
         Properties props = new Properties();
+        if (!properties.containsKey("titus.federation.stack")) {
+            props.put("titus.federation.stack", "embedded");
+        }
         props.put("titus.federation.endpoint.grpcPort", grpcPort);
         props.put("titus.federation.routingRules", buildRoutingRules());
         props.put("governator.jetty.embedded.webAppResourceBase", resourceDir);

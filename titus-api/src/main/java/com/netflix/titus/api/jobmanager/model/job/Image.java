@@ -17,6 +17,7 @@
 package com.netflix.titus.api.jobmanager.model.job;
 
 import com.netflix.titus.common.model.sanitizer.ClassInvariant;
+import com.netflix.titus.common.util.StringExt;
 
 /**
  * Image reference.
@@ -127,7 +128,7 @@ public class Image {
         }
 
         public Image build() {
-            return new Image(name, tag, digest);
+            return new Image(name, StringExt.safeTrim(tag), StringExt.safeTrim(digest));
         }
     }
 }
