@@ -32,6 +32,7 @@ import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.master.jobactivity.service.JobActivityPublisher;
 import com.netflix.titus.master.jobactivity.service.JobActivityPublisherConfiguration;
 import com.netflix.titus.master.jobactivity.store.InMemoryJobActivityPublisherStore;
+import com.netflix.titus.runtime.endpoint.metadata.AnonymousCallMetadataResolver;
 import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import org.junit.Before;
@@ -56,6 +57,7 @@ public class JobActivityPublisherTest {
     private int numBatchJobs = 10;
     private DataGenerator<Job<BatchJobExt>> batchJobsGenerator = JobGenerator.batchJobs(JobDescriptorGenerator.oneTaskBatchJobDescriptor());
     private List<JobUpdateEvent> jobUpdateEvents;
+    private final AnonymousCallMetadataResolver anonymousCallMetadataResolver = AnonymousCallMetadataResolver.getInstance();
 
     private JobActivityPublisher publisherService;
 
@@ -103,7 +105,7 @@ public class JobActivityPublisherTest {
     private List<JobUpdateEvent> createJobUpdateEvents(int numEvents) {
         List<JobUpdateEvent> events = new ArrayList<>();
         batchJobsGenerator.batch(numEvents).getValue().forEach(batchJobExtJob ->
-                events.add(JobUpdateEvent.newJob(batchJobExtJob))
+                events.add(JobUpdateEvent.newJob(batchJobExtJob, anonymousCallMetadataResolver.resolve().get()))
         );
         return events;
     }
