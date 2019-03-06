@@ -21,6 +21,8 @@ import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.titus.api.eviction.service.EvictionOperations;
+import com.netflix.titus.master.eviction.service.quota.job.ArchaiusEffectiveJobDisruptionBudgetResolver;
+import com.netflix.titus.master.eviction.service.quota.job.EffectiveJobDisruptionBudgetResolver;
 import com.netflix.titus.master.eviction.service.quota.system.ArchaiusSystemDisruptionBudgetResolver;
 import com.netflix.titus.master.eviction.service.quota.system.SystemDisruptionBudgetResolver;
 
@@ -28,6 +30,7 @@ public class EvictionServiceModule extends AbstractModule {
     @Override
     protected void configure() {
         bind(SystemDisruptionBudgetResolver.class).to(ArchaiusSystemDisruptionBudgetResolver.class);
+        bind(EffectiveJobDisruptionBudgetResolver.class).to(ArchaiusEffectiveJobDisruptionBudgetResolver.class);
         bind(EvictionOperations.class).to(DefaultEvictionOperations.class);
     }
 

@@ -79,6 +79,7 @@ public class JobQuotaControllerTest {
                         newBatchJob(10, budget(percentageOfHealthyPolicy(80.0), hourlyRatePercentage(5), Collections.emptyList())),
                         10
                 ),
+                SelfJobDisruptionBudgetResolver.getInstance(),
                 UnhealthyTasksLimitTracker.class
         );
 
@@ -87,6 +88,7 @@ public class JobQuotaControllerTest {
                         newBatchJob(10, budget(percentageOfHealthyPolicy(80.0), hourlyRatePercentage(5), singletonList(officeHourTimeWindow()))),
                         10
                 ),
+                SelfJobDisruptionBudgetResolver.getInstance(),
                 UnhealthyTasksLimitTracker.class, TimeWindowQuotaTracker.class
         );
 
@@ -95,20 +97,22 @@ public class JobQuotaControllerTest {
                         newBatchJob(10, budget(numberOfHealthyPolicy(2), hourlyRatePercentage(5), singletonList(officeHourTimeWindow()))),
                         10
                 ),
+                SelfJobDisruptionBudgetResolver.getInstance(),
                 UnhealthyTasksLimitTracker.class, TimeWindowQuotaTracker.class
         );
 
         testBuildQuotaTrackers(
                 scheduleJob(
-                        newBatchJob(10, budget(selfManagedPolicy(10_000), hourlyRatePercentage(5), singletonList(officeHourTimeWindow()))),
+                        newBatchJob(10, budget(selfManagedPolicy(10_000), unlimitedRate(), Collections.emptyList())),
                         10
                 ),
-                SelfManagedPolicyTracker.class, TimeWindowQuotaTracker.class
+                job -> budget(perTaskRelocationLimitPolicy(100), hourlyRatePercentage(5), singletonList(officeHourTimeWindow())),
+                TimeWindowQuotaTracker.class
         );
     }
 
-    private void testBuildQuotaTrackers(Job<?> job, Class<?>... expectedTypes) {
-        List<QuotaTracker> trackers = buildQuotaTrackers(job, jobOperations, containerHealthService, titusRuntime);
+    private void testBuildQuotaTrackers(Job<?> job, EffectiveJobDisruptionBudgetResolver fallback, Class<?>... expectedTypes) {
+        List<QuotaTracker> trackers = buildQuotaTrackers(job, jobOperations, fallback, containerHealthService, titusRuntime);
         checkContains(trackers, expectedTypes);
     }
 
@@ -119,6 +123,7 @@ public class JobQuotaControllerTest {
                         newBatchJob(10, budget(perTaskRelocationLimitPolicy(3), unlimitedRate(), Collections.emptyList())),
                         10
                 ),
+                SelfJobDisruptionBudgetResolver.getInstance(),
                 TaskRelocationLimitController.class
         );
 
@@ -127,12 +132,22 @@ public class JobQuotaControllerTest {
                         newBatchJob(10, budget(perTaskRelocationLimitPolicy(3), hourlyRatePercentage(5), Collections.emptyList())),
                         10
                 ),
+                SelfJobDisruptionBudgetResolver.getInstance(),
                 JobPercentagePerHourRelocationRateController.class, TaskRelocationLimitController.class
+        );
+
+        testBuildQuotaControllers(
+                scheduleJob(
+                        newBatchJob(10, budget(selfManagedPolicy(10_000), unlimitedRate(), Collections.emptyList())),
+                        10
+                ),
+                job -> budget(perTaskRelocationLimitPolicy(100), hourlyRatePercentage(5), singletonList(officeHourTimeWindow())),
+                TaskRelocationLimitController.class, JobPercentagePerHourRelocationRateController.class
         );
     }
 
-    private void testBuildQuotaControllers(Job<?> job, Class<?>... expectedTypes) {
-        List<QuotaController<Job<?>>> controllers = buildQuotaControllers(job, jobOperations, titusRuntime);
+    private void testBuildQuotaControllers(Job<?> job, EffectiveJobDisruptionBudgetResolver fallback, Class<?>... expectedTypes) {
+        List<QuotaController<Job<?>>> controllers = buildQuotaControllers(job, jobOperations, fallback, titusRuntime);
         checkContains(controllers, expectedTypes);
     }
 
@@ -144,7 +159,7 @@ public class JobQuotaControllerTest {
 
         scheduleJob(job, 10);
 
-        List<QuotaController<Job<?>>> controllers = buildQuotaControllers(job, jobOperations, titusRuntime);
+        List<QuotaController<Job<?>>> controllers = buildQuotaControllers(job, jobOperations, SelfJobDisruptionBudgetResolver.getInstance(), titusRuntime);
         JobPercentagePerHourRelocationRateController controller = (JobPercentagePerHourRelocationRateController) controllers.get(0);
 
         Task task = jobOperations.getTasks(job.getId()).get(0);
@@ -153,7 +168,7 @@ public class JobQuotaControllerTest {
 
         // Change job descriptor and consume some quota
         Job<BatchJobExt> updatedJob = jobComponentStub.changeJob(exceptRate(job, hourlyRatePercentage(80)));
-        List<QuotaController<Job<?>>> merged = mergeQuotaControllers(controllers, updatedJob, jobOperations, titusRuntime);
+        List<QuotaController<Job<?>>> merged = mergeQuotaControllers(controllers, updatedJob, jobOperations, SelfJobDisruptionBudgetResolver.getInstance(), titusRuntime);
         JobPercentagePerHourRelocationRateController updatedController = (JobPercentagePerHourRelocationRateController) merged.get(0);
 
         assertThat(updatedController.getQuota(jobReference).getQuota()).isEqualTo(7);
@@ -165,7 +180,7 @@ public class JobQuotaControllerTest {
         Job<BatchJobExt> job = newBatchJob(10, budget(perTaskRelocationLimitPolicy(1), unlimitedRate(), Collections.emptyList()));
         scheduleJob(job, 10);
 
-        List<QuotaController<Job<?>>> controllers = buildQuotaControllers(job, jobOperations, titusRuntime);
+        List<QuotaController<Job<?>>> controllers = buildQuotaControllers(job, jobOperations, SelfJobDisruptionBudgetResolver.getInstance(), titusRuntime);
         TaskRelocationLimitController controller = (TaskRelocationLimitController) controllers.get(0);
 
         Task task = jobOperations.getTasks(job.getId()).get(0);
@@ -174,7 +189,7 @@ public class JobQuotaControllerTest {
 
         // Change job descriptor and consume some quota
         Job<BatchJobExt> updatedJob = jobComponentStub.changeJob(exceptPolicy(job, perTaskRelocationLimitPolicy(3)));
-        List<QuotaController<Job<?>>> merged = mergeQuotaControllers(controllers, updatedJob, jobOperations, titusRuntime);
+        List<QuotaController<Job<?>>> merged = mergeQuotaControllers(controllers, updatedJob, jobOperations, SelfJobDisruptionBudgetResolver.getInstance(), titusRuntime);
         TaskRelocationLimitController updatedController = (TaskRelocationLimitController) merged.get(0);
 
         assertThat(updatedController.consume(task.getId()).isApproved()).isTrue();
@@ -188,7 +203,7 @@ public class JobQuotaControllerTest {
         com.netflix.titus.api.model.reference.Reference jobReference = com.netflix.titus.api.model.reference.Reference.job(job.getId());
 
         scheduleJob(job, 10);
-        JobQuotaController jobController = new JobQuotaController(job, jobOperations, containerHealthService, titusRuntime);
+        JobQuotaController jobController = new JobQuotaController(job, jobOperations, SelfJobDisruptionBudgetResolver.getInstance(), containerHealthService, titusRuntime);
 
         assertThat(jobController.getQuota(jobReference).getQuota()).isEqualTo(0);
     }
@@ -199,7 +214,7 @@ public class JobQuotaControllerTest {
         com.netflix.titus.api.model.reference.Reference jobReference = com.netflix.titus.api.model.reference.Reference.job(job.getId());
 
         scheduleJob(job, 10);
-        JobQuotaController jobController = new JobQuotaController(job, jobOperations, containerHealthService, titusRuntime);
+        JobQuotaController jobController = new JobQuotaController(job, jobOperations, SelfJobDisruptionBudgetResolver.getInstance(), containerHealthService, titusRuntime);
 
         assertThat(jobController.getQuota(jobReference).getQuota()).isEqualTo(2);
 
@@ -213,7 +228,7 @@ public class JobQuotaControllerTest {
         com.netflix.titus.api.model.reference.Reference jobReference = com.netflix.titus.api.model.reference.Reference.job(job.getId());
 
         scheduleJob(job, 10);
-        JobQuotaController jobController = new JobQuotaController(job, jobOperations, containerHealthService, titusRuntime);
+        JobQuotaController jobController = new JobQuotaController(job, jobOperations, SelfJobDisruptionBudgetResolver.getInstance(), containerHealthService, titusRuntime);
 
         assertThat(jobController.getQuota(jobReference).getQuota()).isEqualTo(2);
 
@@ -233,7 +248,7 @@ public class JobQuotaControllerTest {
         com.netflix.titus.api.model.reference.Reference jobReference = com.netflix.titus.api.model.reference.Reference.job(job.getId());
 
         scheduleJob(job, 10);
-        JobQuotaController jobController = new JobQuotaController(job, jobOperations, containerHealthService, titusRuntime);
+        JobQuotaController jobController = new JobQuotaController(job, jobOperations, SelfJobDisruptionBudgetResolver.getInstance(), containerHealthService, titusRuntime);
 
         assertThat(jobController.getQuota(jobReference).getQuota()).isEqualTo(2);
 
@@ -258,6 +273,27 @@ public class JobQuotaControllerTest {
 
         JobQuotaController updatedController2 = jobController.update(scaledJob);
         assertThat(updatedController2.getQuota(jobReference).getQuota()).isEqualTo(13); // 3 task kills out of 16 allowed in an hour
+    }
+
+    @Test
+    public void testSelfManagedJobUsesInternalDisruptionBudget() {
+        Job<BatchJobExt> job = newBatchJob(10, budget(selfManagedPolicy(1_000), unlimitedRate(), Collections.emptyList()));
+        com.netflix.titus.api.model.reference.Reference jobReference = com.netflix.titus.api.model.reference.Reference.job(job.getId());
+
+        scheduleJob(job, 10);
+
+        EffectiveJobDisruptionBudgetResolver budgetResolver = j -> budget(perTaskRelocationLimitPolicy(100), hourlyRatePercentage(5), singletonList(officeHourTimeWindow()));
+        JobQuotaController jobController = new JobQuotaController(job, jobOperations, budgetResolver, containerHealthService, titusRuntime);
+
+        assertThat(jobController.getQuota(jobReference).getQuota()).isEqualTo(1);
+
+        Task task = jobOperations.getTasks(job.getId()).get(0);
+        assertThat(jobController.consume(task.getId()).isApproved()).isTrue();
+
+        assertThat(jobController.getQuota(jobReference).getQuota()).isEqualTo(0);
+        ConsumptionResult failure = jobController.consume(task.getId());
+        assertThat(failure.isApproved()).isFalse();
+        assertThat(failure.getRejectionReason().get()).contains("JobPercentagePerHourRelocationRateController");
     }
 
     private void checkContains(List<? extends QuotaTracker> trackers, Class<?>... expectedTypes) {

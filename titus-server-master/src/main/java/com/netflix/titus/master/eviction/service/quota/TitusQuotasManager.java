@@ -36,6 +36,7 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.rx.ReactorRetriers;
+import com.netflix.titus.master.eviction.service.quota.job.EffectiveJobDisruptionBudgetResolver;
 import com.netflix.titus.master.eviction.service.quota.job.JobQuotaController;
 import com.netflix.titus.master.eviction.service.quota.system.SystemQuotaController;
 import org.slf4j.Logger;
@@ -56,6 +57,7 @@ public class TitusQuotasManager {
     private static final ConsumptionResult UNKNOWN_JOB = ConsumptionResult.rejected("Unknown job");
 
     private final V3JobOperations jobOperations;
+    private final EffectiveJobDisruptionBudgetResolver budgetResolver;
     private final ContainerHealthService containerHealthService;
     private final SystemQuotaController systemQuotaController;
     private final TitusRuntime titusRuntime;
@@ -68,9 +70,11 @@ public class TitusQuotasManager {
 
     @Inject
     public TitusQuotasManager(V3JobOperations jobOperations,
+                              EffectiveJobDisruptionBudgetResolver budgetResolver,
                               ContainerHealthService containerHealthService,
                               SystemQuotaController systemQuotaController,
                               TitusRuntime titusRuntime) {
+        this.budgetResolver = budgetResolver;
         this.containerHealthService = containerHealthService;
         this.systemQuotaController = systemQuotaController;
         this.jobOperations = jobOperations;
@@ -159,7 +163,7 @@ public class TitusQuotasManager {
         if (jobQuotaController != null) {
             jobQuotaControllersByJobId.put(newJob.getId(), jobQuotaController.update(newJob));
         } else {
-            jobQuotaControllersByJobId.put(newJob.getId(), new JobQuotaController(newJob, jobOperations, containerHealthService, titusRuntime));
+            jobQuotaControllersByJobId.put(newJob.getId(), new JobQuotaController(newJob, jobOperations, budgetResolver, containerHealthService, titusRuntime));
         }
     }
 }

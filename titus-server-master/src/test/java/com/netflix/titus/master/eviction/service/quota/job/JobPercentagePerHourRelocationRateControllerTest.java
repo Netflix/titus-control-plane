@@ -52,6 +52,7 @@ public class JobPercentagePerHourRelocationRateControllerTest {
     public void testQuota() {
         JobPercentagePerHourRelocationRateController quotaController = new JobPercentagePerHourRelocationRateController(
                 exceptRate(REFERENCE_JOB, hourlyRatePercentage(50)),
+                SelfJobDisruptionBudgetResolver.getInstance(),
                 titusRuntime
         );
 
@@ -75,6 +76,7 @@ public class JobPercentagePerHourRelocationRateControllerTest {
     public void testJobUpdate() {
         JobPercentagePerHourRelocationRateController firstController = new JobPercentagePerHourRelocationRateController(
                 exceptRate(REFERENCE_JOB, hourlyRatePercentage(50)),
+                SelfJobDisruptionBudgetResolver.getInstance(),
                 titusRuntime
         );
 

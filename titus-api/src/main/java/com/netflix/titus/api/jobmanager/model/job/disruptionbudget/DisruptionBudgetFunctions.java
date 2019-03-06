@@ -39,4 +39,8 @@ public final class DisruptionBudgetFunctions {
     public static boolean isLegacyJob(Job<?> job) {
         return isLegacyJobDescriptor(job.getJobDescriptor());
     }
+
+    public static boolean isSelfManaged(Job<?> job) {
+        return job.getJobDescriptor().getDisruptionBudget().getDisruptionBudgetPolicy() instanceof SelfManagedDisruptionBudgetPolicy;
+    }
 }

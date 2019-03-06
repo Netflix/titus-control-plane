@@ -97,7 +97,7 @@ public class TaskMigrationDeschedulerTest {
     }
 
     @Test
-    public void testDelayedMigrations() {
+    public void testSelfMigration() {
         Task job1Task0 = jobOperations.getTasks("job1").get(0);
 
         dataGenerator.place("removable1", job1Task0);
@@ -110,6 +110,22 @@ public class TaskMigrationDeschedulerTest {
 
         Optional<Pair<AgentInstance, List<Task>>> results = newDescheduler(Collections.singletonMap(job1Task0.getId(), job1Task0Plan)).nextBestMatch();
         assertThat(results).isEmpty();
+    }
+
+    @Test
+    public void testSelfMigrationAfterDeadline() {
+        Task job1Task0 = jobOperations.getTasks("job1").get(0);
+
+        dataGenerator.place("removable1", job1Task0);
+        dataGenerator.setQuota("job1", 1);
+
+        TaskRelocationPlan job1Task0Plan = TaskRelocationPlan.newBuilder()
+                .withTaskId(job1Task0.getId())
+                .withRelocationTime(clock.wallTime() - 1)
+                .build();
+
+        Optional<Pair<AgentInstance, List<Task>>> results = newDescheduler(Collections.singletonMap(job1Task0.getId(), job1Task0Plan)).nextBestMatch();
+        assertThat(results).isNotEmpty();
     }
 
     @Test

@@ -35,9 +35,13 @@ public class JobPercentagePerHourRelocationRateController implements QuotaContro
     private final int limitPerHour;
     private final ConsumptionResult rejectionResult;
 
+    private final EffectiveJobDisruptionBudgetResolver budgetResolver;
     private final TitusRuntime titusRuntime;
 
-    public JobPercentagePerHourRelocationRateController(Job<?> job, TitusRuntime titusRuntime) {
+    public JobPercentagePerHourRelocationRateController(Job<?> job,
+                                                        EffectiveJobDisruptionBudgetResolver budgetResolver,
+                                                        TitusRuntime titusRuntime) {
+        this.budgetResolver = budgetResolver;
         this.titusRuntime = titusRuntime;
 
         this.rollingCount = new RollingCount(STEP_TIME_MS, STEPS, titusRuntime.getClock().wallTime());
@@ -47,6 +51,7 @@ public class JobPercentagePerHourRelocationRateController implements QuotaContro
 
     private JobPercentagePerHourRelocationRateController(Job<?> newJob,
                                                          JobPercentagePerHourRelocationRateController previous) {
+        this.budgetResolver = previous.budgetResolver;
         this.titusRuntime = previous.titusRuntime;
         this.rollingCount = previous.rollingCount;
         this.limitPerHour = computeLimitPerHour(newJob);
@@ -87,8 +92,7 @@ public class JobPercentagePerHourRelocationRateController implements QuotaContro
     }
 
     private int computeLimitPerHour(Job<?> job) {
-        PercentagePerHourDisruptionBudgetRate budgetRate = (PercentagePerHourDisruptionBudgetRate)
-                job.getJobDescriptor().getDisruptionBudget().getDisruptionBudgetRate();
+        PercentagePerHourDisruptionBudgetRate budgetRate = (PercentagePerHourDisruptionBudgetRate) budgetResolver.resolve(job).getDisruptionBudgetRate();
 
         double percentage = budgetRate.getMaxPercentageOfContainersRelocatedInHour();
         int desired = JobFunctions.getJobDesiredSize(job);
