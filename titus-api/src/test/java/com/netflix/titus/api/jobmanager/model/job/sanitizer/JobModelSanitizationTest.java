@@ -37,6 +37,8 @@ import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobModel;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.ContainerHealthProvider;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.Day;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.TimeWindow;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.model.EfsMount;
 import com.netflix.titus.api.model.ResourceDimension;
@@ -290,6 +292,23 @@ public class JobModelSanitizationTest {
         Set<ValidationError> violations = entitySanitizer.validate(newJobWithContainerHealthProvider("not_healthy"));
         assertThat(violations).hasSize(1);
         assertThat(first(violations).getDescription()).isEqualTo("Unknown container health service: not_healthy");
+    }
+
+    @Test
+    public void testJobWithInvalidDisruptionBudgetTimeWindow() {
+        JobDescriptor<BatchJobExt> badJobDescriptor = changeDisruptionBudget(
+                oneTaskBatchJobDescriptor(),
+                budget(percentageOfHealthyPolicy(50), unlimitedRate(), Collections.singletonList(TimeWindow.newBuilder()
+                        .withDays(Day.Monday)
+                        .withwithHourlyTimeWindows(16, 8)
+                        .withTimeZone("PST")
+                        .build()
+                ))
+        );
+
+        Set<ValidationError> violations = entitySanitizer.validate(badJobDescriptor);
+        assertThat(violations).hasSize(1);
+        assertThat(first(violations).getDescription()).isEqualTo("'startHour'(16) must be < 'endHour'(8)");
     }
 
     private JobDescriptor<BatchJobExt> newJobWithContainerHealthProvider(String healthProviderName) {

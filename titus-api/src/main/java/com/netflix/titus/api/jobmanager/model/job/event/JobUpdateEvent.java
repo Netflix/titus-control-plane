@@ -18,11 +18,12 @@ package com.netflix.titus.api.jobmanager.model.job.event;
 
 import java.util.Optional;
 
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 
 public class JobUpdateEvent extends JobManagerEvent<Job> {
-    private JobUpdateEvent(Job current, Optional<Job> previous) {
-        super(current, previous);
+    private JobUpdateEvent(Job current, Optional<Job> previous, CallMetadata callMetadata) {
+        super(current, previous, callMetadata);
     }
 
     @Override
@@ -30,14 +31,15 @@ public class JobUpdateEvent extends JobManagerEvent<Job> {
         return "JobUpdateEvent{" +
                 "current=" + getCurrent() +
                 ", previous=" + getPrevious() +
+                ", callMetadata" + getCallMetadata() +
                 "}";
     }
 
-    public static JobUpdateEvent newJob(Job current) {
-        return new JobUpdateEvent(current, Optional.empty());
+    public static JobUpdateEvent newJob(Job current, CallMetadata callMetadata) {
+        return new JobUpdateEvent(current, Optional.empty(), callMetadata);
     }
 
-    public static JobUpdateEvent jobChange(Job current, Job previous) {
-        return new JobUpdateEvent(current, Optional.of(previous));
+    public static JobUpdateEvent jobChange(Job current, Job previous, CallMetadata callMetadata) {
+        return new JobUpdateEvent(current, Optional.of(previous), callMetadata);
     }
 }

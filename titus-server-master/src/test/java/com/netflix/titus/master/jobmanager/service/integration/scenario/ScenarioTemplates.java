@@ -54,7 +54,7 @@ public class ScenarioTemplates {
                     assertThat(task.getTaskContext())
                             .containsEntry(TaskAttributes.TASK_ATTRIBUTES_CELL, JobDescriptorGenerator.TEST_CELL_NAME);
                     assertThat(task.getTaskContext())
-                            .containsEntry(TaskAttributes.TASK_ATTRIBUTES_STACK, JobDescriptorGenerator.TEST_CELL_NAME);
+                            .containsEntry(TaskAttributes.TASK_ATTRIBUTES_STACK, JobDescriptorGenerator.TEST_STACK_NAME);
                 })
                 .expectTaskStateChangeEvent(taskIdx, resubmit, TaskState.Accepted)
                 .expectScheduleRequest(taskIdx, resubmit);

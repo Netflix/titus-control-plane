@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -409,6 +410,11 @@ public class JobScenarioBuilder {
             long matching = getLastTaskHolders().stream().filter(t -> predicate.test(t.getTaskScenarioBuilder())).count();
             return matching == count;
         });
+        return this;
+    }
+
+    public JobScenarioBuilder inJob(Consumer<Job<?>> consumer) {
+        consumer.accept(getJob());
         return this;
     }
 

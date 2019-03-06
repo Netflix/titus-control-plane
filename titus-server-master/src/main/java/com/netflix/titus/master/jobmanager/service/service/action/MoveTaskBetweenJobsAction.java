@@ -36,7 +36,7 @@ import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import com.netflix.titus.common.framework.reconciler.MultiEngineChangeAction;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
-import com.netflix.titus.master.jobmanager.service.JobManagerConstants;
+import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
 import rx.Observable;

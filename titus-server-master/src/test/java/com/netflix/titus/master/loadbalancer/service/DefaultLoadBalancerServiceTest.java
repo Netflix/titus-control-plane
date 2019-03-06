@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 import com.netflix.titus.api.connector.cloud.LoadBalancer;
 import com.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
@@ -83,6 +84,7 @@ public class DefaultLoadBalancerServiceTest {
     private PublishSubject<TargetStateBatchable> reconcilerEvents;
     private LoadBalancerJobValidator validator;
     private TestScheduler testScheduler;
+    private CallMetadata  callMetadata = CallMetadata.newBuilder().withCallerId("Load Balancer test").build();
 
     private void defaultStubs() {
         when(client.registerAll(any(), any())).thenReturn(Completable.complete());
@@ -311,7 +313,7 @@ public class DefaultLoadBalancerServiceTest {
                     .build();
             newTasks.add(started);
 
-            taskEvents.onNext(TaskUpdateEvent.taskChange(null, started, startingWithIp));
+            taskEvents.onNext(TaskUpdateEvent.taskChange(null, started, startingWithIp, callMetadata));
         }
 
         testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
@@ -590,7 +592,7 @@ public class DefaultLoadBalancerServiceTest {
                 .build();
 
         // events with no state transition gets ignored
-        taskEvents.onNext(TaskUpdateEvent.newTask(null, launched));
+        taskEvents.onNext(TaskUpdateEvent.newTask(null, launched, callMetadata));
         testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
 
         testSubscriber.assertNoErrors().assertValueCount(0);
@@ -599,7 +601,7 @@ public class DefaultLoadBalancerServiceTest {
         verifyNoReconcilerIgnore();
 
         // events to !Started states get ignored
-        taskEvents.onNext(TaskUpdateEvent.taskChange(null, startingWithIp, launched));
+        taskEvents.onNext(TaskUpdateEvent.taskChange(null, startingWithIp, launched, callMetadata));
         testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
 
         testSubscriber.assertNoErrors().assertValueCount(0);
@@ -608,7 +610,7 @@ public class DefaultLoadBalancerServiceTest {
         verifyNoReconcilerIgnore();
 
         // finally detect the task is UP and gets registered
-        taskEvents.onNext(TaskUpdateEvent.taskChange(null, started, startingWithIp));
+        taskEvents.onNext(TaskUpdateEvent.taskChange(null, started, startingWithIp, callMetadata));
         testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
 
         testSubscriber.assertNoErrors().assertValueCount(1);
@@ -655,7 +657,7 @@ public class DefaultLoadBalancerServiceTest {
                 .withStatus(TaskStatus.newBuilder().withState(TaskState.Finished).build())
                 .build();
 
-        taskEvents.onNext(TaskUpdateEvent.taskChange(null, noIpFinished, noIp));
+        taskEvents.onNext(TaskUpdateEvent.taskChange(null, noIpFinished, noIp, callMetadata));
         testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
 
         testSubscriber.assertNoErrors().assertValueCount(0);
@@ -675,7 +677,7 @@ public class DefaultLoadBalancerServiceTest {
                 .withStatus(TaskStatus.newBuilder().withState(TaskState.Finished).build())
                 .build();
 
-        taskEvents.onNext(TaskUpdateEvent.taskChange(null, firstFinished, first));
+        taskEvents.onNext(TaskUpdateEvent.taskChange(null, firstFinished, first, callMetadata));
         testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
 
         testSubscriber.assertNoErrors().assertValueCount(1);
@@ -692,7 +694,7 @@ public class DefaultLoadBalancerServiceTest {
                 .withStatus(TaskStatus.newBuilder().withState(TaskState.KillInitiated).build())
                 .build();
 
-        taskEvents.onNext(TaskUpdateEvent.taskChange(null, secondKilling, second));
+        taskEvents.onNext(TaskUpdateEvent.taskChange(null, secondKilling, second, callMetadata));
         testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
 
         testSubscriber.assertNoErrors().assertValueCount(2);
@@ -709,7 +711,7 @@ public class DefaultLoadBalancerServiceTest {
                 .withStatus(TaskStatus.newBuilder().withState(TaskState.Disconnected).build())
                 .build();
 
-        taskEvents.onNext(TaskUpdateEvent.taskChange(null, thirdDisconnected, third));
+        taskEvents.onNext(TaskUpdateEvent.taskChange(null, thirdDisconnected, third, callMetadata));
         testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
 
         testSubscriber.assertNoErrors().assertValueCount(3);
@@ -767,7 +769,7 @@ public class DefaultLoadBalancerServiceTest {
                 )).build();
 
         // detect the task is moved, gets deregistered from the source and registered on the target
-        taskEvents.onNext(TaskUpdateEvent.newTaskFromAnotherJob(null, moved));
+        taskEvents.onNext(TaskUpdateEvent.newTaskFromAnotherJob(null, moved, callMetadata));
         testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
 
         testSubscriber.assertNoErrors().assertValueCount(2);
@@ -826,7 +828,7 @@ public class DefaultLoadBalancerServiceTest {
                 )).build();
 
         // detect the task is moved and gets registered on the target
-        taskEvents.onNext(TaskUpdateEvent.newTaskFromAnotherJob(null, moved));
+        taskEvents.onNext(TaskUpdateEvent.newTaskFromAnotherJob(null, moved, callMetadata));
         testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
 
         testSubscriber.assertNoErrors().assertValueCount(1);
@@ -878,7 +880,7 @@ public class DefaultLoadBalancerServiceTest {
                 )).build();
 
         // detect the task is moved and gets deregistered from the source
-        taskEvents.onNext(TaskUpdateEvent.newTaskFromAnotherJob(null, moved));
+        taskEvents.onNext(TaskUpdateEvent.newTaskFromAnotherJob(null, moved, callMetadata));
         testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
 
         testSubscriber.assertNoErrors().assertValueCount(1);

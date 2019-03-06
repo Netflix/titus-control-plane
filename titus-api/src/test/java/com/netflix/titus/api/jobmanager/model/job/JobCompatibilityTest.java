@@ -102,7 +102,7 @@ public class JobCompatibilityTest {
     }
 
     @Test
-    public void testAttributesNotPrefixedWithTitusAreCompatible() {
+    public void testJobAttributesAreIgnored() {
         JobDescriptor<ServiceJobExt> reference = JobDescriptorGenerator.oneTaskServiceJobDescriptor();
         JobDescriptor<ServiceJobExt> other = reference.toBuilder()
                 .withAttributes(CollectionsExt.copyAndAdd(reference.getAttributes(), "spinnaker.useApplicationDefaultSecurityGroup", "true"))
@@ -114,7 +114,7 @@ public class JobCompatibilityTest {
                 .withAttributes(CollectionsExt.copyAndAdd(reference.getAttributes(), "titus.value", "important"))
                 .build();
         JobCompatibility compatibility2 = JobCompatibility.of(reference, incompatible);
-        assertThat(compatibility2.isCompatible()).isFalse();
+        assertThat(compatibility2.isCompatible()).isTrue();
     }
 
     @Test

@@ -322,6 +322,7 @@ public final class V3GrpcModelConverters {
         return TimeWindow.newBuilder()
                 .withDays(toCoreDays(grpcTimeWindow.getDaysList()))
                 .withHourlyTimeWindows(toCoreHourlyTimeWindows(grpcTimeWindow.getHourlyTimeWindowsList()))
+                .withTimeZone(grpcTimeWindow.getTimeZone())
                 .build();
     }
 
@@ -676,6 +677,7 @@ public final class V3GrpcModelConverters {
         return com.netflix.titus.grpc.protogen.TimeWindow.newBuilder()
                 .addAllDays(toGrpcDays(coreTimeWindow.getDays()))
                 .addAllHourlyTimeWindows(toGrpcHourlyTimeWindows(coreTimeWindow.getHourlyTimeWindows()))
+                .setTimeZone(coreTimeWindow.getTimeZone())
                 .build();
     }
 

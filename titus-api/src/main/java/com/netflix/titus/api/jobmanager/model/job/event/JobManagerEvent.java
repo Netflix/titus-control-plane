@@ -19,7 +19,9 @@ package com.netflix.titus.api.jobmanager.model.job.event;
 import java.util.Objects;
 import java.util.Optional;
 
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 
 public abstract class JobManagerEvent<TYPE> {
 
@@ -27,10 +29,12 @@ public abstract class JobManagerEvent<TYPE> {
 
     private final TYPE current;
     private final Optional<TYPE> previous;
+    private final CallMetadata callMetadata;
 
-    protected JobManagerEvent(TYPE current, Optional<TYPE> previous) {
+    protected JobManagerEvent(TYPE current, Optional<TYPE> previous, CallMetadata callMetadata) {
         this.current = current;
         this.previous = previous;
+        this.callMetadata = callMetadata;
     }
 
     public TYPE getCurrent() {
@@ -39,6 +43,13 @@ public abstract class JobManagerEvent<TYPE> {
 
     public Optional<TYPE> getPrevious() {
         return previous;
+    }
+
+    public CallMetadata getCallMetadata() {
+        if (callMetadata == null) {
+            return JobManagerConstants.UNDEFINED_CALL_METADATA;
+        }
+        return callMetadata;
     }
 
     @Override
@@ -66,7 +77,7 @@ public abstract class JobManagerEvent<TYPE> {
     private static class SnapshotMarkerEvent extends JobManagerEvent<Job> {
 
         private SnapshotMarkerEvent() {
-            super(Job.newBuilder().build(), Optional.empty());
+            super(Job.newBuilder().build(), Optional.empty(), CallMetadata.newBuilder().withCallerId("SnapshotMarkerEvent").withCallReason("initializing").build());
         }
     }
 }

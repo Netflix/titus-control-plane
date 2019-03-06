@@ -27,6 +27,7 @@ import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
+import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
@@ -170,17 +171,17 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
 
         private JobManagerEvent<?> toJobCoreEvent(Job newJob) {
             return lastJobSnapshotRef.get().findJob(newJob.getId())
-                    .map(previousJob -> JobUpdateEvent.jobChange(newJob, previousJob))
-                    .orElseGet(() -> JobUpdateEvent.newJob(newJob));
+                    .map(previousJob -> JobUpdateEvent.jobChange(newJob, previousJob, JobManagerConstants.GRPC_REPLICATOR_CALL_METADATA))
+                    .orElseGet(() -> JobUpdateEvent.newJob(newJob, JobManagerConstants.GRPC_REPLICATOR_CALL_METADATA));
         }
 
         private JobManagerEvent<?> toTaskCoreEvent(Job<?> job, Task newTask, boolean moved) {
             if (moved) {
-                return TaskUpdateEvent.newTaskFromAnotherJob(job, newTask);
+                return TaskUpdateEvent.newTaskFromAnotherJob(job, newTask, JobManagerConstants.GRPC_REPLICATOR_CALL_METADATA);
             }
             return lastJobSnapshotRef.get().findTaskById(newTask.getId())
-                    .map(jobTaskPair -> TaskUpdateEvent.taskChange(job, newTask, jobTaskPair.getRight()))
-                    .orElseGet(() -> TaskUpdateEvent.newTask(job, newTask));
+                    .map(jobTaskPair -> TaskUpdateEvent.taskChange(job, newTask, jobTaskPair.getRight(), JobManagerConstants.GRPC_REPLICATOR_CALL_METADATA))
+                    .orElseGet(() -> TaskUpdateEvent.newTask(job, newTask, JobManagerConstants.GRPC_REPLICATOR_CALL_METADATA));
         }
     }
 }

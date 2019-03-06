@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import javax.validation.Valid;
 
 import com.google.common.base.Preconditions;
 import com.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
@@ -38,6 +39,7 @@ public class TimeWindow {
     private final List<Day> days;
 
     @CollectionInvariants
+    @Valid
     private final List<HourlyTimeWindow> hourlyTimeWindows;
 
     private final String timeZone;
