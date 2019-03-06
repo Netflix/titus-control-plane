@@ -37,17 +37,17 @@ import org.junit.rules.RuleChain;
 import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.changeDisruptionBudget;
 import static com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCells.basicCell;
 import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator.budget;
+import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator.numberOfHealthyPolicy;
 import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator.officeHourTimeWindow;
 import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator.percentageOfHealthyPolicy;
-import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator.selfManagedPolicy;
 import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator.unlimitedRate;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskServiceJobDescriptor;
 
 @Category(IntegrationTest.class)
 public class JobDisruptionBudgetTest extends BaseIntegrationTest {
 
-    private static final DisruptionBudget SELF_MANAGED = budget(
-            selfManagedPolicy(10_000), unlimitedRate(), Collections.singletonList(officeHourTimeWindow())
+    private static final DisruptionBudget NUMBER_OF_HEALTHY = budget(
+            numberOfHealthyPolicy(10), unlimitedRate(), Collections.singletonList(officeHourTimeWindow())
     );
 
     private static final DisruptionBudget PERCENTAGE = budget(
@@ -70,7 +70,7 @@ public class JobDisruptionBudgetTest extends BaseIntegrationTest {
 
     @Test(timeout = TEST_TIMEOUT_MS)
     public void testDisruptionBudgetUpdate() throws Exception {
-        JobDescriptor<ServiceJobExt> jobWithSelfManaged = changeDisruptionBudget(oneTaskServiceJobDescriptor(), SELF_MANAGED);
+        JobDescriptor<ServiceJobExt> jobWithSelfManaged = changeDisruptionBudget(oneTaskServiceJobDescriptor(), NUMBER_OF_HEALTHY);
 
         jobsScenarioBuilder.schedule(jobWithSelfManaged, jobScenarioBuilder -> jobScenarioBuilder
                 .template(ScenarioTemplates.jobAccepted())

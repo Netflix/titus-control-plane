@@ -51,11 +51,15 @@ public class Clocks {
     }
 
     public static TestClock testWorldClock() {
-        return new TestWorldClock();
+        return new TestWorldClock("UTC");
+    }
+
+    public static TestClock testWorldClock(String zoneId) {
+        return new TestWorldClock(zoneId);
     }
 
     public static TestClock testWorldClock(int year, Month month, int day) {
-        return new TestWorldClock(year, month, day);
+        return new TestWorldClock("UTC", year, month, day);
     }
 
     public static TestClock testScheduler(TestScheduler testScheduler) {

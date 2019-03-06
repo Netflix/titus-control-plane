@@ -62,7 +62,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class JobQuotaControllerTest {
 
-    private final TestClock clock = Clocks.testWorldClock().jumpForwardTo(DayOfWeek.MONDAY).resetTime(9, 0, 0);
+    private final TestClock clock = Clocks.testWorldClock("PST").jumpForwardTo(DayOfWeek.MONDAY).resetTime(9, 0, 0);
 
     private final TitusRuntime titusRuntime = TitusRuntimes.test(clock);
 

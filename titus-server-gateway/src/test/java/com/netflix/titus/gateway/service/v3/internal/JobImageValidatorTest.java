@@ -114,7 +114,7 @@ public class JobImageValidatorTest {
         StepVerifier.create(validator.sanitize(jobDescriptorWithDigest))
                 .assertNext(sanitizedJobDescriptor -> {
                     assertThat(sanitizedJobDescriptor.getContainer().getImage().getDigest().equals(digest)).isTrue();
-                    assertThat(sanitizedJobDescriptor.getContainer().getImage().getTag()).isNull();
+                    assertThat(sanitizedJobDescriptor.getContainer().getImage().getTag()).isEqualTo("");
                 })
                 .verifyComplete();
     }

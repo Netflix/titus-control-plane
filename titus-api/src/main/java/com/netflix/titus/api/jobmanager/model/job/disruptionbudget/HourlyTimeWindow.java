@@ -20,6 +20,9 @@ import java.util.Objects;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 
+import com.netflix.titus.common.model.sanitizer.ClassInvariant;
+
+@ClassInvariant(condition = "startHour < endHour", message = "'startHour'(#{startHour}) must be < 'endHour'(#{endHour})")
 public class HourlyTimeWindow {
 
     @Min(0)

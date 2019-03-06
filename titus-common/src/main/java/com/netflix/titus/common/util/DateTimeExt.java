@@ -18,6 +18,7 @@ package com.netflix.titus.common.util;
 
 import java.time.Instant;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.TimeUnit;
 
@@ -40,6 +41,10 @@ public final class DateTimeExt {
             full = timeZoneName;
         }
         return ZoneId.of(full);
+    }
+
+    public static ZoneOffset toZoneOffset(String timeZoneName) {
+        return toZoneId(timeZoneName).getRules().getOffset(Instant.now());
     }
 
     /**
