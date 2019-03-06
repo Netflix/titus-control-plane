@@ -16,70 +16,56 @@
 
 package com.netflix.titus.supplementary.relocation.integration;
 
-import javax.inject.Singleton;
-
-import com.google.inject.AbstractModule;
-import com.google.inject.Provides;
-import com.netflix.archaius.ConfigProxyFactory;
-import com.netflix.archaius.config.MapConfig;
-import com.netflix.archaius.guice.ArchaiusModule;
-import com.netflix.governator.InjectorBuilder;
-import com.netflix.governator.LifecycleInjector;
 import com.netflix.titus.supplementary.relocation.RelocationConfiguration;
 import com.netflix.titus.supplementary.relocation.RelocationConnectorStubs;
-import com.netflix.titus.supplementary.relocation.descheduler.DeschedulerModule;
-import com.netflix.titus.supplementary.relocation.endpoint.TaskRelocationEndpointModule;
+import com.netflix.titus.supplementary.relocation.descheduler.DeschedulerComponent;
+import com.netflix.titus.supplementary.relocation.endpoint.grpc.TaskRelocationGrpcComponent;
 import com.netflix.titus.supplementary.relocation.endpoint.grpc.TaskRelocationGrpcServer;
-import com.netflix.titus.supplementary.relocation.store.memory.InMemoryRelocationStoreModule;
-import com.netflix.titus.supplementary.relocation.workflow.RelocationWorkflowModule;
+import com.netflix.titus.supplementary.relocation.endpoint.rest.TaskRelocationExceptionHandler;
+import com.netflix.titus.supplementary.relocation.endpoint.rest.TaskRelocationSpringResource;
+import com.netflix.titus.supplementary.relocation.store.memory.InMemoryRelocationStoreComponent;
+import com.netflix.titus.supplementary.relocation.workflow.TaskRelocationWorkflowComponent;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.mock.env.MockEnvironment;
 
 /**
  * Task relocation server runner, with stubbed external connectors. Used by the task relocation service integration tests.
  */
 public class TaskRelocationSandbox {
 
-    private final LifecycleInjector injector;
+    private final AnnotationConfigApplicationContext container;
 
     public TaskRelocationSandbox(RelocationConnectorStubs relocationConnectorStubs) {
-        this.injector = InjectorBuilder.fromModules(
-                new ArchaiusModule() {
-                    @Override
-                    protected void configureArchaius() {
-                        bindDefaultConfig().toInstance(MapConfig.builder()
-                                .put("titus.relocation.relocationScheduleIntervalMs", "100")
-                                .put("titus.relocation.deschedulingIntervalMs", "100")
-                                .put("titus.relocation.endpoint.port", "0")
-                                .build()
-                        );
-                    }
-                },
-                new AbstractModule() {
-                    @Override
-                    protected void configure() {
-                    }
+        MockEnvironment config = new MockEnvironment();
+        config.setProperty("titus.relocation.endpoint.port", "0");
+        config.setProperty("titus.relocation.relocationScheduleIntervalMs", "100");
+        config.setProperty("titus.relocation.deschedulingIntervalMs", "100");
+        config.setProperty("titus.relocation.relocationTimeoutMs", "60000");
+        config.setProperty("titus.relocation.dataStalenessThresholdMs", "30000");
 
-                    @Provides
-                    @Singleton
-                    public RelocationConfiguration getRelocationConfiguration(ConfigProxyFactory factory) {
-                        return factory.newProxy(RelocationConfiguration.class);
-                    }
-                },
-                relocationConnectorStubs.getModule(),
-                new InMemoryRelocationStoreModule(),
-                new DeschedulerModule(),
-                new RelocationWorkflowModule(),
-                new TaskRelocationEndpointModule()
-        ).createInjector();
+        this.container = new AnnotationConfigApplicationContext();
+        container.getEnvironment().merge(config);
+        container.setParent(relocationConnectorStubs.getApplicationContext());
+        container.register(RelocationConfiguration.class);
+        container.register(InMemoryRelocationStoreComponent.class);
+        container.register(DeschedulerComponent.class);
+        container.register(TaskRelocationWorkflowComponent.class);
+        container.register(TaskRelocationGrpcComponent.class);
+        container.register(TaskRelocationGrpcServer.class);
+        container.register(TaskRelocationSpringResource.class);
+        container.register(TaskRelocationExceptionHandler.class);
+        container.refresh();
+        container.start();
     }
 
     public void shutdown() {
-        injector.close();
+        container.close();
     }
 
     public ManagedChannel getGrpcChannel() {
-        int port = injector.getInstance(TaskRelocationGrpcServer.class).getPort();
+        int port = container.getBean(TaskRelocationGrpcServer.class).getPort();
         return ManagedChannelBuilder.forAddress("localhost", port)
                 .usePlaintext(true)
                 .build();

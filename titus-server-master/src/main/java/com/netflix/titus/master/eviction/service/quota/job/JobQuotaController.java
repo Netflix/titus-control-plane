@@ -32,7 +32,6 @@ import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBud
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.PercentagePerHourDisruptionBudgetRate;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.RelocationLimitDisruptionBudgetPolicy;
-import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.SelfManagedDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.UnhealthyTasksLimitDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.model.reference.Reference;
@@ -48,6 +47,7 @@ public class JobQuotaController implements QuotaController<Job<?>> {
 
     private final Job<?> job;
     private final V3JobOperations jobOperations;
+    private final EffectiveJobDisruptionBudgetResolver effectiveDisruptionBudgetResolver;
     private final ContainerHealthService containerHealthService;
     private final TitusRuntime titusRuntime;
     private final List<QuotaTracker> quotaTrackers;
@@ -55,10 +55,12 @@ public class JobQuotaController implements QuotaController<Job<?>> {
 
     public JobQuotaController(Job<?> job,
                               V3JobOperations jobOperations,
+                              EffectiveJobDisruptionBudgetResolver effectiveDisruptionBudgetResolver,
                               ContainerHealthService containerHealthService,
                               TitusRuntime titusRuntime) {
         this.job = job;
         this.jobOperations = jobOperations;
+        this.effectiveDisruptionBudgetResolver = effectiveDisruptionBudgetResolver;
         this.containerHealthService = containerHealthService;
         this.titusRuntime = titusRuntime;
 
@@ -66,18 +68,20 @@ public class JobQuotaController implements QuotaController<Job<?>> {
             this.quotaTrackers = Collections.emptyList();
             this.quotaControllers = Collections.emptyList();
         } else {
-            this.quotaTrackers = buildQuotaTrackers(job, jobOperations, containerHealthService, titusRuntime);
-            this.quotaControllers = buildQuotaControllers(job, jobOperations, titusRuntime);
+            this.quotaTrackers = buildQuotaTrackers(job, jobOperations, effectiveDisruptionBudgetResolver, containerHealthService, titusRuntime);
+            this.quotaControllers = buildQuotaControllers(job, jobOperations, effectiveDisruptionBudgetResolver, titusRuntime);
         }
     }
 
     private JobQuotaController(Job<?> newJob,
                                V3JobOperations jobOperations,
+                               EffectiveJobDisruptionBudgetResolver effectiveDisruptionBudgetResolver,
                                ContainerHealthService containerHealthService,
                                JobQuotaController previousJobQuotaController,
                                TitusRuntime titusRuntime) {
         this.job = newJob;
         this.jobOperations = jobOperations;
+        this.effectiveDisruptionBudgetResolver = effectiveDisruptionBudgetResolver;
         this.containerHealthService = containerHealthService;
         this.titusRuntime = titusRuntime;
 
@@ -85,8 +89,8 @@ public class JobQuotaController implements QuotaController<Job<?>> {
             this.quotaTrackers = Collections.emptyList();
             this.quotaControllers = Collections.emptyList();
         } else {
-            this.quotaTrackers = buildQuotaTrackers(job, jobOperations, containerHealthService, titusRuntime);
-            this.quotaControllers = mergeQuotaControllers(previousJobQuotaController.quotaControllers, newJob, jobOperations, titusRuntime);
+            this.quotaTrackers = buildQuotaTrackers(job, jobOperations, effectiveDisruptionBudgetResolver, containerHealthService, titusRuntime);
+            this.quotaControllers = mergeQuotaControllers(previousJobQuotaController.quotaControllers, newJob, jobOperations, effectiveDisruptionBudgetResolver, titusRuntime);
         }
     }
 
@@ -167,6 +171,7 @@ public class JobQuotaController implements QuotaController<Job<?>> {
         return new JobQuotaController(
                 updatedJob,
                 jobOperations,
+                effectiveDisruptionBudgetResolver,
                 containerHealthService,
                 this,
                 titusRuntime
@@ -198,23 +203,21 @@ public class JobQuotaController implements QuotaController<Job<?>> {
     @VisibleForTesting
     static List<QuotaTracker> buildQuotaTrackers(Job<?> job,
                                                  V3JobOperations jobOperations,
+                                                 EffectiveJobDisruptionBudgetResolver effectiveDisruptionBudgetResolver,
                                                  ContainerHealthService containerHealthService,
                                                  TitusRuntime titusRuntime) {
         List<QuotaTracker> quotaTrackers = new ArrayList<>();
 
-        DisruptionBudget budget = job.getJobDescriptor().getDisruptionBudget();
-
-        if (!budget.getTimeWindows().isEmpty()) {
-            quotaTrackers.add(new TimeWindowQuotaTracker(budget.getTimeWindows(), titusRuntime));
+        DisruptionBudget effectiveBudget = effectiveDisruptionBudgetResolver.resolve(job);
+        if (!effectiveBudget.getTimeWindows().isEmpty()) {
+            quotaTrackers.add(new TimeWindowQuotaTracker(effectiveBudget.getTimeWindows(), titusRuntime));
         }
 
-        DisruptionBudgetPolicy policy = budget.getDisruptionBudgetPolicy();
+        DisruptionBudgetPolicy policy = effectiveBudget.getDisruptionBudgetPolicy();
         if (policy instanceof AvailabilityPercentageLimitDisruptionBudgetPolicy) {
             quotaTrackers.add(UnhealthyTasksLimitTracker.percentageLimit(job, jobOperations, containerHealthService));
         } else if (policy instanceof UnhealthyTasksLimitDisruptionBudgetPolicy) {
             quotaTrackers.add(UnhealthyTasksLimitTracker.absoluteLimit(job, jobOperations, containerHealthService));
-        } else if (policy instanceof SelfManagedDisruptionBudgetPolicy) {
-            quotaTrackers.add(SelfManagedPolicyTracker.getInstance());
         }
 
         return quotaTrackers;
@@ -223,18 +226,18 @@ public class JobQuotaController implements QuotaController<Job<?>> {
     @VisibleForTesting
     static List<QuotaController<Job<?>>> buildQuotaControllers(Job<?> job,
                                                                V3JobOperations jobOperations,
+                                                               EffectiveJobDisruptionBudgetResolver effectiveDisruptionBudgetResolver,
                                                                TitusRuntime titusRuntime) {
         List<QuotaController<Job<?>>> quotaControllers = new ArrayList<>();
 
-        DisruptionBudget budget = job.getJobDescriptor().getDisruptionBudget();
-
-        if (budget.getDisruptionBudgetRate() instanceof PercentagePerHourDisruptionBudgetRate) {
-            quotaControllers.add(new JobPercentagePerHourRelocationRateController(job, titusRuntime));
+        DisruptionBudget effectiveBudget = effectiveDisruptionBudgetResolver.resolve(job);
+        if (effectiveBudget.getDisruptionBudgetRate() instanceof PercentagePerHourDisruptionBudgetRate) {
+            quotaControllers.add(new JobPercentagePerHourRelocationRateController(job, effectiveDisruptionBudgetResolver, titusRuntime));
         }
 
-        DisruptionBudgetPolicy policy = budget.getDisruptionBudgetPolicy();
+        DisruptionBudgetPolicy policy = effectiveBudget.getDisruptionBudgetPolicy();
         if (policy instanceof RelocationLimitDisruptionBudgetPolicy) {
-            quotaControllers.add(new TaskRelocationLimitController(job, jobOperations));
+            quotaControllers.add(new TaskRelocationLimitController(job, jobOperations, effectiveDisruptionBudgetResolver));
         }
         return quotaControllers;
     }
@@ -243,26 +246,26 @@ public class JobQuotaController implements QuotaController<Job<?>> {
     static List<QuotaController<Job<?>>> mergeQuotaControllers(List<QuotaController<Job<?>>> previousControllers,
                                                                Job<?> job,
                                                                V3JobOperations jobOperations,
+                                                               EffectiveJobDisruptionBudgetResolver effectiveDisruptionBudgetResolver,
                                                                TitusRuntime titusRuntime) {
         List<QuotaController<Job<?>>> quotaControllers = new ArrayList<>();
 
-        DisruptionBudget budget = job.getJobDescriptor().getDisruptionBudget();
-
-        if (budget.getDisruptionBudgetRate() instanceof PercentagePerHourDisruptionBudgetRate) {
+        DisruptionBudget effectiveBudget = effectiveDisruptionBudgetResolver.resolve(job);
+        if (effectiveBudget.getDisruptionBudgetRate() instanceof PercentagePerHourDisruptionBudgetRate) {
             QuotaController<Job<?>> newController = mergeQuotaController(job,
                     previousControllers,
                     JobPercentagePerHourRelocationRateController.class,
-                    () -> new JobPercentagePerHourRelocationRateController(job, titusRuntime)
+                    () -> new JobPercentagePerHourRelocationRateController(job, effectiveDisruptionBudgetResolver, titusRuntime)
             );
             quotaControllers.add(newController);
         }
 
-        DisruptionBudgetPolicy policy = budget.getDisruptionBudgetPolicy();
+        DisruptionBudgetPolicy policy = effectiveBudget.getDisruptionBudgetPolicy();
         if (policy instanceof RelocationLimitDisruptionBudgetPolicy) {
             QuotaController<Job<?>> newController = mergeQuotaController(job,
                     previousControllers,
                     TaskRelocationLimitController.class,
-                    () -> new TaskRelocationLimitController(job, jobOperations)
+                    () -> new TaskRelocationLimitController(job, jobOperations, effectiveDisruptionBudgetResolver)
             );
             quotaControllers.add(newController);
         }

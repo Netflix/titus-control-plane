@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,13 +14,15 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.supplementary.relocation.workflow;
+package com.netflix.titus.master.eviction.service.quota.job;
 
-import com.google.inject.AbstractModule;
+import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
 
-public final class RelocationWorkflowModule extends AbstractModule {
-    @Override
-    protected void configure() {
-        bind(RelocationWorkflowExecutor.class).to(DefaultRelocationWorkflowExecutor.class).asEagerSingleton();
-    }
+/**
+ * Resolves an alternative (system defined) disruption budget for a job.
+ */
+public interface EffectiveJobDisruptionBudgetResolver {
+
+    DisruptionBudget resolve(Job<?> job);
 }

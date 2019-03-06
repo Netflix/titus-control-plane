@@ -18,6 +18,7 @@ package com.netflix.titus.supplementary.jobactivity;
 
 import javax.inject.Named;
 
+import com.netflix.titus.common.runtime.InternalRuntimeComponent;
 import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorClientFactoryComponent;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementDataReplicationComponent;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagerConnectorComponent;
@@ -37,6 +38,7 @@ import static com.netflix.titus.runtime.connector.titusmaster.ConfigurationLeade
 
 @SpringBootApplication
 @Import({
+        InternalRuntimeComponent.class,
         CallMetadataResolveComponent.class,
         ConfigurationLeaderResolverComponent.class,
         GrpcToReactorClientFactoryComponent.class,

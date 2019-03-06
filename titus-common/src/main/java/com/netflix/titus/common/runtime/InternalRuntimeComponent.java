@@ -14,15 +14,13 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.supplementary.jobactivity;
+package com.netflix.titus.common.runtime;
 
-import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.common.runtime.TitusRuntimes;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 
 @Component
-public class JobActivityRuntimeComponent {
+public class InternalRuntimeComponent {
 
     private final TitusRuntime titusRuntime = TitusRuntimes.internal();
 
@@ -30,5 +28,4 @@ public class JobActivityRuntimeComponent {
     public TitusRuntime getTitusRuntime() {
         return titusRuntime;
     }
-
 }

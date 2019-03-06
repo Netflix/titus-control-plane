@@ -14,26 +14,23 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.supplementary.relocation;
+package com.netflix.titus.supplementary.relocation.store.memory;
 
-import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.common.runtime.TitusRuntimes;
+import com.netflix.titus.supplementary.relocation.store.TaskRelocationResultStore;
+import com.netflix.titus.supplementary.relocation.store.TaskRelocationStore;
 import org.springframework.context.annotation.Bean;
-import org.springframework.core.env.Environment;
-import org.springframework.stereotype.Component;
+import org.springframework.context.annotation.Configuration;
 
-@Component
-public class RelocationRuntimeComponent {
-
-    private final TitusRuntime titusRuntime = TitusRuntimes.internal();
+@Configuration
+public class InMemoryRelocationStoreComponent {
 
     @Bean
-    public TitusRuntime getTitusRuntime() {
-        return titusRuntime;
+    public TaskRelocationStore getTaskRelocationStore() {
+        return new InMemoryTaskRelocationStore();
     }
 
     @Bean
-    public RelocationConfiguration getRelocationConfiguration(Environment environment) {
-        return new RelocationConfigurationBean(environment);
+    public TaskRelocationResultStore getTaskRelocationResultStore() {
+        return new InMemoryTaskRelocationResultStore();
     }
 }

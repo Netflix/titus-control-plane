@@ -57,7 +57,7 @@ public class TaskRelocationLimitControllerTest {
         Reference jobReference = Reference.job(job.getId());
         Reference taskReference = Reference.task(task.getId());
 
-        TaskRelocationLimitController quotaController = new TaskRelocationLimitController(job, jobOperations);
+        TaskRelocationLimitController quotaController = new TaskRelocationLimitController(job, jobOperations, SelfJobDisruptionBudgetResolver.getInstance());
         assertThat(quotaController.getQuota(jobReference).getQuota()).isEqualTo(10);
         assertThat(quotaController.getQuota(taskReference).getQuota()).isEqualTo(1);
 
@@ -85,7 +85,7 @@ public class TaskRelocationLimitControllerTest {
         Reference jobReference = Reference.job(job.getId());
 
         // Consume in first instance of the controller
-        TaskRelocationLimitController firstController = new TaskRelocationLimitController(job, jobOperations);
+        TaskRelocationLimitController firstController = new TaskRelocationLimitController(job, jobOperations, SelfJobDisruptionBudgetResolver.getInstance());
         assertThat(firstController.consume(task.getId()).isApproved()).isTrue();
 
         jobComponentStub.moveTaskToState(task, TaskState.Finished);
