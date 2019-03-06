@@ -16,6 +16,7 @@
 
 package com.netflix.titus.api.jobmanager.model.job;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -37,7 +38,6 @@ import com.netflix.titus.api.jobmanager.model.job.retry.ImmediateRetryPolicy;
  * <li>Application name</li>
  * <li>Job group info (stack, details, sequence)</li>
  * <li>Disruption budget</li>
- * <li>Any attributes not prefixed with <tt>titus.</tt> or <tt>titusParameter.</tt></li>
  * <li>Any container attributes not prefixed with <tt>titus.</tt> or <tt>titusParameter.</tt></li>
  * <li>Any container.securityProfile attributes not prefixed with <tt>titus.</tt> or <tt>titusParameter.</tt></li>
  * <li>All information {@link ServiceJobExt specific to Service jobs}: capacity, retry policy, etc</li>
@@ -69,7 +69,6 @@ public class JobCompatibility {
     private static JobDescriptor<ServiceJobExt> unsetIgnoredFieldsForCompatibility(JobDescriptor<ServiceJobExt> descriptor) {
         Container container = descriptor.getContainer();
         SecurityProfile securityProfile = container.getSecurityProfile();
-        Map<String, String> onlyTitusAttributes = filterOutNonTitusAttributes(descriptor.getAttributes());
         Map<String, String> onlyTitusContainerAttributes = filterOutNonTitusAttributes(container.getAttributes());
         Map<String, String> onlyTitusSecurityAttributes = filterOutNonTitusAttributes(securityProfile.getAttributes());
 
@@ -77,7 +76,7 @@ public class JobCompatibility {
                 .withOwner(Owner.newBuilder().withTeamEmail("").build())
                 .withApplicationName("")
                 .withJobGroupInfo(JobGroupInfo.newBuilder().build())
-                .withAttributes(onlyTitusAttributes)
+                .withAttributes(Collections.emptyMap())
                 .withContainer(container.toBuilder()
                         .withAttributes(onlyTitusContainerAttributes)
                         .withSecurityProfile(securityProfile.toBuilder()
