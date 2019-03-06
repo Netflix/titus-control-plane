@@ -18,11 +18,9 @@ package com.netflix.titus.master.jobactivity.store;
 
 import javax.inject.Singleton;
 
-import com.netflix.titus.api.jobactivity.store.JobActivityPublisherRecord;
 import com.netflix.titus.api.jobactivity.store.JobActivityPublisherStore;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
@@ -38,16 +36,6 @@ public class NoopJobActivityPublisherStore implements JobActivityPublisherStore 
 
     @Override
     public Mono<Void> publishTask(Task task) {
-        return Mono.empty();
-    }
-
-    @Override
-    public Flux<JobActivityPublisherRecord> getRecords() {
-        return Flux.empty();
-    }
-
-    @Override
-    public Mono<Integer> getSize() {
         return Mono.empty();
     }
 }

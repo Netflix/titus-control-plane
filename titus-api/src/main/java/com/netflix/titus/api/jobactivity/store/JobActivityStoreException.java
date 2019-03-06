@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.api.jobactivity.service;
+package com.netflix.titus.api.jobactivity.store;
 
 import static java.lang.String.format;
 
-public class JobActivityException extends RuntimeException {
+public class JobActivityStoreException extends RuntimeException {
 
     public enum ErrorCode {
         CREATE_ERROR,
@@ -27,7 +27,7 @@ public class JobActivityException extends RuntimeException {
 
     private final ErrorCode errorCode;
 
-    private JobActivityException(ErrorCode errorCode, String message, Throwable cause) {
+    private JobActivityStoreException(ErrorCode errorCode, String message, Throwable cause) {
         super(message, cause);
         this.errorCode = errorCode;
     }
@@ -36,15 +36,15 @@ public class JobActivityException extends RuntimeException {
         return errorCode;
     }
 
-    public static JobActivityException jobActivityCreateTableException(String tableName, Throwable cause) {
-        return new JobActivityException(ErrorCode.CREATE_ERROR,
+    public static JobActivityStoreException jobActivityCreateTableException(String tableName, Throwable cause) {
+        return new JobActivityStoreException(ErrorCode.CREATE_ERROR,
                 format("Unable to create table %s: %s", tableName, cause.getMessage()),
                 cause);
     }
 
-    public static JobActivityException jobActivityUpdateRecordException(String jobId, Throwable cause) {
-        return new JobActivityException(ErrorCode.STORE_ERROR,
-                format("Unable to store job id %s to publisher: %s", jobId, cause.getMessage()),
+    public static JobActivityStoreException jobActivityUpdateRecordException(String jobId, Throwable cause) {
+        return new JobActivityStoreException(ErrorCode.STORE_ERROR,
+                format("Unable to store job/task id %s to publisher: %s", jobId, cause.getMessage()),
                 cause);
     }
 }

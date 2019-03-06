@@ -22,6 +22,6 @@ import com.netflix.archaius.api.annotations.DefaultValue;
 @Configuration(prefix = "titusMaster.jobActivityPublisher")
 public interface JobActivityPublisherConfiguration {
 
-    @DefaultValue("true")
-    boolean getJobActivityPublisherEnabled();
+    @DefaultValue("5000")
+    int getJobActivityPublisherMaxStreamSize();
 }

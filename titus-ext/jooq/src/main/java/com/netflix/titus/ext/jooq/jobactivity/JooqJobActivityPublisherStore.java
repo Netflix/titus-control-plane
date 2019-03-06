@@ -16,20 +16,21 @@
 
 package com.netflix.titus.ext.jooq.jobactivity;
 
+import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicLong;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.netflix.titus.api.jobactivity.service.JobActivityException;
-import com.netflix.titus.api.jobactivity.service.JobActivityPublisherMetrics;
 import com.netflix.titus.api.jobactivity.store.JobActivityPublisherRecord;
 import com.netflix.titus.api.jobactivity.store.JobActivityPublisherStore;
+import com.netflix.titus.api.jobactivity.store.JobActivityStoreException;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.spectator.DatabaseMetrics;
 import com.netflix.titus.ext.jooq.activity.schema.JActivity;
 import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
 import com.netflix.titus.runtime.jobactivity.JobActivityPublisherRecordUtils;
@@ -51,15 +52,20 @@ import static org.jooq.impl.DSL.max;
 public class JooqJobActivityPublisherStore implements JobActivityPublisherStore {
     private static final Logger logger = LoggerFactory.getLogger(JooqJobActivityPublisherStore.class);
 
+    private static final String JOOQ_METRICS_DATABASE_NAME = "JobActivityPublisher";
+
     private final LogStorageInfo<Task> logStorageInfo;
     private final DSLContext dslContext;
-    private final JobActivityPublisherMetrics metrics;
+    private final DatabaseMetrics databaseMetrics;
 
     /**
-     * Tracks the current queue index (e.g., head is the lowest index value). This approach has the following caveats:
-     * 1) The keyspace may be sparse if we some insert operations fail.
+     * Tracks the current queue index (e.g., tail of the queue is the highest index value). This approach has
+     * the following caveats:
+     * 1) The index value keyspace may be sparse if some insert operations fail.
      * 2) We expect only a single producer/writer to the table.
-     * 3) The value is interpreted as an unsigned long. Realistically it is not going to wrap. However, if we
+     * 3) The index value can decrease between restarts (e.g., queue gets drained). This is OK as index
+     * values can be reused and will reset to the highest value after restart.
+     * 4) The value is interpreted as an unsigned long. Realistically it is not going to wrap. However, if we
      * wish to handle wrapping we could create a new column and begin inserting into the new column with index 0 again
      * so the prior and wrapped values never exist in the same space.
      */
@@ -76,7 +82,7 @@ public class JooqJobActivityPublisherStore implements JobActivityPublisherStore 
     public JooqJobActivityPublisherStore(DSLContext dslContext, TitusRuntime runtime, LogStorageInfo<Task> logStorageInfo, boolean createIfNotExist) {
         this.logStorageInfo = logStorageInfo;
         this.dslContext = dslContext;
-        this.metrics = new JobActivityPublisherMetrics(runtime.getRegistry());
+        this.databaseMetrics = new DatabaseMetrics(runtime.getRegistry(), JOOQ_METRICS_DATABASE_NAME);
 
         if (createIfNotExist) {
             createSchemaIfNotExist();
@@ -96,7 +102,7 @@ public class JooqJobActivityPublisherStore implements JobActivityPublisherStore 
                 .constraint(DSL.constraint("pk_activity_queue_index").primaryKey(ACTIVITY_QUEUE.QUEUE_INDEX))
                 .execute();
         if (0 != rc) {
-            throw JobActivityException.jobActivityCreateTableException(
+            throw JobActivityStoreException.jobActivityCreateTableException(
                     ACTIVITY_QUEUE.getName(),
                     new RuntimeException(String.format("Unexpected table create return code %d", rc)));
         }
@@ -109,7 +115,7 @@ public class JooqJobActivityPublisherStore implements JobActivityPublisherStore 
                 .select(max(ACTIVITY_QUEUE.QUEUE_INDEX))
                 .from(ACTIVITY_QUEUE)
                 .fetchOne();
-        metrics.registerSelectLatency(startTime);
+        databaseMetrics.registerSelectLatency(startTime, Collections.emptyList());
 
         // No record is present, start index at 0
         if (null == record.value1()) {
@@ -121,17 +127,14 @@ public class JooqJobActivityPublisherStore implements JobActivityPublisherStore 
 
     @VisibleForTesting
     public Mono<Void> clearStore() {
-        return Mono.defer(() -> {
-            try {
-                int recordId = dslContext
-                        .dropTable(ACTIVITY_QUEUE)
-                        .execute();
-                logger.warn("Successfully DROP'ed table {}", ACTIVITY_QUEUE.getName(), recordId);
-            } catch (Exception e) {
-                return Mono.error(e);
-            }
-            return Mono.empty();
-        });
+        CompletionStage<Void> asyncAction = DSL.using(dslContext.configuration())
+                .transactionAsync(configuration -> {
+                    configuration.dsl()
+                            .dropTable(ACTIVITY_QUEUE)
+                            .execute();
+                    logger.warn("Successfully DROP'ed table {}", ACTIVITY_QUEUE.getName());
+                });
+        return Mono.fromCompletionStage(() -> asyncAction);
     }
 
     @VisibleForTesting
@@ -141,61 +144,58 @@ public class JooqJobActivityPublisherStore implements JobActivityPublisherStore 
 
     @Override
     public Mono<Void> publishJob(Job<?> job) {
-        return Mono.defer(() ->
-                publishByteString(JobActivityPublisherRecord.RecordType.JOB, job.getId(), JobActivityPublisherRecordUtils.jobToByteArry(job)));
+        return publishByteString(JobActivityPublisherRecord.RecordType.JOB, job.getId(),
+                JobActivityPublisherRecordUtils.jobToByteArry(job));
     }
 
     @Override
     public Mono<Void> publishTask(Task task) {
-        return Mono.defer(() ->
-                publishByteString(JobActivityPublisherRecord.RecordType.TASK, task.getId(),
-                        JobActivityPublisherRecordUtils.taskToByteArray(task, logStorageInfo)));
+        return publishByteString(JobActivityPublisherRecord.RecordType.TASK, task.getId(),
+                JobActivityPublisherRecordUtils.taskToByteArray(task, logStorageInfo));
     }
 
     private Mono<Void> publishByteString(JobActivityPublisherRecord.RecordType recordType, String recordId, byte[] serializedRecord) {
         long assignedQueueIndex = queueIndex.getAndIncrement();
 
-        try {
-            long startTime = System.currentTimeMillis();
-            int numRecordsInserted = DSL.using(dslContext.configuration())
-                    .insertInto(ACTIVITY_QUEUE,
-                            ACTIVITY_QUEUE.QUEUE_INDEX,
-                            ACTIVITY_QUEUE.EVENT_TYPE,
-                            ACTIVITY_QUEUE.SERIALIZED_EVENT)
-                    .values(assignedQueueIndex,
-                            (short) recordType.ordinal(),
-                            serializedRecord)
-                    .execute();
-            metrics.registerInsertLatency(recordType, 1, startTime);
-            if (1 != numRecordsInserted) {
-                return Mono.error(
-                        JobActivityException.jobActivityUpdateRecordException(recordId,
-                                new RuntimeException(String.format("Unexpected number of updated records: expected %d but got %d", 1, numRecordsInserted))));
-            }
-        } catch (Exception e) {
-            return Mono.error(JobActivityException.jobActivityUpdateRecordException(recordId, e));
-        }
-        return Mono.empty();
+        CompletionStage<Void> asyncAction = DSL.using(dslContext.configuration())
+                .transactionAsync(configuration -> {
+                    long startTime = System.currentTimeMillis();
+                    configuration.dsl()
+                            .insertInto(ACTIVITY_QUEUE,
+                                    ACTIVITY_QUEUE.QUEUE_INDEX,
+                                    ACTIVITY_QUEUE.EVENT_TYPE,
+                                    ACTIVITY_QUEUE.SERIALIZED_EVENT)
+                            .values(assignedQueueIndex,
+                                    (short) recordType.ordinal(),
+                                    serializedRecord)
+                            .execute();
+                    databaseMetrics.registerInsertLatency(startTime, 1, Collections.emptyList());
+                });
+
+        return Mono.fromCompletionStage(() -> asyncAction)
+                .onErrorMap(e -> JobActivityStoreException.jobActivityUpdateRecordException(recordId, e));
     }
 
-    @Override
+    @VisibleForTesting
     public Flux<JobActivityPublisherRecord> getRecords() {
-        return Mono.fromCompletionStage(
-                CompletableFuture.supplyAsync(() -> {
+        CompletionStage<List<JobActivityPublisherRecord>> asyncAction = DSL.using(dslContext.configuration())
+                .transactionResultAsync(configuration -> {
                     long startTime = System.currentTimeMillis();
-                    List<JobActivityPublisherRecord> records = DSL.using(dslContext.configuration())
+                    List<JobActivityPublisherRecord> records = configuration.dsl()
                             .selectFrom(ACTIVITY_QUEUE)
                             .orderBy(ACTIVITY_QUEUE.QUEUE_INDEX)
                             .fetchInto(JobActivityPublisherRecord.class);
-                    metrics.registerScanLatency(startTime);
+                    databaseMetrics.registerScanLatency(startTime, Collections.emptyList());
                     return records;
-                })
-        ).flatMapIterable(jobActivityPublisherRecords -> jobActivityPublisherRecords);
+                });
+        return Mono.fromCompletionStage(() -> asyncAction)
+                .flatMapIterable(jobActivityPublisherRecords -> jobActivityPublisherRecords);
     }
 
-    @Override
+    @VisibleForTesting
     public Mono<Integer> getSize() {
-        return Mono.just(DSL.using(dslContext.configuration())
-                .fetchCount(ACTIVITY_QUEUE));
+        CompletionStage<Integer> asyncAction = DSL.using(dslContext.configuration())
+                .transactionResultAsync(configuration -> configuration.dsl().fetchCount(ACTIVITY_QUEUE));
+        return Mono.fromCompletionStage(() -> asyncAction);
     }
 }

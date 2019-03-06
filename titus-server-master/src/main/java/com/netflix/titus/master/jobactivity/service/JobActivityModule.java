@@ -20,7 +20,6 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.netflix.archaius.ConfigProxyFactory;
-import com.netflix.titus.api.jobactivity.service.JobActivityPublisherService;
 import com.netflix.titus.api.jobactivity.store.JobActivityPublisherStore;
 import com.netflix.titus.master.jobactivity.store.NoopJobActivityPublisherStore;
 
@@ -28,7 +27,7 @@ public class JobActivityModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        bind(JobActivityPublisherService.class).to(DefaultJobActivityPublisherService.class).asEagerSingleton();
+        bind(JobActivityPublisher.class).asEagerSingleton();
         bind(JobActivityPublisherStore.class).to(NoopJobActivityPublisherStore.class);
     }
 

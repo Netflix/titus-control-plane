@@ -22,7 +22,6 @@ import java.util.concurrent.TimeUnit;
 
 import com.jayway.awaitility.Awaitility;
 import com.netflix.titus.api.jobactivity.store.JobActivityPublisherRecord;
-import com.netflix.titus.api.jobactivity.store.JobActivityPublisherStore;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
@@ -30,7 +29,8 @@ import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.common.data.generator.DataGenerator;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
-import com.netflix.titus.master.jobactivity.service.DefaultJobActivityPublisherService;
+import com.netflix.titus.master.jobactivity.service.JobActivityPublisher;
+import com.netflix.titus.master.jobactivity.service.JobActivityPublisherConfiguration;
 import com.netflix.titus.master.jobactivity.store.InMemoryJobActivityPublisherStore;
 import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 import com.netflix.titus.testkit.model.job.JobGenerator;
@@ -45,10 +45,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class DefaultJobActivityPublisherServiceTest {
-    private final static Logger logger = LoggerFactory.getLogger(DefaultJobActivityPublisherServiceTest.class);
+public class JobActivityPublisherTest {
+    private final static Logger logger = LoggerFactory.getLogger(JobActivityPublisherTest.class);
 
-    private JobActivityPublisherStore publisherStore;
+    private InMemoryJobActivityPublisherStore publisherStore;
+    private final JobActivityPublisherConfiguration configuration = mock(JobActivityPublisherConfiguration.class);
     private final V3JobOperations v3JobOperations = mock(V3JobOperations.class);
     private final TitusRuntime titusRuntime = TitusRuntimes.internal();
 
@@ -56,13 +57,16 @@ public class DefaultJobActivityPublisherServiceTest {
     private DataGenerator<Job<BatchJobExt>> batchJobsGenerator = JobGenerator.batchJobs(JobDescriptorGenerator.oneTaskBatchJobDescriptor());
     private List<JobUpdateEvent> jobUpdateEvents;
 
-    private DefaultJobActivityPublisherService publisherService;
+    private JobActivityPublisher publisherService;
 
     @Before
     public void setUp() {
+        when(configuration.getJobActivityPublisherMaxStreamSize()).thenReturn(5000);
+
         publisherStore = new InMemoryJobActivityPublisherStore();
         jobUpdateEvents = createJobUpdateEvents(numBatchJobs);
-        publisherService = new DefaultJobActivityPublisherService(publisherStore, v3JobOperations, job -> true, titusRuntime);
+        publisherService = new JobActivityPublisher(configuration,
+                publisherStore, v3JobOperations, job -> true, titusRuntime);
     }
 
     // Tests that emitted V3 events are consumed and written to the publisher store

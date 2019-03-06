@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.netflix.titus.api.jobactivity.store.JobActivityPublisherRecord;
 import com.netflix.titus.api.jobactivity.store.JobActivityPublisherStore;
 import com.netflix.titus.api.jobmanager.model.job.Job;
@@ -62,7 +63,7 @@ public class InMemoryJobActivityPublisherStore implements JobActivityPublisherSt
         return Mono.empty();
     }
 
-    @Override
+    @VisibleForTesting
     public Flux<JobActivityPublisherRecord> getRecords() {
         return Flux.fromIterable(taskAndJobList.stream()
                 .map(taskAndJobPair -> {
@@ -81,7 +82,7 @@ public class InMemoryJobActivityPublisherStore implements JobActivityPublisherSt
         );
     }
 
-    @Override
+    @VisibleForTesting
     public Mono<Integer> getSize() {
         return Mono.just(taskAndJobList.size());
     }

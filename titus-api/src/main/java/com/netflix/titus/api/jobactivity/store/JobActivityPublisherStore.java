@@ -18,7 +18,6 @@ package com.netflix.titus.api.jobactivity.store;
 
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
@@ -34,11 +33,4 @@ public interface JobActivityPublisherStore {
      // Publishes a single task record
      // TODO(Andrew L): Add CallMetadata when ready
      Mono<Void> publishTask(Task task);
-
-     // Returns all current store records
-    Flux<JobActivityPublisherRecord> getRecords();
-
-    // Returns the current number of store records
-    // This exists as a faster alternative to getRecords()
-    Mono<Integer> getSize();
 }

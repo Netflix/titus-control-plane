@@ -22,8 +22,6 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.netflix.titus.api.FeatureRolloutPlans;
-import com.netflix.titus.api.jobactivity.service.JobActivityPublisherMetrics;
-import com.netflix.titus.api.jobactivity.service.JobActivityPublisherService;
 import com.netflix.titus.api.jobactivity.store.JobActivityPublisherRecord;
 import com.netflix.titus.api.jobactivity.store.JobActivityPublisherStore;
 import com.netflix.titus.api.jobmanager.model.job.Job;
@@ -40,16 +38,17 @@ import com.netflix.titus.common.util.rx.ReactorExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
+import reactor.core.publisher.BufferOverflowStrategy;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
 
 /**
- * Implementation of a {@link JobActivityPublisherService} that consumes job and task events from the V3 engine
+ * The JobActivityPublisher consumes job and task events from the V3 engine
  * and immediately propagates them to a store.
  */
 @Singleton
-public class DefaultJobActivityPublisherService implements JobActivityPublisherService {
-    private static final Logger logger = LoggerFactory.getLogger(DefaultJobActivityPublisherService.class);
+public class JobActivityPublisher {
+    private static final Logger logger = LoggerFactory.getLogger(JobActivityPublisher.class);
 
     private static final String JOB_ACTIVITY_PUBLISHER_SCHEDULER = "JobActivityPublisherScheduler";
 
@@ -59,23 +58,25 @@ public class DefaultJobActivityPublisherService implements JobActivityPublisherS
 
     private final TitusRuntime runtime;
     private final JobActivityPublisherMetrics metrics;
+    private final int jobActivityStreamBufferSize;
 
     private final Predicate<Job> jobActivityPublisherEnabledPredicate;
 
     @Inject
-    public DefaultJobActivityPublisherService(JobActivityPublisherStore publisher,
-                                              V3JobOperations v3JobOperations,
-                                              @Named(FeatureRolloutPlans.JOB_ACTIVITY_PUBLISH_FEATURE) Predicate<JobDescriptor> jobActivityPublishPredicate,
-                                              TitusRuntime runtime) {
+    public JobActivityPublisher(JobActivityPublisherConfiguration configuration,
+                                JobActivityPublisherStore publisher,
+                                V3JobOperations v3JobOperations,
+                                @Named(FeatureRolloutPlans.JOB_ACTIVITY_PUBLISH_FEATURE) Predicate<JobDescriptor> jobActivityPublishPredicate,
+                                TitusRuntime runtime) {
         this.publisher = publisher;
         this.v3JobOperations = v3JobOperations;
         this.jobActivityPublisherEnabledPredicate = job -> jobActivityPublishPredicate.test(job.getJobDescriptor());
         this.runtime = runtime;
         this.metrics = new JobActivityPublisherMetrics(runtime.getRegistry());
+        this.jobActivityStreamBufferSize = configuration.getJobActivityPublisherMaxStreamSize();
     }
 
     @Activator
-    @Override
     public void activate() {
         logger.info("Starting job activity publisher");
         jobUpdateEventDisposable = jobManagerStream().subscribe(
@@ -90,12 +91,10 @@ public class DefaultJobActivityPublisherService implements JobActivityPublisherS
     }
 
     @Deactivator
-    @Override
     public void deactivate() {
         jobUpdateEventDisposable.dispose();
     }
 
-    @Override
     public boolean isActive() {
         return !jobUpdateEventDisposable.isDisposed();
     }
@@ -103,6 +102,13 @@ public class DefaultJobActivityPublisherService implements JobActivityPublisherS
     private Flux<JobManagerEvent<?>> jobManagerStream() {
         // The TitusRuntime emits stream metrics so we avoid explicitly managing them here
         return ReactorExt.toFlux(runtime.persistentStream(v3JobOperations.observeJobs()))
+                .onBackpressureBuffer(jobActivityStreamBufferSize,
+                        jobManagerEvent -> {
+                            metrics.publishDropError();
+                            logger.warn("Dropping events due to back pressure buffer of size {} overflow",
+                                    jobActivityStreamBufferSize);
+                        },
+                        BufferOverflowStrategy.DROP_LATEST)
                 .subscribeOn(Schedulers.newSingle(JOB_ACTIVITY_PUBLISHER_SCHEDULER));
     }
 
