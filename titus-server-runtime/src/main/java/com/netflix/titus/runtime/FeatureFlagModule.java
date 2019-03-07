@@ -30,6 +30,7 @@ import com.netflix.titus.common.util.feature.FeatureGuards;
 
 import static com.netflix.titus.api.FeatureRolloutPlans.DISRUPTION_BUDGET_FEATURE;
 import static com.netflix.titus.api.FeatureRolloutPlans.ENVIRONMENT_VARIABLE_NAMES_STRICT_VALIDATION_FEATURE;
+import static com.netflix.titus.api.FeatureRolloutPlans.JOB_ACTIVITY_PUBLISH_FEATURE;
 import static com.netflix.titus.api.FeatureRolloutPlans.JOB_AUTHORIZATION_FEATURE;
 import static com.netflix.titus.api.FeatureRolloutPlans.SECURITY_GROUPS_REQUIRED_FEATURE;
 
@@ -139,5 +140,30 @@ public class FeatureFlagModule extends AbstractModule {
     @Named(JOB_AUTHORIZATION_FEATURE)
     public FeatureGuardWhiteListConfiguration getJobAuthorizationFeatureGuardConfiguration(ConfigProxyFactory factory) {
         return factory.newProxy(FeatureGuardWhiteListConfiguration.class, "titus.features.jobManager." + JOB_AUTHORIZATION_FEATURE);
+    }
+
+    /* *************************************************************************************************************
+     * Job activity history
+     *
+     * This change was introduced in Q1/2019.
+     */
+
+    @Provides
+    @Singleton
+    @Named(JOB_ACTIVITY_PUBLISH_FEATURE)
+    public Predicate<JobDescriptor> getJobActivityPublishFeaturePredicate(@Named(JOB_ACTIVITY_PUBLISH_FEATURE) FeatureGuardWhiteListConfiguration configuration) {
+        return FeatureGuards.toPredicate(
+                FeatureGuards.fromField(
+                        JobDescriptor::getApplicationName,
+                        FeatureGuards.newWhiteListFromConfiguration(configuration).build()
+                )
+        );
+    }
+
+    @Provides
+    @Singleton
+    @Named(JOB_ACTIVITY_PUBLISH_FEATURE)
+    public FeatureGuardWhiteListConfiguration getJobActivityPublishFeatureGuardConfiguration(ConfigProxyFactory factory) {
+        return factory.newProxy(FeatureGuardWhiteListConfiguration.class, "titus.features.jobManager." + JOB_ACTIVITY_PUBLISH_FEATURE);
     }
 }

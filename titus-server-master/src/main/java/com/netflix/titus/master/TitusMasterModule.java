@@ -39,6 +39,7 @@ import com.netflix.titus.master.endpoint.v2.rest.JerseyModule;
 import com.netflix.titus.master.eviction.endpoint.grpc.EvictionEndpointModule;
 import com.netflix.titus.master.eviction.service.EvictionServiceModule;
 import com.netflix.titus.master.health.HealthModule;
+import com.netflix.titus.master.jobactivity.service.JobActivityModule;
 import com.netflix.titus.master.jobmanager.endpoint.v3.V3EndpointModule;
 import com.netflix.titus.master.jobmanager.service.V3JobManagerModule;
 import com.netflix.titus.master.loadbalancer.LoadBalancerModule;
@@ -126,6 +127,7 @@ public class TitusMasterModule extends AbstractModule {
         install(new AgentEndpointModule());
         install(new AutoScalingModule());
         install(new LoadBalancerModule());
+        install(new JobActivityModule());
 
         install(new EvictionServiceModule());
         install(new EvictionEndpointModule());
