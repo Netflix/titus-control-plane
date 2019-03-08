@@ -24,11 +24,11 @@ public final class ClusterOperationsAttributes {
     /**
      * Mark an instance group or agent instance such that it will not get terminated by the cluster operations component.
      */
-    public static final String NOT_REMOVABLE = "titus.clusteroperations.notRemovable";
+    public static final String NOT_REMOVABLE = "titus.clusterOperations.notRemovable";
 
     /**
      * Mark an agent instance such that it will get terminated. Note that the cluster operations component
      * will mark an agent instance once it determines it can be terminated.
      */
-    public static final String REMOVABLE = "titus.clusteropeations.removable";
+    public static final String REMOVABLE = "titus.clusterOperations.removable";
 }
