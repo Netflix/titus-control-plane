@@ -34,6 +34,7 @@ import com.netflix.titus.api.jobmanager.model.job.Container;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobGroupInfo;
 import com.netflix.titus.api.jobmanager.model.job.SecurityProfile;
 import com.netflix.titus.api.jobmanager.model.job.Task;
@@ -61,6 +62,7 @@ import static com.netflix.titus.common.util.Evaluators.applyNotNull;
 public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo> {
 
     private static final String PASSTHROUGH_ATTRIBUTES_PREFIX = "titusParameter.agent.";
+    private static final String OWNER_EMAIL_ATTRIBUTE = "titus.agent.ownerEmail";
     private static final String EXECUTOR_PER_TASK_LABEL = "executorpertask";
     private static final String LEGACY_EXECUTOR_NAME = "docker-executor";
     private static final String EXECUTOR_PER_TASK_EXECUTOR_NAME = "docker-per-task-executor";
@@ -102,8 +104,9 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
     }
 
     private ContainerInfo.Builder newContainerInfoBuilder(Job job, Task task, TitusQueuableTask<Job, Task> fenzoTask) {
+        JobDescriptor jobDescriptor = job.getJobDescriptor();
         ContainerInfo.Builder containerInfoBuilder = ContainerInfo.newBuilder();
-        Container container = job.getJobDescriptor().getContainer();
+        Container container = jobDescriptor.getContainer();
         Map<String, String> containerAttributes = container.getAttributes();
         ContainerResources containerResources = container.getContainerResources();
         SecurityProfile v3SecurityProfile = container.getSecurityProfile();
@@ -114,8 +117,8 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
 
         // Netflix Values
         // Configure Netflix Metadata
-        containerInfoBuilder.setAppName(job.getJobDescriptor().getApplicationName());
-        JobGroupInfo jobGroupInfo = job.getJobDescriptor().getJobGroupInfo();
+        containerInfoBuilder.setAppName(jobDescriptor.getApplicationName());
+        JobGroupInfo jobGroupInfo = jobDescriptor.getJobGroupInfo();
         if (jobGroupInfo != null) {
             applyNotNull(jobGroupInfo.getStack(), containerInfoBuilder::setJobGroupStack);
             applyNotNull(jobGroupInfo.getDetail(), containerInfoBuilder::setJobGroupDetail);
@@ -153,6 +156,9 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
                 containerInfoBuilder.putPassthroughAttributes(k, v);
             }
         });
+
+        // add owner email
+        containerInfoBuilder.putPassthroughAttributes(OWNER_EMAIL_ATTRIBUTE, jobDescriptor.getOwner().getTeamEmail());
 
         // Configure Environment Variables
         container.getEnv().forEach((k, v) -> {
