@@ -33,7 +33,7 @@ public class JooqResource extends ExternalResource {
     @Override
     protected void before() throws Throwable {
         this.connection = DriverManager.getConnection("jdbc:hsqldb:mem:junit" + System.currentTimeMillis(), "SA", "");
-        this.dslContext = new DefaultDSLContext(new DefaultConnectionProvider(connection), SQLDialect.POSTGRES_9_5);
+        this.dslContext = new DefaultDSLContext(new DefaultConnectionProvider(connection), SQLDialect.HSQLDB);
     }
 
     @Override

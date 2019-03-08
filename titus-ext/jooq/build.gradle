@@ -24,6 +24,7 @@ dependencies {
     compile project(':titus-common')
     compile project(':titus-api')
     compile project(':titus-supplementary-component-task-relocation')
+    compile project(':titus-supplementary-component-job-activity-history')
 
     compile "org.jooq:jooq:${jooqVersion}"
     compile "org.postgresql:postgresql:${postgresqlVersion}"
@@ -65,6 +66,35 @@ jooq {
             }
             target {
                 packageName = 'com.netflix.titus.ext.jooq.relocation.schema'
+            }
+        }
+    }
+
+    activity(sourceSets.main) {
+        generator {
+            name = 'org.jooq.codegen.DefaultGenerator'
+            strategy {
+                name = 'org.jooq.codegen.example.JPrefixGeneratorStrategy'
+            }
+            database {
+                name = 'org.jooq.meta.xml.XMLDatabase'
+                properties {
+                    property {
+                        key = 'xml-file'
+                        value = 'src/main/resources/activity-schema.xml'
+                    }
+                }
+            }
+            generate {
+                relations = true
+                records = true
+                primaryKeyTypes = true
+                deprecated = false
+                immutablePojos = false
+                fluentSetters = false
+            }
+            target {
+                packageName = 'com.netflix.titus.ext.jooq.activity.schema'
             }
         }
     }
