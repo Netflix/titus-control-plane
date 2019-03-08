@@ -87,23 +87,8 @@ public class UnhealthyTasksLimitTracker implements QuotaTracker {
             return Pair.of(0, "job not found");
         }
 
-        // Check first how many started tasks we have
-        int started = 0;
-        for (Task task : tasks) {
-            if (task.getStatus().getState() == TaskState.Started) {
-                started++;
-            }
-        }
-        if (started < minimumHealthyCount) {
-            return Pair.of(
-                    0,
-                    String.format("too few containers started: desired=%s, started=%s", JobFunctions.getJobDesiredSize(job), started)
-            );
-        }
-
-        // We have enough tasks started. Check now how many are healthy.
         int healthy = 0;
-        Map<String, String> unhealthyTasks = new HashMap<>();
+        Map<String, String> notStartedAndHealthyTasks = new HashMap<>();
         for (Task task : tasks) {
             if (task.getStatus().getState() == TaskState.Started) {
                 Optional<ContainerHealthStatus> statusOpt = containerHealthService.findHealthStatus(task.getId());
@@ -113,25 +98,27 @@ public class UnhealthyTasksLimitTracker implements QuotaTracker {
                     String report = statusOpt
                             .map(status -> startWithLowercase(status.getState().name()) + '(' + status.getReason() + ')')
                             .orElse("health not found");
-                    unhealthyTasks.put(task.getId(), report);
+                    notStartedAndHealthyTasks.put(task.getId(), report);
                 }
+            } else {
+                notStartedAndHealthyTasks.put(task.getId(), String.format("Not started (current task state=%s)", task.getStatus().getState()));
             }
         }
-        if (!unhealthyTasks.isEmpty()) {
-            StringBuilder builder = new StringBuilder("not in healthyState: ");
-            builder.append("total=").append(unhealthyTasks.size());
+        if (!notStartedAndHealthyTasks.isEmpty()) {
+            StringBuilder builder = new StringBuilder("not started and healthy: ");
+            builder.append("total=").append(notStartedAndHealthyTasks.size());
             builder.append(", tasks=[");
             int counter = 0;
-            for (Map.Entry<String, String> entry : unhealthyTasks.entrySet()) {
+            for (Map.Entry<String, String> entry : notStartedAndHealthyTasks.entrySet()) {
                 builder.append(entry.getKey()).append('=').append(entry.getValue());
                 counter++;
-                if (counter < unhealthyTasks.size()) {
+                if (counter < notStartedAndHealthyTasks.size()) {
                     builder.append(", ");
                 } else {
                     builder.append("]");
                 }
-                if (counter >= TASK_ID_REPORT_LIMIT && counter < unhealthyTasks.size()) {
-                    builder.append(",... dropped ").append(unhealthyTasks.size() - counter).append(" tasks]");
+                if (counter >= TASK_ID_REPORT_LIMIT && counter < notStartedAndHealthyTasks.size()) {
+                    builder.append(",... dropped ").append(notStartedAndHealthyTasks.size() - counter).append(" tasks]");
                 }
             }
             return Pair.of(healthy, builder.toString());
@@ -146,34 +133,31 @@ public class UnhealthyTasksLimitTracker implements QuotaTracker {
     }
 
     public static UnhealthyTasksLimitTracker percentageLimit(Job<?> job,
+                                                             AvailabilityPercentageLimitDisruptionBudgetPolicy policy,
                                                              V3JobOperations jobOperations,
                                                              ContainerHealthService containerHealthService) {
 
-        return new UnhealthyTasksLimitTracker(job, computeHealthyPoolSizeFromPercentage(job), jobOperations, containerHealthService);
+        return new UnhealthyTasksLimitTracker(job, computeHealthyPoolSizeFromPercentage(job, policy), jobOperations, containerHealthService);
     }
 
     public static UnhealthyTasksLimitTracker absoluteLimit(Job<?> job,
+                                                           UnhealthyTasksLimitDisruptionBudgetPolicy policy,
                                                            V3JobOperations jobOperations,
                                                            ContainerHealthService containerHealthService) {
-        return new UnhealthyTasksLimitTracker(job, computeHealthyPoolSizeFromAbsoluteLimit(job), jobOperations, containerHealthService);
+        return new UnhealthyTasksLimitTracker(job, computeHealthyPoolSizeFromAbsoluteLimit(job, policy), jobOperations, containerHealthService);
     }
 
     @VisibleForTesting
-    static int computeHealthyPoolSizeFromAbsoluteLimit(Job<?> job) {
-        UnhealthyTasksLimitDisruptionBudgetPolicy policy = (UnhealthyTasksLimitDisruptionBudgetPolicy)
-                job.getJobDescriptor().getDisruptionBudget().getDisruptionBudgetPolicy();
+    static int computeHealthyPoolSizeFromAbsoluteLimit(Job<?> job, UnhealthyTasksLimitDisruptionBudgetPolicy policy) {
         return Math.max(0, JobFunctions.getJobDesiredSize(job) - Math.max(1, policy.getLimitOfUnhealthyContainers()));
     }
 
     @VisibleForTesting
-    static int computeHealthyPoolSizeFromPercentage(Job<?> job) {
+    static int computeHealthyPoolSizeFromPercentage(Job<?> job, AvailabilityPercentageLimitDisruptionBudgetPolicy policy) {
         int jobDesiredSize = JobFunctions.getJobDesiredSize(job);
         if (jobDesiredSize == 0) {
             return 0;
         }
-
-        AvailabilityPercentageLimitDisruptionBudgetPolicy policy = (AvailabilityPercentageLimitDisruptionBudgetPolicy)
-                job.getJobDescriptor().getDisruptionBudget().getDisruptionBudgetPolicy();
 
         double percentageOfHealthy = policy.getPercentageOfHealthyContainers();
 

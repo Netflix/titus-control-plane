@@ -21,6 +21,8 @@ import java.util.Collections;
 import com.netflix.titus.api.containerhealth.model.ContainerHealthState;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.AvailabilityPercentageLimitDisruptionBudgetPolicy;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.UnhealthyTasksLimitDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.model.reference.Reference;
@@ -48,18 +50,28 @@ public class UnhealthyTasksLimitTrackerTest {
 
     @Test
     public void testComputeHealthyPoolSizeFromPercentage() {
-        assertThat(computeHealthyPoolSizeFromPercentage(newBatchJobWithPercentageLimit(0, 80))).isEqualTo(0);
-        assertThat(computeHealthyPoolSizeFromPercentage(newBatchJobWithPercentageLimit(1, 80))).isEqualTo(0);
-        assertThat(computeHealthyPoolSizeFromPercentage(newBatchJobWithPercentageLimit(2, 80))).isEqualTo(1);
-        assertThat(computeHealthyPoolSizeFromPercentage(newBatchJobWithPercentageLimit(10, 80))).isEqualTo(8);
+        testComputeHealthyPoolSizeFromPercentage(newBatchJobWithPercentageLimit(0, 80), 0);
+        testComputeHealthyPoolSizeFromPercentage(newBatchJobWithPercentageLimit(1, 80), 0);
+        testComputeHealthyPoolSizeFromPercentage(newBatchJobWithPercentageLimit(2, 80), 1);
+        testComputeHealthyPoolSizeFromPercentage(newBatchJobWithPercentageLimit(10, 80), 8);
+    }
+
+    void testComputeHealthyPoolSizeFromPercentage(Job<BatchJobExt> job, int expectedHealthyPoolSize) {
+        AvailabilityPercentageLimitDisruptionBudgetPolicy policy = (AvailabilityPercentageLimitDisruptionBudgetPolicy) job.getJobDescriptor().getDisruptionBudget().getDisruptionBudgetPolicy();
+        assertThat(computeHealthyPoolSizeFromPercentage(job, policy)).isEqualTo(expectedHealthyPoolSize);
     }
 
     @Test
     public void testComputeHealthyPoolSizeFromAbsoluteLimit() {
-        assertThat(computeHealthyPoolSizeFromAbsoluteLimit(newBatchJobWithAbsoluteLimit(0, 10))).isEqualTo(0);
-        assertThat(computeHealthyPoolSizeFromAbsoluteLimit(newBatchJobWithAbsoluteLimit(1, 0))).isEqualTo(0);
-        assertThat(computeHealthyPoolSizeFromAbsoluteLimit(newBatchJobWithAbsoluteLimit(1, 2))).isEqualTo(0);
-        assertThat(computeHealthyPoolSizeFromAbsoluteLimit(newBatchJobWithAbsoluteLimit(10, 5))).isEqualTo(5);
+        testComputeHealthyPoolSizeFromAbsoluteLimit(newBatchJobWithAbsoluteLimit(0, 10), 0);
+        testComputeHealthyPoolSizeFromAbsoluteLimit(newBatchJobWithAbsoluteLimit(1, 10), 0);
+        testComputeHealthyPoolSizeFromAbsoluteLimit(newBatchJobWithAbsoluteLimit(1, 2), 0);
+        testComputeHealthyPoolSizeFromAbsoluteLimit(newBatchJobWithAbsoluteLimit(10, 5), 5);
+    }
+
+    private void testComputeHealthyPoolSizeFromAbsoluteLimit(Job<?> job, int expectedHealthyPoolSize) {
+        UnhealthyTasksLimitDisruptionBudgetPolicy policy = (UnhealthyTasksLimitDisruptionBudgetPolicy) job.getJobDescriptor().getDisruptionBudget().getDisruptionBudgetPolicy();
+        assertThat(computeHealthyPoolSizeFromAbsoluteLimit(job, policy)).isEqualTo(expectedHealthyPoolSize);
     }
 
     @Test
@@ -67,6 +79,7 @@ public class UnhealthyTasksLimitTrackerTest {
         Job<BatchJobExt> job = newBatchJobWithPercentageLimit(10, 80);
         UnhealthyTasksLimitTracker tracker = UnhealthyTasksLimitTracker.percentageLimit(
                 job,
+                (AvailabilityPercentageLimitDisruptionBudgetPolicy) job.getJobDescriptor().getDisruptionBudget().getDisruptionBudgetPolicy(),
                 jobOperations,
                 jobComponentStub.getContainerHealthService()
         );
@@ -78,6 +91,7 @@ public class UnhealthyTasksLimitTrackerTest {
         Job<?> job = newBatchJobWithAbsoluteLimit(10, 2);
         UnhealthyTasksLimitTracker tracker = UnhealthyTasksLimitTracker.absoluteLimit(
                 job,
+                (UnhealthyTasksLimitDisruptionBudgetPolicy) job.getJobDescriptor().getDisruptionBudget().getDisruptionBudgetPolicy(),
                 jobOperations,
                 jobComponentStub.getContainerHealthService()
         );

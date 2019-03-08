@@ -216,9 +216,9 @@ public class JobQuotaController implements QuotaController<Job<?>> {
 
         DisruptionBudgetPolicy policy = effectiveBudget.getDisruptionBudgetPolicy();
         if (policy instanceof AvailabilityPercentageLimitDisruptionBudgetPolicy) {
-            quotaTrackers.add(UnhealthyTasksLimitTracker.percentageLimit(job, jobOperations, containerHealthService));
+            quotaTrackers.add(UnhealthyTasksLimitTracker.percentageLimit(job, (AvailabilityPercentageLimitDisruptionBudgetPolicy) policy, jobOperations, containerHealthService));
         } else if (policy instanceof UnhealthyTasksLimitDisruptionBudgetPolicy) {
-            quotaTrackers.add(UnhealthyTasksLimitTracker.absoluteLimit(job, jobOperations, containerHealthService));
+            quotaTrackers.add(UnhealthyTasksLimitTracker.absoluteLimit(job, (UnhealthyTasksLimitDisruptionBudgetPolicy) policy, jobOperations, containerHealthService));
         }
 
         return quotaTrackers;
@@ -234,7 +234,7 @@ public class JobQuotaController implements QuotaController<Job<?>> {
         DisruptionBudget effectiveBudget = effectiveDisruptionBudgetResolver.resolve(job);
         if (effectiveBudget.getDisruptionBudgetRate() instanceof PercentagePerHourDisruptionBudgetRate) {
             quotaControllers.add(new JobPercentagePerHourRelocationRateController(job, effectiveDisruptionBudgetResolver, titusRuntime));
-        } else if(effectiveBudget.getDisruptionBudgetRate() instanceof RatePerIntervalDisruptionBudgetRate) {
+        } else if (effectiveBudget.getDisruptionBudgetRate() instanceof RatePerIntervalDisruptionBudgetRate) {
             quotaControllers.add(new RatePerIntervalRateController(job, effectiveDisruptionBudgetResolver, titusRuntime));
         }
 
