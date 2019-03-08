@@ -16,6 +16,7 @@
 
 package com.netflix.titus.supplementary.relocation.descheduler;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +27,7 @@ import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
 import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
+import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
@@ -152,6 +154,42 @@ public class TaskMigrationDeschedulerTest {
 
         DeschedulingFailure failure = newDescheduler(Collections.emptyMap()).getDeschedulingFailure(job1Task0);
         assertThat(failure.getReasonMessage()).contains("job quota");
+    }
+
+    @Test
+    public void testJobRequiredMigrationBy() {
+        Task job1Task0 = jobOperations.getTasks("job1").get(0);
+        dataGenerator.place("active1", job1Task0);
+        dataGenerator.setQuota("job1", 1);
+        dataGenerator.addJobAttribute("job1", RelocationAttributes.RELOCATION_REQUIRED_BY, "" + clock.wallTime());
+
+        clock.advanceTime(Duration.ofSeconds(1));
+        Map<String, DeschedulingResult> results = newDescheduler(Collections.emptyMap()).findRequestedJobOrTaskMigrations();
+        assertThat(results).isNotEmpty();
+    }
+
+    @Test
+    public void testTaskRequiredMigration() {
+        Task job1Task0 = jobOperations.getTasks("job1").get(0);
+        dataGenerator.place("active1", job1Task0);
+        dataGenerator.setQuota("job1", 1);
+        dataGenerator.addTaskAttribute(job1Task0.getId(), RelocationAttributes.RELOCATION_REQUIRED, "true");
+
+        clock.advanceTime(Duration.ofSeconds(1));
+        Map<String, DeschedulingResult> results = newDescheduler(Collections.emptyMap()).findRequestedJobOrTaskMigrations();
+        assertThat(results).isNotEmpty();
+    }
+
+    @Test
+    public void testAgentInstanceRequiredMigration() {
+        Task job1Task0 = jobOperations.getTasks("job1").get(0);
+        dataGenerator.place("active1", job1Task0);
+        dataGenerator.setQuota("job1", 1);
+        job1Task0 = jobOperations.findTaskById(job1Task0.getId()).get().getRight();
+
+        dataGenerator.addInstanceAttribute(job1Task0.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID), RelocationAttributes.RELOCATION_REQUIRED, "true");
+        Optional<Pair<AgentInstance, List<Task>>> results = newDescheduler(Collections.emptyMap()).nextBestMatch();
+        assertThat(results).isNotEmpty();
     }
 
     @Test

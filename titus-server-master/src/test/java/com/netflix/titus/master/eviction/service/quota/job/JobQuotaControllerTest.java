@@ -55,6 +55,7 @@ import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator
 import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator.officeHourTimeWindow;
 import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator.perTaskRelocationLimitPolicy;
 import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator.percentageOfHealthyPolicy;
+import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator.ratePerInterval;
 import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator.selfManagedPolicy;
 import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator.unlimitedRate;
 import static java.util.Collections.singletonList;
@@ -138,6 +139,15 @@ public class JobQuotaControllerTest {
 
         testBuildQuotaControllers(
                 scheduleJob(
+                        newBatchJob(10, budget(perTaskRelocationLimitPolicy(3), ratePerInterval(60_000, 5), Collections.emptyList())),
+                        10
+                ),
+                SelfJobDisruptionBudgetResolver.getInstance(),
+                RatePerIntervalRateController.class, TaskRelocationLimitController.class
+        );
+
+        testBuildQuotaControllers(
+                scheduleJob(
                         newBatchJob(10, budget(selfManagedPolicy(10_000), unlimitedRate(), Collections.emptyList())),
                         10
                 ),
@@ -172,6 +182,29 @@ public class JobQuotaControllerTest {
         JobPercentagePerHourRelocationRateController updatedController = (JobPercentagePerHourRelocationRateController) merged.get(0);
 
         assertThat(updatedController.getQuota(jobReference).getQuota()).isEqualTo(7);
+    }
+
+    @Test
+    public void testMergeRatePerIntervalDisruptionBudgetRateQuotaController() {
+        // First version
+        Job<BatchJobExt> job = newBatchJob(10, budget(perTaskRelocationLimitPolicy(3), ratePerInterval(60_000, 5), Collections.emptyList()));
+        com.netflix.titus.api.model.reference.Reference jobReference = com.netflix.titus.api.model.reference.Reference.job(job.getId());
+
+        scheduleJob(job, 10);
+
+        List<QuotaController<Job<?>>> controllers = buildQuotaControllers(job, jobOperations, SelfJobDisruptionBudgetResolver.getInstance(), titusRuntime);
+        RatePerIntervalRateController controller = (RatePerIntervalRateController) controllers.get(0);
+
+        Task task = jobOperations.getTasks(job.getId()).get(0);
+        assertThat(controller.consume(task.getId()).isApproved()).isTrue();
+        assertThat(controller.getQuota(jobReference).getQuota()).isEqualTo(4);
+
+        // Change job descriptor and consume some quota
+        Job<BatchJobExt> updatedJob = jobComponentStub.changeJob(exceptRate(job, ratePerInterval(30_000, 5)));
+        List<QuotaController<Job<?>>> merged = mergeQuotaControllers(controllers, updatedJob, jobOperations, SelfJobDisruptionBudgetResolver.getInstance(), titusRuntime);
+        RatePerIntervalRateController updatedController = (RatePerIntervalRateController) merged.get(0);
+
+        assertThat(updatedController.getQuota(jobReference).getQuota()).isEqualTo(4);
     }
 
     @Test

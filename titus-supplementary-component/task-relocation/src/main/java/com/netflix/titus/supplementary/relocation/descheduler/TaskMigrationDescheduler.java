@@ -84,21 +84,30 @@ class TaskMigrationDescheduler {
             AgentInstance instance = evacuatedAgentsAllocationTracker.getAgent(task);
             if (job != null && instance != null) {
                 RelocationPredicates.checkIfMustBeRelocatedImmediately(job, task, instance).ifPresent(reason -> {
-                    TaskRelocationPlan plan = TaskRelocationPlan.newBuilder()
-                            .withTaskId(task.getId())
-                            .withReason(TaskRelocationPlan.TaskRelocationReason.TaskMigration)
-                            .withReasonMessage(reason)
-                            .withDecisionTime(now)
-                            .withRelocationTime(now)
-                            .build();
+                    evictionQuotaTracker.consumeQuotaNoError(job.getId());
+                    result.put(task.getId(), newDeschedulingResultForRequestedRelocation(now, task, instance, reason));
+                });
+            }
+        });
+        return result;
+    }
 
-                    DeschedulingResult deschedulingResult = DeschedulingResult.newBuilder()
-                            .withTask(task)
-                            .withAgentInstance(instance)
-                            .withTaskRelocationPlan(plan)
-                            .build();
+    Map<String, DeschedulingResult> findRequestedJobOrTaskMigrations() {
+        long now = clock.wallTime();
 
-                    result.put(task.getId(), deschedulingResult);
+        Map<String, DeschedulingResult> result = new HashMap<>();
+        tasksById.values().forEach(task -> {
+            Job<?> job = jobsById.get(task.getJobId());
+            AgentInstance instance = evacuatedAgentsAllocationTracker.getAgent(task);
+            if (job != null && instance != null) {
+                RelocationPredicates.checkIfRelocationRequired(job, task).ifPresent(reason -> {
+                    if (evictionQuotaTracker.getSystemEvictionQuota() > 0 && canTerminate(task)) {
+                        long quota = evictionQuotaTracker.getJobEvictionQuota(task.getJobId());
+                        if (quota > 0) {
+                            evictionQuotaTracker.consumeQuota(task.getJobId());
+                            result.put(task.getId(), newDeschedulingResultForRequestedRelocation(now, task, instance, reason));
+                        }
+                    }
                 });
             }
         });
@@ -151,6 +160,22 @@ class TaskMigrationDescheduler {
         }
 
         return DeschedulingFailure.newBuilder().withReasonMessage(message).build();
+    }
+
+    private DeschedulingResult newDeschedulingResultForRequestedRelocation(long now, Task task, AgentInstance instance, String reason) {
+        TaskRelocationPlan plan = TaskRelocationPlan.newBuilder()
+                .withTaskId(task.getId())
+                .withReason(TaskRelocationPlan.TaskRelocationReason.TaskMigration)
+                .withReasonMessage(reason)
+                .withDecisionTime(now)
+                .withRelocationTime(now)
+                .build();
+
+        return DeschedulingResult.newBuilder()
+                .withTask(task)
+                .withAgentInstance(instance)
+                .withTaskRelocationPlan(plan)
+                .build();
     }
 
     private Pair<Double, List<Task>> computeFitness(AgentInstance agent) {

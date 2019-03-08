@@ -19,6 +19,7 @@ package com.netflix.titus.api.jobmanager.store.mixin;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.PercentagePerHourDisruptionBudgetRate;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.RatePerIntervalDisruptionBudgetRate;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.UnlimitedDisruptionBudgetRate;
 
 @JsonTypeInfo(
@@ -27,6 +28,7 @@ import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.UnlimitedDisr
         property = "type")
 @JsonSubTypes({
         @JsonSubTypes.Type(value = PercentagePerHourDisruptionBudgetRate.class, name = "percentagePerHour"),
+        @JsonSubTypes.Type(value = RatePerIntervalDisruptionBudgetRate.class, name = "ratePerInterval"),
         @JsonSubTypes.Type(value = UnlimitedDisruptionBudgetRate.class, name = "unlimited")
 })
 public abstract class DisruptionBudgetRateMixIn {

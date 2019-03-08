@@ -49,6 +49,7 @@ import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBud
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudgetRate;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.HourlyTimeWindow;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.PercentagePerHourDisruptionBudgetRate;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.RatePerIntervalDisruptionBudgetRate;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.RelocationLimitDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.SelfManagedDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.TimeWindow;
@@ -307,6 +308,11 @@ public final class V3GrpcModelConverters {
             case RATEPERCENTAGEPERHOUR:
                 return PercentagePerHourDisruptionBudgetRate.newBuilder()
                         .withMaxPercentageOfContainersRelocatedInHour(grpcDisruptionBudget.getRatePercentagePerHour().getMaxPercentageOfContainersRelocatedInHour())
+                        .build();
+            case RATEPERINTERVAL:
+                return RatePerIntervalDisruptionBudgetRate.newBuilder()
+                        .withIntervalMs(grpcDisruptionBudget.getRatePerInterval().getIntervalMs())
+                        .withLimitPerInterval(grpcDisruptionBudget.getRatePerInterval().getLimitPerInterval())
                         .build();
             default:
                 return UnlimitedDisruptionBudgetRate.newBuilder()
@@ -661,6 +667,13 @@ public final class V3GrpcModelConverters {
         } else if (disruptionBudgetRate instanceof PercentagePerHourDisruptionBudgetRate) {
             builder.setRatePercentagePerHour(JobDisruptionBudget.RatePercentagePerHour.newBuilder()
                     .setMaxPercentageOfContainersRelocatedInHour(((PercentagePerHourDisruptionBudgetRate) disruptionBudgetRate).getMaxPercentageOfContainersRelocatedInHour()));
+        } else if (disruptionBudgetRate instanceof RatePerIntervalDisruptionBudgetRate) {
+            RatePerIntervalDisruptionBudgetRate ratePerInterval = (RatePerIntervalDisruptionBudgetRate) disruptionBudgetRate;
+            builder.setRatePerInterval(JobDisruptionBudget.RatePerInterval.newBuilder()
+                    .setIntervalMs(ratePerInterval.getIntervalMs())
+                    .setLimitPerInterval(ratePerInterval.getLimitPerInterval())
+                    .build()
+            );
         }
 
         return builder

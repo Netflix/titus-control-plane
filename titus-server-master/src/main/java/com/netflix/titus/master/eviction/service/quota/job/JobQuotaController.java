@@ -31,6 +31,7 @@ import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBud
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudgetFunctions;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.PercentagePerHourDisruptionBudgetRate;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.RatePerIntervalDisruptionBudgetRate;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.RelocationLimitDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.UnhealthyTasksLimitDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
@@ -233,6 +234,8 @@ public class JobQuotaController implements QuotaController<Job<?>> {
         DisruptionBudget effectiveBudget = effectiveDisruptionBudgetResolver.resolve(job);
         if (effectiveBudget.getDisruptionBudgetRate() instanceof PercentagePerHourDisruptionBudgetRate) {
             quotaControllers.add(new JobPercentagePerHourRelocationRateController(job, effectiveDisruptionBudgetResolver, titusRuntime));
+        } else if(effectiveBudget.getDisruptionBudgetRate() instanceof RatePerIntervalDisruptionBudgetRate) {
+            quotaControllers.add(new RatePerIntervalRateController(job, effectiveDisruptionBudgetResolver, titusRuntime));
         }
 
         DisruptionBudgetPolicy policy = effectiveBudget.getDisruptionBudgetPolicy();
@@ -256,6 +259,13 @@ public class JobQuotaController implements QuotaController<Job<?>> {
                     previousControllers,
                     JobPercentagePerHourRelocationRateController.class,
                     () -> new JobPercentagePerHourRelocationRateController(job, effectiveDisruptionBudgetResolver, titusRuntime)
+            );
+            quotaControllers.add(newController);
+        } else if (effectiveBudget.getDisruptionBudgetRate() instanceof RatePerIntervalDisruptionBudgetRate) {
+            QuotaController<Job<?>> newController = mergeQuotaController(job,
+                    previousControllers,
+                    RatePerIntervalRateController.class,
+                    () -> new RatePerIntervalRateController(job, effectiveDisruptionBudgetResolver, titusRuntime)
             );
             quotaControllers.add(newController);
         }

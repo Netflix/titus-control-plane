@@ -26,7 +26,7 @@ public class RollingCountTest {
     private static final int STEPS = 4;
     private static final int STEP_TIME = 25;
 
-    private final RollingCount rollingCount = new RollingCount(STEP_TIME, STEPS, START_TIME);
+    private final RollingCount rollingCount = RollingCount.rollingCount(STEP_TIME, STEPS, START_TIME);
 
     @Test
     public void testBasicProgression() {

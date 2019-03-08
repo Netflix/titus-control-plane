@@ -56,7 +56,7 @@ public class RelocationPredicates {
             return Optional.of("Task tagged for relocation");
         }
 
-        if (isRelocationRequiredBy(job)) {
+        if (isRelocationRequiredBy(job, task)) {
             long jobTimestamp = getJobTimestamp(job, RelocationAttributes.RELOCATION_REQUIRED_BY);
             long taskTimestamp = getTaskCreateTimestamp(task);
             if (jobTimestamp >= taskTimestamp) {
@@ -91,6 +91,19 @@ public class RelocationPredicates {
         return Optional.empty();
     }
 
+    public static Optional<String> checkIfRelocationRequired(Job<?> job, Task task) {
+        if (isRelocationRequired(task)) {
+            return Optional.of("Task marked for eviction");
+        }
+
+        if (isRelocationRequiredBy(job, task)) {
+            long timestamp = getJobTimestamp(job, RelocationAttributes.RELOCATION_REQUIRED_BY);
+            return Optional.of(String.format("Job tasks created before %s marked for eviction", DateTimeExt.toUtcDateTimeString(timestamp)));
+        }
+
+        return Optional.empty();
+    }
+
     public static Optional<String> checkIfRelocationBlocked(Job<?> job, Task task, AgentInstance instance) {
         if (isRelocationNotAllowed(task)) {
             return Optional.of("Task marked as not evictable");
@@ -104,7 +117,7 @@ public class RelocationPredicates {
         return Optional.empty();
     }
 
-    private static boolean isRelocationRequired(AgentInstance agentInstance) {
+    public static boolean isRelocationRequired(AgentInstance agentInstance) {
         return agentInstance.getAttributes()
                 .getOrDefault(RelocationAttributes.RELOCATION_REQUIRED, "false")
                 .equalsIgnoreCase("true");
@@ -132,11 +145,11 @@ public class RelocationPredicates {
         return getJobTimestamp(job, RelocationAttributes.RELOCATION_REQUIRED_BY_IMMEDIATELY) >= getTaskCreateTimestamp(task);
     }
 
-    private static boolean isRelocationRequiredBy(Job<?> job) {
-        return job.getJobDescriptor().getAttributes().containsKey(RelocationAttributes.RELOCATION_REQUIRED_BY);
+    private static boolean isRelocationRequiredBy(Job<?> job, Task task) {
+        return getJobTimestamp(job, RelocationAttributes.RELOCATION_REQUIRED_BY) >= getTaskCreateTimestamp(task);
     }
 
-    private static boolean isRelocationNotAllowed(AgentInstance agentInstance) {
+    public static boolean isRelocationNotAllowed(AgentInstance agentInstance) {
         return agentInstance.getAttributes()
                 .getOrDefault(RelocationAttributes.RELOCATION_NOT_ALLOWED, "false")
                 .equalsIgnoreCase("true");
