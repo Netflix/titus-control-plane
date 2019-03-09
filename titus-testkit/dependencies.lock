@@ -1514,7 +1514,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.24.5",
+            "locked": "2.25.0",
             "requested": "2.+"
         },
         "org.mozilla:rhino": {
@@ -1762,7 +1762,7 @@
         "org.springframework:spring-context": {
             "locked": "5.1.5.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-server-runtime",
+                "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot",
                 "org.springframework:spring-webmvc"
             ]
@@ -3381,7 +3381,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.24.5",
+            "locked": "2.25.0",
             "requested": "2.+"
         },
         "org.mozilla:rhino": {
@@ -3629,7 +3629,7 @@
         "org.springframework:spring-context": {
             "locked": "5.1.5.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-server-runtime",
+                "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot",
                 "org.springframework:spring-webmvc"
             ]
@@ -5248,7 +5248,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.24.5",
+            "locked": "2.25.0",
             "requested": "2.+"
         },
         "org.mozilla:rhino": {
@@ -5497,7 +5497,7 @@
         "org.springframework:spring-context": {
             "locked": "5.1.5.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-server-runtime",
+                "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot",
                 "org.springframework:spring-webmvc"
             ]
@@ -7179,7 +7179,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.24.5",
+            "locked": "2.25.0",
             "requested": "2.+"
         },
         "org.mozilla:rhino": {
@@ -7428,7 +7428,7 @@
         "org.springframework:spring-context": {
             "locked": "5.1.5.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-server-runtime",
+                "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot",
                 "org.springframework:spring-webmvc"
             ]
@@ -9047,7 +9047,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.24.5",
+            "locked": "2.25.0",
             "requested": "2.+"
         },
         "org.mozilla:rhino": {
@@ -9296,7 +9296,7 @@
         "org.springframework:spring-context": {
             "locked": "5.1.5.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-server-runtime",
+                "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot",
                 "org.springframework:spring-webmvc"
             ]
@@ -10933,7 +10933,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.24.5",
+            "locked": "2.25.0",
             "requested": "2.+"
         },
         "org.mozilla:rhino": {
@@ -11182,7 +11182,7 @@
         "org.springframework:spring-context": {
             "locked": "5.1.5.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-server-runtime",
+                "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot",
                 "org.springframework:spring-webmvc"
             ]
@@ -12819,7 +12819,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.24.5",
+            "locked": "2.25.0",
             "requested": "2.+"
         },
         "org.mozilla:rhino": {
@@ -13068,7 +13068,7 @@
         "org.springframework:spring-context": {
             "locked": "5.1.5.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-server-runtime",
+                "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot",
                 "org.springframework:spring-webmvc"
             ]
@@ -14705,7 +14705,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.24.5",
+            "locked": "2.25.0",
             "requested": "2.+"
         },
         "org.mozilla:rhino": {
@@ -14955,7 +14955,7 @@
         "org.springframework:spring-context": {
             "locked": "5.1.5.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-server-runtime",
+                "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot",
                 "org.springframework:spring-webmvc"
             ]
@@ -16592,7 +16592,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.24.5",
+            "locked": "2.25.0",
             "requested": "2.+"
         },
         "org.mozilla:rhino": {
@@ -16842,7 +16842,7 @@
         "org.springframework:spring-context": {
             "locked": "5.1.5.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-server-runtime",
+                "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot",
                 "org.springframework:spring-webmvc"
             ]
