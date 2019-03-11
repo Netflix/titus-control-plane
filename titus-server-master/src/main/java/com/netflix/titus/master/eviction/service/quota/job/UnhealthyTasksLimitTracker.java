@@ -88,7 +88,7 @@ public class UnhealthyTasksLimitTracker implements QuotaTracker {
         }
 
         int healthy = 0;
-        Map<String, String> notStartedAndHealthyTasks = new HashMap<>();
+        Map<String, String> notStartedOrUnhealthyTasks = new HashMap<>();
         for (Task task : tasks) {
             if (task.getStatus().getState() == TaskState.Started) {
                 Optional<ContainerHealthStatus> statusOpt = containerHealthService.findHealthStatus(task.getId());
@@ -98,27 +98,27 @@ public class UnhealthyTasksLimitTracker implements QuotaTracker {
                     String report = statusOpt
                             .map(status -> startWithLowercase(status.getState().name()) + '(' + status.getReason() + ')')
                             .orElse("health not found");
-                    notStartedAndHealthyTasks.put(task.getId(), report);
+                    notStartedOrUnhealthyTasks.put(task.getId(), report);
                 }
             } else {
-                notStartedAndHealthyTasks.put(task.getId(), String.format("Not started (current task state=%s)", task.getStatus().getState()));
+                notStartedOrUnhealthyTasks.put(task.getId(), String.format("Not started (current task state=%s)", task.getStatus().getState()));
             }
         }
-        if (!notStartedAndHealthyTasks.isEmpty()) {
+        if (!notStartedOrUnhealthyTasks.isEmpty()) {
             StringBuilder builder = new StringBuilder("not started and healthy: ");
-            builder.append("total=").append(notStartedAndHealthyTasks.size());
+            builder.append("total=").append(notStartedOrUnhealthyTasks.size());
             builder.append(", tasks=[");
             int counter = 0;
-            for (Map.Entry<String, String> entry : notStartedAndHealthyTasks.entrySet()) {
+            for (Map.Entry<String, String> entry : notStartedOrUnhealthyTasks.entrySet()) {
                 builder.append(entry.getKey()).append('=').append(entry.getValue());
                 counter++;
-                if (counter < notStartedAndHealthyTasks.size()) {
+                if (counter < notStartedOrUnhealthyTasks.size()) {
                     builder.append(", ");
                 } else {
                     builder.append("]");
                 }
-                if (counter >= TASK_ID_REPORT_LIMIT && counter < notStartedAndHealthyTasks.size()) {
-                    builder.append(",... dropped ").append(notStartedAndHealthyTasks.size() - counter).append(" tasks]");
+                if (counter >= TASK_ID_REPORT_LIMIT && counter < notStartedOrUnhealthyTasks.size()) {
+                    builder.append(",... dropped ").append(notStartedOrUnhealthyTasks.size() - counter).append(" tasks]");
                 }
             }
             return Pair.of(healthy, builder.toString());

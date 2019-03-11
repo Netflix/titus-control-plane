@@ -18,11 +18,13 @@ package com.netflix.titus.api.jobmanager.model.job.disruptionbudget;
 
 import java.time.Duration;
 import java.util.Objects;
+import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 
 public class RatePerIntervalDisruptionBudgetRate extends DisruptionBudgetRate {
 
     @Min(1)
+    @Max(3600_000)
     private final long intervalMs;
 
     @Min(1)
