@@ -358,8 +358,12 @@
         "com.netflix.titus:titus-server-runtime-spring": {
             "project": true,
             "transitive": [
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation"
             ]
+        },
+        "com.netflix.titus:titus-supplementary-component-job-activity-history": {
+            "project": true
         },
         "com.netflix.titus:titus-supplementary-component-task-relocation": {
             "project": true
@@ -1120,6 +1124,7 @@
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-server-runtime-spring",
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
                 "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
@@ -1139,6 +1144,7 @@
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-server-runtime-spring",
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation"
             ]
         },
@@ -1146,6 +1152,7 @@
             "locked": "2.1.3.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-server-runtime-spring",
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation"
             ]
         },
@@ -1167,7 +1174,7 @@
         "org.springframework:spring-context": {
             "locked": "5.1.5.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-server-runtime",
+                "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot"
             ]
         },
@@ -1200,6 +1207,7 @@
             "locked": "5.1.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-server-runtime-spring",
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
                 "org.springframework:spring-webflux"
             ]
@@ -1594,8 +1602,12 @@
         "com.netflix.titus:titus-server-runtime-spring": {
             "project": true,
             "transitive": [
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation"
             ]
+        },
+        "com.netflix.titus:titus-supplementary-component-job-activity-history": {
+            "project": true
         },
         "com.netflix.titus:titus-supplementary-component-task-relocation": {
             "project": true
@@ -2356,6 +2368,7 @@
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-server-runtime-spring",
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
                 "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
@@ -2375,6 +2388,7 @@
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-server-runtime-spring",
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation"
             ]
         },
@@ -2382,6 +2396,7 @@
             "locked": "2.1.3.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-server-runtime-spring",
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation"
             ]
         },
@@ -2403,7 +2418,7 @@
         "org.springframework:spring-context": {
             "locked": "5.1.5.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-server-runtime",
+                "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot"
             ]
         },
@@ -2436,6 +2451,7 @@
             "locked": "5.1.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-server-runtime-spring",
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
                 "org.springframework:spring-webflux"
             ]
@@ -2830,8 +2846,12 @@
         "com.netflix.titus:titus-server-runtime-spring": {
             "project": true,
             "transitive": [
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation"
             ]
+        },
+        "com.netflix.titus:titus-supplementary-component-job-activity-history": {
+            "project": true
         },
         "com.netflix.titus:titus-supplementary-component-task-relocation": {
             "project": true
@@ -3592,6 +3612,7 @@
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-server-runtime-spring",
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
                 "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
@@ -3612,6 +3633,7 @@
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-server-runtime-spring",
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation"
             ]
         },
@@ -3619,6 +3641,7 @@
             "locked": "2.1.3.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-server-runtime-spring",
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation"
             ]
         },
@@ -3640,7 +3663,7 @@
         "org.springframework:spring-context": {
             "locked": "5.1.5.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-server-runtime",
+                "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot"
             ]
         },
@@ -3673,6 +3696,7 @@
             "locked": "5.1.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-server-runtime-spring",
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
                 "org.springframework:spring-webflux"
             ]
@@ -4158,8 +4182,12 @@
         "com.netflix.titus:titus-server-runtime-spring": {
             "project": true,
             "transitive": [
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation"
             ]
+        },
+        "com.netflix.titus:titus-supplementary-component-job-activity-history": {
+            "project": true
         },
         "com.netflix.titus:titus-supplementary-component-task-relocation": {
             "project": true
@@ -4920,6 +4948,7 @@
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-server-runtime-spring",
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
                 "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
@@ -4940,6 +4969,7 @@
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-server-runtime-spring",
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation"
             ]
         },
@@ -4947,6 +4977,7 @@
             "locked": "2.1.3.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-server-runtime-spring",
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation"
             ]
         },
@@ -4968,7 +4999,7 @@
         "org.springframework:spring-context": {
             "locked": "5.1.5.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-server-runtime",
+                "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot"
             ]
         },
@@ -5001,6 +5032,7 @@
             "locked": "5.1.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-server-runtime-spring",
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
                 "org.springframework:spring-webflux"
             ]
@@ -5395,8 +5427,12 @@
         "com.netflix.titus:titus-server-runtime-spring": {
             "project": true,
             "transitive": [
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation"
             ]
+        },
+        "com.netflix.titus:titus-supplementary-component-job-activity-history": {
+            "project": true
         },
         "com.netflix.titus:titus-supplementary-component-task-relocation": {
             "project": true
@@ -6157,6 +6193,7 @@
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-server-runtime-spring",
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
                 "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
@@ -6177,6 +6214,7 @@
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-server-runtime-spring",
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation"
             ]
         },
@@ -6184,6 +6222,7 @@
             "locked": "2.1.3.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-server-runtime-spring",
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation"
             ]
         },
@@ -6205,7 +6244,7 @@
         "org.springframework:spring-context": {
             "locked": "5.1.5.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-server-runtime",
+                "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot"
             ]
         },
@@ -6238,6 +6277,7 @@
             "locked": "5.1.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-server-runtime-spring",
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
                 "org.springframework:spring-webflux"
             ]
@@ -6877,8 +6917,12 @@
         "com.netflix.titus:titus-server-runtime-spring": {
             "project": true,
             "transitive": [
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation"
             ]
+        },
+        "com.netflix.titus:titus-supplementary-component-job-activity-history": {
+            "project": true
         },
         "com.netflix.titus:titus-supplementary-component-task-relocation": {
             "project": true
@@ -7866,7 +7910,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.24.5",
+            "locked": "2.25.0",
             "requested": "2.+",
             "transitive": [
                 "com.netflix.titus:titus-testkit"
@@ -8011,6 +8055,7 @@
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-server-runtime-spring",
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
                 "com.netflix.titus:titus-testkit",
                 "com.thinkaurelius.thrift:thrift-server",
@@ -8050,6 +8095,7 @@
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-server-runtime-spring",
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
                 "com.netflix.titus:titus-testkit"
             ]
@@ -8058,6 +8104,7 @@
             "locked": "2.1.3.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-server-runtime-spring",
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
                 "org.springframework.boot:spring-boot-autoconfigure",
                 "org.springframework.boot:spring-boot-starter"
@@ -8134,7 +8181,7 @@
         "org.springframework:spring-context": {
             "locked": "5.1.5.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-server-runtime",
+                "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot",
                 "org.springframework:spring-webmvc"
             ]
@@ -8171,6 +8218,7 @@
             "locked": "5.1.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-server-runtime-spring",
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-web",
@@ -8844,8 +8892,12 @@
         "com.netflix.titus:titus-server-runtime-spring": {
             "project": true,
             "transitive": [
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation"
             ]
+        },
+        "com.netflix.titus:titus-supplementary-component-job-activity-history": {
+            "project": true
         },
         "com.netflix.titus:titus-supplementary-component-task-relocation": {
             "project": true
@@ -9833,7 +9885,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.24.5",
+            "locked": "2.25.0",
             "requested": "2.+",
             "transitive": [
                 "com.netflix.titus:titus-testkit"
@@ -9978,6 +10030,7 @@
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-server-runtime-spring",
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
                 "com.netflix.titus:titus-testkit",
                 "com.thinkaurelius.thrift:thrift-server",
@@ -10017,6 +10070,7 @@
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-server-runtime-spring",
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
                 "com.netflix.titus:titus-testkit"
             ]
@@ -10025,6 +10079,7 @@
             "locked": "2.1.3.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-server-runtime-spring",
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
                 "org.springframework.boot:spring-boot-autoconfigure",
                 "org.springframework.boot:spring-boot-starter"
@@ -10101,7 +10156,7 @@
         "org.springframework:spring-context": {
             "locked": "5.1.5.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-server-runtime",
+                "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot",
                 "org.springframework:spring-webmvc"
             ]
@@ -10138,6 +10193,7 @@
             "locked": "5.1.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-server-runtime-spring",
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-web",
@@ -10811,8 +10867,12 @@
         "com.netflix.titus:titus-server-runtime-spring": {
             "project": true,
             "transitive": [
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation"
             ]
+        },
+        "com.netflix.titus:titus-supplementary-component-job-activity-history": {
+            "project": true
         },
         "com.netflix.titus:titus-supplementary-component-task-relocation": {
             "project": true
@@ -11800,7 +11860,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.24.5",
+            "locked": "2.25.0",
             "requested": "2.+",
             "transitive": [
                 "com.netflix.titus:titus-testkit"
@@ -11945,6 +12005,7 @@
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-server-runtime-spring",
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
                 "com.netflix.titus:titus-testkit",
                 "com.thinkaurelius.thrift:thrift-server",
@@ -11985,6 +12046,7 @@
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-server-runtime-spring",
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
                 "com.netflix.titus:titus-testkit"
             ]
@@ -11993,6 +12055,7 @@
             "locked": "2.1.3.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-server-runtime-spring",
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
                 "org.springframework.boot:spring-boot-autoconfigure",
                 "org.springframework.boot:spring-boot-starter"
@@ -12069,7 +12132,7 @@
         "org.springframework:spring-context": {
             "locked": "5.1.5.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-server-runtime",
+                "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot",
                 "org.springframework:spring-webmvc"
             ]
@@ -12106,6 +12169,7 @@
             "locked": "5.1.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-server-runtime-spring",
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-web",
@@ -12779,8 +12843,12 @@
         "com.netflix.titus:titus-server-runtime-spring": {
             "project": true,
             "transitive": [
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation"
             ]
+        },
+        "com.netflix.titus:titus-supplementary-component-job-activity-history": {
+            "project": true
         },
         "com.netflix.titus:titus-supplementary-component-task-relocation": {
             "project": true
@@ -13768,7 +13836,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.24.5",
+            "locked": "2.25.0",
             "requested": "2.+",
             "transitive": [
                 "com.netflix.titus:titus-testkit"
@@ -13913,6 +13981,7 @@
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-server-runtime-spring",
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
                 "com.netflix.titus:titus-testkit",
                 "com.thinkaurelius.thrift:thrift-server",
@@ -13953,6 +14022,7 @@
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-server-runtime-spring",
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
                 "com.netflix.titus:titus-testkit"
             ]
@@ -13961,6 +14031,7 @@
             "locked": "2.1.3.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-server-runtime-spring",
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
                 "org.springframework.boot:spring-boot-autoconfigure",
                 "org.springframework.boot:spring-boot-starter"
@@ -14037,7 +14108,7 @@
         "org.springframework:spring-context": {
             "locked": "5.1.5.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-server-runtime",
+                "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot",
                 "org.springframework:spring-webmvc"
             ]
@@ -14074,6 +14145,7 @@
             "locked": "5.1.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-server-runtime-spring",
+                "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-web",
