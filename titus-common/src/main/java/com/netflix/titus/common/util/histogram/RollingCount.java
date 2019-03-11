@@ -26,7 +26,7 @@ import com.google.common.base.Preconditions;
 public class RollingCount {
 
     private final int steps;
-    private final long stepTime;
+    private final long stepTimeMs;
 
     private final long[] buckets;
     private int bucketStart;
@@ -35,12 +35,12 @@ public class RollingCount {
     private long endTime;
     private long now;
 
-    public RollingCount(long stepTime, int steps, long startTime) {
+    private RollingCount(long stepTimeMs, int steps, long startTime) {
         this.steps = steps;
-        this.stepTime = stepTime;
+        this.stepTimeMs = stepTimeMs;
         this.buckets = new long[steps];
         this.startTime = startTime;
-        this.endTime = startTime + steps * stepTime;
+        this.endTime = startTime + steps * stepTimeMs;
         this.now = startTime;
     }
 
@@ -61,7 +61,7 @@ public class RollingCount {
             adjust(now);
         }
 
-        int insertionPoint = (int) ((now - startTime) / stepTime);
+        int insertionPoint = (int) ((now - startTime) / stepTimeMs);
         for (int i = insertionPoint; i < steps; i++) {
             buckets[(bucketStart + i) % steps] += counter;
         }
@@ -71,7 +71,7 @@ public class RollingCount {
     }
 
     private void adjust(long now) {
-        int shift = (int) ((now - endTime) / stepTime + 1);
+        int shift = (int) ((now - endTime) / stepTimeMs + 1);
 
         if (shift >= steps) {
             Arrays.fill(buckets, 0);
@@ -89,13 +89,26 @@ public class RollingCount {
             this.bucketStart = (bucketStart + shift) % steps;
         }
 
-        this.startTime = startTime + shift * stepTime;
-        this.endTime = startTime + steps * stepTime;
+        this.startTime = startTime + shift * stepTimeMs;
+        this.endTime = startTime + steps * stepTimeMs;
         this.now = now;
     }
 
     private int posAt(long now) {
-        int stepIdx = (int) ((now - startTime) / stepTime);
+        int stepIdx = (int) ((now - startTime) / stepTimeMs);
         return (bucketStart + stepIdx) % steps;
+    }
+
+    public static RollingCount rollingCount(long stepTimeMs, int steps, long startTime) {
+        return new RollingCount(stepTimeMs, steps, startTime);
+    }
+
+    public static RollingCount rollingWindow(long windowSizeMs, int resolution, long startTime) {
+        Preconditions.checkArgument(windowSizeMs > 0, "Window size must be > 0");
+        Preconditions.checkArgument(resolution > 0, "Resolution must be > 0");
+
+        int stepTimeMs = (int) (windowSizeMs / resolution);
+
+        return new RollingCount(stepTimeMs, resolution, startTime);
     }
 }

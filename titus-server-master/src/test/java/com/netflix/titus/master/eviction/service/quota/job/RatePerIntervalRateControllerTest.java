@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,9 +32,10 @@ import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator
 import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator.hourlyRatePercentage;
 import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator.newBatchJob;
 import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator.percentageOfHealthyPolicy;
+import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator.ratePerInterval;
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class JobPercentagePerHourRelocationRateControllerTest {
+public class RatePerIntervalRateControllerTest {
 
     private static final Job<BatchJobExt> REFERENCE_JOB = newBatchJob(
             10,
@@ -42,7 +43,8 @@ public class JobPercentagePerHourRelocationRateControllerTest {
     );
     private static final Reference JOB_REFERENCE = Reference.job(REFERENCE_JOB.getId());
 
-    private static final Duration TEN_MINUTES = Duration.ofMinutes(10);
+    private static final long WINDOW_MS = 60_000;
+    private static final Duration CONSUME_INTERVAL = Duration.ofSeconds(10);
 
     private final TitusRuntime titusRuntime = TitusRuntimes.test();
 
@@ -50,8 +52,8 @@ public class JobPercentagePerHourRelocationRateControllerTest {
 
     @Test
     public void testQuota() {
-        JobPercentagePerHourRelocationRateController quotaController = new JobPercentagePerHourRelocationRateController(
-                exceptRate(REFERENCE_JOB, hourlyRatePercentage(50)),
+        RatePerIntervalRateController quotaController = new RatePerIntervalRateController(
+                exceptRate(REFERENCE_JOB, ratePerInterval(WINDOW_MS, 5)),
                 SelfJobDisruptionBudgetResolver.getInstance(),
                 titusRuntime
         );
@@ -59,12 +61,12 @@ public class JobPercentagePerHourRelocationRateControllerTest {
         assertThat(quotaController.getQuota(JOB_REFERENCE).getQuota()).isEqualTo(5);
 
         // Consume everything
-        consumeAtInterval(quotaController, 5, TEN_MINUTES);
+        consumeAtInterval(quotaController, 5, CONSUME_INTERVAL);
         assertThat(quotaController.getQuota(JOB_REFERENCE).getQuota()).isEqualTo(0);
 
         // Now shift time and consume again
-        clock.advanceTime(TEN_MINUTES);
-        clock.advanceTime(TEN_MINUTES);
+        clock.advanceTime(CONSUME_INTERVAL);
+        clock.advanceTime(CONSUME_INTERVAL);
         assertThat(quotaController.consume("someTaskId").isApproved()).isTrue();
 
         // Now move long into the future
@@ -74,22 +76,22 @@ public class JobPercentagePerHourRelocationRateControllerTest {
 
     @Test
     public void testJobUpdate() {
-        JobPercentagePerHourRelocationRateController firstController = new JobPercentagePerHourRelocationRateController(
-                exceptRate(REFERENCE_JOB, hourlyRatePercentage(50)),
+        RatePerIntervalRateController firstController = new RatePerIntervalRateController(
+                exceptRate(REFERENCE_JOB, ratePerInterval(WINDOW_MS,5)),
                 SelfJobDisruptionBudgetResolver.getInstance(),
                 titusRuntime
         );
 
         // Take all
-        consumeAtInterval(firstController, 5, TEN_MINUTES);
+        consumeAtInterval(firstController, 5, CONSUME_INTERVAL);
         assertThat(firstController.getQuota(JOB_REFERENCE).getQuota()).isEqualTo(0);
 
-        // Now increase the allowance
-        JobPercentagePerHourRelocationRateController updatedController = firstController.update(exceptRate(REFERENCE_JOB, hourlyRatePercentage(80)));
-        assertThat(updatedController.getQuota(JOB_REFERENCE).getQuota()).isEqualTo(3);
+        // Now increase the allowance by reducing the window size and increasing the rate limit
+        RatePerIntervalRateController updatedController = firstController.update(exceptRate(REFERENCE_JOB, ratePerInterval(WINDOW_MS / 2,10)));
+        assertThat(updatedController.getQuota(JOB_REFERENCE).getQuota()).isEqualTo(5);
     }
 
-    private void consumeAtInterval(JobPercentagePerHourRelocationRateController quotaController, int count, Duration interval) {
+    private void consumeAtInterval(RatePerIntervalRateController quotaController, int count, Duration interval) {
         for (int i = 0; i < count; i++) {
             clock.advanceTime(interval);
             assertThat(quotaController.consume("someTaskId").isApproved()).isTrue();

@@ -58,4 +58,18 @@ class EvictionQuotaTracker {
         systemEvictionQuota = systemEvictionQuota - 1;
         jobEvictionQuotas.put(jobId, jobQuota - 1);
     }
+
+    /**
+     * An alternative version to {@link #consumeQuota(String)} which does not throw an exception if there is not
+     * enough quota to relocate a task of a given job. This is used when the immediate relocation is required.
+     */
+    void consumeQuotaNoError(String jobId) {
+        if (systemEvictionQuota > 0) {
+            systemEvictionQuota = systemEvictionQuota - 1;
+        }
+        long jobQuota = jobEvictionQuotas.getOrDefault(jobId, 0L);
+        if (jobQuota > 0) {
+            jobEvictionQuotas.put(jobId, jobQuota - 1);
+        }
+    }
 }

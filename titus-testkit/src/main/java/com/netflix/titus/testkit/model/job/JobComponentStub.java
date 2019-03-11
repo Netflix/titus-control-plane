@@ -144,6 +144,14 @@ public class JobComponentStub {
         });
     }
 
+    public void addTaskAttribute(String taskId, String attributeName, String attributeValue) {
+        stubbedJobData.changeTask(taskId, task ->
+                task.toBuilder()
+                        .withAttributes(CollectionsExt.copyAndAdd(task.getAttributes(), attributeName, attributeValue))
+                        .build()
+        );
+    }
+
     public Job finishJob(Job job) {
         return stubbedJobData.finishJob(job);
     }

@@ -23,6 +23,7 @@ import com.netflix.titus.api.agent.model.event.AgentEvent;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.agent.service.AgentStatusMonitor;
 import com.netflix.titus.api.model.Tier;
+import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import reactor.core.publisher.Flux;
 
@@ -76,6 +77,14 @@ public class AgentComponentStub {
 
     public AgentComponentStub changeInstanceLifecycleStatus(String instanceId, InstanceLifecycleStatus status) {
         stubbedAgentData.changeInstance(instanceId, previous -> previous.toBuilder().withDeploymentStatus(status).build());
+        return this;
+    }
+
+    public AgentComponentStub addInstanceAttribute(String instanceId, String key, Object value) {
+        stubbedAgentData.changeInstance(instanceId, instance -> instance.toBuilder()
+                .withAttributes(CollectionsExt.copyAndAdd(instance.getAttributes(), key, "" + value))
+                .build()
+        );
         return this;
     }
 

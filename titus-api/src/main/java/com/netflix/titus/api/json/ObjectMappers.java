@@ -87,6 +87,7 @@ import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBud
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudgetRate;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.HourlyTimeWindow;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.PercentagePerHourDisruptionBudgetRate;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.RatePerIntervalDisruptionBudgetRate;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.RelocationLimitDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.SelfManagedDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.TimeWindow;
@@ -126,6 +127,7 @@ import com.netflix.titus.api.jobmanager.store.mixin.MigrationDetailsMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.MigrationPolicyMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.OwnerMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.PercentagePerHourDisruptionBudgetRateMixIn;
+import com.netflix.titus.api.jobmanager.store.mixin.RatePerIntervalDisruptionBudgetRateMixIn;
 import com.netflix.titus.api.jobmanager.store.mixin.RelocationLimitDisruptionBudgetPolicyMixIn;
 import com.netflix.titus.api.jobmanager.store.mixin.RetryPolicyMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.SecurityProfileMixin;
@@ -390,6 +392,7 @@ public class ObjectMappers {
 
         objectMapper.addMixIn(DisruptionBudgetRate.class, DisruptionBudgetRateMixIn.class);
         objectMapper.addMixIn(PercentagePerHourDisruptionBudgetRate.class, PercentagePerHourDisruptionBudgetRateMixIn.class);
+        objectMapper.addMixIn(RatePerIntervalDisruptionBudgetRate.class, RatePerIntervalDisruptionBudgetRateMixIn.class);
         objectMapper.addMixIn(UnlimitedDisruptionBudgetRate.class, UnlimitedDisruptionBudgetRateMixIn.class);
 
         objectMapper.addMixIn(ContainerHealthProvider.class, ContainerHealthProviderMixIn.class);

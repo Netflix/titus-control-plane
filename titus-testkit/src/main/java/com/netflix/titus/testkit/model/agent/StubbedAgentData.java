@@ -133,7 +133,7 @@ class StubbedAgentData {
         return instanceGroups.values().stream()
                 .filter(d -> d.hasInstance(instanceId))
                 .findFirst()
-                .orElseThrow(() -> new IllegalStateException("Unknown agent instance group " + instanceId));
+                .orElseThrow(() -> new IllegalStateException("Unknown agent instance " + instanceId));
     }
 
     private class InstanceGroupDeployment {

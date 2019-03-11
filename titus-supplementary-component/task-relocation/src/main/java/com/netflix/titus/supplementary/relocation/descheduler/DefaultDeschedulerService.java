@@ -81,7 +81,9 @@ public class DefaultDeschedulerService implements DeschedulerService {
                 plannedAheadTaskRelocationPlans, evacuatedAgentsAllocationTracker, evictionQuotaTracker, jobs, tasksById, titusRuntime
         );
 
-        Map<String, DeschedulingResult> immediateEvictions = taskMigrationDescheduler.findAllImmediateEvictions();
+        Map<String, DeschedulingResult> requestedImmediateEvictions = taskMigrationDescheduler.findAllImmediateEvictions();
+        Map<String, DeschedulingResult> requestedEvictions = taskMigrationDescheduler.findRequestedJobOrTaskMigrations();
+        Map<String, DeschedulingResult> allRequestedEvictions = CollectionsExt.merge(requestedImmediateEvictions, requestedEvictions);
 
         Map<String, DeschedulingResult> regularEvictions = new HashMap<>();
         Optional<Pair<AgentInstance, List<Task>>> bestMatch;
@@ -89,7 +91,7 @@ public class DefaultDeschedulerService implements DeschedulerService {
             AgentInstance agent = bestMatch.get().getLeft();
             List<Task> tasks = bestMatch.get().getRight();
             tasks.forEach(task -> {
-                if (!immediateEvictions.containsKey(task.getId())) {
+                if (!allRequestedEvictions.containsKey(task.getId())) {
                     TaskRelocationPlan relocationPlan = plannedAheadTaskRelocationPlans.get(task.getId());
                     if (relocationPlan == null) {
                         relocationPlan = newImmediateRelocationPlan(task);
@@ -108,7 +110,7 @@ public class DefaultDeschedulerService implements DeschedulerService {
 
         // Find eviction which could not be scheduled now.
         for (Task task : tasksById.values()) {
-            if (immediateEvictions.containsKey(task.getId()) || regularEvictions.containsKey(task.getId())) {
+            if (allRequestedEvictions.containsKey(task.getId()) || regularEvictions.containsKey(task.getId())) {
                 continue;
             }
             if (evacuatedAgentsAllocationTracker.isEvacuated(task)) {
@@ -140,7 +142,7 @@ public class DefaultDeschedulerService implements DeschedulerService {
             }
         }
 
-        return CollectionsExt.merge(new ArrayList<>(immediateEvictions.values()), new ArrayList<>(regularEvictions.values()));
+        return CollectionsExt.merge(new ArrayList<>(allRequestedEvictions.values()), new ArrayList<>(regularEvictions.values()));
     }
 
     private boolean isManagedByTaskRelocationService(Task task) {

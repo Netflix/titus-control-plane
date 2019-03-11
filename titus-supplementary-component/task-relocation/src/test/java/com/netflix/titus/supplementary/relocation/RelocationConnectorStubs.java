@@ -130,6 +130,14 @@ public class RelocationConnectorStubs {
         jobComponentStub.addJobAttribute(jobId, attributeName, "" + attributeValue);
     }
 
+    public void addTaskAttribute(String taskId, String attributeName, Object attributeValue) {
+        jobComponentStub.addTaskAttribute(taskId, attributeName, "" + attributeValue);
+    }
+
+    public void addInstanceAttribute(String instanceId, String attributeName, Object attributeValue) {
+        agentComponentStub.addInstanceAttribute(instanceId, attributeName, attributeValue);
+    }
+
     public RelocationConnectorStubs place(String instanceGroupId, Task... tasks) {
         List<AgentInstance> agents = agentOperations.getAgentInstances(instanceGroupId);
 

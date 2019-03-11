@@ -21,13 +21,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.supplementary.relocation.util.RelocationPredicates;
 import com.netflix.titus.supplementary.relocation.util.RelocationUtil;
 
 import static com.netflix.titus.common.util.CollectionsExt.copyAndRemove;
@@ -43,10 +43,15 @@ class EvacuatedAgentsAllocationTracker {
 
     EvacuatedAgentsAllocationTracker(ReadOnlyAgentOperations agentOperations, Map<String, Task> tasksById) {
         this.agentsByTaskId = RelocationUtil.buildTasksToInstanceMap(agentOperations, tasksById);
-        this.removableAgentsById = agentOperations.getInstanceGroups().stream()
-                .filter(RelocationUtil::isRemovable)
-                .flatMap(ig -> agentOperations.getAgentInstances(ig.getId()).stream())
-                .collect(Collectors.toMap(AgentInstance::getId, i -> i));
+        this.removableAgentsById = new HashMap<>();
+        agentOperations.getInstanceGroups().forEach(instanceGroup ->
+                agentOperations.getAgentInstances(instanceGroup.getId()).forEach(instance -> {
+                    if ((RelocationUtil.isRemovable(instanceGroup) && !RelocationPredicates.isRelocationNotAllowed(instance))
+                            || RelocationPredicates.isRelocationRequired(instance)) {
+                        removableAgentsById.put(instance.getId(), instance);
+                    }
+                })
+        );
         this.removableAgentsAndTasksByAgentId = transformValues(removableAgentsById, i -> Pair.of(i, RelocationUtil.findTasksOnInstance(i, tasksById.values())));
 
         for (Pair<AgentInstance, List<Task>> agentTasksPair : removableAgentsAndTasksByAgentId.values()) {
