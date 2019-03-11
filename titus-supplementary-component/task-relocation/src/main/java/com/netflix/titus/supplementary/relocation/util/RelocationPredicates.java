@@ -60,7 +60,7 @@ public class RelocationPredicates {
             long jobTimestamp = getJobTimestamp(job, RelocationAttributes.RELOCATION_REQUIRED_BY);
             long taskTimestamp = getTaskCreateTimestamp(task);
             if (jobTimestamp >= taskTimestamp) {
-                return Optional.of("Job tagged for relocation for tasks created before " + DateTimeExt.toTimeUnitString(jobTimestamp));
+                return Optional.of("Job tagged for relocation for tasks created before " + DateTimeExt.toUtcDateTimeString(jobTimestamp));
             }
         }
 
