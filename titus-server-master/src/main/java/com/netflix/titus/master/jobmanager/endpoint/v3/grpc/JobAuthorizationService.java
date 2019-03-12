@@ -55,7 +55,7 @@ public abstract class JobAuthorizationService implements AuthorizationService {
         String originalCallerId = callMetadata.getCallerId();
         if (StringExt.isEmpty(originalCallerId)) {
             return Mono.just(AuthorizationStatus.success(
-                    String.format("Request caller id missing; granting access to an identified user: jobId=%s, callMedata=%s", job.getId(), callMetadata)
+                    String.format("Request caller id missing; granting access to an identified user: jobId=%s, callMetadata=%s", job.getId(), callMetadata)
             ));
         }
 
@@ -66,7 +66,7 @@ public abstract class JobAuthorizationService implements AuthorizationService {
         String originalCallerId = callMetadata.getCallerId();
         if (StringExt.isEmpty(originalCallerId)) {
             return Mono.just(AuthorizationStatus.success(String.format(
-                    "Request caller id missing; granting access to an identified user to create a new job: applicationName=%s, callMedata=%s",
+                    "Request caller id missing; granting access to an identified user to create a new job: applicationName=%s, callMetadata=%s",
                     jobDescriptor.getApplicationName(), callMetadata
             )));
         }
