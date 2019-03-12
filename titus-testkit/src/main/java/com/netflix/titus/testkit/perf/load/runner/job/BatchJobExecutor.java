@@ -19,6 +19,7 @@ package com.netflix.titus.testkit.perf.load.runner.job;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
+import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import com.netflix.titus.testkit.perf.load.ExecutionContext;
 import rx.Observable;
@@ -51,7 +52,7 @@ public class BatchJobExecutor extends AbstractJobExecutor {
 
     public static Observable<BatchJobExecutor> submitJob(JobDescriptor<BatchJobExt> jobSpec, ExecutionContext context) {
         return context.getJobManagementClient()
-                .createJob(V3GrpcModelConverters.toGrpcJobDescriptor(jobSpec))
+                .createJob(V3GrpcModelConverters.toGrpcJobDescriptor(jobSpec), JobManagerConstants.UNDEFINED_CALL_METADATA)
                 .flatMap(jobRef -> context.getJobManagementClient().findJob(jobRef))
                 .map(job -> new BatchJobExecutor((Job<BatchJobExt>) V3GrpcModelConverters.toCoreJob(job), context));
     }

@@ -20,6 +20,8 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.protobuf.Empty;
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
+import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.common.runtime.SystemLogService;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobAttributesDeleteRequest;
@@ -78,7 +80,9 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void createJob(JobDescriptor request, StreamObserver<JobId> responseObserver) {
-        Subscription subscription = jobManagementClient.createJob(request).subscribe(
+        CallMetadata callMetadata = callMetadataResolver.resolve().orElse(JobManagerConstants.UNDEFINED_CALL_METADATA);
+        
+        Subscription subscription = jobManagementClient.createJob(request, callMetadata).subscribe(
                 jobId -> responseObserver.onNext(JobId.newBuilder().setId(jobId).build()),
                 e -> safeOnError(logger, e, responseObserver),
                 responseObserver::onCompleted

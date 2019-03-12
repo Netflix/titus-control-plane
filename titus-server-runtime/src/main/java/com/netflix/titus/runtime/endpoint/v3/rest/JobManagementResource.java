@@ -36,6 +36,8 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
 import com.google.common.base.Strings;
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
+import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.runtime.SystemLogService;
 import com.netflix.titus.common.util.StringExt;
@@ -93,7 +95,7 @@ public class JobManagementResource {
     @ApiOperation("Create a job")
     @Path("/jobs")
     public Response createJob(JobDescriptor jobDescriptor) {
-        String jobId = Responses.fromSingleValueObservable(jobManagementClient.createJob(jobDescriptor));
+        String jobId = Responses.fromSingleValueObservable(jobManagementClient.createJob(jobDescriptor, resolveCallMetadata()));
         return Response.status(Response.Status.ACCEPTED).entity(JobId.newBuilder().setId(jobId).build()).build();
     }
 
@@ -294,5 +296,9 @@ public class JobManagementResource {
     @Path("/tasks/move")
     public Response moveTask(TaskMoveRequest taskMoveRequest) {
         return Responses.fromCompletable(jobManagementClient.moveTask(taskMoveRequest));
+    }
+
+    private CallMetadata resolveCallMetadata() {
+        return callMetadataResolver.resolve().orElse(JobManagerConstants.UNDEFINED_CALL_METADATA);
     }
 }

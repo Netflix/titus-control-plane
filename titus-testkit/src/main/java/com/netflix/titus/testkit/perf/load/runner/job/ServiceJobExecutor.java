@@ -23,6 +23,7 @@ import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
@@ -96,7 +97,7 @@ public class ServiceJobExecutor extends AbstractJobExecutor<ServiceJobExt> {
 
     public static Observable<ServiceJobExecutor> submitJob(JobDescriptor<ServiceJobExt> jobSpec, ExecutionContext context) {
         return context.getJobManagementClient()
-                .createJob(V3GrpcModelConverters.toGrpcJobDescriptor(jobSpec))
+                .createJob(V3GrpcModelConverters.toGrpcJobDescriptor(jobSpec), JobManagerConstants.UNDEFINED_CALL_METADATA)
                 .flatMap(jobRef -> context.getJobManagementClient().findJob(jobRef))
                 .map(job -> new ServiceJobExecutor((Job<ServiceJobExt>) V3GrpcModelConverters.toCoreJob(job), context));
     }

@@ -32,6 +32,7 @@ import javax.inject.Singleton;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 import com.netflix.spectator.api.Registry;
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobAssertions;
@@ -141,7 +142,7 @@ public class GatewayJobManagementClient extends JobManagementClientDelegate {
     }
 
     @Override
-    public Observable<String> createJob(JobDescriptor jobDescriptor) {
+    public Observable<String> createJob(JobDescriptor jobDescriptor, CallMetadata callMetadata) {
         com.netflix.titus.api.jobmanager.model.job.JobDescriptor coreJobDescriptor;
         try {
             coreJobDescriptor = V3GrpcModelConverters.toCoreJobDescriptor(jobDescriptor);
@@ -168,7 +169,7 @@ public class GatewayJobManagementClient extends JobManagementClientDelegate {
                                 })
                         );
 
-        return sanitizedCoreJobDescriptorObs.flatMap(scjd -> super.createJob(V3GrpcModelConverters.toGrpcJobDescriptor(scjd)));
+        return sanitizedCoreJobDescriptorObs.flatMap(scjd -> super.createJob(V3GrpcModelConverters.toGrpcJobDescriptor(scjd), callMetadata));
     }
 
     @Override
