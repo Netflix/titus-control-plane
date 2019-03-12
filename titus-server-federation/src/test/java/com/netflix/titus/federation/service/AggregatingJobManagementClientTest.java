@@ -32,6 +32,7 @@ import java.util.stream.Stream;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.netflix.titus.api.federation.model.Cell;
+import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.api.model.Page;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.util.CollectionsExt;
@@ -798,7 +799,7 @@ public class AggregatingJobManagementClientTest {
                     .setApplicationName(appName)
                     .setCapacityGroup(appName + "CapGroup")
                     .build();
-            String jobId = service.createJob(jobDescriptor).toBlocking().first();
+            String jobId = service.createJob(jobDescriptor, JobManagerConstants.UNDEFINED_CALL_METADATA).toBlocking().first();
 
             // Get a client to the test gRPC service for the cell that we expect got it
             // TODO(Andrew L): This can use findJob() instead once AggregatingService implements it
@@ -827,7 +828,7 @@ public class AggregatingJobManagementClientTest {
                 .setApplicationName("app1")
                 .setCapacityGroup("app1CapGroup")
                 .build();
-        String jobId = service.createJob(jobDescriptor).toBlocking().first();
+        String jobId = service.createJob(jobDescriptor, JobManagerConstants.UNDEFINED_CALL_METADATA).toBlocking().first();
         Optional<JobDescriptor> createdJob = cachedJobsService.getCachedJob(jobId);
         assertThat(createdJob).isPresent();
         assertThat(createdJob.get().getAttributesMap()).containsEntry(JOB_ATTRIBUTES_STACK, stackName);

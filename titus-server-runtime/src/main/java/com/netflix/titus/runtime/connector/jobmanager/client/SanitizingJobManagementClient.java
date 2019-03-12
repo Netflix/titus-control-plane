@@ -19,6 +19,7 @@ package com.netflix.titus.runtime.connector.jobmanager.client;
 import java.util.Set;
 import javax.inject.Named;
 
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
@@ -45,7 +46,7 @@ public class SanitizingJobManagementClient extends JobManagementClientDelegate {
     }
 
     @Override
-    public Observable<String> createJob(JobDescriptor jobDescriptor) {
+    public Observable<String> createJob(JobDescriptor jobDescriptor, CallMetadata callMetadata) {
         com.netflix.titus.api.jobmanager.model.job.JobDescriptor coreJobDescriptor;
         try {
             coreJobDescriptor = V3GrpcModelConverters.toCoreJobDescriptor(jobDescriptor);
@@ -61,7 +62,7 @@ public class SanitizingJobManagementClient extends JobManagementClientDelegate {
 
         JobDescriptor effectiveJobDescriptor = V3GrpcModelConverters.toGrpcJobDescriptor(sanitizedCoreJobDescriptor);
 
-        return delegate.createJob(effectiveJobDescriptor);
+        return delegate.createJob(effectiveJobDescriptor, callMetadata);
     }
 
     @Override

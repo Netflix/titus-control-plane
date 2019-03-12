@@ -16,6 +16,7 @@
 
 package com.netflix.titus.runtime.connector.jobmanager.client;
 
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobAttributesDeleteRequest;
 import com.netflix.titus.grpc.protogen.JobAttributesUpdate;
@@ -49,8 +50,8 @@ public class JobManagementClientDelegate implements JobManagementClient {
     }
 
     @Override
-    public Observable<String> createJob(JobDescriptor jobDescriptor) {
-        return delegate.createJob(jobDescriptor);
+    public Observable<String> createJob(JobDescriptor jobDescriptor, CallMetadata callMetadata) {
+        return delegate.createJob(jobDescriptor, callMetadata);
     }
 
     @Override

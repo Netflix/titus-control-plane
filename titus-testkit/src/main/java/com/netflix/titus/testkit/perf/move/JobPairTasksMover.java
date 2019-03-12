@@ -28,6 +28,7 @@ import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.grpc.protogen.TaskMoveRequest;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
@@ -129,8 +130,8 @@ class JobPairTasksMover {
         );
 
         Single<JobPairTasksMover> action = Observable.zip(
-                client.createJob(toGrpcJobDescriptor(first)),
-                client.createJob(toGrpcJobDescriptor(second)),
+                client.createJob(toGrpcJobDescriptor(first), JobManagerConstants.UNDEFINED_CALL_METADATA),
+                client.createJob(toGrpcJobDescriptor(second), JobManagerConstants.UNDEFINED_CALL_METADATA),
                 (j1, j2) -> new JobPairTasksMover(client, j1, j2, jobSize, batchSize)
         ).take(1).toSingle();
 
