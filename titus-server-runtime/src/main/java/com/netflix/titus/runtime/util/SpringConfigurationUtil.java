@@ -44,4 +44,8 @@ public class SpringConfigurationUtil {
     public static String getString(Environment environment, String key, String defaultValue) {
         return environment.getProperty(key, defaultValue);
     }
+
+    public static boolean getBoolean(Environment environment, String key, boolean defaultValue) {
+        return environment.getProperty(key, Boolean.class, defaultValue);
+    }
 }

@@ -28,12 +28,12 @@ dependencies {
 
     compile "org.jooq:jooq:${jooqVersion}"
     compile "org.postgresql:postgresql:${postgresqlVersion}"
+    compile "org.hsqldb:hsqldb:${hsqldbVersion}"
 
     // TODO Remove
     compile "org.jooq:jooq-meta:${jooqVersion}"
     compile "org.jooq:jooq-codegen:${jooqVersion}"
 
-    testCompile "org.hsqldb:hsqldb:${hsqldbVersion}"
     testCompile project(':titus-testkit')
 
     jooqRuntime "postgresql:postgresql:${postgresqlVersion}"
