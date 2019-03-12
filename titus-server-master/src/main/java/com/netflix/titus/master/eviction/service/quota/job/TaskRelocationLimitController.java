@@ -16,9 +16,7 @@
 
 package com.netflix.titus.master.eviction.service.quota.job;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import com.netflix.titus.api.eviction.model.EvictionQuota;
@@ -34,9 +32,6 @@ import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.eviction.service.quota.ConsumptionResult;
 import com.netflix.titus.master.eviction.service.quota.QuotaController;
 
-/**
- * TODO This information should be persisted somehow. We could encode it in the task kill reason code/message.
- */
 public class TaskRelocationLimitController implements QuotaController<Job<?>> {
 
     private final Job<?> job;
@@ -46,7 +41,6 @@ public class TaskRelocationLimitController implements QuotaController<Job<?>> {
 
     private static final ConsumptionResult TASK_NOT_FOUND = ConsumptionResult.rejected("Task not found");
 
-    private final Map<String, Integer> relocationCountersById;
     private final ConsumptionResult taskLimitExceeded;
 
     public TaskRelocationLimitController(Job<?> job,
@@ -56,7 +50,6 @@ public class TaskRelocationLimitController implements QuotaController<Job<?>> {
         this.jobOperations = jobOperations;
         this.budgetResolver = budgetResolver;
         this.perTaskLimit = computePerTaskLimit(budgetResolver.resolve(job));
-        this.relocationCountersById = new HashMap<>();
         this.taskLimitExceeded = buildTaskRelocationLimitExceeded();
     }
 
@@ -66,7 +59,6 @@ public class TaskRelocationLimitController implements QuotaController<Job<?>> {
         this.job = updatedJob;
         this.jobOperations = previous.jobOperations;
         this.perTaskLimit = perTaskLimit;
-        this.relocationCountersById = previous.relocationCountersById;
         this.budgetResolver = previous.budgetResolver;
         this.taskLimitExceeded = buildTaskRelocationLimitExceeded();
     }
@@ -94,8 +86,7 @@ public class TaskRelocationLimitController implements QuotaController<Job<?>> {
 
         int quota = 0;
         for (Task task : tasks) {
-            Integer counter = relocationCountersById.get(task.getOriginalId());
-            if (counter == null || counter < perTaskLimit) {
+            if (task.getEvictionResubmitNumber() < perTaskLimit) {
                 quota++;
             }
         }
@@ -116,7 +107,7 @@ public class TaskRelocationLimitController implements QuotaController<Job<?>> {
         }
         Task task = jobTaskOpt.get().getRight();
 
-        int counter = relocationCountersById.getOrDefault(task.getOriginalId(), 0);
+        int counter = task.getEvictionResubmitNumber();
         if (counter < perTaskLimit) {
             return quotaBuilder
                     .withQuota(1)
@@ -135,25 +126,15 @@ public class TaskRelocationLimitController implements QuotaController<Job<?>> {
         }
         Task task = jobTaskPair.get().getRight();
 
-        int counter = relocationCountersById.getOrDefault(task.getOriginalId(), 0);
+        int counter = task.getEvictionResubmitNumber();
         if (counter >= perTaskLimit) {
             return taskLimitExceeded;
         }
-        relocationCountersById.put(task.getOriginalId(), counter + 1);
         return ConsumptionResult.approved();
     }
 
     @Override
     public void giveBackConsumedQuota(String taskId) {
-        Optional<Pair<Job<?>, Task>> jobTaskPair = jobOperations.findTaskById(taskId);
-        if (!jobTaskPair.isPresent()) {
-            return;
-        }
-        Task task = jobTaskPair.get().getRight();
-        Integer counter = relocationCountersById.get(task.getOriginalId());
-        if (counter != null && counter > 0) {
-            relocationCountersById.put(task.getOriginalId(), counter - 1);
-        }
     }
 
     @Override

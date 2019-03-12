@@ -65,17 +65,20 @@ public class TaskRelocationLimitControllerTest {
         assertThat(quotaController.consume(task.getId()).isApproved()).isTrue();
         assertThat(quotaController.getQuota(taskReference).getQuota()).isEqualTo(1);
 
-        jobComponentStub.moveTaskToState(task, TaskState.Finished);
-        Task replacement1 = jobComponentStub.createDesiredTasks(job).get(0);
+        jobComponentStub.moveTaskToState(task, TaskState.Started);
+        jobComponentStub.killTask(task, false, V3JobOperations.Trigger.Eviction);
+        Task replacement1 = jobComponentStub.getJobOperations().getTasks().stream().filter(t -> t.getOriginalId().equals(task.getId())).findFirst().get();
 
         assertThat(quotaController.consume(replacement1.getId()).isApproved()).isTrue();
-        assertThat(quotaController.getQuota(jobReference).getQuota()).isEqualTo(9);
+        assertThat(quotaController.getQuota(jobReference).getQuota()).isEqualTo(10);
         assertThat(quotaController.getQuota(taskReference).getQuota()).isEqualTo(0);
 
-        jobComponentStub.moveTaskToState(replacement1, TaskState.Finished);
-        Task replacement2 = jobComponentStub.createDesiredTasks(job).get(0);
+        jobComponentStub.moveTaskToState(replacement1, TaskState.Started);
+        jobComponentStub.killTask(replacement1, false, V3JobOperations.Trigger.Eviction);
+        Task replacement2 = jobComponentStub.getJobOperations().getTasks().stream().filter(t -> t.getOriginalId().equals(task.getId())).findFirst().get();
 
         assertThat(quotaController.consume(replacement2.getId()).isApproved()).isFalse();
+        assertThat(quotaController.getQuota(jobReference).getQuota()).isEqualTo(9);
     }
 
     @Test
@@ -88,8 +91,9 @@ public class TaskRelocationLimitControllerTest {
         TaskRelocationLimitController firstController = new TaskRelocationLimitController(job, jobOperations, SelfJobDisruptionBudgetResolver.getInstance());
         assertThat(firstController.consume(task.getId()).isApproved()).isTrue();
 
-        jobComponentStub.moveTaskToState(task, TaskState.Finished);
-        Task replacement1 = jobComponentStub.createDesiredTasks(job).get(0);
+        jobComponentStub.moveTaskToState(task, TaskState.Started);
+        jobComponentStub.killTask(task, false, V3JobOperations.Trigger.Eviction);
+        Task replacement1 = jobComponentStub.getJobOperations().getTasks().stream().filter(t -> t.getOriginalId().equals(task.getId())).findFirst().get();
 
         assertThat(firstController.consume(replacement1.getId()).isApproved()).isFalse();
 
@@ -104,8 +108,9 @@ public class TaskRelocationLimitControllerTest {
         // Consume again, after limit increase
         assertThat(updatedController.consume(replacement1.getId()).isApproved()).isTrue();
 
-        jobComponentStub.moveTaskToState(replacement1, TaskState.Finished);
-        Task replacement2 = jobComponentStub.createDesiredTasks(job).get(0);
+        jobComponentStub.moveTaskToState(replacement1, TaskState.Started);
+        jobComponentStub.killTask(replacement1, false, V3JobOperations.Trigger.Eviction);
+        Task replacement2 = jobComponentStub.getJobOperations().getTasks().stream().filter(t -> t.getOriginalId().equals(task.getId())).findFirst().get();
 
         assertThat(updatedController.consume(replacement2.getId()).isApproved()).isFalse();
         assertThat(updatedController.getQuota(jobReference).getQuota()).isEqualTo(19);

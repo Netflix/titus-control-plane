@@ -32,7 +32,6 @@ import java.util.stream.Collectors;
 import com.google.common.base.Preconditions;
 import com.netflix.titus.api.containerhealth.model.ContainerHealthState;
 import com.netflix.titus.api.containerhealth.model.ContainerHealthStatus;
-import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
@@ -58,8 +57,6 @@ import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.rx.ObservableExt;
 import rx.Observable;
 import rx.subjects.PublishSubject;
-
-import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.isBatchJob;
 
 class StubbedJobData {
 
@@ -160,7 +157,7 @@ class StubbedJobData {
     }
 
     Task moveTaskToState(Task task, TaskState newState) {
-        return getJobHolderByTaskId(task.getId()).moveTaskToState(task, newState);
+        return getJobHolderByTaskId(task.getId()).moveTaskToState(task, V3JobOperations.Trigger.API, newState);
     }
 
     void killTask(String taskId, boolean shrink, V3JobOperations.Trigger trigger) {
@@ -303,18 +300,7 @@ class StubbedJobData {
                 if (task.getStatus().getState() == TaskState.Finished) {
                     tasksById.remove(task.getId());
 
-                    Task.TaskBuilder<?, ?> taskBuilder = taskGenerator.getValue().toBuilder()
-                            .withResubmitNumber(task.getResubmitNumber() + 1)
-                            .withOriginalId(task.getOriginalId())
-                            .withResubmitOf(task.getId());
-
-                    if (JobFunctions.isBatchJob(job)) {
-                        BatchJobTask.Builder batchTaskBuilder = (BatchJobTask.Builder) taskBuilder;
-                        batchTaskBuilder.withIndex(((BatchJobTask) task).getIndex());
-                    }
-
-                    Task newTask = taskBuilder.build();
-
+                    Task newTask = createTaskReplacement(task);
                     tasksById.put(newTask.getId(), newTask);
 
                     newTasks.add(newTask);
@@ -322,6 +308,22 @@ class StubbedJobData {
             });
 
             return newTasks;
+        }
+
+        Task createTaskReplacement(Task task) {
+            Task.TaskBuilder<?, ?> taskBuilder = taskGenerator.getValue().toBuilder()
+                    .withResubmitNumber(task.getResubmitNumber() + 1)
+                    .withEvictionResubmitNumber(TaskStatus.isSystemError(task.getStatus()) ? task.getSystemResubmitNumber() + 1 : task.getSystemResubmitNumber())
+                    .withEvictionResubmitNumber(TaskStatus.isEvicted(task) ? task.getEvictionResubmitNumber() + 1 : task.getEvictionResubmitNumber())
+                    .withOriginalId(task.getOriginalId())
+                    .withResubmitOf(task.getId());
+
+            if (JobFunctions.isBatchJob(job)) {
+                BatchJobTask.Builder batchTaskBuilder = (BatchJobTask.Builder) taskBuilder;
+                batchTaskBuilder.withIndex(((BatchJobTask) task).getIndex());
+            }
+
+            return taskBuilder.build();
         }
 
         Task changeTask(String taskId, Function<Task, Task> transformer) {
@@ -354,19 +356,37 @@ class StubbedJobData {
             );
         }
 
-        Task moveTaskToState(Task task, TaskState newState) {
+        Task moveTaskToState(Task task, V3JobOperations.Trigger trigger, TaskState newState) {
             Task currentTask = tasksById.get(task.getId());
             Preconditions.checkState(currentTask != null && TaskState.isBefore(currentTask.getStatus().getState(), newState));
 
-            Task updatedTask = task.toBuilder()
+            String reasonCode;
+            switch (trigger) {
+                case Scheduler:
+                    reasonCode = TaskStatus.REASON_TRANSIENT_SYSTEM_ERROR;
+                    break;
+                case Eviction:
+                case TaskMigration:
+                    reasonCode = TaskStatus.REASON_TASK_EVICTED;
+                    break;
+                case API:
+                case Mesos:
+                case Reconciler:
+                default:
+                    reasonCode = "test";
+            }
+
+            Task updatedTask = currentTask.toBuilder()
                     .withStatus(
                             TaskStatus.newBuilder()
                                     .withState(newState)
-                                    .withReasonCode("test")
+                                    .withReasonCode(reasonCode)
                                     .withReasonMessage("call to moveTaskToState")
                                     .withTimestamp(titusRuntime.getClock().wallTime())
                                     .build()
-                    ).build();
+                    )
+                    .withStatusHistory(CollectionsExt.copyAndAdd(currentTask.getStatusHistory(), currentTask.getStatus()))
+                    .build();
 
             tasksById.put(task.getId(), updatedTask);
             observeJobsSubject.onNext(TaskUpdateEvent.taskChange(job, updatedTask, currentTask, callMetadata));
@@ -375,24 +395,25 @@ class StubbedJobData {
         }
 
         void killTask(String taskId, boolean shrink, V3JobOperations.Trigger trigger) {
-            Task currentTask = tasksById.get(taskId);
-            TaskState taskState = currentTask.getStatus().getState();
+            Task killedTask = tasksById.get(taskId);
+            TaskState taskState = killedTask.getStatus().getState();
             switch (taskState) {
                 case Accepted:
                 case Disconnected:
                 case KillInitiated:
-                    moveTaskToState(currentTask, TaskState.Finished);
+                    moveTaskToState(killedTask, trigger, TaskState.Finished);
                     break;
                 case Launched:
                 case StartInitiated:
                 case Started:
-                    moveTaskToState(currentTask, TaskState.KillInitiated);
-                    moveTaskToState(currentTask, TaskState.Finished);
+                    moveTaskToState(killedTask, trigger, TaskState.KillInitiated);
+                    moveTaskToState(killedTask, V3JobOperations.Trigger.Mesos, TaskState.Finished);
                     break;
                 case Finished:
                     break;
             }
-            observeJobsSubject.onNext(TaskUpdateEvent.taskChange(job, tasksById.get(taskId), currentTask, callMetadata));
+            killedTask = tasksById.remove(killedTask.getId());
+            observeJobsSubject.onNext(TaskUpdateEvent.taskChange(job, tasksById.get(taskId), killedTask, callMetadata));
 
             if (shrink) {
                 tasksById.remove(taskId);
@@ -409,12 +430,7 @@ class StubbedJobData {
                     return updatedJob;
                 });
             } else {
-                Task newTask = taskGenerator.getValue();
-                if (isBatchJob(job)) {
-                    String index = currentTask.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_TASK_INDEX);
-                    Map<String, String> newContext = CollectionsExt.copyAndAdd(currentTask.getTaskContext(), TaskAttributes.TASK_ATTRIBUTES_TASK_INDEX, index);
-                    newTask = newTask.toBuilder().withTaskContext(newContext).build();
-                }
+                Task newTask = createTaskReplacement(killedTask);
                 tasksById.put(newTask.getId(), newTask);
                 observeJobsSubject.onNext(TaskUpdateEvent.newTask(job, newTask, callMetadata));
             }

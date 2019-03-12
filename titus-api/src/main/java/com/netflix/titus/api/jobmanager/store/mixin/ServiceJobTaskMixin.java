@@ -34,6 +34,7 @@ public class ServiceJobTaskMixin {
                                   @JsonProperty("jobId") String jobId,
                                   @JsonProperty("resubmitNumber") int resubmitNumber,
                                   @JsonProperty("systemResubmitNumber") int systemResubmitNumber,
+                                  @JsonProperty("evictionResubmitNumber") int evictionResubmitNumber,
                                   @JsonProperty("status") TaskStatus status,
                                   @JsonProperty("statusHistory") List<TaskStatus> statusHistory,
                                   @JsonProperty("twoLevelResources") List<TwoLevelResource> twoLevelResources,

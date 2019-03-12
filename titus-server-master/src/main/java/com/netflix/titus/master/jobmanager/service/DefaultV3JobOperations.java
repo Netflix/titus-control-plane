@@ -417,7 +417,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
                         return Observable.<Void>error(JobManagerException.taskTerminating(task));
                     }
 
-                    String reasonCode = TaskStatus.REASON_TASK_KILLED;
+                    String reasonCode = trigger == Trigger.Eviction ? TaskStatus.REASON_TASK_EVICTED : TaskStatus.REASON_TASK_KILLED;
                     if (shrink) {
                         Job<?> job = engineChildPair.getLeft().getReferenceView().getEntity();
                         if (!(job.getJobDescriptor().getExtensions() instanceof ServiceJobExt)) {

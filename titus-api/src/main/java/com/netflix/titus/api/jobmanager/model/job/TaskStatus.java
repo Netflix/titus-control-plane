@@ -42,6 +42,11 @@ public class TaskStatus extends ExecutableStatus<TaskState> {
     public static final String REASON_TASK_KILLED = "killed";
 
     /**
+     * Task was terminated by an eviction service.
+     */
+    public static final String REASON_TASK_EVICTED = "evicted";
+
+    /**
      * Task was lost, and its final status is unknown.
      */
     public static final String REASON_TASK_LOST = "lost";
@@ -117,6 +122,16 @@ public class TaskStatus extends ExecutableStatus<TaskState> {
         }
         String reasonCode = status.getReasonCode();
         return !StringExt.isEmpty(reasonCode) && SYSTEM_LEVEL_ERRORS.contains(reasonCode);
+    }
+
+    public static boolean isEvicted(Task task) {
+        if (task.getStatus().getState() != TaskState.Finished) {
+            return false;
+        }
+        return JobFunctions.findTaskStatus(task, TaskState.KillInitiated)
+                .map(killInitiatedState ->
+                        REASON_TASK_EVICTED.equals(killInitiatedState.getReasonCode())
+                ).orElse(false);
     }
 
     public static boolean areEquivalent(TaskStatus first, TaskStatus second) {

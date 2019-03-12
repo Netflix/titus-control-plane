@@ -36,6 +36,7 @@ public final class TaskAttributes {
     public static final String TASK_ATTRIBUTES_TASK_ORIGINAL_ID = "task.originalId";
     public static final String TASK_ATTRIBUTES_RESUBMIT_NUMBER = "task.resubmitNumber";
     public static final String TASK_ATTRIBUTES_SYSTEM_RESUBMIT_NUMBER = "task.systemResubmitNumber";
+    public static final String TASK_ATTRIBUTES_EVICTION_RESUBMIT_NUMBER = "task.evictionResubmitNumber";
     public static final String TASK_ATTRIBUTES_RETRY_DELAY = "task.retryDelay";
     public static final String TASK_ATTRIBUTES_CONTAINER_IP = "task.containerIp";
     public static final String TASK_ATTRIBUTES_NETWORK_INTERFACE_ID = "task.networkInterfaceId";
