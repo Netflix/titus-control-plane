@@ -50,6 +50,7 @@ import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
+import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.common.data.generator.DataGenerator;
 import com.netflix.titus.common.data.generator.MutableDataGenerator;
 import com.netflix.titus.common.runtime.TitusRuntime;
@@ -162,8 +163,8 @@ class StubbedJobData {
         return getJobHolderByTaskId(task.getId()).moveTaskToState(task, newState);
     }
 
-    void killTask(String taskId, boolean shrink, String reason) {
-        getJobHolderByTaskId(taskId).killTask(taskId, shrink, reason);
+    void killTask(String taskId, boolean shrink, V3JobOperations.Trigger trigger) {
+        getJobHolderByTaskId(taskId).killTask(taskId, shrink, trigger);
     }
 
     void removeTask(Task task, boolean requireFinishedState) {
@@ -373,7 +374,7 @@ class StubbedJobData {
             return updatedTask;
         }
 
-        void killTask(String taskId, boolean shrink, String reason) {
+        void killTask(String taskId, boolean shrink, V3JobOperations.Trigger trigger) {
             Task currentTask = tasksById.get(taskId);
             TaskState taskState = currentTask.getStatus().getState();
             switch (taskState) {

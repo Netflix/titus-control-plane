@@ -38,6 +38,7 @@ import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBud
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudgetFunctions;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
+import com.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
 import com.netflix.titus.api.model.Pagination;
 import com.netflix.titus.api.model.PaginationUtil;
 import com.netflix.titus.api.model.ResourceDimension;
@@ -495,9 +496,8 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     @Override
     public void killTask(TaskKillRequest request, StreamObserver<Empty> responseObserver) {
         execute(callMetadataResolver, responseObserver, callMetadata -> {
-            String reason = String.format("User initiated task kill: %s", CallMetadataUtils.toReasonString(callMetadata));
             authorizeTaskUpdate(callMetadata, request.getTaskId())
-                    .concatWith(jobOperations.killTaskReactor(request.getTaskId(), request.getShrink(), reason, callMetadata))
+                    .concatWith(jobOperations.killTask(request.getTaskId(), request.getShrink(), Trigger.API, callMetadata))
                     .subscribe(
                             nothing -> {
                             },
@@ -534,7 +534,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
                         Map<String, String> updatedAttributes = CollectionsExt.merge(task.getAttributes(), request.getAttributesMap());
                         return Optional.of(task.toBuilder().withAttributes(updatedAttributes).build());
                     },
-                    V3JobOperations.Trigger.API,
+                    Trigger.API,
                     "User request: userId=" + callMetadata.getCallerId(), callMetadata
             ).subscribe(
                     () -> {
@@ -555,7 +555,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
                         Map<String, String> updatedAttributes = CollectionsExt.copyAndRemove(task.getAttributes(), request.getKeysList());
                         return Optional.of(task.toBuilder().withAttributes(updatedAttributes).build());
                     },
-                    V3JobOperations.Trigger.API,
+                    Trigger.API,
                     "User request: userId=" + callMetadata.getCallerId(),
                     callMetadata
             ).subscribe(

@@ -37,15 +37,16 @@ import com.netflix.fenzo.VMAssignmentResult;
 import com.netflix.fenzo.VirtualMachineLease;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
+import com.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.config.MasterConfiguration;
-import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import com.netflix.titus.master.mesos.TaskInfoFactory;
 import com.netflix.titus.master.model.job.TitusQueuableTask;
@@ -174,8 +175,9 @@ class TaskPlacementRecorder {
     }
 
     private void killBrokenV3Task(TitusQueuableTask task, String reason) {
-        v3JobOperations.killTask(task.getId(), false, String.format("Failed to launch task %s due to %s", task.getId(), reason),
-                JobManagerConstants.SCHEDULER_CALLMETADATA.toBuilder().withCallReason("kill broken task").build()).subscribe(
+        String fullReason = String.format("Killing broken task %s (%s)", task.getId(), reason);
+        v3JobOperations.killTask(task.getId(), false, Trigger.Scheduler,
+                JobManagerConstants.SCHEDULER_CALLMETADATA.toBuilder().withCallReason(fullReason).build()).subscribe(
                 next -> {
                 },
                 e -> {

@@ -198,8 +198,8 @@ class StubbedJobOperations implements V3JobOperations {
     }
 
     @Override
-    public Observable<Void> killTask(String taskId, boolean shrink, String reason, CallMetadata callMetadata) {
-        return defer(() -> stubbedJobData.killTask(taskId, shrink, reason));
+    public Mono<Void> killTask(String taskId, boolean shrink, Trigger trigger, CallMetadata callMetadata) {
+        return ReactorExt.toMono(defer(() -> stubbedJobData.killTask(taskId, shrink, trigger)));
     }
 
     @Override

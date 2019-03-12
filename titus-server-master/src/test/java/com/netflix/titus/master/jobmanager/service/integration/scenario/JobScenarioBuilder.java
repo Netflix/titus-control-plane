@@ -244,8 +244,8 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
     }
 
     public JobScenarioBuilder<E> killTask(Task task) {
-        ExtTestSubscriber<Void> subscriber = new ExtTestSubscriber<>();
-        jobOperations.killTask(task.getId(), false, "Task kill requested by a user", callMetadata).subscribe(subscriber);
+        TitusRxSubscriber<Void> subscriber = new TitusRxSubscriber<>();
+        jobOperations.killTask(task.getId(), false, Trigger.API, callMetadata).subscribe(subscriber);
 
         autoAdvanceUntilSuccessful(() -> checkOperationSubscriberAndThrowExceptionIfError(subscriber));
 
@@ -257,8 +257,8 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
     }
 
     public JobScenarioBuilder<E> killTaskAndShrink(Task task) {
-        ExtTestSubscriber<Void> subscriber = new ExtTestSubscriber<>();
-        jobOperations.killTask(task.getId(), true, "Task terminate & shrink requested by a user", callMetadata).subscribe(subscriber);
+        TitusRxSubscriber<Void> subscriber = new TitusRxSubscriber<>();
+        jobOperations.killTask(task.getId(), true, Trigger.API, callMetadata).subscribe(subscriber);
 
         autoAdvanceUntilSuccessful(() -> checkOperationSubscriberAndThrowExceptionIfError(subscriber));
 

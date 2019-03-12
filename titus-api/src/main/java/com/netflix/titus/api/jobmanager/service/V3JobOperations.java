@@ -42,6 +42,7 @@ public interface V3JobOperations extends ReadOnlyJobOperations {
         Reconciler,
         Scheduler,
         TaskMigration,
+        Eviction,
     }
 
     Observable<String> createJob(JobDescriptor<?> jobDescriptor, CallMetadata callMetadata);
@@ -89,15 +90,7 @@ public interface V3JobOperations extends ReadOnlyJobOperations {
         return ReactorExt.toMono(killJob(jobId, reason, callMetadata));
     }
 
-    /**
-     * @deprecated Use {@link #killTaskReactor(String, boolean, String, CallMetadata)}
-     */
-    Observable<Void> killTask(String taskId, boolean shrink, String reason, CallMetadata callMetadata);
-
-    // TODO: get rid of the reason
-    default Mono<Void> killTaskReactor(String taskId, boolean shrink, String reason, CallMetadata callMetadata) {
-        return ReactorExt.toMono(killTask(taskId, shrink, reason, callMetadata));
-    }
+    Mono<Void> killTask(String taskId, boolean shrink, Trigger trigger, CallMetadata callMetadata);
 
     /**
      * Move a task from one service job to another.

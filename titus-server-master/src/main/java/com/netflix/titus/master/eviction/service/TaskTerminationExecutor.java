@@ -26,8 +26,8 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
+import com.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
 import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.rx.invoker.ReactorSerializedInvoker;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.eviction.service.quota.ConsumptionResult;
@@ -103,7 +103,7 @@ class TaskTerminationExecutor {
             ConsumptionResult consumptionResult = quotasManager.tryConsumeQuota(job, task);
 
             return consumptionResult.isApproved()
-                    ? ReactorExt.toMono(jobOperations.killTask(taskId, false, reason, CallMetadata.newBuilder().withCallerId(callerId).withCallReason(reason).build())).timeout(TASK_TERMINATE_TIMEOUT)
+                    ? jobOperations.killTask(taskId, false, Trigger.Eviction, CallMetadata.newBuilder().withCallerId(callerId).withCallReason(reason).build()).timeout(TASK_TERMINATE_TIMEOUT)
                     : Mono.error(EvictionException.noAvailableJobQuota(job, consumptionResult.getRejectionReason().get()));
         });
     }

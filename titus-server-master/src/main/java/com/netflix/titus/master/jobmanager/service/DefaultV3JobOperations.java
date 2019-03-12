@@ -59,6 +59,7 @@ import com.netflix.titus.common.framework.reconciler.ModelActionHolder.Model;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import com.netflix.titus.common.framework.reconciler.ReconciliationFramework;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.ProtobufExt;
 import com.netflix.titus.common.util.guice.ProxyType;
 import com.netflix.titus.common.util.guice.annotation.Activator;
@@ -407,8 +408,8 @@ public class DefaultV3JobOperations implements V3JobOperations {
     }
 
     @Override
-    public Observable<Void> killTask(String taskId, boolean shrink, String reason, CallMetadata callMetadata) {
-        return reconciliationFramework.findEngineByChildId(taskId)
+    public Mono<Void> killTask(String taskId, boolean shrink, Trigger trigger, CallMetadata callMetadata) {
+        Observable<Void> action = reconciliationFramework.findEngineByChildId(taskId)
                 .map(engineChildPair -> {
                     Task task = engineChildPair.getRight().getEntity();
                     TaskState taskState = task.getStatus().getState();
@@ -424,12 +425,14 @@ public class DefaultV3JobOperations implements V3JobOperations {
                         }
                         reasonCode = TaskStatus.REASON_SCALED_DOWN;
                     }
+                    String reason = String.format("%s (shrink=%s)", Evaluators.getOrDefault(callMetadata.getCallReason(), "<no_reason>"), shrink);
                     ChangeAction killAction = KillInitiatedActions.userInitiateTaskKillAction(
-                            engineChildPair.getLeft(), vmService, store, task.getId(), shrink, reasonCode, String.format("%s (shrink=%s)", reason, shrink), titusRuntime, callMetadata
+                            engineChildPair.getLeft(), vmService, store, task.getId(), shrink, reasonCode, reason, titusRuntime, callMetadata
                     );
                     return engineChildPair.getLeft().changeReferenceModel(killAction);
                 })
                 .orElse(Observable.error(JobManagerException.taskNotFound(taskId)));
+        return ReactorExt.toMono(action);
     }
 
     @Override

@@ -53,7 +53,7 @@ class StubbedEvictionOperations implements EvictionOperations {
                 throw EvictionException.noAvailableJobQuota(job, "No quota");
             }
 
-            jobOperations.killTask(taskId, false, "Eviction", CallMetadata.newBuilder().withCallReason("Eviction").withCallerId("test").build());
+            jobOperations.killTask(taskId, false, V3JobOperations.Trigger.Eviction, CallMetadata.newBuilder().withCallReason("Eviction").withCallerId("test").build()).block();
             stubbedEvictionData.setJobQuota(job.getId(), quota - 1);
         });
     }
