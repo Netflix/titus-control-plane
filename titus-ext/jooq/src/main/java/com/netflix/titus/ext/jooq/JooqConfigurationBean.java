@@ -38,4 +38,9 @@ public class JooqConfigurationBean implements JooqConfiguration {
     public String getDatabaseUrl() {
         return SpringConfigurationUtil.getString(environment, PREFIX + "databaseUrl", "jdbc://notSet");
     }
+
+    @Override
+    public boolean isInMemoryDb() {
+        return SpringConfigurationUtil.getBoolean(environment, PREFIX + "inMemoryDb", false);
+    }
 }

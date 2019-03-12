@@ -24,4 +24,7 @@ public interface JooqConfiguration {
 
     @DefaultValue("jdbc://localhost")
     String getDatabaseUrl();
+
+    @DefaultValue("false")
+    boolean isInMemoryDb();
 }

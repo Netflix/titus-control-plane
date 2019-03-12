@@ -46,11 +46,18 @@ public class JooqModule extends AbstractModule {
     static class DefaultDSLContextProvider implements Provider<DSLContext> {
 
         ConnectionProvider connectionProvider;
+        SQLDialect dialect;
 
         @Inject
         DefaultDSLContextProvider(JooqConfiguration configuration) {
             try {
-                connectionProvider = new DefaultConnectionProvider(DriverManager.getConnection(configuration.getDatabaseUrl()));
+                if (configuration.isInMemoryDb()) {
+                    connectionProvider = new DefaultConnectionProvider(DriverManager.getConnection("jdbc:hsqldb:mem:junit" + System.currentTimeMillis(), "SA", ""));
+                    dialect = SQLDialect.HSQLDB;
+                } else {
+                    connectionProvider = new DefaultConnectionProvider(DriverManager.getConnection(configuration.getDatabaseUrl()));
+                    dialect = SQLDialect.POSTGRES_9_5;
+                }
             } catch (SQLException e) {
                 throw new IllegalStateException("Cannot initialize connection to Postgres database", e);
             }
@@ -58,7 +65,7 @@ public class JooqModule extends AbstractModule {
 
         @Override
         public DSLContext get() {
-            return new DefaultDSLContext(connectionProvider, SQLDialect.POSTGRES_9_5);
+            return new DefaultDSLContext(connectionProvider, dialect);
         }
     }
 }
