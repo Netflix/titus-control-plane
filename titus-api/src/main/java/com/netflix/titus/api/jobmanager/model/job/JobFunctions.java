@@ -63,6 +63,14 @@ public final class JobFunctions {
         return NO_DISRUPTION_BUDGET_MARKER;
     }
 
+    public static JobType getJobType(Job<?> job) {
+        return isServiceJob(job) ? JobType.SERVICE : JobType.BATCH;
+    }
+
+    public static JobType getJobType(JobDescriptor<?> jobDescriptor) {
+        return isServiceJob(jobDescriptor) ? JobType.SERVICE : JobType.BATCH;
+    }
+
     public static boolean isBatchJob(Job<?> job) {
         return job.getJobDescriptor().getExtensions() instanceof BatchJobExt;
     }

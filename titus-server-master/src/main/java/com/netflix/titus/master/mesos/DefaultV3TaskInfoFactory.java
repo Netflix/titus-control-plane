@@ -53,6 +53,7 @@ import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRI
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_ALLOW_NETWORK_BURSTING;
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_KILL_WAIT_SECONDS;
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_SCHED_BATCH;
+import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.getJobType;
 import static com.netflix.titus.common.util.Evaluators.applyNotNull;
 
 /**
@@ -63,6 +64,7 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
 
     private static final String PASSTHROUGH_ATTRIBUTES_PREFIX = "titusParameter.agent.";
     private static final String OWNER_EMAIL_ATTRIBUTE = "titus.agent.ownerEmail";
+    private static final String JOB_TYPE_ATTRIBUTE = "titus.agent.jobType";
     private static final String EXECUTOR_PER_TASK_LABEL = "executorpertask";
     private static final String LEGACY_EXECUTOR_NAME = "docker-executor";
     private static final String EXECUTOR_PER_TASK_EXECUTOR_NAME = "docker-per-task-executor";
@@ -157,8 +159,11 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
             }
         });
 
-        // add owner email
+        // Add owner email
         containerInfoBuilder.putPassthroughAttributes(OWNER_EMAIL_ATTRIBUTE, jobDescriptor.getOwner().getTeamEmail());
+
+        // Add job type
+        containerInfoBuilder.putPassthroughAttributes(JOB_TYPE_ATTRIBUTE, getJobType(jobDescriptor).name());
 
         // Configure Environment Variables
         container.getEnv().forEach((k, v) -> {
