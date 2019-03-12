@@ -19,11 +19,12 @@ package com.netflix.titus.master.jobmanager.endpoint.v3.grpc;
 import java.util.Map;
 import java.util.function.Predicate;
 
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.runtime.endpoint.authorization.AuthorizationService;
 import com.netflix.titus.runtime.endpoint.authorization.AuthorizationStatus;
-import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import reactor.core.publisher.Mono;
 
 
@@ -42,31 +43,48 @@ public abstract class JobAuthorizationService implements AuthorizationService {
         if (object instanceof Job) {
             return authorizeJob(callMetadata, (Job<?>) object);
         }
+        if (object instanceof JobDescriptor) {
+            return authorizeJobDescriptor(callMetadata, (JobDescriptor<?>) object);
+        }
         return Mono.just(AuthorizationStatus.success("Access granted for non-job object: objectType=" + object.getClass()));
     }
 
-    protected abstract Mono<AuthorizationStatus> authorize(String originalCallerId, String securityDomainId, Job<?> job);
+    protected abstract Mono<AuthorizationStatus> authorize(String originalCallerId, String securityDomainId, JobDescriptor<?> jobDescriptor);
 
     private Mono<AuthorizationStatus> authorizeJob(CallMetadata callMetadata, Job<?> job) {
         String originalCallerId = callMetadata.getCallerId();
         if (StringExt.isEmpty(originalCallerId)) {
             return Mono.just(AuthorizationStatus.success(
-                    String.format("Request caller id missing; granting access to an identified user: jobId=%s, callMedata=%s", job.getId(), callMetadata)
+                    String.format("Request caller id missing; granting access to an identified user: jobId=%s, callMetadata=%s", job.getId(), callMetadata)
             ));
         }
 
+        return authorizeCaller(job.getJobDescriptor(), originalCallerId);
+    }
+
+    private Mono<AuthorizationStatus> authorizeJobDescriptor(CallMetadata callMetadata, JobDescriptor<?> jobDescriptor) {
+        String originalCallerId = callMetadata.getCallerId();
+        if (StringExt.isEmpty(originalCallerId)) {
+            return Mono.just(AuthorizationStatus.success(String.format(
+                    "Request caller id missing; granting access to an identified user to create a new job: applicationName=%s, callMetadata=%s",
+                    jobDescriptor.getApplicationName(), callMetadata
+            )));
+        }
+
+        return authorizeCaller(jobDescriptor, originalCallerId);
+    }
+
+    private Mono<AuthorizationStatus> authorizeCaller(JobDescriptor<?> jobDescriptor, String originalCallerId) {
         if (!callerIdPredicate.test(originalCallerId)) {
             return Mono.just(AuthorizationStatus.success("User not white listed for authorization; granted by default: callerId=" + originalCallerId));
         }
 
-        String securityDomainId = buildSecurityDomainId(job);
-
-        return authorize(originalCallerId, securityDomainId, job);
+        return authorize(originalCallerId, buildSecurityDomainId(jobDescriptor), jobDescriptor);
     }
 
-    private String buildSecurityDomainId(Job<?> job) {
-        Map<String, String> securityAttributes = job.getJobDescriptor().getContainer().getSecurityProfile().getAttributes();
+    private String buildSecurityDomainId(JobDescriptor<?> jobDescriptor) {
+        Map<String, String> securityAttributes = jobDescriptor.getContainer().getSecurityProfile().getAttributes();
         String securityDomain = securityAttributes.get(SECURITY_ATTRIBUTE_SECURITY_DOMAIN);
-        return StringExt.isNotEmpty(securityDomain) ? securityDomain : job.getJobDescriptor().getApplicationName();
+        return StringExt.isNotEmpty(securityDomain) ? securityDomain : jobDescriptor.getApplicationName();
     }
 }

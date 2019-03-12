@@ -18,6 +18,7 @@ package com.netflix.titus.runtime.connector.jobmanager;
 
 import java.util.Set;
 
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobAttributesDeleteRequest;
 import com.netflix.titus.grpc.protogen.JobAttributesUpdate;
@@ -52,7 +53,7 @@ public interface JobManagementClient {
 
     Set<String> TASK_MINIMUM_FIELD_SET = asSet("id");
 
-    Observable<String> createJob(JobDescriptor jobDescriptor);
+    Observable<String> createJob(JobDescriptor jobDescriptor, CallMetadata callMetadata);
 
     Completable updateJobCapacity(JobCapacityUpdate jobCapacityUpdate);
 

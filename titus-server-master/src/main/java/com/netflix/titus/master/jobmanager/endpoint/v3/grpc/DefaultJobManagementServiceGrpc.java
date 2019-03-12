@@ -83,6 +83,7 @@ import com.netflix.titus.master.model.ResourceDimensions;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import com.netflix.titus.runtime.endpoint.JobQueryCriteria;
 import com.netflix.titus.runtime.endpoint.authorization.AuthorizationService;
+import com.netflix.titus.runtime.endpoint.authorization.AuthorizationStatus;
 import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataUtils;
@@ -160,11 +161,13 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     public void createJob(JobDescriptor jobDescriptor, StreamObserver<JobId> responseObserver) {
         execute(callMetadataResolver, responseObserver, callMetadata ->
                 validateAndConvertJobDescriptorToCoreModel(jobDescriptor, responseObserver).ifPresent(sanitized ->
-                        jobOperations.createJob(sanitized, callMetadata).subscribe(
-                                jobId -> responseObserver.onNext(JobId.newBuilder().setId(jobId).build()),
-                                e -> safeOnError(logger, e, responseObserver),
-                                responseObserver::onCompleted
-                        )));
+                        authorizeJobCreate(callMetadata, sanitized)
+                                .concatWith(jobOperations.createJobReactor(sanitized, callMetadata))
+                                .subscribe(
+                                        jobId -> responseObserver.onNext(JobId.newBuilder().setId(jobId).build()),
+                                        e -> safeOnError(logger, e, responseObserver),
+                                        responseObserver::onCompleted
+                                )));
     }
 
     private Optional<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> validateAndConvertJobDescriptorToCoreModel(JobDescriptor jobDescriptor, StreamObserver<JobId> responseObserver) {
@@ -629,6 +632,10 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
         serverObserver.setOnCancelHandler(subscription::unsubscribe);
     }
 
+    private Mono<String> authorizeJobCreate(CallMetadata callMetadata, com.netflix.titus.api.jobmanager.model.job.JobDescriptor<?> jobDescriptor) {
+        return authorizationService.authorize(callMetadata, jobDescriptor).flatMap(this::processAuthorizationReply);
+    }
+
     private Mono<Void> authorizeJobUpdate(CallMetadata callMetadata, String jobId) {
         return Mono.defer(() -> {
             com.netflix.titus.api.jobmanager.model.job.Job<?> job = jobOperations.getJob(jobId).orElse(null);
@@ -637,6 +644,10 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
             }
             return authorizeJobUpdate(callMetadata, job);
         });
+    }
+
+    private Mono<Void> authorizeJobUpdate(CallMetadata callMetadata, com.netflix.titus.api.jobmanager.model.job.Job<?> job) {
+        return authorizationService.authorize(callMetadata, job).flatMap(this::processAuthorizationReply);
     }
 
     private Mono<Void> authorizeTaskUpdate(CallMetadata callMetadata, String taskId) {
@@ -649,16 +660,13 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
         });
     }
 
-    private Mono<Void> authorizeJobUpdate(CallMetadata callMetadata, com.netflix.titus.api.jobmanager.model.job.Job<?> job) {
-        return authorizationService.authorize(callMetadata, job)
-                .flatMap(authorizationResult -> {
-                    if (!authorizationResult.isAuthorized()) {
-                        Status status = Status.PERMISSION_DENIED
-                                .withDescription("Request not authorized: " + authorizationResult.getReason());
-                        return Mono.error(new StatusRuntimeException(status));
-                    }
-                    return Mono.empty();
-                });
+    private <T> Mono<T> processAuthorizationReply(AuthorizationStatus authorizationResult) {
+        if (!authorizationResult.isAuthorized()) {
+            Status status = Status.PERMISSION_DENIED
+                    .withDescription("Request not authorized: " + authorizationResult.getReason());
+            return Mono.error(new StatusRuntimeException(status));
+        }
+        return Mono.empty();
     }
 
     private JobQueryResult toJobQueryResult(List<Job> jobs, Pagination runtimePagination) {

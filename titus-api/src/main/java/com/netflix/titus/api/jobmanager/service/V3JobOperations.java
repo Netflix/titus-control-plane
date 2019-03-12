@@ -45,7 +45,14 @@ public interface V3JobOperations extends ReadOnlyJobOperations {
         Eviction,
     }
 
+    /**
+     * @deprecated Use {@link #createJobReactor(JobDescriptor, CallMetadata)}.
+     */
     Observable<String> createJob(JobDescriptor<?> jobDescriptor, CallMetadata callMetadata);
+
+    default Mono<String> createJobReactor(JobDescriptor<?> jobDescriptor, CallMetadata callMetadata) {
+        return ReactorExt.toMono(createJob(jobDescriptor, callMetadata).toSingle());
+    }
 
     /**
      * @deprecated Use {@link #updateJobCapacityReactor(String, Capacity, CallMetadata)}

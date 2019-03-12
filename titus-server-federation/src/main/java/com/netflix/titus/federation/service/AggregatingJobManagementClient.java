@@ -124,9 +124,7 @@ public class AggregatingJobManagementClient implements JobManagementClient {
     }
 
     @Override
-    public Observable<String> createJob(JobDescriptor jobDescriptor) {
-        Optional<CallMetadata> context = callMetadataResolver.resolve();
-
+    public Observable<String> createJob(JobDescriptor jobDescriptor, CallMetadata callMetadata) {
         String routeKey = CellRouterUtil.getRouteKeyFromJob(jobDescriptor);
         Cell cell = router.routeKey(routeKey);
         logger.debug("Routing JobDescriptor {} to Cell {} with key {}", jobDescriptor, cell, routeKey);
@@ -145,7 +143,7 @@ public class AggregatingJobManagementClient implements JobManagementClient {
                     emitter::onError,
                     emitter::onCompleted
             );
-            wrap(context, client).createJob(withStackName, streamObserver);
+            wrap(Optional.ofNullable(callMetadata), client).createJob(withStackName, streamObserver);
         }, grpcConfiguration.getRequestTimeoutMs());
     }
 

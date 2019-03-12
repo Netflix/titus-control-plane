@@ -21,6 +21,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.protobuf.Empty;
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobAttributesDeleteRequest;
 import com.netflix.titus.grpc.protogen.JobAttributesUpdate;
@@ -46,6 +47,7 @@ import com.netflix.titus.runtime.connector.ChannelTunablesConfiguration;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
+import com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor;
 import io.grpc.stub.StreamObserver;
 import reactor.core.publisher.Mono;
 import rx.Completable;
@@ -77,7 +79,7 @@ public class GrpcJobManagementClient implements JobManagementClient {
     }
 
     @Override
-    public Observable<String> createJob(JobDescriptor jobDescriptor) {
+    public Observable<String> createJob(JobDescriptor jobDescriptor, CallMetadata callMetadata) {
         return createRequestObservable(emitter -> {
             StreamObserver<JobId> streamObserver = GrpcUtil.createClientResponseObserver(
                     emitter,
@@ -85,7 +87,9 @@ public class GrpcJobManagementClient implements JobManagementClient {
                     emitter::onError,
                     emitter::onCompleted
             );
-            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).createJob(jobDescriptor, streamObserver);
+            V3HeaderInterceptor.attachCallMetadata(client, callMetadata)
+                    .withDeadlineAfter(configuration.getRequestTimeout(), TimeUnit.MILLISECONDS)
+                    .createJob(jobDescriptor, streamObserver);
         }, configuration.getRequestTimeout());
     }
 
