@@ -82,6 +82,7 @@ import com.netflix.titus.grpc.protogen.SecurityProfile;
 import com.netflix.titus.grpc.protogen.ServiceJobSpec;
 import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
 
+import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_EVICTION_RESUBMIT_NUMBER;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_INDEX;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_RESUBMIT_NUMBER;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_SYSTEM_RESUBMIT_NUMBER;
@@ -416,6 +417,7 @@ public final class V3GrpcModelConverters {
         String resubmitOf = taskContext.get(TASK_ATTRIBUTES_TASK_RESUBMIT_OF);
         int taskResubmitNumber = Integer.parseInt(taskContext.get(TASK_ATTRIBUTES_RESUBMIT_NUMBER));
         int systemResubmitNumber = Integer.parseInt(grpcTask.getTaskContextMap().getOrDefault(TASK_ATTRIBUTES_SYSTEM_RESUBMIT_NUMBER, "0"));
+        int evictionResubmitNumber = Integer.parseInt(grpcTask.getTaskContextMap().getOrDefault(TASK_ATTRIBUTES_EVICTION_RESUBMIT_NUMBER, "0"));
 
         String taskIndexStr = taskContext.get(TASK_ATTRIBUTES_TASK_INDEX);
 
@@ -431,6 +433,7 @@ public final class V3GrpcModelConverters {
                 .withResubmitOf(resubmitOf)
                 .withTwoLevelResources(toCoreTwoLevelResources(job, grpcTask))
                 .withSystemResubmitNumber(systemResubmitNumber)
+                .withEvictionResubmitNumber(evictionResubmitNumber)
                 .withTaskContext(taskContext)
                 .withAttributes(grpcTask.getAttributesMap());
 
@@ -846,6 +849,7 @@ public final class V3GrpcModelConverters {
         taskContext.put(TASK_ATTRIBUTES_TASK_ORIGINAL_ID, coreTask.getOriginalId());
         taskContext.put(TASK_ATTRIBUTES_RESUBMIT_NUMBER, Integer.toString(coreTask.getResubmitNumber()));
         taskContext.put(TASK_ATTRIBUTES_SYSTEM_RESUBMIT_NUMBER, Integer.toString(coreTask.getSystemResubmitNumber()));
+        taskContext.put(TASK_ATTRIBUTES_EVICTION_RESUBMIT_NUMBER, Integer.toString(coreTask.getEvictionResubmitNumber()));
         coreTask.getResubmitOf().ifPresent(resubmitOf -> taskContext.put(TASK_ATTRIBUTES_TASK_RESUBMIT_OF, resubmitOf));
 
         if (coreTask instanceof BatchJobTask) {

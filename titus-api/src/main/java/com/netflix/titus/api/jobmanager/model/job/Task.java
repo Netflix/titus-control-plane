@@ -30,8 +30,6 @@ import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_CE
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_STACK;
 import static java.util.Arrays.asList;
 
-/**
- */
 public abstract class Task {
 
     private final String id;
@@ -42,6 +40,7 @@ public abstract class Task {
     private final Optional<String> resubmitOf;
     private final int resubmitNumber;
     private final int systemResubmitNumber;
+    private final int evictionResubmitNumber;
     private final List<TwoLevelResource> twoLevelResources;
     private final Map<String, String> taskContext;
     private final Map<String, String> attributes;
@@ -54,6 +53,7 @@ public abstract class Task {
                    Optional<String> resubmitOf,
                    int resubmitNumber,
                    int systemResubmitNumber,
+                   int evictionResubmitNumber,
                    List<TwoLevelResource> twoLevelResources,
                    Map<String, String> taskContext,
                    Map<String, String> attributes) {
@@ -65,6 +65,7 @@ public abstract class Task {
         this.resubmitOf = resubmitOf;
         this.resubmitNumber = resubmitNumber;
         this.systemResubmitNumber = systemResubmitNumber;
+        this.evictionResubmitNumber = evictionResubmitNumber;
         this.twoLevelResources = CollectionsExt.nullableImmutableCopyOf(twoLevelResources);
         this.taskContext = CollectionsExt.nullableImmutableCopyOf(taskContext);
         this.attributes = attributes;
@@ -102,6 +103,10 @@ public abstract class Task {
         return systemResubmitNumber;
     }
 
+    public int getEvictionResubmitNumber() {
+        return evictionResubmitNumber;
+    }
+
     public List<TwoLevelResource> getTwoLevelResources() {
         return twoLevelResources;
     }
@@ -125,6 +130,7 @@ public abstract class Task {
         Task task = (Task) o;
         return resubmitNumber == task.resubmitNumber &&
                 systemResubmitNumber == task.systemResubmitNumber &&
+                evictionResubmitNumber == task.evictionResubmitNumber &&
                 Objects.equals(id, task.id) &&
                 Objects.equals(jobId, task.jobId) &&
                 Objects.equals(status, task.status) &&
@@ -138,7 +144,7 @@ public abstract class Task {
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, jobId, status, statusHistory, originalId, resubmitOf, resubmitNumber, systemResubmitNumber, twoLevelResources, taskContext, attributes);
+        return Objects.hash(id, jobId, status, statusHistory, originalId, resubmitOf, resubmitNumber, systemResubmitNumber, evictionResubmitNumber, twoLevelResources, taskContext, attributes);
     }
 
     @Override
@@ -152,6 +158,7 @@ public abstract class Task {
                 ", resubmitOf=" + resubmitOf +
                 ", resubmitNumber=" + resubmitNumber +
                 ", systemResubmitNumber=" + systemResubmitNumber +
+                ", evictionResubmitNumber=" + evictionResubmitNumber +
                 ", twoLevelResources=" + twoLevelResources +
                 ", taskContext=" + taskContext +
                 ", attributes=" + attributes +
@@ -169,6 +176,7 @@ public abstract class Task {
         protected String resubmitOf;
         protected int resubmitNumber;
         protected int systemResubmitNumber;
+        protected int evictionResubmitNumber;
         protected List<TwoLevelResource> twoLevelResources;
         protected Map<String, String> taskContext;
         protected Map<String, String> attributes;
@@ -220,6 +228,11 @@ public abstract class Task {
 
         public B withSystemResubmitNumber(int systemResubmitNumber) {
             this.systemResubmitNumber = systemResubmitNumber;
+            return self();
+        }
+
+        public B withEvictionResubmitNumber(int evictionResubmitNumber) {
+            this.evictionResubmitNumber = evictionResubmitNumber;
             return self();
         }
 
@@ -293,6 +306,7 @@ public abstract class Task {
                     .withResubmitOf(resubmitOf)
                     .withResubmitNumber(resubmitNumber)
                     .withSystemResubmitNumber(resubmitNumber)
+                    .withEvictionResubmitNumber(evictionResubmitNumber)
                     .withTwoLevelResources(twoLevelResources)
                     .withTaskContext(taskContext)
                     .withAttributes(attributes);
@@ -308,6 +322,7 @@ public abstract class Task {
                     .withResubmitOf(task.getResubmitOf().orElse(null))
                     .withResubmitNumber(task.getResubmitNumber())
                     .withSystemResubmitNumber(task.getSystemResubmitNumber())
+                    .withEvictionResubmitNumber(task.getEvictionResubmitNumber())
                     .withTwoLevelResources(task.getTwoLevelResources())
                     .withTaskContext(task.getTaskContext())
                     .withAttributes(task.getAttributes());

@@ -25,8 +25,6 @@ import com.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
 
 import static com.netflix.titus.common.util.CollectionsExt.nonNull;
 
-/**
- */
 @ClassFieldsNotNull
 public class BatchJobTask extends Task {
 
@@ -40,12 +38,13 @@ public class BatchJobTask extends Task {
                         String jobId,
                         int resubmitNumber,
                         int systemResubmitNumber,
+                        int evictionResubmitNumber,
                         TaskStatus status,
                         List<TaskStatus> statusHistory,
                         List<TwoLevelResource> twoLevelResources,
                         Map<String, String> taskContext,
                         Map<String, String> attributes) {
-        super(id, jobId, status, statusHistory, originalId, resubmitOf, resubmitNumber, systemResubmitNumber, twoLevelResources, taskContext, attributes);
+        super(id, jobId, status, statusHistory, originalId, resubmitOf, resubmitNumber, systemResubmitNumber, evictionResubmitNumber, twoLevelResources, taskContext, attributes);
         this.index = index;
     }
 
@@ -88,6 +87,7 @@ public class BatchJobTask extends Task {
                 ", resubmitOf=" + getResubmitOf() +
                 ", resubmitNumber=" + getResubmitNumber() +
                 ", systemResubmitNumber=" + getSystemResubmitNumber() +
+                ", evictionResubmitNumber=" + getEvictionResubmitNumber() +
                 ", twoLevelResources=" + getTwoLevelResources() +
                 ", taskContext=" + getTaskContext() +
                 ", attributes=" + getAttributes() +
@@ -137,6 +137,7 @@ public class BatchJobTask extends Task {
                     jobId,
                     resubmitNumber,
                     systemResubmitNumber,
+                    evictionResubmitNumber,
                     status,
                     nonNull(statusHistory),
                     nonNull(twoLevelResources),

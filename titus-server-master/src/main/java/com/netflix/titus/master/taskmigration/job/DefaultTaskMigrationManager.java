@@ -16,20 +16,20 @@
 
 package com.netflix.titus.master.taskmigration.job;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.common.util.limiter.tokenbucket.TokenBucket;
-import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.master.taskmigration.TaskMigrationDetails;
 import com.netflix.titus.master.taskmigration.TaskMigrationManager;
 import com.netflix.titus.master.taskmigration.V3TaskMigrationDetails;
@@ -38,7 +38,8 @@ import org.slf4j.LoggerFactory;
 
 public class DefaultTaskMigrationManager implements TaskMigrationManager {
     private static final Logger logger = LoggerFactory.getLogger(DefaultTaskMigrationManager.class);
-    private static final int KILL_TIMEOUT = 10;
+
+    private static final Duration KILL_TIMEOUT_DURATION = Duration.ofSeconds(1);
 
     private final ServiceJobTaskMigratorConfig config;
     private final TokenBucket terminateTokenBucket;
@@ -122,7 +123,12 @@ public class DefaultTaskMigrationManager implements TaskMigrationManager {
                         logger.info("Migrating task: {} of job: {}", task.getId(), jobId);
                         String reason = "Moving service task: " + task.getId() + " out of disabled VM";
                         try {
-                            v3JobOperations.killTask(task.getId(), false, reason, JobManagerConstants.TASK_MIGRATOR_CALLMETADATA.toBuilder().withCallReason(reason).build()).toCompletable().await(KILL_TIMEOUT, TimeUnit.MILLISECONDS);
+                            v3JobOperations.killTask(
+                                    task.getId(),
+                                    false,
+                                    V3JobOperations.Trigger.TaskMigration,
+                                    JobManagerConstants.TASK_MIGRATOR_CALLMETADATA.toBuilder().withCallReason(reason).build()
+                            ).block(KILL_TIMEOUT_DURATION);
                             lastMovedWorkerOnDisabledVM = System.currentTimeMillis();
                         } catch (Exception e) {
                             logger.error("Unable to kill task: {} with error: ", task.getId(), e);
