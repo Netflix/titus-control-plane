@@ -91,7 +91,7 @@ public class DifferenceResolverUtils {
         if (task.getStatus().getState() != TaskState.Finished || TaskStatus.isSystemError(task.getStatus())) {
             return false;
         }
-        int userRetries = task.getResubmitNumber() - task.getSystemResubmitNumber();
+        int userRetries = task.getResubmitNumber() - task.getSystemResubmitNumber() - task.getEvictionResubmitNumber();
         return userRetries >= retryLimit;
     }
 

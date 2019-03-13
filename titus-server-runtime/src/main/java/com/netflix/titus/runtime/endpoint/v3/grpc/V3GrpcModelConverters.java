@@ -849,6 +849,7 @@ public final class V3GrpcModelConverters {
         taskContext.put(TASK_ATTRIBUTES_TASK_ORIGINAL_ID, coreTask.getOriginalId());
         taskContext.put(TASK_ATTRIBUTES_RESUBMIT_NUMBER, Integer.toString(coreTask.getResubmitNumber()));
         taskContext.put(TASK_ATTRIBUTES_SYSTEM_RESUBMIT_NUMBER, Integer.toString(coreTask.getSystemResubmitNumber()));
+        taskContext.put(TASK_ATTRIBUTES_EVICTION_RESUBMIT_NUMBER, Integer.toString(coreTask.getEvictionResubmitNumber()));
         coreTask.getResubmitOf().ifPresent(resubmitOf -> taskContext.put(TASK_ATTRIBUTES_TASK_RESUBMIT_OF, resubmitOf));
 
         if (coreTask instanceof BatchJobTask) {
