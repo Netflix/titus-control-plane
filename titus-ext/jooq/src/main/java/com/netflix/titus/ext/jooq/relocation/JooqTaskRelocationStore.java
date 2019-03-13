@@ -32,6 +32,7 @@ import javax.inject.Singleton;
 
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan.TaskRelocationReason;
+import com.netflix.titus.ext.jooq.JooqUtils;
 import com.netflix.titus.ext.jooq.relocation.schema.JRelocation;
 import com.netflix.titus.ext.jooq.relocation.schema.tables.records.JRelocationPlanRecord;
 import com.netflix.titus.supplementary.relocation.store.TaskRelocationStore;
@@ -95,11 +96,8 @@ public class JooqTaskRelocationStore implements TaskRelocationStore {
 
         return Mono.defer(() -> {
             List<StoreQuery<JRelocationPlanRecord>> queries = taskRelocationPlans.stream().map(this::newCreateOrUpdateQuery).collect(Collectors.toList());
-            CompletionStage<Void> asyncAction = DSL.using(dslContext.configuration())
-                    .transactionAsync(configuration -> configuration.dsl()
-                            .batch(queries)
-                            .execute()
-                    );
+            CompletionStage<int[]> asyncAction = JooqUtils.executeAsync(() ->
+                    dslContext.batch(queries).execute(), dslContext);
 
             MonoProcessor<Map<String, Optional<Throwable>>> callerProcessor = MonoProcessor.create();
             asyncAction.handle((result, error) -> {
@@ -138,11 +136,8 @@ public class JooqTaskRelocationStore implements TaskRelocationStore {
                     .map(this::newDelete)
                     .collect(Collectors.toList());
 
-            CompletionStage<Void> asyncAction = DSL.using(dslContext.configuration())
-                    .transactionAsync(configuration -> configuration.dsl()
-                            .batch(deletes)
-                            .execute()
-                    );
+            CompletionStage<int[]> asyncAction = JooqUtils.executeAsync(() ->
+                    dslContext.batch(deletes).execute(), dslContext);
 
             MonoProcessor<Map<String, Optional<Throwable>>> callerProcessor = MonoProcessor.create();
             asyncAction.handle((result, error) -> {

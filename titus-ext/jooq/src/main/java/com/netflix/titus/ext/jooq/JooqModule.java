@@ -58,6 +58,9 @@ public class JooqModule extends AbstractModule {
                     connectionProvider = new DefaultConnectionProvider(DriverManager.getConnection(configuration.getDatabaseUrl()));
                     dialect = SQLDialect.POSTGRES_9_5;
                 }
+
+                // Explicitly set autoCommit as jOOQ Store impls should expect automatic transaction management
+                ((DefaultConnectionProvider) connectionProvider).setAutoCommit(true);
             } catch (SQLException e) {
                 throw new IllegalStateException("Cannot initialize connection to Postgres database", e);
             }

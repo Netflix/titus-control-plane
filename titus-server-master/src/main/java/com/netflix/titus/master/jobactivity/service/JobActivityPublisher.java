@@ -121,14 +121,19 @@ public class JobActivityPublisher {
      * events will simply result in missed records being published to Job Activity.
      */
     private void handleJobManagerEvent(JobManagerEvent<?> jobManagerEvent) {
-        if (jobManagerEvent instanceof JobUpdateEvent) {
-            JobUpdateEvent jobUpdateEvent = (JobUpdateEvent)jobManagerEvent;
-            handleJobUpdateEvent(jobUpdateEvent);
-        } else if (jobManagerEvent instanceof TaskUpdateEvent) {
-            TaskUpdateEvent taskUpdateEvent = (TaskUpdateEvent)jobManagerEvent;
-            handleTaskUpdateEvent(taskUpdateEvent);
-        } else {
-            logger.error("Got other event type: {} on {}", jobManagerEvent.getClass(), Thread.currentThread().getId());
+        try {
+            if (jobManagerEvent instanceof JobUpdateEvent) {
+                JobUpdateEvent jobUpdateEvent = (JobUpdateEvent) jobManagerEvent;
+                handleJobUpdateEvent(jobUpdateEvent);
+            } else if (jobManagerEvent instanceof TaskUpdateEvent) {
+                TaskUpdateEvent taskUpdateEvent = (TaskUpdateEvent) jobManagerEvent;
+                handleTaskUpdateEvent(taskUpdateEvent);
+            } else {
+                logger.error("Got other event type: {} on {}", jobManagerEvent.getClass(), Thread.currentThread().getId());
+            }
+        } catch (Exception e) {
+            // Paranoid check to avoid Exception propagation to the event stream publisher
+            logger.error("Exception caught while processing event stream. DROPPING to avoid impacting publisher: {}", e);
         }
     }
 
