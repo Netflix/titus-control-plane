@@ -9,20 +9,16 @@ import java.util.stream.Collectors;
 
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Job;
-import com.netflix.titus.supplementary.taskspublisher.config.EsPublisherConfiguration;
 import com.netflix.titus.ext.elasticsearch.TaskDocument;
+import com.netflix.titus.supplementary.taskspublisher.config.EsPublisherConfiguration;
 import com.netflix.titus.testkit.model.job.JobGenerator;
-import org.apache.log4j.Logger;
 import org.junit.Test;
-
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class EsClientHttpTest {
-    private static final Logger logger = Logger.getLogger(EsClientHttp.class);
-
     private EsPublisherConfiguration getConfig() {
         final EsPublisherConfiguration esPublisherConfiguration = mock(EsPublisherConfiguration.class);
         when(esPublisherConfiguration.getEsHostName()).thenReturn("localhost");
@@ -34,8 +30,8 @@ public class EsClientHttpTest {
 
     @Test
     public void verifyEsHost() {
-        EsClientHttp esClientHttp = new EsClientHttp(getConfig());
-        String esUri = esClientHttp.buildEsUrl();
+        final DefaultEsWebClientFactory defaultEsWebClientFactory = new DefaultEsWebClientFactory(getConfig());
+        String esUri = defaultEsWebClientFactory.buildEsUrl();
         assertThat(esUri).isEqualTo("http://localhost:9200");
     }
 
@@ -44,7 +40,7 @@ public class EsClientHttpTest {
     public void verifyCurrentEsIndexName() {
         String monthlySuffix = new SimpleDateFormat("yyyyMM").format(new Date());
 
-        final EsClientHttp esClientHttp = new EsClientHttp(getConfig());
+        final EsClientHttp esClientHttp = new EsClientHttp(getConfig(), new DefaultEsWebClientFactory(getConfig()));
         final String esIndexNameCurrent = esClientHttp.buildEsIndexNameCurrent();
         assertThat(esIndexNameCurrent).isNotNull();
         assertThat(esIndexNameCurrent).isNotEmpty();
@@ -64,7 +60,7 @@ public class EsClientHttpTest {
                         Collections.emptyMap()))
                 .collect(Collectors.toList());
 
-        final EsClientHttp esClientHttp = new EsClientHttp(getConfig());
+        final EsClientHttp esClientHttp = new EsClientHttp(getConfig(), new DefaultEsWebClientFactory(getConfig()));
         final String bulkIndexPayload = esClientHttp.buildBulkIndexPayload(taskDocuments, "titustasks");
         assertThat(bulkIndexPayload).isNotNull();
         assertThat(bulkIndexPayload).isNotEmpty();

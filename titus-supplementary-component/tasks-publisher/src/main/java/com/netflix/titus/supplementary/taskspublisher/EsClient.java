@@ -23,6 +23,10 @@ import reactor.core.publisher.Mono;
 
 public interface EsClient {
 
+    /**
+     * Elastic search data model as defined by search API documentation
+     * https://www.elastic.co/guide/en/elasticsearch/reference/5.6/search.html
+     */
     class EsSearchResp<T> {
         EsRespHits<T> hits;
 
@@ -110,6 +114,10 @@ public interface EsClient {
         }
     }
 
+    /**
+     * Elastic search data model as defined by bulk index API documentation
+     * https://www.elastic.co/guide/en/elasticsearch/reference/5.6/docs-bulk.html
+     */
     class BulkEsIndexRespItem {
         EsIndexResp index;
 

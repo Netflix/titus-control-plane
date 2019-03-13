@@ -15,14 +15,8 @@
  */
 package com.netflix.titus.supplementary.taskspublisher;
 
-import java.text.SimpleDateFormat;
-import java.util.TimeZone;
+import org.springframework.web.reactive.function.client.WebClient;
 
-class ElasticSearchUtils {
-    static final SimpleDateFormat dateFormat;
-
-    static {
-        dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
-        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-    }
+public interface EsWebClientFactory {
+    WebClient buildWebClient();
 }

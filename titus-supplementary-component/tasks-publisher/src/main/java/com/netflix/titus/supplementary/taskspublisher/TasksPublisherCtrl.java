@@ -30,6 +30,7 @@ import com.netflix.spectator.api.Functions;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.patterns.PolledMeter;
 import com.netflix.titus.api.jobmanager.JobAttributes;
+import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.rx.RetryHandlerBuilder;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.ext.elasticsearch.TaskDocument;
@@ -133,7 +134,7 @@ public class TasksPublisherCtrl {
     @PreDestroy
     public void stop() {
         if (subscription != null) {
-            subscription.dispose();
+            ReactorExt.safeDispose(subscription);
         }
     }
 

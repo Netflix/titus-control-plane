@@ -15,6 +15,8 @@
  */
 package com.netflix.titus.supplementary.taskspublisher;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.netflix.spectator.api.Registry;
@@ -44,7 +46,10 @@ public class TitusClientImpl implements TitusClient {
     private AtomicInteger numJobUpdates = new AtomicInteger(0);
     private AtomicInteger numTaskUpdates = new AtomicInteger(0);
     private AtomicInteger numSnapshotUpdates = new AtomicInteger(0);
+    private AtomicInteger numMissingJobUpdate = new AtomicInteger(0);
     private AtomicInteger apiErrors = new AtomicInteger(0);
+
+    private Map<String, Job> jobs = new ConcurrentHashMap<>(100);
 
 
     public TitusClientImpl(JobManagementServiceGrpc.JobManagementServiceStub jobManagementService, Registry registry) {
@@ -84,12 +89,18 @@ public class TitusClientImpl implements TitusClient {
                     public void onNext(JobChangeNotification jobChangeNotification) {
                         switch (jobChangeNotification.getNotificationCase()) {
                             case JOBUPDATE:
+                                final Job job = jobChangeNotification.getJobUpdate().getJob();
+                                jobs.putIfAbsent(job.getId(), job);
                                 logger.debug("<{}> JobUpdate {}", Thread.currentThread().getName(), jobChangeNotification.getJobUpdate().getJob().getId());
                                 numJobUpdates.incrementAndGet();
                                 break;
                             case TASKUPDATE:
                                 logger.debug("<{}> TaskUpdate {}", Thread.currentThread().getName(), jobChangeNotification.getTaskUpdate().getTask().getId());
                                 final Task task = jobChangeNotification.getTaskUpdate().getTask();
+                                // Ordering failure for Job, Task updates ?
+                                if (!jobs.containsKey(task.getJobId())) {
+                                    numMissingJobUpdate.incrementAndGet();
+                                }
                                 sink.next(task);
                                 numTaskUpdates.incrementAndGet();
                                 break;
@@ -119,25 +130,31 @@ public class TitusClientImpl implements TitusClient {
 
     @Override
     public Mono<Job> getJobById(String jobId) {
-        return Mono.create(sink -> attachCallerId(jobManagementService, CLIENT_ID)
-                .findJob(JobId.newBuilder().setId(jobId).build(), new StreamObserver<Job>() {
-                    @Override
-                    public void onNext(Job job) {
-                        logger.debug("<{}> Getting Job for Id {}", Thread.currentThread().getName(), job.getId());
-                        sink.success(job);
-                    }
+        return Mono.create(sink -> {
+            if (jobs.containsKey(jobId)) {
+                sink.success(jobs.get(jobId));
+            } else {
+                attachCallerId(jobManagementService, CLIENT_ID)
+                        .findJob(JobId.newBuilder().setId(jobId).build(), new StreamObserver<Job>() {
+                            @Override
+                            public void onNext(Job job) {
+                                logger.debug("<{}> Getting Job for Id {}", Thread.currentThread().getName(), job.getId());
+                                sink.success(job);
+                            }
 
-                    @Override
-                    public void onError(Throwable t) {
-                        logger.error(t.getMessage());
-                        apiErrors.incrementAndGet();
-                        sink.error(t);
-                    }
+                            @Override
+                            public void onError(Throwable t) {
+                                logger.error(t.getMessage());
+                                apiErrors.incrementAndGet();
+                                sink.error(t);
+                            }
 
-                    @Override
-                    public void onCompleted() {
-                    }
-                }));
+                            @Override
+                            public void onCompleted() {
+                            }
+                        });
+            }
+        });
     }
 
     private void configureMetrics(Registry registry) {
@@ -153,6 +170,9 @@ public class TitusClientImpl implements TitusClient {
         PolledMeter.using(registry)
                 .withId(registry.createId(EsTaskPublisherMetrics.METRIC_ES_PUBLISHER + "titusApi.numJobUpdates"))
                 .monitorValue(numJobUpdates);
+        PolledMeter.using(registry)
+                .withId(registry.createId(EsTaskPublisherMetrics.METRIC_ES_PUBLISHER + "titusApi.numMissingJobUpdate"))
+                .monitorValue(numMissingJobUpdate);
     }
 
 

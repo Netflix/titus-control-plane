@@ -21,8 +21,10 @@ import java.util.concurrent.TimeUnit;
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
+import com.netflix.titus.supplementary.taskspublisher.DefaultEsWebClientFactory;
 import com.netflix.titus.supplementary.taskspublisher.EsClient;
 import com.netflix.titus.supplementary.taskspublisher.EsClientHttp;
+import com.netflix.titus.supplementary.taskspublisher.EsWebClientFactory;
 import com.netflix.titus.supplementary.taskspublisher.TasksPublisherCtrl;
 import com.netflix.titus.supplementary.taskspublisher.TitusClient;
 import com.netflix.titus.supplementary.taskspublisher.TitusClientImpl;
@@ -70,7 +72,12 @@ public class TasksPublisherConfiguration {
 
     @Bean
     public EsClient getEsClient() {
-        return new EsClientHttp(esPublisherConfiguration);
+        return new EsClientHttp(esPublisherConfiguration, getEsWebClientFactory());
+    }
+
+    @Bean
+    public EsWebClientFactory getEsWebClientFactory() {
+        return new DefaultEsWebClientFactory(esPublisherConfiguration);
     }
 
     @Bean

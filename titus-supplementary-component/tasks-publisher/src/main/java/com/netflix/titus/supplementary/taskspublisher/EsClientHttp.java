@@ -25,19 +25,13 @@ import com.google.common.annotations.VisibleForTesting;
 import com.netflix.titus.api.json.ObjectMappers;
 import com.netflix.titus.ext.elasticsearch.TaskDocument;
 import com.netflix.titus.supplementary.taskspublisher.config.EsPublisherConfiguration;
-import io.netty.channel.ChannelOption;
-import io.netty.handler.timeout.ReadTimeoutHandler;
-import io.netty.handler.timeout.WriteTimeoutHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
-import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
-import reactor.netty.http.client.HttpClient;
-import reactor.netty.tcp.TcpClient;
 
 public class EsClientHttp implements EsClient {
     private static final Logger logger = LoggerFactory.getLogger(EsClientHttp.class);
@@ -47,10 +41,9 @@ public class EsClientHttp implements EsClient {
     private EsPublisherConfiguration esPublisherConfiguration;
 
 
-    public EsClientHttp(EsPublisherConfiguration esPublisherConfiguration) {
+    public EsClientHttp(EsPublisherConfiguration esPublisherConfiguration, EsWebClientFactory esWebClientFactory) {
         this.esPublisherConfiguration = esPublisherConfiguration;
-        tasksClient = WebClient.builder().clientConnector(new ReactorClientHttpConnector(buildHttpClient()))
-                .baseUrl(buildEsUrl()).build();
+        tasksClient = esWebClientFactory.buildWebClient();
         indexDateFormat = new SimpleDateFormat(esPublisherConfiguration.getTaskDocumentEsIndexDateSuffixPattern());
     }
 
@@ -59,7 +52,7 @@ public class EsClientHttp implements EsClient {
     public Mono<EsIndexResp> indexTaskDocument(TaskDocument taskDocument) {
         logger.debug("Indexing TASK {} in thread {}", taskDocument.getId(), Thread.currentThread().getName());
         return tasksClient.put()
-                .uri(String.format("/%s/default/%s", buildEsIndexNameCurrent(), taskDocument.getId()))
+                .uri(String.format("/%s/%s/%s", buildEsIndexNameCurrent(), ES_RECORD_TYPE, taskDocument.getId()))
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(BodyInserters.fromObject(taskDocument))
                 .retrieve()
@@ -80,18 +73,13 @@ public class EsClientHttp implements EsClient {
     @Override
     public Mono<EsRespSrc<TaskDocument>> findTaskById(String taskId) {
         return tasksClient.get()
-                .uri(uriBuilder -> uriBuilder.path(String.format("%s/default/%s", buildEsIndexNameCurrent(), taskId)).build())
+                .uri(uriBuilder -> uriBuilder.path(String.format("%s/%s/%s", buildEsIndexNameCurrent(), ES_RECORD_TYPE, taskId)).build())
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
                 .bodyToMono(new ParameterizedTypeReference<EsRespSrc<TaskDocument>>() {
                 });
     }
 
-    @VisibleForTesting
-    String buildEsUrl() {
-        return String.format("http://%s:%s", esPublisherConfiguration.getEsHostName(),
-                esPublisherConfiguration.getEsPort());
-    }
 
     @VisibleForTesting
     String buildEsIndexNameCurrent() {
@@ -127,15 +115,4 @@ public class EsClientHttp implements EsClient {
         });
         return sb.toString();
     }
-
-    private HttpClient buildHttpClient() {
-        return HttpClient.create().tcpConfiguration(tcpClient -> {
-            TcpClient tcpClientWithConnectionTimeout = tcpClient.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 1000);
-            return tcpClientWithConnectionTimeout.doOnConnected(connection -> {
-                connection.addHandlerLast(new ReadTimeoutHandler(20));
-                connection.addHandlerLast(new WriteTimeoutHandler(20));
-            });
-        });
-    }
-
 }
