@@ -33,7 +33,7 @@ public class AwsIamConnectorMetrics {
         GetIamRole
     }
 
-    private static final String METRICS_ROOT = "titus.iam.connector";
+    static final String METRICS_ROOT = "titus.iam.connector";
 
     private final Registry registry;
     private final Map<String, ExecutionMetrics> methodMetricsMap;

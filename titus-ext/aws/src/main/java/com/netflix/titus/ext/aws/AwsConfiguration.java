@@ -49,4 +49,10 @@ public interface AwsConfiguration {
      */
     @DefaultValue("600000")
     long getReaperIntervalMs();
+
+    /**
+     * Amount of time to cache IAM role records, before making another call to AWS.
+     */
+    @DefaultValue("60000")
+    long getIamRoleCacheTimeoutMs();
 }

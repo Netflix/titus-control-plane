@@ -16,6 +16,8 @@
 
 package com.netflix.titus.common.util.cache;
 
+import java.time.Duration;
+
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.common.util.cache.internal.InstrumentedCache;
@@ -24,6 +26,15 @@ public class Caches {
     public static <K, V> Cache<K, V> instrumentedCacheWithMaxSize(long maxSize, String metricNameRoot, Registry registry) {
         com.github.benmanes.caffeine.cache.Cache<K, V> cache = Caffeine.newBuilder()
                 .maximumSize(maxSize)
+                .recordStats()
+                .build();
+        return new InstrumentedCache<>(metricNameRoot, cache, registry);
+    }
+
+    public static <K, V> Cache<K, V> instrumentedCacheWithMaxSize(long maxSize, Duration timeout, String metricNameRoot, Registry registry) {
+        com.github.benmanes.caffeine.cache.Cache<K, V> cache = Caffeine.newBuilder()
+                .maximumSize(maxSize)
+                .expireAfterWrite(timeout)
                 .recordStats()
                 .build();
         return new InstrumentedCache<>(metricNameRoot, cache, registry);
