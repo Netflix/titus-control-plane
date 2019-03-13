@@ -19,10 +19,10 @@ import java.text.SimpleDateFormat;
 import java.util.TimeZone;
 
 class ElasticSearchUtils {
-    static final SimpleDateFormat dateFormat;
+    static final SimpleDateFormat DATE_FORMAT;
 
     static {
-        dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
-        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+        DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+        DATE_FORMAT.setTimeZone(TimeZone.getTimeZone("UTC"));
     }
 }

@@ -37,16 +37,14 @@ public class EsClientHttp implements EsClient {
     private static final Logger logger = LoggerFactory.getLogger(EsClientHttp.class);
     private static final String ES_RECORD_TYPE = "default";
     private final WebClient tasksClient;
-    private SimpleDateFormat indexDateFormat;
-    private EsPublisherConfiguration esPublisherConfiguration;
-
+    private final SimpleDateFormat indexDateFormat;
+    private final EsPublisherConfiguration esPublisherConfiguration;
 
     public EsClientHttp(EsPublisherConfiguration esPublisherConfiguration, EsWebClientFactory esWebClientFactory) {
         this.esPublisherConfiguration = esPublisherConfiguration;
         tasksClient = esWebClientFactory.buildWebClient();
         indexDateFormat = new SimpleDateFormat(esPublisherConfiguration.getTaskDocumentEsIndexDateSuffixPattern());
     }
-
 
     @Override
     public Mono<EsIndexResp> indexTaskDocument(TaskDocument taskDocument) {
@@ -79,7 +77,6 @@ public class EsClientHttp implements EsClient {
                 .bodyToMono(new ParameterizedTypeReference<EsRespSrc<TaskDocument>>() {
                 });
     }
-
 
     @VisibleForTesting
     String buildEsIndexNameCurrent() {

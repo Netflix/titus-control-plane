@@ -52,8 +52,8 @@ public class TasksPublisherCtrl {
     private static final Logger logger = LoggerFactory.getLogger(TasksPublisherCtrl.class);
     public static final String TASK_DOCUMENT_CONTEXT = "taskDocumentContext";
     private final EsClient esClient;
-    private Map<String, String> taskDocumentBaseContext;
-    private Registry registry;
+    private final Map<String, String> taskDocumentBaseContext;
+    private final Registry registry;
     private TitusClient titusClient;
 
     private AtomicInteger numErrors = new AtomicInteger(0);
@@ -104,7 +104,7 @@ public class TasksPublisherCtrl {
                             .map(job -> {
                                 final com.netflix.titus.api.jobmanager.model.job.Job coreJob = V3GrpcModelConverters.toCoreJob(job);
                                 final com.netflix.titus.api.jobmanager.model.job.Task coreTask = V3GrpcModelConverters.toCoreTask(coreJob, task);
-                                return TaskDocument.fromV3Task(coreTask, coreJob, ElasticSearchUtils.dateFormat, buildTaskContext(task));
+                                return TaskDocument.fromV3Task(coreTask, coreJob, ElasticSearchUtils.DATE_FORMAT, buildTaskContext(task));
                             }).flux();
                 })
                 .bufferTimeout(100, Duration.ofSeconds(5))
@@ -133,9 +133,7 @@ public class TasksPublisherCtrl {
 
     @PreDestroy
     public void stop() {
-        if (subscription != null) {
-            ReactorExt.safeDispose(subscription);
-        }
+        ReactorExt.safeDispose(subscription);
     }
 
     private Map<String, String> buildTaskContext(Task task) {

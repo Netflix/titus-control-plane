@@ -21,25 +21,25 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class EsPublisherConfiguration {
 
-    @Value("#{ @environment['netflix.environment'] }")
+    @Value("${netflix.environment}")
     private String env;
 
-    @Value("#{ @environment['netflix.account'] }")
+    @Value("${netflix.account}")
     private String account;
 
-    @Value("#{ @environment['netflix.region'] }")
+    @Value("${netflix.region}")
     private String region;
 
-    @Value("#{ @environment['titus.es.host'] }")
+    @Value("${titus.es.host}")
     private String esHostName;
 
-    @Value("#{ @environment['titus.es.port'] }")
+    @Value("${titus.es.port}")
     private int esPort;
 
-    @Value("#{ @environment['titus.es.taskDocumentEsIndexDateSuffixPattern'] }")
+    @Value("${titus.es.taskDocumentEsIndexDateSuffixPattern}")
     private String taskDocumentEsIndexDateSuffixPattern;
 
-    @Value("#{ @environment['titus.es.taskDocumentEsIndexName'] }")
+    @Value("${titus.es.taskDocumentEsIndexName}")
     private String taskDocumentEsIndexName;
 
     public String getTaskDocumentEsIndexDateSuffixPattern() {

@@ -56,7 +56,7 @@ public class EsClientHttpTest {
         jobToTaskMap.put(JobGenerator.oneBatchJob(), JobGenerator.oneBatchTask());
 
         final List<TaskDocument> taskDocuments = jobToTaskMap.keySet().stream()
-                .map(job -> TaskDocument.fromV3Task(jobToTaskMap.get(job), job, ElasticSearchUtils.dateFormat,
+                .map(job -> TaskDocument.fromV3Task(jobToTaskMap.get(job), job, ElasticSearchUtils.DATE_FORMAT,
                         Collections.emptyMap()))
                 .collect(Collectors.toList());
 
