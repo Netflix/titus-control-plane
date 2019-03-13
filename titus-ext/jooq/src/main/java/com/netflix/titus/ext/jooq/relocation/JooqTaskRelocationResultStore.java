@@ -33,6 +33,7 @@ import com.netflix.titus.api.relocation.model.TaskRelocationStatus;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.cache.Cache;
 import com.netflix.titus.common.util.cache.Caches;
+import com.netflix.titus.ext.jooq.JooqUtils;
 import com.netflix.titus.ext.jooq.relocation.schema.JRelocation;
 import com.netflix.titus.ext.jooq.relocation.schema.tables.records.JRelocationStatusRecord;
 import com.netflix.titus.supplementary.relocation.store.TaskRelocationResultStore;
@@ -85,19 +86,17 @@ public class JooqTaskRelocationResultStore implements TaskRelocationResultStore 
     @Override
     public Mono<Map<String, Optional<Throwable>>> createTaskRelocationStatuses(List<TaskRelocationStatus> taskRelocationStatuses) {
         return Mono.defer(() -> {
-            CompletionStage<Void> asyncAction = DSL.using(dslContext.configuration())
-                    .transactionAsync(configuration -> {
-                                loadToCache(findNotCached(taskRelocationStatuses), configuration);
+            CompletionStage<int[]> asyncAction = JooqUtils.executeAsync(() -> {
+                        loadToCache(findNotCached(taskRelocationStatuses), dslContext.configuration());
 
-                                List<StoreQuery<JRelocationStatusRecord>> queries = taskRelocationStatuses.stream()
-                                        .map(this::newCreateOrUpdateQuery)
-                                        .collect(Collectors.toList());
+                        List<StoreQuery<JRelocationStatusRecord>> queries = taskRelocationStatuses.stream()
+                                .map(this::newCreateOrUpdateQuery)
+                                .collect(Collectors.toList());
 
-                                configuration.dsl()
-                                        .batch(queries)
-                                        .execute();
-                            }
-                    );
+                        return dslContext
+                                .batch(queries)
+                                .execute();
+                    }, dslContext);
 
             MonoProcessor<Map<String, Optional<Throwable>>> callerProcessor = MonoProcessor.create();
             asyncAction.handle((result, error) -> {
@@ -127,8 +126,10 @@ public class JooqTaskRelocationResultStore implements TaskRelocationResultStore 
                 return Mono.just(Collections.singletonList(status));
             }
 
-            CompletionStage<Void> asyncAction = DSL.using(dslContext.configuration())
-                    .transactionAsync(configuration -> loadToCache(Collections.singleton(taskId), configuration));
+            CompletionStage<Void> asyncAction = JooqUtils.executeAsync(() -> {
+                loadToCache(Collections.singleton(taskId), dslContext.configuration());
+                return null;
+            }, dslContext);
 
             MonoProcessor<List<TaskRelocationStatus>> callerProcessor = MonoProcessor.create();
             asyncAction.handle((result, error) -> {
