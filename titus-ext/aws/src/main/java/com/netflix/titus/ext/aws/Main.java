@@ -73,6 +73,11 @@ public class Main {
         public long getReaperIntervalMs() {
             return 10_000;
         }
+
+        @Override
+        public long getIamRoleCacheTimeoutMs() {
+            return 60_000;
+        }
     };
 
     private final AwsInstanceCloudConnector connector;

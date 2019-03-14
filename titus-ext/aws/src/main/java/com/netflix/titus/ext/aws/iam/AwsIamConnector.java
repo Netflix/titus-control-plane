@@ -29,18 +29,19 @@ import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.connector.cloud.IamConnector;
 import com.netflix.titus.api.iam.model.IamRole;
 import com.netflix.titus.api.iam.service.IamConnectorException;
+import com.netflix.titus.common.util.cache.Cache;
+import com.netflix.titus.common.util.cache.Caches;
 import com.netflix.titus.common.util.guice.ProxyType;
 import com.netflix.titus.common.util.guice.annotation.ProxyConfiguration;
 import com.netflix.titus.ext.aws.AwsConfiguration;
 import com.netflix.titus.ext.aws.AwsReactorExt;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 
 @Singleton
 @ProxyConfiguration(types = {ProxyType.Logging, ProxyType.Spectator})
 public class AwsIamConnector implements IamConnector {
-    private static final Logger logger = LoggerFactory.getLogger(AwsIamConnector.class);
+
+    private static final long MAX_CACHE_SIZE = 5_000;
 
     private final AwsConfiguration configuration;
     private final AmazonIdentityManagementAsync iamClient;
@@ -48,12 +49,20 @@ public class AwsIamConnector implements IamConnector {
     private final Registry registry;
     private final AwsIamConnectorMetrics connectorMetrics;
 
+    private final Cache<String, IamRole> cache;
+
     @Inject
     public AwsIamConnector(AwsConfiguration configuration,
                            AmazonIdentityManagementAsync iamClient,
                            Registry registry) {
         this.configuration = configuration;
         this.iamClient = iamClient;
+        this.cache = Caches.instrumentedCacheWithMaxSize(
+                MAX_CACHE_SIZE,
+                Duration.ofMillis(configuration.getIamRoleCacheTimeoutMs()),
+                AwsIamConnectorMetrics.METRICS_ROOT + ".iamRoleCache",
+                registry
+        );
         this.registry = registry;
         this.connectorMetrics = new AwsIamConnectorMetrics(registry);
     }
@@ -70,17 +79,27 @@ public class AwsIamConnector implements IamConnector {
      */
     @Override
     public Mono<IamRole> getIamRole(String iamRoleName) {
+        return Mono.defer(() -> {
+            IamRole iamRole = cache.getIfPresent(iamRoleName);
+            if (iamRole != null) {
+                return Mono.just(iamRole);
+            }
+            return getIamRoleFromAws(iamRoleName).doOnNext(fetchedIamRole -> cache.put(iamRoleName, fetchedIamRole));
+        });
+    }
+
+    private Mono<IamRole> getIamRoleFromAws(String iamRoleName) {
         long startTime = registry.clock().wallTime();
         return getAwsIamRole(iamRoleName)
                 .timeout(Duration.ofMillis(configuration.getAwsRequestTimeoutMs()))
                 .map(getRoleResult -> {
-                    connectorMetrics.success(AwsIamConnectorMetrics.AwsIamMethods.GetIamRole, startTime);
-                    return IamRole.newBuilder()
-                            .withRoleId(getRoleResult.getRole().getRoleId())
-                            .withRoleName(getRoleResult.getRole().getRoleName())
-                            .withResourceName(getRoleResult.getRole().getArn())
-                            .withPolicyDoc(getRoleResult.getRole().getAssumeRolePolicyDocument())
-                            .build();
+                            connectorMetrics.success(AwsIamConnectorMetrics.AwsIamMethods.GetIamRole, startTime);
+                            return IamRole.newBuilder()
+                                    .withRoleId(getRoleResult.getRole().getRoleId())
+                                    .withRoleName(getRoleResult.getRole().getRoleName())
+                                    .withResourceName(getRoleResult.getRole().getArn())
+                                    .withPolicyDoc(getRoleResult.getRole().getAssumeRolePolicyDocument())
+                                    .build();
                         }
                 )
                 .onErrorMap(throwable -> {

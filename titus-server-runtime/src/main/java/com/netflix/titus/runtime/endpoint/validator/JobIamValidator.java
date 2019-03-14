@@ -76,7 +76,7 @@ public class JobIamValidator implements EntityValidator<JobDescriptor> {
 
         // Skip any IAM that is not in "friendly" format. A non-friendly format is
         // likely a cross-account IAM and would need cross-account access to get and validate.
-        if (!isFriendlyName(iamRoleName)) {
+        if (isIamArn(iamRoleName)) {
             registry.counter(validationSkippedId.withTag(skippedMetricReasonTag, "notFriendly")).increment();
             return Mono.just(Collections.emptySet());
         }
@@ -101,15 +101,38 @@ public class JobIamValidator implements EntityValidator<JobDescriptor> {
      */
     @Override
     public Mono<JobDescriptor> sanitize(JobDescriptor jobDescriptor) {
-        return Mono.just(jobDescriptor);
+        String iamRoleName = jobDescriptor.getContainer().getSecurityProfile().getIamRole();
+
+        // If empty, it should be set to ARN value or rejected, but not in this place.
+        if (iamRoleName.isEmpty()) {
+            return Mono.just(jobDescriptor);
+        }
+
+        if (isIamArn(iamRoleName)) {
+            return Mono.just(jobDescriptor);
+        }
+        return iamConnector.getIamRole(iamRoleName)
+                .map(iamRole -> jobDescriptor
+                        .toBuilder().withContainer(
+                                jobDescriptor.getContainer().toBuilder()
+                                        .withSecurityProfile(
+                                                jobDescriptor.getContainer().getSecurityProfile().toBuilder()
+                                                        .withIamRole(iamRole.getResourceName())
+                                                        .build()
+                                        )
+                                        .build()
+                        )
+                        .build()
+                )
+                .onErrorReturn(jobDescriptor);
     }
 
-    private boolean isFriendlyName(String iamRoleName) {
+    private boolean isIamArn(String iamRoleName) {
         // Check if this looks like an ARN
-        return !(iamRoleName.startsWith("arn:aws:") ||
-                // Check if this looks like a path name
-                iamRoleName.contains("/"));
+        return iamRoleName.startsWith("arn:aws:");
     }
 
-    private boolean isDisabled() { return !configuration.isIamValidatorEnabled(); }
+    private boolean isDisabled() {
+        return !configuration.isIamValidatorEnabled();
+    }
 }
