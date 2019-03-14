@@ -33,10 +33,13 @@ import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.rx.RetryHandlerBuilder;
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.ext.elasticsearch.TaskDocument;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
+import com.netflix.titus.supplementary.taskspublisher.es.ElasticSearchUtils;
+import com.netflix.titus.supplementary.taskspublisher.es.EsClient;
+import com.netflix.titus.supplementary.taskspublisher.es.EsTaskPublisherMetrics;
+import com.netflix.titus.supplementary.taskspublisher.es.TaskDocument;
 import org.eclipse.jetty.util.ConcurrentHashSet;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
@@ -116,11 +119,11 @@ public class TasksPublisherCtrl {
                 })
                 .retryWhen(buildUnlimitedRetryHandler())
                 .subscribe(bulkIndexResp -> {
-                            logger.info("Received bulk response for {} items", bulkIndexResp.items.size());
+                            logger.info("Received bulk response for {} items", bulkIndexResp.getItems().size());
                             lastPublishedTimestamp.set(registry.clock().wallTime());
-                            bulkIndexResp.items.forEach(bulkEsIndexRespItem -> {
-                                String indexedItemId = bulkEsIndexRespItem.index._id;
-                                logger.info("Index result <{}> for task ID {}", bulkEsIndexRespItem.index.result, indexedItemId);
+                            bulkIndexResp.getItems().forEach(bulkEsIndexRespItem -> {
+                                String indexedItemId = bulkEsIndexRespItem.getIndex().get_id();
+                                logger.info("Index result <{}> for task ID {}", bulkEsIndexRespItem.getIndex().getResult(), indexedItemId);
                                 numIndexUpdated.incrementAndGet();
                                 if (!uniqueTasksIdUpdated.contains(indexedItemId)) {
                                     uniqueTasksIdUpdated.add(indexedItemId);

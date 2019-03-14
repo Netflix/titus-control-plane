@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,12 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package com.netflix.titus.supplementary.taskspublisher.es;
 
-dependencies {
-    compile project(':titus-common')
-    compile project(':titus-api')
-    // should remove the dependency on master once we can get rid of the v2 code as the models/interfaces should be in api
-    compile project(':titus-server-master')
+import java.text.SimpleDateFormat;
+import java.util.TimeZone;
 
-    compile "org.elasticsearch:elasticsearch:${elasticsearchVersion}"
+public class ElasticSearchUtils {
+    public static final SimpleDateFormat DATE_FORMAT;
+
+    static {
+        DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+        DATE_FORMAT.setTimeZone(TimeZone.getTimeZone("UTC"));
+    }
 }

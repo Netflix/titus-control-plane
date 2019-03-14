@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.ext.elasticsearch;
+package com.netflix.titus.supplementary.taskspublisher.es;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;

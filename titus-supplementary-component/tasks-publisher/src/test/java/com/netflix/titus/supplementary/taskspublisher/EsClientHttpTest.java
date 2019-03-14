@@ -9,8 +9,11 @@ import java.util.stream.Collectors;
 
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Job;
-import com.netflix.titus.ext.elasticsearch.TaskDocument;
 import com.netflix.titus.supplementary.taskspublisher.config.EsPublisherConfiguration;
+import com.netflix.titus.supplementary.taskspublisher.es.DefaultEsWebClientFactory;
+import com.netflix.titus.supplementary.taskspublisher.es.ElasticSearchUtils;
+import com.netflix.titus.supplementary.taskspublisher.es.EsClientHttp;
+import com.netflix.titus.supplementary.taskspublisher.es.TaskDocument;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import org.junit.Test;
 

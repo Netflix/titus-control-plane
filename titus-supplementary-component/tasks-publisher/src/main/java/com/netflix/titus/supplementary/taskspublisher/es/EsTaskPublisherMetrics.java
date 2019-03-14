@@ -13,10 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.netflix.titus.supplementary.taskspublisher;
+package com.netflix.titus.supplementary.taskspublisher.es;
 
-import org.springframework.web.reactive.function.client.WebClient;
+public class EsTaskPublisherMetrics {
 
-public interface EsWebClientFactory {
-    WebClient buildWebClient();
+    public static final String METRIC_ROOT = "titus.";
+    public static final String METRIC_ES_PUBLISHER = METRIC_ROOT + "tasks.es.publish.";
+
 }

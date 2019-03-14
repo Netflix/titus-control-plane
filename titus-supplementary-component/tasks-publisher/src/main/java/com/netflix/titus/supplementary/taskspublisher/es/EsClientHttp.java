@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.netflix.titus.supplementary.taskspublisher;
+package com.netflix.titus.supplementary.taskspublisher.es;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -23,7 +23,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.netflix.titus.api.json.ObjectMappers;
-import com.netflix.titus.ext.elasticsearch.TaskDocument;
 import com.netflix.titus.supplementary.taskspublisher.config.EsPublisherConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,16 +77,14 @@ public class EsClientHttp implements EsClient {
                 });
     }
 
-    @VisibleForTesting
-    String buildEsIndexNameCurrent() {
+    public String buildEsIndexNameCurrent() {
         return String.format("%s%s",
                 esPublisherConfiguration.getTaskDocumentEsIndexName(),
                 indexDateFormat.format(new Date()));
 
     }
 
-    @VisibleForTesting
-    String buildBulkIndexPayload(List<TaskDocument> tasks, String esIndexName) {
+    public String buildBulkIndexPayload(List<TaskDocument> tasks, String esIndexName) {
         StringBuilder sb = new StringBuilder();
 
         final ObjectMapper mapper = ObjectMappers.jacksonDefaultMapper();

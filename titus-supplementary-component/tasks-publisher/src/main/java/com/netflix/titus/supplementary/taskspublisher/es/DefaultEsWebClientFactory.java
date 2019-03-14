@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.netflix.titus.supplementary.taskspublisher;
+package com.netflix.titus.supplementary.taskspublisher.es;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.netflix.titus.supplementary.taskspublisher.config.EsPublisherConfiguration;
@@ -44,8 +44,7 @@ public class DefaultEsWebClientFactory implements EsWebClientFactory {
     }
 
 
-    @VisibleForTesting
-    String buildEsUrl() {
+    public String buildEsUrl() {
         return String.format("http://%s:%s", esPublisherConfiguration.getEsHostName(),
                 esPublisherConfiguration.getEsPort());
     }
