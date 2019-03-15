@@ -19,10 +19,12 @@ package com.netflix.titus.runtime.connector.common.reactor;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.Set;
 
 import com.google.common.base.Preconditions;
 import com.google.protobuf.Empty;
 import com.google.protobuf.Message;
+import com.netflix.titus.common.util.CollectionsExt;
 import io.grpc.stub.AbstractStub;
 import io.grpc.stub.StreamObserver;
 import reactor.core.publisher.Flux;
@@ -30,11 +32,17 @@ import reactor.core.publisher.Mono;
 
 class GrpcToReactUtil {
 
-    static Method getGrpcMethod(AbstractStub<?> grpcStub, Method method) {
-        Class<?>[] parameterTypes = method.getParameterTypes();
-        Preconditions.checkArgument(parameterTypes.length <= 1, "Expected method with none or one protobuf object parameter but is: %s", method);
+    /**
+     * For request/response GRPC calls, we set execution deadline at both Reactor and GRPC level. As we prefer the timeout
+     * be triggered by GRPC, which may give us potentially more insight, we adjust Reactor timeout value by this factor.
+     */
+    static final double RX_CLIENT_TIMEOUT_FACTOR = 1.2;
 
-        Class<?> requestType = parameterTypes.length == 0 ? Empty.class : parameterTypes[0];
+    static Method getGrpcMethod(AbstractStub<?> grpcStub, Method method, Set<Class> handlerTypes) {
+        Set<Class> transferredParameters = CollectionsExt.copyAndRemove(CollectionsExt.<Class>asSet((Class[]) method.getParameterTypes()), handlerTypes);
+        Preconditions.checkArgument(transferredParameters.size() <= 1, "Expected method with none or one protobuf object parameter but is: %s", method);
+
+        Class<?> requestType = transferredParameters.isEmpty() ? Empty.class : CollectionsExt.first(transferredParameters);
         Preconditions.checkArgument(Message.class.isAssignableFrom(requestType), "Not protobuf message in method parameter: %s", method);
 
         Class<?> returnType = method.getReturnType();

@@ -18,10 +18,14 @@ package com.netflix.titus.runtime.connector.common.reactor;
 
 import java.lang.reflect.Method;
 import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import com.google.protobuf.Empty;
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
+import com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor;
+import io.grpc.Deadline;
 import io.grpc.stub.AbstractStub;
 import io.grpc.stub.ClientCallStreamObserver;
 import io.grpc.stub.ClientResponseObserver;
@@ -33,15 +37,29 @@ import reactor.core.publisher.MonoSink;
 class MonoMethodBridge<GRPC_STUB extends AbstractStub<GRPC_STUB>> implements Function<Object[], Publisher> {
 
     private final Method grpcMethod;
+    private final int grpcArgPos;
+    private final int callMetadataPos;
+    private final CallMetadataResolver callMetadataResolver;
+    private final GRPC_STUB grpcStub;
     private final boolean emptyToVoidReply;
-    private final Supplier<GRPC_STUB> grpcStubFactory;
+    private final Duration timeout;
     private final Duration reactorTimeout;
 
-    MonoMethodBridge(Method reactMethod, Method grpcMethod, Supplier<GRPC_STUB> grpcStubFactory, Duration reactorTimeout) {
+    MonoMethodBridge(Method reactMethod,
+                     Method grpcMethod,
+                     int grpcArgPos,
+                     int callMetadataPos,
+                     CallMetadataResolver callMetadataResolver,
+                     GRPC_STUB grpcStub,
+                     Duration timeout) {
         this.grpcMethod = grpcMethod;
+        this.grpcArgPos = grpcArgPos;
+        this.callMetadataPos = callMetadataPos;
+        this.callMetadataResolver = callMetadataResolver;
+        this.grpcStub = grpcStub;
         this.emptyToVoidReply = GrpcToReactUtil.isEmptyToVoidResult(reactMethod, grpcMethod);
-        this.grpcStubFactory = grpcStubFactory;
-        this.reactorTimeout = reactorTimeout;
+        this.timeout = timeout;
+        this.reactorTimeout = Duration.ofMillis((long) (timeout.toMillis() * GrpcToReactUtil.RX_CLIENT_TIMEOUT_FACTOR));
     }
 
     @Override
@@ -79,14 +97,27 @@ class MonoMethodBridge<GRPC_STUB extends AbstractStub<GRPC_STUB>> implements Fun
             };
 
             Object[] grpcArgs = new Object[]{
-                    (args == null || args.length == 0) ? Empty.getDefaultInstance() : args[0],
+                    grpcArgPos < 0 ? Empty.getDefaultInstance() : args[grpcArgPos],
                     grpcStreamObserver
             };
+
+            GRPC_STUB invocationStub = handleCallMetadata(args)
+                    .withDeadline(Deadline.after(timeout.toMillis(), TimeUnit.MILLISECONDS));
+
             try {
-                grpcMethod.invoke(grpcStubFactory.get(), grpcArgs);
+                grpcMethod.invoke(invocationStub, grpcArgs);
             } catch (Exception e) {
                 sink.error(e);
             }
+        }
+
+        private GRPC_STUB handleCallMetadata(Object[] args) {
+            if (callMetadataPos >= 0) {
+                return V3HeaderInterceptor.attachCallMetadata(grpcStub, (CallMetadata) args[callMetadataPos]);
+            }
+            return callMetadataResolver.resolve()
+                    .map(callMetadata -> V3HeaderInterceptor.attachCallMetadata(grpcStub, callMetadata))
+                    .orElse(grpcStub);
         }
     }
 }

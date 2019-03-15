@@ -43,6 +43,7 @@ import com.netflix.titus.gateway.service.v3.V3ServiceModule;
 import com.netflix.titus.gateway.store.StoreModule;
 import com.netflix.titus.runtime.TitusEntitySanitizerModule;
 import com.netflix.titus.runtime.connector.eviction.EvictionConnectorModule;
+import com.netflix.titus.runtime.connector.jobmanager.JobManagerConnectorModule;
 import com.netflix.titus.runtime.connector.registry.TitusContainerRegistryModule;
 import com.netflix.titus.runtime.connector.relocation.RelocationClientModule;
 import com.netflix.titus.runtime.connector.relocation.RelocationClientTransportModule;
@@ -95,6 +96,7 @@ public final class TitusGatewayModule extends AbstractModule {
 
         install(new GatewayEndpointModule(enableREST));
         install(new TitusMasterConnectorModule());
+        install(new JobManagerConnectorModule());
         install(new EvictionConnectorModule());
 
         // Integration with the task relocation service is required, as we have to inject a migration plan
