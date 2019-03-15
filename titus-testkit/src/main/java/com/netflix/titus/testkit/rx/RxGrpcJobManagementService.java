@@ -34,6 +34,7 @@ import com.netflix.titus.grpc.protogen.TaskId;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
+import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway;
 import io.grpc.CallOptions;
 import io.grpc.ManagedChannel;
 import rx.Observable;
@@ -41,7 +42,7 @@ import rx.Observable;
 /**
  * Rx wrapper for {@link com.netflix.titus.grpc.protogen.JobManagementServiceGrpc}.
  *
- * @deprecated Use {@link com.netflix.titus.runtime.connector.jobmanager.JobManagementClient} and {@link com.netflix.titus.runtime.connector.jobmanager.CachedReadOnlyJobOperations} instead.
+ * @deprecated Use {@link JobServiceGateway} and {@link com.netflix.titus.runtime.connector.jobmanager.CachedReadOnlyJobOperations} instead.
  */
 @Deprecated
 public class RxGrpcJobManagementService {

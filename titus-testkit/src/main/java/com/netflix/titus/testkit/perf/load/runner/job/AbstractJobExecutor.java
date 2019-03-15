@@ -100,7 +100,7 @@ public abstract class AbstractJobExecutor<E extends JobDescriptor.JobDescriptorE
             if (!observeSubscription.isUnsubscribed()) {
                 this.activeTasks = Collections.emptyList();
                 observeSubscription.unsubscribe();
-                Throwable error = context.getJobManagementClient().killJob(jobId).get();
+                Throwable error = context.getJobServiceGateway().killJob(jobId).get();
                 if (error != null) {
                     logger.debug("Job {} cleanup failure", jobId, error);
                 }
@@ -109,7 +109,7 @@ public abstract class AbstractJobExecutor<E extends JobDescriptor.JobDescriptorE
     }
 
     private Subscription observeJob() {
-        return Observable.defer(() -> context.getJobManagementClient().observeJob(jobId))
+        return Observable.defer(() -> context.getJobServiceGateway().observeJob(jobId))
                 .doOnNext(event -> {
                     if (event.getNotificationCase() == NotificationCase.TASKUPDATE) {
                         com.netflix.titus.grpc.protogen.Task task = event.getTaskUpdate().getTask();
@@ -159,7 +159,7 @@ public abstract class AbstractJobExecutor<E extends JobDescriptor.JobDescriptorE
         Preconditions.checkState(doRun, "Job executor shut down already");
         Preconditions.checkNotNull(jobId);
 
-        return context.getJobManagementClient()
+        return context.getJobServiceGateway()
                 .killJob(jobId)
                 .toObservable()
                 .cast(Void.class)
@@ -172,7 +172,7 @@ public abstract class AbstractJobExecutor<E extends JobDescriptor.JobDescriptorE
         Preconditions.checkState(doRun, "Job executor shut down already");
         Preconditions.checkNotNull(jobId);
 
-        return context.getJobManagementClient()
+        return context.getJobServiceGateway()
                 .killTask(TaskKillRequest.newBuilder().setTaskId(taskId).setShrink(false).build())
                 .toObservable()
                 .cast(Void.class)

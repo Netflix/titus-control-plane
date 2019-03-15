@@ -51,9 +51,9 @@ public class BatchJobExecutor extends AbstractJobExecutor {
     }
 
     public static Observable<BatchJobExecutor> submitJob(JobDescriptor<BatchJobExt> jobSpec, ExecutionContext context) {
-        return context.getJobManagementClient()
+        return context.getJobServiceGateway()
                 .createJob(V3GrpcModelConverters.toGrpcJobDescriptor(jobSpec), JobManagerConstants.UNDEFINED_CALL_METADATA)
-                .flatMap(jobRef -> context.getJobManagementClient().findJob(jobRef))
+                .flatMap(jobRef -> context.getJobServiceGateway().findJob(jobRef))
                 .map(job -> new BatchJobExecutor((Job<BatchJobExt>) V3GrpcModelConverters.toCoreJob(job), context));
     }
 }

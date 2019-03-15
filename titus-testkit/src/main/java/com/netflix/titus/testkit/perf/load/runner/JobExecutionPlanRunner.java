@@ -140,7 +140,7 @@ public class JobExecutionPlanRunner extends ExecutionPlanRunner {
     }
 
     private Observable<Void> doFindOwnJob() {
-        return context.getJobManagementClient()
+        return context.getJobServiceGateway()
                 .findJobs(JobQuery.newBuilder()
                         .putFilteringCriteria("jobIds", executor.getJobId())
                         .setPage(PAGE_OF_500_ITEMS)
@@ -151,7 +151,7 @@ public class JobExecutionPlanRunner extends ExecutionPlanRunner {
     }
 
     private Observable<Void> doFindOwnTasks() {
-        return context.getJobManagementClient()
+        return context.getJobServiceGateway()
                 .findTasks(TaskQuery.newBuilder()
                         .putFilteringCriteria("jobIds", executor.getJobId())
                         .setPage(PAGE_OF_500_ITEMS)

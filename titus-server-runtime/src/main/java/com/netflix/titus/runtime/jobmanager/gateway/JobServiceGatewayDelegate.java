@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.connector.jobmanager.client;
+package com.netflix.titus.runtime.jobmanager.gateway;
 
 import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.grpc.protogen.Job;
@@ -36,16 +36,15 @@ import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskMoveRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
-import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
 
-public class JobManagementClientDelegate implements JobManagementClient {
+public class JobServiceGatewayDelegate implements JobServiceGateway {
 
-    private final JobManagementClient delegate;
+    private final JobServiceGateway delegate;
 
-    public JobManagementClientDelegate(JobManagementClient delegate) {
+    public JobServiceGatewayDelegate(JobServiceGateway delegate) {
         this.delegate = delegate;
     }
 

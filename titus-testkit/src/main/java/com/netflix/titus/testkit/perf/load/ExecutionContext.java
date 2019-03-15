@@ -28,7 +28,7 @@ import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.runtime.connector.agent.ReactorAgentManagementServiceStub;
 import com.netflix.titus.runtime.connector.common.reactor.ReactorToGrpcClientBuilder;
 import com.netflix.titus.runtime.connector.eviction.EvictionServiceClient;
-import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
+import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway;
 import com.netflix.titus.simulator.SimulatedAgentServiceGrpc;
 import com.netflix.titus.simulator.SimulatedAgentServiceGrpc.SimulatedAgentServiceStub;
 import com.netflix.titus.testkit.embedded.cloud.connector.remote.SimulatedAgentClient;
@@ -44,7 +44,7 @@ public class ExecutionContext {
 
     private final String sessionId;
 
-    private final JobManagementClient jobManagementClient;
+    private final JobServiceGateway jobServiceGateway;
     private final ReadOnlyJobOperations cachedJobManagementClient;
 
     private final ReactorAgentManagementServiceStub agentManagementClient;
@@ -55,7 +55,7 @@ public class ExecutionContext {
     private final SimulatedAgentClient simulatedCloudClient;
 
     @Inject
-    public ExecutionContext(JobManagementClient jobManagementClient,
+    public ExecutionContext(JobServiceGateway jobServiceGateway,
                             ReadOnlyJobOperations cachedJobManagementClient,
                             ReactorAgentManagementServiceStub agentManagementClient,
                             ReadOnlyAgentOperations cachedAgentManagementClient,
@@ -63,7 +63,7 @@ public class ExecutionContext {
                             @Named(SimulatedRemoteInstanceCloudConnector.SIMULATED_CLOUD) Channel cloudSimulatorGrpcChannel) {
         this.sessionId = "session$" + TIMESTAMP_FORMATTER.format(Instant.now());
 
-        this.jobManagementClient = jobManagementClient;
+        this.jobServiceGateway = jobServiceGateway;
         this.cachedJobManagementClient = cachedJobManagementClient;
         this.agentManagementClient = agentManagementClient;
         this.cachedAgentManagementClient = cachedAgentManagementClient;
@@ -79,8 +79,8 @@ public class ExecutionContext {
         return sessionId;
     }
 
-    public JobManagementClient getJobManagementClient() {
-        return jobManagementClient;
+    public JobServiceGateway getJobServiceGateway() {
+        return jobServiceGateway;
     }
 
     public ReadOnlyJobOperations getCachedJobManagementClient() {

@@ -89,7 +89,7 @@ public class MetricsCollector {
     public void watch(ExecutionContext context) {
         Preconditions.checkState(subscription == null);
 
-        this.subscription = Observable.defer(() -> V3ClientUtils.observeJobs(context.getJobManagementClient().observeJobs(ObserveJobsQuery.getDefaultInstance())))
+        this.subscription = Observable.defer(() -> V3ClientUtils.observeJobs(context.getJobServiceGateway().observeJobs(ObserveJobsQuery.getDefaultInstance())))
                 .doOnNext(event -> {
                     if (event instanceof JobUpdateEvent) {
                         JobUpdateEvent jobUpdate = (JobUpdateEvent) event;

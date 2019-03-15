@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.connector.jobmanager.client;
+package com.netflix.titus.runtime.jobmanager.gateway;
 
 import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
@@ -44,7 +44,6 @@ import com.netflix.titus.grpc.protogen.TaskMoveRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.runtime.connector.ChannelTunablesConfiguration;
-import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor;
@@ -60,19 +59,19 @@ import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createSimp
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createWrappedStub;
 
 /**
- * {@link JobManagementClient} implementation that connects to TitusMaster over the GRPC channel.
+ * {@link JobServiceGateway} implementation that connects to TitusMaster over the GRPC channel.
  */
 @Singleton
-public class GrpcJobManagementClient implements JobManagementClient {
+public class GrpcJobServiceGateway implements JobServiceGateway {
 
     private final JobManagementServiceGrpc.JobManagementServiceStub client;
     private final CallMetadataResolver callMetadataResolver;
     private final ChannelTunablesConfiguration configuration;
 
     @Inject
-    public GrpcJobManagementClient(JobManagementServiceGrpc.JobManagementServiceStub client,
-                                   CallMetadataResolver callMetadataResolver,
-                                   ChannelTunablesConfiguration configuration) {
+    public GrpcJobServiceGateway(JobManagementServiceGrpc.JobManagementServiceStub client,
+                                 CallMetadataResolver callMetadataResolver,
+                                 ChannelTunablesConfiguration configuration) {
         this.client = client;
         this.callMetadataResolver = callMetadataResolver;
         this.configuration = configuration;

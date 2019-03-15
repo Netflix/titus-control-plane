@@ -31,7 +31,7 @@ import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.grpc.protogen.TaskMoveRequest;
-import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
+import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -48,7 +48,7 @@ class JobPairTasksMover {
 
     private static final Logger logger = LoggerFactory.getLogger(JobPairTasksMover.class);
 
-    private final JobManagementClient client;
+    private final JobServiceGateway client;
     private final String jobId1;
     private final String jobId2;
     private final int jobSize;
@@ -58,7 +58,7 @@ class JobPairTasksMover {
     private volatile Job<ServiceJobExt> job2;
     private final ConcurrentMap<String, Task> tasks = new ConcurrentHashMap<>();
 
-    JobPairTasksMover(JobManagementClient client, String jobId1, String jobId2, int jobSize, int batchSize) {
+    JobPairTasksMover(JobServiceGateway client, String jobId1, String jobId2, int jobSize, int batchSize) {
         this.client = client;
         this.jobId1 = jobId1;
         this.jobId2 = jobId2;
@@ -110,7 +110,7 @@ class JobPairTasksMover {
         }
     }
 
-    static Mono<JobPairTasksMover> newTaskMover(JobManagementClient client, JobDescriptor<ServiceJobExt> jobDescriptor, int jobSize, int batchSize) {
+    static Mono<JobPairTasksMover> newTaskMover(JobServiceGateway client, JobDescriptor<ServiceJobExt> jobDescriptor, int jobSize, int batchSize) {
         JobDescriptor<ServiceJobExt> first = JobFunctions.changeServiceJobCapacity(
                 jobDescriptor,
                 Capacity.newBuilder()

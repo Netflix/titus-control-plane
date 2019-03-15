@@ -68,7 +68,7 @@ public class JobTerminator {
             logger.warn("Removing old jobs: {}", jobIdsToRemove);
 
             List<Observable<Void>> killActions = jobIdsToRemove.stream()
-                    .map(jid -> context.getJobManagementClient()
+                    .map(jid -> context.getJobServiceGateway()
                             .killJob(jid)
                             .toObservable()
                             .cast(Void.class)
@@ -91,7 +91,7 @@ public class JobTerminator {
 
     private boolean doTry(Set<String> jobIdsToRemove, Set<String> unknownJobs) {
         try {
-            Iterator<JobChangeNotification> it = context.getJobManagementClient()
+            Iterator<JobChangeNotification> it = context.getJobServiceGateway()
                     .observeJobs(ObserveJobsQuery.newBuilder().build())
                     .toBlocking()
                     .getIterator();

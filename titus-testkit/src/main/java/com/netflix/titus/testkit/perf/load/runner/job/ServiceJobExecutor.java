@@ -48,7 +48,7 @@ public class ServiceJobExecutor extends AbstractJobExecutor<ServiceJobExt> {
         Preconditions.checkState(doRun, "Job executor shut down already");
         Preconditions.checkNotNull(jobId);
 
-        return context.getJobManagementClient().killTask(TaskKillRequest.newBuilder().setTaskId(taskId).setShrink(true).build())
+        return context.getJobServiceGateway().killTask(TaskKillRequest.newBuilder().setTaskId(taskId).setShrink(true).build())
                 .toObservable()
                 .cast(Void.class)
                 .onErrorResumeNext(e -> Observable.error(new IOException("Failed to terminate and shrink task " + taskId + " of job " + name, e)))
@@ -64,7 +64,7 @@ public class ServiceJobExecutor extends AbstractJobExecutor<ServiceJobExt> {
         Preconditions.checkState(doRun, "Job executor shut down already");
         Preconditions.checkNotNull(jobId);
 
-        return context.getJobManagementClient()
+        return context.getJobServiceGateway()
                 .updateJobCapacity(JobCapacityUpdate.newBuilder()
                         .setJobId(jobId)
                         .setCapacity(
@@ -96,9 +96,9 @@ public class ServiceJobExecutor extends AbstractJobExecutor<ServiceJobExt> {
     }
 
     public static Observable<ServiceJobExecutor> submitJob(JobDescriptor<ServiceJobExt> jobSpec, ExecutionContext context) {
-        return context.getJobManagementClient()
+        return context.getJobServiceGateway()
                 .createJob(V3GrpcModelConverters.toGrpcJobDescriptor(jobSpec), JobManagerConstants.UNDEFINED_CALL_METADATA)
-                .flatMap(jobRef -> context.getJobManagementClient().findJob(jobRef))
+                .flatMap(jobRef -> context.getJobServiceGateway().findJob(jobRef))
                 .map(job -> new ServiceJobExecutor((Job<ServiceJobExt>) V3GrpcModelConverters.toCoreJob(job), context));
     }
 }

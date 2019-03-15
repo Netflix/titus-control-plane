@@ -102,8 +102,8 @@ import rx.Observable;
 import rx.Subscription;
 
 import static com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_STRICT_SANITIZER;
-import static com.netflix.titus.runtime.connector.jobmanager.JobManagementClient.JOB_MINIMUM_FIELD_SET;
-import static com.netflix.titus.runtime.connector.jobmanager.JobManagementClient.TASK_MINIMUM_FIELD_SET;
+import static com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway.JOB_MINIMUM_FIELD_SET;
+import static com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway.TASK_MINIMUM_FIELD_SET;
 import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toGrpcPagination;
 import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toJobQueryCriteria;
 import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toPage;
