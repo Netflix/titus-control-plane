@@ -57,27 +57,27 @@ public class DatabaseMetrics {
         this.operationLatency = registry.createId(ROOT_NAME + databaseName + "." + OPERATION_LATENCY, commonTags);
     }
 
-    public void registerInsertLatency(long startTime, int numRecordsInserted, List<Tag> additionalTags) {
+    public void registerInsertLatency(long startTimeMs, int numRecordsInserted, List<Tag> additionalTags) {
         List<Tag> tags = new ArrayList<>();
         tags.add(new BasicTag(RECORD_COUNT_TAG, Integer.toString(numRecordsInserted)));
 
         registerLatency(Operations.INSERT, Stream.concat(tags.stream(),
                 additionalTags.stream()).collect(Collectors.toList()),
-                System.currentTimeMillis() - startTime);
+                System.currentTimeMillis() - startTimeMs);
     }
 
-    public void registerScanLatency(long startTime, List<Tag> additionalTags) {
-        registerLatency(Operations.SCAN, additionalTags, System.currentTimeMillis() - startTime);
+    public void registerScanLatency(long startTimeMs, List<Tag> additionalTags) {
+        registerLatency(Operations.SCAN, additionalTags, System.currentTimeMillis() - startTimeMs);
     }
 
-    public void registerSelectLatency(long startTime, List<Tag> additionalTags) {
-        registerLatency(Operations.SELECT, additionalTags, System.currentTimeMillis() - startTime);
+    public void registerSelectLatency(long startTimeMs, List<Tag> additionalTags) {
+        registerLatency(Operations.SELECT, additionalTags, System.currentTimeMillis() - startTimeMs);
     }
 
-    private void registerLatency(Operations op, List<Tag> additionalTags, long latency) {
+    private void registerLatency(Operations op, List<Tag> additionalTags, long latencyMs) {
         Id delayId = operationLatency
                 .withTag(RECORD_OP_TAG, op.name())
                 .withTags(additionalTags);
-        registry.timer(delayId).record(latency, TimeUnit.MILLISECONDS);
+        registry.timer(delayId).record(latencyMs, TimeUnit.MILLISECONDS);
     }
 }

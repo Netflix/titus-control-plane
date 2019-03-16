@@ -140,7 +140,7 @@ public class JobActivityPublisher {
     private void handleJobUpdateEvent(JobUpdateEvent jobUpdateEvent) {
         Job<?> job = jobUpdateEvent.getCurrent();
         if (!jobActivityPublisherEnabledPredicate.test(job)) {
-            logger.info("Skipping job activity publish because feature is disabled for this job");
+            logger.debug("Skipping job activity publish because feature is disabled for this job");
             return;
         }
 
@@ -152,7 +152,7 @@ public class JobActivityPublisher {
                 },
                 () -> {
                     metrics.publishSuccess(JobActivityPublisherRecord.RecordType.JOB);
-                    logger.info("Successfully published update for job {}", job.getId());
+                    logger.debug("Successfully published update for job {}", job.getId());
                 }
         );
     }
@@ -161,7 +161,7 @@ public class JobActivityPublisher {
         Job<?> job = taskUpdateEvent.getCurrentJob();
         Task task = taskUpdateEvent.getCurrentTask();
         if (!jobActivityPublisherEnabledPredicate.test(job)) {
-            logger.info("Skipping job activity publish because feature is disabled for this task's job");
+            logger.debug("Skipping job activity publish because feature is disabled for this task's job");
             return;
         }
 
@@ -173,7 +173,7 @@ public class JobActivityPublisher {
                 },
                 () -> {
                     metrics.publishSuccess(JobActivityPublisherRecord.RecordType.TASK);
-                    logger.info("Successfully published update for task {}", task.getId());
+                    logger.debug("Successfully published update for task {}", task.getId());
                 }
         );
     }
