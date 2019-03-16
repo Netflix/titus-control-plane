@@ -993,6 +993,10 @@
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
+        "org.hsqldb:hsqldb": {
+            "locked": "2.4.1",
+            "requested": "2.4.+"
+        },
         "org.javassist:javassist": {
             "locked": "3.18.2-GA",
             "transitive": [
@@ -2237,6 +2241,10 @@
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
+        "org.hsqldb:hsqldb": {
+            "locked": "2.4.1",
+            "requested": "2.4.+"
+        },
         "org.javassist:javassist": {
             "locked": "3.18.2-GA",
             "transitive": [
@@ -3480,6 +3488,10 @@
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-server-runtime"
             ]
+        },
+        "org.hsqldb:hsqldb": {
+            "locked": "2.4.1",
+            "requested": "2.4.+"
         },
         "org.javassist:javassist": {
             "locked": "3.18.2-GA",
@@ -4817,6 +4829,10 @@
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
+        "org.hsqldb:hsqldb": {
+            "locked": "2.4.1",
+            "requested": "2.4.+"
+        },
         "org.javassist:javassist": {
             "locked": "3.18.2-GA",
             "transitive": [
@@ -6061,6 +6077,10 @@
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-server-runtime"
             ]
+        },
+        "org.hsqldb:hsqldb": {
+            "locked": "2.4.1",
+            "requested": "2.4.+"
         },
         "org.javassist:javassist": {
             "locked": "3.18.2-GA",
@@ -7910,7 +7930,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.25.0",
+            "locked": "2.25.1",
             "requested": "2.+",
             "transitive": [
                 "com.netflix.titus:titus-testkit"
@@ -9885,7 +9905,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.25.0",
+            "locked": "2.25.1",
             "requested": "2.+",
             "transitive": [
                 "com.netflix.titus:titus-testkit"
@@ -11860,7 +11880,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.25.0",
+            "locked": "2.25.1",
             "requested": "2.+",
             "transitive": [
                 "com.netflix.titus:titus-testkit"
@@ -13836,7 +13856,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.25.0",
+            "locked": "2.25.1",
             "requested": "2.+",
             "transitive": [
                 "com.netflix.titus:titus-testkit"

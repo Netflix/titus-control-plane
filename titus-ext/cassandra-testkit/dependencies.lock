@@ -5673,7 +5673,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.25.0",
+            "locked": "2.25.1",
             "requested": "2.+"
         },
         "org.objenesis:objenesis": {
@@ -6677,7 +6677,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.25.0",
+            "locked": "2.25.1",
             "requested": "2.+"
         },
         "org.objenesis:objenesis": {
@@ -7681,7 +7681,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.25.0",
+            "locked": "2.25.1",
             "requested": "2.+"
         },
         "org.objenesis:objenesis": {
@@ -8686,7 +8686,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.25.0",
+            "locked": "2.25.1",
             "requested": "2.+"
         },
         "org.objenesis:objenesis": {
