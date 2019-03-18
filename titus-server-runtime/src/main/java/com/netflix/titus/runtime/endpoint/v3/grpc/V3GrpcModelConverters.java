@@ -120,6 +120,7 @@ public final class V3GrpcModelConverters {
                 .withState(toCoreJobState(grpcJobStatus.getState()))
                 .withReasonCode(grpcJobStatus.getReasonCode())
                 .withReasonMessage(grpcJobStatus.getReasonMessage())
+                .withTimestamp(grpcJobStatus.getTimestamp())
                 .build();
     }
 
@@ -470,6 +471,7 @@ public final class V3GrpcModelConverters {
                 .withState(toCoreTaskState(grpcStatus.getState()))
                 .withReasonCode(grpcStatus.getReasonCode())
                 .withReasonMessage(grpcStatus.getReasonMessage())
+                .withTimestamp(grpcStatus.getTimestamp())
                 .build();
     }
 
