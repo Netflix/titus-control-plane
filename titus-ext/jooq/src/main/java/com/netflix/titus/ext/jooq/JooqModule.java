@@ -62,7 +62,7 @@ public class JooqModule extends AbstractModule {
                 // Explicitly set autoCommit as jOOQ Store impls should expect automatic transaction management
                 ((DefaultConnectionProvider) connectionProvider).setAutoCommit(true);
             } catch (SQLException e) {
-                throw new IllegalStateException("Cannot initialize connection to Postgres database", e);
+                throw new IllegalStateException("Cannot initialize connection to Postgres database " + configuration.getDatabaseUrl(), e);
             }
         }
 

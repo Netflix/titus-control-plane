@@ -110,12 +110,12 @@ public class JooqJobActivityPublisherStore implements JobActivityPublisherStore 
     }
 
     private long getInitialQueueIndex() {
-        long startTime = System.currentTimeMillis();
+        long startTimeMs = System.currentTimeMillis();
         Record1<Long> record = DSL.using(dslContext.configuration())
                 .select(max(ACTIVITY_QUEUE.QUEUE_INDEX))
                 .from(ACTIVITY_QUEUE)
                 .fetchOne();
-        databaseMetrics.registerSelectLatency(startTime, Collections.emptyList());
+        databaseMetrics.registerSelectLatency(startTimeMs, Collections.emptyList());
 
         // No record is present, start index at 0
         if (null == record.value1()) {
@@ -151,7 +151,7 @@ public class JooqJobActivityPublisherStore implements JobActivityPublisherStore 
         long assignedQueueIndex = queueIndex.getAndIncrement();
 
         return JooqUtils.executeAsyncMono(() -> {
-            long startTime = System.currentTimeMillis();
+            long startTimeMs = System.currentTimeMillis();
             int numInserts = dslContext
                     .insertInto(ACTIVITY_QUEUE,
                             ACTIVITY_QUEUE.QUEUE_INDEX,
@@ -161,7 +161,7 @@ public class JooqJobActivityPublisherStore implements JobActivityPublisherStore 
                             (short) recordType.ordinal(),
                             serializedRecord)
                     .execute();
-            databaseMetrics.registerInsertLatency(startTime, 1, Collections.emptyList());
+            databaseMetrics.registerInsertLatency(startTimeMs, 1, Collections.emptyList());
             return numInserts;
         }, dslContext)
                 .onErrorMap(e -> JobActivityStoreException.jobActivityUpdateRecordException(recordId, e))
@@ -171,12 +171,12 @@ public class JooqJobActivityPublisherStore implements JobActivityPublisherStore 
     @VisibleForTesting
     public Flux<JobActivityPublisherRecord> getRecords() {
         return JooqUtils.executeAsyncMono(() -> {
-            long startTime = System.currentTimeMillis();
+            long startTimeMs = System.currentTimeMillis();
             List<JobActivityPublisherRecord> records = dslContext
                     .selectFrom(ACTIVITY_QUEUE)
                     .orderBy(ACTIVITY_QUEUE.QUEUE_INDEX)
                     .fetchInto(JobActivityPublisherRecord.class);
-            databaseMetrics.registerScanLatency(startTime, Collections.emptyList());
+            databaseMetrics.registerScanLatency(startTimeMs, Collections.emptyList());
             return records;
         }, dslContext)
                 .flatMapIterable(jobActivityPublisherRecords -> jobActivityPublisherRecords);
