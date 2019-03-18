@@ -123,7 +123,8 @@ public final class TitusWebClientAddOns {
                     registry.counter(WEB_CLIENT_REQUEST,
                             "endpoint", endpointName,
                             "method", response.method().name(),
-                            "path", response.path()
+                            "path", response.path(),
+                            "statusCode", response.status().toString()
                     ).increment();
                 })
                 .doOnResponseError((response, error) -> {
