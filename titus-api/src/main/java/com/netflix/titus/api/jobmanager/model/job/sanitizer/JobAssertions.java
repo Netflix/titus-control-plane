@@ -44,9 +44,6 @@ public class JobAssertions {
 
     private static final Charset UTF_8 = Charset.forName("UTF-8");
 
-    public static final int MAX_ENVIRONMENT_VARIABLE_SIZE_MB = 32;
-    public static final int MAX_ENVIRONMENT_VARIABLE_SIZE_BYTES = MAX_ENVIRONMENT_VARIABLE_SIZE_MB * 1024 * 1024;
-
     public static final int MAX_ENTRY_POINT_SIZE_SIZE_KB = 16;
     public static final int MAX_ENTRY_POINT_SIZE_SIZE_BYTES = MAX_ENTRY_POINT_SIZE_SIZE_KB * 1024;
 
@@ -145,7 +142,7 @@ public class JobAssertions {
             return keySize + valueSize + 2;
         }).sum();
 
-        return totalSize <= MAX_ENVIRONMENT_VARIABLE_SIZE_BYTES;
+        return totalSize <= configuration.getMaxTotalEnvironmentVariableSizeKB() * 1024;
     }
 
     public boolean isValidContainerHealthServiceName(String name) {

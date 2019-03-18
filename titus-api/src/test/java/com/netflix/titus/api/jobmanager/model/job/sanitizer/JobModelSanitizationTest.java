@@ -270,7 +270,7 @@ public class JobModelSanitizationTest {
         String bigString = new String(manyChars);
 
         Map<String, String> largeEnv = new HashMap<>();
-        for (int i = 0; i < JobAssertions.MAX_ENVIRONMENT_VARIABLE_SIZE_MB; i++) {
+        for (int i = 0; i < JobConfiguration.MAX_ENVIRONMENT_VARIABLES_SIZE_KB; i++) {
             largeEnv.put(bigString + i, bigString);
         }
 
@@ -278,7 +278,7 @@ public class JobModelSanitizationTest {
 
         Set<ValidationError> violations = entitySanitizer.validate(badJobDescriptor);
         assertThat(violations).hasSize(1);
-        assertThat(first(violations).getDescription()).contains("Container environment variables size exceeds the limit 32MB");
+        assertThat(first(violations).getDescription()).contains("Container environment variables size exceeds the limit");
     }
 
     @Test

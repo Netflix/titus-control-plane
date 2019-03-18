@@ -17,7 +17,6 @@
 package com.netflix.titus.api.jobmanager.model.job.sanitizer;
 
 import java.util.List;
-import java.util.Set;
 
 import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
@@ -30,6 +29,8 @@ public interface JobConfiguration {
 
     long DEFAULT_RUNTIME_LIMIT_SEC = 432_000; // 5 days
     long MAX_RUNTIME_LIMIT_SEC = 864_000; // 10 days
+
+    int MAX_ENVIRONMENT_VARIABLES_SIZE_KB = 32;
 
     @DefaultValue("1000")
     int getMaxBatchJobSize();
@@ -109,4 +110,11 @@ public interface JobConfiguration {
      */
     @DefaultValue("alwaysHealthy")
     String getContainerHealthProviders();
+
+    /**
+     * The maximum size of all environment variables in bytes. This includes names, values and
+     * 2 additional bytes for the equal sign and the NUL terminator for each key/value pair.
+     */
+    @DefaultValue("" + MAX_ENVIRONMENT_VARIABLES_SIZE_KB)
+    int getMaxTotalEnvironmentVariableSizeKB();
 }
