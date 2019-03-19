@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.connector.jobmanager.client;
+package com.netflix.titus.runtime.jobmanager.gateway;
 
 import java.util.Set;
 import javax.inject.Named;
@@ -26,20 +26,19 @@ import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.model.validator.ValidationError;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
-import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import rx.Completable;
 import rx.Observable;
 
 import static com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_STRICT_SANITIZER;
 
-public class SanitizingJobManagementClient extends JobManagementClientDelegate {
+public class SanitizingJobServiceGateway extends JobServiceGatewayDelegate {
 
-    private final JobManagementClient delegate;
+    private final JobServiceGateway delegate;
     private final EntitySanitizer entitySanitizer;
 
-    public SanitizingJobManagementClient(JobManagementClient delegate,
-                                         @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer) {
+    public SanitizingJobServiceGateway(JobServiceGateway delegate,
+                                       @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer) {
         super(delegate);
         this.delegate = delegate;
         this.entitySanitizer = entitySanitizer;

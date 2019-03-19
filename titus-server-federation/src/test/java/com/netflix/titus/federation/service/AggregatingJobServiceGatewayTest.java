@@ -88,7 +88,7 @@ import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class AggregatingJobManagementClientTest {
+public class AggregatingJobServiceGatewayTest {
     private static final JobStatus ACCEPTED_STATE = JobStatus.newBuilder().setState(JobStatus.JobState.Accepted).build();
     private static final JobStatus KILL_INITIATED_STATE = JobStatus.newBuilder().setState(JobStatus.JobState.KillInitiated).build();
     private static final JobStatus FINISHED_STATE = JobStatus.newBuilder().setState(JobStatus.JobState.Finished).build();
@@ -104,7 +104,7 @@ public class AggregatingJobManagementClientTest {
     private final PublishSubject<JobChangeNotification> cellTwoUpdates = PublishSubject.create();
 
     private String stackName;
-    private AggregatingJobManagementClient service;
+    private AggregatingJobServiceGateway service;
     private List<Cell> cells;
     private Map<Cell, GrpcServerRule> cellToServiceMap;
     private TestClock clock;
@@ -141,7 +141,7 @@ public class AggregatingJobManagementClientTest {
 
         final AggregatingCellClient aggregatingCellClient = new AggregatingCellClient(connector);
         final AnonymousCallMetadataResolver anonymousCallMetadataResolver = new AnonymousCallMetadataResolver();
-        service = new AggregatingJobManagementClient(
+        service = new AggregatingJobServiceGateway(
                 grpcConfiguration,
                 titusFederationConfiguration,
                 connector,

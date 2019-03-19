@@ -63,7 +63,7 @@ import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskMoveRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
-import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
+import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway;
 import com.netflix.titus.runtime.endpoint.common.rest.Responses;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import io.swagger.annotations.Api;
@@ -78,15 +78,15 @@ import static com.netflix.titus.runtime.endpoint.v3.grpc.TitusPaginationUtils.lo
 @Singleton
 public class JobManagementResource {
 
-    private final JobManagementClient jobManagementClient;
+    private final JobServiceGateway jobServiceGateway;
     private final SystemLogService systemLog;
     private final CallMetadataResolver callMetadataResolver;
 
     @Inject
-    public JobManagementResource(JobManagementClient jobManagementClient,
+    public JobManagementResource(JobServiceGateway jobServiceGateway,
                                  SystemLogService systemLog,
                                  CallMetadataResolver callMetadataResolver) {
-        this.jobManagementClient = jobManagementClient;
+        this.jobServiceGateway = jobServiceGateway;
         this.systemLog = systemLog;
         this.callMetadataResolver = callMetadataResolver;
     }
@@ -95,7 +95,7 @@ public class JobManagementResource {
     @ApiOperation("Create a job")
     @Path("/jobs")
     public Response createJob(JobDescriptor jobDescriptor) {
-        String jobId = Responses.fromSingleValueObservable(jobManagementClient.createJob(jobDescriptor, resolveCallMetadata()));
+        String jobId = Responses.fromSingleValueObservable(jobServiceGateway.createJob(jobDescriptor, resolveCallMetadata()));
         return Response.status(Response.Status.ACCEPTED).entity(JobId.newBuilder().setId(jobId).build()).build();
     }
 
@@ -108,7 +108,7 @@ public class JobManagementResource {
                 .setJobId(jobId)
                 .setCapacity(capacity)
                 .build();
-        return Responses.fromCompletable(jobManagementClient.updateJobCapacity(jobCapacityUpdate));
+        return Responses.fromCompletable(jobServiceGateway.updateJobCapacity(jobCapacityUpdate));
     }
 
     @PUT
@@ -120,7 +120,7 @@ public class JobManagementResource {
                 .setJobId(jobId)
                 .setServiceJobProcesses(jobProcesses)
                 .build();
-        return Responses.fromCompletable(jobManagementClient.updateJobProcesses(jobProcessesUpdate));
+        return Responses.fromCompletable(jobServiceGateway.updateJobProcesses(jobProcessesUpdate));
     }
 
     @PUT
@@ -132,7 +132,7 @@ public class JobManagementResource {
                 .setJobId(jobId)
                 .setDisruptionBudget(jobDisruptionBudget)
                 .build();
-        return Responses.fromVoidMono(jobManagementClient.updateJobDisruptionBudget(request));
+        return Responses.fromVoidMono(jobServiceGateway.updateJobDisruptionBudget(request));
     }
 
     @PUT
@@ -149,7 +149,7 @@ public class JobManagementResource {
             }
             sanitizedRequest = request;
         }
-        return Responses.fromVoidMono(jobManagementClient.updateJobAttributes(sanitizedRequest));
+        return Responses.fromVoidMono(jobServiceGateway.updateJobAttributes(sanitizedRequest));
     }
 
     @DELETE
@@ -169,7 +169,7 @@ public class JobManagementResource {
                 .setJobId(jobId)
                 .addAllKeys(keys)
                 .build();
-        return Responses.fromVoidMono(jobManagementClient.deleteJobAttributes(request));
+        return Responses.fromVoidMono(jobServiceGateway.deleteJobAttributes(request));
     }
 
     @POST
@@ -180,7 +180,7 @@ public class JobManagementResource {
                 .setId(jobId)
                 .setEnableStatus(true)
                 .build();
-        return Responses.fromCompletable(jobManagementClient.updateJobStatus(jobStatusUpdate));
+        return Responses.fromCompletable(jobServiceGateway.updateJobStatus(jobStatusUpdate));
     }
 
     @POST
@@ -191,14 +191,14 @@ public class JobManagementResource {
                 .setId(jobId)
                 .setEnableStatus(false)
                 .build();
-        return Responses.fromCompletable(jobManagementClient.updateJobStatus(jobStatusUpdate));
+        return Responses.fromCompletable(jobServiceGateway.updateJobStatus(jobStatusUpdate));
     }
 
     @GET
     @ApiOperation("Find the job with the specified ID")
     @Path("/jobs/{jobId}")
     public Job findJob(@PathParam("jobId") String jobId) {
-        return Responses.fromSingleValueObservable(jobManagementClient.findJob(jobId));
+        return Responses.fromSingleValueObservable(jobServiceGateway.findJob(jobId));
     }
 
     @GET
@@ -212,21 +212,21 @@ public class JobManagementResource {
         queryBuilder.setPage(page);
         queryBuilder.putAllFilteringCriteria(RestUtil.getFilteringCriteria(queryParameters));
         queryBuilder.addAllFields(RestUtil.getFieldsParameter(queryParameters));
-        return Responses.fromSingleValueObservable(jobManagementClient.findJobs(queryBuilder.build()));
+        return Responses.fromSingleValueObservable(jobServiceGateway.findJobs(queryBuilder.build()));
     }
 
     @DELETE
     @ApiOperation("Kill a job")
     @Path("/jobs/{jobId}")
     public Response killJob(@PathParam("jobId") String jobId) {
-        return Responses.fromCompletable(jobManagementClient.killJob(jobId));
+        return Responses.fromCompletable(jobServiceGateway.killJob(jobId));
     }
 
     @GET
     @ApiOperation("Find the task with the specified ID")
     @Path("/tasks/{taskId}")
     public Task findTask(@PathParam("taskId") String taskId) {
-        return Responses.fromSingleValueObservable(jobManagementClient.findTask(taskId));
+        return Responses.fromSingleValueObservable(jobServiceGateway.findTask(taskId));
     }
 
     @GET
@@ -240,7 +240,7 @@ public class JobManagementResource {
         queryBuilder.setPage(page);
         queryBuilder.putAllFilteringCriteria(RestUtil.getFilteringCriteria(queryParameters));
         queryBuilder.addAllFields(RestUtil.getFieldsParameter(queryParameters));
-        return Responses.fromSingleValueObservable(jobManagementClient.findTasks(queryBuilder.build()));
+        return Responses.fromSingleValueObservable(jobServiceGateway.findTasks(queryBuilder.build()));
     }
 
     @DELETE
@@ -251,7 +251,7 @@ public class JobManagementResource {
             @DefaultValue("false") @QueryParam("shrink") boolean shrink
     ) {
         TaskKillRequest taskKillRequest = TaskKillRequest.newBuilder().setTaskId(taskId).setShrink(shrink).build();
-        return Responses.fromCompletable(jobManagementClient.killTask(taskKillRequest));
+        return Responses.fromCompletable(jobServiceGateway.killTask(taskKillRequest));
     }
 
     @PUT
@@ -268,7 +268,7 @@ public class JobManagementResource {
             }
             sanitizedRequest = request;
         }
-        return Responses.fromCompletable(jobManagementClient.updateTaskAttributes(sanitizedRequest));
+        return Responses.fromCompletable(jobServiceGateway.updateTaskAttributes(sanitizedRequest));
     }
 
     @DELETE
@@ -288,14 +288,14 @@ public class JobManagementResource {
                 .setTaskId(taskId)
                 .addAllKeys(keys)
                 .build();
-        return Responses.fromCompletable(jobManagementClient.deleteTaskAttributes(request));
+        return Responses.fromCompletable(jobServiceGateway.deleteTaskAttributes(request));
     }
 
     @POST
     @ApiOperation("Move task to another job")
     @Path("/tasks/move")
     public Response moveTask(TaskMoveRequest taskMoveRequest) {
-        return Responses.fromCompletable(jobManagementClient.moveTask(taskMoveRequest));
+        return Responses.fromCompletable(jobServiceGateway.moveTask(taskMoveRequest));
     }
 
     private CallMetadata resolveCallMetadata() {

@@ -19,32 +19,23 @@ package com.netflix.titus.runtime.connector.common.reactor;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
+import java.util.Set;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import com.google.common.base.Preconditions;
+import com.google.protobuf.Message;
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.runtime.endpoint.metadata.AnonymousCallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
-import com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor;
-import io.grpc.Deadline;
-import io.grpc.MethodDescriptor;
 import io.grpc.ServiceDescriptor;
 import io.grpc.stub.AbstractStub;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
-import static com.netflix.titus.runtime.connector.common.reactor.GrpcToReactUtil.toMethodNameFromFullName;
-
 public class ReactorToGrpcClientBuilder<REACT_API, GRPC_STUB extends AbstractStub<GRPC_STUB>> {
-
-    /**
-     * For request/response GRPC calls, we set execution deadline at both Reactor and GRPC level. As we prefer the timeout
-     * be triggered by GRPC, which may give us potentially more insight, we adjust Reactor timeout value by this factor.
-     */
-    private static final double RX_CLIENT_TIMEOUT_FACTOR = 1.2;
 
     /**
      * Event streams have unbounded lifetime, but we want to terminate them periodically to improve request distribution
@@ -52,12 +43,13 @@ public class ReactorToGrpcClientBuilder<REACT_API, GRPC_STUB extends AbstractStu
      */
     private static final Duration DEFAULT_STREAMING_TIMEOUT = Duration.ofMinutes(30);
 
+    private static final Set<Class> NON_GRPC_PARAMETERS = Collections.singleton(CallMetadata.class);
+
     private final Class<REACT_API> reactApi;
     private final GRPC_STUB grpcStub;
     private final ServiceDescriptor grpcServiceDescriptor;
 
     private Duration timeout;
-    private Duration reactorTimeout;
     private Duration streamingTimeout = DEFAULT_STREAMING_TIMEOUT;
     private CallMetadataResolver callMetadataResolver;
 
@@ -69,7 +61,6 @@ public class ReactorToGrpcClientBuilder<REACT_API, GRPC_STUB extends AbstractStu
 
     public ReactorToGrpcClientBuilder<REACT_API, GRPC_STUB> withTimeout(Duration timeout) {
         this.timeout = timeout;
-        this.reactorTimeout = Duration.ofMillis((long) (timeout.toMillis() * RX_CLIENT_TIMEOUT_FACTOR));
         return this;
     }
 
@@ -104,7 +95,6 @@ public class ReactorToGrpcClientBuilder<REACT_API, GRPC_STUB extends AbstractStu
     public REACT_API build() {
         Preconditions.checkNotNull(timeout, "GRPC request timeout not set");
         Preconditions.checkNotNull(streamingTimeout, "GRPC streaming request timeout not set");
-        Preconditions.checkNotNull(callMetadataResolver, "Call metadata resolver not set");
 
         Map<Method, Function<Object[], Publisher>> methodMap = buildMethodMap();
         return (REACT_API) Proxy.newProxyInstance(
@@ -115,47 +105,50 @@ public class ReactorToGrpcClientBuilder<REACT_API, GRPC_STUB extends AbstractStu
     }
 
     private Map<Method, Function<Object[], Publisher>> buildMethodMap() {
-        Supplier<GRPC_STUB> grpcRequestResponseStubSupplier = buildGrpcRequestResponseStubSupplier();
-        Supplier<GRPC_STUB> grpcStreamingStubSupplier = buildGrpcStreamingStubSupplier();
-
         Map<Method, Function<Object[], Publisher>> mapping = new HashMap<>();
         for (Method method : reactApi.getMethods()) {
-            mapping.put(method, createGrpcBridge(method, grpcRequestResponseStubSupplier, grpcStreamingStubSupplier));
+            mapping.put(method, createGrpcBridge(method));
         }
         return mapping;
     }
 
-    private Supplier<GRPC_STUB> buildGrpcRequestResponseStubSupplier() {
-        Supplier<GRPC_STUB> streamingStubSupplier = buildGrpcStreamingStubSupplier();
-        return () -> streamingStubSupplier.get().withDeadline(Deadline.after(timeout.toMillis(), TimeUnit.MILLISECONDS));
-    }
-
-    private Supplier<GRPC_STUB> buildGrpcStreamingStubSupplier() {
-        return () ->
-                callMetadataResolver.resolve()
-                        .map(callMetadata -> V3HeaderInterceptor.attachCallMetadata(grpcStub, callMetadata))
-                        .orElse(grpcStub)
-                        .withDeadline(Deadline.after(streamingTimeout.toMillis(), TimeUnit.MILLISECONDS));
-    }
-
-    private Function<Object[], Publisher> createGrpcBridge(Method reactMethod,
-                                                           Supplier<GRPC_STUB> grpcRequestResponseStubSupplier,
-                                                           Supplier<GRPC_STUB> grpcStreamingStubSupplier) {
-        Method grpcMethod = GrpcToReactUtil.getGrpcMethod(grpcStub, reactMethod);
-        if (reactMethod.getReturnType().isAssignableFrom(Mono.class)) {
-            return new MonoMethodBridge<>(reactMethod, grpcMethod, grpcRequestResponseStubSupplier, reactorTimeout);
+    private Function<Object[], Publisher> createGrpcBridge(Method reactMethod) {
+        int grpcArgPos = -1;
+        int callMetadataPos = -1;
+        Class<?>[] argTypes = reactMethod.getParameterTypes();
+        for (int i = 0; i < argTypes.length; i++) {
+            if (Message.class.isAssignableFrom(argTypes[i])) {
+                grpcArgPos = i;
+            }
+            if (CallMetadata.class.isAssignableFrom(argTypes[i])) {
+                callMetadataPos = i;
+            }
         }
-        boolean streamingResponse = grpcServiceDescriptor.getMethods().stream()
-                .filter(m -> toMethodNameFromFullName(m.getFullMethodName()).equals(reactMethod.getName()))
-                .findFirst()
-                .map(m -> m.getType() == MethodDescriptor.MethodType.SERVER_STREAMING)
-                .orElse(false);
+
+        Method grpcMethod = GrpcToReactUtil.getGrpcMethod(grpcStub, reactMethod, NON_GRPC_PARAMETERS);
+
+        if (reactMethod.getReturnType().isAssignableFrom(Mono.class)) {
+            return new MonoMethodBridge<>(
+                    reactMethod,
+                    grpcMethod,
+                    grpcArgPos,
+                    callMetadataPos,
+                    callMetadataResolver,
+                    grpcStub,
+                    timeout
+            );
+        }
+
         return new FluxMethodBridge<>(
                 reactMethod,
+                grpcServiceDescriptor,
                 grpcMethod,
-                streamingResponse ? grpcStreamingStubSupplier : grpcRequestResponseStubSupplier,
-                streamingResponse,
-                reactorTimeout
+                grpcArgPos,
+                callMetadataPos,
+                callMetadataResolver,
+                grpcStub,
+                timeout,
+                streamingTimeout
         );
     }
 }

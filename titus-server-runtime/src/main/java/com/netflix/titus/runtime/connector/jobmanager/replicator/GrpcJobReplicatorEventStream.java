@@ -37,7 +37,7 @@ import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.runtime.connector.common.replicator.AbstractReplicatorEventStream;
 import com.netflix.titus.runtime.connector.common.replicator.DataReplicatorMetrics;
 import com.netflix.titus.runtime.connector.common.replicator.ReplicatorEvent;
-import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
+import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway;
 import com.netflix.titus.runtime.connector.jobmanager.JobSnapshot;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import org.slf4j.Logger;
@@ -49,9 +49,9 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
 
     private static final Logger logger = LoggerFactory.getLogger(GrpcJobReplicatorEventStream.class);
 
-    private final JobManagementClient client;
+    private final JobServiceGateway client;
 
-    public GrpcJobReplicatorEventStream(JobManagementClient client,
+    public GrpcJobReplicatorEventStream(JobServiceGateway client,
                                         DataReplicatorMetrics metrics,
                                         TitusRuntime titusRuntime,
                                         Scheduler scheduler) {

@@ -60,10 +60,10 @@ import com.netflix.titus.grpc.protogen.TaskId;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.runtime.connector.ChannelTunablesConfiguration;
-import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
-import com.netflix.titus.runtime.connector.jobmanager.client.GrpcJobManagementClient;
-import com.netflix.titus.runtime.connector.jobmanager.client.JobManagementClientDelegate;
-import com.netflix.titus.runtime.connector.jobmanager.client.SanitizingJobManagementClient;
+import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway;
+import com.netflix.titus.runtime.jobmanager.gateway.GrpcJobServiceGateway;
+import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGatewayDelegate;
+import com.netflix.titus.runtime.jobmanager.gateway.SanitizingJobServiceGateway;
 import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
@@ -86,12 +86,12 @@ import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createSimp
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createWrappedStub;
 
 /**
- * {@link JobManagementClient} implementation merging the active and the archived data sets with extra validation rules.
+ * {@link JobServiceGateway} implementation merging the active and the archived data sets with extra validation rules.
  */
 @Singleton
-public class GatewayJobManagementClient extends JobManagementClientDelegate {
+public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
 
-    private static Logger logger = LoggerFactory.getLogger(GatewayJobManagementClient.class);
+    private static Logger logger = LoggerFactory.getLogger(GatewayJobServiceGateway.class);
 
     private static final int MAX_CONCURRENT_JOBS_TO_RETRIEVE = 10;
 
@@ -107,22 +107,22 @@ public class GatewayJobManagementClient extends JobManagementClientDelegate {
     private final Clock clock;
 
     @Inject
-    public GatewayJobManagementClient(ChannelTunablesConfiguration tunablesConfiguration,
-                                      GatewayConfiguration gatewayConfiguration,
-                                      JobManagerConfiguration jobManagerConfiguration,
-                                      JobManagementServiceStub client,
-                                      CallMetadataResolver callMetadataResolver,
-                                      JobStore store,
-                                      LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo,
-                                      TaskRelocationDataInjector taskRelocationDataInjector,
-                                      @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer,
-                                      @Named(SECURITY_GROUPS_REQUIRED_FEATURE) Predicate<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> securityGroupsRequiredPredicate,
-                                      @Named(ENVIRONMENT_VARIABLE_NAMES_STRICT_VALIDATION_FEATURE) Predicate<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> environmentVariableNamesStrictValidationPredicate,
-                                      JobAssertions jobAssertions,
-                                      EntityValidator<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> validator,
-                                      TitusRuntime titusRuntime) {
-        super(new SanitizingJobManagementClient(
-                new GrpcJobManagementClient(
+    public GatewayJobServiceGateway(ChannelTunablesConfiguration tunablesConfiguration,
+                                    GatewayConfiguration gatewayConfiguration,
+                                    JobManagerConfiguration jobManagerConfiguration,
+                                    JobManagementServiceStub client,
+                                    CallMetadataResolver callMetadataResolver,
+                                    JobStore store,
+                                    LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo,
+                                    TaskRelocationDataInjector taskRelocationDataInjector,
+                                    @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer,
+                                    @Named(SECURITY_GROUPS_REQUIRED_FEATURE) Predicate<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> securityGroupsRequiredPredicate,
+                                    @Named(ENVIRONMENT_VARIABLE_NAMES_STRICT_VALIDATION_FEATURE) Predicate<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> environmentVariableNamesStrictValidationPredicate,
+                                    JobAssertions jobAssertions,
+                                    EntityValidator<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> validator,
+                                    TitusRuntime titusRuntime) {
+        super(new SanitizingJobServiceGateway(
+                new GrpcJobServiceGateway(
                         client,
                         callMetadataResolver,
                         tunablesConfiguration

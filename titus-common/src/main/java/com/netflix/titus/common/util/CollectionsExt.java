@@ -90,6 +90,10 @@ public final class CollectionsExt {
         return it.hasNext() ? it.next() : null;
     }
 
+    public static <T> T firstOrDefault(Collection<T> collection, T defaultValue) {
+        return isNullOrEmpty(collection) ? defaultValue : collection.iterator().next();
+    }
+
     public static <T> T last(List<T> list) {
         return list.isEmpty() ? null : list.get(list.size() - 1);
     }

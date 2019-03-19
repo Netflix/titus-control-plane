@@ -29,7 +29,7 @@ import com.netflix.titus.runtime.connector.common.replicator.DataReplicatorMetri
 import com.netflix.titus.runtime.connector.common.replicator.RetryableReplicatorEventStream;
 import com.netflix.titus.runtime.connector.common.replicator.StreamDataReplicator;
 import com.netflix.titus.runtime.connector.jobmanager.JobDataReplicator;
-import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
+import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway;
 import com.netflix.titus.runtime.connector.jobmanager.JobSnapshot;
 import reactor.core.scheduler.Schedulers;
 
@@ -45,7 +45,7 @@ public class JobDataReplicatorProvider implements Provider<JobDataReplicator> {
     private final JobDataReplicatorImpl replicator;
 
     @Inject
-    public JobDataReplicatorProvider(JobManagementClient client, TitusRuntime titusRuntime) {
+    public JobDataReplicatorProvider(JobServiceGateway client, TitusRuntime titusRuntime) {
         StreamDataReplicator<JobSnapshot, JobManagerEvent<?>> original = StreamDataReplicator.newStreamDataReplicator(
                 newReplicatorEventStream(client, titusRuntime),
                 new DataReplicatorMetrics(JOB_REPLICATOR, titusRuntime),
@@ -60,7 +60,7 @@ public class JobDataReplicatorProvider implements Provider<JobDataReplicator> {
         return replicator;
     }
 
-    private static RetryableReplicatorEventStream<JobSnapshot, JobManagerEvent<?>> newReplicatorEventStream(JobManagementClient client, TitusRuntime titusRuntime) {
+    private static RetryableReplicatorEventStream<JobSnapshot, JobManagerEvent<?>> newReplicatorEventStream(JobServiceGateway client, TitusRuntime titusRuntime) {
         GrpcJobReplicatorEventStream grpcEventStream = new GrpcJobReplicatorEventStream(
                 client,
                 new DataReplicatorMetrics(JOB_REPLICATOR_GRPC_STREAM, titusRuntime),

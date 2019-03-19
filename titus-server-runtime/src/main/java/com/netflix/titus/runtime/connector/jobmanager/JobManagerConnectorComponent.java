@@ -21,8 +21,9 @@ import javax.inject.Named;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
 import com.netflix.titus.runtime.connector.ChannelTunablesConfiguration;
-import com.netflix.titus.runtime.connector.jobmanager.client.GrpcJobManagementClient;
+import com.netflix.titus.runtime.jobmanager.gateway.GrpcJobServiceGateway;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
+import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway;
 import io.grpc.Channel;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -39,9 +40,9 @@ public class JobManagerConnectorComponent {
 
 
     @Bean
-    public JobManagementClient getJobManagementClient(ChannelTunablesConfiguration configuration,
-                                                      JobManagementServiceStub clientStub,
-                                                      CallMetadataResolver callMetadataResolver) {
-        return new GrpcJobManagementClient(clientStub, callMetadataResolver, configuration);
+    public JobServiceGateway getJobManagementClient(ChannelTunablesConfiguration configuration,
+                                                    JobManagementServiceStub clientStub,
+                                                    CallMetadataResolver callMetadataResolver) {
+        return new GrpcJobServiceGateway(clientStub, callMetadataResolver, configuration);
     }
 }

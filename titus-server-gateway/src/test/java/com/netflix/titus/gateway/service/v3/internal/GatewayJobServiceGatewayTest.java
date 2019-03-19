@@ -38,7 +38,7 @@ import org.junit.Test;
 import static com.netflix.titus.common.util.Evaluators.evaluateTimes;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
-public class GatewayJobManagementClientTest {
+public class GatewayJobServiceGatewayTest {
 
     private static final int PAGE_SIZE = 2;
 
@@ -76,7 +76,7 @@ public class GatewayJobManagementClientTest {
         archivedTasks.add(Task.newBuilder().setId("task3").build());
         archivedTasks.add(Task.newBuilder().setId("task4").build());
 
-        List<Task> tasks = GatewayJobManagementClient.deDupTasks(activeTasks, archivedTasks);
+        List<Task> tasks = GatewayJobServiceGateway.deDupTasks(activeTasks, archivedTasks);
         assertThat(tasks.size()).isEqualTo(4);
 
         List<String> taskIds = tasks.stream().map(Task::getId).sorted().collect(Collectors.toList());
@@ -91,7 +91,7 @@ public class GatewayJobManagementClientTest {
         archivedTasks.add(Task.newBuilder().setId("task3").build());
         archivedTasks.add(Task.newBuilder().setId("task4").build());
 
-        tasks = GatewayJobManagementClient.deDupTasks(activeTasks, archivedTasks);
+        tasks = GatewayJobServiceGateway.deDupTasks(activeTasks, archivedTasks);
         assertThat(tasks.size()).isEqualTo(4);
         taskIds = tasks.stream().map(Task::getId).collect(Collectors.toList());
         Collections.sort(taskIds);
@@ -118,7 +118,7 @@ public class GatewayJobManagementClientTest {
         for (int p = 1; p < ARCHIVED_TASKS_COUNT / PAGE_SIZE; p++) {
             TaskQuery cursorQuery = queryFunction.apply(lastPagination);
 
-            TaskQueryResult cursorResult = GatewayJobManagementClient.combineTaskResults(cursorQuery, activePageResultFunction.apply(0), ARCHIVED_TASKS);
+            TaskQueryResult cursorResult = GatewayJobServiceGateway.combineTaskResults(cursorQuery, activePageResultFunction.apply(0), ARCHIVED_TASKS);
             checkCombinedResult(cursorResult, ARCHIVED_TASKS.subList(p * PAGE_SIZE, (p + 1) * PAGE_SIZE));
 
             lastPagination = cursorResult.getPagination();
@@ -128,7 +128,7 @@ public class GatewayJobManagementClientTest {
         for (int p = 0; p < JOB_SIZE / PAGE_SIZE; p++) {
             TaskQuery cursorQuery = queryFunction.apply(lastPagination);
 
-            TaskQueryResult cursorResult = GatewayJobManagementClient.combineTaskResults(cursorQuery, activePageResultFunction.apply(p), ARCHIVED_TASKS);
+            TaskQueryResult cursorResult = GatewayJobServiceGateway.combineTaskResults(cursorQuery, activePageResultFunction.apply(p), ARCHIVED_TASKS);
             checkCombinedResult(cursorResult, ACTIVE_TASKS.subList(p * PAGE_SIZE, (p + 1) * PAGE_SIZE));
 
             lastPagination = cursorResult.getPagination();
@@ -139,7 +139,7 @@ public class GatewayJobManagementClientTest {
         TaskQuery taskQuery = TaskQuery.newBuilder().setPage(FIRST_PAGE).build();
         TaskQueryResult page0ActiveSetResult = takeActivePage(0);
 
-        TaskQueryResult combinedResult = GatewayJobManagementClient.combineTaskResults(taskQuery, page0ActiveSetResult, ARCHIVED_TASKS);
+        TaskQueryResult combinedResult = GatewayJobServiceGateway.combineTaskResults(taskQuery, page0ActiveSetResult, ARCHIVED_TASKS);
         checkCombinedResult(combinedResult, ARCHIVED_TASKS.subList(0, PAGE_SIZE));
         return combinedResult;
     }

@@ -37,7 +37,7 @@ import com.netflix.titus.api.jobmanager.model.job.migration.SelfManagedMigration
 import com.netflix.titus.api.jobmanager.model.job.retry.ImmediateRetryPolicy;
 import com.netflix.titus.common.util.DateTimeExt;
 import com.netflix.titus.common.util.Evaluators;
-import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
+import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -52,7 +52,7 @@ public class MoveTaskPerf {
 
     private final List<JobPairTasksMover> movers;
 
-    public MoveTaskPerf(JobManagementClient client, int jobPairCount, int jobSize, int batchSize) {
+    public MoveTaskPerf(JobServiceGateway client, int jobPairCount, int jobSize, int batchSize) {
         JobDescriptor<ServiceJobExt> jobDescriptor = newJobDescriptor();
         this.movers = Flux.merge(Evaluators.evaluateTimes(jobPairCount, index -> JobPairTasksMover.newTaskMover(client, jobDescriptor, jobSize, batchSize)))
                 .collectList()

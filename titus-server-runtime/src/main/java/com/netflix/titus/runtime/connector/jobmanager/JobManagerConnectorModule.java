@@ -16,17 +16,30 @@
 
 package com.netflix.titus.runtime.connector.jobmanager;
 
+import javax.inject.Named;
+
 import com.google.inject.AbstractModule;
+import com.google.inject.Provides;
+import com.google.inject.Singleton;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
-import com.netflix.titus.runtime.connector.jobmanager.client.GrpcJobManagementClient;
+import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
+import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorClientFactory;
 import com.netflix.titus.runtime.connector.jobmanager.replicator.JobDataReplicatorProvider;
+import io.grpc.Channel;
+
+import static com.netflix.titus.runtime.connector.titusmaster.TitusMasterConnectorModule.MANAGED_CHANNEL_NAME;
 
 public class JobManagerConnectorModule extends AbstractModule {
     @Override
     protected void configure() {
-        bind(JobManagementClient.class).to(GrpcJobManagementClient.class);
-        
         bind(JobDataReplicator.class).toProvider(JobDataReplicatorProvider.class);
         bind(ReadOnlyJobOperations.class).to(CachedReadOnlyJobOperations.class);
+    }
+
+    @Provides
+    @Singleton
+    public ReactorJobManagementServiceStub getReactorReactorJobManagementServiceStub(GrpcToReactorClientFactory factory,
+                                                                                     @Named(MANAGED_CHANNEL_NAME) Channel channel) {
+        return factory.apply(JobManagementServiceGrpc.newStub(channel), ReactorJobManagementServiceStub.class, JobManagementServiceGrpc.getServiceDescriptor());
     }
 }

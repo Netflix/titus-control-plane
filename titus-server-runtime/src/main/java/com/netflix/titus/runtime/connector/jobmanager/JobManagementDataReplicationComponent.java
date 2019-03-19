@@ -19,6 +19,7 @@ package com.netflix.titus.runtime.connector.jobmanager;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.runtime.connector.jobmanager.replicator.JobDataReplicatorProvider;
+import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -26,7 +27,7 @@ import org.springframework.context.annotation.Configuration;
 public class JobManagementDataReplicationComponent {
 
     @Bean
-    public JobDataReplicator getJobDataReplicator(JobManagementClient client, TitusRuntime titusRuntime) {
+    public JobDataReplicator getJobDataReplicator(JobServiceGateway client, TitusRuntime titusRuntime) {
         return new JobDataReplicatorProvider(client, titusRuntime).get();
     }
 

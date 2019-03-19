@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.connector.jobmanager;
+package com.netflix.titus.runtime.jobmanager.gateway;
 
 import java.util.Set;
 
@@ -47,7 +47,7 @@ import static com.netflix.titus.common.util.CollectionsExt.asSet;
 /**
  * Remote job management client API.
  */
-public interface JobManagementClient {
+public interface JobServiceGateway {
 
     Set<String> JOB_MINIMUM_FIELD_SET = asSet("id");
 
