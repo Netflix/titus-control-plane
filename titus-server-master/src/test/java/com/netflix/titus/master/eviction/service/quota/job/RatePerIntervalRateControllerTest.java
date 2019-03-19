@@ -27,6 +27,7 @@ import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.time.TestClock;
 import org.junit.Test;
 
+import static com.netflix.titus.master.eviction.service.quota.job.RatePerIntervalRateController.newRatePerIntervalRateController;
 import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator.budget;
 import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator.exceptRate;
 import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator.hourlyRatePercentage;
@@ -52,7 +53,7 @@ public class RatePerIntervalRateControllerTest {
 
     @Test
     public void testQuota() {
-        RatePerIntervalRateController quotaController = new RatePerIntervalRateController(
+        RatePerIntervalRateController quotaController = newRatePerIntervalRateController(
                 exceptRate(REFERENCE_JOB, ratePerInterval(WINDOW_MS, 5)),
                 SelfJobDisruptionBudgetResolver.getInstance(),
                 titusRuntime
@@ -76,8 +77,8 @@ public class RatePerIntervalRateControllerTest {
 
     @Test
     public void testJobUpdate() {
-        RatePerIntervalRateController firstController = new RatePerIntervalRateController(
-                exceptRate(REFERENCE_JOB, ratePerInterval(WINDOW_MS,5)),
+        RatePerIntervalRateController firstController = newRatePerIntervalRateController(
+                exceptRate(REFERENCE_JOB, ratePerInterval(WINDOW_MS, 5)),
                 SelfJobDisruptionBudgetResolver.getInstance(),
                 titusRuntime
         );
@@ -87,7 +88,7 @@ public class RatePerIntervalRateControllerTest {
         assertThat(firstController.getQuota(JOB_REFERENCE).getQuota()).isEqualTo(0);
 
         // Now increase the allowance by reducing the window size and increasing the rate limit
-        RatePerIntervalRateController updatedController = firstController.update(exceptRate(REFERENCE_JOB, ratePerInterval(WINDOW_MS / 2,10)));
+        RatePerIntervalRateController updatedController = firstController.update(exceptRate(REFERENCE_JOB, ratePerInterval(WINDOW_MS / 2, 10)));
         assertThat(updatedController.getQuota(JOB_REFERENCE).getQuota()).isEqualTo(5);
     }
 

@@ -16,94 +16,56 @@
 
 package com.netflix.titus.master.eviction.service.quota.job;
 
-import com.netflix.titus.api.eviction.model.EvictionQuota;
+import java.util.concurrent.TimeUnit;
+
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.PercentagePerHourDisruptionBudgetRate;
-import com.netflix.titus.api.model.reference.Reference;
 import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.common.util.histogram.RollingCount;
-import com.netflix.titus.master.eviction.service.quota.ConsumptionResult;
-import com.netflix.titus.master.eviction.service.quota.QuotaController;
+import com.netflix.titus.common.util.tuple.Pair;
 
-public class JobPercentagePerHourRelocationRateController implements QuotaController<Job<?>> {
-
-    private static final long STEP_TIME_MS = 60_000;
-    private static final int STEPS = 60;
-
-    private final RollingCount rollingCount;
-    private final int limitPerHour;
-    private final ConsumptionResult rejectionResult;
+public class JobPercentagePerHourRelocationRateController extends AbstractRatePerIntervalRateController {
 
     private final EffectiveJobDisruptionBudgetResolver budgetResolver;
-    private final TitusRuntime titusRuntime;
 
-    public JobPercentagePerHourRelocationRateController(Job<?> job,
-                                                        EffectiveJobDisruptionBudgetResolver budgetResolver,
-                                                        TitusRuntime titusRuntime) {
+    private JobPercentagePerHourRelocationRateController(Job<?> job,
+                                                         long intervalMs,
+                                                         long evictionsPerInterval,
+                                                         EffectiveJobDisruptionBudgetResolver budgetResolver,
+                                                         TitusRuntime titusRuntime) {
+        super(job, intervalMs, evictionsPerInterval, titusRuntime);
         this.budgetResolver = budgetResolver;
-        this.titusRuntime = titusRuntime;
-
-        this.rollingCount = RollingCount.rollingCount(STEP_TIME_MS, STEPS, titusRuntime.getClock().wallTime());
-        this.limitPerHour = computeLimitPerHour(job);
-        this.rejectionResult = buildRejectionResult();
     }
 
     private JobPercentagePerHourRelocationRateController(Job<?> newJob,
+                                                         long intervalMs,
+                                                         long evictionsPerInterval,
                                                          JobPercentagePerHourRelocationRateController previous) {
+        super(newJob, intervalMs, evictionsPerInterval, previous);
         this.budgetResolver = previous.budgetResolver;
-        this.titusRuntime = previous.titusRuntime;
-        this.rollingCount = previous.rollingCount;
-        this.limitPerHour = computeLimitPerHour(newJob);
-        this.rejectionResult = buildRejectionResult();
-    }
-
-    @Override
-    public EvictionQuota getQuota(Reference reference) {
-        long quota = getQuota(titusRuntime.getClock().wallTime());
-        return quota > 0
-                ? EvictionQuota.newBuilder().withReference(reference).withQuota(quota).withMessage("Per hour limit %s", limitPerHour).build()
-                : EvictionQuota.newBuilder().withReference(reference).withQuota(0).withMessage(rejectionResult.getRejectionReason().get()).build();
-    }
-
-    @Override
-    public ConsumptionResult consume(String taskId) {
-        long now = titusRuntime.getClock().wallTime();
-
-        if (getQuota(now) >= 1) {
-            rollingCount.addOne(now);
-            return ConsumptionResult.approved();
-        }
-        return rejectionResult;
-    }
-
-    @Override
-    public void giveBackConsumedQuota(String taskId) {
-        rollingCount.add(-1, titusRuntime.getClock().wallTime());
     }
 
     @Override
     public JobPercentagePerHourRelocationRateController update(Job<?> newJob) {
-        return new JobPercentagePerHourRelocationRateController(newJob, this);
+        Pair<Long, Integer> pair = getIntervalLimitPair(newJob, budgetResolver);
+        return new JobPercentagePerHourRelocationRateController(newJob, pair.getLeft(), pair.getRight(), this);
     }
 
-    private ConsumptionResult buildRejectionResult() {
-        return ConsumptionResult.rejected("Exceeded the number of tasks that can be evicted in an hour (limit=" + limitPerHour + ')');
+    public static JobPercentagePerHourRelocationRateController newJobPercentagePerHourRelocationRateController(Job<?> job,
+                                                                                                               EffectiveJobDisruptionBudgetResolver budgetResolver,
+                                                                                                               TitusRuntime titusRuntime) {
+        Pair<Long, Integer> pair = getIntervalLimitPair(job, budgetResolver);
+        return new JobPercentagePerHourRelocationRateController(job, pair.getLeft(), pair.getRight(), budgetResolver, titusRuntime);
     }
 
-    private int computeLimitPerHour(Job<?> job) {
-        PercentagePerHourDisruptionBudgetRate budgetRate = (PercentagePerHourDisruptionBudgetRate) budgetResolver.resolve(job).getDisruptionBudgetRate();
+    private static Pair<Long, Integer> getIntervalLimitPair(Job<?> job, EffectiveJobDisruptionBudgetResolver budgetResolver) {
+        PercentagePerHourDisruptionBudgetRate rate = (PercentagePerHourDisruptionBudgetRate) budgetResolver.resolve(job).getDisruptionBudgetRate();
+        long intervalMs = TimeUnit.HOURS.toMillis(1);
 
-        double percentage = budgetRate.getMaxPercentageOfContainersRelocatedInHour();
+        double percentage = rate.getMaxPercentageOfContainersRelocatedInHour();
         int desired = JobFunctions.getJobDesiredSize(job);
+        int evictionsPerInterval = (int) ((desired * percentage) / 100);
 
-        int limit = (int) ((desired * percentage) / 100);
-
-        return Math.max(1, limit);
-    }
-
-    private int getQuota(long now) {
-        int terminatedInLastHour = (int) rollingCount.getCounts(now);
-        return limitPerHour - terminatedInLastHour;
+        return Pair.of(intervalMs, Math.max(1, evictionsPerInterval));
     }
 }
