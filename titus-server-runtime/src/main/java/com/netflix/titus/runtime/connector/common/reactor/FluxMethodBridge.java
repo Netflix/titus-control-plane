@@ -50,6 +50,10 @@ class FluxMethodBridge<GRPC_STUB extends AbstractStub<GRPC_STUB>> implements Fun
     private final Duration timeout;
     private final Duration reactorTimeout;
 
+    /**
+     * If grpcArgPos is less then zero, it means no GRPC argument is provided, and instead {@link Empty} value should be used.
+     * If callMetadataPos is less then zero, it means the {@link CallMetadata} value should be resolved from the local context.
+     */
     FluxMethodBridge(Method reactMethod,
                      ServiceDescriptor grpcServiceDescriptor,
                      Method grpcMethod,

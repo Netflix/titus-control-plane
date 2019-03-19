@@ -19,7 +19,10 @@ package com.netflix.titus.runtime.connector.common.reactor;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
 import com.google.protobuf.Empty;
@@ -39,10 +42,13 @@ class GrpcToReactUtil {
     static final double RX_CLIENT_TIMEOUT_FACTOR = 1.2;
 
     static Method getGrpcMethod(AbstractStub<?> grpcStub, Method method, Set<Class> handlerTypes) {
-        Set<Class> transferredParameters = CollectionsExt.copyAndRemove(CollectionsExt.<Class>asSet((Class[]) method.getParameterTypes()), handlerTypes);
+        List<Class> transferredParameters = Arrays.stream((Class[]) method.getParameterTypes())
+                .filter(type -> !handlerTypes.contains(type))
+                .collect(Collectors.toList());
+
         Preconditions.checkArgument(transferredParameters.size() <= 1, "Expected method with none or one protobuf object parameter but is: %s", method);
 
-        Class<?> requestType = transferredParameters.isEmpty() ? Empty.class : CollectionsExt.first(transferredParameters);
+        Class<?> requestType = CollectionsExt.firstOrDefault(transferredParameters, Empty.class);
         Preconditions.checkArgument(Message.class.isAssignableFrom(requestType), "Not protobuf message in method parameter: %s", method);
 
         Class<?> returnType = method.getReturnType();
