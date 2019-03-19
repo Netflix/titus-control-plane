@@ -46,7 +46,7 @@ class GrpcToReactUtil {
                 .filter(type -> !handlerTypes.contains(type))
                 .collect(Collectors.toList());
 
-        Preconditions.checkArgument(transferredParameters.size() <= 1, "Expected method with none or one protobuf object parameter but is: %s", method);
+        Preconditions.checkArgument(transferredParameters.size() <= 1, "Method must have one or zero protobuf object parameters but is: %s", method);
 
         Class<?> requestType = CollectionsExt.firstOrDefault(transferredParameters, Empty.class);
         Preconditions.checkArgument(Message.class.isAssignableFrom(requestType), "Not protobuf message in method parameter: %s", method);
