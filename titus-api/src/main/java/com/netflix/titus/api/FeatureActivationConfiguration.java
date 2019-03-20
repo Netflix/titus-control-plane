@@ -38,6 +38,6 @@ public interface FeatureActivationConfiguration {
     /**
      * Feature flag disabling movetask api
      */
-    @DefaultValue("false")
+    @DefaultValue("true")
     boolean isMoveTaskApiEnabled();
 }
