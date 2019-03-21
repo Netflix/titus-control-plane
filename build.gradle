@@ -72,7 +72,7 @@ subprojects {
         jooqVersion = '3.+'
         fenzoVersion = '1.1.0-rc.3'
         spectatorVersion = '0.59.+'
-        mesosVersion = '1.4.2'
+        mesosVersion = '1.7.2'
         protobufVersion = '3.5.+'
         postgresqlVersion = '9.4.+'
         grpcVersion = '1.10.+'
