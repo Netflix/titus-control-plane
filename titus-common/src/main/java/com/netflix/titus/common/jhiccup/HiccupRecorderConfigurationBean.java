@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.ext.jooq;
+package com.netflix.titus.common.jhiccup;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -23,24 +23,27 @@ import com.netflix.titus.common.util.SpringConfigurationUtil;
 import org.springframework.core.env.Environment;
 
 @Singleton
-public class JooqConfigurationBean implements JooqConfiguration {
-
-    private static final String PREFIX = "titus.ext.jooq.";
+public class HiccupRecorderConfigurationBean implements HiccupRecorderConfiguration {
 
     private final Environment environment;
 
     @Inject
-    public JooqConfigurationBean(Environment environment) {
+    public HiccupRecorderConfigurationBean(Environment environment) {
         this.environment = environment;
     }
 
     @Override
-    public String getDatabaseUrl() {
-        return SpringConfigurationUtil.getString(environment, PREFIX + "databaseUrl", "jdbc://notSet");
+    public long getReportingIntervalMs() {
+        return SpringConfigurationUtil.getLong(environment, "titus.jhiccup.reportingIntervalMs", 1000);
     }
 
     @Override
-    public boolean isInMemoryDb() {
-        return SpringConfigurationUtil.getBoolean(environment, PREFIX + "inMemoryDb", false);
+    public long getStartDelayMs() {
+        return SpringConfigurationUtil.getLong(environment, "titus.jhiccup.startDelayMs", 1000);
+    }
+
+    @Override
+    public long getTaskExecutionDeadlineMs() {
+        return SpringConfigurationUtil.getLong(environment, "titus.jhiccup.taskExecutionDeadlineMs", 50);
     }
 }

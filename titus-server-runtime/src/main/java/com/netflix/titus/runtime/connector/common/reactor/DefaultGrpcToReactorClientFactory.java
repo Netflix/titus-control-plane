@@ -41,7 +41,8 @@ public class DefaultGrpcToReactorClientFactory implements GrpcToReactorClientFac
                         apiType, stub, serviceDescriptor
                 )
                 .withCallMetadataResolver(callMetadataResolver)
-                .withTimeout(Duration.ofMillis(configuration.getRequestTimeout()))
+                .withTimeout(Duration.ofMillis(configuration.getRequestTimeoutMs()))
+                .withStreamingTimeout(Duration.ofMillis(configuration.getStreamingTimeoutMs()))
                 .build();
     }
 }

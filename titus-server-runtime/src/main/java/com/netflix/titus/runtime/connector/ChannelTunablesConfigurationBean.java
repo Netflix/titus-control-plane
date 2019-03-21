@@ -19,7 +19,7 @@ package com.netflix.titus.runtime.connector;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.netflix.titus.runtime.util.SpringConfigurationUtil;
+import com.netflix.titus.common.util.SpringConfigurationUtil;
 import org.springframework.core.env.Environment;
 
 @Singleton
@@ -33,7 +33,12 @@ public class ChannelTunablesConfigurationBean implements ChannelTunablesConfigur
     }
 
     @Override
-    public long getRequestTimeout() {
-        return SpringConfigurationUtil.getLong(environment, "titus.connector.channelTunables.requestTimeoutMs", 10_000);
+    public long getRequestTimeoutMs() {
+        return SpringConfigurationUtil.getLong(environment, "titus.connector.channelTunables.requestTimeoutMs", DEFAULT_REQUEST_TIMEOUT_MS);
+    }
+
+    @Override
+    public long getStreamingTimeoutMs() {
+        return SpringConfigurationUtil.getLong(environment, "titus.connector.channelTunables.streamingTimeoutMs", DEFAULT_STREAMING_TIMEOUT_MS);
     }
 }
