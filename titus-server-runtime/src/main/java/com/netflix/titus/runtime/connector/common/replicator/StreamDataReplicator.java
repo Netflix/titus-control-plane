@@ -93,7 +93,7 @@ public class StreamDataReplicator<SNAPSHOT, TRIGGER> implements DataReplicator<S
                     .subscribe(
                             next -> {
                                 lastReplicatorEventRef.set(next);
-                                metrics.event(titusRuntime.getClock().wallTime() - next.getLastUpdateTime());
+                                metrics.event(next);
                             },
                             e -> {
                                 logger.error("Unexpected error in the replicator event stream", e);
