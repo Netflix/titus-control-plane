@@ -81,7 +81,7 @@ public class RetryableReplicatorEventStream<SNAPSHOT, TRIGGER> implements Replic
                 })
                 .doOnNext(event -> {
                     metrics.connected();
-                    metrics.event(titusRuntime.getClock().wallTime() - event.getLastUpdateTime());
+                    metrics.event(event);
                 })
                 .doOnCancel(metrics::disconnected)
                 .doOnError(error -> {

@@ -26,11 +26,12 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.runtime.connector.common.replicator.DataReplicator;
 import com.netflix.titus.runtime.connector.common.replicator.DataReplicatorDelegate;
 import com.netflix.titus.runtime.connector.common.replicator.DataReplicatorMetrics;
+import com.netflix.titus.runtime.connector.common.replicator.ReplicatorEvent;
 import com.netflix.titus.runtime.connector.common.replicator.RetryableReplicatorEventStream;
 import com.netflix.titus.runtime.connector.common.replicator.StreamDataReplicator;
 import com.netflix.titus.runtime.connector.jobmanager.JobDataReplicator;
-import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway;
 import com.netflix.titus.runtime.connector.jobmanager.JobSnapshot;
+import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway;
 import reactor.core.scheduler.Schedulers;
 
 @Singleton
@@ -48,7 +49,7 @@ public class JobDataReplicatorProvider implements Provider<JobDataReplicator> {
     public JobDataReplicatorProvider(JobServiceGateway client, TitusRuntime titusRuntime) {
         StreamDataReplicator<JobSnapshot, JobManagerEvent<?>> original = StreamDataReplicator.newStreamDataReplicator(
                 newReplicatorEventStream(client, titusRuntime),
-                new DataReplicatorMetrics(JOB_REPLICATOR, titusRuntime),
+                new JobDataReplicatorMetrics(JOB_REPLICATOR, titusRuntime),
                 titusRuntime
         ).blockFirst(Duration.ofMillis(JOB_BOOTSTRAP_TIMEOUT_MS));
 
@@ -63,7 +64,7 @@ public class JobDataReplicatorProvider implements Provider<JobDataReplicator> {
     private static RetryableReplicatorEventStream<JobSnapshot, JobManagerEvent<?>> newReplicatorEventStream(JobServiceGateway client, TitusRuntime titusRuntime) {
         GrpcJobReplicatorEventStream grpcEventStream = new GrpcJobReplicatorEventStream(
                 client,
-                new DataReplicatorMetrics(JOB_REPLICATOR_GRPC_STREAM, titusRuntime),
+                new JobDataReplicatorMetrics(JOB_REPLICATOR_GRPC_STREAM, titusRuntime),
                 titusRuntime,
                 Schedulers.parallel()
         );
@@ -71,7 +72,7 @@ public class JobDataReplicatorProvider implements Provider<JobDataReplicator> {
                 JobSnapshot.empty(),
                 JobManagerEvent.snapshotMarker(),
                 grpcEventStream,
-                new DataReplicatorMetrics(JOB_REPLICATOR_RETRYABLE_STREAM, titusRuntime),
+                new JobDataReplicatorMetrics(JOB_REPLICATOR_RETRYABLE_STREAM, titusRuntime),
                 titusRuntime,
                 Schedulers.parallel()
         );
@@ -80,6 +81,20 @@ public class JobDataReplicatorProvider implements Provider<JobDataReplicator> {
     private static class JobDataReplicatorImpl extends DataReplicatorDelegate<JobSnapshot, JobManagerEvent<?>> implements JobDataReplicator {
         JobDataReplicatorImpl(DataReplicator<JobSnapshot, JobManagerEvent<?>> delegate) {
             super(delegate);
+        }
+    }
+
+    private static class JobDataReplicatorMetrics extends DataReplicatorMetrics<JobSnapshot, JobManagerEvent<?>> {
+
+        private JobDataReplicatorMetrics(String source, TitusRuntime titusRuntime) {
+            super(source, titusRuntime);
+        }
+
+        @Override
+        public void event(ReplicatorEvent<JobSnapshot, JobManagerEvent<?>> event) {
+            super.event(event);
+            setCacheCollectionSize("jobs", event.getSnapshot().getJobs().size());
+            setCacheCollectionSize("tasks", event.getSnapshot().getTasks().size());
         }
     }
 }

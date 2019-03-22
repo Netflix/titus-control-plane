@@ -20,9 +20,19 @@ import com.netflix.archaius.api.annotations.DefaultValue;
 
 public interface ChannelTunablesConfiguration {
 
+    long DEFAULT_REQUEST_TIMEOUT_MS = 10_000;
+    long DEFAULT_STREAMING_TIMEOUT_MS = 30 * 60_000;
+
     /**
      * GRPC operation timeout.
      */
-    @DefaultValue("10000")
-    long getRequestTimeout();
+    @DefaultValue("" + DEFAULT_REQUEST_TIMEOUT_MS)
+    long getRequestTimeoutMs();
+
+    /**
+     * Event streams have unbounded lifetime, but we want to terminate them periodically to improve request distribution
+     * across multiple nodes.
+     */
+    @DefaultValue("" + DEFAULT_STREAMING_TIMEOUT_MS)
+    long getStreamingTimeoutMs();
 }

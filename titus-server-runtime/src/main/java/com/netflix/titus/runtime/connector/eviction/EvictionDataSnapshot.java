@@ -23,6 +23,7 @@ import java.util.Optional;
 import com.netflix.titus.api.eviction.model.EvictionQuota;
 import com.netflix.titus.api.eviction.service.EvictionException;
 import com.netflix.titus.api.eviction.service.ReadOnlyEvictionOperations;
+import com.netflix.titus.api.model.Level;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.api.model.reference.Reference;
 import com.netflix.titus.api.model.reference.TierReference;
@@ -68,6 +69,19 @@ public class EvictionDataSnapshot {
 
     public EvictionQuota getSystemEvictionQuota() {
         return systemEvictionQuota;
+    }
+
+    public Map<String, EvictionQuota> getQuotas(Level level) {
+        switch (level) {
+            case CapacityGroup:
+                return capacityGroupEvictionQuotas;
+            case Job:
+                return jobEvictionQuotas;
+            case System:
+            case Tier:
+            default:
+                return Collections.emptyMap();
+        }
     }
 
     public EvictionQuota getEvictionQuota(Reference reference) {

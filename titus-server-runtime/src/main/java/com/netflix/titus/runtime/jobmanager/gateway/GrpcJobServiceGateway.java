@@ -87,33 +87,33 @@ public class GrpcJobServiceGateway implements JobServiceGateway {
                     emitter::onCompleted
             );
             V3HeaderInterceptor.attachCallMetadata(client, callMetadata)
-                    .withDeadlineAfter(configuration.getRequestTimeout(), TimeUnit.MILLISECONDS)
+                    .withDeadlineAfter(configuration.getRequestTimeoutMs(), TimeUnit.MILLISECONDS)
                     .createJob(jobDescriptor, streamObserver);
-        }, configuration.getRequestTimeout());
+        }, configuration.getRequestTimeoutMs());
     }
 
     @Override
     public Completable updateJobCapacity(JobCapacityUpdate jobCapacityUpdate) {
         return createRequestCompletable(emitter -> {
             StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
-            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).updateJobCapacity(jobCapacityUpdate, streamObserver);
-        }, configuration.getRequestTimeout());
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeoutMs()).updateJobCapacity(jobCapacityUpdate, streamObserver);
+        }, configuration.getRequestTimeoutMs());
     }
 
     @Override
     public Completable updateJobProcesses(JobProcessesUpdate jobProcessesUpdate) {
         return createRequestCompletable(emitter -> {
             StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
-            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).updateJobProcesses(jobProcessesUpdate, streamObserver);
-        }, configuration.getRequestTimeout());
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeoutMs()).updateJobProcesses(jobProcessesUpdate, streamObserver);
+        }, configuration.getRequestTimeoutMs());
     }
 
     @Override
     public Completable updateJobStatus(JobStatusUpdate statusUpdate) {
         return createRequestCompletable(emitter -> {
             StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
-            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).updateJobStatus(statusUpdate, streamObserver);
-        }, configuration.getRequestTimeout());
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeoutMs()).updateJobStatus(statusUpdate, streamObserver);
+        }, configuration.getRequestTimeoutMs());
     }
 
     @Override
@@ -121,9 +121,9 @@ public class GrpcJobServiceGateway implements JobServiceGateway {
         return createMonoVoidRequest(
                 emitter -> {
                     StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientMonoResponse(emitter);
-                    createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).updateJobDisruptionBudget(request, streamObserver);
+                    createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeoutMs()).updateJobDisruptionBudget(request, streamObserver);
                 },
-                configuration.getRequestTimeout()
+                configuration.getRequestTimeoutMs()
         ).ignoreElement().cast(Void.class);
     }
 
@@ -132,9 +132,9 @@ public class GrpcJobServiceGateway implements JobServiceGateway {
         return createMonoVoidRequest(
                 emitter -> {
                     StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientMonoResponse(emitter);
-                    createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).updateJobAttributes(request, streamObserver);
+                    createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeoutMs()).updateJobAttributes(request, streamObserver);
                 },
-                configuration.getRequestTimeout()
+                configuration.getRequestTimeoutMs()
         ).ignoreElement().cast(Void.class);
     }
 
@@ -143,9 +143,9 @@ public class GrpcJobServiceGateway implements JobServiceGateway {
         return createMonoVoidRequest(
                 emitter -> {
                     StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientMonoResponse(emitter);
-                    createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).deleteJobAttributes(request, streamObserver);
+                    createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeoutMs()).deleteJobAttributes(request, streamObserver);
                 },
-                configuration.getRequestTimeout()
+                configuration.getRequestTimeoutMs()
         ).ignoreElement().cast(Void.class);
     }
 
@@ -153,17 +153,17 @@ public class GrpcJobServiceGateway implements JobServiceGateway {
     public Observable<Job> findJob(String jobId) {
         Observable<Job> observable = createRequestObservable(emitter -> {
             StreamObserver<Job> streamObserver = createSimpleClientResponseObserver(emitter);
-            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).findJob(JobId.newBuilder().setId(jobId).build(), streamObserver);
-        }, configuration.getRequestTimeout());
-        return observable.timeout(configuration.getRequestTimeout(), TimeUnit.MILLISECONDS);
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeoutMs()).findJob(JobId.newBuilder().setId(jobId).build(), streamObserver);
+        }, configuration.getRequestTimeoutMs());
+        return observable.timeout(configuration.getRequestTimeoutMs(), TimeUnit.MILLISECONDS);
     }
 
     @Override
     public Observable<JobQueryResult> findJobs(JobQuery jobQuery) {
         return createRequestObservable(emitter -> {
             StreamObserver<JobQueryResult> streamObserver = createSimpleClientResponseObserver(emitter);
-            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).findJobs(jobQuery, streamObserver);
-        }, configuration.getRequestTimeout());
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeoutMs()).findJobs(jobQuery, streamObserver);
+        }, configuration.getRequestTimeoutMs());
     }
 
     @Override
@@ -186,57 +186,57 @@ public class GrpcJobServiceGateway implements JobServiceGateway {
     public Completable killJob(String jobId) {
         return createRequestCompletable(emitter -> {
             StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
-            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).killJob(JobId.newBuilder().setId(jobId).build(), streamObserver);
-        }, configuration.getRequestTimeout());
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeoutMs()).killJob(JobId.newBuilder().setId(jobId).build(), streamObserver);
+        }, configuration.getRequestTimeoutMs());
     }
 
     @Override
     public Observable<com.netflix.titus.grpc.protogen.Task> findTask(String taskId) {
         Observable<com.netflix.titus.grpc.protogen.Task> observable = createRequestObservable(emitter -> {
             StreamObserver<com.netflix.titus.grpc.protogen.Task> streamObserver = createSimpleClientResponseObserver(emitter);
-            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).findTask(TaskId.newBuilder().setId(taskId).build(), streamObserver);
-        }, configuration.getRequestTimeout());
-        return observable.timeout(configuration.getRequestTimeout(), TimeUnit.MILLISECONDS);
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeoutMs()).findTask(TaskId.newBuilder().setId(taskId).build(), streamObserver);
+        }, configuration.getRequestTimeoutMs());
+        return observable.timeout(configuration.getRequestTimeoutMs(), TimeUnit.MILLISECONDS);
     }
 
     @Override
     public Observable<TaskQueryResult> findTasks(TaskQuery taskQuery) {
         Observable<TaskQueryResult> observable = createRequestObservable(emitter -> {
             StreamObserver<TaskQueryResult> streamObserver = createSimpleClientResponseObserver(emitter);
-            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).findTasks(taskQuery, streamObserver);
-        }, configuration.getRequestTimeout());
-        return observable.timeout(configuration.getRequestTimeout(), TimeUnit.MILLISECONDS);
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeoutMs()).findTasks(taskQuery, streamObserver);
+        }, configuration.getRequestTimeoutMs());
+        return observable.timeout(configuration.getRequestTimeoutMs(), TimeUnit.MILLISECONDS);
     }
 
     @Override
     public Completable killTask(TaskKillRequest taskKillRequest) {
         return createRequestCompletable(emitter -> {
             StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
-            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).killTask(taskKillRequest, streamObserver);
-        }, configuration.getRequestTimeout());
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeoutMs()).killTask(taskKillRequest, streamObserver);
+        }, configuration.getRequestTimeoutMs());
     }
 
     @Override
     public Completable updateTaskAttributes(TaskAttributesUpdate attributesUpdate) {
         return createRequestCompletable(emitter -> {
             StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
-            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).updateTaskAttributes(attributesUpdate, streamObserver);
-        }, configuration.getRequestTimeout());
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeoutMs()).updateTaskAttributes(attributesUpdate, streamObserver);
+        }, configuration.getRequestTimeoutMs());
     }
 
     @Override
     public Completable deleteTaskAttributes(TaskAttributesDeleteRequest deleteRequest) {
         return createRequestCompletable(emitter -> {
             StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
-            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).deleteTaskAttributes(deleteRequest, streamObserver);
-        }, configuration.getRequestTimeout());
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeoutMs()).deleteTaskAttributes(deleteRequest, streamObserver);
+        }, configuration.getRequestTimeoutMs());
     }
 
     @Override
     public Completable moveTask(TaskMoveRequest taskMoveRequest) {
         return createRequestCompletable(emitter -> {
             StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
-            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).moveTask(taskMoveRequest, streamObserver);
-        }, configuration.getRequestTimeout());
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeoutMs()).moveTask(taskMoveRequest, streamObserver);
+        }, configuration.getRequestTimeoutMs());
     }
 }

@@ -52,7 +52,7 @@ public abstract class AbstractReplicatorEventStream<SNAPSHOT, TRIGGER> implement
                 ))
                 .doOnNext(event -> {
                     metrics.connected();
-                    metrics.event(titusRuntime.getClock().wallTime() - event.getLastUpdateTime());
+                    metrics.event(event);
                 })
                 .doOnCancel(metrics::disconnected)
                 .doOnError(error -> {

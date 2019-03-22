@@ -28,6 +28,7 @@ import java.util.function.Function;
 import com.google.common.base.Preconditions;
 import com.google.protobuf.Message;
 import com.netflix.titus.api.jobmanager.model.CallMetadata;
+import com.netflix.titus.runtime.connector.ChannelTunablesConfiguration;
 import com.netflix.titus.runtime.endpoint.metadata.AnonymousCallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import io.grpc.ServiceDescriptor;
@@ -37,12 +38,6 @@ import reactor.core.publisher.Mono;
 
 public class ReactorToGrpcClientBuilder<REACT_API, GRPC_STUB extends AbstractStub<GRPC_STUB>> {
 
-    /**
-     * Event streams have unbounded lifetime, but we want to terminate them periodically to improve request distribution
-     * across multiple nodes.
-     */
-    private static final Duration DEFAULT_STREAMING_TIMEOUT = Duration.ofMinutes(30);
-
     private static final Set<Class> NON_GRPC_PARAMETERS = Collections.singleton(CallMetadata.class);
 
     private final Class<REACT_API> reactApi;
@@ -50,7 +45,7 @@ public class ReactorToGrpcClientBuilder<REACT_API, GRPC_STUB extends AbstractStu
     private final ServiceDescriptor grpcServiceDescriptor;
 
     private Duration timeout;
-    private Duration streamingTimeout = DEFAULT_STREAMING_TIMEOUT;
+    private Duration streamingTimeout;
     private CallMetadataResolver callMetadataResolver;
 
     private ReactorToGrpcClientBuilder(Class<REACT_API> reactApi, GRPC_STUB grpcStub, ServiceDescriptor grpcServiceDescriptor) {
@@ -88,7 +83,8 @@ public class ReactorToGrpcClientBuilder<REACT_API, GRPC_STUB extends AbstractStu
             ServiceDescriptor grpcServiceDescriptor) {
         Preconditions.checkArgument(reactApi.isInterface(), "Interface type required");
         return new ReactorToGrpcClientBuilder<>(reactApi, grpcStub, grpcServiceDescriptor)
-                .withTimeout(Duration.ofSeconds(10))
+                .withTimeout(Duration.ofMillis(ChannelTunablesConfiguration.DEFAULT_REQUEST_TIMEOUT_MS))
+                .withStreamingTimeout(Duration.ofMillis(ChannelTunablesConfiguration.DEFAULT_STREAMING_TIMEOUT_MS))
                 .withCallMetadataResolver(AnonymousCallMetadataResolver.getInstance());
     }
 

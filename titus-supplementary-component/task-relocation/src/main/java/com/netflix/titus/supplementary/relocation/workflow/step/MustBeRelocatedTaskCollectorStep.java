@@ -83,6 +83,9 @@ public class MustBeRelocatedTaskCollectorStep {
     private Map<String, TaskRelocationPlan> buildRelocationPlans() {
         Map<String, TaskRelocationPlan> result = new HashMap<>();
         List<Triple<Job<?>, Task, AgentInstance>> allItems = findAllJobTaskAgentTriples();
+
+        logger.debug("Number of triplets to check: {}", allItems.size());
+
         allItems.forEach(triple -> {
 
             Job<?> job = triple.getFirst();
@@ -96,7 +99,7 @@ public class MustBeRelocatedTaskCollectorStep {
         });
 
         this.lastResult = result;
-        
+
         return result;
     }
 
@@ -111,6 +114,8 @@ public class MustBeRelocatedTaskCollectorStep {
                     AgentInstance instance = taskToInstanceMap.get(task.getId());
                     if (instance != null) {
                         result.add(Triple.of(job, task, instance));
+                    } else {
+                        logger.debug("Task in active state with no agent instance: taskId={}, state={}", task.getId(), task.getStatus().getState());
                     }
                 }
             });
