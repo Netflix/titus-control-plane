@@ -1399,7 +1399,7 @@
             ]
         },
         "org.apache.mesos:mesos": {
-            "locked": "1.4.2",
+            "locked": "1.7.2",
             "transitive": [
                 "com.netflix.fenzo:fenzo-core",
                 "com.netflix.titus:titus-server-master"
@@ -3467,7 +3467,7 @@
             ]
         },
         "org.apache.mesos:mesos": {
-            "locked": "1.4.2",
+            "locked": "1.7.2",
             "transitive": [
                 "com.netflix.fenzo:fenzo-core",
                 "com.netflix.titus:titus-server-master"
@@ -5562,7 +5562,7 @@
             ]
         },
         "org.apache.mesos:mesos": {
-            "locked": "1.4.2",
+            "locked": "1.7.2",
             "transitive": [
                 "com.netflix.fenzo:fenzo-core",
                 "com.netflix.titus:titus-server-master"
@@ -7713,7 +7713,7 @@
             ]
         },
         "org.apache.mesos:mesos": {
-            "locked": "1.4.2",
+            "locked": "1.7.2",
             "transitive": [
                 "com.netflix.fenzo:fenzo-core",
                 "com.netflix.titus:titus-server-master"
@@ -9782,7 +9782,7 @@
             ]
         },
         "org.apache.mesos:mesos": {
-            "locked": "1.4.2",
+            "locked": "1.7.2",
             "transitive": [
                 "com.netflix.fenzo:fenzo-core",
                 "com.netflix.titus:titus-server-master"
@@ -11886,7 +11886,7 @@
             ]
         },
         "org.apache.mesos:mesos": {
-            "locked": "1.4.2",
+            "locked": "1.7.2",
             "transitive": [
                 "com.netflix.fenzo:fenzo-core",
                 "com.netflix.titus:titus-server-master"
@@ -13976,7 +13976,7 @@
             ]
         },
         "org.apache.mesos:mesos": {
-            "locked": "1.4.2",
+            "locked": "1.7.2",
             "transitive": [
                 "com.netflix.fenzo:fenzo-core",
                 "com.netflix.titus:titus-server-master"
@@ -16085,7 +16085,7 @@
             ]
         },
         "org.apache.mesos:mesos": {
-            "locked": "1.4.2",
+            "locked": "1.7.2",
             "transitive": [
                 "com.netflix.fenzo:fenzo-core",
                 "com.netflix.titus:titus-server-master"
@@ -18176,7 +18176,7 @@
             ]
         },
         "org.apache.mesos:mesos": {
-            "locked": "1.4.2",
+            "locked": "1.7.2",
             "transitive": [
                 "com.netflix.fenzo:fenzo-core",
                 "com.netflix.titus:titus-server-master"
