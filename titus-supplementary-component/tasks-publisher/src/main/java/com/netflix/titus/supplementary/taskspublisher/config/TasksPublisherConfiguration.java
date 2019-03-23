@@ -81,6 +81,7 @@ public class TasksPublisherConfiguration {
     }
 
     @Bean
+    @ConditionalOnMissingBean
     public TasksPublisherCtrl getTasksPublisherCtrl() {
         return new TasksPublisherCtrl(getEsClient(), getTitusClient(), Collections.emptyMap(), new DefaultRegistry());
     }
