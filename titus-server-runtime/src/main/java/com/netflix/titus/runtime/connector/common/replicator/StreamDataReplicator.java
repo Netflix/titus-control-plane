@@ -30,7 +30,7 @@ import reactor.core.publisher.Flux;
  * {@link DataReplicator} implementation that wraps {@link ReplicatorEventStream}. The latter is provided
  * as a constructor argument by extensions of this class.
  */
-public class StreamDataReplicator<SNAPSHOT, TRIGGER> implements DataReplicator<SNAPSHOT, TRIGGER> {
+public class StreamDataReplicator<SNAPSHOT extends ReplicatedSnapshot, TRIGGER> implements DataReplicator<SNAPSHOT, TRIGGER> {
     private static final Logger logger = LoggerFactory.getLogger(StreamDataReplicator.class);
 
     // Staleness threshold checked during the system initialization.
@@ -78,7 +78,7 @@ public class StreamDataReplicator<SNAPSHOT, TRIGGER> implements DataReplicator<S
         return eventStream.map(event -> Pair.of(event.getSnapshot(), event.getTrigger()));
     }
 
-    public static <SNAPSHOT, TRIGGER> Flux<StreamDataReplicator<SNAPSHOT, TRIGGER>>
+    public static <SNAPSHOT extends ReplicatedSnapshot, TRIGGER> Flux<StreamDataReplicator<SNAPSHOT, TRIGGER>>
     newStreamDataReplicator(ReplicatorEventStream<SNAPSHOT, TRIGGER> replicatorEventStream,
                             DataReplicatorMetrics metrics,
                             TitusRuntime titusRuntime) {
@@ -92,6 +92,7 @@ public class StreamDataReplicator<SNAPSHOT, TRIGGER> implements DataReplicator<S
                     .doOnCancel(metrics::disconnected)
                     .subscribe(
                             next -> {
+                                logger.debug("Snapshot update: {}", next.getSnapshot().toSignatureString());
                                 lastReplicatorEventRef.set(next);
                                 metrics.event(next);
                             },

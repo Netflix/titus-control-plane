@@ -110,7 +110,7 @@ public class MustBeRelocatedTaskCollectorStep {
         jobOperations.getJobs().forEach(job -> {
             jobOperations.getTasks(job.getId()).forEach(task -> {
                 TaskState taskState = task.getStatus().getState();
-                if (taskState != TaskState.Accepted && taskState != TaskState.KillInitiated && taskState != TaskState.Finished) {
+                if (taskState == TaskState.StartInitiated || taskState == TaskState.Started) {
                     AgentInstance instance = taskToInstanceMap.get(task.getId());
                     if (instance != null) {
                         result.add(Triple.of(job, task, instance));

@@ -28,13 +28,14 @@ import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.api.model.reference.Reference;
 import com.netflix.titus.api.model.reference.TierReference;
 import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.runtime.connector.common.replicator.ReplicatedSnapshot;
 
 import static com.netflix.titus.common.util.CollectionsExt.copyAndAdd;
 
 /**
  * TODO Removed job cleanup (not critical, as forced reconnects and the snapshot rebuild will do the work).
  */
-public class EvictionDataSnapshot {
+public class EvictionDataSnapshot extends ReplicatedSnapshot {
 
     private static final EvictionDataSnapshot EMPTY = new EvictionDataSnapshot(
             "empty",
@@ -51,6 +52,8 @@ public class EvictionDataSnapshot {
     private final Map<String, EvictionQuota> capacityGroupEvictionQuotas;
     private final Map<String, EvictionQuota> jobEvictionQuotas;
 
+    private final String signature;
+
     public EvictionDataSnapshot(String snapshotId,
                                 EvictionQuota systemEvictionQuota,
                                 Map<Tier, EvictionQuota> tierEvictionQuotas,
@@ -61,6 +64,7 @@ public class EvictionDataSnapshot {
         this.tierEvictionQuotas = tierEvictionQuotas;
         this.capacityGroupEvictionQuotas = capacityGroupEvictionQuotas;
         this.jobEvictionQuotas = jobEvictionQuotas;
+        this.signature = computeSignature();
     }
 
     public String getSnapshotId() {
@@ -162,6 +166,11 @@ public class EvictionDataSnapshot {
     }
 
     @Override
+    public String toSignatureString() {
+        return signature;
+    }
+
+    @Override
     public String toString() {
         return "EvictionDataSnapshot{" +
                 "snapshotId='" + snapshotId + '\'' +
@@ -170,6 +179,14 @@ public class EvictionDataSnapshot {
                 ", capacityGroupEvictionQuotas=" + capacityGroupEvictionQuotas +
                 ", jobEvictionQuotas=" + jobEvictionQuotas +
                 '}';
+    }
+
+    private String computeSignature() {
+        return "EvictionDataSnapshot{snapshotId=" + snapshotId +
+                ", systemEvictionQuota=" + systemEvictionQuota.getQuota() +
+                ", capacityGroupEvictionQuotas=" + capacityGroupEvictionQuotas.size() +
+                ", jobEvictionQuotas=" + jobEvictionQuotas.size() +
+                "}";
     }
 
     public static EvictionDataSnapshot empty() {

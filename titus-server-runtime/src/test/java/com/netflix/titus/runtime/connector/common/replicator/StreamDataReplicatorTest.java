@@ -17,6 +17,7 @@
 package com.netflix.titus.runtime.connector.common.replicator;
 
 import java.time.Duration;
+import java.util.Objects;
 
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
@@ -35,7 +36,7 @@ public class StreamDataReplicatorTest {
 
     private final DataReplicatorMetrics metrics = new DataReplicatorMetrics("test", titusRuntime);
 
-    private final DirectProcessor<ReplicatorEvent<String, String>> eventPublisher = DirectProcessor.create();
+    private final DirectProcessor<ReplicatorEvent<StringSnapshot, String>> eventPublisher = DirectProcessor.create();
 
     @Test
     public void testBootstrap() {
@@ -44,19 +45,50 @@ public class StreamDataReplicatorTest {
                 .expectSubscription()
                 .expectNoEvent(Duration.ofSeconds(1))
 
-                .then(() -> eventPublisher.onNext(new ReplicatorEvent<>("firstUpdate", "firstTrigger", 0)))
+                .then(() -> eventPublisher.onNext(new ReplicatorEvent<>(new StringSnapshot("firstUpdate"), "firstTrigger", 0)))
                 .assertNext(replicator -> {
-                    assertThat(replicator.getCurrent()).isEqualTo("firstUpdate");
+                    assertThat(replicator.getCurrent()).isEqualTo(new StringSnapshot("firstUpdate"));
                 })
 
                 .thenCancel()
                 .verify();
     }
 
-    private class ReplicatorEventStreamStub implements ReplicatorEventStream<String, String> {
+    private static class StringSnapshot extends ReplicatedSnapshot {
+
+        private final String value;
+
+        private StringSnapshot(String value) {
+            this.value = value;
+        }
 
         @Override
-        public Flux<ReplicatorEvent<String, String>> connect() {
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            StringSnapshot that = (StringSnapshot) o;
+            return Objects.equals(value, that.value);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(value);
+        }
+
+        @Override
+        public String toSignatureString() {
+            return value;
+        }
+    }
+
+    private class ReplicatorEventStreamStub implements ReplicatorEventStream<StringSnapshot, String> {
+
+        @Override
+        public Flux<ReplicatorEvent<StringSnapshot, String>> connect() {
             return eventPublisher;
         }
     }
