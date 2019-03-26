@@ -129,7 +129,7 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
             JobSnapshot initialSnapshot = builder.build();
             lastJobSnapshotRef.set(initialSnapshot);
 
-            logger.info("Job snapshot loaded: {}", initialSnapshot.toSignatureString());
+            logger.info("Job snapshot loaded: {}", initialSnapshot.toSummaryString());
 
             return Flux.just(new ReplicatorEvent<>(initialSnapshot, JobManagerEvent.snapshotMarker(), titusRuntime.getClock().wallTime()));
         }

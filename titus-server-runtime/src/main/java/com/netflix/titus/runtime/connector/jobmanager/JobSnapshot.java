@@ -156,7 +156,7 @@ public class JobSnapshot extends ReplicatedSnapshot {
     }
 
     @Override
-    public String toSignatureString() {
+    public String toSummaryString() {
         return signature;
     }
 

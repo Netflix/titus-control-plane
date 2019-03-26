@@ -18,5 +18,8 @@ package com.netflix.titus.runtime.connector.common.replicator;
 
 public abstract class ReplicatedSnapshot {
 
-    public abstract String toSignatureString();
+    /**
+     * Provides a short alternative to {@link #toString()} method for logging/debugging purposes.
+     */
+    public abstract String toSummaryString();
 }

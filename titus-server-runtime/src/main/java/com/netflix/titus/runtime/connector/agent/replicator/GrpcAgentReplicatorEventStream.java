@@ -114,7 +114,7 @@ public class GrpcAgentReplicatorEventStream extends AbstractReplicatorEventStrea
             AgentSnapshot initialSnapshot = new AgentSnapshot(UUID.randomUUID().toString(), instanceGroupsById, instancesByGroupId);
             lastAgentSnapshotRef.set(initialSnapshot);
 
-            logger.info("Agent snapshot loaded: {}", initialSnapshot.toSignatureString());
+            logger.info("Agent snapshot loaded: {}", initialSnapshot.toSummaryString());
 
             return Flux.just(new ReplicatorEvent<>(initialSnapshot, AgentSnapshotEndEvent.snapshotEnd(), titusRuntime.getClock().wallTime()));
         }

@@ -166,7 +166,7 @@ public class EvictionDataSnapshot extends ReplicatedSnapshot {
     }
 
     @Override
-    public String toSignatureString() {
+    public String toSummaryString() {
         return signature;
     }
 

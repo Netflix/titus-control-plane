@@ -92,7 +92,7 @@ public class StreamDataReplicator<SNAPSHOT extends ReplicatedSnapshot, TRIGGER> 
                     .doOnCancel(metrics::disconnected)
                     .subscribe(
                             next -> {
-                                logger.debug("Snapshot update: {}", next.getSnapshot().toSignatureString());
+                                logger.debug("Snapshot update: {}", next.getSnapshot().toSummaryString());
                                 lastReplicatorEventRef.set(next);
                                 metrics.event(next);
                             },

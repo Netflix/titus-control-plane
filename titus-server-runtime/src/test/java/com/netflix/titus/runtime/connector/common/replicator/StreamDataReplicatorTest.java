@@ -80,7 +80,7 @@ public class StreamDataReplicatorTest {
         }
 
         @Override
-        public String toSignatureString() {
+        public String toSummaryString() {
             return value;
         }
     }

@@ -130,7 +130,7 @@ public class GrpcEvictionReplicatorEventStream extends AbstractReplicatorEventSt
             );
 
             lastSnapshotRef.set(initialSnapshot);
-            logger.info("Eviction snapshot loaded: {}", initialSnapshot.toSignatureString());
+            logger.info("Eviction snapshot loaded: {}", initialSnapshot.toSummaryString());
 
             return Flux.just(new ReplicatorEvent<>(initialSnapshot, EvictionSnapshotEndEvent.getInstance(), titusRuntime.getClock().wallTime()));
         }
