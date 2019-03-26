@@ -27,6 +27,7 @@ import javax.inject.Singleton;
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.connector.cloud.IamConnector;
+import com.netflix.titus.api.iam.service.IamConnectorException;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.common.model.validator.EntityValidator;
 import com.netflix.titus.common.model.validator.ValidationError;
@@ -42,7 +43,7 @@ public class JobIamValidator implements EntityValidator<JobDescriptor> {
     private static final Logger logger = LoggerFactory.getLogger(JobImageValidator.class);
     private static final String METRICS_ROOT = "titus.validation.iam";
     private static final String failedMetricIamTag = "iamrole";
-    private static final String skippedMetricReasonTag = "reason";
+    private static final String metricReasonTag = "reason";
 
     private final JobSecurityValidatorConfiguration configuration;
     private final IamConnector iamConnector;
@@ -70,14 +71,14 @@ public class JobIamValidator implements EntityValidator<JobDescriptor> {
 
         // Skip validation if no IAM was provided because a valid default will be used.
         if (iamRoleName.isEmpty()) {
-            registry.counter(validationSkippedId.withTag(skippedMetricReasonTag, "noneProvided")).increment();
+            registry.counter(validationSkippedId.withTag(metricReasonTag, "noneProvided")).increment();
             return Mono.just(Collections.emptySet());
         }
 
         // Skip any IAM that is not in "friendly" format. A non-friendly format is
         // likely a cross-account IAM and would need cross-account access to get and validate.
         if (isIamArn(iamRoleName)) {
-            registry.counter(validationSkippedId.withTag(skippedMetricReasonTag, "notFriendly")).increment();
+            registry.counter(validationSkippedId.withTag(metricReasonTag, "notFriendly")).increment();
             return Mono.just(Collections.emptySet());
         }
 
@@ -87,7 +88,16 @@ public class JobIamValidator implements EntityValidator<JobDescriptor> {
                 // populate the set with a specific error.
                 .thenReturn(Collections.<ValidationError>emptySet())
                 .onErrorResume(throwable -> {
-                    registry.counter(validationFailureId.withTag(failedMetricIamTag, iamRoleName)).increment();
+                    Id errorId = validationSkippedId
+                            .withTag(failedMetricIamTag, iamRoleName);
+                    if (throwable instanceof IamConnectorException) {
+                        errorId = errorId.withTag(metricReasonTag,
+                                ((IamConnectorException)throwable).getErrorCode().name());
+                    }
+                    registry.counter(errorId
+                            .withTag(failedMetricIamTag, iamRoleName)
+                            .withTag(metricReasonTag, throwable.getMessage()))
+                            .increment();
                     return Mono.just(Collections.singleton(
                             new ValidationError(
                                     JobIamValidator.class.getSimpleName(),
