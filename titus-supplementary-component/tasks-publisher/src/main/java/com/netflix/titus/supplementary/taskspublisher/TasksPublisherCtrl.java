@@ -50,7 +50,6 @@ import reactor.core.scheduler.Schedulers;
 
 public class TasksPublisherCtrl {
     private static final Logger logger = LoggerFactory.getLogger(TasksPublisherCtrl.class);
-    public static final String TASK_DOCUMENT_CONTEXT = "taskDocumentContext";
     private final EsClient esClient;
     private final Map<String, String> taskDocumentBaseContext;
     private final Registry registry;
@@ -68,7 +67,7 @@ public class TasksPublisherCtrl {
 
     public TasksPublisherCtrl(EsClient esClient,
                               TitusClient titusClient,
-                              @Qualifier(TASK_DOCUMENT_CONTEXT) Map<String, String> taskDocumentBaseContext,
+                              Map<String, String> taskDocumentBaseContext,
                               Registry registry) {
         this.esClient = esClient;
         this.titusClient = titusClient;
