@@ -27,6 +27,7 @@ import javax.inject.Singleton;
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.connector.cloud.IamConnector;
+import com.netflix.titus.api.iam.service.IamConnectorException;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.common.model.validator.EntityValidator;
 import com.netflix.titus.common.model.validator.ValidationError;
@@ -87,7 +88,13 @@ public class JobIamValidator implements EntityValidator<JobDescriptor> {
                 // populate the set with a specific error.
                 .thenReturn(Collections.<ValidationError>emptySet())
                 .onErrorResume(throwable -> {
-                    registry.counter(validationFailureId
+                    Id errorId = validationSkippedId
+                            .withTag(failedMetricIamTag, iamRoleName);
+                    if (throwable instanceof IamConnectorException) {
+                        errorId = errorId.withTag(metricReasonTag,
+                                ((IamConnectorException)throwable).getErrorCode().name());
+                    }
+                    registry.counter(errorId
                             .withTag(failedMetricIamTag, iamRoleName)
                             .withTag(metricReasonTag, throwable.getMessage()))
                             .increment();
