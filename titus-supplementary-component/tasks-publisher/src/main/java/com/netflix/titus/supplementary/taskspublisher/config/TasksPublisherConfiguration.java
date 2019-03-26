@@ -66,16 +66,19 @@ public class TasksPublisherConfiguration {
 
 
     @Bean
+    @ConditionalOnMissingBean
     public TitusClient getTitusClient() {
         return new TitusClientImpl(getJobManagementServiceStub(), new DefaultRegistry());
     }
 
     @Bean
+    @ConditionalOnMissingBean
     public EsClient getEsClient() {
         return new EsClientHttp(esPublisherConfiguration, getEsWebClientFactory());
     }
 
     @Bean
+    @ConditionalOnMissingBean
     public EsWebClientFactory getEsWebClientFactory() {
         return new DefaultEsWebClientFactory(esPublisherConfiguration);
     }
