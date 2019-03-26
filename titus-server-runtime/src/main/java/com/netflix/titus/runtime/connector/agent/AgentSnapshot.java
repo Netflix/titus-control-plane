@@ -27,6 +27,7 @@ import com.google.common.base.Preconditions;
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.runtime.connector.common.replicator.ReplicatedSnapshot;
 
 import static com.netflix.titus.common.util.CollectionsExt.copyAndAdd;
 import static com.netflix.titus.common.util.CollectionsExt.copyAndRemove;
@@ -34,7 +35,7 @@ import static com.netflix.titus.common.util.CollectionsExt.copyAndRemoveByValue;
 import static java.util.Collections.unmodifiableList;
 import static java.util.Collections.unmodifiableMap;
 
-public class AgentSnapshot {
+public class AgentSnapshot extends ReplicatedSnapshot {
 
     private static final AgentSnapshot EMPTY = new AgentSnapshot(
             "empty",
@@ -51,6 +52,7 @@ public class AgentSnapshot {
     private final List<AgentInstance> instances;
     private final Map<String, List<AgentInstance>> instancesByInstanceGroupId;
 
+    private final String signature;
 
     public AgentSnapshot(String snapshotId, Map<String, AgentInstanceGroup> instanceGroupsById, Map<String, List<AgentInstance>> instancesByInstanceGroupId) {
         this.snapshotId = snapshotId;
@@ -59,6 +61,7 @@ public class AgentSnapshot {
         this.instancesByInstanceGroupId = asUnmodifiable(instancesByInstanceGroupId);
         this.instances = toAllInstances(instancesByInstanceGroupId);
         this.instancesById = toInstanceByIdMap(instances);
+        this.signature = computeSignature();
     }
 
     public AgentSnapshot(AgentSnapshot previous, AgentInstanceGroup instanceGroup, boolean remove) {
@@ -76,6 +79,7 @@ public class AgentSnapshot {
         }
 
         this.instanceGroupList = Collections.unmodifiableList(new ArrayList<>(instanceGroupsById.values()));
+        this.signature = computeSignature();
     }
 
     public AgentSnapshot(AgentSnapshot previous, AgentInstance instance, boolean remove) {
@@ -96,13 +100,15 @@ public class AgentSnapshot {
         } else {
             this.instancesById = unmodifiableMap(copyAndAdd(previous.instancesById, instance.getId(), instance));
             this.instances = updateInstanceInList(previous.instances, instance);
-            List<AgentInstance> groupInstances = updateInstanceInList(previous.instancesByInstanceGroupId.getOrDefault(instance.getId(), Collections.emptyList()), instance);
+            List<AgentInstance> groupInstances = updateInstanceInList(previous.instancesByInstanceGroupId.getOrDefault(instanceGroupId, Collections.emptyList()), instance);
             this.instancesByInstanceGroupId = unmodifiableMap(copyAndAdd(previous.instancesByInstanceGroupId, instanceGroupId, groupInstances));
         }
 
         AgentInstanceGroup newInstanceGroup = currentInstanceGroup.toBuilder().withCurrent(instancesByInstanceGroupId.get(instanceGroupId).size()).build();
         this.instanceGroupsById = CollectionsExt.copyAndAdd(previous.instanceGroupsById, instanceGroupId, newInstanceGroup);
         this.instanceGroupList = Collections.unmodifiableList(new ArrayList<>(instanceGroupsById.values()));
+
+        this.signature = computeSignature();
     }
 
     public String getSnapshotId() {
@@ -154,12 +160,24 @@ public class AgentSnapshot {
     }
 
     @Override
+    public String toSummaryString() {
+        return signature;
+    }
+
+    @Override
     public String toString() {
         StringBuilder sb = new StringBuilder("AgentSnapshot{snapshotId=").append(snapshotId).append(", instanceGroups=");
 
         instanceGroupList.forEach(ig -> sb.append(ig.getId()).append('=').append(ig.getCurrent()).append(','));
         sb.setLength(sb.length() - 1);
         return sb.append('}').toString();
+    }
+
+    private String computeSignature() {
+        return "AgentSnapshot{snapshotId=" + snapshotId +
+                ", instanceGroups=" + instanceGroupList.size() +
+                ", instances=" + instances.size() +
+                "}";
     }
 
     private List<AgentInstance> toAllInstances(Map<String, List<AgentInstance>> instancesByGroupId) {

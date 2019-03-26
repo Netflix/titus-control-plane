@@ -22,7 +22,7 @@ import reactor.core.publisher.Flux;
 /**
  * Data replicator from a remote service.
  */
-public interface DataReplicator<SNAPSHOT, TRIGGER> {
+public interface DataReplicator<SNAPSHOT extends ReplicatedSnapshot, TRIGGER> {
     /**
      * Get the latest known version of the data.
      */

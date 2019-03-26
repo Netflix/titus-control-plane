@@ -29,7 +29,6 @@ import com.netflix.titus.api.eviction.model.event.EvictionEvent;
 import com.netflix.titus.api.eviction.model.event.EvictionQuotaEvent;
 import com.netflix.titus.api.eviction.model.event.EvictionSnapshotEndEvent;
 import com.netflix.titus.api.eviction.service.ReadOnlyEvictionOperations;
-import com.netflix.titus.api.model.Level;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.api.model.reference.TierReference;
 import com.netflix.titus.common.runtime.TitusRuntime;
@@ -131,18 +130,14 @@ public class GrpcEvictionReplicatorEventStream extends AbstractReplicatorEventSt
             );
 
             lastSnapshotRef.set(initialSnapshot);
-
-            logger.info(
-                    "Eviction snapshot loaded: systemQuota={}, capacityGroupsCount={}, jobsCount={}",
-                    initialSnapshot.getSystemEvictionQuota().getQuota(),
-                    initialSnapshot.getQuotas(Level.CapacityGroup),
-                    initialSnapshot.getQuotas(Level.Job).size()
-            );
+            logger.info("Eviction snapshot loaded: {}", initialSnapshot.toSummaryString());
 
             return Flux.just(new ReplicatorEvent<>(initialSnapshot, EvictionSnapshotEndEvent.getInstance(), titusRuntime.getClock().wallTime()));
         }
 
         private Flux<ReplicatorEvent<EvictionDataSnapshot, EvictionEvent>> processSnapshotUpdate(EvictionEvent event) {
+            logger.debug("Processing eviction snapshot update event: {}", event);
+
             EvictionDataSnapshot snapshot = lastSnapshotRef.get();
             Optional<EvictionDataSnapshot> newSnapshot = Optional.empty();
 

@@ -26,11 +26,15 @@ import java.util.stream.Collectors;
 import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.time.Clock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Collection of functions for agent entity transformations.
  */
 public final class AgentFunctions {
+
+    private static final Logger logger= LoggerFactory.getLogger(AgentFunctions.class);
 
     private AgentFunctions() {
     }
@@ -43,7 +47,7 @@ public final class AgentFunctions {
                     instancesById.put(instance.getId(), instance);
                 });
             } catch (Exception e) {
-                // Ignore
+                logger.warn("Unexpected", e);
             }
         });
         return instancesById;
