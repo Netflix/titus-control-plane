@@ -54,3 +54,11 @@ message AddAction {
 
     map<string, string> properties = 5;
 }
+
+message FitActionDescriptors {
+    repeated FitActionDescriptor descriptors = 1;
+}
+
+message FitActions {
+    repeated FitAction actions = 1;
+}

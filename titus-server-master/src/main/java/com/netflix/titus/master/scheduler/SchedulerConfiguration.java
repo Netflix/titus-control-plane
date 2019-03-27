@@ -91,12 +91,6 @@ public interface SchedulerConfiguration {
     long getTierSlaUpdateIntervalMs();
 
     /**
-     * Return the attribute name to use to get the instance group id.
-     */
-    @DefaultValue("asg")
-    String getInstanceGroupAttributeName();
-
-    /**
      * Return the attribute name to use to get the instance id.
      */
     @DefaultValue("id")

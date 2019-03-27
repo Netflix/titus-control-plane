@@ -16,7 +16,7 @@
 
 package com.netflix.titus.runtime.connector.titusmaster;
 
-import com.netflix.titus.runtime.util.SpringConfigurationUtil;
+import com.netflix.titus.common.util.SpringConfigurationUtil;
 import org.springframework.core.env.Environment;
 
 public class TitusMasterClientConfigurationBean implements TitusMasterClientConfiguration {

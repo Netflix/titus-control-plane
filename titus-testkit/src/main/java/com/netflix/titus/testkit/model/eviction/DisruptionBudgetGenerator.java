@@ -29,6 +29,7 @@ import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBud
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudgetRate;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.PercentagePerHourDisruptionBudgetRate;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.RatePerIntervalDisruptionBudgetRate;
+import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.RatePercentagePerIntervalDisruptionBudgetRate;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.RelocationLimitDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.SelfManagedDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.TimeWindow;
@@ -74,6 +75,13 @@ public final class DisruptionBudgetGenerator {
         return RatePerIntervalDisruptionBudgetRate.newBuilder()
                 .withIntervalMs(intervalMs)
                 .withLimitPerInterval(rate)
+                .build();
+    }
+
+    public static RatePercentagePerIntervalDisruptionBudgetRate ratePercentagePerInterval(long intervalMs, double percentageRate) {
+        return RatePercentagePerIntervalDisruptionBudgetRate.newBuilder()
+                .withIntervalMs(intervalMs)
+                .withPercentageLimitPerInterval(percentageRate)
                 .build();
     }
 

@@ -19,7 +19,7 @@ package com.netflix.titus.runtime.connector.common.replicator;
 import com.netflix.titus.common.util.tuple.Pair;
 import reactor.core.publisher.Flux;
 
-public class DataReplicatorDelegate<SNAPSHOT, TRIGGER> implements DataReplicator<SNAPSHOT, TRIGGER> {
+public class DataReplicatorDelegate<SNAPSHOT extends ReplicatedSnapshot, TRIGGER> implements DataReplicator<SNAPSHOT, TRIGGER> {
 
     private DataReplicator<SNAPSHOT, TRIGGER> delegate;
 

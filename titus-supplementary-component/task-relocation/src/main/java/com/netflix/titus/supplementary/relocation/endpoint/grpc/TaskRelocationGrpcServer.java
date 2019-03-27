@@ -16,18 +16,32 @@
 
 package com.netflix.titus.supplementary.relocation.endpoint.grpc;
 
+import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.netflix.titus.common.framework.fit.adapter.GrpcFitInterceptor;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.runtime.endpoint.common.grpc.AbstractTitusGrpcServer;
 import com.netflix.titus.runtime.endpoint.common.grpc.GrpcEndpointConfiguration;
+import io.grpc.ServerInterceptor;
+import io.grpc.ServiceDescriptor;
 
 @Singleton
 public class TaskRelocationGrpcServer extends AbstractTitusGrpcServer {
 
+    private final TitusRuntime titusRuntime;
+
     @Inject
     public TaskRelocationGrpcServer(GrpcEndpointConfiguration configuration,
-                                    TaskRelocationGrpcService taskRelocationGrpcService) {
+                                    TaskRelocationGrpcService taskRelocationGrpcService,
+                                    TitusRuntime titusRuntime) {
         super(configuration, taskRelocationGrpcService);
+        this.titusRuntime = titusRuntime;
+    }
+
+    @Override
+    protected List<ServerInterceptor> createInterceptors(ServiceDescriptor serviceDescriptor) {
+        return GrpcFitInterceptor.appendIfFitEnabled(super.createInterceptors(serviceDescriptor), titusRuntime);
     }
 }

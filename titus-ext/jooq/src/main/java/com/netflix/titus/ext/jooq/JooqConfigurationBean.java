@@ -19,7 +19,7 @@ package com.netflix.titus.ext.jooq;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.netflix.titus.runtime.util.SpringConfigurationUtil;
+import com.netflix.titus.common.util.SpringConfigurationUtil;
 import org.springframework.core.env.Environment;
 
 @Singleton

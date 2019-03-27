@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,23 +14,23 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.supplementary.relocation.store;
+package com.netflix.titus.common.jhiccup;
 
-import com.netflix.titus.supplementary.relocation.store.memory.InMemoryTaskRelocationResultStore;
-import com.netflix.titus.supplementary.relocation.store.memory.InMemoryTaskRelocationStore;
+import com.netflix.spectator.api.Registry;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
 
 @Configuration
-public class TaskRelocationStoreComponent {
+public class JHiccupComponent {
 
     @Bean
-    public TaskRelocationStore getTaskRelocationStore() {
-        return new InMemoryTaskRelocationStore();
+    public HiccupMeter getHiccupMeter(HiccupRecorderConfiguration configuration, Registry registry) {
+        return new HiccupMeter(configuration, registry);
     }
 
     @Bean
-    public TaskRelocationResultStore getTaskRelocationResultStore() {
-        return new InMemoryTaskRelocationResultStore();
+    public HiccupRecorderConfiguration getHiccupRecorderConfiguration(Environment environment) {
+        return new HiccupRecorderConfigurationBean(environment);
     }
 }

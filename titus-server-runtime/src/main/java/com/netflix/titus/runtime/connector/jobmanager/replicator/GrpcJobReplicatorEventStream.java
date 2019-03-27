@@ -37,9 +37,9 @@ import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.runtime.connector.common.replicator.AbstractReplicatorEventStream;
 import com.netflix.titus.runtime.connector.common.replicator.DataReplicatorMetrics;
 import com.netflix.titus.runtime.connector.common.replicator.ReplicatorEvent;
-import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway;
 import com.netflix.titus.runtime.connector.jobmanager.JobSnapshot;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
+import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -129,7 +129,7 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
             JobSnapshot initialSnapshot = builder.build();
             lastJobSnapshotRef.set(initialSnapshot);
 
-            logger.info("Job snapshot loaded: jobs={}, tasks={}", initialSnapshot.getJobs().size(), initialSnapshot.getTasks().size());
+            logger.info("Job snapshot loaded: {}", initialSnapshot.toSummaryString());
 
             return Flux.just(new ReplicatorEvent<>(initialSnapshot, JobManagerEvent.snapshotMarker(), titusRuntime.getClock().wallTime()));
         }
@@ -143,11 +143,17 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
             switch (event.getNotificationCase()) {
                 case JOBUPDATE:
                     Job job = V3GrpcModelConverters.toCoreJob(event.getJobUpdate().getJob());
+
+                    logger.debug("Processing job snapshot update event: updatedJobId={}", job.getId());
+
                     newSnapshot = lastSnapshot.updateJob(job);
                     coreEvent = toJobCoreEvent(job);
                     break;
                 case TASKUPDATE:
                     com.netflix.titus.grpc.protogen.Task task = event.getTaskUpdate().getTask();
+
+                    logger.debug("Processing job snapshot update event: updatedTaskId={}", task.getId());
+
                     Optional<Job<?>> taskJobOpt = lastSnapshot.findJob(task.getJobId());
                     if (taskJobOpt.isPresent()) {
                         Job<?> taskJob = taskJobOpt.get();

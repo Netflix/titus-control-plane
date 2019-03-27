@@ -34,6 +34,7 @@ import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.runtime.connector.common.replicator.ReplicatedSnapshot;
 
 import static java.util.Collections.unmodifiableList;
 import static java.util.Collections.unmodifiableMap;
@@ -42,7 +43,7 @@ import static java.util.Collections.unmodifiableMap;
  * TODO Handle moved tasks
  * TODO Finished tasks are not handled correctly for batch jobs (they are in active data set until replaced).
  */
-public class JobSnapshot {
+public class JobSnapshot extends ReplicatedSnapshot {
 
     private static final JobSnapshot EMPTY = new Builder("empty", Collections.emptyMap(), Collections.emptyMap()).build();
 
@@ -53,6 +54,8 @@ public class JobSnapshot {
     private final List<Task> allTasks;
     private final List<Pair<Job<?>, List<Task>>> allJobsAndTasks;
     private final Map<String, Task> taskById;
+
+    private final String signature;
 
     public static JobSnapshot empty() {
         return EMPTY;
@@ -80,6 +83,7 @@ public class JobSnapshot {
         this.allTasks = allTasks;
         this.allJobsAndTasks = allJobsAndTasks;
         this.taskById = taskById;
+        this.signature = computeSignature();
     }
 
     public String getSnapshotId() {
@@ -152,6 +156,11 @@ public class JobSnapshot {
     }
 
     @Override
+    public String toSummaryString() {
+        return signature;
+    }
+
+    @Override
     public String toString() {
         StringBuilder sb = new StringBuilder("JobSnapshot{snapshotId=").append(snapshotId).append(", jobs=");
         jobsById.forEach((id, job) -> {
@@ -161,6 +170,13 @@ public class JobSnapshot {
         });
         sb.setLength(sb.length() - 1);
         return sb.append('}').toString();
+    }
+
+    private String computeSignature() {
+        return "JobSnapshot{snapshotId=" + snapshotId +
+                ", jobs=" + jobsById.size() +
+                ", tasks=" + allTasks.size() +
+                "}";
     }
 
     public static class Builder {

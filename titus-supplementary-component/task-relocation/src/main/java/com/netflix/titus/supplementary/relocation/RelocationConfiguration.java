@@ -18,7 +18,7 @@ package com.netflix.titus.supplementary.relocation;
 
 import javax.inject.Inject;
 
-import com.netflix.titus.runtime.util.SpringConfigurationUtil;
+import com.netflix.titus.common.util.SpringConfigurationUtil;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;

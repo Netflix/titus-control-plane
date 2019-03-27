@@ -176,8 +176,8 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
     public Observable<Job> findJob(String jobId) {
         Observable<Job> observable = createRequestObservable(emitter -> {
             StreamObserver<Job> streamObserver = createSimpleClientResponseObserver(emitter);
-            createWrappedStub(client, callMetadataResolver, tunablesConfiguration.getRequestTimeout()).findJob(JobId.newBuilder().setId(jobId).build(), streamObserver);
-        }, tunablesConfiguration.getRequestTimeout());
+            createWrappedStub(client, callMetadataResolver, tunablesConfiguration.getRequestTimeoutMs()).findJob(JobId.newBuilder().setId(jobId).build(), streamObserver);
+        }, tunablesConfiguration.getRequestTimeoutMs());
 
         return observable.onErrorResumeNext(e -> {
             if (e instanceof StatusRuntimeException &&
@@ -186,7 +186,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
             } else {
                 return Observable.error(e);
             }
-        }).timeout(tunablesConfiguration.getRequestTimeout(), TimeUnit.MILLISECONDS);
+        }).timeout(tunablesConfiguration.getRequestTimeoutMs(), TimeUnit.MILLISECONDS);
     }
 
     @Override
@@ -194,9 +194,9 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
         Observable<Task> observable = createRequestObservable(
                 emitter -> {
                     StreamObserver<Task> streamObserver = createSimpleClientResponseObserver(emitter);
-                    createWrappedStub(client, callMetadataResolver, tunablesConfiguration.getRequestTimeout()).findTask(TaskId.newBuilder().setId(taskId).build(), streamObserver);
+                    createWrappedStub(client, callMetadataResolver, tunablesConfiguration.getRequestTimeoutMs()).findTask(TaskId.newBuilder().setId(taskId).build(), streamObserver);
                 },
-                tunablesConfiguration.getRequestTimeout()
+                tunablesConfiguration.getRequestTimeoutMs()
         );
         observable = taskRelocationDataInjector.injectIntoTask(taskId, observable);
 
@@ -209,7 +209,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
             }
         });
 
-        return observable.timeout(tunablesConfiguration.getRequestTimeout(), TimeUnit.MILLISECONDS);
+        return observable.timeout(tunablesConfiguration.getRequestTimeoutMs(), TimeUnit.MILLISECONDS);
     }
 
     @Override
@@ -247,14 +247,14 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
             }
         }
 
-        return taskRelocationDataInjector.injectIntoTaskQueryResult(observable.timeout(tunablesConfiguration.getRequestTimeout(), TimeUnit.MILLISECONDS));
+        return taskRelocationDataInjector.injectIntoTaskQueryResult(observable.timeout(tunablesConfiguration.getRequestTimeoutMs(), TimeUnit.MILLISECONDS));
     }
 
     private Observable<TaskQueryResult> newActiveTaskQueryAction(TaskQuery taskQuery) {
         return createRequestObservable(emitter -> {
             StreamObserver<TaskQueryResult> streamObserver = createSimpleClientResponseObserver(emitter);
-            createWrappedStub(client, callMetadataResolver, tunablesConfiguration.getRequestTimeout()).findTasks(taskQuery, streamObserver);
-        }, tunablesConfiguration.getRequestTimeout());
+            createWrappedStub(client, callMetadataResolver, tunablesConfiguration.getRequestTimeoutMs()).findTasks(taskQuery, streamObserver);
+        }, tunablesConfiguration.getRequestTimeoutMs());
     }
 
     private Observable<Job> retrieveArchivedJob(String jobId) {

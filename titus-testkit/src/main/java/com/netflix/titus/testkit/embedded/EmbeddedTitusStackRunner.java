@@ -77,6 +77,10 @@ public class EmbeddedTitusStackRunner {
                                 .withMasterEndpoint("localhost", 8090, 8080)
                                 .withHttpPort(8081)
                                 .withGrpcPort(8091)
+                                // Binds to the default TaskRelocation service configuration
+                                // TODO Make it configurable via command line parameter
+                                .withProperty("titus.relocation.grpcClient.grpcPort", "7105")
+                                .withProperty("titus.feature.mergingTaskMigrationPlanInGatewayEnabled", "true")
                                 .build(),
                         !federationEnabled
                 )

@@ -16,16 +16,25 @@
 
 package com.netflix.titus.common.runtime;
 
+import com.netflix.spectator.api.Registry;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 
+/**
+ * {@link TitusRuntime} component for test deployments.
+ */
 @Component
 public class InternalRuntimeComponent {
 
-    private final TitusRuntime titusRuntime = TitusRuntimes.internal();
+    private final TitusRuntime titusRuntime = TitusRuntimes.internal(true);
 
     @Bean
     public TitusRuntime getTitusRuntime() {
         return titusRuntime;
+    }
+
+    @Bean
+    public Registry getRegistry(TitusRuntime titusRuntime) {
+        return titusRuntime.getRegistry();
     }
 }

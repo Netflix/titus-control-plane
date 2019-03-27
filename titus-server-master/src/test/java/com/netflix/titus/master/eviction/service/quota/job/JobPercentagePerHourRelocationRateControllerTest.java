@@ -27,6 +27,7 @@ import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.time.TestClock;
 import org.junit.Test;
 
+import static com.netflix.titus.master.eviction.service.quota.job.JobPercentagePerHourRelocationRateController.newJobPercentagePerHourRelocationRateController;
 import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator.budget;
 import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator.exceptRate;
 import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator.hourlyRatePercentage;
@@ -50,7 +51,7 @@ public class JobPercentagePerHourRelocationRateControllerTest {
 
     @Test
     public void testQuota() {
-        JobPercentagePerHourRelocationRateController quotaController = new JobPercentagePerHourRelocationRateController(
+        JobPercentagePerHourRelocationRateController quotaController = newJobPercentagePerHourRelocationRateController(
                 exceptRate(REFERENCE_JOB, hourlyRatePercentage(50)),
                 SelfJobDisruptionBudgetResolver.getInstance(),
                 titusRuntime
@@ -74,7 +75,7 @@ public class JobPercentagePerHourRelocationRateControllerTest {
 
     @Test
     public void testJobUpdate() {
-        JobPercentagePerHourRelocationRateController firstController = new JobPercentagePerHourRelocationRateController(
+        JobPercentagePerHourRelocationRateController firstController = newJobPercentagePerHourRelocationRateController(
                 exceptRate(REFERENCE_JOB, hourlyRatePercentage(50)),
                 SelfJobDisruptionBudgetResolver.getInstance(),
                 titusRuntime

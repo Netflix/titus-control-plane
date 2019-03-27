@@ -93,7 +93,7 @@ public class GrpcAgentReplicatorEventStreamTest {
 
     @Test
     public void testCacheInstanceUpdate() {
-        AgentInstance instance = agentComponentStub.getFirstInstance();
+        AgentInstance instance = agentComponentStub.getAgentManagementService().getAgentInstances("flex-1").get(0);
         InstanceLifecycleStatus newStatus = InstanceLifecycleStatus.newBuilder()
                 .withState(InstanceLifecycleState.Stopped)
                 .build();
@@ -101,7 +101,10 @@ public class GrpcAgentReplicatorEventStreamTest {
         newConnectVerifier()
                 .assertNext(next -> assertThat(next.getSnapshot().findInstance(instance.getId()).get().getLifecycleStatus()).isEqualTo(instance.getLifecycleStatus()))
                 .then(() -> agentComponentStub.changeInstanceLifecycleStatus(instance.getId(), newStatus))
-                .assertNext(next -> assertThat(next.getSnapshot().findInstance(instance.getId()).get().getLifecycleStatus()).isEqualTo(newStatus))
+                .assertNext(next -> {
+                    assertThat(next.getSnapshot().findInstance(instance.getId()).get().getLifecycleStatus()).isEqualTo(newStatus);
+                    assertThat(next.getSnapshot().getInstances(instance.getInstanceGroupId())).hasSize(FLEX_1_DESIRED);
+                })
 
                 .thenCancel()
                 .verify();
