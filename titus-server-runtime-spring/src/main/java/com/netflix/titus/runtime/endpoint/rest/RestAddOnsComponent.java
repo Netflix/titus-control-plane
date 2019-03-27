@@ -32,6 +32,11 @@ public class RestAddOnsComponent {
     }
 
     @Bean
+    public FitSpringResource getFitSpringResource(TitusRuntime titusRuntime) {
+        return new FitSpringResource(titusRuntime);
+    }
+
+    @Bean
     public FilterRegistrationBean<SimpleHttpCallMetadataResolver.CallMetadataInterceptorFilter> CallMetadataInterceptorFilter(SimpleHttpCallMetadataResolver resolver) {
         FilterRegistrationBean<SimpleHttpCallMetadataResolver.CallMetadataInterceptorFilter> registrationBean = new FilterRegistrationBean<>();
         registrationBean.setFilter(new SimpleHttpCallMetadataResolver.CallMetadataInterceptorFilter(resolver));

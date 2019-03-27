@@ -26,6 +26,10 @@ plugins {
 
 apply plugin: 'io.spring.dependency-management'
 
+configurations.all {
+    exclude group: 'org.apache.logging.log4j', module: 'log4j-to-slf4j'
+}
+
 dependencies {
     compile project(':titus-supplementary-component-task-relocation')
 

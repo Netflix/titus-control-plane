@@ -17,7 +17,6 @@
 package com.netflix.titus.gateway.endpoint.v3.grpc;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -26,6 +25,8 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.netflix.titus.common.framework.fit.adapter.GrpcFitInterceptor;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.AgentManagementServiceImplBase;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
@@ -50,6 +51,8 @@ import io.grpc.ServiceDescriptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static java.util.Arrays.asList;
+
 
 @Singleton
 public class TitusGatewayGrpcServer {
@@ -63,6 +66,7 @@ public class TitusGatewayGrpcServer {
     private final LoadBalancerServiceImplBase loadBalancerService;
     private final SchedulerServiceImplBase schedulerService;
     private final GrpcEndpointConfiguration config;
+    private final TitusRuntime titusRuntime;
 
     private final AtomicBoolean started = new AtomicBoolean();
     private Server server;
@@ -77,7 +81,9 @@ public class TitusGatewayGrpcServer {
             AutoScalingServiceImplBase appAutoScalingService,
             LoadBalancerServiceImplBase loadBalancerService,
             SchedulerServiceImplBase schedulerService,
-            GrpcEndpointConfiguration config) {
+            GrpcEndpointConfiguration config,
+            TitusRuntime titusRuntime
+    ) {
         this.healthService = healthService;
         this.evictionService = evictionService;
         this.jobManagementService = jobManagementService;
@@ -86,6 +92,7 @@ public class TitusGatewayGrpcServer {
         this.loadBalancerService = loadBalancerService;
         this.schedulerService = schedulerService;
         this.config = config;
+        this.titusRuntime = titusRuntime;
     }
 
     public int getPort() {
@@ -165,6 +172,9 @@ public class TitusGatewayGrpcServer {
      * Override to add server side interceptors.
      */
     protected List<ServerInterceptor> createInterceptors(ServiceDescriptor serviceDescriptor) {
-        return Arrays.asList(new ErrorCatchingServerInterceptor(), new V3HeaderInterceptor());
+        return GrpcFitInterceptor.appendIfFitEnabled(
+                asList(new ErrorCatchingServerInterceptor(), new V3HeaderInterceptor()),
+                titusRuntime
+        );
     }
 }

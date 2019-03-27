@@ -44,6 +44,18 @@ public final class TitusRuntimes {
         );
     }
 
+    public static TitusRuntime internal(boolean fitEnabled) {
+        return new DefaultTitusRuntime(
+                new LoggingCodePointTracker(),
+                LoggingCodeInvariants.getDefault(),
+                LoggingSystemLogService.getInstance(),
+                LoggingSystemAbortListener.getDefault(),
+                new DefaultRegistry(),
+                Clocks.system(),
+                fitEnabled
+        );
+    }
+
     public static TitusRuntime test() {
         return new DefaultTitusRuntime(
                 new LoggingCodePointTracker(),
