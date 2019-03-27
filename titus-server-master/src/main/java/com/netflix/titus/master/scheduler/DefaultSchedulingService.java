@@ -75,10 +75,10 @@ import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.rx.ObservableExt;
 import com.netflix.titus.common.util.spectator.SpectatorExt;
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.config.MasterConfiguration;
 import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import com.netflix.titus.master.mesos.TaskInfoFactory;
+import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.model.job.TitusQueuableTask;
 import com.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
 import com.netflix.titus.master.scheduler.constraint.TaskCache;
@@ -745,7 +745,8 @@ public class DefaultSchedulingService implements SchedulingService {
 
     private void checkInactiveVMs(List<VirtualMachineCurrentState> vmCurrentStates) {
         logger.debug("Checking on any workers on VMs that are not active anymore");
-        List<VirtualMachineCurrentState> inactiveVmStates = VMStateMgr.getInactiveVMs(masterConfiguration.getActiveSlaveAttributeName(), agentManagementService, vmCurrentStates);
+        List<VirtualMachineCurrentState> inactiveVmStates = VMStateMgr.getInactiveVMs(schedulerConfiguration.getInstanceAttributeName(),
+                agentManagementService, vmCurrentStates);
 
         // get all running tasks on the inactive vms
         Collection<TaskRequest> tasksToBeMigrated = inactiveVmStates.stream()

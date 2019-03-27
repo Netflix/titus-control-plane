@@ -24,6 +24,7 @@ import java.util.List;
 import com.netflix.fenzo.TaskRequest;
 import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.fenzo.VirtualMachineLease;
+import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 
@@ -31,7 +32,7 @@ import static com.netflix.titus.common.util.CollectionsExt.isNullOrEmpty;
 
 class VMStateMgr {
 
-    static List<VirtualMachineCurrentState> getInactiveVMs(String instanceGroupAttributeName,
+    static List<VirtualMachineCurrentState> getInactiveVMs(String instanceIdAttributeName,
                                                            AgentManagementService agentManagementService,
                                                            List<VirtualMachineCurrentState> currentStates) {
         if (isNullOrEmpty(currentStates)) {
@@ -44,7 +45,8 @@ class VMStateMgr {
             if (lease != null) {
                 final Collection<TaskRequest> runningTasks = currentState.getRunningTasks();
                 if (!isNullOrEmpty(runningTasks)) {
-                    SchedulerUtils.getInstanceGroupName(instanceGroupAttributeName, lease)
+                    SchedulerUtils.findInstance(agentManagementService, instanceIdAttributeName, currentState)
+                            .map(AgentInstance::getInstanceGroupId)
                             .flatMap(agentManagementService::findInstanceGroup)
                             .ifPresent(instanceGroup -> {
                                 InstanceGroupLifecycleState state = instanceGroup.getLifecycleStatus().getState();

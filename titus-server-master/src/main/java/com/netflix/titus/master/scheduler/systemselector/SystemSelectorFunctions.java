@@ -65,11 +65,10 @@ public class SystemSelectorFunctions {
                                                     VirtualMachineCurrentState targetVM,
                                                     AgentManagementService agentManagementService,
                                                     SchedulerConfiguration schedulerConfiguration) {
-        String instanceGroupId = getAgentAttributeValue(targetVM, schedulerConfiguration.getInstanceGroupAttributeName());
         String instanceId = getAgentAttributeValue(targetVM, schedulerConfiguration.getInstanceAttributeName());
         try {
-            AgentInstanceGroup instanceGroup = agentManagementService.getInstanceGroup(instanceGroupId);
             AgentInstance instance = agentManagementService.getAgentInstance(instanceId);
+            AgentInstanceGroup instanceGroup = agentManagementService.getInstanceGroup(instance.getInstanceGroupId());
             context.put(INSTANCE_GROUP, instanceGroup);
             context.put(INSTANCE, instance);
         } catch (Exception ignored) {
