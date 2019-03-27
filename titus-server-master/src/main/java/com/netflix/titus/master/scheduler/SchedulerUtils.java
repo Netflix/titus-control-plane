@@ -21,12 +21,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-import com.google.common.base.Strings;
 import com.netflix.fenzo.TaskRequest;
 import com.netflix.fenzo.TaskTracker;
 import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.fenzo.VirtualMachineLease;
 import com.netflix.fenzo.queues.QueuableTask;
+import com.netflix.titus.api.agent.model.AgentInstance;
+import com.netflix.titus.api.agent.model.AgentInstanceGroup;
+import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
@@ -75,6 +77,16 @@ public class SchedulerUtils {
     public static Optional<String> getInstanceGroupName(String instanceGroupAttributeName, VirtualMachineLease lease) {
         String name = getAttributeValueOrEmptyString(lease.getAttributeMap(), instanceGroupAttributeName);
         return name.isEmpty() ? Optional.empty() : Optional.of(name);
+    }
+
+    public static Optional<AgentInstance> findInstance(AgentManagementService agentManagementService,
+                                                       String instanceIdAttributeName,
+                                                       VirtualMachineCurrentState virtualMachineCurrentState) {
+        String instanceId = getAttributeValueOrEmptyString(virtualMachineCurrentState, instanceIdAttributeName);
+        if (!instanceId.isEmpty()) {
+            return agentManagementService.findAgentInstance(instanceId);
+        }
+        return Optional.empty();
     }
 
     public static Map<String, Integer> groupCurrentlyAssignedTasksByZoneId(String jobId, Collection<TaskTracker.ActiveTask> tasksCurrentlyAssigned, String zoneAttributeName) {

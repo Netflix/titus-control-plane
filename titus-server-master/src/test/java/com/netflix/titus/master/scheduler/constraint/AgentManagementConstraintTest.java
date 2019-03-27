@@ -27,6 +27,7 @@ import com.netflix.fenzo.TaskTrackerState;
 import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.fenzo.VirtualMachineLease;
 import com.netflix.fenzo.queues.QAttributes;
+import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleStatus;
@@ -46,6 +47,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class AgentManagementConstraintTest {
+    private static final String INSTANCE_ID = "1234";
+    private static final String INSTANCE_GROUP_ID = "instanceGroupId";
 
     private final SchedulerConfiguration schedulerConfiguration = mock(SchedulerConfiguration.class);
     private final AgentManagementService agentManagementService = mock(AgentManagementService.class);
@@ -55,99 +58,103 @@ public class AgentManagementConstraintTest {
 
     @Before
     public void setUp() throws Exception {
-        when(schedulerConfiguration.getInstanceGroupAttributeName()).thenReturn("asg");
         when(schedulerConfiguration.getInstanceAttributeName()).thenReturn("id");
     }
 
     @Test
-    public void noInstanceGroupId() {
-        Result result = agentManagementConstraint.evaluate(createTaskRequest(),
-                createVirtualMachineCurrentStateMock("1234", ""), mock(TaskTrackerState.class));
-        assertThat(result.isSuccessful()).isFalse();
-        assertThat(result.getFailureReason()).isEqualToIgnoringCase("Missing instance group attribute");
-    }
-
-    @Test
     public void instanceGroupNotFound() {
+        AgentInstance instance = createAgentInstance("");
+        when(agentManagementService.findAgentInstance(INSTANCE_ID)).thenReturn(Optional.of(instance));
         Result result = agentManagementConstraint.evaluate(createTaskRequest(),
-                createVirtualMachineCurrentStateMock("", "instanceGroupId"), mock(TaskTrackerState.class));
+                createVirtualMachineCurrentStateMock(INSTANCE_ID), mock(TaskTrackerState.class));
         assertThat(result.isSuccessful()).isFalse();
         assertThat(result.getFailureReason()).isEqualToIgnoringCase("Instance group not found");
     }
 
     @Test
     public void instanceGroupNotActive() {
+        AgentInstance instance = createAgentInstance(INSTANCE_GROUP_ID);
+        when(agentManagementService.findAgentInstance(INSTANCE_ID)).thenReturn(Optional.of(instance));
         AgentInstanceGroup agentInstanceGroup = createAgentInstanceGroup(InstanceGroupLifecycleState.Inactive, Tier.Flex);
-        when(agentManagementService.findInstanceGroup("instanceGroupId")).thenReturn(Optional.of(agentInstanceGroup));
+        when(agentManagementService.findInstanceGroup(INSTANCE_GROUP_ID)).thenReturn(Optional.of(agentInstanceGroup));
         Result result = agentManagementConstraint.evaluate(createTaskRequest(),
-                createVirtualMachineCurrentStateMock("1234", "instanceGroupId"), mock(TaskTrackerState.class));
+                createVirtualMachineCurrentStateMock(INSTANCE_ID), mock(TaskTrackerState.class));
         assertThat(result.isSuccessful()).isFalse();
         assertThat(result.getFailureReason()).isEqualToIgnoringCase("Instance group is not active or phased out");
     }
 
     @Test
     public void instanceGroupSystemNoPlacement() {
+        AgentInstance instance = createAgentInstance(INSTANCE_GROUP_ID);
+        when(agentManagementService.findAgentInstance(INSTANCE_ID)).thenReturn(Optional.of(instance));
         AgentInstanceGroup agentInstanceGroup = createAgentInstanceGroup(InstanceGroupLifecycleState.Active, Tier.Flex, Collections.singletonMap(SchedulerAttributes.SYSTEM_NO_PLACEMENT, "true"));
-        when(agentManagementService.findInstanceGroup("instanceGroupId")).thenReturn(Optional.of(agentInstanceGroup));
+        when(agentManagementService.findInstanceGroup(INSTANCE_GROUP_ID)).thenReturn(Optional.of(agentInstanceGroup));
         Result result = agentManagementConstraint.evaluate(createTaskRequest(),
-                createVirtualMachineCurrentStateMock("1234", "instanceGroupId"), mock(TaskTrackerState.class));
+                createVirtualMachineCurrentStateMock(INSTANCE_ID), mock(TaskTrackerState.class));
         assertThat(result.isSuccessful()).isFalse();
         assertThat(result.getFailureReason()).isEqualToIgnoringCase("Cannot place on instance group or agent instance due to systemNoPlacement attribute");
     }
 
     @Test
     public void instanceGroupNoPlacement() {
+        AgentInstance instance = createAgentInstance(INSTANCE_GROUP_ID);
+        when(agentManagementService.findAgentInstance(INSTANCE_ID)).thenReturn(Optional.of(instance));
         AgentInstanceGroup agentInstanceGroup = createAgentInstanceGroup(InstanceGroupLifecycleState.Active, Tier.Flex, Collections.singletonMap(SchedulerAttributes.NO_PLACEMENT, "true"));
-        when(agentManagementService.findInstanceGroup("instanceGroupId")).thenReturn(Optional.of(agentInstanceGroup));
+        when(agentManagementService.findInstanceGroup(INSTANCE_GROUP_ID)).thenReturn(Optional.of(agentInstanceGroup));
         Result result = agentManagementConstraint.evaluate(createTaskRequest(),
-                createVirtualMachineCurrentStateMock("1234", "instanceGroupId"), mock(TaskTrackerState.class));
+                createVirtualMachineCurrentStateMock(INSTANCE_ID), mock(TaskTrackerState.class));
         assertThat(result.isSuccessful()).isFalse();
         assertThat(result.getFailureReason()).isEqualToIgnoringCase("Cannot place on instance group or agent instance due to noPlacement attribute");
     }
 
     @Test
     public void instanceGroupTierMismatch() {
+        AgentInstance instance = createAgentInstance(INSTANCE_GROUP_ID);
+        when(agentManagementService.findAgentInstance(INSTANCE_ID)).thenReturn(Optional.of(instance));
         AgentInstanceGroup agentInstanceGroup = createAgentInstanceGroup(InstanceGroupLifecycleState.Active, Tier.Critical);
-        when(agentManagementService.findInstanceGroup("instanceGroupId")).thenReturn(Optional.of(agentInstanceGroup));
+        when(agentManagementService.findInstanceGroup(INSTANCE_GROUP_ID)).thenReturn(Optional.of(agentInstanceGroup));
         Result result = agentManagementConstraint.evaluate(createTaskRequest(),
-                createVirtualMachineCurrentStateMock("1234", "instanceGroupId"), mock(TaskTrackerState.class));
+                createVirtualMachineCurrentStateMock(INSTANCE_ID), mock(TaskTrackerState.class));
         assertThat(result.isSuccessful()).isFalse();
         assertThat(result.getFailureReason()).isEqualToIgnoringCase("Task cannot run on instance group tier");
     }
 
     @Test
     public void instanceGroupDoesNotHaveGpus() {
+        AgentInstance instance = createAgentInstance(INSTANCE_GROUP_ID);
+        when(agentManagementService.findAgentInstance(INSTANCE_ID)).thenReturn(Optional.of(instance));
         AgentInstanceGroup agentInstanceGroup = createAgentInstanceGroup(InstanceGroupLifecycleState.Active, Tier.Flex);
-        when(agentManagementService.findInstanceGroup("instanceGroupId")).thenReturn(Optional.of(agentInstanceGroup));
+        when(agentManagementService.findInstanceGroup(INSTANCE_GROUP_ID)).thenReturn(Optional.of(agentInstanceGroup));
         TaskRequest taskRequest = createTaskRequest();
         HashMap<String, Double> scalars = new HashMap<>();
         scalars.put("gpu", 1.0);
         when(taskRequest.getScalarRequests()).thenReturn(scalars);
         Result result = agentManagementConstraint.evaluate(taskRequest,
-                createVirtualMachineCurrentStateMock("1234", "instanceGroupId"), mock(TaskTrackerState.class));
+                createVirtualMachineCurrentStateMock(INSTANCE_ID), mock(TaskTrackerState.class));
         assertThat(result.isSuccessful()).isFalse();
         assertThat(result.getFailureReason()).isEqualToIgnoringCase("Instance group does not have gpus");
     }
 
     @Test
     public void instanceOnlyRunsGpuTasks() {
+        AgentInstance instance = createAgentInstance(INSTANCE_GROUP_ID);
+        when(agentManagementService.findAgentInstance(INSTANCE_ID)).thenReturn(Optional.of(instance));
         AgentInstanceGroup agentInstanceGroup = createAgentInstanceGroup(InstanceGroupLifecycleState.Active, Tier.Flex, 1);
-        when(agentManagementService.findInstanceGroup("instanceGroupId")).thenReturn(Optional.of(agentInstanceGroup));
+        when(agentManagementService.findInstanceGroup(INSTANCE_GROUP_ID)).thenReturn(Optional.of(agentInstanceGroup));
         TaskRequest taskRequest = createTaskRequest();
         HashMap<String, Double> scalars = new HashMap<>();
         when(taskRequest.getScalarRequests()).thenReturn(scalars);
         Result result = agentManagementConstraint.evaluate(taskRequest,
-                createVirtualMachineCurrentStateMock("1234", "instanceGroupId"), mock(TaskTrackerState.class));
+                createVirtualMachineCurrentStateMock(INSTANCE_ID), mock(TaskTrackerState.class));
         assertThat(result.isSuccessful()).isFalse();
         assertThat(result.getFailureReason()).isEqualToIgnoringCase("Instance group does not run non gpu tasks");
     }
 
-    private VirtualMachineCurrentState createVirtualMachineCurrentStateMock(String id, String asg) {
+    private VirtualMachineCurrentState createVirtualMachineCurrentStateMock(String id) {
         VirtualMachineCurrentState currentState = mock(VirtualMachineCurrentState.class);
         VirtualMachineLease lease = mock(VirtualMachineLease.class);
         Map<String, Protos.Attribute> attributes = new HashMap<>();
         attributes.put("id", Protos.Attribute.newBuilder().setName("id").setType(Protos.Value.Type.TEXT).setText(Protos.Value.Text.newBuilder().setValue(id)).build());
-        attributes.put("asg", Protos.Attribute.newBuilder().setName("asg").setType(Protos.Value.Type.TEXT).setText(Protos.Value.Text.newBuilder().setValue(asg)).build());
         when(lease.getAttributeMap()).thenReturn(attributes);
         when(currentState.getCurrAvailableResources()).thenReturn(lease);
         return currentState;
@@ -182,12 +189,19 @@ public class AgentManagementConstraintTest {
                 .withGpu(gpus)
                 .build();
         return AgentInstanceGroup.newBuilder()
-                .withId("1234")
+                .withId(INSTANCE_ID)
                 .withResourceDimension(resourceDimension)
                 .withLifecycleStatus(InstanceGroupLifecycleStatus.newBuilder().withState(state).build())
                 .withTier(tier)
                 .withTimestamp(System.currentTimeMillis())
                 .withAttributes(attributes)
+                .build();
+    }
+
+    private AgentInstance createAgentInstance(String instanceGroupId) {
+        return AgentInstance.newBuilder()
+                .withId(INSTANCE_ID)
+                .withInstanceGroupId(instanceGroupId)
                 .build();
     }
 }

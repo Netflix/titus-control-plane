@@ -16,6 +16,7 @@
 
 package com.netflix.titus.master.scheduler.fitness;
 
+import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -23,12 +24,14 @@ import com.netflix.fenzo.TaskRequest;
 import com.netflix.fenzo.TaskTrackerState;
 import com.netflix.fenzo.VMTaskFitnessCalculator;
 import com.netflix.fenzo.VirtualMachineCurrentState;
+import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.master.scheduler.AgentQualityTracker;
 import com.netflix.titus.master.scheduler.SchedulerAttributes;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
+import com.netflix.titus.master.scheduler.SchedulerUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,26 +71,30 @@ public class AgentManagementFitnessCalculator implements VMTaskFitnessCalculator
 
     @Override
     public double calculateFitness(TaskRequest taskRequest, VirtualMachineCurrentState targetVM, TaskTrackerState taskTrackerState) {
-        String instanceGroupId = FitnessCalculatorFunctions.getAgentAttributeValue(targetVM, schedulerConfiguration.getInstanceGroupAttributeName());
-        AgentInstanceGroup instanceGroup = null;
-        try {
-            instanceGroup = agentManagementService.getInstanceGroup(instanceGroupId);
-        } catch (Exception e) {
-            logger.debug("Ignoring instanceGroupId: {} because it was not found in agent management", instanceGroupId, e);
+        Optional<AgentInstance> instanceOpt = SchedulerUtils.findInstance(agentManagementService, schedulerConfiguration.getInstanceAttributeName(), targetVM);
+        if (!instanceOpt.isPresent()) {
+            return DEFAULT_SCORE;
         }
-        if (instanceGroup != null) {
-            double quality = Math.min(1.0, agentQualityTracker.qualityOf(targetVM.getHostname()));
-            if (quality <= 0) {
-                // If we have no information about the agent, we have to assume something.
-                quality = QUALITY_OF_UNKNOWN_AGENT;
-            }
+        AgentInstance instance = instanceOpt.get();
+        String instanceGroupId = instance.getInstanceGroupId();
 
-            if (instanceGroup.getLifecycleStatus().getState() == InstanceGroupLifecycleState.Active) {
-                return quality * ACTIVE_INSTANCE_GROUP_SCORE;
-            } else if (instanceGroup.getLifecycleStatus().getState() == InstanceGroupLifecycleState.PhasedOut ||
-                    instanceGroup.getAttributes().containsKey(SchedulerAttributes.PREFER_NO_PLACEMENT)) {
-                return quality * PREFER_NO_PLACEMENT_SCORE;
-            }
+        Optional<AgentInstanceGroup> instanceGroupOpt = agentManagementService.findInstanceGroup(instanceGroupId);
+        if (!instanceGroupOpt.isPresent()) {
+            return DEFAULT_SCORE;
+        }
+
+        double quality = Math.min(1.0, agentQualityTracker.qualityOf(targetVM.getHostname()));
+        if (quality <= 0) {
+            // If we have no information about the agent, we have to assume something.
+            quality = QUALITY_OF_UNKNOWN_AGENT;
+        }
+
+        AgentInstanceGroup instanceGroup = instanceGroupOpt.get();
+        if (instanceGroup.getLifecycleStatus().getState() == InstanceGroupLifecycleState.Active) {
+            return quality * ACTIVE_INSTANCE_GROUP_SCORE;
+        } else if (instanceGroup.getLifecycleStatus().getState() == InstanceGroupLifecycleState.PhasedOut ||
+                instanceGroup.getAttributes().containsKey(SchedulerAttributes.PREFER_NO_PLACEMENT)) {
+            return quality * PREFER_NO_PLACEMENT_SCORE;
         }
 
         return DEFAULT_SCORE;

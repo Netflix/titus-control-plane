@@ -18,23 +18,20 @@ package com.netflix.titus.master.scheduler.constraint;
 
 import java.util.Optional;
 
-import com.google.common.base.Strings;
 import com.netflix.fenzo.ConstraintEvaluator;
 import com.netflix.fenzo.TaskRequest;
 import com.netflix.fenzo.TaskTrackerState;
 import com.netflix.fenzo.VirtualMachineCurrentState;
+import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
 import com.netflix.titus.api.agent.service.AgentManagementService;
-import com.netflix.titus.common.annotation.Experimental;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
-
-import static com.netflix.titus.master.scheduler.SchedulerUtils.getAttributeValueOrEmptyString;
+import com.netflix.titus.master.scheduler.SchedulerUtils;
 
 /**
  * Experimental constraint such that users can prefer to only land on hosts that are part of an active instance group.
  */
-@Experimental(deadline = "4/1/2019")
 public class ActiveHostConstraint implements ConstraintEvaluator {
 
     public static final String NAME = "ActiveHostConstraint";
@@ -56,11 +53,13 @@ public class ActiveHostConstraint implements ConstraintEvaluator {
 
     @Override
     public Result evaluate(TaskRequest taskRequest, VirtualMachineCurrentState targetVM, TaskTrackerState taskTrackerState) {
-        String instanceGroupAttributeName = configuration.getInstanceGroupAttributeName();
-        String instanceGroupId = getAttributeValueOrEmptyString(targetVM, instanceGroupAttributeName);
-        if (Strings.isNullOrEmpty(instanceGroupId)) {
+        Optional<AgentInstance> instanceOpt = SchedulerUtils.findInstance(agentManagementService, configuration.getInstanceAttributeName(), targetVM);
+        if (!instanceOpt.isPresent()) {
             return INVALID;
         }
+
+        AgentInstance instance = instanceOpt.get();
+        String instanceGroupId = instance.getInstanceGroupId();
 
         Optional<AgentInstanceGroup> instanceGroupOpt = agentManagementService.findInstanceGroup(instanceGroupId);
         if (!instanceGroupOpt.isPresent()) {
