@@ -19,7 +19,7 @@ package com.netflix.titus.supplementary.relocation;
 import javax.inject.Named;
 
 import com.netflix.titus.common.jhiccup.JHiccupComponent;
-import com.netflix.titus.common.runtime.InternalRuntimeComponent;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.runtime.connector.agent.AgentManagementDataReplicationComponent;
 import com.netflix.titus.runtime.connector.agent.AgentManagerConnectorComponent;
 import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorClientFactoryComponent;
@@ -43,7 +43,7 @@ import static com.netflix.titus.runtime.connector.titusmaster.ConfigurationLeade
 
 @SpringBootApplication
 @Import({
-        InternalRuntimeComponent.class,
+        RelocationTitusRuntimeComponent.class,
         JHiccupComponent.class,
         CallMetadataResolveComponent.class,
         ConfigurationLeaderResolverComponent.class,
@@ -85,8 +85,9 @@ public class RelocationMain {
 
     @Bean
     public TaskRelocationGrpcServer getTaskRelocationGrpcServer(GrpcEndpointConfiguration configuration,
-                                                                TaskRelocationGrpcService taskRelocationGrpcService) {
-        return new TaskRelocationGrpcServer(configuration, taskRelocationGrpcService);
+                                                                TaskRelocationGrpcService taskRelocationGrpcService,
+                                                                TitusRuntime titusRuntime) {
+        return new TaskRelocationGrpcServer(configuration, taskRelocationGrpcService, titusRuntime);
     }
 
     public static void main(String[] args) {

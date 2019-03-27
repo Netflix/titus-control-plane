@@ -14,22 +14,30 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.common.runtime;
+package com.netflix.titus.supplementary.relocation;
 
 import com.netflix.spectator.api.Registry;
+import com.netflix.titus.common.framework.fit.FitComponent;
+import com.netflix.titus.common.framework.fit.FitFramework;
+import com.netflix.titus.common.framework.fit.adapter.GrpcFitInterceptor;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.runtime.TitusRuntimes;
 import org.springframework.context.annotation.Bean;
-import org.springframework.stereotype.Component;
+import org.springframework.context.annotation.Configuration;
 
-/**
- * {@link TitusRuntime} component for test deployments.
- */
-@Component
-public class InternalRuntimeComponent {
+@Configuration
+public class RelocationTitusRuntimeComponent {
 
     private final TitusRuntime titusRuntime = TitusRuntimes.internal(true);
 
     @Bean
     public TitusRuntime getTitusRuntime() {
+        FitFramework fitFramework = titusRuntime.getFitFramework();
+        if (fitFramework.isActive()) {
+            FitComponent root = fitFramework.getRootComponent();
+            root.createChild(GrpcFitInterceptor.COMPONENT);
+        }
+
         return titusRuntime;
     }
 
