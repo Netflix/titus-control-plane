@@ -59,7 +59,7 @@ import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskId;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
-import com.netflix.titus.runtime.connector.ChannelTunablesConfiguration;
+import com.netflix.titus.runtime.connector.GrpcRequestConfiguration;
 import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway;
 import com.netflix.titus.runtime.jobmanager.gateway.GrpcJobServiceGateway;
 import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGatewayDelegate;
@@ -95,7 +95,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
 
     private static final int MAX_CONCURRENT_JOBS_TO_RETRIEVE = 10;
 
-    private final ChannelTunablesConfiguration tunablesConfiguration;
+    private final GrpcRequestConfiguration tunablesConfiguration;
     private final GatewayConfiguration gatewayConfiguration;
     private final JobManagementServiceStub client;
     private final CallMetadataResolver callMetadataResolver;
@@ -107,7 +107,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
     private final Clock clock;
 
     @Inject
-    public GatewayJobServiceGateway(ChannelTunablesConfiguration tunablesConfiguration,
+    public GatewayJobServiceGateway(GrpcRequestConfiguration tunablesConfiguration,
                                     GatewayConfiguration gatewayConfiguration,
                                     JobManagerConfiguration jobManagerConfiguration,
                                     JobManagementServiceStub client,

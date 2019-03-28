@@ -28,7 +28,7 @@ import java.util.function.Function;
 import com.google.common.base.Preconditions;
 import com.google.protobuf.Message;
 import com.netflix.titus.api.jobmanager.model.CallMetadata;
-import com.netflix.titus.runtime.connector.ChannelTunablesConfiguration;
+import com.netflix.titus.runtime.connector.GrpcRequestConfiguration;
 import com.netflix.titus.runtime.endpoint.metadata.AnonymousCallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import io.grpc.ServiceDescriptor;
@@ -83,8 +83,8 @@ public class ReactorToGrpcClientBuilder<REACT_API, GRPC_STUB extends AbstractStu
             ServiceDescriptor grpcServiceDescriptor) {
         Preconditions.checkArgument(reactApi.isInterface(), "Interface type required");
         return new ReactorToGrpcClientBuilder<>(reactApi, grpcStub, grpcServiceDescriptor)
-                .withTimeout(Duration.ofMillis(ChannelTunablesConfiguration.DEFAULT_REQUEST_TIMEOUT_MS))
-                .withStreamingTimeout(Duration.ofMillis(ChannelTunablesConfiguration.DEFAULT_STREAMING_TIMEOUT_MS))
+                .withTimeout(Duration.ofMillis(GrpcRequestConfiguration.DEFAULT_REQUEST_TIMEOUT_MS))
+                .withStreamingTimeout(Duration.ofMillis(GrpcRequestConfiguration.DEFAULT_STREAMING_TIMEOUT_MS))
                 .withCallMetadataResolver(AnonymousCallMetadataResolver.getInstance());
     }
 

@@ -234,7 +234,7 @@ public final class V3GrpcModelConverters {
                 .build();
     }
 
-    private static ServiceJobSpec.ServiceJobProcesses toGrpcServiceJobProcesses(ServiceJobProcesses serviceJobProcesses) {
+    public static ServiceJobSpec.ServiceJobProcesses toGrpcServiceJobProcesses(ServiceJobProcesses serviceJobProcesses) {
         return ServiceJobSpec.ServiceJobProcesses.newBuilder()
                 .setDisableDecreaseDesired(serviceJobProcesses.isDisableDecreaseDesired())
                 .setDisableIncreaseDesired(serviceJobProcesses.isDisableIncreaseDesired())
@@ -415,7 +415,7 @@ public final class V3GrpcModelConverters {
                 .build();
     }
 
-    public static Task toCoreTask(Job<?> job, com.netflix.titus.grpc.protogen.Task grpcTask) {
+    public static Task toCoreTask(com.netflix.titus.grpc.protogen.Task grpcTask) {
         Map<String, String> taskContext = grpcTask.getTaskContextMap();
 
         String originalId = Preconditions.checkNotNull(
@@ -438,7 +438,6 @@ public final class V3GrpcModelConverters {
                 .withResubmitNumber(taskResubmitNumber)
                 .withOriginalId(originalId)
                 .withResubmitOf(resubmitOf)
-                .withTwoLevelResources(toCoreTwoLevelResources(job, grpcTask))
                 .withSystemResubmitNumber(systemResubmitNumber)
                 .withEvictionResubmitNumber(evictionResubmitNumber)
                 .withTaskContext(taskContext)
@@ -449,6 +448,12 @@ public final class V3GrpcModelConverters {
         }
 
         return builder.build();
+    }
+
+    public static Task toCoreTask(Job<?> job, com.netflix.titus.grpc.protogen.Task grpcTask) {
+        return toCoreTask(grpcTask).toBuilder()
+                .withTwoLevelResources(toCoreTwoLevelResources(job, grpcTask))
+                .build();
     }
 
     /**

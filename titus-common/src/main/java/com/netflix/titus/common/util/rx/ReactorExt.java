@@ -21,10 +21,12 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import com.netflix.titus.common.util.tuple.Pair;
 import hu.akarnokd.rxjava.interop.RxJavaInterop;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscription;
@@ -110,6 +112,32 @@ public final class ReactorExt {
     public static <T> Function<Flux<T>, Publisher<T>> head(Supplier<Collection<T>> headSupplier) {
         return new ReactorHeadTransformer<>(headSupplier);
     }
+
+    /**
+     * Equivalent to {@link Observable#map} function, but with additional state passing. Each function invocation
+     * returns a pair, where the first value is a map result, and the second value is state object, passed as an input
+     * when next item is emitted.
+     */
+    public static <T, R, S> Function<Flux<T>, Publisher<R>> mapWithState(S zero, BiFunction<T, S, Pair<R, S>> transformer) {
+        return new ReactorMapWithStateTransformer<>(() -> zero, transformer, Flux.empty());
+    }
+
+    /**
+     * See {@link #mapWithState(Object, BiFunction)}. The difference is that the initial value is computed on each subscription.
+     */
+    public static <T, R, S> Function<Flux<T>, Publisher<R>> mapWithState(Supplier<S> zeroSupplier, BiFunction<T, S, Pair<R, S>> transformer) {
+        return new ReactorMapWithStateTransformer<>(zeroSupplier, transformer, Flux.empty());
+    }
+
+    /**
+     * A variant of {@link #mapWithState(Object, BiFunction)} operator, with a source of cleanup actions.
+     */
+    public static <T, R, S> Function<Flux<T>, Publisher<R>> mapWithState(S zero,
+                                                                         BiFunction<T, S, Pair<R, S>> transformer,
+                                                                         Flux<Function<S, Pair<R, S>>> cleanupActions) {
+        return new ReactorMapWithStateTransformer<>(() -> zero, transformer, cleanupActions);
+    }
+
 
     /**
      * Merge a map of {@link Mono}s, and return the combined result as a map. If a mono with a given key succeeded, the

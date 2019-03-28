@@ -18,17 +18,17 @@ package com.netflix.titus.runtime.connector.common.reactor;
 
 import java.time.Duration;
 
-import com.netflix.titus.runtime.connector.ChannelTunablesConfiguration;
+import com.netflix.titus.runtime.connector.GrpcRequestConfiguration;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import io.grpc.ServiceDescriptor;
 import io.grpc.stub.AbstractStub;
 
 public class DefaultGrpcToReactorClientFactory implements GrpcToReactorClientFactory {
 
-    private final ChannelTunablesConfiguration configuration;
+    private final GrpcRequestConfiguration configuration;
     private final CallMetadataResolver callMetadataResolver;
 
-    public DefaultGrpcToReactorClientFactory(ChannelTunablesConfiguration configuration,
+    public DefaultGrpcToReactorClientFactory(GrpcRequestConfiguration configuration,
                                              CallMetadataResolver callMetadataResolver) {
         this.configuration = configuration;
         this.callMetadataResolver = callMetadataResolver;
