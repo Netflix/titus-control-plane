@@ -21,7 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
-import com.netflix.titus.runtime.connector.ChannelTunablesConfiguration;
+import com.netflix.titus.runtime.connector.GrpcRequestConfiguration;
 import com.netflix.titus.runtime.connector.agent.AgentManagementClient;
 import com.netflix.titus.runtime.connector.agent.ReactorAgentManagementServiceStub;
 import com.netflix.titus.runtime.connector.agent.RemoteAgentManagementClient;
@@ -86,8 +86,8 @@ public class CommandContext {
                                 apiType, stub, serviceDescriptor
                         )
                         .withCallMetadataResolver(AnonymousCallMetadataResolver.getInstance())
-                        .withTimeout(Duration.ofMillis(ChannelTunablesConfiguration.DEFAULT_REQUEST_TIMEOUT_MS))
-                        .withStreamingTimeout(Duration.ofMillis(ChannelTunablesConfiguration.DEFAULT_STREAMING_TIMEOUT_MS))
+                        .withTimeout(Duration.ofMillis(GrpcRequestConfiguration.DEFAULT_REQUEST_TIMEOUT_MS))
+                        .withStreamingTimeout(Duration.ofMillis(GrpcRequestConfiguration.DEFAULT_STREAMING_TIMEOUT_MS))
                         .build();
             }
         };

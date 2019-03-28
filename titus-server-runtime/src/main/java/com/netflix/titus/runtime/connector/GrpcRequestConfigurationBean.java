@@ -23,12 +23,12 @@ import com.netflix.titus.common.util.SpringConfigurationUtil;
 import org.springframework.core.env.Environment;
 
 @Singleton
-public class ChannelTunablesConfigurationBean implements ChannelTunablesConfiguration {
+public class GrpcRequestConfigurationBean implements GrpcRequestConfiguration {
 
     private final Environment environment;
 
     @Inject
-    public ChannelTunablesConfigurationBean(Environment environment) {
+    public GrpcRequestConfigurationBean(Environment environment) {
         this.environment = environment;
     }
 

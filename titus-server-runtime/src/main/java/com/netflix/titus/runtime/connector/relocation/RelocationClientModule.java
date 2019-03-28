@@ -24,7 +24,7 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.titus.grpc.protogen.TaskRelocationServiceGrpc;
 import com.netflix.titus.grpc.protogen.TaskRelocationServiceGrpc.TaskRelocationServiceStub;
-import com.netflix.titus.runtime.connector.ChannelTunablesConfiguration;
+import com.netflix.titus.runtime.connector.GrpcRequestConfiguration;
 import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
 import com.netflix.titus.runtime.connector.common.reactor.ReactorToGrpcClientBuilder;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
@@ -56,7 +56,7 @@ public class RelocationClientModule extends AbstractModule {
                 )
                 .withCallMetadataResolver(metadataResolver)
                 .withTimeout(Duration.ofMillis(configuration.getRequestTimeout()))
-                .withStreamingTimeout(Duration.ofMillis(ChannelTunablesConfiguration.DEFAULT_STREAMING_TIMEOUT_MS))
+                .withStreamingTimeout(Duration.ofMillis(GrpcRequestConfiguration.DEFAULT_STREAMING_TIMEOUT_MS))
                 .build();
     }
 }

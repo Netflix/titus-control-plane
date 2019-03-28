@@ -17,8 +17,8 @@
 package com.netflix.titus.runtime.connector.common.reactor;
 
 import com.netflix.archaius.api.annotations.Configuration;
-import com.netflix.titus.runtime.connector.ChannelTunablesConfiguration;
-import com.netflix.titus.runtime.connector.ChannelTunablesConfigurationBean;
+import com.netflix.titus.runtime.connector.GrpcRequestConfiguration;
+import com.netflix.titus.runtime.connector.GrpcRequestConfigurationBean;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
@@ -27,12 +27,12 @@ import org.springframework.core.env.Environment;
 public class GrpcToReactorClientFactoryComponent {
 
     @Bean
-    public ChannelTunablesConfiguration getChannelTunablesConfiguration(Environment environment) {
-        return new ChannelTunablesConfigurationBean(environment);
+    public GrpcRequestConfiguration getChannelTunablesConfiguration(Environment environment) {
+        return new GrpcRequestConfigurationBean(environment);
     }
 
     @Bean
-    public GrpcToReactorClientFactory getReactorGrpcClientAdapterFactory(ChannelTunablesConfiguration configuration,
+    public GrpcToReactorClientFactory getReactorGrpcClientAdapterFactory(GrpcRequestConfiguration configuration,
                                                                          CallMetadataResolver callMetadataResolver) {
         return new DefaultGrpcToReactorClientFactory(configuration, callMetadataResolver);
     }

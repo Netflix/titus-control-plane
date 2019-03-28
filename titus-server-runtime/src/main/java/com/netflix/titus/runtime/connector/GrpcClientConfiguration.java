@@ -37,7 +37,7 @@ public interface GrpcClientConfiguration {
     /**
      * GRPC operation timeout.
      *
-     * @deprecated Use {@link ChannelTunablesConfiguration} instead
+     * @deprecated Use {@link GrpcRequestConfiguration} instead
      */
     @DefaultValue("10000")
     @Deprecated
