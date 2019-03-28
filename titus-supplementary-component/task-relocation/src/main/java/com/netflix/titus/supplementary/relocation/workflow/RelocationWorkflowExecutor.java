@@ -17,9 +17,12 @@
 package com.netflix.titus.supplementary.relocation.workflow;
 
 import java.util.Map;
+import java.util.function.Predicate;
 
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.api.relocation.model.TaskRelocationStatus;
+import com.netflix.titus.api.relocation.model.event.TaskRelocationEvent;
+import reactor.core.publisher.Flux;
 
 public interface RelocationWorkflowExecutor {
 
@@ -28,4 +31,6 @@ public interface RelocationWorkflowExecutor {
     Map<String, TaskRelocationPlan> getLastEvictionPlan();
 
     Map<String, TaskRelocationStatus> getLastEvictionResults();
+
+    Flux<TaskRelocationEvent> events();
 }
