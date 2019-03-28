@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
@@ -135,6 +136,9 @@ public class RemoteJobManagementClient implements JobManagementClient {
         ));
     }
 
+    /**
+     * Single job subscription has a limitation that for tasks moved to another job there will be no notification.
+     */
     @Override
     public Flux<JobManagerEvent<?>> observeJob(String jobId) {
         return Flux.defer(() -> {
@@ -154,6 +158,11 @@ public class RemoteJobManagementClient implements JobManagementClient {
                                 Task newTask = V3GrpcModelConverters.toCoreTask(jobRef.get(), event.getTaskUpdate().getTask());
                                 Task oldTask = taskMap.get(newTask.getId());
                                 taskMap.put(newTask.getId(), newTask);
+
+                                if (event.getTaskUpdate().getMovedFromAnotherJob()) {
+                                    return TaskUpdateEvent.newTaskFromAnotherJob(jobRef.get(), newTask, JobManagerConstants.GRPC_REPLICATOR_CALL_METADATA);
+                                }
+
                                 return oldTask == null
                                         ? TaskUpdateEvent.newTask(jobRef.get(), newTask, JobManagerConstants.GRPC_REPLICATOR_CALL_METADATA)
                                         : TaskUpdateEvent.taskChange(jobRef.get(), newTask, oldTask, JobManagerConstants.GRPC_REPLICATOR_CALL_METADATA);
@@ -164,7 +173,7 @@ public class RemoteJobManagementClient implements JobManagementClient {
                                 return null;
                         }
                     })
-                    .filter(Objects::isNull);
+                    .filter(Objects::nonNull);
         });
     }
 
@@ -191,6 +200,11 @@ public class RemoteJobManagementClient implements JobManagementClient {
                                 Task oldTask = taskMap.get(newTask.getId());
                                 taskMap.put(newTask.getId(), newTask);
 
+                                // Check if task moved
+                                if (isTaskMoved(newTask, oldTask)) {
+                                    return TaskUpdateEvent.newTaskFromAnotherJob(job, newTask, JobManagerConstants.GRPC_REPLICATOR_CALL_METADATA);
+                                }
+
                                 return oldTask == null
                                         ? TaskUpdateEvent.newTask(job, newTask, JobManagerConstants.GRPC_REPLICATOR_CALL_METADATA)
                                         : TaskUpdateEvent.taskChange(job, newTask, oldTask, JobManagerConstants.GRPC_REPLICATOR_CALL_METADATA);
@@ -201,7 +215,7 @@ public class RemoteJobManagementClient implements JobManagementClient {
                                 return null;
                         }
                     })
-                    .filter(Objects::isNull);
+                    .filter(Objects::nonNull);
         });
     }
 
@@ -284,5 +298,12 @@ public class RemoteJobManagementClient implements JobManagementClient {
                         .build(),
                 callMetadata
         );
+    }
+
+    private boolean isTaskMoved(Task newTask, Task oldTask) {
+        if (oldTask == null || oldTask.getJobId().equals(newTask.getJobId())) {
+            return false;
+        }
+        return newTask.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_MOVED_FROM_JOB) != null;
     }
 }

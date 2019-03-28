@@ -34,10 +34,11 @@ import com.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
+import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.runtime.connector.common.replicator.DataReplicatorMetrics;
 import com.netflix.titus.runtime.connector.common.replicator.ReplicatorEvent;
-import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway;
+import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.runtime.connector.jobmanager.JobSnapshot;
 import com.netflix.titus.testkit.model.job.JobComponentStub;
 import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
@@ -65,7 +66,7 @@ public class GrpcJobReplicatorEventStreamTest {
 
     private final JobComponentStub dataGenerator = new JobComponentStub(titusRuntime);
 
-    private final JobServiceGateway client = mock(JobServiceGateway.class);
+    private final JobManagementClient client = mock(JobManagementClient.class);
 
     @Before
     public void setUp() {
@@ -223,7 +224,7 @@ public class GrpcJobReplicatorEventStreamTest {
     }
 
     private GrpcJobReplicatorEventStream newStream() {
-        when(client.observeJobs(any())).thenReturn(dataGenerator.grpcObserveJobs(true));
+        when(client.observeJobs(any())).thenReturn(ReactorExt.toFlux(dataGenerator.observeJobs(true)));
         return new GrpcJobReplicatorEventStream(client, new DataReplicatorMetrics("test", titusRuntime), titusRuntime, Schedulers.parallel());
     }
 
