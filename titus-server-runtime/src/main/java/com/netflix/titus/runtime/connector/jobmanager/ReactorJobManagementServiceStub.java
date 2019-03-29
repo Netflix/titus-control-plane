@@ -30,6 +30,7 @@ import com.netflix.titus.grpc.protogen.JobQuery;
 import com.netflix.titus.grpc.protogen.JobQueryResult;
 import com.netflix.titus.grpc.protogen.JobStatusUpdate;
 import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
+import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskAttributesDeleteRequest;
 import com.netflix.titus.grpc.protogen.TaskAttributesUpdate;
 import com.netflix.titus.grpc.protogen.TaskId;
@@ -72,7 +73,7 @@ public interface ReactorJobManagementServiceStub {
     // ------------------------------------------------------------
     // Task operations
 
-    Mono<Void> findTask(TaskId taskId);
+    Mono<Task> findTask(TaskId taskId);
 
     Mono<TaskQueryResult> findTasks(TaskQuery taskQuery);
 

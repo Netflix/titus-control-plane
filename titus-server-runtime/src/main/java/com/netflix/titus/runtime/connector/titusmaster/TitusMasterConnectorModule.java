@@ -48,7 +48,7 @@ import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc.LoadBalancerServi
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc.SchedulerServiceStub;
 import com.netflix.titus.grpc.protogen.SupervisorServiceGrpc;
-import com.netflix.titus.runtime.connector.ChannelTunablesConfiguration;
+import com.netflix.titus.runtime.connector.GrpcRequestConfiguration;
 import com.netflix.titus.runtime.connector.common.reactor.DefaultGrpcToReactorClientFactory;
 import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorClientFactory;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
@@ -117,7 +117,7 @@ public class TitusMasterConnectorModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public GrpcToReactorClientFactory getReactorGrpcClientAdapterFactory(ChannelTunablesConfiguration configuration,
+    public GrpcToReactorClientFactory getReactorGrpcClientAdapterFactory(GrpcRequestConfiguration configuration,
                                                                          CallMetadataResolver callMetadataResolver) {
         return new DefaultGrpcToReactorClientFactory(configuration, callMetadataResolver);
     }

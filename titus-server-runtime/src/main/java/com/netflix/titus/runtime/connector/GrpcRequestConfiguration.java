@@ -16,12 +16,14 @@
 
 package com.netflix.titus.runtime.connector;
 
+import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
 
-public interface ChannelTunablesConfiguration {
+@Configuration(prefix = "titus.grpcRequestConfiguration")
+public interface GrpcRequestConfiguration {
 
-    long DEFAULT_REQUEST_TIMEOUT_MS = 10_000;
-    long DEFAULT_STREAMING_TIMEOUT_MS = 30 * 60_000;
+    long DEFAULT_REQUEST_TIMEOUT_MS = 60_000;
+    long DEFAULT_STREAMING_TIMEOUT_MS = 12 * 60 * 60_000;
 
     /**
      * GRPC operation timeout.

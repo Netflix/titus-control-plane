@@ -32,6 +32,7 @@ import static com.netflix.titus.runtime.connector.titusmaster.TitusMasterConnect
 public class JobManagerConnectorModule extends AbstractModule {
     @Override
     protected void configure() {
+        bind(JobManagementClient.class).to(RemoteJobManagementClient.class);
         bind(JobDataReplicator.class).toProvider(JobDataReplicatorProvider.class);
         bind(ReadOnlyJobOperations.class).to(CachedReadOnlyJobOperations.class);
     }

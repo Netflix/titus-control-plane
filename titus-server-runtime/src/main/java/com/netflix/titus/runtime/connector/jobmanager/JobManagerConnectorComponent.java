@@ -19,11 +19,7 @@ package com.netflix.titus.runtime.connector.jobmanager;
 import javax.inject.Named;
 
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
-import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
-import com.netflix.titus.runtime.connector.ChannelTunablesConfiguration;
-import com.netflix.titus.runtime.jobmanager.gateway.GrpcJobServiceGateway;
-import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
-import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway;
+import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorClientFactory;
 import io.grpc.Channel;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -34,15 +30,13 @@ public class JobManagerConnectorComponent {
     public static final String JOB_MANAGER_CHANNEL = "jobManagerChannel";
 
     @Bean
-    public JobManagementServiceStub getJobManagementClientGrpcStub(final @Named(JOB_MANAGER_CHANNEL) Channel channel) {
-        return JobManagementServiceGrpc.newStub(channel);
+    public JobManagementClient getJobManagementClient(ReactorJobManagementServiceStub stub) {
+        return new RemoteJobManagementClient(stub);
     }
 
-
     @Bean
-    public JobServiceGateway getJobManagementClient(ChannelTunablesConfiguration configuration,
-                                                    JobManagementServiceStub clientStub,
-                                                    CallMetadataResolver callMetadataResolver) {
-        return new GrpcJobServiceGateway(clientStub, callMetadataResolver, configuration);
+    public ReactorJobManagementServiceStub getReactorJobManagementServiceStub(GrpcToReactorClientFactory factory,
+                                                                              @Named(JOB_MANAGER_CHANNEL) Channel channel) {
+        return factory.apply(JobManagementServiceGrpc.newStub(channel), ReactorJobManagementServiceStub.class, JobManagementServiceGrpc.getServiceDescriptor());
     }
 }

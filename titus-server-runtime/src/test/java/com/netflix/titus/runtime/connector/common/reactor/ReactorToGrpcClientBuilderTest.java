@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit;
 import com.google.protobuf.Empty;
 import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.common.util.ExceptionExt;
-import com.netflix.titus.runtime.connector.ChannelTunablesConfiguration;
+import com.netflix.titus.runtime.connector.GrpcRequestConfiguration;
 import com.netflix.titus.runtime.endpoint.metadata.AnonymousCallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.metadata.SimpleGrpcCallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor;
@@ -74,7 +74,7 @@ public class ReactorToGrpcClientBuilderTest {
 
         this.client = ReactorToGrpcClientBuilder.newBuilder(SampleServiceReactApi.class, SampleServiceGrpc.newStub(channel), SampleServiceGrpc.getServiceDescriptor())
                 .withTimeout(TIMEOUT_DURATION)
-                .withStreamingTimeout(Duration.ofMillis(ChannelTunablesConfiguration.DEFAULT_STREAMING_TIMEOUT_MS))
+                .withStreamingTimeout(Duration.ofMillis(GrpcRequestConfiguration.DEFAULT_STREAMING_TIMEOUT_MS))
                 .withCallMetadataResolver(new AnonymousCallMetadataResolver())
                 .build();
     }

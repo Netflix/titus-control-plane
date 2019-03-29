@@ -17,29 +17,26 @@
 package com.netflix.titus.runtime.connector.jobmanager.replicator;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
 import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.common.util.rx.ReactorExt;
-import com.netflix.titus.grpc.protogen.JobChangeNotification;
-import com.netflix.titus.grpc.protogen.JobStatus;
-import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
-import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.runtime.connector.common.replicator.AbstractReplicatorEventStream;
 import com.netflix.titus.runtime.connector.common.replicator.DataReplicatorMetrics;
 import com.netflix.titus.runtime.connector.common.replicator.ReplicatorEvent;
+import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.runtime.connector.jobmanager.JobSnapshot;
-import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
-import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -49,9 +46,9 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
 
     private static final Logger logger = LoggerFactory.getLogger(GrpcJobReplicatorEventStream.class);
 
-    private final JobServiceGateway client;
+    private final JobManagementClient client;
 
-    public GrpcJobReplicatorEventStream(JobServiceGateway client,
+    public GrpcJobReplicatorEventStream(JobManagementClient client,
                                         DataReplicatorMetrics metrics,
                                         TitusRuntime titusRuntime,
                                         Scheduler scheduler) {
@@ -64,36 +61,36 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
         return Flux.defer(() -> {
             CacheUpdater cacheUpdater = new CacheUpdater();
             logger.info("Connecting to the job event stream...");
-            return ReactorExt.toFlux(client.observeJobs(ObserveJobsQuery.getDefaultInstance()))
-                    .flatMap(cacheUpdater::onEvent);
+            return client.observeJobs(Collections.emptyMap()).flatMap(cacheUpdater::onEvent);
         });
     }
 
     private class CacheUpdater {
 
-        private List<JobChangeNotification> snapshotEvents = new ArrayList<>();
+        private List<JobManagerEvent<?>> snapshotEvents = new ArrayList<>();
         private AtomicReference<JobSnapshot> lastJobSnapshotRef = new AtomicReference<>();
 
-        private Flux<ReplicatorEvent<JobSnapshot, JobManagerEvent<?>>> onEvent(JobChangeNotification event) {
+        private Flux<ReplicatorEvent<JobSnapshot, JobManagerEvent<?>>> onEvent(JobManagerEvent<?> event) {
             try {
                 if (lastJobSnapshotRef.get() != null) {
                     return processCacheUpdate(event);
                 }
-                if (event.getNotificationCase() == JobChangeNotification.NotificationCase.SNAPSHOTEND) {
+                if (event.equals(JobManagerEvent.snapshotMarker())) {
                     return buildInitialCache();
                 }
 
-                switch (event.getNotificationCase()) {
-                    case JOBUPDATE:
-                        if (event.getJobUpdate().getJob().getStatus().getState() != JobStatus.JobState.Finished) {
-                            snapshotEvents.add(event);
-                        }
-                        break;
-                    case TASKUPDATE:
-                        if (event.getTaskUpdate().getTask().getStatus().getState() != TaskStatus.TaskState.Finished) {
-                            snapshotEvents.add(event);
-                        }
-                        break;
+                if (event instanceof JobUpdateEvent) {
+                    JobUpdateEvent jobUpdateEvent = (JobUpdateEvent) event;
+                    Job job = jobUpdateEvent.getCurrent();
+                    if (job.getStatus().getState() != JobState.Finished) {
+                        snapshotEvents.add(event);
+                    }
+                } else if (event instanceof TaskUpdateEvent) {
+                    TaskUpdateEvent taskUpdateEvent = (TaskUpdateEvent) event;
+                    Task task = taskUpdateEvent.getCurrentTask();
+                    if (task.getStatus().getState() != TaskState.Finished) {
+                        snapshotEvents.add(event);
+                    }
                 }
             } catch (Exception e) {
                 logger.warn("Unexpected error when handling the job change notification: {}", event, e);
@@ -106,20 +103,17 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
             JobSnapshot.Builder builder = JobSnapshot.newBuilder(UUID.randomUUID().toString());
 
             snapshotEvents.forEach(event -> {
-                switch (event.getNotificationCase()) {
-                    case JOBUPDATE:
-                        com.netflix.titus.grpc.protogen.Job job = event.getJobUpdate().getJob();
-                        builder.addOrUpdateJob(V3GrpcModelConverters.toCoreJob(job));
-                        break;
-                    case TASKUPDATE:
-                        com.netflix.titus.grpc.protogen.Task task = event.getTaskUpdate().getTask();
-                        Job<?> taskJob = builder.getJob(task.getJobId());
-                        if (taskJob != null) {
-                            builder.addOrUpdateTask(V3GrpcModelConverters.toCoreTask(taskJob, task), event.getTaskUpdate().getMovedFromAnotherJob());
-                        } else {
-                            titusRuntime.getCodeInvariants().inconsistent("Job record not found: jobId=%s, taskId=%s", task.getJobId(), task.getId());
-                        }
-                        break;
+                if (event instanceof JobUpdateEvent) {
+                    builder.addOrUpdateJob(((JobUpdateEvent) event).getCurrent());
+                } else if (event instanceof TaskUpdateEvent) {
+                    TaskUpdateEvent taskUpdateEvent = (TaskUpdateEvent) event;
+                    Task task = taskUpdateEvent.getCurrent();
+                    Job<?> taskJob = builder.getJob(task.getJobId());
+                    if (taskJob != null) {
+                        builder.addOrUpdateTask(task, taskUpdateEvent.isMovedFromAnotherJob());
+                    } else {
+                        titusRuntime.getCodeInvariants().inconsistent("Job record not found: jobId=%s, taskId=%s", task.getJobId(), task.getId());
+                    }
                 }
             });
 
@@ -134,39 +128,37 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
             return Flux.just(new ReplicatorEvent<>(initialSnapshot, JobManagerEvent.snapshotMarker(), titusRuntime.getClock().wallTime()));
         }
 
-        private Flux<ReplicatorEvent<JobSnapshot, JobManagerEvent<?>>> processCacheUpdate(JobChangeNotification event) {
+        private Flux<ReplicatorEvent<JobSnapshot, JobManagerEvent<?>>> processCacheUpdate(JobManagerEvent<?> event) {
             JobSnapshot lastSnapshot = lastJobSnapshotRef.get();
 
             Optional<JobSnapshot> newSnapshot;
             JobManagerEvent<?> coreEvent = null;
 
-            switch (event.getNotificationCase()) {
-                case JOBUPDATE:
-                    Job job = V3GrpcModelConverters.toCoreJob(event.getJobUpdate().getJob());
+            if (event instanceof JobUpdateEvent) {
+                JobUpdateEvent jobUpdateEvent = (JobUpdateEvent) event;
+                Job job = jobUpdateEvent.getCurrent();
 
-                    logger.debug("Processing job snapshot update event: updatedJobId={}", job.getId());
+                logger.debug("Processing job snapshot update event: updatedJobId={}", job.getId());
 
-                    newSnapshot = lastSnapshot.updateJob(job);
-                    coreEvent = toJobCoreEvent(job);
-                    break;
-                case TASKUPDATE:
-                    com.netflix.titus.grpc.protogen.Task task = event.getTaskUpdate().getTask();
+                newSnapshot = lastSnapshot.updateJob(job);
+                coreEvent = toJobCoreEvent(job);
+            } else if (event instanceof TaskUpdateEvent) {
+                TaskUpdateEvent taskUpdateEvent = (TaskUpdateEvent) event;
+                Task task = taskUpdateEvent.getCurrentTask();
 
-                    logger.debug("Processing job snapshot update event: updatedTaskId={}", task.getId());
+                logger.debug("Processing job snapshot update event: updatedTaskId={}", task.getId());
 
-                    Optional<Job<?>> taskJobOpt = lastSnapshot.findJob(task.getJobId());
-                    if (taskJobOpt.isPresent()) {
-                        Job<?> taskJob = taskJobOpt.get();
-                        Task coreTask = V3GrpcModelConverters.toCoreTask(taskJob, task);
-                        newSnapshot = lastSnapshot.updateTask(coreTask, event.getTaskUpdate().getMovedFromAnotherJob());
-                        coreEvent = toTaskCoreEvent(taskJob, coreTask, event.getTaskUpdate().getMovedFromAnotherJob());
-                    } else {
-                        titusRuntime.getCodeInvariants().inconsistent("Job record not found: jobId=%s, taskId=%s", task.getJobId(), task.getId());
-                        newSnapshot = Optional.empty();
-                    }
-                    break;
-                default:
+                Optional<Job<?>> taskJobOpt = lastSnapshot.findJob(task.getJobId());
+                if (taskJobOpt.isPresent()) {
+                    Job<?> taskJob = taskJobOpt.get();
+                    newSnapshot = lastSnapshot.updateTask(task, taskUpdateEvent.isMovedFromAnotherJob());
+                    coreEvent = toTaskCoreEvent(taskJob, task, taskUpdateEvent.isMovedFromAnotherJob());
+                } else {
+                    titusRuntime.getCodeInvariants().inconsistent("Job record not found: jobId=%s, taskId=%s", task.getJobId(), task.getId());
                     newSnapshot = Optional.empty();
+                }
+            } else {
+                newSnapshot = Optional.empty();
             }
             if (newSnapshot.isPresent()) {
                 lastJobSnapshotRef.set(newSnapshot.get());

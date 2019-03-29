@@ -27,6 +27,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import com.netflix.titus.common.util.tuple.Pair;
 import hu.akarnokd.rxjava.interop.RxJavaInterop;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscription;
@@ -105,15 +106,6 @@ public final class ReactorExt {
     }
 
     /**
-     * An operator that combines snapshots state with hot updates. To prevent loss of
-     * any update for a given snapshot, the hot subscriber is subscribed first, and its
-     * values are buffered until the snapshot state is streamed to the subscriber.
-     */
-    public static <T> Function<Flux<T>, Publisher<T>> head(Supplier<Collection<T>> headSupplier) {
-        return new ReactorHeadTransformer<>(headSupplier);
-    }
-
-    /**
      * An operator that converts collection of value into an event stream. Subsequent collection versions
      * are compared against each other and add/remove events are emitted accordingly.
      */
@@ -124,6 +116,40 @@ public final class ReactorExt {
             Function<T, E> valueRemovedEventMapper,
             E snapshotEndEvent) {
         return new EventEmitterTransformer<>(keyFun, valueComparator, valueAddedEventMapper, valueRemovedEventMapper, snapshotEndEvent);
+    }
+
+    /**
+     * An operator that combines snapshots state with hot updates. To prevent loss of
+     * any update for a given snapshot, the hot subscriber is subscribed first, and its
+     * values are buffered until the snapshot state is streamed to the subscriber.
+     */
+    public static <T> Function<Flux<T>, Publisher<T>> head(Supplier<Collection<T>> headSupplier) {
+        return new ReactorHeadTransformer<>(headSupplier);
+    }
+
+    /**
+     * Equivalent to {@link Observable#map} function, but with additional state passing. Each function invocation
+     * returns a pair, where the first value is a map result, and the second value is state object, passed as an input
+     * when next item is emitted.
+     */
+    public static <T, R, S> Function<Flux<T>, Publisher<R>> mapWithState(S zero, BiFunction<T, S, Pair<R, S>> transformer) {
+        return new ReactorMapWithStateTransformer<>(() -> zero, transformer, Flux.empty());
+    }
+
+    /**
+     * See {@link #mapWithState(Object, BiFunction)}. The difference is that the initial value is computed on each subscription.
+     */
+    public static <T, R, S> Function<Flux<T>, Publisher<R>> mapWithState(Supplier<S> zeroSupplier, BiFunction<T, S, Pair<R, S>> transformer) {
+        return new ReactorMapWithStateTransformer<>(zeroSupplier, transformer, Flux.empty());
+    }
+
+    /**
+     * A variant of {@link #mapWithState(Object, BiFunction)} operator, with a source of cleanup actions.
+     */
+    public static <T, R, S> Function<Flux<T>, Publisher<R>> mapWithState(S zero,
+                                                                         BiFunction<T, S, Pair<R, S>> transformer,
+                                                                         Flux<Function<S, Pair<R, S>>> cleanupActions) {
+        return new ReactorMapWithStateTransformer<>(() -> zero, transformer, cleanupActions);
     }
 
     /**
