@@ -23,4 +23,11 @@ import com.netflix.archaius.api.annotations.DefaultValue;
 public interface JobImageValidatorConfiguration {
     @DefaultValue("true")
     boolean isEnabled();
+
+    /**
+     * Since Image validations are on the job accept path the timeout value is aggressive.
+     * This must be smaller than {@link TitusValidatorConfiguration#getTimeoutMs()}.
+     */
+    @DefaultValue("1000")
+    long getJobImageValidationTimeoutMs();
 }
