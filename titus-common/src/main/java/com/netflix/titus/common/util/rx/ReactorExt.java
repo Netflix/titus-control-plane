@@ -18,9 +18,11 @@ package com.netflix.titus.common.util.rx;
 
 import java.time.Duration;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -109,6 +111,19 @@ public final class ReactorExt {
      */
     public static <T> Function<Flux<T>, Publisher<T>> head(Supplier<Collection<T>> headSupplier) {
         return new ReactorHeadTransformer<>(headSupplier);
+    }
+
+    /**
+     * An operator that converts collection of value into an event stream. Subsequent collection versions
+     * are compared against each other and add/remove events are emitted accordingly.
+     */
+    public static <K, T, E> Function<Flux<List<T>>, Publisher<E>> eventEmitter(
+            Function<T, K> keyFun,
+            BiFunction<T, T, Boolean> valueComparator,
+            Function<T, E> valueAddedEventMapper,
+            Function<T, E> valueRemovedEventMapper,
+            E snapshotEndEvent) {
+        return new EventEmitterTransformer<>(keyFun, valueComparator, valueAddedEventMapper, valueRemovedEventMapper, snapshotEndEvent);
     }
 
     /**

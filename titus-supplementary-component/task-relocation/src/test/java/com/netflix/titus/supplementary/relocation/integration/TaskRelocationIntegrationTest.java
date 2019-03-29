@@ -16,6 +16,7 @@
 
 package com.netflix.titus.supplementary.relocation.integration;
 
+import java.util.Iterator;
 import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
@@ -24,9 +25,12 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
+import com.netflix.titus.api.relocation.model.TaskRelocationPlan.TaskRelocationReason;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.time.Clock;
+import com.netflix.titus.grpc.protogen.RelocationEvent;
+import com.netflix.titus.grpc.protogen.RelocationEvent.EventCase;
 import com.netflix.titus.grpc.protogen.RelocationTaskId;
 import com.netflix.titus.grpc.protogen.TaskRelocationExecution;
 import com.netflix.titus.grpc.protogen.TaskRelocationPlan;
@@ -37,7 +41,6 @@ import com.netflix.titus.grpc.protogen.TaskRelocationServiceGrpc.TaskRelocationS
 import com.netflix.titus.grpc.protogen.TaskRelocationStatus;
 import com.netflix.titus.supplementary.relocation.RelocationConnectorStubs;
 import com.netflix.titus.supplementary.relocation.TestDataFactory;
-import com.netflix.titus.api.relocation.model.TaskRelocationPlan.TaskRelocationReason;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
@@ -76,7 +79,7 @@ public class TaskRelocationIntegrationTest {
 
     @Test(timeout = 60_000)
     public void testPlannedRelocation() throws Exception {
-        Task task = placeTaskOnRemovableAgent();
+        Task task = createAndPlaceOneTaskJob(TestDataFactory.REMOVABLE_INSTANCE_GROUP);
         relocationConnectorStubs.setQuota(task.getJobId(), 1);
 
         // Get the plan
@@ -92,12 +95,30 @@ public class TaskRelocationIntegrationTest {
         assertThat(status.getStatusMessage()).isNotEmpty();
     }
 
-    private Task placeTaskOnRemovableAgent() {
+    @Test(timeout = 60_000)
+    public void testEvents() {
+        Iterator<RelocationEvent> events = client.observeRelocationEvents(TaskRelocationQuery.getDefaultInstance());
+
+        Task task = createAndPlaceOneTaskJob(TestDataFactory.REMOVABLE_INSTANCE_GROUP);
+        relocationConnectorStubs.setQuota(task.getJobId(), 1);
+
+        RelocationEvent firstEvent = events.next();
+        if (firstEvent.getEventCase() == EventCase.SNAPSHOTEND) {
+            assertThat(events.next().getEventCase()).isEqualTo(EventCase.TASKRELOCATIONPLANUPDATEEVENT);
+            assertThat(events.next().getEventCase()).isEqualTo(EventCase.TASKRELOCATIONPLANREMOVEDEVENT);
+        } else {
+            assertThat(firstEvent.getEventCase()).isEqualTo(EventCase.TASKRELOCATIONPLANUPDATEEVENT);
+            assertThat(events.next().getEventCase()).isEqualTo(EventCase.SNAPSHOTEND);
+            assertThat(events.next().getEventCase()).isEqualTo(EventCase.TASKRELOCATIONPLANREMOVEDEVENT);
+        }
+    }
+
+    private Task createAndPlaceOneTaskJob(String instanceGroup) {
         Job<BatchJobExt> job = TestDataFactory.newBatchJob("job1", 1, newSelfManagedDisruptionBudget(RELOCATION_TIME_MS));
         relocationConnectorStubs.addJob(job);
 
         Task task = jobOperations.getTasks().get(0);
-        relocationConnectorStubs.place(TestDataFactory.REMOVABLE_INSTANCE_GROUP, task);
+        relocationConnectorStubs.place(instanceGroup, task);
 
         return task;
     }

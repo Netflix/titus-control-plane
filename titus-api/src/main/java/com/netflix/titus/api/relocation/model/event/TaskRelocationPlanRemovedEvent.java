@@ -16,5 +16,65 @@
 
 package com.netflix.titus.api.relocation.model.event;
 
-public class TaskRelocationPlanRemovedEvent {
+import java.util.Objects;
+
+public class TaskRelocationPlanRemovedEvent extends TaskRelocationEvent {
+
+    private final String taskId;
+
+    public TaskRelocationPlanRemovedEvent(String taskId) {
+        this.taskId = taskId;
+    }
+
+    public String getTaskId() {
+        return taskId;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        TaskRelocationPlanRemovedEvent that = (TaskRelocationPlanRemovedEvent) o;
+        return Objects.equals(taskId, that.taskId);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(taskId);
+    }
+
+    @Override
+    public String toString() {
+        return "TaskRelocationPlanRemovedEvent{" +
+                "taskId='" + taskId + '\'' +
+                '}';
+    }
+
+    public static Builder newBuilder() {
+        return new Builder();
+    }
+
+    public static final class Builder {
+        private String taskId;
+
+        private Builder() {
+        }
+
+        public Builder withTaskId(String taskId) {
+            this.taskId = taskId;
+            return this;
+        }
+
+        public Builder but() {
+            return newBuilder().withTaskId(taskId);
+        }
+
+        public TaskRelocationPlanRemovedEvent build() {
+            return new TaskRelocationPlanRemovedEvent(taskId);
+        }
+    }
 }
