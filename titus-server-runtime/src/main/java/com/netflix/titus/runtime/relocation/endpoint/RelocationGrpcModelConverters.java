@@ -125,4 +125,19 @@ public class RelocationGrpcModelConverters {
         }
         return Optional.ofNullable(grpcEvent);
     }
+
+    public static Optional<TaskRelocationEvent> toCoreRelocationEvent(RelocationEvent grpcEvent) {
+        switch (grpcEvent.getEventCase()) {
+            case SNAPSHOTEND:
+                return Optional.of(TaskRelocationEvent.newSnapshotEndEvent());
+            case TASKRELOCATIONPLANUPDATEEVENT:
+                return Optional.of(TaskRelocationEvent.taskRelocationPlanUpdated(toCoreTaskRelocationPlan(grpcEvent.getTaskRelocationPlanUpdateEvent().getPlan())));
+            case TASKRELOCATIONPLANREMOVEDEVENT:
+                return Optional.of(TaskRelocationEvent.taskRelocationPlanRemoved(grpcEvent.getTaskRelocationPlanRemovedEvent().getTaskId()));
+            case TASKRELOCATIONRESULTEVENT:
+            case EVENT_NOT_SET:
+            default:
+                return Optional.empty();
+        }
+    }
 }

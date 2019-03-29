@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,21 +16,8 @@
 
 package com.netflix.titus.runtime.connector.relocation;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-
-import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.api.relocation.model.event.TaskRelocationEvent;
-import com.netflix.titus.grpc.protogen.TaskRelocationQuery;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+import com.netflix.titus.runtime.connector.common.replicator.DataReplicator;
 
-public interface RelocationServiceClient {
-
-    Mono<Optional<TaskRelocationPlan>> findTaskRelocationPlan(String taskId);
-
-    Mono<List<TaskRelocationPlan>> findTaskRelocationPlans(Set<String> taskIds);
-
-    Flux<TaskRelocationEvent> events(TaskRelocationQuery query);
+public interface RelocationDataReplicator extends DataReplicator<TaskRelocationSnapshot, TaskRelocationEvent> {
 }

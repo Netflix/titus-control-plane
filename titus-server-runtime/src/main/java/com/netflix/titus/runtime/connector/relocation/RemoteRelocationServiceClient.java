@@ -24,10 +24,12 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
+import com.netflix.titus.api.relocation.model.event.TaskRelocationEvent;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.grpc.protogen.Page;
 import com.netflix.titus.grpc.protogen.TaskRelocationQuery;
 import com.netflix.titus.runtime.relocation.endpoint.RelocationGrpcModelConverters;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import static com.netflix.titus.runtime.relocation.endpoint.RelocationGrpcModelConverters.toCoreTaskRelocationPlan;
@@ -77,5 +79,13 @@ public class RemoteRelocationServiceClient implements RelocationServiceClient {
                     .collect(Collectors.toList());
             return Mono.just(coreList);
         });
+    }
+
+    @Override
+    public Flux<TaskRelocationEvent> events(TaskRelocationQuery query) {
+        return transportRelocationClient.observeRelocationEvents(query)
+                .map(grpcEvent -> RelocationGrpcModelConverters.toCoreRelocationEvent(grpcEvent))
+                .filter(Optional::isPresent)
+                .map(Optional::get);
     }
 }

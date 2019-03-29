@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,18 +16,14 @@
 
 package com.netflix.titus.runtime.connector.relocation;
 
-import com.netflix.titus.grpc.protogen.RelocationEvent;
-import com.netflix.titus.grpc.protogen.TaskRelocationPlans;
-import com.netflix.titus.grpc.protogen.TaskRelocationQuery;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+import com.google.inject.AbstractModule;
+import com.netflix.titus.api.relocation.service.ReadOnlyTaskRelocationService;
+import com.netflix.titus.runtime.connector.relocation.replicator.RelocationDataReplicatorProvider;
 
-/**
- * Task relocation GRPC client with Spring/Reactor API.
- */
-public interface ReactorRelocationServiceStub {
-
-    Mono<TaskRelocationPlans> getCurrentTaskRelocationPlans(TaskRelocationQuery query);
-
-    Flux<RelocationEvent> observeRelocationEvents(TaskRelocationQuery query);
+public class RelocationDataReplicationModule extends AbstractModule {
+    @Override
+    protected void configure() {
+        bind(RelocationDataReplicator.class).toProvider(RelocationDataReplicatorProvider.class);
+        bind(ReadOnlyTaskRelocationService.class).to(CachedReadOnlyTaskRelocationService.class);
+    }
 }

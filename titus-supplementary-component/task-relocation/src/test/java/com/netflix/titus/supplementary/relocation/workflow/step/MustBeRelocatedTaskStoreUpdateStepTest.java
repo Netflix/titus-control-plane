@@ -29,7 +29,7 @@ import com.netflix.titus.supplementary.relocation.store.TaskRelocationStore;
 import org.junit.Test;
 import reactor.core.publisher.Mono;
 
-import static com.netflix.titus.supplementary.relocation.TaskRelocationPlanGenerator.oneMigrationPlan;
+import static com.netflix.titus.testkit.model.relocation.TaskRelocationPlanGenerator.oneMigrationPlan;
 import static com.netflix.titus.supplementary.relocation.TestDataFactory.newSelfManagedDisruptionBudget;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyList;

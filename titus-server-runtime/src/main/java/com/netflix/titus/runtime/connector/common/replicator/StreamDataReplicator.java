@@ -78,38 +78,55 @@ public class StreamDataReplicator<SNAPSHOT extends ReplicatedSnapshot, TRIGGER> 
         return eventStream.map(event -> Pair.of(event.getSnapshot(), event.getTrigger()));
     }
 
+    public static <SNAPSHOT extends ReplicatedSnapshot, TRIGGER> StreamDataReplicator<SNAPSHOT, TRIGGER>
+    newStreamDataReplicator(ReplicatorEvent<SNAPSHOT, TRIGGER> initialEvent,
+                            ReplicatorEventStream<SNAPSHOT, TRIGGER> replicatorEventStream,
+                            DataReplicatorMetrics metrics,
+                            TitusRuntime titusRuntime) {
+        AtomicReference<ReplicatorEvent<SNAPSHOT, TRIGGER>> lastReplicatorEventRef = new AtomicReference<>(initialEvent);
+        Flux<ReplicatorEvent<SNAPSHOT, TRIGGER>> eventStream = replicatorEventStream.connect().publish().autoConnect(2);
+        Disposable internalSubscription = newMonitoringSubscription(metrics, lastReplicatorEventRef, eventStream);
+
+        return new StreamDataReplicator<>(eventStream, internalSubscription, lastReplicatorEventRef, titusRuntime);
+    }
+
     public static <SNAPSHOT extends ReplicatedSnapshot, TRIGGER> Flux<StreamDataReplicator<SNAPSHOT, TRIGGER>>
     newStreamDataReplicator(ReplicatorEventStream<SNAPSHOT, TRIGGER> replicatorEventStream,
                             DataReplicatorMetrics metrics,
                             TitusRuntime titusRuntime) {
         return Flux.defer(() -> {
             AtomicReference<ReplicatorEvent<SNAPSHOT, TRIGGER>> lastReplicatorEventRef = new AtomicReference<>();
-
             Flux<ReplicatorEvent<SNAPSHOT, TRIGGER>> eventStream = replicatorEventStream.connect().publish().autoConnect(2);
-
-            Disposable internalSubscription = eventStream
-                    .doOnSubscribe(s -> metrics.connected())
-                    .doOnCancel(metrics::disconnected)
-                    .subscribe(
-                            next -> {
-                                logger.debug("Snapshot update: {}", next.getSnapshot().toSummaryString());
-                                lastReplicatorEventRef.set(next);
-                                metrics.event(next);
-                            },
-                            e -> {
-                                logger.error("Unexpected error in the replicator event stream", e);
-                                metrics.disconnected(e);
-                            },
-                            () -> {
-                                logger.info("Replicator event stream completed");
-                                metrics.disconnected();
-                            }
-                    );
+            Disposable internalSubscription = newMonitoringSubscription(metrics, lastReplicatorEventRef, eventStream);
 
             return eventStream.filter(e -> isFresh(e, titusRuntime)).take(1).map(e ->
                     new StreamDataReplicator<>(eventStream, internalSubscription, lastReplicatorEventRef, titusRuntime)
             );
         });
+    }
+
+    private static <SNAPSHOT extends ReplicatedSnapshot, TRIGGER> Disposable
+    newMonitoringSubscription(DataReplicatorMetrics metrics,
+                              AtomicReference<ReplicatorEvent<SNAPSHOT, TRIGGER>> lastReplicatorEventRef,
+                              Flux<ReplicatorEvent<SNAPSHOT, TRIGGER>> eventStream) {
+        return eventStream
+                .doOnSubscribe(s -> metrics.connected())
+                .doOnCancel(metrics::disconnected)
+                .subscribe(
+                        next -> {
+                            logger.debug("Snapshot update: {}", next.getSnapshot().toSummaryString());
+                            lastReplicatorEventRef.set(next);
+                            metrics.event(next);
+                        },
+                        e -> {
+                            logger.error("Unexpected error in the replicator event stream", e);
+                            metrics.disconnected(e);
+                        },
+                        () -> {
+                            logger.info("Replicator event stream completed");
+                            metrics.disconnected();
+                        }
+                );
     }
 
     private static boolean isFresh(ReplicatorEvent event, TitusRuntime titusRuntime) {

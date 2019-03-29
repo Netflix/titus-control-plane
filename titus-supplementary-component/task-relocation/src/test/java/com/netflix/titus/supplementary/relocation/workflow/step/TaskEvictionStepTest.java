@@ -30,7 +30,7 @@ import org.junit.Before;
 import org.junit.Test;
 import reactor.core.scheduler.Schedulers;
 
-import static com.netflix.titus.supplementary.relocation.TaskRelocationPlanGenerator.oneMigrationPlan;
+import static com.netflix.titus.testkit.model.relocation.TaskRelocationPlanGenerator.oneMigrationPlan;
 import static com.netflix.titus.supplementary.relocation.TestDataFactory.newSelfManagedDisruptionBudget;
 import static org.assertj.core.api.Assertions.assertThat;
 

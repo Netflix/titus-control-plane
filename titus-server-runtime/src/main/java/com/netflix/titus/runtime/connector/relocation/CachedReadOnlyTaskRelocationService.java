@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,21 +16,32 @@
 
 package com.netflix.titus.runtime.connector.relocation;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.Map;
+import javax.inject.Inject;
+import javax.inject.Singleton;
 
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.api.relocation.model.event.TaskRelocationEvent;
-import com.netflix.titus.grpc.protogen.TaskRelocationQuery;
+import com.netflix.titus.api.relocation.service.ReadOnlyTaskRelocationService;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
-public interface RelocationServiceClient {
+@Singleton
+public class CachedReadOnlyTaskRelocationService implements ReadOnlyTaskRelocationService {
 
-    Mono<Optional<TaskRelocationPlan>> findTaskRelocationPlan(String taskId);
+    private final RelocationDataReplicator replicator;
 
-    Mono<List<TaskRelocationPlan>> findTaskRelocationPlans(Set<String> taskIds);
+    @Inject
+    public CachedReadOnlyTaskRelocationService(RelocationDataReplicator replicator) {
+        this.replicator = replicator;
+    }
 
-    Flux<TaskRelocationEvent> events(TaskRelocationQuery query);
+    @Override
+    public Map<String, TaskRelocationPlan> getPlannedRelocations() {
+        return replicator.getCurrent().getPlans();
+    }
+
+    @Override
+    public Flux<TaskRelocationEvent> events() {
+        throw new IllegalStateException("method not implemented yet");
+    }
 }
