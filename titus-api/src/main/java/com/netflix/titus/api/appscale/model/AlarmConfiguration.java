@@ -26,7 +26,6 @@ public class AlarmConfiguration {
     private final String region;
     private final Optional<Boolean> actionsEnabled;
     private final ComparisonOperator comparisonOperator;
-    private final String autoScalingGroupName;
     private final int evaluationPeriods;
     private final int periodSec;
     private final double threshold;
@@ -35,14 +34,13 @@ public class AlarmConfiguration {
     private final Statistic statistic;
 
     public AlarmConfiguration(String name, String region, Optional<Boolean> actionsEnabled, ComparisonOperator comparisonOperator,
-                              String autoScalingGroupName, int evaluationPeriods, int periodSec,
-                              double threshold, String metricNamespace, String metricName, Statistic statistic) {
+                              int evaluationPeriods, int periodSec, double threshold, String metricNamespace, String metricName,
+                              Statistic statistic) {
         this.name = name;
         this.region = region;
         this.actionsEnabled = actionsEnabled;
         // TODO(Andrew L): Change the parameter
         this.comparisonOperator = comparisonOperator;
-        this.autoScalingGroupName = autoScalingGroupName;
         this.evaluationPeriods = evaluationPeriods;
         this.periodSec = periodSec;
         this.threshold = threshold;
@@ -69,11 +67,6 @@ public class AlarmConfiguration {
     @JsonProperty
     public ComparisonOperator getComparisonOperator() {
         return comparisonOperator;
-    }
-
-    @JsonProperty
-    public String getAutoScalingGroupName() {
-        return autoScalingGroupName;
     }
 
     @JsonProperty
@@ -113,7 +106,6 @@ public class AlarmConfiguration {
                 ", region='" + region + '\'' +
                 ", actionsEnabled=" + actionsEnabled +
                 ", comparisonOperator=" + comparisonOperator +
-                ", autoScalingGroupName='" + autoScalingGroupName + '\'' +
                 ", evaluationPeriods=" + evaluationPeriods +
                 ", periodSec=" + periodSec +
                 ", threshold=" + threshold +
@@ -133,7 +125,6 @@ public class AlarmConfiguration {
         private String region;
         private Optional<Boolean> actionsEnabled = Optional.empty();
         private ComparisonOperator comparisonOperator;
-        private String autoScalingGroupName;
         private int evaluationPeriods;
         private int periodSec;
         private double threshold;
@@ -165,11 +156,6 @@ public class AlarmConfiguration {
 
         public Builder withComparisonOperator(ComparisonOperator comparisonOperator) {
             this.comparisonOperator = comparisonOperator;
-            return this;
-        }
-
-        public Builder withAutoScalingGroupName(String autoScalingGroupName) {
-            this.autoScalingGroupName = autoScalingGroupName;
             return this;
         }
 
@@ -207,8 +193,7 @@ public class AlarmConfiguration {
 
         public AlarmConfiguration build() {
             return new AlarmConfiguration(name, region, actionsEnabled, comparisonOperator,
-                    autoScalingGroupName, evaluationPeriods, periodSec,
-                    threshold, metricNamespace, metricName, statistic);
+                    evaluationPeriods, periodSec, threshold, metricNamespace, metricName, statistic);
         }
 
     }

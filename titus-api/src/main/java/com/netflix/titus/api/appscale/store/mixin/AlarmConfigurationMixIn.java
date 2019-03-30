@@ -31,7 +31,6 @@ public abstract class AlarmConfigurationMixIn {
             @JsonProperty("region") String region,
             @JsonProperty("actionsEnabled") Optional<Boolean> actionsEnabled,
             @JsonProperty("comparisonOperator") ComparisonOperator comparisonOperator,
-            @JsonProperty("autoScalingGroupName") String autoScalingGroupName,
             @JsonProperty("evaluationPeriods") int evaluationPeriods,
             @JsonProperty("period") int period,
             @JsonProperty("threshold") double threshold,

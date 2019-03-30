@@ -238,7 +238,6 @@ public class CassAppScalePolicyStoreTest {
                 .withMetricNamespace(alarmConfiguration.getMetricNamespace())
                 .withMetricName(alarmConfiguration.getMetricName())
                 .withComparisonOperator(alarmConfiguration.getComparisonOperator())
-                .withAutoScalingGroupName(alarmConfiguration.getAutoScalingGroupName())
                 .withThreshold(alarmConfiguration.getThreshold() + thresholdIncrement)
                 .withPeriodSec(alarmConfiguration.getPeriodSec())
                 .withEvaluationPeriods(alarmConfiguration.getEvaluationPeriods())
@@ -269,7 +268,6 @@ public class CassAppScalePolicyStoreTest {
     public void checkSerialization() throws Exception {
         AlarmConfiguration alarmConfiguration = AlarmConfiguration.newBuilder()
                 .withActionsEnabled(true)
-                .withAutoScalingGroupName("anyscale-amit-v000")
                 .withComparisonOperator(ComparisonOperator.GreaterThanThreshold)
                 .withEvaluationPeriods(1)
                 .withPeriodSec(60)
@@ -289,7 +287,6 @@ public class CassAppScalePolicyStoreTest {
     private AutoScalingPolicy buildAutoScalingPolicy(String jobId) {
         AlarmConfiguration alarmConfiguration = AlarmConfiguration.newBuilder()
                 .withActionsEnabled(true)
-                .withAutoScalingGroupName("anyscale-amit-v000")
                 .withComparisonOperator(ComparisonOperator.GreaterThanThreshold)
                 .withEvaluationPeriods(1)
                 .withPeriodSec(60)
