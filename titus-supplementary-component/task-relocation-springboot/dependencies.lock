@@ -1165,7 +1165,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.2",
+            "locked": "1.1.7.3",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -2099,18 +2099,6 @@
                 "org.mock-server:mockserver-core"
             ]
         },
-        "org.apache.logging.log4j:log4j-api": {
-            "locked": "2.11.1",
-            "transitive": [
-                "org.apache.logging.log4j:log4j-to-slf4j"
-            ]
-        },
-        "org.apache.logging.log4j:log4j-to-slf4j": {
-            "locked": "2.11.1",
-            "transitive": [
-                "org.springframework.boot:spring-boot-starter-logging"
-            ]
-        },
         "org.apache.tomcat.embed:tomcat-embed-core": {
             "locked": "9.0.14",
             "transitive": [
@@ -2355,7 +2343,6 @@
                 "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
-                "org.apache.logging.log4j:log4j-to-slf4j",
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-logging",
@@ -2515,7 +2502,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.2",
+            "locked": "1.1.7.3",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -3450,18 +3437,6 @@
                 "org.mock-server:mockserver-core"
             ]
         },
-        "org.apache.logging.log4j:log4j-api": {
-            "locked": "2.11.1",
-            "transitive": [
-                "org.apache.logging.log4j:log4j-to-slf4j"
-            ]
-        },
-        "org.apache.logging.log4j:log4j-to-slf4j": {
-            "locked": "2.11.1",
-            "transitive": [
-                "org.springframework.boot:spring-boot-starter-logging"
-            ]
-        },
         "org.apache.tomcat.embed:tomcat-embed-core": {
             "locked": "9.0.14",
             "transitive": [
@@ -3706,7 +3681,6 @@
                 "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
-                "org.apache.logging.log4j:log4j-to-slf4j",
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-logging",
@@ -3867,7 +3841,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.2",
+            "locked": "1.1.7.3",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -5122,7 +5096,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.2",
+            "locked": "1.1.7.3",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -6056,18 +6030,6 @@
                 "org.mock-server:mockserver-core"
             ]
         },
-        "org.apache.logging.log4j:log4j-api": {
-            "locked": "2.11.1",
-            "transitive": [
-                "org.apache.logging.log4j:log4j-to-slf4j"
-            ]
-        },
-        "org.apache.logging.log4j:log4j-to-slf4j": {
-            "locked": "2.11.1",
-            "transitive": [
-                "org.springframework.boot:spring-boot-starter-logging"
-            ]
-        },
         "org.apache.tomcat.embed:tomcat-embed-core": {
             "locked": "9.0.14",
             "transitive": [
@@ -6312,7 +6274,6 @@
                 "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
-                "org.apache.logging.log4j:log4j-to-slf4j",
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-logging",
@@ -6473,7 +6434,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.2",
+            "locked": "1.1.7.3",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -7239,7 +7200,7 @@
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.1.15.RELEASE",
+            "locked": "3.1.16.RELEASE",
             "requested": "3.1.+"
         },
         "io.reactivex.rxjava2:rxjava": {
@@ -7720,7 +7681,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.2",
+            "locked": "1.1.7.3",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -8513,7 +8474,7 @@
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.1.15.RELEASE",
+            "locked": "3.1.16.RELEASE",
             "requested": "3.1.+"
         },
         "io.reactivex.rxjava2:rxjava": {
@@ -8683,18 +8644,6 @@
                 "io.swagger:swagger-core",
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core"
-            ]
-        },
-        "org.apache.logging.log4j:log4j-api": {
-            "locked": "2.11.1",
-            "transitive": [
-                "org.apache.logging.log4j:log4j-to-slf4j"
-            ]
-        },
-        "org.apache.logging.log4j:log4j-to-slf4j": {
-            "locked": "2.11.1",
-            "transitive": [
-                "org.springframework.boot:spring-boot-starter-logging"
             ]
         },
         "org.apache.tomcat.embed:tomcat-embed-core": {
@@ -8966,7 +8915,6 @@
                 "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
-                "org.apache.logging.log4j:log4j-to-slf4j",
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-logging",
@@ -9126,7 +9074,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.2",
+            "locked": "1.1.7.3",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -9892,7 +9840,7 @@
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.1.15.RELEASE",
+            "locked": "3.1.16.RELEASE",
             "requested": "3.1.+"
         },
         "io.reactivex.rxjava2:rxjava": {
@@ -10374,7 +10322,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.2",
+            "locked": "1.1.7.3",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -11167,7 +11115,7 @@
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.1.15.RELEASE",
+            "locked": "3.1.16.RELEASE",
             "requested": "3.1.+"
         },
         "io.reactivex.rxjava2:rxjava": {
@@ -11337,18 +11285,6 @@
                 "io.swagger:swagger-core",
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core"
-            ]
-        },
-        "org.apache.logging.log4j:log4j-api": {
-            "locked": "2.11.1",
-            "transitive": [
-                "org.apache.logging.log4j:log4j-to-slf4j"
-            ]
-        },
-        "org.apache.logging.log4j:log4j-to-slf4j": {
-            "locked": "2.11.1",
-            "transitive": [
-                "org.springframework.boot:spring-boot-starter-logging"
             ]
         },
         "org.apache.tomcat.embed:tomcat-embed-core": {
@@ -11620,7 +11556,6 @@
                 "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
-                "org.apache.logging.log4j:log4j-to-slf4j",
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-logging",
@@ -11781,7 +11716,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.2",
+            "locked": "1.1.7.3",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]

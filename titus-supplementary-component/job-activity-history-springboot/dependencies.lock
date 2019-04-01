@@ -1864,7 +1864,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.2",
+            "locked": "1.1.7.3",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
@@ -3793,7 +3793,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.2",
+            "locked": "1.1.7.3",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
@@ -5723,7 +5723,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.2",
+            "locked": "1.1.7.3",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
@@ -7681,7 +7681,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.2",
+            "locked": "1.1.7.3",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
@@ -9611,7 +9611,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.2",
+            "locked": "1.1.7.3",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
@@ -10665,7 +10665,7 @@
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.1.15.RELEASE",
+            "locked": "3.1.16.RELEASE",
             "requested": "3.1.+"
         },
         "io.reactivex.rxjava2:rxjava": {
@@ -11527,7 +11527,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.2",
+            "locked": "1.1.7.3",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
@@ -12589,7 +12589,7 @@
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.1.15.RELEASE",
+            "locked": "3.1.16.RELEASE",
             "requested": "3.1.+"
         },
         "io.reactivex.rxjava2:rxjava": {
@@ -13478,7 +13478,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.2",
+            "locked": "1.1.7.3",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
@@ -14532,7 +14532,7 @@
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.1.15.RELEASE",
+            "locked": "3.1.16.RELEASE",
             "requested": "3.1.+"
         },
         "io.reactivex.rxjava2:rxjava": {
@@ -15395,7 +15395,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.2",
+            "locked": "1.1.7.3",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
@@ -16457,7 +16457,7 @@
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.1.15.RELEASE",
+            "locked": "3.1.16.RELEASE",
             "requested": "3.1.+"
         },
         "io.reactivex.rxjava2:rxjava": {
@@ -17347,7 +17347,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.2",
+            "locked": "1.1.7.3",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"

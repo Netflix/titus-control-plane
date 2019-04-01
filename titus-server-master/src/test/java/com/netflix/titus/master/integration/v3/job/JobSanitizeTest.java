@@ -79,6 +79,7 @@ public class JobSanitizeTest extends BaseIntegrationTest {
     @Before
     public void setUp() throws Exception {
         when(configuration.isEnabled()).thenReturn(true);
+        when(configuration.getJobImageValidationTimeoutMs()).thenReturn(1000L);
         instanceGroupsScenarioBuilder.synchronizeWithCloud().template(InstanceGroupScenarioTemplates.basicCloudActivation());
         this.client = titusStackResource.getGateway().getV3BlockingGrpcClient();
     }

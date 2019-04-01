@@ -31,7 +31,7 @@ public interface TitusRegistryClientConfiguration {
     @DefaultValue("500")
     int getRegistryTimeoutMs();
 
-    @DefaultValue("3")
+    @DefaultValue("2")
     int getRegistryRetryCount();
 
     @DefaultValue("5")
