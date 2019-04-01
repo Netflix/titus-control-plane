@@ -17,12 +17,14 @@
 package com.netflix.titus.runtime.connector.relocation.replicator;
 
 import java.util.UUID;
+import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import javax.inject.Singleton;
 
 import com.netflix.titus.api.relocation.model.event.TaskRelocationEvent;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.runtime.connector.common.replicator.DataReplicator;
 import com.netflix.titus.runtime.connector.common.replicator.DataReplicatorDelegate;
 import com.netflix.titus.runtime.connector.common.replicator.DataReplicatorMetrics;
@@ -62,6 +64,11 @@ public class RelocationDataReplicatorProvider implements Provider<RelocationData
         );
 
         this.replicator = new RelocationDataReplicatorImpl(original);
+    }
+
+    @PreDestroy
+    public void shutdown() {
+        ExceptionExt.silent(replicator::close);
     }
 
     @Override

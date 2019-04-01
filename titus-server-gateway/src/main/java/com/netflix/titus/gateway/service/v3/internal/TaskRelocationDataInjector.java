@@ -156,7 +156,7 @@ class TaskRelocationDataInjector {
         return (long) (configuration.getRequestTimeout() * jobManagerConfiguration.getRelocationTimeoutCoefficient());
     }
 
-    private Task newTaskWithRelocationPlan(Task task, TaskRelocationPlan relocationPlan) {
+    static Task newTaskWithRelocationPlan(Task task, TaskRelocationPlan relocationPlan) {
         if(relocationPlan == null) {
             return task;
         }

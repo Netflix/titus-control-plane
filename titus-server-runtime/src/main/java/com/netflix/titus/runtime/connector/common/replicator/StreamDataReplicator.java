@@ -17,7 +17,6 @@
 package com.netflix.titus.runtime.connector.common.replicator;
 
 import java.util.concurrent.atomic.AtomicReference;
-import javax.annotation.PreDestroy;
 
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.tuple.Pair;
@@ -53,8 +52,8 @@ public class StreamDataReplicator<SNAPSHOT extends ReplicatedSnapshot, TRIGGER> 
         this.titusRuntime = titusRuntime;
     }
 
-    @PreDestroy
-    public void shutdown() {
+    @Override
+    public void close() {
         internalSubscription.dispose();
     }
 
