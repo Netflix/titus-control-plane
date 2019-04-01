@@ -84,7 +84,7 @@ public class StreamDataReplicator<SNAPSHOT extends ReplicatedSnapshot, TRIGGER> 
                             DataReplicatorMetrics metrics,
                             TitusRuntime titusRuntime) {
         AtomicReference<ReplicatorEvent<SNAPSHOT, TRIGGER>> lastReplicatorEventRef = new AtomicReference<>(initialEvent);
-        Flux<ReplicatorEvent<SNAPSHOT, TRIGGER>> eventStream = replicatorEventStream.connect().publish().autoConnect(2);
+        Flux<ReplicatorEvent<SNAPSHOT, TRIGGER>> eventStream = replicatorEventStream.connect().publish().autoConnect(1);
         Disposable internalSubscription = newMonitoringSubscription(metrics, lastReplicatorEventRef, eventStream);
 
         return new StreamDataReplicator<>(eventStream, internalSubscription, lastReplicatorEventRef, titusRuntime);

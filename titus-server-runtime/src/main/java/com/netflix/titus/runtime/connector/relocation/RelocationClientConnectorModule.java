@@ -25,9 +25,9 @@ import com.netflix.titus.grpc.protogen.TaskRelocationServiceGrpc;
 import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorClientFactory;
 import io.grpc.Channel;
 
-import static com.netflix.titus.runtime.connector.titusmaster.TitusMasterConnectorModule.MANAGED_CHANNEL_NAME;
-
 public class RelocationClientConnectorModule extends AbstractModule {
+
+    public static final String RELOCATION_CLIENT = "relocationClient";
 
     @Override
     protected void configure() {
@@ -37,7 +37,7 @@ public class RelocationClientConnectorModule extends AbstractModule {
     @Provides
     @Singleton
     public ReactorRelocationServiceStub getReactorEvictionServiceStub(GrpcToReactorClientFactory factory,
-                                                                      @Named(MANAGED_CHANNEL_NAME) Channel channel) {
+                                                                      @Named(RELOCATION_CLIENT) Channel channel) {
         return factory.apply(TaskRelocationServiceGrpc.newStub(channel), ReactorRelocationServiceStub.class, TaskRelocationServiceGrpc.getServiceDescriptor());
     }
 }

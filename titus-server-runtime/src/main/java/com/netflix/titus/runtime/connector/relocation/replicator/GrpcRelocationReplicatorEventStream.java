@@ -84,16 +84,26 @@ public class GrpcRelocationReplicatorEventStream extends AbstractReplicatorEvent
             snapshotEvents.forEach(event -> applyToBuilder(builder, event));
             TaskRelocationSnapshot snapshot = builder.build();
 
+            // No longer needed
+            snapshotEvents.clear();
+
+            logger.info("Relocation snapshot loaded: {}", snapshot.toSummaryString());
+
             lastSnapshotRef.set(snapshot);
 
             return Flux.just(new ReplicatorEvent<>(snapshot, TaskRelocationEvent.newSnapshotEndEvent(), titusRuntime.getClock().wallTime()));
         }
 
         private Flux<ReplicatorEvent<TaskRelocationSnapshot, TaskRelocationEvent>> processSnapshotUpdate(TaskRelocationEvent event) {
+            logger.debug("Processing task relocation event: {}", event);
+
             TaskRelocationSnapshot.Builder builder = lastSnapshotRef.get().toBuilder();
             applyToBuilder(builder, event);
+            TaskRelocationSnapshot newSnapshot = builder.build();
 
-            return Flux.just(new ReplicatorEvent<>(builder.build(), event, titusRuntime.getClock().wallTime()));
+            lastSnapshotRef.set(newSnapshot);
+
+            return Flux.just(new ReplicatorEvent<>(newSnapshot, event, titusRuntime.getClock().wallTime()));
         }
 
         private void applyToBuilder(TaskRelocationSnapshot.Builder builder, TaskRelocationEvent event) {

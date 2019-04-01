@@ -93,9 +93,8 @@ class TaskRelocationDataInjector {
             return taskObservable;
         }
 
-        if (relocationDataReplicator.getStalenessMs() < MAX_RELOCATION_DATA_STALENESS_MS) {
-            TaskRelocationPlan relocationPlan = relocationDataReplicator.getCurrent().getPlans().get(taskId);
-            return taskObservable.map(task -> newTaskWithRelocationPlan(task, relocationPlan));
+        if (shouldUseRelocationCache()) {
+            return taskObservable.map(task -> newTaskWithRelocationPlan(task, relocationDataReplicator.getCurrent().getPlans().get(taskId)));
         }
 
         Observable<Optional<TaskRelocationPlan>> relocationPlanResolver = ReactorExt.toObservable(relocationServiceClient.findTaskRelocationPlan(taskId))
@@ -118,7 +117,7 @@ class TaskRelocationDataInjector {
         return tasksObservable.flatMap(queryResult -> {
             Set<String> taskIds = queryResult.getItemsList().stream().map(Task::getId).collect(Collectors.toSet());
 
-            if (relocationDataReplicator.getStalenessMs() < MAX_RELOCATION_DATA_STALENESS_MS) {
+            if (shouldUseRelocationCache()) {
                 Map<String, TaskRelocationPlan> plans = relocationDataReplicator.getCurrent().getPlans();
                 List<Task> newTaskList = queryResult.getItemsList().stream()
                         .map(task -> {
@@ -149,11 +148,19 @@ class TaskRelocationDataInjector {
         });
     }
 
+    private boolean shouldUseRelocationCache() {
+        return jobManagerConfiguration.isUseRelocationCache() && relocationDataReplicator.getStalenessMs() < MAX_RELOCATION_DATA_STALENESS_MS;
+    }
+
     private long getTaskRelocationTimeout() {
         return (long) (configuration.getRequestTimeout() * jobManagerConfiguration.getRelocationTimeoutCoefficient());
     }
 
     private Task newTaskWithRelocationPlan(Task task, TaskRelocationPlan relocationPlan) {
+        if(relocationPlan == null) {
+            return task;
+        }
+
         // If already set, assume this comes from the legacy task migration
         if (task.getMigrationDetails().getNeedsMigration()) {
             return task;
