@@ -21,8 +21,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import javax.net.ssl.SSLException;
 
-import com.netflix.spectator.api.Registry;
-import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.network.client.internal.WebClientMetric;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import org.slf4j.Logger;
@@ -35,38 +34,26 @@ import reactor.netty.http.client.HttpClient;
 /**
  * A collection of add-ons for Spring {@link WebClient}.
  * <p>
- * TODO Request latency logging, metrics
  */
 public final class TitusWebClientAddOns {
-
-    private static final String WEB_CLIENT_METRICS = "titus.webClient.";
-    private static final String WEB_CLIENT_REQUEST = WEB_CLIENT_METRICS + "request";
-
     private static final Logger logger = LoggerFactory.getLogger(TitusWebClientAddOns.class);
 
     private static final Logger requestLogger = LoggerFactory.getLogger("WebClientRequestLogger");
 
-
     public static WebClient.Builder addTitusDefaults(WebClient.Builder clientBuilder,
-                                                     String endpointName,
                                                      HttpClient httpClient,
-                                                     TitusRuntime titusRuntime) {
-
+                                                     WebClientMetric webClientMetric) {
         HttpClient updatedHttpClient = addMetricCallbacks(
                 addLoggingCallbacks(httpClient),
-                endpointName,
-                titusRuntime.getRegistry()
+                webClientMetric
         );
 
         return clientBuilder.clientConnector(new ReactorClientHttpConnector(updatedHttpClient));
     }
 
     public static WebClient.Builder addTitusDefaults(WebClient.Builder clientBuilder,
-                                                     String endpointName,
                                                      boolean secure,
-                                                     TitusRuntime titusRuntime) {
-        addTitusDefaults(clientBuilder, endpointName, HttpClient.create(), titusRuntime);
-
+                                                     WebClientMetric webClientMetric) {
         HttpClient httpClient = HttpClient.create();
         // SSL
         if (secure) {
@@ -74,12 +61,12 @@ public final class TitusWebClientAddOns {
                 SslContext sslContext = SslContextBuilder.forClient().build();
                 httpClient = httpClient.secure(spec -> spec.sslContext(sslContext));
             } catch (SSLException e) {
-                logger.error("Unable configure Docker registry client SSL context: {}", e);
+                logger.error("Unable configure Docker registry client SSL context: {}", e.getMessage());
                 throw new RuntimeException("Error configuring SSL context", e);
             }
         }
 
-        return addTitusDefaults(clientBuilder, endpointName, httpClient, titusRuntime);
+        return addTitusDefaults(clientBuilder, httpClient, webClientMetric);
     }
 
     public static Function<Flux<Throwable>, Flux<?>> retryer(Duration interval,
@@ -97,7 +84,7 @@ public final class TitusWebClientAddOns {
                     return Flux.error(error);
                 }
                 remaining.getAndDecrement();
-                logger.info("Retrying failed HTTP request in %sms", interval.toMillis());
+                logger.info("Retrying failed HTTP request in {}ms", interval.toMillis());
 
                 return Flux.interval(interval).take(1);
             });
@@ -117,23 +104,9 @@ public final class TitusWebClientAddOns {
                 )));
     }
 
-    private static HttpClient addMetricCallbacks(HttpClient httpClient, String endpointName, Registry registry) {
+    private static HttpClient addMetricCallbacks(HttpClient httpClient, WebClientMetric webClientMetric) {
         return httpClient
-                .doOnResponse((response, connection) -> {
-                    registry.counter(WEB_CLIENT_REQUEST,
-                            "endpoint", endpointName,
-                            "method", response.method().name(),
-                            "path", response.path(),
-                            "statusCode", response.status().toString()
-                    ).increment();
-                })
-                .doOnResponseError((response, error) -> {
-                    registry.counter(WEB_CLIENT_REQUEST,
-                            "endpoint", endpointName,
-                            "method", response.method().name(),
-                            "path", response.path(),
-                            "error", error.getClass().getSimpleName()
-                    ).increment();
-                });
+                .doAfterResponse(webClientMetric.getIncrementOnSuccess())
+                .doOnResponseError(webClientMetric.getIncrementOnError());
     }
 }

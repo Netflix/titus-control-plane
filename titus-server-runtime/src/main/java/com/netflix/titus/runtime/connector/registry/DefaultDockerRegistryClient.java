@@ -27,6 +27,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.netflix.titus.common.network.client.TitusWebClientAddOns;
+import com.netflix.titus.common.network.client.internal.WebClientMetric;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.guice.ProxyType;
 import com.netflix.titus.common.util.guice.annotation.ProxyConfiguration;
@@ -34,6 +35,7 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
@@ -59,14 +61,16 @@ public class DefaultDockerRegistryClient implements RegistryClient {
 
     private final TitusRegistryClientConfiguration titusRegistryClientConfiguration;
     private final WebClient restClient;
+    private final WebClientMetric webClientMetrics;
 
     @Inject
     DefaultDockerRegistryClient(TitusRegistryClientConfiguration configuration, TitusRuntime titusRuntime) {
         this.titusRegistryClientConfiguration = configuration;
+        this.webClientMetrics = new WebClientMetric(DefaultDockerRegistryClient.class.getSimpleName(), titusRuntime.getRegistry());
 
         this.restClient = WebClient.builder()
                 .baseUrl(configuration.getRegistryUri())
-                .apply(b -> TitusWebClientAddOns.addTitusDefaults(b, DefaultDockerRegistryClient.class.getSimpleName(), titusRegistryClientConfiguration.isSecure(), titusRuntime))
+                .apply(b -> TitusWebClientAddOns.addTitusDefaults(b, titusRegistryClientConfiguration.isSecure(), webClientMetrics))
                 .build();
     }
 
@@ -76,6 +80,7 @@ public class DefaultDockerRegistryClient implements RegistryClient {
      * encountered, an onError value is emitted.
      */
     public Mono<String> getImageDigest(String repository, String reference) {
+        long startTime = System.currentTimeMillis();
         return restClient.get().uri(buildRegistryUri(repository, reference))
                 .headers(consumer -> headers.forEach(consumer::add))
                 .exchange()
@@ -101,6 +106,7 @@ public class DefaultDockerRegistryClient implements RegistryClient {
                     return Mono.just(dockerDigestHeaderValue.get(0));
                 })
                 .timeout(Duration.ofMillis(titusRegistryClientConfiguration.getRegistryTimeoutMs()))
+                .doAfterSuccessOrError((digest, throwable) -> webClientMetrics.registerLatency(HttpMethod.GET, startTime))
                 .retryWhen(TitusWebClientAddOns.retryer(
                         Duration.ofMillis(titusRegistryClientConfiguration.getRegistryRetryDelayMs()),
                         titusRegistryClientConfiguration.getRegistryRetryCount(),
