@@ -51,7 +51,8 @@ public interface JobManagerConfiguration {
 
     /**
      * If set to true, the relocation data cache is used when merging task data with the relocation data.
-     * If set to false, a direct call to the relocation service is made each time for each task.
+     * If set to false, a direct call to the relocation service is made each time for each task, reverting to the
+     * previous behavior.
      */
     @DefaultValue("true")
     boolean isUseRelocationCache();

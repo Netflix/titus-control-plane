@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
 import java.util.function.Function;
 
 import org.reactivestreams.Publisher;
@@ -32,14 +32,14 @@ import reactor.core.publisher.Flux;
 class EventEmitterTransformer<K, T, E> implements Function<Flux<List<T>>, Publisher<E>> {
 
     private final Function<T, K> keyFun;
-    private final BiFunction<T, T, Boolean> valueComparator;
+    private final BiPredicate<T, T> valueComparator;
     private final Function<T, E> valueAddedEventMapper;
     private final Function<T, E> valueRemovedEventMapper;
     private final E snapshotEndEvent;
 
     EventEmitterTransformer(
             Function<T, K> keyFun,
-            BiFunction<T, T, Boolean> valueComparator,
+            BiPredicate<T, T> valueComparator,
             Function<T, E> valueAddedEventMapper,
             Function<T, E> valueRemovedEventMapper,
             E snapshotEndEvent) {
@@ -64,7 +64,7 @@ class EventEmitterTransformer<K, T, E> implements Function<Flux<List<T>>, Publis
                 // Updates
                 newValueMap.forEach((key, value) -> {
                     T previousValue = previousValueMap.get(key);
-                    if (previousValue == null || !valueComparator.apply(value, previousValue)) {
+                    if (previousValue == null || !valueComparator.test(value, previousValue)) {
                         events.add(valueAddedEventMapper.apply(value));
                     }
                 });
