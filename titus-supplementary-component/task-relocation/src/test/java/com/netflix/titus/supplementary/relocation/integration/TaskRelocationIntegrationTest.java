@@ -105,11 +105,11 @@ public class TaskRelocationIntegrationTest {
         RelocationEvent firstEvent = events.next();
         if (firstEvent.getEventCase() == EventCase.SNAPSHOTEND) {
             assertThat(events.next().getEventCase()).isEqualTo(EventCase.TASKRELOCATIONPLANUPDATEEVENT);
-            assertThat(events.next().getEventCase()).isEqualTo(EventCase.TASKRELOCATIONPLANREMOVEDEVENT);
+            assertThat(events.next().getEventCase()).isEqualTo(EventCase.TASKRELOCATIONPLANREMOVEEVENT);
         } else {
             assertThat(firstEvent.getEventCase()).isEqualTo(EventCase.TASKRELOCATIONPLANUPDATEEVENT);
             assertThat(events.next().getEventCase()).isEqualTo(EventCase.SNAPSHOTEND);
-            assertThat(events.next().getEventCase()).isEqualTo(EventCase.TASKRELOCATIONPLANREMOVEDEVENT);
+            assertThat(events.next().getEventCase()).isEqualTo(EventCase.TASKRELOCATIONPLANREMOVEEVENT);
         }
     }
 

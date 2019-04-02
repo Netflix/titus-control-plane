@@ -118,7 +118,7 @@ public class RelocationGrpcModelConverters {
         } else if (coreEvent instanceof TaskRelocationPlanRemovedEvent) {
             TaskRelocationPlanRemovedEvent removedEvent = (TaskRelocationPlanRemovedEvent) coreEvent;
             grpcEvent = RelocationEvent.newBuilder()
-                    .setTaskRelocationPlanRemovedEvent(RelocationEvent.TaskRelocationPlanRemovedEvent.newBuilder()
+                    .setTaskRelocationPlanRemoveEvent(RelocationEvent.TaskRelocationPlanRemoveEvent.newBuilder()
                             .setTaskId(removedEvent.getTaskId())
                     )
                     .build();
@@ -132,8 +132,8 @@ public class RelocationGrpcModelConverters {
                 return Optional.of(TaskRelocationEvent.newSnapshotEndEvent());
             case TASKRELOCATIONPLANUPDATEEVENT:
                 return Optional.of(TaskRelocationEvent.taskRelocationPlanUpdated(toCoreTaskRelocationPlan(grpcEvent.getTaskRelocationPlanUpdateEvent().getPlan())));
-            case TASKRELOCATIONPLANREMOVEDEVENT:
-                return Optional.of(TaskRelocationEvent.taskRelocationPlanRemoved(grpcEvent.getTaskRelocationPlanRemovedEvent().getTaskId()));
+            case TASKRELOCATIONPLANREMOVEEVENT:
+                return Optional.of(TaskRelocationEvent.taskRelocationPlanRemoved(grpcEvent.getTaskRelocationPlanRemoveEvent().getTaskId()));
             case TASKRELOCATIONRESULTEVENT:
             case EVENT_NOT_SET:
             default:
