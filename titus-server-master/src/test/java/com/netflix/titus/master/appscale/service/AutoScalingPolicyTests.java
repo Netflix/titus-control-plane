@@ -139,7 +139,6 @@ public class AutoScalingPolicyTests {
     public static AutoScalingPolicy buildStepScalingPolicy(String jobId) {
         AlarmConfiguration alarmConfiguration = AlarmConfiguration.newBuilder()
                 .withActionsEnabled(true)
-                .withAutoScalingGroupName("anyscale-amit-v000")
                 .withComparisonOperator(ComparisonOperator.GreaterThanThreshold)
                 .withEvaluationPeriods(1)
                 .withPeriodSec(60)
