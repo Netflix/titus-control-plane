@@ -21,6 +21,9 @@ import java.util.Optional;
 import java.util.Set;
 
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
+import com.netflix.titus.api.relocation.model.event.TaskRelocationEvent;
+import com.netflix.titus.grpc.protogen.TaskRelocationQuery;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public interface RelocationServiceClient {
@@ -28,4 +31,6 @@ public interface RelocationServiceClient {
     Mono<Optional<TaskRelocationPlan>> findTaskRelocationPlan(String taskId);
 
     Mono<List<TaskRelocationPlan>> findTaskRelocationPlans(Set<String> taskIds);
+
+    Flux<TaskRelocationEvent> events(TaskRelocationQuery query);
 }

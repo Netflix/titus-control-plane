@@ -27,6 +27,7 @@ import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan.TaskRelocationReason;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
+import com.netflix.titus.runtime.connector.relocation.RelocationDataReplicator;
 import com.netflix.titus.runtime.jobmanager.JobManagerConfiguration;
 import com.netflix.titus.grpc.protogen.MigrationDetails;
 import com.netflix.titus.grpc.protogen.Task;
@@ -66,12 +67,14 @@ public class TaskRelocationDataInjectorTest {
     private final FeatureActivationConfiguration featureActivationConfiguration = mock(FeatureActivationConfiguration.class);
 
     private final RelocationServiceClient relocationServiceClient = mock(RelocationServiceClient.class);
+    private final RelocationDataReplicator relocationDataReplicator = mock(RelocationDataReplicator.class);
 
     private final TaskRelocationDataInjector taskRelocationDataInjector = new TaskRelocationDataInjector(
             grpcConfiguration,
             jobManagerConfiguration,
             featureActivationConfiguration,
             relocationServiceClient,
+            relocationDataReplicator,
             testScheduler
     );
 

@@ -17,38 +17,27 @@
 package com.netflix.titus.runtime.connector.relocation;
 
 import javax.inject.Named;
-import javax.inject.Singleton;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
-import com.netflix.archaius.ConfigProxyFactory;
-import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
+import com.google.inject.Singleton;
+import com.netflix.titus.grpc.protogen.TaskRelocationServiceGrpc;
+import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorClientFactory;
 import io.grpc.Channel;
-import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 
-public class RelocationClientTransportModule extends AbstractModule {
+public class RelocationClientConnectorModule extends AbstractModule {
 
     public static final String RELOCATION_CLIENT = "relocationClient";
 
     @Override
     protected void configure() {
+        bind(RelocationServiceClient.class).to(RemoteRelocationServiceClient.class);
     }
 
     @Provides
     @Singleton
-    @Named(RELOCATION_CLIENT)
-    public GrpcClientConfiguration getGrpcClientConfiguration(ConfigProxyFactory factory) {
-        return factory.newProxy(GrpcClientConfiguration.class, "titus.relocation.grpcClient");
-    }
-
-    @Provides
-    @Singleton
-    @Named(RELOCATION_CLIENT)
-    Channel managedChannel(@Named(RELOCATION_CLIENT) GrpcClientConfiguration configuration) {
-        return NettyChannelBuilder
-                .forAddress(configuration.getHostname(), configuration.getGrpcPort())
-                .usePlaintext(true)
-                .maxHeaderListSize(65536)
-                .build();
+    public ReactorRelocationServiceStub getReactorEvictionServiceStub(GrpcToReactorClientFactory factory,
+                                                                      @Named(RELOCATION_CLIENT) Channel channel) {
+        return factory.apply(TaskRelocationServiceGrpc.newStub(channel), ReactorRelocationServiceStub.class, TaskRelocationServiceGrpc.getServiceDescriptor());
     }
 }

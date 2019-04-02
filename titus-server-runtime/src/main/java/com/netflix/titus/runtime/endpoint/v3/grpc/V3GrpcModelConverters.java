@@ -445,6 +445,8 @@ public final class V3GrpcModelConverters {
 
         if (isBatchTask) { // Batch job
             ((BatchJobTask.Builder) builder).withIndex(Integer.parseInt(taskIndexStr));
+        } else {
+            ((ServiceJobTask.Builder) builder).withMigrationDetails(toCoreMigrationDetails(grpcTask.getMigrationDetails()));
         }
 
         return builder.build();
@@ -923,6 +925,14 @@ public final class V3GrpcModelConverters {
                 .setNeedsMigration(migrationDetails.isNeedsMigration())
                 .setStarted(migrationDetails.getStarted())
                 .setDeadline(migrationDetails.getDeadline())
+                .build();
+    }
+
+    public static MigrationDetails toCoreMigrationDetails(com.netflix.titus.grpc.protogen.MigrationDetails grpcMigrationDetails) {
+        return MigrationDetails.newBuilder()
+                .withNeedsMigration(grpcMigrationDetails.getNeedsMigration())
+                .withStarted(grpcMigrationDetails.getStarted())
+                .withDeadline(grpcMigrationDetails.getDeadline())
                 .build();
     }
 

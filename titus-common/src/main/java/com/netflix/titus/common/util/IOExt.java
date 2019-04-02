@@ -41,11 +41,13 @@ public final class IOExt {
     /**
      * Close the given resource, swallowing any emitted exceptions.
      */
-    public static void closeSilently(Closeable closeable) {
-        if (closeable != null) {
-            try {
-                closeable.close();
-            } catch (IOException ignore) {
+    public static void closeSilently(Closeable... closeables) {
+        for (Closeable closeable : closeables) {
+            if (closeable != null) {
+                try {
+                    closeable.close();
+                } catch (IOException ignore) {
+                }
             }
         }
     }

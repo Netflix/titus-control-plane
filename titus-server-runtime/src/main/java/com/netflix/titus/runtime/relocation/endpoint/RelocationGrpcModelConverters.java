@@ -17,12 +17,17 @@
 package com.netflix.titus.runtime.relocation.endpoint;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.api.relocation.model.TaskRelocationStatus;
 import com.netflix.titus.api.relocation.model.TaskRelocationStatus.TaskRelocationState;
+import com.netflix.titus.api.relocation.model.event.TaskRelocationEvent;
+import com.netflix.titus.api.relocation.model.event.TaskRelocationPlanRemovedEvent;
+import com.netflix.titus.api.relocation.model.event.TaskRelocationPlanUpdateEvent;
+import com.netflix.titus.grpc.protogen.RelocationEvent;
 import com.netflix.titus.grpc.protogen.TaskRelocationExecution;
 import com.netflix.titus.grpc.protogen.TaskRelocationExecutions;
 import com.netflix.titus.grpc.protogen.TaskRelocationPlans;
@@ -95,5 +100,44 @@ public class RelocationGrpcModelConverters {
                 return com.netflix.titus.grpc.protogen.TaskRelocationStatus.TaskRelocationState.Failure;
         }
         throw new IllegalStateException("Unrecognized state: " + coreState);
+    }
+
+    public static Optional<RelocationEvent> toGrpcRelocationEvent(TaskRelocationEvent coreEvent) {
+        RelocationEvent grpcEvent = null;
+        if (coreEvent.equals(TaskRelocationEvent.newSnapshotEndEvent())) {
+            grpcEvent = RelocationEvent.newBuilder()
+                    .setSnapshotEnd(RelocationEvent.SnapshotEnd.getDefaultInstance())
+                    .build();
+        } else if (coreEvent instanceof TaskRelocationPlanUpdateEvent) {
+            TaskRelocationPlanUpdateEvent updateEvent = (TaskRelocationPlanUpdateEvent) coreEvent;
+            grpcEvent = RelocationEvent.newBuilder()
+                    .setTaskRelocationPlanUpdateEvent(RelocationEvent.TaskRelocationPlanUpdateEvent.newBuilder()
+                            .setPlan(toGrpcTaskRelocationPlan(updateEvent.getPlan()))
+                    )
+                    .build();
+        } else if (coreEvent instanceof TaskRelocationPlanRemovedEvent) {
+            TaskRelocationPlanRemovedEvent removedEvent = (TaskRelocationPlanRemovedEvent) coreEvent;
+            grpcEvent = RelocationEvent.newBuilder()
+                    .setTaskRelocationPlanRemoveEvent(RelocationEvent.TaskRelocationPlanRemoveEvent.newBuilder()
+                            .setTaskId(removedEvent.getTaskId())
+                    )
+                    .build();
+        }
+        return Optional.ofNullable(grpcEvent);
+    }
+
+    public static Optional<TaskRelocationEvent> toCoreRelocationEvent(RelocationEvent grpcEvent) {
+        switch (grpcEvent.getEventCase()) {
+            case SNAPSHOTEND:
+                return Optional.of(TaskRelocationEvent.newSnapshotEndEvent());
+            case TASKRELOCATIONPLANUPDATEEVENT:
+                return Optional.of(TaskRelocationEvent.taskRelocationPlanUpdated(toCoreTaskRelocationPlan(grpcEvent.getTaskRelocationPlanUpdateEvent().getPlan())));
+            case TASKRELOCATIONPLANREMOVEEVENT:
+                return Optional.of(TaskRelocationEvent.taskRelocationPlanRemoved(grpcEvent.getTaskRelocationPlanRemoveEvent().getTaskId()));
+            case TASKRELOCATIONRESULTEVENT:
+            case EVENT_NOT_SET:
+            default:
+                return Optional.empty();
+        }
     }
 }

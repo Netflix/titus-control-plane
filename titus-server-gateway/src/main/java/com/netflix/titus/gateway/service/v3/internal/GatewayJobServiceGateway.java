@@ -38,6 +38,7 @@ import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobAssertions;
 import com.netflix.titus.api.jobmanager.store.JobStore;
 import com.netflix.titus.api.jobmanager.store.JobStoreException;
+import com.netflix.titus.api.model.PageResult;
 import com.netflix.titus.api.model.Pagination;
 import com.netflix.titus.api.model.PaginationUtil;
 import com.netflix.titus.api.service.TitusServiceException;
@@ -60,15 +61,16 @@ import com.netflix.titus.grpc.protogen.TaskId;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.runtime.connector.GrpcRequestConfiguration;
-import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway;
-import com.netflix.titus.runtime.jobmanager.gateway.GrpcJobServiceGateway;
-import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGatewayDelegate;
-import com.netflix.titus.runtime.jobmanager.gateway.SanitizingJobServiceGateway;
 import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
+import com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import com.netflix.titus.runtime.jobmanager.JobManagerConfiguration;
 import com.netflix.titus.runtime.jobmanager.JobManagerCursors;
+import com.netflix.titus.runtime.jobmanager.gateway.GrpcJobServiceGateway;
+import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway;
+import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGatewayDelegate;
+import com.netflix.titus.runtime.jobmanager.gateway.SanitizingJobServiceGateway;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
@@ -102,6 +104,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
     private final JobStore store;
     private final LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo;
     private final TaskRelocationDataInjector taskRelocationDataInjector;
+    private final NeedsMigrationQueryHandler needsMigrationQueryHandler;
     private final EntityValidator<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> validator;
     private final Registry spectatorRegistry;
     private final Clock clock;
@@ -115,6 +118,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
                                     JobStore store,
                                     LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo,
                                     TaskRelocationDataInjector taskRelocationDataInjector,
+                                    NeedsMigrationQueryHandler needsMigrationQueryHandler,
                                     @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer,
                                     @Named(SECURITY_GROUPS_REQUIRED_FEATURE) Predicate<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> securityGroupsRequiredPredicate,
                                     @Named(ENVIRONMENT_VARIABLE_NAMES_STRICT_VALIDATION_FEATURE) Predicate<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> environmentVariableNamesStrictValidationPredicate,
@@ -136,6 +140,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
         this.store = store;
         this.logStorageInfo = logStorageInfo;
         this.taskRelocationDataInjector = taskRelocationDataInjector;
+        this.needsMigrationQueryHandler = needsMigrationQueryHandler;
         this.validator = validator;
         this.spectatorRegistry = titusRuntime.getRegistry();
         this.clock = titusRuntime.getClock();
@@ -216,6 +221,17 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
     public Observable<TaskQueryResult> findTasks(TaskQuery taskQuery) {
         Map<String, String> filteringCriteriaMap = taskQuery.getFilteringCriteriaMap();
         Set<String> v3JobIds = new HashSet<>(StringExt.splitByComma(filteringCriteriaMap.getOrDefault("jobIds", "")));
+        boolean needsMigrationFilter = "true".equalsIgnoreCase(filteringCriteriaMap.getOrDefault("needsMigration", "false"));
+
+        // "needsMigration" query is served from the local job and relocation cache.
+        if (needsMigrationFilter) {
+            PageResult<Task> pageResult = needsMigrationQueryHandler.findTasks(CommonGrpcModelConverters.toJobQueryCriteria(taskQuery), toPage(taskQuery.getPage()));
+            return Observable.just(TaskQueryResult.newBuilder()
+                    .setPagination(toGrpcPagination(pageResult.getPagination()))
+                    .addAllItems(pageResult.getItems())
+                    .build()
+            );
+        }
 
         Observable<TaskQueryResult> observable;
         if (v3JobIds.isEmpty()) {

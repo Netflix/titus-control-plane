@@ -43,9 +43,17 @@ public interface JobManagerConfiguration {
      * applying the regular request timeout might result in large latency increase for all client requests.
      * Instead we set more aggressive timeout for the task relocation service, at the cost of not including the
      * relocation data in the client response.
-     *o
+     *
      * @return fraction of the GRPC request timeout set for the task relocation service requests
      */
     @DefaultValue("0.1")
     double getRelocationTimeoutCoefficient();
+
+    /**
+     * If set to true, the relocation data cache is used when merging task data with the relocation data.
+     * If set to false, a direct call to the relocation service is made each time for each task, reverting to the
+     * previous behavior.
+     */
+    @DefaultValue("true")
+    boolean isUseRelocationCache();
 }

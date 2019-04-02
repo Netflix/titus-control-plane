@@ -17,6 +17,7 @@
 package com.netflix.titus.runtime.connector.agent.replicator;
 
 import java.time.Duration;
+import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import javax.inject.Singleton;
@@ -24,6 +25,7 @@ import javax.inject.Singleton;
 import com.netflix.titus.api.agent.model.event.AgentEvent;
 import com.netflix.titus.api.agent.model.event.AgentSnapshotEndEvent;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.runtime.connector.agent.AgentDataReplicator;
 import com.netflix.titus.runtime.connector.agent.AgentManagementClient;
 import com.netflix.titus.runtime.connector.agent.AgentSnapshot;
@@ -55,6 +57,11 @@ public class AgentDataReplicatorProvider implements Provider<AgentDataReplicator
         ).blockFirst(Duration.ofMillis(AGENT_BOOTSTRAP_TIMEOUT_MS));
 
         this.replicator = new AgentDataReplicatorImpl(original);
+    }
+
+    @PreDestroy
+    public void shutdown() {
+        ExceptionExt.silent(replicator::close);
     }
 
     @Override

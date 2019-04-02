@@ -16,6 +16,8 @@
 
 package com.netflix.titus.runtime.connector.common.replicator;
 
+import java.io.IOException;
+
 import com.netflix.titus.common.util.tuple.Pair;
 import reactor.core.publisher.Flux;
 
@@ -25,6 +27,11 @@ public class DataReplicatorDelegate<SNAPSHOT extends ReplicatedSnapshot, TRIGGER
 
     public DataReplicatorDelegate(DataReplicator<SNAPSHOT, TRIGGER> delegate) {
         this.delegate = delegate;
+    }
+
+    @Override
+    public void close() throws IOException {
+        delegate.close();
     }
 
     @Override

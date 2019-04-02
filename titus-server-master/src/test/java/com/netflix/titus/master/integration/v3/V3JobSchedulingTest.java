@@ -62,7 +62,7 @@ public class V3JobSchedulingTest extends BaseIntegrationTest {
      * resources.
      * TODO We should add second cluster in this test, but as adding cluster requires master restart, we provide two clusters in the initialization step
      */
-    @Test(timeout = 30_000)
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void submitBatchJobWhenTwoAgentClustersWithSameFitnessButDifferentResourceAmounts() throws Exception {
         JobDescriptor<BatchJobExt> jobDescriptor =
                 ONE_TASK_BATCH_JOB.but(j -> j.getContainer().but(c -> c.getContainerResources().toBuilder().withCpu(7)));
@@ -73,7 +73,7 @@ public class V3JobSchedulingTest extends BaseIntegrationTest {
         );
     }
 
-    @Test(timeout = 30_000)
+    @Test(timeout = LONG_TEST_TIMEOUT_MS)
     public void submitBatchJobAndRebootTitusMaster() throws Exception {
         jobsScenarioBuilder.schedule(ONE_TASK_BATCH_JOB, jobScenarioBuilder -> jobScenarioBuilder
                 .template(ScenarioTemplates.startTasksInNewJob())

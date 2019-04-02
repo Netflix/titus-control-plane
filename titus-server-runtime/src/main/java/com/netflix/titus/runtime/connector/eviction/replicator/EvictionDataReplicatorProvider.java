@@ -17,6 +17,7 @@
 package com.netflix.titus.runtime.connector.eviction.replicator;
 
 import java.time.Duration;
+import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import javax.inject.Singleton;
@@ -25,6 +26,7 @@ import com.netflix.titus.api.eviction.model.event.EvictionEvent;
 import com.netflix.titus.api.eviction.model.event.EvictionSnapshotEndEvent;
 import com.netflix.titus.api.model.Level;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.runtime.connector.common.replicator.DataReplicator;
 import com.netflix.titus.runtime.connector.common.replicator.DataReplicatorDelegate;
 import com.netflix.titus.runtime.connector.common.replicator.DataReplicatorMetrics;
@@ -56,6 +58,11 @@ public class EvictionDataReplicatorProvider implements Provider<EvictionDataRepl
         ).blockFirst(Duration.ofMillis(EVICTION_BOOTSTRAP_TIMEOUT_MS));
 
         this.replicator = new EvictionDataReplicatorImpl(original);
+    }
+
+    @PreDestroy
+    public void shutdown() {
+        ExceptionExt.silent(replicator::close);
     }
 
     @Override

@@ -17,8 +17,10 @@
 package com.netflix.titus.supplementary.relocation.workflow;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -32,12 +34,14 @@ import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.api.relocation.model.TaskRelocationStatus;
 import com.netflix.titus.api.relocation.model.TaskRelocationStatus.TaskRelocationState;
+import com.netflix.titus.api.relocation.model.event.TaskRelocationEvent;
 import com.netflix.titus.common.framework.scheduler.ExecutionContext;
 import com.netflix.titus.common.framework.scheduler.ScheduleReference;
 import com.netflix.titus.common.framework.scheduler.model.ScheduleDescriptor;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.IOExt;
 import com.netflix.titus.common.util.retry.Retryers;
+import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.runtime.connector.agent.AgentDataReplicator;
 import com.netflix.titus.runtime.connector.eviction.EvictionDataReplicator;
 import com.netflix.titus.runtime.connector.eviction.EvictionServiceClient;
@@ -55,6 +59,8 @@ import com.netflix.titus.supplementary.relocation.workflow.step.TaskEvictionResu
 import com.netflix.titus.supplementary.relocation.workflow.step.TaskEvictionStep;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.ReplayProcessor;
 import reactor.core.scheduler.Schedulers;
 
 @Singleton
@@ -78,7 +84,7 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
 
     private final TitusRuntime titusRuntime;
     private final WorkflowMetrics metrics;
-    private final ScheduleReference disposable;
+    private final ScheduleReference localSchedulerDisposable;
 
     private final MustBeRelocatedTaskCollectorStep mustBeRelocatedTaskCollectorStep;
     private final DeschedulerStep deschedulerStep;
@@ -91,6 +97,8 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
     private volatile Map<String, TaskRelocationPlan> lastRelocationPlan = PLANS_NOT_READY;
     private volatile Map<String, TaskRelocationPlan> lastEvictionPlan = Collections.emptyMap();
     private volatile Map<String, TaskRelocationStatus> lastEvictionResult = Collections.emptyMap();
+
+    private final ReplayProcessor<List<TaskRelocationPlan>> newRelocationPlanEmitter = ReplayProcessor.create(1);
 
     @Inject
     public DefaultRelocationWorkflowExecutor(RelocationConfiguration configuration,
@@ -110,6 +118,8 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
         this.evictionDataReplicator = evictionDataReplicator;
         this.metrics = new WorkflowMetrics(titusRuntime);
         this.titusRuntime = titusRuntime;
+
+        newRelocationPlanEmitter.onNext(Collections.emptyList());
 
         ensureReplicatorsReady();
 
@@ -133,7 +143,7 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
                 .withRetryerSupplier(() -> Retryers.exponentialBackoff(1, 5, TimeUnit.MINUTES))
                 .build();
 
-        disposable = titusRuntime.getLocalScheduler().schedule(relocationScheduleDescriptor, this::nextRelocationStep, true);
+        localSchedulerDisposable = titusRuntime.getLocalScheduler().schedule(relocationScheduleDescriptor, this::nextRelocationStep, true);
     }
 
     /**
@@ -163,7 +173,7 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
 
     @PreDestroy
     public void shutdown() {
-        IOExt.closeSilently(disposable);
+        IOExt.closeSilently(newRelocationPlanEmitter::dispose, localSchedulerDisposable);
     }
 
     @Override
@@ -182,6 +192,18 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
     @Override
     public Map<String, TaskRelocationStatus> getLastEvictionResults() {
         return Collections.unmodifiableMap(lastEvictionResult);
+    }
+
+    @Override
+    public Flux<TaskRelocationEvent> events() {
+        return ReactorExt.protectFromMissingExceptionHandlers(newRelocationPlanEmitter, logger)
+                .compose(ReactorExt.eventEmitter(
+                        TaskRelocationPlan::getTaskId,
+                        TaskRelocationPlan::equals,
+                        TaskRelocationEvent::taskRelocationPlanUpdated,
+                        removedPlan -> TaskRelocationEvent.taskRelocationPlanRemoved(removedPlan.getTaskId()),
+                        TaskRelocationEvent.newSnapshotEndEvent()
+                ));
     }
 
     private void nextRelocationStep(ExecutionContext executionContext) {
@@ -213,6 +235,7 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
         // Relocation plan
         Map<String, TaskRelocationPlan> newRelocationPlan = mustBeRelocatedTaskCollectorStep.collectTasksThatMustBeRelocated();
         this.lastRelocationPlan = mustBeRelocatedTaskStoreUpdateStep.persistChangesInStore(newRelocationPlan);
+        newRelocationPlanEmitter.onNext(new ArrayList<>(lastRelocationPlan.values()));
 
         if (descheduling) {
             // Descheduling

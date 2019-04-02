@@ -18,10 +18,12 @@ package com.netflix.titus.common.util.rx;
 
 import java.time.Duration;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -105,6 +107,19 @@ public final class ReactorExt {
     }
 
     /**
+     * An operator that converts collection of value into an event stream. Subsequent collection versions
+     * are compared against each other and add/remove events are emitted accordingly.
+     */
+    public static <K, T, E> Function<Flux<List<T>>, Publisher<E>> eventEmitter(
+            Function<T, K> keyFun,
+            BiPredicate<T, T> valueComparator,
+            Function<T, E> valueAddedEventMapper,
+            Function<T, E> valueRemovedEventMapper,
+            E snapshotEndEvent) {
+        return new EventEmitterTransformer<>(keyFun, valueComparator, valueAddedEventMapper, valueRemovedEventMapper, snapshotEndEvent);
+    }
+
+    /**
      * An operator that combines snapshots state with hot updates. To prevent loss of
      * any update for a given snapshot, the hot subscriber is subscribed first, and its
      * values are buffered until the snapshot state is streamed to the subscriber.
@@ -137,7 +152,6 @@ public final class ReactorExt {
                                                                          Flux<Function<S, Pair<R, S>>> cleanupActions) {
         return new ReactorMapWithStateTransformer<>(() -> zero, transformer, cleanupActions);
     }
-
 
     /**
      * Merge a map of {@link Mono}s, and return the combined result as a map. If a mono with a given key succeeded, the

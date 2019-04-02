@@ -44,6 +44,7 @@ import reactor.core.Disposable;
 
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.attachCancellingCallback;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.safeOnError;
+import static com.netflix.titus.runtime.relocation.endpoint.RelocationGrpcModelConverters.toGrpcRelocationEvent;
 import static com.netflix.titus.runtime.relocation.endpoint.RelocationGrpcModelConverters.toGrpcTaskRelocationExecutions;
 import static com.netflix.titus.supplementary.relocation.endpoint.TaskRelocationPlanPredicate.buildProtobufQueryResult;
 
@@ -120,11 +121,13 @@ public class TaskRelocationGrpcService extends TaskRelocationServiceGrpc.TaskRel
         attachCancellingCallback(responseObserver, disposable);
     }
 
-    /**
-     * TODO Implement
-     */
     @Override
     public void observeRelocationEvents(TaskRelocationQuery request, StreamObserver<RelocationEvent> responseObserver) {
-        responseObserver.onError(new RuntimeException("not implemented yet"));
+        Disposable disposable = relocationWorkflowExecutor.events().subscribe(
+                event -> toGrpcRelocationEvent(event).ifPresent(responseObserver::onNext),
+                responseObserver::onError,
+                responseObserver::onCompleted
+        );
+        attachCancellingCallback(responseObserver, disposable);
     }
 }

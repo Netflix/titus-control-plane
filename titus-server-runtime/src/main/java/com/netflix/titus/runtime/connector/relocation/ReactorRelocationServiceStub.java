@@ -16,8 +16,10 @@
 
 package com.netflix.titus.runtime.connector.relocation;
 
+import com.netflix.titus.grpc.protogen.RelocationEvent;
 import com.netflix.titus.grpc.protogen.TaskRelocationPlans;
 import com.netflix.titus.grpc.protogen.TaskRelocationQuery;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
@@ -26,4 +28,6 @@ import reactor.core.publisher.Mono;
 public interface ReactorRelocationServiceStub {
 
     Mono<TaskRelocationPlans> getCurrentTaskRelocationPlans(TaskRelocationQuery query);
+
+    Flux<RelocationEvent> observeRelocationEvents(TaskRelocationQuery query);
 }

@@ -38,13 +38,18 @@ import com.netflix.titus.testkit.grpc.TestStreamObserver;
 import com.netflix.titus.testkit.junit.master.TitusMasterResource;
 import com.netflix.titus.testkit.junit.master.TitusStackResource;
 import org.junit.rules.ExternalResource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.netflix.titus.common.util.ExceptionExt.rethrow;
 import static com.netflix.titus.master.integration.v3.scenario.ScenarioBuilderUtil.TIMEOUT_MS;
 
 /**
+ *
  */
 public class JobsScenarioBuilder extends ExternalResource {
+
+    private static final Logger logger = LoggerFactory.getLogger(JobsScenarioBuilder.class);
 
     private final TitusStackResource titusStackResource;
     private final TitusMasterResource titusMasterResource;
@@ -156,17 +161,34 @@ public class JobsScenarioBuilder extends ExternalResource {
     }
 
     private List<JobScenarioBuilder> loadJobs() {
-        TestStreamObserver<JobQueryResult> responseObserver = new TestStreamObserver<>();
         JobQuery query = JobQuery.newBuilder().setPage(Page.newBuilder().setPageSize(1000)).build();
-        client.findJobs(query, responseObserver);
+        Throwable lastFailure = null;
 
-        JobQueryResult queryResult = rethrow(() -> responseObserver.takeNext(TIMEOUT_MS, TimeUnit.MILLISECONDS));
+        // During TitusMaster reboot we reuse the same ephemeral GRPC port with the same client side ManagedChannel
+        // in TitusGateway. The channel may have broken connection which after reboot my result in a failure here, and
+        // since we do not have retry interceptor installed, we make a few attempts directly.
+        for (int i = 0; i < 3; i++) {
+            try {
+                TestStreamObserver<JobQueryResult> responseObserver = new TestStreamObserver<>();
+                client.findJobs(query, responseObserver);
 
-        List<JobScenarioBuilder> result = new ArrayList<>();
-        queryResult.getItemsList().forEach(job -> {
-            result.add(new JobScenarioBuilder(titusOperations, this, job.getId(), diagnosticReporter));
-        });
+                JobQueryResult queryResult = rethrow(() -> responseObserver.takeNext(TIMEOUT_MS, TimeUnit.MILLISECONDS));
 
-        return result;
+                List<JobScenarioBuilder> result = new ArrayList<>();
+                queryResult.getItemsList().forEach(job -> {
+                    result.add(new JobScenarioBuilder(titusOperations, this, job.getId(), diagnosticReporter));
+                });
+
+                return result;
+            } catch (Exception e) {
+                lastFailure = e;
+                logger.info("Cannot load jobs from TitusMaster (might be not ready yet). Waiting 1sec before next try...");
+                try {
+                    Thread.sleep(1_000);
+                } catch (InterruptedException ignore) {
+                }
+            }
+        }
+        throw new IllegalStateException("Cannot load jobs: " + lastFailure, lastFailure);
     }
 }

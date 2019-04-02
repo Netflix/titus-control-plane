@@ -16,13 +16,15 @@
 
 package com.netflix.titus.runtime.connector.common.replicator;
 
+import java.io.Closeable;
+
 import com.netflix.titus.common.util.tuple.Pair;
 import reactor.core.publisher.Flux;
 
 /**
  * Data replicator from a remote service.
  */
-public interface DataReplicator<SNAPSHOT extends ReplicatedSnapshot, TRIGGER> {
+public interface DataReplicator<SNAPSHOT extends ReplicatedSnapshot, TRIGGER> extends Closeable {
     /**
      * Get the latest known version of the data.
      */

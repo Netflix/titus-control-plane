@@ -17,12 +17,14 @@
 package com.netflix.titus.runtime.connector.jobmanager.replicator;
 
 import java.time.Duration;
+import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import javax.inject.Singleton;
 
 import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.runtime.connector.common.replicator.DataReplicator;
 import com.netflix.titus.runtime.connector.common.replicator.DataReplicatorDelegate;
 import com.netflix.titus.runtime.connector.common.replicator.DataReplicatorMetrics;
@@ -54,6 +56,11 @@ public class JobDataReplicatorProvider implements Provider<JobDataReplicator> {
         ).blockFirst(Duration.ofMillis(JOB_BOOTSTRAP_TIMEOUT_MS));
 
         this.replicator = new JobDataReplicatorImpl(original);
+    }
+
+    @PreDestroy
+    public void shutdown() {
+        ExceptionExt.silent(replicator::close);
     }
 
     @Override

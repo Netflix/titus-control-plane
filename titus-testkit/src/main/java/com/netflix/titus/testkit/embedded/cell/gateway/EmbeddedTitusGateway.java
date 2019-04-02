@@ -136,7 +136,7 @@ public class EmbeddedTitusGateway {
                         bindApplicationConfigurationOverride().toInstance(config);
                     }
                 },
-                Modules.override(new TitusGatewayModule(enableREST)).with(new AbstractModule() {
+                Modules.override(new TitusGatewayModule(enableREST, false)).with(new AbstractModule() {
                     @Override
                     protected void configure() {
                         if (store != null) {

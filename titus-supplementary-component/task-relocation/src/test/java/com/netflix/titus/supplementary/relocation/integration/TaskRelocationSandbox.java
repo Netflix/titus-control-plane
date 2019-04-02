@@ -16,6 +16,9 @@
 
 package com.netflix.titus.supplementary.relocation.integration;
 
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+
 import com.netflix.titus.supplementary.relocation.RelocationConfiguration;
 import com.netflix.titus.supplementary.relocation.RelocationConnectorStubs;
 import com.netflix.titus.supplementary.relocation.descheduler.DeschedulerComponent;
@@ -36,6 +39,7 @@ import org.springframework.mock.env.MockEnvironment;
 public class TaskRelocationSandbox {
 
     private final AnnotationConfigApplicationContext container;
+    private final BlockingQueue<ManagedChannel> channels = new LinkedBlockingQueue<>();
 
     public TaskRelocationSandbox(RelocationConnectorStubs relocationConnectorStubs) {
         MockEnvironment config = new MockEnvironment();
@@ -61,13 +65,18 @@ public class TaskRelocationSandbox {
     }
 
     public void shutdown() {
+        for (ManagedChannel channel : channels) {
+            channel.shutdownNow();
+        }
         container.close();
     }
 
     public ManagedChannel getGrpcChannel() {
         int port = container.getBean(TaskRelocationGrpcServer.class).getPort();
-        return ManagedChannelBuilder.forAddress("localhost", port)
+        ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost", port)
                 .usePlaintext(true)
                 .build();
+        channels.add(channel);
+        return channel;
     }
 }
