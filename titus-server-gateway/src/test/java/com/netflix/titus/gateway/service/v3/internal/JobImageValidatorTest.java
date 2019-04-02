@@ -66,6 +66,7 @@ public class JobImageValidatorTest {
     @Before
     public void setUp() {
         when(configuration.isEnabled()).thenReturn(true);
+        when(configuration.getJobImageValidationTimeoutMs()).thenReturn(1000L);
         when(registryClient.getImageDigest(anyString(), anyString())).thenReturn(Mono.just(digest));
         validator = new JobImageValidator(configuration, registryClient);
     }
@@ -87,7 +88,7 @@ public class JobImageValidatorTest {
         StepVerifier.create(validator.sanitize(jobDescriptorWithTag))
                 .expectErrorSatisfies(throwable -> {
                     assertThat(throwable).isInstanceOf(TitusRegistryException.class);
-                    assertThat(((TitusRegistryException)throwable).getErrorCode()).isEqualByComparingTo(TitusRegistryException.ErrorCode.IMAGE_NOT_FOUND);
+                    assertThat(((TitusRegistryException) throwable).getErrorCode()).isEqualByComparingTo(TitusRegistryException.ErrorCode.IMAGE_NOT_FOUND);
                 })
                 .verify();
     }

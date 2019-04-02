@@ -16,6 +16,7 @@
 
 package com.netflix.titus.runtime.endpoint.validator;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Set;
 import javax.inject.Inject;
@@ -80,9 +81,11 @@ public class JobImageValidator implements EntityValidator<JobDescriptor> {
         }
 
         return sanitizeImage(jobDescriptor)
+                .timeout(Duration.ofMillis(configuration.getJobImageValidationTimeoutMs()))
                 // We are ignoring most image validation errors. We will propagate
                 // more errors as we going feature confidence.
                 .onErrorReturn(throwable -> {
+                    logger.error("Exception while checking image digest", throwable);
                     if (throwable instanceof TitusRegistryException) {
                         TitusRegistryException tre = (TitusRegistryException) throwable;
                         switch (tre.getErrorCode()) {
