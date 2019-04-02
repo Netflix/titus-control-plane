@@ -83,7 +83,7 @@ public class JobSubmitAndControlBasicTest extends BaseIntegrationTest {
     public void testSubmitSimpleBatchJobWhichEndsOk() throws Exception {
         jobsScenarioBuilder.schedule(ONE_TASK_BATCH_JOB, jobScenarioBuilder -> jobScenarioBuilder
                 .inJob(job -> assertThat(job.getJobDescriptor()).isEqualTo(
-                        appendJobDescriptorAttribute(ONE_TASK_BATCH_JOB, JobAttributes.JOB_ATTRIBUTES_CALLER_ID, "embeddedFederationClient"))
+                        appendJobDescriptorAttribute(ONE_TASK_BATCH_JOB, JobAttributes.JOB_ATTRIBUTES_CREATED_BY, "embeddedFederationClient"))
                 )
                 .template(ScenarioTemplates.startTasksInNewJob())
                 .assertEachContainer(

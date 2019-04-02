@@ -191,7 +191,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
                 : callMetadata.getCallers().get(0).getId();
 
         JobDescriptor<?> jobDescriptorWithCallerId = JobFunctions.appendJobDescriptorAttribute(jobDescriptor,
-                JobAttributes.JOB_ATTRIBUTES_CALLER_ID, callerId
+                JobAttributes.JOB_ATTRIBUTES_CREATED_BY, callerId
         );
 
         return Observable.fromCallable(() -> jobSubmitLimiter.reserveId(jobDescriptorWithCallerId))

@@ -30,7 +30,7 @@ public final class JobAttributes {
     /**
      * Job creator.
      */
-    public static final String JOB_ATTRIBUTES_CALLER_ID = TITUS_ATTRIBUTE_PREFIX + "caller.id";
+    public static final String JOB_ATTRIBUTES_CREATED_BY = TITUS_ATTRIBUTE_PREFIX + "createdBy";
 
     /**
      * Federated stack name. All cells under the same federated stack must share the same value.
