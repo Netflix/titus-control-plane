@@ -18,6 +18,7 @@ package com.netflix.titus.master.integration.v3.job;
 
 import java.util.List;
 
+import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobModel;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
@@ -42,6 +43,7 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
+import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.appendJobDescriptorAttribute;
 import static com.netflix.titus.master.integration.v3.scenario.JobAsserts.containerWithEfsMounts;
 import static com.netflix.titus.master.integration.v3.scenario.JobAsserts.containerWithResources;
 import static com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCells.basicCell;
@@ -80,7 +82,9 @@ public class JobSubmitAndControlBasicTest extends BaseIntegrationTest {
     @Test(timeout = 30_000)
     public void testSubmitSimpleBatchJobWhichEndsOk() throws Exception {
         jobsScenarioBuilder.schedule(ONE_TASK_BATCH_JOB, jobScenarioBuilder -> jobScenarioBuilder
-                .inJob(job -> assertThat(job.getJobDescriptor()).isEqualTo(ONE_TASK_BATCH_JOB))
+                .inJob(job -> assertThat(job.getJobDescriptor()).isEqualTo(
+                        appendJobDescriptorAttribute(ONE_TASK_BATCH_JOB, JobAttributes.JOB_ATTRIBUTES_CREATED_BY, "embeddedFederationClient"))
+                )
                 .template(ScenarioTemplates.startTasksInNewJob())
                 .assertEachContainer(
                         containerWithResources(ONE_TASK_BATCH_JOB.getContainer().getContainerResources(), jobConfiguration.getMinDiskSizeMB()),

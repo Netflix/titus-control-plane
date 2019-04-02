@@ -28,6 +28,11 @@ public final class JobAttributes {
     // Job Descriptor Attributes
 
     /**
+     * Job creator.
+     */
+    public static final String JOB_ATTRIBUTES_CREATED_BY = TITUS_ATTRIBUTE_PREFIX + "createdBy";
+
+    /**
      * Federated stack name. All cells under the same federated stack must share the same value.
      */
     public static final String JOB_ATTRIBUTES_STACK = TITUS_ATTRIBUTE_PREFIX + "stack";

@@ -57,6 +57,7 @@ public class CallMetadata {
         this.debug = debug;
     }
 
+    @Deprecated
     public String getCallerId() {
         return callerId;
     }
