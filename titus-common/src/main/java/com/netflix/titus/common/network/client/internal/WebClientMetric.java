@@ -52,25 +52,19 @@ public class WebClientMetric {
                 .record(System.currentTimeMillis() - startTimeMs, TimeUnit.MILLISECONDS);
     }
 
-    // Returns a function to increment on success
-    public BiConsumer<? super HttpClientResponse, ? super Connection> getIncrementOnSuccess() {
-        return (response, connection) -> {
-            registry.counter(requestId
-                    .withTag(WEB_CLIENT_METHOD_TAG, response.method().name())
-                    .withTag(WEB_CLIENT_PATH_TAG, response.path())
-                    .withTag("statusCode", response.status().toString())
-            ).increment();
-        };
+    public void incrementOnSuccess(HttpClientResponse response, Connection connection) {
+        registry.counter(requestId
+                .withTag(WEB_CLIENT_METHOD_TAG, response.method().name())
+                .withTag(WEB_CLIENT_PATH_TAG, response.path())
+                .withTag("statusCode", response.status().toString())
+        ).increment();
     }
 
-    // Returns a function to increment on error
-    public BiConsumer<? super HttpClientResponse, ? super Throwable> getIncrementOnError() {
-        return (response, throwable) -> {
-            registry.counter(requestId
-                    .withTag(WEB_CLIENT_METHOD_TAG, response.method().name())
-                    .withTag(WEB_CLIENT_PATH_TAG, response.path())
-                    .withTag("error", throwable.getClass().getSimpleName())
-            ).increment();
-        };
+    public void incrementOnError(HttpClientResponse response, Throwable throwable) {
+        registry.counter(requestId
+                .withTag(WEB_CLIENT_METHOD_TAG, response.method().name())
+                .withTag(WEB_CLIENT_PATH_TAG, response.path())
+                .withTag("error", throwable.getClass().getSimpleName())
+        ).increment();
     }
 }

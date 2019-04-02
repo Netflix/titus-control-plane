@@ -106,7 +106,7 @@ public final class TitusWebClientAddOns {
 
     private static HttpClient addMetricCallbacks(HttpClient httpClient, WebClientMetric webClientMetric) {
         return httpClient
-                .doAfterResponse(webClientMetric.getIncrementOnSuccess())
-                .doOnResponseError(webClientMetric.getIncrementOnError());
+                .doAfterResponse(webClientMetric::incrementOnSuccess)
+                .doOnResponseError(webClientMetric::incrementOnError);
     }
 }
