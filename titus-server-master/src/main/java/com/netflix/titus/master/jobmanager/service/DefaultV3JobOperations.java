@@ -30,6 +30,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.netflix.titus.api.FeatureActivationConfiguration;
+import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
@@ -185,24 +186,32 @@ public class DefaultV3JobOperations implements V3JobOperations {
 
     @Override
     public Observable<String> createJob(JobDescriptor<?> jobDescriptor, CallMetadata callMetadata) {
-        return Observable.fromCallable(() -> jobSubmitLimiter.reserveId(jobDescriptor))
+        String callerId = callMetadata.getCallers().isEmpty()
+                ? "unknown"
+                : callMetadata.getCallers().get(0).getId();
+
+        JobDescriptor<?> jobDescriptorWithCallerId = JobFunctions.appendJobDescriptorAttribute(jobDescriptor,
+                JobAttributes.JOB_ATTRIBUTES_CALLER_ID, callerId
+        );
+
+        return Observable.fromCallable(() -> jobSubmitLimiter.reserveId(jobDescriptorWithCallerId))
                 .flatMap(reservationFailure -> {
                     if (reservationFailure.isPresent()) {
                         return Observable.error(JobManagerException.jobCreateLimited(reservationFailure.get()));
                     }
-                    Optional<String> limited = jobSubmitLimiter.checkIfAllowed(jobDescriptor);
+                    Optional<String> limited = jobSubmitLimiter.checkIfAllowed(jobDescriptorWithCallerId);
                     if (limited.isPresent()) {
-                        jobSubmitLimiter.releaseId(jobDescriptor);
+                        jobSubmitLimiter.releaseId(jobDescriptorWithCallerId);
                         return Observable.error(JobManagerException.jobCreateLimited(limited.get()));
                     }
 
-                    Job<?> job = newJob(jobDescriptor);
+                    Job<?> job = newJob(jobDescriptorWithCallerId);
                     String jobId = job.getId();
 
                     return store.storeJob(job).toObservable()
                             .concatWith(reconciliationFramework.newEngine(EntityHolder.newRoot(jobId, job).addTag(JobManagerConstants.JOB_MANAGER_ATTRIBUTE_CALLMETADATA, callMetadata)))
                             .map(engine -> jobId)
-                            .doOnTerminate(() -> jobSubmitLimiter.releaseId(jobDescriptor))
+                            .doOnTerminate(() -> jobSubmitLimiter.releaseId(jobDescriptorWithCallerId))
                             .doOnCompleted(() -> logger.info("Created job {} call metadata {}", jobId, callMetadata.getCallerId()))
                             .doOnError(e -> logger.info("Job {} creation failure", jobId, e));
                 });
