@@ -48,7 +48,7 @@ public class TitusGateway {
 
         try {
             LifecycleInjector injector = InjectorBuilder.fromModules(
-                    new TitusGatewayModule(),
+                    new TitusGatewayModule(true, false),
                     new Archaius2JettyModule(),
                     new ArchaiusModule() {
                         @Override
