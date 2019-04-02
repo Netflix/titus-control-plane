@@ -20,10 +20,12 @@ package com.netflix.titus.api.appscale.store.mixin;
 import java.util.Optional;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.netflix.titus.api.appscale.model.ComparisonOperator;
 import com.netflix.titus.api.appscale.model.Statistic;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public abstract class AlarmConfigurationMixIn {
     @JsonCreator
     AlarmConfigurationMixIn(
