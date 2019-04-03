@@ -27,6 +27,7 @@ import javax.inject.Singleton;
 import com.netflix.titus.api.supervisor.service.LeaderActivator;
 import com.netflix.titus.api.supervisor.service.MasterDescription;
 import com.netflix.titus.api.supervisor.service.MasterMonitor;
+import com.netflix.titus.common.util.SystemExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -89,7 +90,7 @@ public class ZkLeaderVerificator {
                                     logger.warn("ZK says leader is " + ref.get().getHostname() + ", not us (" + myHostname + ")");
                                     if (falseCount.incrementAndGet() > MAX_FALSE_COUNTS) {
                                         logger.error("Too many attempts failed to verify ZK leader status, exiting!");
-                                        System.exit(5);
+                                        SystemExt.commitSuicide(5);
                                     }
                                 }
                             }

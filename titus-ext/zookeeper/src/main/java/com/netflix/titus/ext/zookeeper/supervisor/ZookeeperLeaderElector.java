@@ -27,6 +27,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.netflix.titus.api.json.ObjectMappers;
 import com.netflix.titus.common.runtime.SystemLogEvent;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.SystemExt;
 import com.netflix.titus.common.util.rx.ObservableExt;
 import com.netflix.titus.ext.zookeeper.ZookeeperPaths;
 import com.netflix.titus.ext.zookeeper.connector.CuratorService;
@@ -164,7 +165,7 @@ public class ZookeeperLeaderElector implements LeaderElector {
 
             if (leaderActivator.isLeader()) {
                 logger.error("Unexpected to be a leader. Terminating the JVM process");
-                System.exit(-1);
+                SystemExt.commitSuicide(-1);
             }
 
             return true;
@@ -228,7 +229,7 @@ public class ZookeeperLeaderElector implements LeaderElector {
         private void terminateIfClosed() {
             if (closed) {
                 logger.error("Received leader activation request after initiating withdrawal from the leader election process. Terminating the JVM process");
-                System.exit(-1);
+                SystemExt.commitSuicide(-1);
             }
         }
     }

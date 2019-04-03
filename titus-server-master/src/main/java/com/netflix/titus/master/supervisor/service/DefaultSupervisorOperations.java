@@ -34,6 +34,7 @@ import com.netflix.titus.api.supervisor.service.SupervisorServiceException;
 import com.netflix.titus.common.runtime.SystemLogEvent;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.common.util.SystemExt;
 import com.netflix.titus.common.util.rx.ObservableExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.api.supervisor.model.MasterInstance;
@@ -135,7 +136,7 @@ public class DefaultSupervisorOperations implements SupervisorOperations {
                 } catch (InterruptedException e) {
                     // IGNORE
                 }
-                System.exit(-1);
+                SystemExt.commitSuicide(-1);
             }
         };
         controllerThread.setDaemon(false);

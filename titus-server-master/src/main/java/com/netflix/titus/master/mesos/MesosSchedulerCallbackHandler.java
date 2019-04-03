@@ -45,6 +45,7 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.RegExpExt;
 import com.netflix.titus.common.util.StringExt;
+import com.netflix.titus.common.util.SystemExt;
 import com.netflix.titus.master.MetricConstants;
 import com.netflix.titus.master.config.MasterConfiguration;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
@@ -341,7 +342,7 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
                 case DRIVER_ABORTED:
                 case DRIVER_STOPPED:
                     logger.error("Unexpected to see Mesos driver status of {} from reconcile request. Committing suicide!", status);
-                    System.exit(2);
+                    SystemExt.commitSuicide(2);
             }
         }
     }
@@ -359,7 +360,7 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
             case DRIVER_ABORTED:
             case DRIVER_STOPPED:
                 logger.error("Unexpected to see Mesos driver status of {} from reconcile request (all tasks). Committing suicide!", status);
-                System.exit(2);
+                SystemExt.commitSuicide(2);
         }
     }
 
