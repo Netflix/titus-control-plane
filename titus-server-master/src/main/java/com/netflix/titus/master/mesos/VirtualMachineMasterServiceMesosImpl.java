@@ -38,6 +38,7 @@ import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.common.framework.fit.FitFramework;
 import com.netflix.titus.common.framework.fit.FitInjection;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.SystemExt;
 import com.netflix.titus.master.config.MasterConfiguration;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 import org.apache.mesos.Protos;
@@ -201,7 +202,7 @@ public class VirtualMachineMasterServiceMesosImpl implements VirtualMachineMaste
             case DRIVER_ABORTED:
             case DRIVER_STOPPED:
                 logger.error("Unexpected to see Mesos driver status of {} from kill task request. Committing suicide!", status);
-                System.exit(2);
+                SystemExt.forcedProcessExit(2);
         }
     }
 
