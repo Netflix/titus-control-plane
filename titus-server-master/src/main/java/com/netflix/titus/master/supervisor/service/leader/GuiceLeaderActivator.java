@@ -179,7 +179,7 @@ public class GuiceLeaderActivator implements LeaderActivator, ContainerEventList
         //  exit the process and depend on a watcher process to restart us right away. Especially since restart isn't
         // very expensive.
         logger.error("Exiting due to losing leadership after running as leader");
-        SystemExt.commitSuicide(1);
+        SystemExt.forcedProcessExit(1);
     }
 
     @Override
@@ -210,10 +210,10 @@ public class GuiceLeaderActivator implements LeaderActivator, ContainerEventList
                 stopBeingLeader();
 
                 // As stopBeingLeader method not always terminates the process, lets make sure it does.
-                SystemExt.commitSuicide(-1);
+                SystemExt.forcedProcessExit(-1);
             }
         } catch (Throwable e) {
-            SystemExt.commitSuicide(-1);
+            SystemExt.forcedProcessExit(-1);
         }
 
         this.activated = true;

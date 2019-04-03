@@ -90,7 +90,7 @@ public class ZkLeaderVerificator {
                                     logger.warn("ZK says leader is " + ref.get().getHostname() + ", not us (" + myHostname + ")");
                                     if (falseCount.incrementAndGet() > MAX_FALSE_COUNTS) {
                                         logger.error("Too many attempts failed to verify ZK leader status, exiting!");
-                                        SystemExt.commitSuicide(5);
+                                        SystemExt.forcedProcessExit(5);
                                     }
                                 }
                             }

@@ -413,7 +413,7 @@ public class DefaultSchedulingService implements SchedulingService {
             } catch (InterruptedException e) {
                 logger.error("Interrupted while waiting for Fenzo state dump: {}", e.getMessage(), e);
             }
-            SystemExt.commitSuicide(3);
+            SystemExt.forcedProcessExit(3);
         }
     }
 

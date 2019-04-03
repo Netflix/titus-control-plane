@@ -136,7 +136,7 @@ public class DefaultSupervisorOperations implements SupervisorOperations {
                 } catch (InterruptedException e) {
                     // IGNORE
                 }
-                SystemExt.commitSuicide(-1);
+                SystemExt.forcedProcessExit(-1);
             }
         };
         controllerThread.setDaemon(false);

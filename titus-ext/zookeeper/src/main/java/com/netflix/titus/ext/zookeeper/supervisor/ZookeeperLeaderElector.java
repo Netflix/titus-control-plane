@@ -165,7 +165,7 @@ public class ZookeeperLeaderElector implements LeaderElector {
 
             if (leaderActivator.isLeader()) {
                 logger.error("Unexpected to be a leader. Terminating the JVM process");
-                SystemExt.commitSuicide(-1);
+                SystemExt.forcedProcessExit(-1);
             }
 
             return true;
@@ -229,7 +229,7 @@ public class ZookeeperLeaderElector implements LeaderElector {
         private void terminateIfClosed() {
             if (closed) {
                 logger.error("Received leader activation request after initiating withdrawal from the leader election process. Terminating the JVM process");
-                SystemExt.commitSuicide(-1);
+                SystemExt.forcedProcessExit(-1);
             }
         }
     }

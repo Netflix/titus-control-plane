@@ -202,7 +202,7 @@ public class VirtualMachineMasterServiceMesosImpl implements VirtualMachineMaste
             case DRIVER_ABORTED:
             case DRIVER_STOPPED:
                 logger.error("Unexpected to see Mesos driver status of {} from kill task request. Committing suicide!", status);
-                SystemExt.commitSuicide(2);
+                SystemExt.forcedProcessExit(2);
         }
     }
 

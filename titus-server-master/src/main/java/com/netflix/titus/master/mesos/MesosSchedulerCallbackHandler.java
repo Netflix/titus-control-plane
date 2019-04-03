@@ -342,7 +342,7 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
                 case DRIVER_ABORTED:
                 case DRIVER_STOPPED:
                     logger.error("Unexpected to see Mesos driver status of {} from reconcile request. Committing suicide!", status);
-                    SystemExt.commitSuicide(2);
+                    SystemExt.forcedProcessExit(2);
             }
         }
     }
@@ -360,7 +360,7 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
             case DRIVER_ABORTED:
             case DRIVER_STOPPED:
                 logger.error("Unexpected to see Mesos driver status of {} from reconcile request (all tasks). Committing suicide!", status);
-                SystemExt.commitSuicide(2);
+                SystemExt.forcedProcessExit(2);
         }
     }
 

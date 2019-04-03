@@ -24,8 +24,8 @@ public class SystemExt {
     /**
      * Terminate the JVM process.
      */
-    public static void commitSuicide(int status) {
-        System.err.println("Committing suicide now: statusCode=" + status);
+    public static void forcedProcessExit(int status) {
+        System.err.println("Forced exit: statusCode=" + status);
         new Exception().printStackTrace(System.err);
         System.err.flush();
 
