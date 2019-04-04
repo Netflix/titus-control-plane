@@ -59,18 +59,20 @@ public class EsPublisher implements TasksPublisher {
         this.taskEventsGenerator = taskEventsGenerator;
         this.esClient = esClient;
         this.registry = registry;
+        configureMetrics();
     }
 
 
+    @Override
     @PreDestroy
     public void stop() {
         ReactorExt.safeDispose(subscription, taskEventsSourceConnection);
     }
 
+    @Override
     @PostConstruct
     public void start() {
         ConnectableFlux<TaskDocument> taskEvents = taskEventsGenerator.getTaskEvents();
-
         subscription = taskEvents.bufferTimeout(100, Duration.ofSeconds(5))
                 .flatMap(taskDocuments ->
                         esClient.bulkIndexTaskDocument(taskDocuments)
@@ -97,6 +99,7 @@ public class EsPublisher implements TasksPublisher {
         taskEventsSourceConnection = taskEvents.connect();
     }
 
+    @Override
     public AtomicInteger getNumErrors() {
         return numErrors;
     }
@@ -105,6 +108,7 @@ public class EsPublisher implements TasksPublisher {
         return numIndexUpdated;
     }
 
+    @Override
     public AtomicInteger getNumTasksUpdated() {
         return numTasksUpdated;
     }

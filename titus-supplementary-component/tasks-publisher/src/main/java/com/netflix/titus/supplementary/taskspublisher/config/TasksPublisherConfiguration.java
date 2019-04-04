@@ -24,6 +24,7 @@ import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementSer
 import com.netflix.titus.supplementary.taskspublisher.DefaultEsWebClientFactory;
 import com.netflix.titus.supplementary.taskspublisher.EsClient;
 import com.netflix.titus.supplementary.taskspublisher.EsClientHttp;
+import com.netflix.titus.supplementary.taskspublisher.EsPublisher;
 import com.netflix.titus.supplementary.taskspublisher.EsWebClientFactory;
 import com.netflix.titus.supplementary.taskspublisher.TaskEventsGenerator;
 import com.netflix.titus.supplementary.taskspublisher.TitusClient;
@@ -87,6 +88,12 @@ public class TasksPublisherConfiguration {
     @ConditionalOnMissingBean
     public TaskEventsGenerator getTaskEventsGenerator() {
         return new TaskEventsGenerator(getTitusClient(), Collections.emptyMap());
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public EsPublisher getEsPublisher() {
+        return new EsPublisher(getTaskEventsGenerator(), getEsClient(), new DefaultRegistry());
     }
 
 
