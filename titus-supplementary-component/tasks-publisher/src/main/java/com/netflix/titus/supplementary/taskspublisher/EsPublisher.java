@@ -16,8 +16,6 @@
 package com.netflix.titus.supplementary.taskspublisher;
 
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -29,86 +27,54 @@ import javax.annotation.PreDestroy;
 import com.netflix.spectator.api.Functions;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.patterns.PolledMeter;
-import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.rx.RetryHandlerBuilder;
-import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.ext.elasticsearch.TaskDocument;
-import com.netflix.titus.grpc.protogen.Job;
-import com.netflix.titus.grpc.protogen.Task;
-import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import org.eclipse.jetty.util.ConcurrentHashSet;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
 import reactor.core.Disposable;
+import reactor.core.publisher.ConnectableFlux;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
-
-public class TasksPublisherCtrl {
-    private static final Logger logger = LoggerFactory.getLogger(TasksPublisherCtrl.class);
+public class EsPublisher implements TasksPublisher {
+    private static final Logger logger = LoggerFactory.getLogger(EsPublisher.class);
+    private TaskEventsGenerator taskEventsGenerator;
     private final EsClient esClient;
-    private final Map<String, String> taskDocumentBaseContext;
-    private final Registry registry;
-    private TitusClient titusClient;
-
+    private Registry registry;
+    private static final long INITIAL_RETRY_DELAY_MS = 500;
+    private static final long MAX_RETRY_DELAY_MS = 2_000;
     private AtomicInteger numErrors = new AtomicInteger(0);
     private AtomicInteger numIndexUpdated = new AtomicInteger(0);
     private AtomicInteger numTasksUpdated = new AtomicInteger(0);
     private Set<String> uniqueTasksIdUpdated = new ConcurrentHashSet<>();
     private AtomicLong lastPublishedTimestamp;
-
-    private static final long INITIAL_RETRY_DELAY_MS = 500;
-    private static final long MAX_RETRY_DELAY_MS = 2_000;
     private Disposable subscription;
+    private Disposable taskEventsSourceConnection;
 
-    public TasksPublisherCtrl(EsClient esClient,
-                              TitusClient titusClient,
-                              Map<String, String> taskDocumentBaseContext,
-                              Registry registry) {
+
+    public EsPublisher(TaskEventsGenerator taskEventsGenerator, EsClient esClient, Registry registry) {
+        this.taskEventsGenerator = taskEventsGenerator;
         this.esClient = esClient;
-        this.titusClient = titusClient;
-        this.taskDocumentBaseContext = taskDocumentBaseContext;
         this.registry = registry;
-        configureMetrics();
     }
 
 
-    public AtomicInteger getNumErrors() {
-        return numErrors;
-    }
-
-    public AtomicInteger getNumIndexUpdated() {
-        return numIndexUpdated;
-    }
-
-    public AtomicInteger getNumTasksUpdated() {
-        return numTasksUpdated;
+    @PreDestroy
+    public void stop() {
+        ReactorExt.safeDispose(subscription, taskEventsSourceConnection);
     }
 
     @PostConstruct
     public void start() {
-        subscription = titusClient.getTaskUpdates()
-                .publishOn(Schedulers.elastic())
-                .map(task -> {
-                    final Mono<Job> jobById = titusClient.getJobById(task.getJobId());
-                    return Pair.of(task, jobById);
-                })
-                .flatMap(taskMonoPair -> {
-                    final Task task = taskMonoPair.getLeft();
-                    return taskMonoPair.getRight()
-                            .map(job -> {
-                                final com.netflix.titus.api.jobmanager.model.job.Job coreJob = V3GrpcModelConverters.toCoreJob(job);
-                                final com.netflix.titus.api.jobmanager.model.job.Task coreTask = V3GrpcModelConverters.toCoreTask(coreJob, task);
-                                return TaskDocument.fromV3Task(coreTask, coreJob, ElasticSearchUtils.DATE_FORMAT, buildTaskContext(task));
-                            }).flux();
-                })
-                .bufferTimeout(100, Duration.ofSeconds(5))
-                .flatMap(taskDocuments -> esClient.bulkIndexTaskDocument(taskDocuments)
-                        .retryWhen(buildLimitedRetryHandler()))
+        ConnectableFlux<TaskDocument> taskEvents = taskEventsGenerator.getTaskEvents();
+
+        subscription = taskEvents.bufferTimeout(100, Duration.ofSeconds(5))
+                .flatMap(taskDocuments ->
+                        esClient.bulkIndexTaskDocument(taskDocuments)
+                                .retryWhen(buildLimitedRetryHandler()))
                 .doOnError(e -> {
                     logger.error("Error in indexing documents (Retrying) : ", e);
                     numErrors.incrementAndGet();
@@ -128,29 +94,19 @@ public class TasksPublisherCtrl {
                             });
                         },
                         e -> logger.error("Error in indexing documents ", e));
+        taskEventsSourceConnection = taskEvents.connect();
     }
 
-    @PreDestroy
-    public void stop() {
-        ReactorExt.safeDispose(subscription);
+    public AtomicInteger getNumErrors() {
+        return numErrors;
     }
 
-    private Map<String, String> buildTaskContext(Task task) {
-        String stack = "";
-        if (task.getTaskContextMap().containsKey(JobAttributes.JOB_ATTRIBUTES_CELL)) {
-            stack = task.getTaskContextMap().get(JobAttributes.JOB_ATTRIBUTES_CELL);
-        }
-        final HashMap<String, String> taskContext = new HashMap<>(taskDocumentBaseContext);
-        taskContext.put("stack", stack);
-        return taskContext;
+    public AtomicInteger getNumIndexUpdated() {
+        return numIndexUpdated;
     }
 
-    private Function<Flux<Throwable>, Publisher<?>> buildUnlimitedRetryHandler() {
-        return RetryHandlerBuilder.retryHandler()
-                .withUnlimitedRetries()
-                .withDelay(INITIAL_RETRY_DELAY_MS, MAX_RETRY_DELAY_MS, TimeUnit.MILLISECONDS)
-                .withReactorScheduler(Schedulers.elastic())
-                .buildReactorExponentialBackoff();
+    public AtomicInteger getNumTasksUpdated() {
+        return numTasksUpdated;
     }
 
     private Function<Flux<Throwable>, Publisher<?>> buildLimitedRetryHandler() {
@@ -160,6 +116,7 @@ public class TasksPublisherCtrl {
                 .withReactorScheduler(Schedulers.elastic())
                 .buildReactorExponentialBackoff();
     }
+
 
     private void configureMetrics() {
         PolledMeter.using(registry)
@@ -177,5 +134,13 @@ public class TasksPublisherCtrl {
                 .monitorValue(new AtomicLong(registry.clock().wallTime()), Functions.AGE);
     }
 
+
+    private Function<Flux<Throwable>, Publisher<?>> buildUnlimitedRetryHandler() {
+        return RetryHandlerBuilder.retryHandler()
+                .withUnlimitedRetries()
+                .withDelay(INITIAL_RETRY_DELAY_MS, MAX_RETRY_DELAY_MS, TimeUnit.MILLISECONDS)
+                .withReactorScheduler(Schedulers.elastic())
+                .buildReactorExponentialBackoff();
+    }
 
 }
