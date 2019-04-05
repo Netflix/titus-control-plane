@@ -85,9 +85,9 @@ public class TaskEventsGeneratorTest {
         Flux.interval(Duration.ofSeconds(1), Schedulers.elastic())
                 .take(1)
                 .doOnNext(i -> {
-                    final int numTimesIndexUpdated = esPublisher.getNumIndexUpdated().get();
-                    final int numTasksUpdated = esPublisher.getNumTasksUpdated().get();
-                    final int numErrors = esPublisher.getNumErrors().get();
+                    final int numTimesIndexUpdated = esPublisher.getNumIndexUpdated();
+                    final int numTasksUpdated = esPublisher.getNumTasksPublished();
+                    final int numErrors = esPublisher.getNumErrorsInPublishing();
                     assertThat(numErrors).isEqualTo(0);
                     assertThat(numTasksUpdated).isEqualTo(numTasks);
                     assertThat(numTimesIndexUpdated).isEqualTo(numTasks);

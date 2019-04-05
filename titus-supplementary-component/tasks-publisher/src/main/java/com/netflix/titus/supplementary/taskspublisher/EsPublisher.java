@@ -63,13 +63,11 @@ public class EsPublisher implements TasksPublisher {
     }
 
 
-    @Override
     @PreDestroy
     public void stop() {
         ReactorExt.safeDispose(subscription, taskEventsSourceConnection);
     }
 
-    @Override
     @PostConstruct
     public void start() {
         ConnectableFlux<TaskDocument> taskEvents = taskEventsGenerator.getTaskEvents();
@@ -100,17 +98,17 @@ public class EsPublisher implements TasksPublisher {
     }
 
     @Override
-    public AtomicInteger getNumErrors() {
-        return numErrors;
+    public int getNumErrorsInPublishing() {
+        return numErrors.get();
     }
 
-    public AtomicInteger getNumIndexUpdated() {
-        return numIndexUpdated;
+    public int getNumIndexUpdated() {
+        return numIndexUpdated.get();
     }
 
     @Override
-    public AtomicInteger getNumTasksUpdated() {
-        return numTasksUpdated;
+    public int getNumTasksPublished() {
+        return numTasksUpdated.get();
     }
 
     private Function<Flux<Throwable>, Publisher<?>> buildLimitedRetryHandler() {

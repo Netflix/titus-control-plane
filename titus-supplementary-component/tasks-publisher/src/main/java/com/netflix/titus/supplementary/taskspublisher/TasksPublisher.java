@@ -15,14 +15,8 @@
  */
 package com.netflix.titus.supplementary.taskspublisher;
 
-import java.util.concurrent.atomic.AtomicInteger;
-
 public interface TasksPublisher {
-    void start();
+    int getNumErrorsInPublishing();
 
-    void stop();
-
-    AtomicInteger getNumErrors();
-
-    AtomicInteger getNumTasksUpdated();
+    int getNumTasksPublished();
 }
