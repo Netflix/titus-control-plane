@@ -27,6 +27,16 @@ import java.util.Set;
  * This validator never completes.  It is used to test validation in the face of unresponsive service calls.
  */
 public class NeverJobValidator implements EntityValidator<JobDescriptor> {
+    private final ValidationError.Type errorType;
+
+    public NeverJobValidator() {
+        this(ValidationError.Type.HARD);
+    }
+
+    public NeverJobValidator(ValidationError.Type errorType) {
+        this.errorType = errorType;
+    }
+
     @Override
     public Mono<Set<ValidationError>> validate(JobDescriptor entity) {
         return Mono.never();
@@ -34,4 +44,9 @@ public class NeverJobValidator implements EntityValidator<JobDescriptor> {
 
     @Override
     public Mono<JobDescriptor> sanitize(JobDescriptor entity) { return Mono.never(); }
+
+    @Override
+    public ValidationError.Type getErrorType() {
+        return errorType;
+    }
 }

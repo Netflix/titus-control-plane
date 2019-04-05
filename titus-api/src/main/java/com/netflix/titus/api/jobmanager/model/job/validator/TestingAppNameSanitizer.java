@@ -50,4 +50,9 @@ public class TestingAppNameSanitizer implements EntityValidator<JobDescriptor> {
                 .withApplicationName(desiredAppName)
                 .build());
     }
+
+    @Override
+    public ValidationError.Type getErrorType() {
+        return ValidationError.Type.HARD;
+    }
 }

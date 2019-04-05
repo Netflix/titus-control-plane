@@ -24,15 +24,12 @@ import java.util.Set;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.connector.cloud.IamConnector;
 import com.netflix.titus.api.iam.service.IamConnectorException;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.common.model.validator.EntityValidator;
 import com.netflix.titus.common.model.validator.ValidationError;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 
 /**
@@ -40,25 +37,16 @@ import reactor.core.publisher.Mono;
  */
 @Singleton
 public class JobIamValidator implements EntityValidator<JobDescriptor> {
-    private static final Logger logger = LoggerFactory.getLogger(JobImageValidator.class);
-    private static final String METRICS_ROOT = "titus.validation.iam";
-    private static final String failedMetricIamTag = "iamrole";
-    private static final String metricReasonTag = "reason";
-
     private final JobSecurityValidatorConfiguration configuration;
     private final IamConnector iamConnector;
-
-    private final Registry registry;
-    private final Id validationFailureId;
-    private final Id validationSkippedId;
+    private final ValidatorMetrics validatorMetrics;
 
     @Inject
     public JobIamValidator(JobSecurityValidatorConfiguration configuration, IamConnector iamConnector, Registry registry) {
         this.configuration = configuration;
         this.iamConnector = iamConnector;
-        this.registry = registry;
-        this.validationFailureId = registry.createId(METRICS_ROOT + ".failed");
-        this.validationSkippedId = registry.createId(METRICS_ROOT + ".skipped");
+
+        validatorMetrics = new ValidatorMetrics(this.getClass().getSimpleName(), registry);
     }
 
     @Override
@@ -71,14 +59,14 @@ public class JobIamValidator implements EntityValidator<JobDescriptor> {
 
         // Skip validation if no IAM was provided because a valid default will be used.
         if (iamRoleName.isEmpty()) {
-            registry.counter(validationSkippedId.withTag(metricReasonTag, "noneProvided")).increment();
+            validatorMetrics.incrementValidationSkipped(iamRoleName, "noIamProvided");
             return Mono.just(Collections.emptySet());
         }
 
         // Skip any IAM that is not in "friendly" format. A non-friendly format is
         // likely a cross-account IAM and would need cross-account access to get and validate.
         if (isIamArn(iamRoleName)) {
-            registry.counter(validationSkippedId.withTag(metricReasonTag, "notFriendly")).increment();
+            validatorMetrics.incrementValidationSkipped(iamRoleName, "notFriendly");
             return Mono.just(Collections.emptySet());
         }
 
@@ -87,22 +75,19 @@ public class JobIamValidator implements EntityValidator<JobDescriptor> {
                 // If role is found and is assumable return an empty ValidationError set, otherwise
                 // populate the set with a specific error.
                 .thenReturn(Collections.<ValidationError>emptySet())
+                .doOnSuccess(result -> validatorMetrics.incrementValidationSuccess(iamRoleName))
                 .onErrorResume(throwable -> {
-                    Id errorId = validationSkippedId
-                            .withTag(failedMetricIamTag, iamRoleName);
+                    String errorReason = throwable.getClass().getSimpleName();
                     if (throwable instanceof IamConnectorException) {
-                        errorId = errorId.withTag(metricReasonTag,
-                                ((IamConnectorException)throwable).getErrorCode().name());
+                        // Use a more specific error tag if available
+                        errorReason = ((IamConnectorException)throwable).getErrorCode().name();
                     }
-                    registry.counter(errorId
-                            .withTag(failedMetricIamTag, iamRoleName)
-                            .withTag(metricReasonTag, throwable.getMessage()))
-                            .increment();
+                    validatorMetrics.incrementValidationError(iamRoleName, errorReason);
                     return Mono.just(Collections.singleton(
                             new ValidationError(
                                     JobIamValidator.class.getSimpleName(),
                                     throwable.getMessage(),
-                                    ValidationError.Type.SOFT)));
+                                    getErrorType())));
                 });
     }
 
@@ -122,6 +107,7 @@ public class JobIamValidator implements EntityValidator<JobDescriptor> {
             return Mono.just(jobDescriptor);
         }
         return iamConnector.getIamRole(iamRoleName)
+                .timeout(Duration.ofMillis(configuration.getIamValidationTimeoutMs()))
                 .map(iamRole -> jobDescriptor
                         .toBuilder().withContainer(
                                 jobDescriptor.getContainer().toBuilder()
@@ -135,6 +121,11 @@ public class JobIamValidator implements EntityValidator<JobDescriptor> {
                         .build()
                 )
                 .onErrorReturn(jobDescriptor);
+    }
+
+    @Override
+    public ValidationError.Type getErrorType() {
+        return ValidationError.Type.valueOf(configuration.getErrorType().toUpperCase());
     }
 
     private boolean isIamArn(String iamRoleName) {

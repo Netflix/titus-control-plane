@@ -23,6 +23,9 @@ import com.netflix.archaius.api.annotations.DefaultValue;
 
 @Configuration(prefix = "titus.validate.job.security")
 public interface JobSecurityValidatorConfiguration {
+    @DefaultValue("SOFT")
+    String getErrorType();
+
     @DefaultValue("true")
     boolean isIamValidatorEnabled();
 

@@ -21,6 +21,9 @@ import com.netflix.archaius.api.annotations.DefaultValue;
 
 @Configuration(prefix = "titus.validate.job")
 public interface TitusValidatorConfiguration {
+    @DefaultValue("HARD")
+    String getErrorType();
+
     @DefaultValue("2000")
     int getTimeoutMs();
 }

@@ -31,6 +31,16 @@ import reactor.core.publisher.Mono;
  */
 @Singleton
 public class PassJobValidator implements EntityValidator<JobDescriptor> {
+    private final ValidationError.Type errorType;
+
+    public PassJobValidator() {
+        this(ValidationError.Type.HARD);
+    }
+
+    public PassJobValidator(ValidationError.Type errorType) {
+        this.errorType = errorType;
+    }
+
     @Override
     public Mono<Set<ValidationError>> validate(JobDescriptor entity) {
         return Mono.just(Collections.emptySet());
@@ -39,5 +49,10 @@ public class PassJobValidator implements EntityValidator<JobDescriptor> {
     @Override
     public Mono<JobDescriptor> sanitize(JobDescriptor entity) {
       return Mono.just(entity);
+    }
+
+    @Override
+    public ValidationError.Type getErrorType() {
+        return errorType;
     }
 }

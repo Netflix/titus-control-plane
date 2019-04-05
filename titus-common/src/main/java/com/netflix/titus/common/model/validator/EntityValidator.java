@@ -36,4 +36,9 @@ public interface EntityValidator<T> {
      * the emitted item will share reference with the source parameter.
      */
     Mono<T> sanitize(T entity);
+
+    /**
+     * Returns the error type indicating how to treat validation errors.
+     */
+    ValidationError.Type getErrorType();
 }

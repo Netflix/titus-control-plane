@@ -34,6 +34,16 @@ public class FailJobValidator implements EntityValidator<JobDescriptor> {
     public static final String ERR_FIELD = "fail-field";
     public static final String ERR_DESCRIPTION = "The FailJobValidator should always fail with a unique error:";
 
+    private final ValidationError.Type errorType;
+
+    public FailJobValidator() {
+        this(ValidationError.Type.HARD);
+    }
+
+    public FailJobValidator(ValidationError.Type errorType) {
+        this.errorType = errorType;
+    }
+
     @Override
     public Mono<Set<ValidationError>> validate(JobDescriptor entity) {
         final String errorMsg = String.format("%s %s", ERR_DESCRIPTION, UUID.randomUUID().toString());
@@ -45,5 +55,10 @@ public class FailJobValidator implements EntityValidator<JobDescriptor> {
     @Override
     public Mono<JobDescriptor> sanitize(JobDescriptor entity) {
         return Mono.error(TitusServiceException.invalidArgument(ERR_DESCRIPTION));
+    }
+
+    @Override
+    public ValidationError.Type getErrorType() {
+        return errorType;
     }
 }

@@ -88,20 +88,20 @@ public class DefaultDockerRegistryClient implements RegistryClient {
                 .flatMap(response -> {
                     if (response.getStatusCode().value() == HttpResponseStatus.NOT_FOUND.code()) {
                         return Mono.error(
-                                new TitusRegistryException(TitusRegistryException.ErrorCode.IMAGE_NOT_FOUND,
-                                        String.format("Image %s:%s does not exist in registry", repository, reference))
+                                TitusRegistryException.imageNotFound(repository, reference)
                         );
                     }
                     if (!response.getStatusCode().is2xxSuccessful()) {
                         return Mono.error(
-                                new TitusRegistryException(TitusRegistryException.ErrorCode.INTERNAL,
-                                        String.format("Cannot fetch image %s:%s metadata: statusCode=%s", repository, reference, response.getStatusCode()))
+                                TitusRegistryException.internalError(repository, reference, response.getStatusCode())
                         );
                     }
                     HttpHeaders responseHeaders = response.getHeaders();
                     List<String> dockerDigestHeaderValue = responseHeaders.getOrDefault(dockerDigestHeaderKey, Collections.emptyList());
                     if (dockerDigestHeaderValue.isEmpty()) {
-                        return Mono.error(new TitusRegistryException(TitusRegistryException.ErrorCode.MISSING_HEADER, "Missing required header " + dockerDigestHeaderKey));
+                        return Mono.error(
+                                TitusRegistryException.headerMissing(repository, reference, dockerDigestHeaderKey)
+                        );
                     }
                     return Mono.just(dockerDigestHeaderValue.get(0));
                 })

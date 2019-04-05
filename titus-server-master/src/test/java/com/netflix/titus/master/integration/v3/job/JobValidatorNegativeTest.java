@@ -20,6 +20,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.validator.FailJobValidator;
 import com.netflix.titus.api.jobmanager.model.job.validator.PassJobValidator;
@@ -60,8 +61,7 @@ public class JobValidatorNegativeTest extends BaseIntegrationTest {
     private static final Logger logger = LoggerFactory.getLogger(JobValidatorNegativeTest.class);
 
     private static final TitusValidatorConfiguration configuration = mock(TitusValidatorConfiguration.class);
-    private static final List<EntityValidator<JobDescriptor>> hardValidators = Collections.emptyList();
-    private static final List<EntityValidator<JobDescriptor>> softValidators = Arrays.asList(new FailJobValidator());
+    private static final List<EntityValidator<JobDescriptor>> validators = Arrays.asList(new FailJobValidator());
     private static final List<EntityValidator<JobDescriptor>> sanitizers = Collections.emptyList();
 
     private static TitusStackResource titusStackResource;
@@ -81,8 +81,8 @@ public class JobValidatorNegativeTest extends BaseIntegrationTest {
                 getTitusStackResource(
                         new AggregatingValidator(
                                 configuration,
-                                hardValidators,
-                                softValidators,
+                                new DefaultRegistry(),
+                                validators,
                                 sanitizers));
     }
 

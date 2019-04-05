@@ -50,4 +50,9 @@ public class TestingCapacityGroupSanitizer implements EntityValidator<JobDescrip
                 .withCapacityGroup(desiredCapacityGroup)
                 .build());
     }
+
+    @Override
+    public ValidationError.Type getErrorType() {
+        return ValidationError.Type.HARD;
+    }
 }
