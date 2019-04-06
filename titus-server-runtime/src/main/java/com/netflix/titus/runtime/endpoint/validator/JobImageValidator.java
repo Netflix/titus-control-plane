@@ -78,7 +78,7 @@ public class JobImageValidator implements EntityValidator<JobDescriptor> {
                                     new ValidationError(
                                             JobImageValidator.class.getSimpleName(),
                                             throwable.getMessage(),
-                                            getErrorType())
+                                            getErrorType(configuration))
                             ));
                 });
     }
@@ -96,11 +96,6 @@ public class JobImageValidator implements EntityValidator<JobDescriptor> {
                 // We are ignoring most image validation errors. We will propagate
                 // more errors as we going feature confidence.
                 .onErrorReturn(throwable -> isValidationOK(throwable, imageName), jobDescriptor);
-    }
-
-    @Override
-    public ValidationError.Type getErrorType() {
-        return ValidationError.Type.valueOf(configuration.getErrorType().toUpperCase());
     }
 
     private Mono<JobDescriptor> sanitizeImage(JobDescriptor jobDescriptor) {

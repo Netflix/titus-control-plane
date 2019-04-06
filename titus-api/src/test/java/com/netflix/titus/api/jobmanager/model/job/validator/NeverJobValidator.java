@@ -18,6 +18,7 @@ package com.netflix.titus.api.jobmanager.model.job.validator;
 
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.common.model.validator.EntityValidator;
+import com.netflix.titus.common.model.validator.EntityValidatorConfiguration;
 import com.netflix.titus.common.model.validator.ValidationError;
 import reactor.core.publisher.Mono;
 
@@ -46,7 +47,7 @@ public class NeverJobValidator implements EntityValidator<JobDescriptor> {
     public Mono<JobDescriptor> sanitize(JobDescriptor entity) { return Mono.never(); }
 
     @Override
-    public ValidationError.Type getErrorType() {
+    public ValidationError.Type getErrorType(EntityValidatorConfiguration configuration) {
         return errorType;
     }
 }

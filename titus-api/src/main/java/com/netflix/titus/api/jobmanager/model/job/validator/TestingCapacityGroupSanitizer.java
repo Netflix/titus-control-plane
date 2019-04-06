@@ -22,6 +22,7 @@ import java.util.Set;
 
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.common.model.validator.EntityValidator;
+import com.netflix.titus.common.model.validator.EntityValidatorConfiguration;
 import com.netflix.titus.common.model.validator.ValidationError;
 import reactor.core.publisher.Mono;
 
@@ -52,7 +53,7 @@ public class TestingCapacityGroupSanitizer implements EntityValidator<JobDescrip
     }
 
     @Override
-    public ValidationError.Type getErrorType() {
+    public ValidationError.Type getErrorType(EntityValidatorConfiguration configuration) {
         return ValidationError.Type.HARD;
     }
 }

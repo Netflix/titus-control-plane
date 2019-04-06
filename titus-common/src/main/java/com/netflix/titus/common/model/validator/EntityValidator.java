@@ -40,5 +40,7 @@ public interface EntityValidator<T> {
     /**
      * Returns the error type indicating how to treat validation errors.
      */
-    ValidationError.Type getErrorType();
+    default ValidationError.Type getErrorType(EntityValidatorConfiguration configuration) {
+        return ValidationError.Type.valueOf(configuration.getErrorType().toUpperCase());
+    }
 }

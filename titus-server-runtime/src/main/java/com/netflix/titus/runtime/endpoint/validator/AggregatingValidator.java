@@ -107,11 +107,6 @@ public class AggregatingValidator implements EntityValidator<JobDescriptor> {
                 .timeout(timeout);
     }
 
-    @Override
-    public ValidationError.Type getErrorType() {
-        return  ValidationError.Type.valueOf(configuration.getErrorType().toUpperCase());
-    }
-
     private Collection<Mono<Set<ValidationError>>> getMonos(
             JobDescriptor jobDescriptor,
             Duration timeout,
@@ -120,7 +115,7 @@ public class AggregatingValidator implements EntityValidator<JobDescriptor> {
         return validators.stream()
                 .map(v -> new Triple<>(
                         v.getClass().getSimpleName(),
-                        v.getErrorType(),
+                        v.getErrorType(configuration),
                         v.validate(jobDescriptor) // (ValidatorClassName, ValidationError.Type, Mono)
                                 .subscribeOn(Schedulers.parallel()))
                 )
