@@ -20,6 +20,7 @@ import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.common.model.validator.EntityValidator;
+import com.netflix.titus.common.model.validator.ValidationError;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
@@ -83,6 +84,7 @@ public class JobSanitizeTest extends BaseIntegrationTest {
     public void setUp() throws Exception {
         when(configuration.isEnabled()).thenReturn(true);
         when(configuration.getJobImageValidationTimeoutMs()).thenReturn(1000L);
+        when(configuration.getErrorType()).thenReturn(ValidationError.Type.HARD.name());
         instanceGroupsScenarioBuilder.synchronizeWithCloud().template(InstanceGroupScenarioTemplates.basicCloudActivation());
         this.client = titusStackResource.getGateway().getV3BlockingGrpcClient();
     }
