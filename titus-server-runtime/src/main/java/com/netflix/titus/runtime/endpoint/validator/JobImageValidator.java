@@ -93,8 +93,6 @@ public class JobImageValidator implements EntityValidator<JobDescriptor> {
         return sanitizeImage(jobDescriptor)
                 .timeout(Duration.ofMillis(configuration.getJobImageValidationTimeoutMs()))
                 .doOnSuccess(j -> validatorMetrics.incrementValidationSuccess(imageName))
-                // We are ignoring most image validation errors. We will propagate
-                // more errors as we going feature confidence.
                 .onErrorReturn(throwable -> isValidationOK(throwable, imageName), jobDescriptor);
     }
 
@@ -154,8 +152,8 @@ public class JobImageValidator implements EntityValidator<JobDescriptor> {
                     imageName,
                     tre.getErrorCode().name()
             );
-            // We are ignoring most image validation errors. We will propagate
-            // more errors as we going feature confidence.
+            // We are ignoring most image validation errors. We will filter
+            // fewer errors as we gain feature confidence.
             switch (tre.getErrorCode()) {
                 case IMAGE_NOT_FOUND:
                     return false;
