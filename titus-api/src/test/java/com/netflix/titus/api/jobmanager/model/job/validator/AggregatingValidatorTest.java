@@ -23,6 +23,8 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import com.netflix.spectator.api.DefaultRegistry;
+import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.validator.EntityValidator;
@@ -45,6 +47,7 @@ import static org.mockito.Mockito.when;
 public class AggregatingValidatorTest {
     private static final JobDescriptor MOCK_JOB = mock(JobDescriptor.class);
     private final TitusValidatorConfiguration configuration = mock(TitusValidatorConfiguration.class);
+    private final Registry registry = new DefaultRegistry();
 
     @Before
     public void setUp() {
@@ -55,12 +58,12 @@ public class AggregatingValidatorTest {
 
     @Test
     public void validateHardPassPass() {
-        EntityValidator pass0 = new PassJobValidator();
-        EntityValidator pass1 = new PassJobValidator();
+        EntityValidator pass0 = new PassJobValidator(ValidationError.Type.HARD);
+        EntityValidator pass1 = new PassJobValidator(ValidationError.Type.HARD);
         AggregatingValidator validator = new AggregatingValidator(
                 configuration,
+                registry,
                 Arrays.asList(pass0, pass1),
-                Collections.emptySet(),
                 Collections.emptySet());
         Mono<Set<ValidationError>> mono = validator.validate(MOCK_JOB);
 
@@ -71,12 +74,12 @@ public class AggregatingValidatorTest {
 
     @Test
     public void validateHardFailFail() {
-        EntityValidator fail0 = new FailJobValidator();
-        EntityValidator fail1 = new FailJobValidator();
+        EntityValidator fail0 = new FailJobValidator(ValidationError.Type.HARD);
+        EntityValidator fail1 = new FailJobValidator(ValidationError.Type.HARD);
         AggregatingValidator validator = new AggregatingValidator(
                 configuration,
+                registry,
                 Arrays.asList(fail0, fail1),
-                Collections.emptySet(),
                 Collections.emptySet());
         Mono<Set<ValidationError>> mono = validator.validate(MOCK_JOB);
 
@@ -91,12 +94,12 @@ public class AggregatingValidatorTest {
 
     @Test
     public void validateHardPassFail() {
-        EntityValidator pass = new PassJobValidator();
-        EntityValidator fail = new FailJobValidator();
+        EntityValidator pass = new PassJobValidator(ValidationError.Type.HARD);
+        EntityValidator fail = new FailJobValidator(ValidationError.Type.HARD);
         AggregatingValidator validator = new AggregatingValidator(
                 configuration,
+                registry,
                 Arrays.asList(pass, fail),
-                Collections.emptySet(),
                 Collections.emptySet());
         Mono<Set<ValidationError>> mono = validator.validate(MOCK_JOB);
 
@@ -111,12 +114,12 @@ public class AggregatingValidatorTest {
 
     @Test
     public void validateHardPassTimeout() {
-        EntityValidator pass = new PassJobValidator();
-        EntityValidator never = new NeverJobValidator();
+        EntityValidator pass = new PassJobValidator(ValidationError.Type.HARD);
+        EntityValidator never = new NeverJobValidator(ValidationError.Type.HARD);
         EntityValidator validator = new AggregatingValidator(
                 configuration,
+                registry,
                 Arrays.asList(pass, never),
-                Collections.emptySet(),
                 Collections.emptySet());
         Mono<Set<ValidationError>> mono = validator.validate(MOCK_JOB);
 
@@ -131,13 +134,13 @@ public class AggregatingValidatorTest {
 
     @Test
     public void validateHardPassFailTimeout() {
-        EntityValidator pass = new PassJobValidator();
-        EntityValidator fail = new FailJobValidator();
-        EntityValidator never = new NeverJobValidator();
+        EntityValidator pass = new PassJobValidator(ValidationError.Type.HARD);
+        EntityValidator fail = new FailJobValidator(ValidationError.Type.HARD);
+        EntityValidator never = new NeverJobValidator(ValidationError.Type.HARD);
         EntityValidator parallelValidator = new AggregatingValidator(
                 configuration,
+                registry,
                 Arrays.asList(pass, fail, never),
-                Collections.emptySet(),
                 Collections.emptySet());
         Mono<Set<ValidationError>> mono = parallelValidator.validate(MOCK_JOB);
 
@@ -165,10 +168,10 @@ public class AggregatingValidatorTest {
 
     @Test
     public void validateSoftTimeout() {
-        EntityValidator never = new NeverJobValidator();
+        EntityValidator never = new NeverJobValidator(ValidationError.Type.SOFT);
         EntityValidator validator = new AggregatingValidator(
                 configuration,
-                Collections.emptySet(),
+                registry,
                 Arrays.asList(never),
                 Collections.emptySet());
         Mono<Set<ValidationError>> mono = validator.validate(MOCK_JOB);
@@ -184,10 +187,10 @@ public class AggregatingValidatorTest {
 
     @Test
     public void validateSoftFailure() {
-        EntityValidator fail = new FailJobValidator();
+        EntityValidator fail = new FailJobValidator(ValidationError.Type.SOFT);
         EntityValidator validator = new AggregatingValidator(
                 configuration,
-                Collections.emptySet(),
+                registry,
                 Arrays.asList(fail),
                 Collections.emptySet());
         Mono<Set<ValidationError>> mono = validator.validate(MOCK_JOB);
@@ -203,10 +206,10 @@ public class AggregatingValidatorTest {
 
     @Test
     public void validateSoftPass() {
-        EntityValidator pass = new PassJobValidator();
+        EntityValidator pass = new PassJobValidator(ValidationError.Type.SOFT);
         EntityValidator validator = new AggregatingValidator(
                 configuration,
-                Collections.emptySet(),
+                registry,
                 Arrays.asList(pass),
                 Collections.emptySet());
         Mono<Set<ValidationError>> mono = validator.validate(MOCK_JOB);
@@ -220,12 +223,12 @@ public class AggregatingValidatorTest {
 
     @Test
     public void validateHardSoftTimeout() {
-        EntityValidator never0 = new NeverJobValidator();
-        EntityValidator never1 = new NeverJobValidator();
+        EntityValidator<JobDescriptor> never0 = new NeverJobValidator(ValidationError.Type.HARD);
+        EntityValidator never1 = new NeverJobValidator(ValidationError.Type.SOFT);
         EntityValidator validator = new AggregatingValidator(
                 configuration,
-                Arrays.asList(never0),
-                Arrays.asList(never1),
+                registry,
+                Arrays.asList(never0, never1),
                 Collections.emptySet());
         Mono<Set<ValidationError>> mono = validator.validate(MOCK_JOB);
 
@@ -248,12 +251,12 @@ public class AggregatingValidatorTest {
 
     @Test
     public void validateHardSoftPass() {
-        EntityValidator pass0 = new PassJobValidator();
-        EntityValidator pass1 = new PassJobValidator();
+        EntityValidator pass0 = new PassJobValidator(ValidationError.Type.HARD);
+        EntityValidator pass1 = new PassJobValidator(ValidationError.Type.SOFT);
         EntityValidator validator = new AggregatingValidator(
                 configuration,
-                Arrays.asList(pass0),
-                Arrays.asList(pass1),
+                registry,
+                Arrays.asList(pass0, pass1),
                 Collections.emptySet());
         Mono<Set<ValidationError>> mono = validator.validate(MOCK_JOB);
 
@@ -264,12 +267,12 @@ public class AggregatingValidatorTest {
 
     @Test
     public void validateHardSoftFail() {
-        EntityValidator fail0 = new FailJobValidator();
-        EntityValidator fail1 = new FailJobValidator();
+        EntityValidator fail0 = new FailJobValidator(ValidationError.Type.HARD);
+        EntityValidator fail1 = new FailJobValidator(ValidationError.Type.SOFT);
         EntityValidator validator = new AggregatingValidator(
                 configuration,
-                Arrays.asList(fail0),
-                Arrays.asList(fail1),
+                registry,
+                Arrays.asList(fail0, fail1),
                 Collections.emptySet());
         Mono<Set<ValidationError>> mono = validator.validate(MOCK_JOB);
 
@@ -300,7 +303,7 @@ public class AggregatingValidatorTest {
 
         AggregatingValidator validator = new AggregatingValidator(
                 configuration,
-                Collections.emptySet(),
+                registry,
                 Collections.emptySet(),
                 Arrays.asList(appNameSanitizer, capacityGroupSanitizer));
 
@@ -328,7 +331,7 @@ public class AggregatingValidatorTest {
 
         AggregatingValidator validator = new AggregatingValidator(
                 configuration,
-                Collections.emptySet(),
+                registry,
                 Collections.emptySet(),
                 Arrays.asList(appNameSanitizer, failSanitizer));
 

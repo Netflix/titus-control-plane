@@ -33,6 +33,7 @@ import com.netflix.titus.common.util.cache.Cache;
 import com.netflix.titus.common.util.cache.Caches;
 import com.netflix.titus.common.util.guice.ProxyType;
 import com.netflix.titus.common.util.guice.annotation.ProxyConfiguration;
+import com.netflix.titus.common.util.spectator.IamConnectorMetrics;
 import com.netflix.titus.ext.aws.AwsConfiguration;
 import com.netflix.titus.ext.aws.AwsReactorExt;
 import reactor.core.publisher.Mono;
@@ -40,14 +41,13 @@ import reactor.core.publisher.Mono;
 @Singleton
 @ProxyConfiguration(types = {ProxyType.Logging, ProxyType.Spectator})
 public class AwsIamConnector implements IamConnector {
-
     private static final long MAX_CACHE_SIZE = 5_000;
 
     private final AwsConfiguration configuration;
     private final AmazonIdentityManagementAsync iamClient;
 
     private final Registry registry;
-    private final AwsIamConnectorMetrics connectorMetrics;
+    private final IamConnectorMetrics connectorMetrics;
 
     private final Cache<String, IamRole> cache;
 
@@ -60,11 +60,11 @@ public class AwsIamConnector implements IamConnector {
         this.cache = Caches.instrumentedCacheWithMaxSize(
                 MAX_CACHE_SIZE,
                 Duration.ofMillis(configuration.getIamRoleCacheTimeoutMs()),
-                AwsIamConnectorMetrics.METRICS_ROOT + ".iamRoleCache",
+                IamConnectorMetrics.METRICS_ROOT + ".awsIamRoleCache",
                 registry
         );
         this.registry = registry;
-        this.connectorMetrics = new AwsIamConnectorMetrics(registry);
+        this.connectorMetrics = new IamConnectorMetrics(AwsIamConnector.class, registry);
     }
 
     @PreDestroy
@@ -93,17 +93,21 @@ public class AwsIamConnector implements IamConnector {
         return getAwsIamRole(iamRoleName)
                 .timeout(Duration.ofMillis(configuration.getAwsRequestTimeoutMs()))
                 .map(getRoleResult -> {
-                            connectorMetrics.success(AwsIamConnectorMetrics.AwsIamMethods.GetIamRole, startTime);
-                            return IamRole.newBuilder()
-                                    .withRoleId(getRoleResult.getRole().getRoleId())
-                                    .withRoleName(getRoleResult.getRole().getRoleName())
-                                    .withResourceName(getRoleResult.getRole().getArn())
-                                    .withPolicyDoc(getRoleResult.getRole().getAssumeRolePolicyDocument())
-                                    .build();
+                    connectorMetrics.success(IamConnectorMetrics.IamMethods.GetIamRole, startTime);
+                    return IamRole.newBuilder()
+                            .withRoleId(getRoleResult.getRole().getRoleId())
+                            .withRoleName(getRoleResult.getRole().getRoleName())
+                            .withResourceName(getRoleResult.getRole().getArn())
+                            .withPolicyDoc(getRoleResult.getRole().getAssumeRolePolicyDocument())
+                            .build();
                         }
                 )
                 .onErrorMap(throwable -> {
-                    connectorMetrics.failure(AwsIamConnectorMetrics.AwsIamMethods.GetIamRole, throwable, startTime);
+                    // Remap to specific Exception if we got rate limited
+                    if (throwable.getMessage().contains("Rate exceeded")) {
+                        throwable = new AwsIamRateLimitException(throwable);
+                    }
+                    connectorMetrics.failure(IamConnectorMetrics.IamMethods.GetIamRole, throwable, startTime);
                     if (throwable instanceof NoSuchEntityException) {
                         return IamConnectorException.iamRoleNotFound(iamRoleName);
                     }

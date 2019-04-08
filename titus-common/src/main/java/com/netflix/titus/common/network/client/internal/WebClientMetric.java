@@ -17,7 +17,6 @@
 package com.netflix.titus.common.network.client.internal;
 
 import java.util.concurrent.TimeUnit;
-import java.util.function.BiConsumer;
 
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;

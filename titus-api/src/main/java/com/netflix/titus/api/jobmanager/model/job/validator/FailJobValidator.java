@@ -24,6 +24,7 @@ import java.util.UUID;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.validator.EntityValidator;
+import com.netflix.titus.common.model.validator.EntityValidatorConfiguration;
 import com.netflix.titus.common.model.validator.ValidationError;
 import reactor.core.publisher.Mono;
 
@@ -33,6 +34,16 @@ import reactor.core.publisher.Mono;
 public class FailJobValidator implements EntityValidator<JobDescriptor> {
     public static final String ERR_FIELD = "fail-field";
     public static final String ERR_DESCRIPTION = "The FailJobValidator should always fail with a unique error:";
+
+    private final ValidationError.Type errorType;
+
+    public FailJobValidator() {
+        this(ValidationError.Type.HARD);
+    }
+
+    public FailJobValidator(ValidationError.Type errorType) {
+        this.errorType = errorType;
+    }
 
     @Override
     public Mono<Set<ValidationError>> validate(JobDescriptor entity) {
@@ -45,5 +56,10 @@ public class FailJobValidator implements EntityValidator<JobDescriptor> {
     @Override
     public Mono<JobDescriptor> sanitize(JobDescriptor entity) {
         return Mono.error(TitusServiceException.invalidArgument(ERR_DESCRIPTION));
+    }
+
+    @Override
+    public ValidationError.Type getErrorType(EntityValidatorConfiguration configuration) {
+        return errorType;
     }
 }

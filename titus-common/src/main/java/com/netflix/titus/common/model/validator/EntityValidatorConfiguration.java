@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,14 +14,11 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.endpoint.validator;
+package com.netflix.titus.common.model.validator;
 
-import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
-import com.netflix.titus.common.model.validator.EntityValidatorConfiguration;
 
-@Configuration(prefix = "titus.validate.job")
-public interface TitusValidatorConfiguration extends EntityValidatorConfiguration {
-    @DefaultValue("2000")
-    int getTimeoutMs();
+public interface EntityValidatorConfiguration {
+    @DefaultValue("SOFT")
+    String getErrorType();
 }

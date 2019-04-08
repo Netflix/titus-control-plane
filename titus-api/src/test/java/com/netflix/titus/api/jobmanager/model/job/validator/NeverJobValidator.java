@@ -18,6 +18,7 @@ package com.netflix.titus.api.jobmanager.model.job.validator;
 
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.common.model.validator.EntityValidator;
+import com.netflix.titus.common.model.validator.EntityValidatorConfiguration;
 import com.netflix.titus.common.model.validator.ValidationError;
 import reactor.core.publisher.Mono;
 
@@ -27,6 +28,16 @@ import java.util.Set;
  * This validator never completes.  It is used to test validation in the face of unresponsive service calls.
  */
 public class NeverJobValidator implements EntityValidator<JobDescriptor> {
+    private final ValidationError.Type errorType;
+
+    public NeverJobValidator() {
+        this(ValidationError.Type.HARD);
+    }
+
+    public NeverJobValidator(ValidationError.Type errorType) {
+        this.errorType = errorType;
+    }
+
     @Override
     public Mono<Set<ValidationError>> validate(JobDescriptor entity) {
         return Mono.never();
@@ -34,4 +45,9 @@ public class NeverJobValidator implements EntityValidator<JobDescriptor> {
 
     @Override
     public Mono<JobDescriptor> sanitize(JobDescriptor entity) { return Mono.never(); }
+
+    @Override
+    public ValidationError.Type getErrorType(EntityValidatorConfiguration configuration) {
+        return errorType;
+    }
 }

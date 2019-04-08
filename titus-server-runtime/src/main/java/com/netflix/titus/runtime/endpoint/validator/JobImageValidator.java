@@ -22,6 +22,7 @@ import java.util.Set;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.common.model.validator.EntityValidator;
@@ -41,11 +42,13 @@ public class JobImageValidator implements EntityValidator<JobDescriptor> {
 
     private final JobImageValidatorConfiguration configuration;
     private final RegistryClient registryClient;
+    private final ValidatorMetrics validatorMetrics;
 
     @Inject
-    public JobImageValidator(JobImageValidatorConfiguration configuration, RegistryClient registryClient) {
+    public JobImageValidator(JobImageValidatorConfiguration configuration, RegistryClient registryClient, Registry spectatorRegistry) {
         this.configuration = configuration;
         this.registryClient = registryClient;
+        this.validatorMetrics = new ValidatorMetrics(this.getClass().getSimpleName(), spectatorRegistry);
     }
 
     @Override
@@ -65,13 +68,19 @@ public class JobImageValidator implements EntityValidator<JobDescriptor> {
 
         return imageExistsMono
                 .then(Mono.just(Collections.<ValidationError>emptySet()))
-                .onErrorResume(throwable -> Mono.just(
-                        Collections.singleton(
-                                new ValidationError(
-                                        JobImageValidator.class.getSimpleName(),
-                                        throwable.getMessage(),
-                                        ValidationError.Type.SOFT)
-                        )));
+                .doOnSuccess(j -> validatorMetrics.incrementValidationSuccess(image.getName()))
+                .onErrorResume(throwable -> {
+                    if (isValidationOK(throwable, image.getName())) {
+                        return Mono.just(Collections.emptySet());
+                    }
+                    return Mono.just(
+                            Collections.singleton(
+                                    new ValidationError(
+                                            JobImageValidator.class.getSimpleName(),
+                                            throwable.getMessage(),
+                                            getErrorType(configuration))
+                            ));
+                });
     }
 
     @Override
@@ -80,23 +89,11 @@ public class JobImageValidator implements EntityValidator<JobDescriptor> {
             return Mono.just(jobDescriptor);
         }
 
+        String imageName = jobDescriptor.getContainer().getImage().getName();
         return sanitizeImage(jobDescriptor)
                 .timeout(Duration.ofMillis(configuration.getJobImageValidationTimeoutMs()))
-                // We are ignoring most image validation errors. We will propagate
-                // more errors as we going feature confidence.
-                .onErrorReturn(throwable -> {
-                    logger.error("Exception while checking image digest", throwable);
-                    if (throwable instanceof TitusRegistryException) {
-                        TitusRegistryException tre = (TitusRegistryException) throwable;
-                        switch (tre.getErrorCode()) {
-                            case IMAGE_NOT_FOUND:
-                                return false;
-                            default:
-                                return true;
-                        }
-                    }
-                    return true;
-                }, jobDescriptor);
+                .doOnSuccess(j -> validatorMetrics.incrementValidationSuccess(imageName))
+                .onErrorReturn(throwable -> isValidationOK(throwable, imageName), jobDescriptor);
     }
 
     private Mono<JobDescriptor> sanitizeImage(JobDescriptor jobDescriptor) {
@@ -143,5 +140,31 @@ public class JobImageValidator implements EntityValidator<JobDescriptor> {
 
     private boolean isDisabled() {
         return !configuration.isEnabled();
+    }
+
+    // Determines if this Exception should produce a validation failure
+    private boolean isValidationOK(Throwable throwable, String imageName) {
+        logger.error("Exception while checking image digest", throwable);
+        if (throwable instanceof TitusRegistryException) {
+            TitusRegistryException tre = (TitusRegistryException) throwable;
+            // Use a more specific error tag if available
+            validatorMetrics.incrementValidationError(
+                    imageName,
+                    tre.getErrorCode().name()
+            );
+            // We are ignoring most image validation errors. We will filter
+            // fewer errors as we gain feature confidence.
+            switch (tre.getErrorCode()) {
+                case IMAGE_NOT_FOUND:
+                    return false;
+                default:
+                    return true;
+            }
+        }
+        validatorMetrics.incrementValidationError(
+                imageName,
+                throwable.getClass().getSimpleName()
+        );
+        return true;
     }
 }

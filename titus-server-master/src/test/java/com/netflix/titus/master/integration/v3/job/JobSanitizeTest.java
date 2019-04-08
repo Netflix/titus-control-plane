@@ -16,9 +16,11 @@
 
 package com.netflix.titus.master.integration.v3.job;
 
+import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.common.model.validator.EntityValidator;
+import com.netflix.titus.common.model.validator.ValidationError;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
@@ -44,6 +46,7 @@ import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import reactor.core.publisher.Mono;
 
 import static com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters.toGrpcJobDescriptor;
@@ -63,13 +66,14 @@ public class JobSanitizeTest extends BaseIntegrationTest {
     private static final String tag = "myTag";
     private static final String digest = "sha256:f9f5bb506406b80454a4255b33ed2e4383b9e4a32fb94d6f7e51922704e818fa";
 
-    private static final String missingImageErrorMsg = "Image not found";
-    private static final String internalErrorMsg = "Oops";
+    private static final String missingImageErrorMsg = "does not exist in registry";
 
     private final JobImageValidatorConfiguration configuration = mock(JobImageValidatorConfiguration.class);
     private final RegistryClient registryClient = mock(RegistryClient.class);
 
-    private final TitusStackResource titusStackResource = getTitusStackResource(new JobImageValidator(configuration, registryClient));
+    private final TitusStackResource titusStackResource = getTitusStackResource(
+            new JobImageValidator(configuration, registryClient, new DefaultRegistry())
+    );
     private final InstanceGroupsScenarioBuilder instanceGroupsScenarioBuilder = new InstanceGroupsScenarioBuilder(titusStackResource);
     private JobManagementServiceGrpc.JobManagementServiceBlockingStub client;
 
@@ -80,6 +84,7 @@ public class JobSanitizeTest extends BaseIntegrationTest {
     public void setUp() throws Exception {
         when(configuration.isEnabled()).thenReturn(true);
         when(configuration.getJobImageValidationTimeoutMs()).thenReturn(1000L);
+        when(configuration.getErrorType()).thenReturn(ValidationError.Type.HARD.name());
         instanceGroupsScenarioBuilder.synchronizeWithCloud().template(InstanceGroupScenarioTemplates.basicCloudActivation());
         this.client = titusStackResource.getGateway().getV3BlockingGrpcClient();
     }
@@ -112,7 +117,8 @@ public class JobSanitizeTest extends BaseIntegrationTest {
      */
     @Test
     public void testNonexistentTag() {
-        when(registryClient.getImageDigest(anyString(), anyString())).thenReturn(Mono.error(new TitusRegistryException(TitusRegistryException.ErrorCode.IMAGE_NOT_FOUND, missingImageErrorMsg)));
+        when(registryClient.getImageDigest(anyString(), anyString()))
+                .thenReturn(Mono.error(TitusRegistryException.imageNotFound(repo, tag)));
 
         final com.netflix.titus.grpc.protogen.JobDescriptor jobDescriptor =
                 toGrpcJobDescriptor(batchJobDescriptors()
@@ -138,7 +144,10 @@ public class JobSanitizeTest extends BaseIntegrationTest {
      */
     @Test
     public void testSuppressedInternalError() {
-        when(registryClient.getImageDigest(anyString(), anyString())).thenReturn(Mono.error(new TitusRegistryException(TitusRegistryException.ErrorCode.INTERNAL, internalErrorMsg)));
+        when(registryClient.getImageDigest(anyString(), anyString()))
+                .thenReturn(
+                        Mono.error(TitusRegistryException.internalError(repo, tag, HttpStatus.INTERNAL_SERVER_ERROR))
+                );
 
         final com.netflix.titus.grpc.protogen.JobDescriptor jobDescriptor =
                 toGrpcJobDescriptor(batchJobDescriptors()

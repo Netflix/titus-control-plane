@@ -31,7 +31,6 @@ import javax.inject.Singleton;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
-import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
@@ -106,7 +105,6 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
     private final TaskRelocationDataInjector taskRelocationDataInjector;
     private final NeedsMigrationQueryHandler needsMigrationQueryHandler;
     private final EntityValidator<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> validator;
-    private final Registry spectatorRegistry;
     private final Clock clock;
 
     @Inject
@@ -142,7 +140,6 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
         this.taskRelocationDataInjector = taskRelocationDataInjector;
         this.needsMigrationQueryHandler = needsMigrationQueryHandler;
         this.validator = validator;
-        this.spectatorRegistry = titusRuntime.getRegistry();
         this.clock = titusRuntime.getClock();
     }
 
@@ -160,9 +157,6 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
                         .onErrorResumeNext(throwable -> Observable.error(TitusServiceException.invalidArgument(throwable)))
                         .flatMap(sanitizedCoreJobDescriptor -> ReactorExt.toObservable(validator.validate(sanitizedCoreJobDescriptor))
                                 .flatMap(errors -> {
-                                    // Report metrics on all errors
-                                    reportErrorMetrics(errors, sanitizedCoreJobDescriptor);
-
                                     // Only emit an error on HARD validation errors
                                     errors = errors.stream().filter(ValidationError::isHard).collect(Collectors.toSet());
 
@@ -365,15 +359,5 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
         }).collect(Collectors.toList());
         uniqueActiveTasks.addAll(archivedTasks);
         return uniqueActiveTasks;
-    }
-
-    private void reportErrorMetrics(Set<ValidationError> errors, com.netflix.titus.api.jobmanager.model.job.JobDescriptor jobDescriptor) {
-        errors.forEach(error ->
-                spectatorRegistry.counter(
-                        error.getField(),
-                        "type", error.getType().name(),
-                        "description", error.getDescription(),
-                        "application", jobDescriptor.getApplicationName())
-                        .increment());
     }
 }

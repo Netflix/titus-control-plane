@@ -16,6 +16,7 @@
 
 package com.netflix.titus.gateway.service.v3.internal;
 
+import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.common.model.validator.ValidationError;
@@ -26,6 +27,7 @@ import com.netflix.titus.runtime.endpoint.validator.JobImageValidatorConfigurati
 import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.http.HttpStatus;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
@@ -39,7 +41,7 @@ public class JobImageValidatorTest {
     private static final String repo = "myRepo";
     private static final String tag = "myTag";
     private static final String digest = "sha256:f9f5bb506406b80454a4255b33ed2e4383b9e4a32fb94d6f7e51922704e818fa";
-    private static final String errorDescription = "Image not found";
+    private static final String errorDescription = "does not exist in registry";
 
     private final JobImageValidatorConfiguration configuration = mock(JobImageValidatorConfiguration.class);
     private final RegistryClient registryClient = mock(RegistryClient.class);
@@ -67,8 +69,9 @@ public class JobImageValidatorTest {
     public void setUp() {
         when(configuration.isEnabled()).thenReturn(true);
         when(configuration.getJobImageValidationTimeoutMs()).thenReturn(1000L);
+        when(configuration.getErrorType()).thenReturn(ValidationError.Type.HARD.name());
         when(registryClient.getImageDigest(anyString(), anyString())).thenReturn(Mono.just(digest));
-        validator = new JobImageValidator(configuration, registryClient);
+        validator = new JobImageValidator(configuration, registryClient, new DefaultRegistry());
     }
 
     @Test
@@ -83,7 +86,8 @@ public class JobImageValidatorTest {
 
     @Test
     public void testJobWithNonExistentTag() {
-        when(registryClient.getImageDigest(anyString(), anyString())).thenReturn(Mono.error(new TitusRegistryException(TitusRegistryException.ErrorCode.IMAGE_NOT_FOUND, errorDescription)));
+        when(registryClient.getImageDigest(anyString(), anyString()))
+                .thenReturn(Mono.error(TitusRegistryException.imageNotFound(repo, tag)));
 
         StepVerifier.create(validator.sanitize(jobDescriptorWithTag))
                 .expectErrorSatisfies(throwable -> {
@@ -98,7 +102,8 @@ public class JobImageValidatorTest {
      */
     @Test
     public void testSuppressedInternalError() {
-        when(registryClient.getImageDigest(anyString(), anyString())).thenReturn(Mono.error(new TitusRegistryException(TitusRegistryException.ErrorCode.INTERNAL, "Oops")));
+        when(registryClient.getImageDigest(anyString(), anyString()))
+                .thenReturn(Mono.error(TitusRegistryException.internalError(repo, tag, HttpStatus.INTERNAL_SERVER_ERROR)));
 
         StepVerifier.create(validator.sanitize(jobDescriptorWithTag))
                 .assertNext(jd -> {
@@ -140,7 +145,8 @@ public class JobImageValidatorTest {
 
     @Test
     public void testValidateMissingImage() {
-        when(registryClient.getImageDigest(anyString(), anyString())).thenReturn(Mono.error(new TitusRegistryException(TitusRegistryException.ErrorCode.IMAGE_NOT_FOUND, errorDescription)));
+        when(registryClient.getImageDigest(anyString(), anyString()))
+                .thenReturn(Mono.error(TitusRegistryException.imageNotFound(repo, tag)));
 
         StepVerifier.create(validator.validate(jobDescriptorWithTag))
                 .assertNext(validationErrors -> {
@@ -149,9 +155,7 @@ public class JobImageValidatorTest {
                             .allMatch(validationError ->
                                     validationError.getField().equals(JobImageValidator.class.getSimpleName()))
                             .allMatch(validationError ->
-                                    validationError.getDescription().equals(errorDescription))
-                            .allMatch(validationError ->
-                                    validationError.getType().equals(ValidationError.Type.SOFT));
+                                    validationError.getDescription().endsWith(errorDescription));
                 })
                 .verifyComplete();
     }

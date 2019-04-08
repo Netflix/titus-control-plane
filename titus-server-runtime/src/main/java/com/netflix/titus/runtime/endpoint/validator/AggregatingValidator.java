@@ -23,17 +23,18 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.common.model.validator.EntityValidator;
 import com.netflix.titus.common.model.validator.ValidationError;
-import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.common.util.tuple.Triple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 /**
  * An AggregatingValidator executes and aggregates the results of multiple {@link EntityValidator}s.
@@ -44,14 +45,16 @@ public class AggregatingValidator implements EntityValidator<JobDescriptor> {
     private final TitusValidatorConfiguration configuration;
 
     private final Duration timeout;
-    private final Collection<EntityValidator<JobDescriptor>> hardValidators;
-    private final Collection<EntityValidator<JobDescriptor>> softValidators;
+    private final Collection<EntityValidator<JobDescriptor>> validators;
 
     private final Collection<EntityValidator<JobDescriptor>> sanitizers;
 
+    private final ValidatorMetrics validatorMetrics;
+
     /**
      * A AggregatingValidator ensures that all its constituent validators or sanitizers complete within a specified
-     * duration.  The distinction between "hard" and "soft" validators is behavior on timeout.  When a "hard" validator
+     * duration. Each validator specifies its error type, either "hard" or "soft". The distinction between "hard" and
+     * "soft" validators is behavior on timeout.  When a "hard" validator
      * fails to complete within the specified duration it produces a {@link ValidationError} with a
      * {@link ValidationError.Type} of HARD.  Conversely "soft" validators which fail to complete within the specified
      * duration have a {@link ValidationError.Type} of SOFT.
@@ -61,15 +64,16 @@ public class AggregatingValidator implements EntityValidator<JobDescriptor> {
     @Inject
     public AggregatingValidator(
             TitusValidatorConfiguration configuration,
-            Collection<EntityValidator<JobDescriptor>> hardValidators,
-            Collection<EntityValidator<JobDescriptor>> softValidators,
+            Registry registry,
+            Collection<EntityValidator<JobDescriptor>> validators,
             Collection<EntityValidator<JobDescriptor>> sanitizers) {
         this.configuration = configuration;
         this.timeout = Duration.ofMillis(this.configuration.getTimeoutMs());
-        this.hardValidators = hardValidators;
-        this.softValidators = softValidators;
+        this.validators = validators;
 
         this.sanitizers = sanitizers;
+
+        this.validatorMetrics = new ValidatorMetrics(this.getClass().getSimpleName(), registry);
     }
 
     /**
@@ -78,17 +82,11 @@ public class AggregatingValidator implements EntityValidator<JobDescriptor> {
      */
     @Override
     public Mono<Set<ValidationError>> validate(JobDescriptor jobDescriptor) {
-        Collection<Mono<Set<ValidationError>>> monos =
-                Stream.concat(
-                        getMonos(jobDescriptor, timeout, hardValidators, ValidationError.Type.HARD).stream(),
-                        getMonos(jobDescriptor, timeout, softValidators, ValidationError.Type.SOFT).stream())
-                        .collect(Collectors.toList());
-
         return Mono.zip(
-                monos,
+                getMonos(jobDescriptor, timeout, validators),
                 objects -> Arrays.stream(objects)
                         .map(objectSet -> (Set<ValidationError>) objectSet)
-                        .flatMap(errorSet -> errorSet.stream())
+                        .flatMap(Set::stream)
                         .collect(Collectors.toSet()))
                 .defaultIfEmpty(Collections.emptySet());
     }
@@ -109,21 +107,43 @@ public class AggregatingValidator implements EntityValidator<JobDescriptor> {
                 .timeout(timeout);
     }
 
-    private static Collection<Mono<Set<ValidationError>>> getMonos(
+    private Collection<Mono<Set<ValidationError>>> getMonos(
             JobDescriptor jobDescriptor,
             Duration timeout,
-            Collection<EntityValidator<JobDescriptor>> validators,
-            ValidationError.Type errorType) {
+            Collection<EntityValidator<JobDescriptor>> validators) {
 
         return validators.stream()
-                .map(v -> new Pair<>(v.getClass().getSimpleName(), v.validate(jobDescriptor))) // (ValidatorClassName, Mono)
-                .map(pair -> pair.getRight().timeout(
+                .map(v -> new Triple<>(
+                        v.getClass().getSimpleName(),
+                        v.getErrorType(configuration),
+                        v.validate(jobDescriptor) // (ValidatorClassName, ValidationError.Type, Mono)
+                                .subscribeOn(Schedulers.parallel()))
+                )
+                .map(triple -> triple.getThird().timeout(
                         timeout,
                         Mono.just(
-                                new HashSet<>(Arrays.asList(
-                                // Field: ValidatorClassName, Description: TimeoutMessage, Type: [SOFT|HARD]
-                                new ValidationError(pair.getLeft(), getTimeoutMsg(timeout), errorType))))))
+                                new HashSet<>(Collections.singletonList(
+                                        // Field: ValidatorClassName, Description: TimeoutMessage, Type: [SOFT|HARD]
+                                        new ValidationError(triple.getFirst(), getTimeoutMsg(timeout), triple.getSecond()))
+                                )
+                        )
+                )
+                        .doOnSuccessOrError(this::registerMetrics))
                 .collect(Collectors.toList());
+    }
+
+    private void registerMetrics(Collection<ValidationError> validationErrors,
+                                 Throwable throwable) {
+        if (null == throwable) {
+            validationErrors.forEach(validationError -> {
+                validatorMetrics.incrementValidationError(
+                        validationError.getField(),
+                        validationError.getDescription(),
+                        Collections.singletonMap("type", validationError.getType().name()));
+            });
+        } else {
+            validatorMetrics.incrementValidationError(this.getClass().getSimpleName(), throwable.getClass().getSimpleName());
+        }
     }
 
     public static String getTimeoutMsg(Duration timeout) {
