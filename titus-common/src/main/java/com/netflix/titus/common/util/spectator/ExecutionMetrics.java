@@ -52,7 +52,7 @@ public class ExecutionMetrics {
     public ExecutionMetrics(String root, Class<?> aClass, Registry registry, List<Tag> additionalTags) {
         this.root = root;
         this.registry = registry;
-        this.commonTags = CollectionsExt.copyAndAdd(additionalTags, new BasicTag("class", aClass.getName()));
+        this.commonTags = CollectionsExt.copyAndAdd(additionalTags, new BasicTag("class", aClass.getSimpleName()));
 
         this.successCounter = registry.counter(registry.createId(root, commonTags).withTag("status", "success"));
         this.errorCounter = registry.counter(registry.createId(root, commonTags).withTag("status", "failure"));

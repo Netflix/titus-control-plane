@@ -71,6 +71,7 @@ import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.common.framework.fit.FitFramework;
 import com.netflix.titus.common.framework.fit.FitInjection;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.SystemExt;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.rx.ObservableExt;
 import com.netflix.titus.common.util.spectator.SpectatorExt;
@@ -412,7 +413,7 @@ public class DefaultSchedulingService implements SchedulingService {
             } catch (InterruptedException e) {
                 logger.error("Interrupted while waiting for Fenzo state dump: {}", e.getMessage(), e);
             }
-            System.exit(3);
+            SystemExt.forcedProcessExit(3);
         }
     }
 

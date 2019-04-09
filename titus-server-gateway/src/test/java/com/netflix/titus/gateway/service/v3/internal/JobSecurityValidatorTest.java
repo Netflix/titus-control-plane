@@ -71,6 +71,7 @@ public class JobSecurityValidatorTest {
         when(configuration.isIamValidatorEnabled()).thenReturn(true);
         when(configuration.getAgentIamAssumeRole()).thenReturn(IAM_ASSUME_ROLE_NAME);
         when(configuration.getIamValidationTimeoutMs()).thenReturn(10000L);
+        when(configuration.getErrorType()).thenReturn(ValidationError.Type.HARD.name());
         iamValidator = new JobIamValidator(configuration, iamConnector, new DefaultRegistry());
     }
 

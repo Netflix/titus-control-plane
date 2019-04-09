@@ -27,6 +27,7 @@ import com.netflix.spectator.api.patterns.PolledMeter;
 import com.netflix.titus.common.framework.fit.FitFramework;
 import com.netflix.titus.common.framework.fit.FitInjection;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.SystemExt;
 import com.netflix.titus.common.util.guice.ActivationLifecycle;
 import com.netflix.titus.common.util.guice.ContainerEventBus;
 import com.netflix.titus.common.util.guice.ContainerEventBus.ContainerEventListener;
@@ -178,7 +179,7 @@ public class GuiceLeaderActivator implements LeaderActivator, ContainerEventList
         //  exit the process and depend on a watcher process to restart us right away. Especially since restart isn't
         // very expensive.
         logger.error("Exiting due to losing leadership after running as leader");
-        System.exit(1);
+        SystemExt.forcedProcessExit(1);
     }
 
     @Override
@@ -209,10 +210,10 @@ public class GuiceLeaderActivator implements LeaderActivator, ContainerEventList
                 stopBeingLeader();
 
                 // As stopBeingLeader method not always terminates the process, lets make sure it does.
-                System.exit(-1);
+                SystemExt.forcedProcessExit(-1);
             }
         } catch (Throwable e) {
-            System.exit(-1);
+            SystemExt.forcedProcessExit(-1);
         }
 
         this.activated = true;

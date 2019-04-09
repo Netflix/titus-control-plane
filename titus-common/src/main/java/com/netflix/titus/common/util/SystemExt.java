@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,14 +14,21 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.endpoint.validator;
+package com.netflix.titus.common.util;
 
-import com.netflix.archaius.api.annotations.Configuration;
-import com.netflix.archaius.api.annotations.DefaultValue;
-import com.netflix.titus.common.model.validator.EntityValidatorConfiguration;
+/**
+ * System/process helper methods.
+ */
+public class SystemExt {
 
-@Configuration(prefix = "titus.validate.job")
-public interface TitusValidatorConfiguration extends EntityValidatorConfiguration {
-    @DefaultValue("2000")
-    int getTimeoutMs();
+    /**
+     * Terminate the JVM process.
+     */
+    public static void forcedProcessExit(int status) {
+        System.err.println("Forced exit: statusCode=" + status);
+        new Exception().printStackTrace(System.err);
+        System.err.flush();
+
+        Runtime.getRuntime().halt(status);
+    }
 }

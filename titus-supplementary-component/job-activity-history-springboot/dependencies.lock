@@ -3683,7 +3683,7 @@
             ]
         },
         "org.springframework.boot:spring-boot-starter-web": {
-            "locked": "2.1.3.RELEASE",
+            "locked": "2.1.4.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-testkit"
             ]
@@ -5613,7 +5613,7 @@
             ]
         },
         "org.springframework.boot:spring-boot-starter-web": {
-            "locked": "2.1.3.RELEASE",
+            "locked": "2.1.4.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-testkit"
             ]
@@ -9501,7 +9501,7 @@
             ]
         },
         "org.springframework.boot:spring-boot-starter-web": {
-            "locked": "2.1.3.RELEASE",
+            "locked": "2.1.4.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-testkit"
             ]
@@ -11186,7 +11186,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.25.1",
+            "locked": "2.26.0",
             "requested": "2.+",
             "transitive": [
                 "com.netflix.titus:titus-testkit"
@@ -13117,7 +13117,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.25.1",
+            "locked": "2.26.0",
             "requested": "2.+",
             "transitive": [
                 "com.netflix.titus:titus-testkit"
@@ -13368,7 +13368,7 @@
             ]
         },
         "org.springframework.boot:spring-boot-starter-web": {
-            "locked": "2.1.3.RELEASE",
+            "locked": "2.1.4.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-testkit"
             ]
@@ -15053,7 +15053,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.25.1",
+            "locked": "2.26.0",
             "requested": "2.+",
             "transitive": [
                 "com.netflix.titus:titus-testkit"
@@ -16985,7 +16985,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.25.1",
+            "locked": "2.26.0",
             "requested": "2.+",
             "transitive": [
                 "com.netflix.titus:titus-testkit"
@@ -17237,7 +17237,7 @@
             ]
         },
         "org.springframework.boot:spring-boot-starter-web": {
-            "locked": "2.1.3.RELEASE",
+            "locked": "2.1.4.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-testkit"
             ]

@@ -7515,7 +7515,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.25.1",
+            "locked": "2.26.0",
             "requested": "2.+"
         },
         "org.mozilla:rhino": {
@@ -8830,7 +8830,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.25.1",
+            "locked": "2.26.0",
             "requested": "2.+"
         },
         "org.mozilla:rhino": {
@@ -10155,7 +10155,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.25.1",
+            "locked": "2.26.0",
             "requested": "2.+"
         },
         "org.mozilla:rhino": {
@@ -11471,7 +11471,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.25.1",
+            "locked": "2.26.0",
             "requested": "2.+"
         },
         "org.mozilla:rhino": {

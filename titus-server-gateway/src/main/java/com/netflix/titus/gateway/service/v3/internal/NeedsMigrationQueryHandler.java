@@ -37,7 +37,7 @@ import com.netflix.titus.runtime.connector.jobmanager.JobDataReplicator;
 import com.netflix.titus.runtime.connector.relocation.RelocationDataReplicator;
 import com.netflix.titus.runtime.endpoint.JobQueryCriteria;
 import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
-import com.netflix.titus.runtime.endpoint.v3.grpc.query.V3JobQueryCriteriaEvaluator;
+import com.netflix.titus.runtime.endpoint.v3.grpc.query.V3TaskQueryCriteriaEvaluator;
 import com.netflix.titus.runtime.jobmanager.JobManagerCursors;
 
 import static com.netflix.titus.gateway.service.v3.internal.TaskRelocationDataInjector.newTaskWithRelocationPlan;
@@ -66,19 +66,26 @@ class NeedsMigrationQueryHandler {
         List<Pair<Job<?>, List<Task>>> jobsAndTasks = jobDataReplicator.getCurrent().getJobsAndTasks();
         Map<String, TaskRelocationPlan> relocationPlans = relocationDataReplicator.getCurrent().getPlans();
 
-        V3JobQueryCriteriaEvaluator queryFilter = new V3JobQueryCriteriaEvaluator(queryCriteria, titusRuntime);
+        V3TaskQueryCriteriaEvaluator queryFilter = new V3TaskQueryCriteriaEvaluator(queryCriteria, titusRuntime);
+        V3TaskQueryCriteriaEvaluator queryFilterWithoutNeedsMigration = new V3TaskQueryCriteriaEvaluator(filterOutNeedsMigration(queryCriteria), titusRuntime);
 
         List<com.netflix.titus.grpc.protogen.Task> matchingTasks = new ArrayList<>();
         jobsAndTasks.forEach(jobTasksPair -> {
+            Job<?> job = jobTasksPair.getLeft();
             List<Task> tasks = jobTasksPair.getRight();
             tasks.forEach(task -> {
 
                 TaskRelocationPlan plan = relocationPlans.get(task.getId());
 
+                Pair<Job<?>, Task> jobTaskPair = Pair.of(job, task);
                 if (plan != null) {
-                    matchingTasks.add(newTaskWithRelocationPlan(toGrpcTask(task, logStorageInfo), plan));
-                } else if (queryFilter.test(jobTasksPair)) {
-                    matchingTasks.add(toGrpcTask(task, logStorageInfo));
+                    if (queryFilterWithoutNeedsMigration.test(jobTaskPair)) {
+                        matchingTasks.add(newTaskWithRelocationPlan(toGrpcTask(task, logStorageInfo), plan));
+                    }
+                } else {
+                    if (queryFilter.test(jobTaskPair)) {
+                        matchingTasks.add(toGrpcTask(task, logStorageInfo));
+                    }
                 }
             });
         });
@@ -92,5 +99,9 @@ class NeedsMigrationQueryHandler {
         );
 
         return PageResult.pageOf(paginationPair.getLeft(), paginationPair.getRight());
+    }
+
+    private JobQueryCriteria<TaskStatus.TaskState, JobDescriptor.JobSpecCase> filterOutNeedsMigration(JobQueryCriteria<TaskStatus.TaskState, JobDescriptor.JobSpecCase> queryCriteria) {
+        return queryCriteria.toBuilder().withNeedsMigration(false).build();
     }
 }

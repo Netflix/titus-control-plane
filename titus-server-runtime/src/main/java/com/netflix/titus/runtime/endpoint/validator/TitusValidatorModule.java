@@ -17,12 +17,12 @@
 package com.netflix.titus.runtime.endpoint.validator;
 
 import java.util.Arrays;
-import java.util.Collections;
 import javax.inject.Singleton;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
+import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.validator.PassJobValidator;
 import com.netflix.titus.common.model.validator.EntityValidator;
@@ -48,10 +48,11 @@ public class TitusValidatorModule extends AbstractModule {
     @Singleton
     public EntityValidator<JobDescriptor> getJobValidator(TitusValidatorConfiguration configuration,
                                                           JobImageValidator jobImageValidator,
-                                                          JobIamValidator jobIamValidator) {
+                                                          JobIamValidator jobIamValidator,
+                                                          Registry registry) {
         return new AggregatingValidator(
                 configuration,
-                Collections.emptyList(), // No HARD validators
+                registry,
                 Arrays.asList(new PassJobValidator(), jobIamValidator),
                 Arrays.asList(jobImageValidator));
     }

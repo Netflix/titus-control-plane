@@ -22,6 +22,7 @@ import javax.inject.Singleton;
 
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.common.model.validator.EntityValidator;
+import com.netflix.titus.common.model.validator.EntityValidatorConfiguration;
 import com.netflix.titus.common.model.validator.ValidationError;
 import reactor.core.publisher.Mono;
 
@@ -31,6 +32,16 @@ import reactor.core.publisher.Mono;
  */
 @Singleton
 public class PassJobValidator implements EntityValidator<JobDescriptor> {
+    private final ValidationError.Type errorType;
+
+    public PassJobValidator() {
+        this(ValidationError.Type.HARD);
+    }
+
+    public PassJobValidator(ValidationError.Type errorType) {
+        this.errorType = errorType;
+    }
+
     @Override
     public Mono<Set<ValidationError>> validate(JobDescriptor entity) {
         return Mono.just(Collections.emptySet());
@@ -39,5 +50,10 @@ public class PassJobValidator implements EntityValidator<JobDescriptor> {
     @Override
     public Mono<JobDescriptor> sanitize(JobDescriptor entity) {
       return Mono.just(entity);
+    }
+
+    @Override
+    public ValidationError.Type getErrorType(EntityValidatorConfiguration configuration) {
+        return errorType;
     }
 }
