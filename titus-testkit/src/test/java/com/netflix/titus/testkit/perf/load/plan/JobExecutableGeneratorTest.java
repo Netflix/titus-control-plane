@@ -17,14 +17,14 @@
 package com.netflix.titus.testkit.perf.load.plan;
 
 import java.time.Duration;
-import java.util.List;
+import java.util.ArrayList;
 
 import com.netflix.titus.testkit.perf.load.plan.JobExecutableGenerator.Executable;
 import com.netflix.titus.testkit.perf.load.plan.catalog.JobDescriptorCatalog;
 import com.netflix.titus.testkit.perf.load.plan.catalog.JobExecutionPlanCatalog;
 import com.netflix.titus.testkit.rx.ExtTestSubscriber;
-import org.assertj.core.api.Assertions;
 import org.junit.Test;
+import reactor.test.StepVerifier;
 
 public class JobExecutableGeneratorTest {
 
@@ -39,14 +39,13 @@ public class JobExecutableGeneratorTest {
                         2
                 ).build();
 
-        scenario.executionPlans().subscribe(testSubscriber);
-
-        // We expect only two jobs first
-        List<JobExecutableGenerator.Executable> executables = testSubscriber.takeNext(2);
-        Assertions.assertThat(testSubscriber.takeNext()).isNull();
-
-        // Now return single job
-        scenario.completed(executables.get(0));
-        Assertions.assertThat(testSubscriber.takeNext()).isNotNull();
+        StepVerifier.create(scenario.executionPlans())
+                .recordWith(ArrayList::new)
+                .expectNextCount(2)
+                .expectNoEvent(Duration.ofSeconds(1))
+                .consumeRecordedWith(events -> scenario.completed(events.iterator().next()))
+                .expectNextCount(1)
+                .thenCancel()
+                .verify(Duration.ofSeconds(10));
     }
 }

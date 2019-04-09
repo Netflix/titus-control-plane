@@ -16,42 +16,35 @@
 
 package com.netflix.titus.testkit.perf.load.plan.generator;
 
-import com.google.common.base.Preconditions;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.testkit.perf.load.plan.ExecutionPlan;
 import com.netflix.titus.testkit.perf.load.plan.JobExecutableGenerator;
-import rx.Observable;
-import rx.Subscriber;
-import rx.observers.SerializedSubscriber;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxProcessor;
+import reactor.core.publisher.UnicastProcessor;
 
 public class ConstantLoadJobExecutableGenerator extends JobExecutableGenerator {
 
     private final Executable executable;
-    private final int numberOfJobs;
-
-    private volatile Subscriber<? super Executable> scenarioSubscriber;
+    private final FluxProcessor<Executable, Executable> executionPlans;
 
     public ConstantLoadJobExecutableGenerator(String owner, JobDescriptor<?> jobSpec, ExecutionPlan plan, int numberOfJobs) {
         this.executable = new Executable(owner, jobSpec, plan);
-        this.numberOfJobs = numberOfJobs;
+        this.executionPlans = UnicastProcessor.<Executable>create().serialize();
+        for (int i = 0; i < numberOfJobs; i++) {
+            this.executionPlans.onNext(executable);
+        }
     }
 
     @Override
-    public Observable<Executable> executionPlans() {
-        return Observable.unsafeCreate(subscriber -> {
-            // FIXME This is prone to race conditions.
-            Preconditions.checkState(scenarioSubscriber == null, "Expected single subscription");
-            scenarioSubscriber = new SerializedSubscriber<>(subscriber);
-            for (int i = 0; i < numberOfJobs; i++) {
-                subscriber.onNext(executable);
-            }
-        });
+    public Flux<Executable> executionPlans() {
+        return executionPlans;
     }
 
     @Override
     public void completed(Executable executable) {
-        if (scenarioSubscriber != null && executable == this.executable) {
-            scenarioSubscriber.onNext(executable);
+        if (executable == this.executable) {
+            executionPlans.onNext(executable);
         }
     }
 }

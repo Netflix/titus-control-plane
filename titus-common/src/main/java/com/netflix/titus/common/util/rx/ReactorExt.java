@@ -52,8 +52,8 @@ public final class ReactorExt {
     }
 
     /**
-     * Ignore all elements, and emit empty {@link Optional} if stream completes normally or {@link Optional} with
-     * the exception.
+     * Ignore all elements, and emit empty {@link Optional#empty()} if stream completes normally or
+     * {@link Optional#of(Object)} with the exception.
      */
     public static Mono<Optional<Throwable>> emitError(Mono<?> source) {
         return source.ignoreElement().materialize().map(result ->
@@ -292,6 +292,13 @@ public final class ReactorExt {
      */
     public static <T> Single<T> toSingle(Mono<T> mono) {
         return toObservable(mono).toSingle();
+    }
+
+    /**
+     * {@link Mono} bridge to RxJava {@link Completable}.
+     */
+    public static Completable toCompletable(Mono<Void> mono) {
+        return toObservable(mono).toCompletable();
     }
 
     /**

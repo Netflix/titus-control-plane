@@ -17,6 +17,7 @@
 package com.netflix.titus.testkit.perf.load.runner.job;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.google.common.base.Preconditions;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
@@ -24,81 +25,75 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
-import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
-import com.netflix.titus.grpc.protogen.TaskKillRequest;
-import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import com.netflix.titus.testkit.perf.load.ExecutionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import rx.Observable;
+import reactor.core.publisher.Mono;
 
 public class ServiceJobExecutor extends AbstractJobExecutor<ServiceJobExt> {
 
     private static final Logger logger = LoggerFactory.getLogger(ServiceJobExecutor.class);
 
-    private volatile Capacity currentCapacity;
+    private final AtomicReference<Capacity> currentCapacity;
 
     private ServiceJobExecutor(Job<ServiceJobExt> job, ExecutionContext context) {
         super(job, context);
-        this.currentCapacity = job.getJobDescriptor().getExtensions().getCapacity();
+        this.currentCapacity = new AtomicReference<>(job.getJobDescriptor().getExtensions().getCapacity());
     }
 
     @Override
-    public Observable<Void> terminateAndShrink(String taskId) {
+    public Mono<Void> terminateAndShrink(String taskId) {
         Preconditions.checkState(doRun, "Job executor shut down already");
         Preconditions.checkNotNull(jobId);
 
-        return context.getJobServiceGateway().killTask(TaskKillRequest.newBuilder().setTaskId(taskId).setShrink(true).build())
-                .toObservable()
-                .cast(Void.class)
-                .onErrorResumeNext(e -> Observable.error(new IOException("Failed to terminate and shrink task " + taskId + " of job " + name, e)))
-                .doOnCompleted(() -> {
+        return context.getJobManagementClient().killTask(taskId, true, JobManagerConstants.TEST_CALL_METADATA)
+                .onErrorResume(e -> Mono.error(new IOException("Failed to terminate and shrink task " + taskId + " of job " + name, e)))
+                .doOnSuccess(ignored -> {
                     logger.info("Terminate and shrink succeeded for task {}", taskId);
-                    this.currentCapacity = currentCapacity.toBuilder().withDesired(currentCapacity.getDesired() - 1).build();
-                    logger.info("Job capacity changed: jobId={}, capacity={}", jobId, currentCapacity);
+                    Capacity newCapacity = this.currentCapacity.updateAndGet(current ->
+                            current.toBuilder().withDesired(current.getDesired() - 1).build()
+                    );
+                    logger.info("Job capacity changed: jobId={}, capacity={}", jobId, newCapacity);
                 });
     }
 
     @Override
-    public Observable<Void> updateInstanceCount(int min, int desired, int max) {
+    public Mono<Void> updateInstanceCount(int min, int desired, int max) {
         Preconditions.checkState(doRun, "Job executor shut down already");
         Preconditions.checkNotNull(jobId);
 
-        return context.getJobServiceGateway()
-                .updateJobCapacity(JobCapacityUpdate.newBuilder()
-                        .setJobId(jobId)
-                        .setCapacity(
-                                com.netflix.titus.grpc.protogen.Capacity.newBuilder()
-                                        .setMin(min)
-                                        .setDesired(desired)
-                                        .setMax(max)
-                                        .build()
-                        ).build()
+        Capacity capacity = Capacity.newBuilder()
+                .withMin(min)
+                .withDesired(desired)
+                .withMax(max)
+                .build();
+        return context.getJobManagementClient()
+                .updateJobCapacity(jobId, capacity, JobManagerConstants.TEST_CALL_METADATA)
+                .onErrorResume(e -> Mono.error(
+                        new IOException("Failed to change instance count to min=" + min + ", desired=" + desired + ", max=" + max + " of job " + name, e))
                 )
-                .toObservable()
-                .cast(Void.class)
-                .onErrorResumeNext(e -> Observable.error(
-                        new IOException("Failed to change instance count to min=" + min + ", desired=" + desired + ", max=" + max + " of job " + name, e)))
-                .doOnCompleted(() -> {
+                .doOnSuccess(ignored -> {
                     logger.info("Instance count changed to min={}, desired={}, max={} of job {}", min, desired, max, jobId);
-                    this.currentCapacity = Capacity.newBuilder().withMin(min).withDesired(desired).withMax(max).build();
+                    this.currentCapacity.set(capacity);
                 });
     }
 
     @Override
-    public Observable<Void> scaleUp(int delta) {
-        return updateInstanceCount(currentCapacity.getMin(), currentCapacity.getDesired() + delta, currentCapacity.getMax());
+    public Mono<Void> scaleUp(int delta) {
+        Capacity capacity = currentCapacity.get();
+        return updateInstanceCount(capacity.getMin(), capacity.getDesired() + delta, capacity.getMax());
     }
 
     @Override
-    public Observable<Void> scaleDown(int delta) {
-        return updateInstanceCount(currentCapacity.getMin(), currentCapacity.getDesired() - delta, currentCapacity.getMax());
+    public Mono<Void> scaleDown(int delta) {
+        Capacity capacity = currentCapacity.get();
+        return updateInstanceCount(capacity.getMin(), capacity.getDesired() - delta, capacity.getMax());
     }
 
-    public static Observable<ServiceJobExecutor> submitJob(JobDescriptor<ServiceJobExt> jobSpec, ExecutionContext context) {
-        return context.getJobServiceGateway()
-                .createJob(V3GrpcModelConverters.toGrpcJobDescriptor(jobSpec), JobManagerConstants.UNDEFINED_CALL_METADATA)
-                .flatMap(jobRef -> context.getJobServiceGateway().findJob(jobRef))
-                .map(job -> new ServiceJobExecutor((Job<ServiceJobExt>) V3GrpcModelConverters.toCoreJob(job), context));
+    public static Mono<ServiceJobExecutor> submitJob(JobDescriptor<ServiceJobExt> jobSpec, ExecutionContext context) {
+        return context.getJobManagementClient()
+                .createJob(jobSpec, JobManagerConstants.TEST_CALL_METADATA)
+                .flatMap(jobRef -> context.getJobManagementClient().findJob(jobRef))
+                .map(job -> new ServiceJobExecutor((Job<ServiceJobExt>) job, context));
     }
 }

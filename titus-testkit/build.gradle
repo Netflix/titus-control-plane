@@ -9,6 +9,7 @@ dependencies {
 
     compile "org.springframework.boot:spring-boot-starter-webflux:${springBootVersion}"
     compile "org.springframework.boot:spring-boot-starter-web:${springBootVersion}"
+    compile "io.projectreactor:reactor-core:${springReactor}"
 
     compile("com.netflix.governator:governator-jetty:${governatorVersion}") { transitive = false }
     compile "org.eclipse.jetty:jetty-servlet:${jettyVersion}"

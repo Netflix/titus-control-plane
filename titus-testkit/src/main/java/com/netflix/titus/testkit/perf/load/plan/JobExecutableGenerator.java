@@ -22,7 +22,7 @@ import java.util.List;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.testkit.perf.load.plan.generator.CompositeJobExecutableGenerator;
 import com.netflix.titus.testkit.perf.load.plan.generator.ConstantLoadJobExecutableGenerator;
-import rx.Observable;
+import reactor.core.publisher.Flux;
 
 public abstract class JobExecutableGenerator {
 
@@ -50,7 +50,7 @@ public abstract class JobExecutableGenerator {
         }
     }
 
-    public abstract Observable<Executable> executionPlans();
+    public abstract Flux<Executable> executionPlans();
 
     public abstract void completed(Executable executable);
 

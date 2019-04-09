@@ -26,7 +26,7 @@ import com.netflix.titus.runtime.connector.agent.ReactorAgentManagementServiceSt
 import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorClientFactoryComponent;
 import com.netflix.titus.runtime.connector.eviction.EvictionConnectorComponent;
 import com.netflix.titus.runtime.connector.eviction.EvictionServiceClient;
-import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway;
+import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementDataReplicationComponent;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagerConnectorComponent;
 import com.netflix.titus.testkit.embedded.cloud.connector.remote.SimulatedRemoteInstanceCloudConnector;
@@ -56,14 +56,14 @@ import org.springframework.context.annotation.Import;
 public class LoadGeneratorComponent {
 
     @Bean
-    public ExecutionContext getExecutionContext(JobServiceGateway jobServiceGateway,
+    public ExecutionContext getExecutionContext(JobManagementClient jobManagementClient,
                                                 ReadOnlyJobOperations cachedJobManagementClient,
                                                 ReactorAgentManagementServiceStub agentManagementClient,
                                                 ReadOnlyAgentOperations cachedAgentManagementClient,
                                                 EvictionServiceClient evictionServiceClient,
                                                 @Named(SimulatedRemoteInstanceCloudConnector.SIMULATED_CLOUD) Channel cloudSimulatorGrpcChannel) {
         return new ExecutionContext(
-                jobServiceGateway,
+                jobManagementClient,
                 cachedJobManagementClient,
                 agentManagementClient,
                 cachedAgentManagementClient,

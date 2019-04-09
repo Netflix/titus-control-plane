@@ -16,25 +16,27 @@
 
 package com.netflix.titus.testkit.perf.load.runner;
 
+import java.util.Collections;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.JobState;
+import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
+import com.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
+import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.common.util.ExceptionExt;
-import com.netflix.titus.grpc.protogen.Job;
-import com.netflix.titus.grpc.protogen.JobChangeNotification;
-import com.netflix.titus.grpc.protogen.JobStatus;
-import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
 import com.netflix.titus.testkit.perf.load.ExecutionContext;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import rx.Observable;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 /**
  * Removes running jobs belonging to past sessions.
@@ -67,22 +69,22 @@ public class JobTerminator {
         if (!jobIdsToRemove.isEmpty()) {
             logger.warn("Removing old jobs: {}", jobIdsToRemove);
 
-            List<Observable<Void>> killActions = jobIdsToRemove.stream()
-                    .map(jid -> context.getJobServiceGateway()
-                            .killJob(jid)
-                            .toObservable()
-                            .cast(Void.class)
-                            .onErrorResumeNext(e -> {
+            List<Mono<Void>> killActions = jobIdsToRemove.stream()
+                    .map(jid -> context.getJobManagementClient()
+                            .killJob(jid, JobManagerConstants.JOB_TERMINATOR_CALL_METADATA)
+                            .onErrorResume(e -> {
+                                if (!(e instanceof StatusRuntimeException)) {
+                                    return Mono.error(e);
+                                }
                                 StatusRuntimeException ex = (StatusRuntimeException) e;
                                 return ex.getStatus().getCode() == Status.Code.NOT_FOUND
-                                        ? Observable.empty()
-                                        : Observable.error(e);
-
+                                        ? Mono.empty()
+                                        : Mono.error(e);
                             })
                     )
                     .collect(Collectors.toList());
             try {
-                Observable.mergeDelayError(killActions, 10).toBlocking().firstOrDefault(null);
+                Flux.mergeDelayError(10, killActions.stream().toArray(Mono[]::new)).blockLast();
             } catch (Throwable e) {
                 logger.warn("Not all jobs successfully terminated", e);
             }
@@ -91,19 +93,18 @@ public class JobTerminator {
 
     private boolean doTry(Set<String> jobIdsToRemove, Set<String> unknownJobs) {
         try {
-            Iterator<JobChangeNotification> it = context.getJobServiceGateway()
-                    .observeJobs(ObserveJobsQuery.newBuilder().build())
-                    .toBlocking()
-                    .getIterator();
-            while (it.hasNext()) {
-                JobChangeNotification event = it.next();
-                if (event.getNotificationCase() == JobChangeNotification.NotificationCase.SNAPSHOTEND) {
+            Iterable<JobManagerEvent<?>> it = context.getJobManagementClient()
+                    .observeJobs(Collections.emptyMap())
+                    .toIterable();
+            for (JobManagerEvent<?> event : it) {
+                if (event.equals(JobManagerEvent.snapshotMarker())) {
                     break;
                 }
-                if (event.getNotificationCase() != JobChangeNotification.NotificationCase.JOBUPDATE) {
+                if (!(event instanceof JobUpdateEvent)) {
                     continue;
                 }
-                Job job = event.getJobUpdate().getJob();
+                JobUpdateEvent jobUpdateEvent = (JobUpdateEvent) event;
+                Job job = jobUpdateEvent.getCurrent();
                 if (isActivePreviousSessionJob(job)) {
                     jobIdsToRemove.add(job.getId());
                 } else {
@@ -118,7 +119,7 @@ public class JobTerminator {
     }
 
     private boolean isActivePreviousSessionJob(Job job) {
-        return job.getStatus().getState() == JobStatus.JobState.Accepted
-                && job.getJobDescriptor().getAttributesMap().containsKey(ExecutionContext.LABEL_SESSION);
+        return job.getStatus().getState() == JobState.Accepted
+                && job.getJobDescriptor().getAttributes().containsKey(ExecutionContext.LABEL_SESSION);
     }
 }

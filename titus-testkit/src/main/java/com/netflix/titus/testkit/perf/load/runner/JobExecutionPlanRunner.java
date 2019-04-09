@@ -22,9 +22,8 @@ import java.util.Optional;
 import java.util.Random;
 
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.rx.ReactorExt;
-import com.netflix.titus.grpc.protogen.JobQuery;
-import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.testkit.perf.load.ExecutionContext;
 import com.netflix.titus.testkit.perf.load.plan.ExecutionPlan;
 import com.netflix.titus.testkit.perf.load.plan.ExecutionStep;
@@ -33,9 +32,10 @@ import com.netflix.titus.testkit.perf.load.runner.job.JobExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
-import rx.Completable;
 import rx.Observable;
 import rx.Scheduler;
+
+import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toPage;
 
 public class JobExecutionPlanRunner extends ExecutionPlanRunner {
 
@@ -70,7 +70,7 @@ public class JobExecutionPlanRunner extends ExecutionPlanRunner {
         worker.unsubscribe();
     }
 
-    public Completable awaitJobCompletion() {
+    public Mono<Void> awaitJobCompletion() {
         return executor.awaitJobCompletion();
     }
 
@@ -90,8 +90,9 @@ public class JobExecutionPlanRunner extends ExecutionPlanRunner {
         }
 
         Observable<Void> action = toCommonAction(step)
-                .orElseGet(() -> toJobAction(step).orElseThrow(
-                        () -> new IllegalStateException("Unknown execution step " + step))
+                .orElseGet(() -> toJobAction(step)
+                        .map(ReactorExt::toObservable)
+                        .orElseThrow(() -> new IllegalStateException("Unknown execution step " + step))
                 );
 
         long startTime = worker.now();
@@ -109,7 +110,7 @@ public class JobExecutionPlanRunner extends ExecutionPlanRunner {
         );
     }
 
-    private Optional<Observable<Void>> toJobAction(ExecutionStep step) {
+    private Optional<Mono<Void>> toJobAction(ExecutionStep step) {
         switch (step.getName()) {
             case JobExecutionStep.NAME_SCALE_UP:
                 return Optional.ofNullable(doScaleUp((JobExecutionStep.ScaleUpStep) step));
@@ -122,49 +123,39 @@ public class JobExecutionPlanRunner extends ExecutionPlanRunner {
             case JobExecutionStep.NAME_KILL_RANDOM_TASK:
                 return Optional.ofNullable(doKillRandomTask());
             case JobExecutionStep.NAME_EVICT_RANDOM_TASK:
-                return Optional.of(ReactorExt.toObservable(doEvictRandomTask()));
+                return Optional.of(doEvictRandomTask());
             case JobExecutionStep.NAME_TERMINATE_AND_SHRINK_RANDOM_TASK:
                 return Optional.ofNullable(doTerminateAndShrinkRandomTask());
             case JobExecutionStep.NAME_AWAIT_COMPLETION:
-                return Optional.ofNullable(doAwaitCompletion());
+                return Optional.of(doAwaitCompletion());
         }
         return Optional.empty();
     }
 
-    private Observable<Void> doScaleUp(JobExecutionStep.ScaleUpStep step) {
+    private Mono<Void> doScaleUp(JobExecutionStep.ScaleUpStep step) {
         return executor.scaleUp(step.getDelta());
     }
 
-    private Observable<Void> doScaleDown(JobExecutionStep.ScaleDownStep step) {
+    private Mono<Void> doScaleDown(JobExecutionStep.ScaleDownStep step) {
         return executor.scaleDown(step.getDelta());
     }
 
-    private Observable<Void> doFindOwnJob() {
-        return context.getJobServiceGateway()
-                .findJobs(JobQuery.newBuilder()
-                        .putFilteringCriteria("jobIds", executor.getJobId())
-                        .setPage(PAGE_OF_500_ITEMS)
-                        .build()
-                )
-                .ignoreElements()
-                .cast(Void.class);
+    private Mono<Void> doFindOwnJob() {
+        return context.getJobManagementClient()
+                .findJobs(CollectionsExt.asMap("jobIds", executor.getJobId()), toPage(PAGE_OF_500_ITEMS))
+                .then();
     }
 
-    private Observable<Void> doFindOwnTasks() {
-        return context.getJobServiceGateway()
-                .findTasks(TaskQuery.newBuilder()
-                        .putFilteringCriteria("jobIds", executor.getJobId())
-                        .setPage(PAGE_OF_500_ITEMS)
-                        .build()
-                )
-                .ignoreElements()
-                .cast(Void.class);
+    private Mono<Void> doFindOwnTasks() {
+        return context.getJobManagementClient()
+                .findTasks(CollectionsExt.asMap("jobIds", executor.getJobId()), toPage(PAGE_OF_500_ITEMS))
+                .then();
     }
 
-    private Observable<Void> doKillRandomTask() {
+    private Mono<Void> doKillRandomTask() {
         List<Task> activeTasks = executor.getActiveTasks();
         if (activeTasks.isEmpty()) {
-            return Observable.empty();
+            return Mono.empty();
         }
 
         Task task = activeTasks.get(random.nextInt(activeTasks.size()));
@@ -181,18 +172,18 @@ public class JobExecutionPlanRunner extends ExecutionPlanRunner {
         return executor.evictTask(task.getId());
     }
 
-    private Observable<Void> doTerminateAndShrinkRandomTask() {
+    private Mono<Void> doTerminateAndShrinkRandomTask() {
         List<Task> activeTasks = executor.getActiveTasks();
         if (activeTasks.isEmpty()) {
-            return Observable.empty();
+            return Mono.empty();
         }
 
         Task task = activeTasks.get(random.nextInt(activeTasks.size()));
         return executor.terminateAndShrink(task.getId());
     }
 
-    private Observable<Void> doAwaitCompletion() {
-        return Observable.never();
+    private Mono<Void> doAwaitCompletion() {
+        return Mono.never();
     }
 
     private void terminateJob() {
