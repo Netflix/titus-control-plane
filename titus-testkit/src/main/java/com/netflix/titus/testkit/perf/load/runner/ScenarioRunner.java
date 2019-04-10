@@ -116,6 +116,7 @@ public class ScenarioRunner {
                             .retryWhen(RetryHandlerBuilder.retryHandler()
                                     .withUnlimitedRetries()
                                     .withDelay(1_000, 30_000, TimeUnit.MILLISECONDS)
+                                    .withReactorScheduler(reactor.core.scheduler.Schedulers.parallel())
                                     .buildReactorExponentialBackoff()
                             )
                             .flatMap(executor -> {

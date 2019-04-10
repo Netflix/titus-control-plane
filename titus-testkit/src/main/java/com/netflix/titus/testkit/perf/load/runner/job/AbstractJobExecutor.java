@@ -43,6 +43,7 @@ import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoProcessor;
+import reactor.core.scheduler.Schedulers;
 
 public abstract class AbstractJobExecutor<E extends JobDescriptor.JobDescriptorExt> implements JobExecutor {
 
@@ -153,6 +154,7 @@ public abstract class AbstractJobExecutor<E extends JobDescriptor.JobDescriptorE
                 .retryWhen(RetryHandlerBuilder.retryHandler()
                         .withUnlimitedRetries()
                         .withDelay(1_000, 30_000, TimeUnit.MILLISECONDS)
+                        .withReactorScheduler(Schedulers.parallel())
                         .buildReactorExponentialBackoff()
                 )
                 .doOnTerminate(() -> {

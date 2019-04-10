@@ -38,6 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Schedulers;
 
 public class MetricsCollector {
 
@@ -120,6 +121,7 @@ public class MetricsCollector {
                             this.activeJobs.set(0);
                             this.activeTaskLastStates.clear();
                         })
+                        .withReactorScheduler(Schedulers.parallel())
                         .buildReactorExponentialBackoff()
                 )
                 .subscribe();
