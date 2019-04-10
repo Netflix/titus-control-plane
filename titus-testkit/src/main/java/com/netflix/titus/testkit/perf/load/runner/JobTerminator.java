@@ -28,7 +28,6 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
-import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.testkit.perf.load.ExecutionContext;
 import io.grpc.Status;
@@ -37,6 +36,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import static com.netflix.titus.testkit.perf.load.runner.LoadGeneratorConstants.JOB_TERMINATOR_CALL_METADATA;
 
 /**
  * Removes running jobs belonging to past sessions.
@@ -71,7 +72,7 @@ public class JobTerminator {
 
             List<Mono<Void>> killActions = jobIdsToRemove.stream()
                     .map(jid -> context.getJobManagementClient()
-                            .killJob(jid, JobManagerConstants.JOB_TERMINATOR_CALL_METADATA)
+                            .killJob(jid, JOB_TERMINATOR_CALL_METADATA)
                             .onErrorResume(e -> {
                                 if (!(e instanceof StatusRuntimeException)) {
                                     return Mono.error(e);

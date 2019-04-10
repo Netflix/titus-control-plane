@@ -52,13 +52,4 @@ public class JobManagerConstants {
      */
     public static final CallMetadata GRPC_REPLICATOR_CALL_METADATA = CallMetadata.newBuilder().withCallerId("JobReplictorEvent").withCallReason("Replication").build();
 
-    /**
-     * Call metadata for cleanup actions between test runs
-     */
-    public static final CallMetadata JOB_TERMINATOR_CALL_METADATA = CallMetadata.newBuilder().withCallerId("JobTerminator").withCallReason("Cleanup").build();
-
-    /**
-     * Call metadata for test runs
-     */
-    public static final CallMetadata TEST_CALL_METADATA = CallMetadata.newBuilder().withCallerId("Test").withCallReason("Test").build();
 }

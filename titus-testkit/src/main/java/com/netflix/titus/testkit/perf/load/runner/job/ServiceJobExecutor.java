@@ -24,11 +24,12 @@ import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
-import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.testkit.perf.load.ExecutionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
+
+import static com.netflix.titus.testkit.perf.load.runner.LoadGeneratorConstants.TEST_CALL_METADATA;
 
 public class ServiceJobExecutor extends AbstractJobExecutor<ServiceJobExt> {
 
@@ -46,7 +47,7 @@ public class ServiceJobExecutor extends AbstractJobExecutor<ServiceJobExt> {
         Preconditions.checkState(doRun, "Job executor shut down already");
         Preconditions.checkNotNull(jobId);
 
-        return context.getJobManagementClient().killTask(taskId, true, JobManagerConstants.TEST_CALL_METADATA)
+        return context.getJobManagementClient().killTask(taskId, true, TEST_CALL_METADATA)
                 .onErrorResume(e -> Mono.error(new IOException("Failed to terminate and shrink task " + taskId + " of job " + name, e)))
                 .doOnSuccess(ignored -> {
                     logger.info("Terminate and shrink succeeded for task {}", taskId);
@@ -68,7 +69,7 @@ public class ServiceJobExecutor extends AbstractJobExecutor<ServiceJobExt> {
                 .withMax(max)
                 .build();
         return context.getJobManagementClient()
-                .updateJobCapacity(jobId, capacity, JobManagerConstants.TEST_CALL_METADATA)
+                .updateJobCapacity(jobId, capacity, TEST_CALL_METADATA)
                 .onErrorResume(e -> Mono.error(
                         new IOException("Failed to change instance count to min=" + min + ", desired=" + desired + ", max=" + max + " of job " + name, e))
                 )
@@ -92,7 +93,7 @@ public class ServiceJobExecutor extends AbstractJobExecutor<ServiceJobExt> {
 
     public static Mono<ServiceJobExecutor> submitJob(JobDescriptor<ServiceJobExt> jobSpec, ExecutionContext context) {
         return context.getJobManagementClient()
-                .createJob(jobSpec, JobManagerConstants.TEST_CALL_METADATA)
+                .createJob(jobSpec, TEST_CALL_METADATA)
                 .flatMap(jobRef -> context.getJobManagementClient().findJob(jobRef))
                 .map(job -> new ServiceJobExecutor((Job<ServiceJobExt>) job, context));
     }

@@ -32,7 +32,6 @@ import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
-import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.common.util.rx.RetryHandlerBuilder;
 import com.netflix.titus.testkit.perf.load.ExecutionContext;
 import io.grpc.Status;
@@ -44,6 +43,9 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoProcessor;
 import reactor.core.scheduler.Schedulers;
+
+import static com.netflix.titus.testkit.perf.load.runner.LoadGeneratorConstants.JOB_TERMINATOR_CALL_METADATA;
+import static com.netflix.titus.testkit.perf.load.runner.LoadGeneratorConstants.TEST_CALL_METADATA;
 
 public abstract class AbstractJobExecutor<E extends JobDescriptor.JobDescriptorExt> implements JobExecutor {
 
@@ -103,7 +105,7 @@ public abstract class AbstractJobExecutor<E extends JobDescriptor.JobDescriptorE
                 this.activeTasks = Collections.emptyList();
                 observeSubscription.dispose();
                 try {
-                    context.getJobManagementClient().killJob(jobId, JobManagerConstants.JOB_TERMINATOR_CALL_METADATA).block();
+                    context.getJobManagementClient().killJob(jobId, JOB_TERMINATOR_CALL_METADATA).block();
                 } catch (RuntimeException e) {
                     logger.debug("Job {} cleanup failure", jobId, e);
                 }
@@ -170,7 +172,7 @@ public abstract class AbstractJobExecutor<E extends JobDescriptor.JobDescriptorE
         Preconditions.checkNotNull(jobId);
 
         return context.getJobManagementClient()
-                .killJob(jobId, JobManagerConstants.TEST_CALL_METADATA)
+                .killJob(jobId, TEST_CALL_METADATA)
                 .onErrorResume(e -> Mono.error(new IOException("Failed to kill job " + name, e)))
                 .doOnSuccess(ignored -> logger.info("Killed job {}", jobId));
     }
@@ -181,7 +183,7 @@ public abstract class AbstractJobExecutor<E extends JobDescriptor.JobDescriptorE
         Preconditions.checkNotNull(jobId);
 
         return context.getJobManagementClient()
-                .killTask(taskId, false, JobManagerConstants.TEST_CALL_METADATA)
+                .killTask(taskId, false, TEST_CALL_METADATA)
                 .onErrorResume(e -> Mono.error(new IOException(String.format("Failed to kill task %s  of job %s: error=%s", taskId, name, e.getMessage()), e)))
                 .doOnSuccess(ignored -> logger.info("Killed task {}", taskId));
     }

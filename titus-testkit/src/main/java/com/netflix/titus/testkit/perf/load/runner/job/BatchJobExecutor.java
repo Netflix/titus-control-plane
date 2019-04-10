@@ -19,11 +19,10 @@ package com.netflix.titus.testkit.perf.load.runner.job;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
-import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
-import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import com.netflix.titus.testkit.perf.load.ExecutionContext;
 import reactor.core.publisher.Mono;
-import rx.Observable;
+
+import static com.netflix.titus.testkit.perf.load.runner.LoadGeneratorConstants.TEST_CALL_METADATA;
 
 public class BatchJobExecutor extends AbstractJobExecutor {
 
@@ -53,7 +52,7 @@ public class BatchJobExecutor extends AbstractJobExecutor {
 
     public static Mono<BatchJobExecutor> submitJob(JobDescriptor<BatchJobExt> jobSpec, ExecutionContext context) {
         return context.getJobManagementClient()
-                .createJob(jobSpec, JobManagerConstants.TEST_CALL_METADATA)
+                .createJob(jobSpec, TEST_CALL_METADATA)
                 .flatMap(jobRef -> context.getJobManagementClient().findJob(jobRef))
                 .map(job -> new BatchJobExecutor((Job<BatchJobExt>) job, context));
     }
