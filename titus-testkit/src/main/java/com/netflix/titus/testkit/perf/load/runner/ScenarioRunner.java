@@ -30,6 +30,7 @@ import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.rx.ObservableExt;
+import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.rx.RetryHandlerBuilder;
 import com.netflix.titus.testkit.perf.load.ExecutionContext;
 import com.netflix.titus.testkit.perf.load.plan.ExecutionPlan;
@@ -39,8 +40,9 @@ import com.netflix.titus.testkit.perf.load.runner.job.JobExecutor;
 import com.netflix.titus.testkit.perf.load.runner.job.ServiceJobExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.Disposable;
+import reactor.core.publisher.Mono;
 import rx.Completable;
-import rx.Observable;
 import rx.Subscription;
 import rx.schedulers.Schedulers;
 
@@ -48,7 +50,7 @@ public class ScenarioRunner {
 
     private static final Logger logger = LoggerFactory.getLogger(Orchestrator.class);
 
-    private final Subscription jobScenarioSubscription;
+    private final Disposable jobScenarioSubscription;
     private final Subscription agentScenarioSubscription;
 
     private final AtomicInteger nextSequenceId = new AtomicInteger();
@@ -67,14 +69,15 @@ public class ScenarioRunner {
                 e -> logger.error("Agent scenario subscription terminated with an error", e)
         );
         this.jobScenarioSubscription = startJobExecutionScenario(jobExecutableGenerator, context).subscribe(
-                () -> logger.info("Job scenario subscription completed"),
+                ignored -> logger.info("Job scenario subscription completed"),
                 e -> logger.error("Job scenario subscription terminated with an error", e)
         );
     }
 
     @PreDestroy
     public void shutdown() {
-        ObservableExt.safeUnsubscribe(agentScenarioSubscription, jobScenarioSubscription);
+        ObservableExt.safeUnsubscribe(agentScenarioSubscription);
+        ReactorExt.safeDispose(jobScenarioSubscription);
     }
 
     public String getScenarioExecutionId() {
@@ -101,32 +104,33 @@ public class ScenarioRunner {
                 .doOnUnsubscribe(() -> runners.forEach(AgentExecutionPlanRunner::stop));
     }
 
-    private Completable startJobExecutionScenario(JobExecutableGenerator jobExecutableGenerator, ExecutionContext context) {
+    private Mono<Void> startJobExecutionScenario(JobExecutableGenerator jobExecutableGenerator, ExecutionContext context) {
         return jobExecutableGenerator.executionPlans()
                 .flatMap(executable -> {
                     JobDescriptor<?> jobSpec = tagged(newJobDescriptor(executable));
-                    Observable<? extends JobExecutor> executorObservable = JobFunctions.isBatchJob(jobSpec)
+                    Mono<? extends JobExecutor> jobSubmission = JobFunctions.isBatchJob(jobSpec)
                             ? BatchJobExecutor.submitJob((JobDescriptor<BatchJobExt>) jobSpec, context)
                             : ServiceJobExecutor.submitJob((JobDescriptor<ServiceJobExt>) jobSpec, context);
 
-                    return executorObservable
+                    return jobSubmission
                             .retryWhen(RetryHandlerBuilder.retryHandler()
                                     .withUnlimitedRetries()
                                     .withDelay(1_000, 30_000, TimeUnit.MILLISECONDS)
-                                    .buildExponentialBackoff()
+                                    .withReactorScheduler(reactor.core.scheduler.Schedulers.parallel())
+                                    .buildReactorExponentialBackoff()
                             )
                             .flatMap(executor -> {
                                         JobExecutionPlanRunner runner = new JobExecutionPlanRunner(executor, executable.getJobExecutionPlan(), context, Schedulers.computation());
                                         return runner.awaitJobCompletion()
                                                 .doOnSubscribe(subscription -> runner.start())
-                                                .doOnUnsubscribe(() -> {
+                                                .doOnTerminate(() -> {
                                                     logger.info("Creating new replacement job...");
                                                     runner.stop();
                                                     jobExecutableGenerator.completed(executable);
-                                                }).toObservable();
+                                                });
                                     }
                             );
-                }).toCompletable();
+                }).then();
     }
 
     private JobDescriptor<?> newJobDescriptor(JobExecutableGenerator.Executable executable) {

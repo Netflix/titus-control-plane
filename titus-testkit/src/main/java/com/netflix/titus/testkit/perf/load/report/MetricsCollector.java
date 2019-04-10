@@ -33,13 +33,12 @@ import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
 import com.netflix.titus.common.util.rx.RetryHandlerBuilder;
-import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
-import com.netflix.titus.testkit.client.V3ClientUtils;
 import com.netflix.titus.testkit.perf.load.ExecutionContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import rx.Observable;
-import rx.Subscription;
+import reactor.core.Disposable;
+import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Schedulers;
 
 public class MetricsCollector {
 
@@ -54,7 +53,7 @@ public class MetricsCollector {
     private final Set<String> pendingInconsistentJobs = Collections.newSetFromMap(new ConcurrentHashMap<>());
     private final ConcurrentMap<String, TaskState> activeTaskLastStates = new ConcurrentHashMap<>();
 
-    private Subscription subscription;
+    private Disposable subscription;
 
     public long getTotalSubmittedJobs() {
         return totalSubmittedJobs.get();
@@ -89,7 +88,8 @@ public class MetricsCollector {
     public void watch(ExecutionContext context) {
         Preconditions.checkState(subscription == null);
 
-        this.subscription = Observable.defer(() -> V3ClientUtils.observeJobs(context.getJobServiceGateway().observeJobs(ObserveJobsQuery.getDefaultInstance())))
+        this.subscription = Flux.defer(() -> context.getJobManagementClient().observeJobs(Collections.emptyMap()))
+                .filter(e -> (e instanceof JobUpdateEvent) || (e instanceof TaskUpdateEvent))
                 .doOnNext(event -> {
                     if (event instanceof JobUpdateEvent) {
                         JobUpdateEvent jobUpdate = (JobUpdateEvent) event;
@@ -121,7 +121,8 @@ public class MetricsCollector {
                             this.activeJobs.set(0);
                             this.activeTaskLastStates.clear();
                         })
-                        .buildExponentialBackoff()
+                        .withReactorScheduler(Schedulers.parallel())
+                        .buildReactorExponentialBackoff()
                 )
                 .subscribe();
     }

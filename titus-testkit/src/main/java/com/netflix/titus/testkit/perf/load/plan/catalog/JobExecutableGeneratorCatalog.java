@@ -20,14 +20,14 @@ import java.time.Duration;
 
 import com.netflix.titus.testkit.perf.load.plan.JobExecutableGenerator;
 import com.netflix.titus.testkit.perf.load.plan.catalog.JobDescriptorCatalog.ContainerResourceAllocation;
-import rx.Observable;
+import reactor.core.publisher.Flux;
 
 public final class JobExecutableGeneratorCatalog {
 
     private static final JobExecutableGenerator EMPTY = new JobExecutableGenerator() {
         @Override
-        public Observable<Executable> executionPlans() {
-            return Observable.never();
+        public Flux<Executable> executionPlans() {
+            return Flux.never();
         }
 
         @Override

@@ -20,22 +20,22 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import com.netflix.titus.testkit.perf.load.plan.JobExecutableGenerator;
-import rx.Observable;
+import reactor.core.publisher.Flux;
 
 public class CompositeJobExecutableGenerator extends JobExecutableGenerator {
 
-    private final Observable<Executable> mergedPlans;
+    private final Flux<Executable> mergedPlans;
     private final List<JobExecutableGenerator> jobExecutableGenerators;
 
     public CompositeJobExecutableGenerator(List<JobExecutableGenerator> jobExecutableGenerators) {
-        this.mergedPlans = Observable.merge(
+        this.mergedPlans = Flux.merge(
                 jobExecutableGenerators.stream().map(JobExecutableGenerator::executionPlans).collect(Collectors.toList())
         );
         this.jobExecutableGenerators = jobExecutableGenerators;
     }
 
     @Override
-    public Observable<Executable> executionPlans() {
+    public Flux<Executable> executionPlans() {
         return mergedPlans;
     }
 

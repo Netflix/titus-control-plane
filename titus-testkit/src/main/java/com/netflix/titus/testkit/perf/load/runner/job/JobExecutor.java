@@ -21,7 +21,6 @@ import java.util.List;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import reactor.core.publisher.Mono;
 import rx.Completable;
-import rx.Observable;
 
 public interface JobExecutor {
 
@@ -33,21 +32,21 @@ public interface JobExecutor {
 
     List<Task> getActiveTasks();
 
-    Completable awaitJobCompletion();
+    Mono<Void> awaitJobCompletion();
 
-    Observable<Void> killJob();
+    Mono<Void> killJob();
 
-    Observable<Void> killTask(String taskId);
+    Mono<Void> killTask(String taskId);
 
     Mono<Void> evictTask(String taskId);
 
-    Observable<Void> terminateAndShrink(String taskId);
+    Mono<Void> terminateAndShrink(String taskId);
 
-    Observable<Void> updateInstanceCount(int min, int desired, int max);
+    Mono<Void> updateInstanceCount(int min, int desired, int max);
 
-    Observable<Void> scaleUp(int delta);
+    Mono<Void> scaleUp(int delta);
 
-    Observable<Void> scaleDown(int delta);
+    Mono<Void> scaleDown(int delta);
 
     void shutdown();
 }
