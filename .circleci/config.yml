@@ -8,6 +8,7 @@ jobs:
     executor: java
     resource_class: large
     steps:
+      - run: apt update && apt install ca-certificates git
       - checkout
       - restore_cache:
           keys:
