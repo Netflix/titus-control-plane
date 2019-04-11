@@ -8,5 +8,14 @@ jobs:
     executor: java
     steps:
       - checkout
+      - restore_cache:
+          keys:
+            - gradle-cache
       - run: ./gradlew testAll --stacktrace
+      - save_cache:
+          paths:
+            - ~/.gradle/caches
+            - ~/.gradle/wrapper
+          key: gradle-cache
+          when: always
 
