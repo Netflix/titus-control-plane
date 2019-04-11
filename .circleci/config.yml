@@ -4,7 +4,7 @@ executors:
     docker:
       - image: azul/zulu-openjdk:8
 jobs:
-  test-all:
+  build:
     executor: java
     steps:
       - checkout
