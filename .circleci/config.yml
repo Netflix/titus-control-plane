@@ -1,0 +1,12 @@
+version: 2.1
+executors:
+  java:
+    docker:
+      - image: azul/zulu-openjdk:8
+jobs:
+  test-all:
+    executor: java
+    steps:
+      - checkout
+      - run: ./gradlew testAll --stacktrace
+
