@@ -1037,6 +1037,7 @@
             "locked": "3.2.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-testkit",
                 "io.projectreactor.addons:reactor-adapter",
                 "io.projectreactor.netty:reactor-netty",
                 "org.springframework:spring-webflux"
@@ -3105,6 +3106,7 @@
             "locked": "3.2.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-testkit",
                 "io.projectreactor.addons:reactor-adapter",
                 "io.projectreactor.netty:reactor-netty",
                 "org.springframework:spring-webflux"
@@ -4014,7 +4016,7 @@
             ]
         },
         "org.springframework.boot:spring-boot-starter-web": {
-            "locked": "2.1.4.RELEASE",
+            "locked": "2.1.2.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-testkit"
             ]
@@ -5200,6 +5202,7 @@
             "locked": "3.2.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-testkit",
                 "io.projectreactor.addons:reactor-adapter",
                 "io.projectreactor.netty:reactor-netty",
                 "org.springframework:spring-webflux"
@@ -6110,7 +6113,7 @@
             ]
         },
         "org.springframework.boot:spring-boot-starter-web": {
-            "locked": "2.1.4.RELEASE",
+            "locked": "2.1.2.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-testkit"
             ]
@@ -7351,6 +7354,7 @@
             "locked": "3.2.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-testkit",
                 "io.projectreactor.addons:reactor-adapter",
                 "io.projectreactor.netty:reactor-netty",
                 "org.springframework:spring-webflux"
@@ -9420,6 +9424,7 @@
             "locked": "3.2.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-testkit",
                 "io.projectreactor.addons:reactor-adapter",
                 "io.projectreactor.netty:reactor-netty",
                 "org.springframework:spring-webflux"
@@ -10330,7 +10335,7 @@
             ]
         },
         "org.springframework.boot:spring-boot-starter-web": {
-            "locked": "2.1.4.RELEASE",
+            "locked": "2.1.2.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-testkit"
             ]
@@ -11518,6 +11523,7 @@
             "locked": "3.2.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-testkit",
                 "io.projectreactor.addons:reactor-adapter",
                 "io.projectreactor.netty:reactor-netty",
                 "io.projectreactor:reactor-test",
@@ -12178,7 +12184,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.26.0",
+            "locked": "2.27.0",
             "requested": "2.+",
             "transitive": [
                 "com.netflix.titus:titus-testkit"
@@ -13608,6 +13614,7 @@
             "locked": "3.2.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-testkit",
                 "io.projectreactor.addons:reactor-adapter",
                 "io.projectreactor.netty:reactor-netty",
                 "io.projectreactor:reactor-test",
@@ -14275,7 +14282,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.26.0",
+            "locked": "2.27.0",
             "requested": "2.+",
             "transitive": [
                 "com.netflix.titus:titus-testkit"
@@ -14529,7 +14536,7 @@
             ]
         },
         "org.springframework.boot:spring-boot-starter-web": {
-            "locked": "2.1.4.RELEASE",
+            "locked": "2.1.2.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-testkit"
             ]
@@ -15717,6 +15724,7 @@
             "locked": "3.2.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-testkit",
                 "io.projectreactor.addons:reactor-adapter",
                 "io.projectreactor.netty:reactor-netty",
                 "io.projectreactor:reactor-test",
@@ -16377,7 +16385,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.26.0",
+            "locked": "2.27.0",
             "requested": "2.+",
             "transitive": [
                 "com.netflix.titus:titus-testkit"
@@ -17808,6 +17816,7 @@
             "locked": "3.2.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-testkit",
                 "io.projectreactor.addons:reactor-adapter",
                 "io.projectreactor.netty:reactor-netty",
                 "io.projectreactor:reactor-test",
@@ -18475,7 +18484,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.26.0",
+            "locked": "2.27.0",
             "requested": "2.+",
             "transitive": [
                 "com.netflix.titus:titus-testkit"
@@ -18730,7 +18739,7 @@
             ]
         },
         "org.springframework.boot:spring-boot-starter-web": {
-            "locked": "2.1.4.RELEASE",
+            "locked": "2.1.2.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-testkit"
             ]
