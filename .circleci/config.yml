@@ -6,16 +6,17 @@ executors:
 jobs:
   build:
     executor: java
+    resource_class: large
     steps:
       - checkout
       - restore_cache:
           keys:
-            - gradle-cache
+            - v1-gradle-cache
       - run: ./gradlew testAll --stacktrace
       - save_cache:
           paths:
             - ~/.gradle/caches
             - ~/.gradle/wrapper
-          key: gradle-cache
+          key: v1-gradle-cache
           when: always
 
