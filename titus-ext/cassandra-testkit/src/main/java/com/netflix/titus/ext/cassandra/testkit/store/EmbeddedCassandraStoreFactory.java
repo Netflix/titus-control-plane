@@ -47,6 +47,16 @@ public class EmbeddedCassandraStoreFactory {
 
     private static final CassandraStoreConfiguration CONFIGURATION = new CassandraStoreConfiguration() {
         @Override
+        public String getV2KeySpace() {
+            return "dev";
+        }
+
+        @Override
+        public boolean isFailOnInconsistentCapacityGroupData() {
+            return true;
+        }
+
+        @Override
         public boolean isFailOnInconsistentAgentData() {
             return true;
         }

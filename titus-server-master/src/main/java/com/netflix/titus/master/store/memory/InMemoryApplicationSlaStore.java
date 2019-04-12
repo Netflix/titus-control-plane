@@ -21,8 +21,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import javax.inject.Singleton;
 
 import com.netflix.titus.api.model.ApplicationSLA;
-import com.netflix.titus.master.store.ApplicationSlaStore;
-import com.netflix.titus.master.store.exception.NotFoundException;
+import com.netflix.titus.api.store.v2.ApplicationSlaStore;
+import com.netflix.titus.api.store.v2.exception.NotFoundException;
 import rx.Observable;
 
 @Singleton

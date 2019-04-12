@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.store.sanitizer;
+package com.netflix.titus.api.store.v2;
 
 import java.util.Optional;
 import javax.inject.Inject;
@@ -22,7 +22,6 @@ import javax.inject.Singleton;
 
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
-import com.netflix.titus.master.store.ApplicationSlaStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;

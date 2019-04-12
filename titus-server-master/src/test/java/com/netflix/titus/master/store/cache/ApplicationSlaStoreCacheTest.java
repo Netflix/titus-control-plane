@@ -20,8 +20,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.netflix.titus.api.model.ApplicationSLA;
-import com.netflix.titus.master.store.ApplicationSlaStore;
-import com.netflix.titus.master.store.exception.NotFoundException;
+import com.netflix.titus.api.store.v2.ApplicationSlaStore;
+import com.netflix.titus.api.store.v2.ApplicationSlaStoreCache;
+import com.netflix.titus.api.store.v2.exception.NotFoundException;
 import com.netflix.titus.testkit.data.core.ApplicationSlaGenerator;
 import com.netflix.titus.testkit.data.core.ApplicationSlaSample;
 import org.junit.Before;
