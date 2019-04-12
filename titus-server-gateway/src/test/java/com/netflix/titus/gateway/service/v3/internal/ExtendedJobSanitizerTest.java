@@ -141,7 +141,8 @@ public class ExtendedJobSanitizerTest {
     public void testFlatStringEntryPoint() {
         JobDescriptor<?> jobDescriptor = JobDescriptorGenerator.batchJobDescriptors()
                 .map(jd -> jd.but(d -> d.getContainer().toBuilder()
-                        .withEntryPoint(Collections.singletonList("/bin/sh -c \"sleep 10\""))))
+                        .withEntryPoint(Collections.singletonList("/bin/sh -c \"sleep 10\""))
+                        .withCommand(null)))
                 .getValue();
 
         ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, jd -> false, jd -> false, titusRuntime);

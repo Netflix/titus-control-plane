@@ -64,6 +64,7 @@ public class DefaultV3TaskInfoFactoryTest {
         JobDescriptor<BatchJobExt> jobDescriptor = JobDescriptorGenerator.oneTaskBatchJobDescriptor();
         jobDescriptor = jobDescriptor.toBuilder().withContainer(jobDescriptor.getContainer().toBuilder()
                 .withEntryPoint(Arrays.asList("some", "entrypoint"))
+                .withCommand(null)
                 .build()
         ).build();
 
