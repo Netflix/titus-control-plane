@@ -18,7 +18,7 @@ jobs:
       - restore_cache:
           keys:
             - v1-gradle-cache
-      - run: ./gradlew testAll --stacktrace
+      - run: ./gradlew testAll --no-daemon --max-workers 8 --stacktrace
       - save_cache:
           paths:
             - ~/.gradle/caches
