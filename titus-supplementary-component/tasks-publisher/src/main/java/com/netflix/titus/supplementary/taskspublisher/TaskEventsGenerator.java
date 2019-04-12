@@ -64,7 +64,10 @@ public class TaskEventsGenerator {
                                 final com.netflix.titus.api.jobmanager.model.job.Task coreTask = V3GrpcModelConverters.toCoreTask(coreJob, task);
                                 return TaskDocument.fromV3Task(coreTask, coreJob, ElasticSearchUtils.DATE_FORMAT, buildTaskContext(task));
                             }).flux();
-                }).publish();
+                })
+                .retryWhen(TaskPublisherRetryUtil.buildRetryHandler(TaskPublisherRetryUtil.INITIAL_RETRY_DELAY_MS,
+                        TaskPublisherRetryUtil.MAX_RETRY_DELAY_MS, -1))
+                .publish();
     }
 
 

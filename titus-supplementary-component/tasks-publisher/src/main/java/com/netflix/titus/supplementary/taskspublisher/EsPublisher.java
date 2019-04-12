@@ -16,10 +16,8 @@
 package com.netflix.titus.supplementary.taskspublisher;
 
 import java.time.Duration;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Function;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
@@ -27,23 +25,18 @@ import com.netflix.spectator.api.Functions;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.patterns.PolledMeter;
 import com.netflix.titus.common.util.rx.ReactorExt;
-import com.netflix.titus.common.util.rx.RetryHandlerBuilder;
 import com.netflix.titus.ext.elasticsearch.TaskDocument;
-import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.publisher.ConnectableFlux;
-import reactor.core.publisher.Flux;
-import reactor.core.scheduler.Schedulers;
 
 public class EsPublisher implements TasksPublisher {
     private static final Logger logger = LoggerFactory.getLogger(EsPublisher.class);
     private TaskEventsGenerator taskEventsGenerator;
     private final EsClient esClient;
     private Registry registry;
-    private static final long INITIAL_RETRY_DELAY_MS = 500;
-    private static final long MAX_RETRY_DELAY_MS = 2_000;
+
     private AtomicInteger numErrors = new AtomicInteger(0);
     private AtomicInteger numTasksUpdated = new AtomicInteger(0);
     private AtomicLong lastPublishedTimestamp;
@@ -70,12 +63,15 @@ public class EsPublisher implements TasksPublisher {
         subscription = taskEvents.bufferTimeout(100, Duration.ofSeconds(5))
                 .flatMap(taskDocuments ->
                         esClient.bulkIndexTaskDocument(taskDocuments)
-                                .retryWhen(buildLimitedRetryHandler()))
+                                .retryWhen(TaskPublisherRetryUtil.buildRetryHandler(
+                                        TaskPublisherRetryUtil.INITIAL_RETRY_DELAY_MS,
+                                        TaskPublisherRetryUtil.MAX_RETRY_DELAY_MS, 3)))
                 .doOnError(e -> {
                     logger.error("Error in indexing documents (Retrying) : ", e);
                     numErrors.incrementAndGet();
                 })
-                .retryWhen(buildUnlimitedRetryHandler())
+                .retryWhen(TaskPublisherRetryUtil.buildRetryHandler(TaskPublisherRetryUtil.INITIAL_RETRY_DELAY_MS,
+                        TaskPublisherRetryUtil.MAX_RETRY_DELAY_MS, -1))
                 .subscribe(bulkIndexResp -> {
                             logger.info("Received bulk response for {} items", bulkIndexResp.items.size());
                             lastPublishedTimestamp.set(registry.clock().wallTime());
@@ -99,15 +95,6 @@ public class EsPublisher implements TasksPublisher {
         return numTasksUpdated.get();
     }
 
-    private Function<Flux<Throwable>, Publisher<?>> buildLimitedRetryHandler() {
-        return RetryHandlerBuilder.retryHandler()
-                .withRetryCount(3)
-                .withDelay(INITIAL_RETRY_DELAY_MS, MAX_RETRY_DELAY_MS, TimeUnit.MILLISECONDS)
-                .withReactorScheduler(Schedulers.elastic())
-                .buildReactorExponentialBackoff();
-    }
-
-
     private void configureMetrics() {
         PolledMeter.using(registry)
                 .withId(registry.createId(EsTaskPublisherMetrics.METRIC_ES_PUBLISHER + "errors"))
@@ -119,14 +106,5 @@ public class EsPublisher implements TasksPublisher {
         lastPublishedTimestamp = PolledMeter.using(registry)
                 .withId(registry.createId(EsTaskPublisherMetrics.METRIC_ES_PUBLISHER + "lastPublishedTimestamp"))
                 .monitorValue(new AtomicLong(registry.clock().wallTime()), Functions.AGE);
-    }
-
-
-    private Function<Flux<Throwable>, Publisher<?>> buildUnlimitedRetryHandler() {
-        return RetryHandlerBuilder.retryHandler()
-                .withUnlimitedRetries()
-                .withDelay(INITIAL_RETRY_DELAY_MS, MAX_RETRY_DELAY_MS, TimeUnit.MILLISECONDS)
-                .withReactorScheduler(Schedulers.elastic())
-                .buildReactorExponentialBackoff();
     }
 }
