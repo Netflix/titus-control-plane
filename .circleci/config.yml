@@ -8,7 +8,12 @@ jobs:
     executor: java
     resource_class: large
     steps:
-      - run: apt update && apt install ca-certificates git
+      - run:
+          environment:
+            DEBIAN_FRONTEND: noninteractive
+          command: |
+            apt update
+            apt install -qy ca-certificates git
       - checkout
       - restore_cache:
           keys:
