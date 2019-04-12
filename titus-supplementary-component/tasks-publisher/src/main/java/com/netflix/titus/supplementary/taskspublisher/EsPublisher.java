@@ -16,7 +16,6 @@
 package com.netflix.titus.supplementary.taskspublisher;
 
 import java.time.Duration;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -30,7 +29,6 @@ import com.netflix.spectator.api.patterns.PolledMeter;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.rx.RetryHandlerBuilder;
 import com.netflix.titus.ext.elasticsearch.TaskDocument;
-import org.eclipse.jetty.util.ConcurrentHashSet;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,9 +45,7 @@ public class EsPublisher implements TasksPublisher {
     private static final long INITIAL_RETRY_DELAY_MS = 500;
     private static final long MAX_RETRY_DELAY_MS = 2_000;
     private AtomicInteger numErrors = new AtomicInteger(0);
-    private AtomicInteger numIndexUpdated = new AtomicInteger(0);
     private AtomicInteger numTasksUpdated = new AtomicInteger(0);
-    private Set<String> uniqueTasksIdUpdated = new ConcurrentHashSet<>();
     private AtomicLong lastPublishedTimestamp;
     private Disposable subscription;
     private Disposable taskEventsSourceConnection;
@@ -86,11 +82,7 @@ public class EsPublisher implements TasksPublisher {
                             bulkIndexResp.items.forEach(bulkEsIndexRespItem -> {
                                 String indexedItemId = bulkEsIndexRespItem.index._id;
                                 logger.info("Index result <{}> for task ID {}", bulkEsIndexRespItem.index.result, indexedItemId);
-                                numIndexUpdated.incrementAndGet();
-                                if (!uniqueTasksIdUpdated.contains(indexedItemId)) {
-                                    uniqueTasksIdUpdated.add(indexedItemId);
-                                    numTasksUpdated.incrementAndGet();
-                                }
+                                numTasksUpdated.incrementAndGet();
                             });
                         },
                         e -> logger.error("Error in indexing documents ", e));
@@ -100,10 +92,6 @@ public class EsPublisher implements TasksPublisher {
     @Override
     public int getNumErrorsInPublishing() {
         return numErrors.get();
-    }
-
-    public int getNumIndexUpdated() {
-        return numIndexUpdated.get();
     }
 
     @Override
@@ -125,9 +113,6 @@ public class EsPublisher implements TasksPublisher {
                 .withId(registry.createId(EsTaskPublisherMetrics.METRIC_ES_PUBLISHER + "errors"))
                 .monitorValue(numErrors);
         PolledMeter.using(registry)
-                .withId(registry.createId(EsTaskPublisherMetrics.METRIC_ES_PUBLISHER + "numIndexUpdated"))
-                .monitorValue(numIndexUpdated);
-        PolledMeter.using(registry)
                 .withId(registry.createId(EsTaskPublisherMetrics.METRIC_ES_PUBLISHER + "numTasksUpdated"))
                 .monitorValue(numTasksUpdated);
 
@@ -144,5 +129,4 @@ public class EsPublisher implements TasksPublisher {
                 .withReactorScheduler(Schedulers.elastic())
                 .buildReactorExponentialBackoff();
     }
-
 }
