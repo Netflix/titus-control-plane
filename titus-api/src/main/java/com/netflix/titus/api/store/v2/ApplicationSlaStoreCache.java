@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.store.cache;
+package com.netflix.titus.api.store.v2;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,8 +25,7 @@ import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.common.util.guice.ProxyType;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.guice.annotation.ProxyConfiguration;
-import com.netflix.titus.master.store.ApplicationSlaStore;
-import com.netflix.titus.master.store.exception.NotFoundException;
+import com.netflix.titus.api.store.v2.exception.NotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;

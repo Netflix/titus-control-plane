@@ -14,10 +14,15 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.store.exception;
+package com.netflix.titus.api.store.v2.exception;
 
-public class NotFoundException extends TitusStoreException {
-    public NotFoundException(Class<?> type, String key) {
-        super("Not found " + type.getSimpleName() + " with key " + key);
+public class TitusStoreException extends RuntimeException {
+
+    public TitusStoreException(String message) {
+        super(message);
+    }
+
+    public TitusStoreException(String message, Throwable cause) {
+        super(message, cause);
     }
 }

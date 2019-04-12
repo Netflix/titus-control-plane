@@ -32,7 +32,7 @@ import com.netflix.titus.master.service.management.CapacityGuaranteeStrategy;
 import com.netflix.titus.master.service.management.CapacityGuaranteeStrategy.CapacityAllocations;
 import com.netflix.titus.master.service.management.CapacityGuaranteeStrategy.CapacityRequirements;
 import com.netflix.titus.master.service.management.CapacityManagementConfiguration;
-import com.netflix.titus.master.store.ApplicationSlaStore;
+import com.netflix.titus.api.store.v2.ApplicationSlaStore;
 import com.netflix.titus.testkit.data.core.ApplicationSlaSample;
 import com.netflix.titus.testkit.rx.ExtTestSubscriber;
 import org.junit.Test;

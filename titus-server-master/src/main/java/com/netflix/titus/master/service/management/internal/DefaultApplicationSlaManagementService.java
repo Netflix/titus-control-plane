@@ -25,7 +25,7 @@ import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import com.netflix.titus.master.service.management.CapacityMonitoringService;
 import com.netflix.titus.master.service.management.ManagementSubsystemInitializer;
-import com.netflix.titus.master.store.ApplicationSlaStore;
+import com.netflix.titus.api.store.v2.ApplicationSlaStore;
 import rx.Observable;
 
 @Singleton

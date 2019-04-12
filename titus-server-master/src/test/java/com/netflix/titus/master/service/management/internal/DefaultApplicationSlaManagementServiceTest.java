@@ -21,7 +21,7 @@ import java.util.List;
 
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.master.service.management.CapacityMonitoringService;
-import com.netflix.titus.master.store.ApplicationSlaStore;
+import com.netflix.titus.api.store.v2.ApplicationSlaStore;
 import com.netflix.titus.testkit.data.core.ApplicationSlaGenerator;
 import com.netflix.titus.testkit.data.core.ApplicationSlaSample;
 import com.netflix.titus.testkit.rx.ObservableRecorder;

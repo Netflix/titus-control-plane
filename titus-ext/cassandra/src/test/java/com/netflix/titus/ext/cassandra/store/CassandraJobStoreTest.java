@@ -74,32 +74,7 @@ public class CassandraJobStoreTest {
             STARTUP_TIMEOUT_MS
     );
 
-    private static final CassandraStoreConfiguration CONFIGURATION = new CassandraStoreConfiguration() {
-        @Override
-        public boolean isFailOnInconsistentAgentData() {
-            return true;
-        }
-
-        @Override
-        public boolean isFailOnInconsistentLoadBalancerData() {
-            return false;
-        }
-
-        @Override
-        public boolean isFailOnInconsistentSchedulerData() {
-            return false;
-        }
-
-        @Override
-        public int getConcurrencyLimit() {
-            return 10;
-        }
-
-        @Override
-        public boolean isTracingEnabled() {
-            return false;
-        }
-    };
+    private static final CassandraStoreConfiguration CONFIGURATION = new TestCassandraStoreConfiguration();
 
     @Test
     public void testRetrieveJobs() {

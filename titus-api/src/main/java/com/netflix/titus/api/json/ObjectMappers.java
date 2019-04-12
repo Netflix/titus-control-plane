@@ -146,6 +146,7 @@ import com.netflix.titus.api.jobmanager.store.mixin.TimeWindowMixIn;
 import com.netflix.titus.api.jobmanager.store.mixin.TwoLevelResourceMixIn;
 import com.netflix.titus.api.jobmanager.store.mixin.UnhealthyTasksLimitDisruptionBudgetPolicyMixIn;
 import com.netflix.titus.api.jobmanager.store.mixin.UnlimitedDisruptionBudgetRateMixIn;
+import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.scheduler.model.Match;
 import com.netflix.titus.api.scheduler.model.Must;
@@ -157,6 +158,7 @@ import com.netflix.titus.api.scheduler.store.mixin.MustMixin;
 import com.netflix.titus.api.scheduler.store.mixin.OperatorMixin;
 import com.netflix.titus.api.scheduler.store.mixin.ShouldMixin;
 import com.netflix.titus.api.scheduler.store.mixin.SystemSelectorMixin;
+import com.netflix.titus.api.store.v2.ApplicationSlaMixIn;
 import com.netflix.titus.api.store.v2.ResourceDimensionMixin;
 import com.netflix.titus.common.util.PropertiesExt;
 import com.netflix.titus.common.util.ReflectionExt;
@@ -347,6 +349,9 @@ public class ObjectMappers {
 
         // Common
         objectMapper.addMixIn(ResourceDimension.class, ResourceDimensionMixin.class);
+
+        // Capacity management
+        objectMapper.addMixIn(ApplicationSLA.class, ApplicationSlaMixIn.class);
 
         // Agent Management
         objectMapper.addMixIn(AgentInstanceGroup.class, AgentInstanceGroupMixin.class);

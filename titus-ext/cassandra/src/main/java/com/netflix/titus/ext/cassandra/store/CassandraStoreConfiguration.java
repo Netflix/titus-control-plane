@@ -22,6 +22,12 @@ import com.netflix.archaius.api.annotations.DefaultValue;
 @Configuration(prefix = "titus.ext.cassandra")
 public interface CassandraStoreConfiguration {
 
+    @DefaultValue("dev")
+    String getV2KeySpace();
+
+    @DefaultValue("true")
+    boolean isFailOnInconsistentCapacityGroupData();
+
     @DefaultValue("true")
     boolean isFailOnInconsistentAgentData();
 

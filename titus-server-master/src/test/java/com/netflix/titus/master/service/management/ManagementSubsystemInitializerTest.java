@@ -18,8 +18,8 @@ package com.netflix.titus.master.service.management;
 
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.master.service.management.CapacityManagementConfiguration.ResourceDimensionConfiguration;
-import com.netflix.titus.master.store.ApplicationSlaStore;
-import com.netflix.titus.master.store.exception.NotFoundException;
+import com.netflix.titus.api.store.v2.ApplicationSlaStore;
+import com.netflix.titus.api.store.v2.exception.NotFoundException;
 import com.netflix.titus.testkit.data.core.ApplicationSlaSample;
 import org.junit.Before;
 import org.junit.Test;
