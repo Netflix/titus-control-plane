@@ -41,7 +41,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 
-public class TasksPublisherCtrlTest {
+public class TaskEventsGeneratorTest {
 
     private TitusClient mockTitusClient(int numTasks) {
         TitusClient titusClient = mock(TitusClient.class);
@@ -74,24 +74,21 @@ public class TasksPublisherCtrlTest {
     @Test
     public void checkPublisherState() {
         int numTasks = 5;
-
-        final TasksPublisherCtrl tasksPublisherCtrl = new TasksPublisherCtrl(
-                mockElasticSearchClient(),
+        final TaskEventsGenerator taskEventsGenerator = new TaskEventsGenerator(
                 mockTitusClient(numTasks),
-                Collections.emptyMap(),
-                new DefaultRegistry());
-        tasksPublisherCtrl.start();
+                Collections.emptyMap());
+
+        EsPublisher esPublisher = new EsPublisher(taskEventsGenerator, mockElasticSearchClient(), new DefaultRegistry());
+        esPublisher.start();
 
         final CountDownLatch latch = new CountDownLatch(1);
         Flux.interval(Duration.ofSeconds(1), Schedulers.elastic())
                 .take(1)
                 .doOnNext(i -> {
-                    final int numTimesIndexUpdated = tasksPublisherCtrl.getNumIndexUpdated().get();
-                    final int numTasksUpdated = tasksPublisherCtrl.getNumTasksUpdated().get();
-                    final int numErrors = tasksPublisherCtrl.getNumErrors().get();
+                    final int numTasksUpdated = esPublisher.getNumTasksPublished();
+                    final int numErrors = esPublisher.getNumErrorsInPublishing();
                     assertThat(numErrors).isEqualTo(0);
-                    assertThat(numTasksUpdated).isEqualTo(numTasks);
-                    assertThat(numTimesIndexUpdated).isEqualTo(numTasks);
+                    assertThat(numTasksUpdated).isGreaterThanOrEqualTo(numTasks);
                     latch.countDown();
                 }).subscribe();
         try {
