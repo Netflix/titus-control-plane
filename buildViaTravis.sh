@@ -3,7 +3,7 @@
 
 if [ "$TITUS_INTEGRATION_TEST" == "true" ]; then
   echo -e "Running integration tests (PR=$TRAVIS_PULL_REQUEST) => Branch [$TRAVIS_BRANCH]"
-  ./gradlew testAll --stacktrace
+  ./gradlew testAll --parallel --stacktrace
 elif [ "$TRAVIS_PULL_REQUEST" != "false" ]; then
   echo -e "Build Pull Request #$TRAVIS_PULL_REQUEST => Branch [$TRAVIS_BRANCH]"
   ./gradlew build --stacktrace

@@ -1,0 +1,28 @@
+version: 2.1
+executors:
+  java:
+    docker:
+      - image: azul/zulu-openjdk:8
+jobs:
+  build:
+    executor: java
+    resource_class: xlarge
+    steps:
+      - run:
+          environment:
+            DEBIAN_FRONTEND: noninteractive
+          command: |
+            apt update
+            apt install -qy ca-certificates git
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-gradle-cache
+      - run: ./gradlew testAll --parallel --no-daemon --max-workers 8 --stacktrace
+      - save_cache:
+          paths:
+            - ~/.gradle/caches
+            - ~/.gradle/wrapper
+          key: v1-gradle-cache
+          when: always
+
