@@ -40,9 +40,8 @@ import static com.netflix.titus.common.util.CollectionsExt.asMap;
 import static com.netflix.titus.testkit.model.PrimitiveValueGenerators.hexValues;
 import static com.netflix.titus.testkit.model.PrimitiveValueGenerators.semanticVersions;
 import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
 
-/**
- */
 public final class ContainersGenerator {
 
     private ContainersGenerator() {
@@ -117,8 +116,8 @@ public final class ContainersGenerator {
 
     private static DataGenerator<Triple<List<String>, List<String>, Map<String, String>>> executable() {
         DataGenerator<Pair<List<String>, List<String>>> entryPointAndCommands = DataGenerator.zip(
-                items(asList("/bin/sh", "-c"), asList("echo 'Hello'")),
-                items(Collections.<String>emptyList(), Collections.<String>emptyList())
+                items(asList("/bin/sh", "-c"), Collections.<String>emptyList()),
+                items(singletonList("echo 'Hello'"), Collections.<String>emptyList())
         );
         DataGenerator<Map<String, String>> envs = items(
                 asMap("ENV_A", "123"), asMap("ENV_B", "345")
@@ -131,15 +130,15 @@ public final class ContainersGenerator {
                 .bind(images(), Container.Builder::withImage)
                 .bind(resources(), Container.Builder::withContainerResources)
                 .bind(securityProfiles(), Container.Builder::withSecurityProfile)
-                .bind(constraints(), (builder, pair) -> builder.withHardConstraints(pair.getLeft()).withSoftConstraints(pair.getRight()))
-                .bind(executable(), (builder, ex) -> {
-                    builder.withEntryPoint(ex.getFirst());
-                    builder.withCommand(ex.getSecond());
-                    builder.withEnv(ex.getThird());
-                })
-                .map(builder -> {
-                    builder.withAttributes(Collections.singletonMap("labelA", "valueA"));
-                    return builder.build();
-                });
+                .bind(constraints(), (builder, pair) -> builder
+                        .withHardConstraints(pair.getLeft())
+                        .withSoftConstraints(pair.getRight()))
+                .bind(executable(), (builder, ex) -> builder
+                        .withEntryPoint(ex.getFirst())
+                        .withCommand(ex.getSecond())
+                        .withEnv(ex.getThird()))
+                .map(builder -> builder
+                        .withAttributes(Collections.singletonMap("labelA", "valueA"))
+                        .build());
     }
 }
