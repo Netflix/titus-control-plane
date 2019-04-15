@@ -49,12 +49,15 @@ public class ElasticsearchModule extends AbstractModule {
     @Provides
     @Singleton
     public Client getClient(ElasticsearchConfiguration configuration) throws UnknownHostException {
-        Settings settings = Settings.settingsBuilder()
-                .put("client.transport.ignore_cluster_name", true)
-                .build();
-        return TransportClient.builder().settings(settings).build().addTransportAddress(
-                new InetSocketTransportAddress(InetAddress.getByName(configuration.getTaskDocumentEsHostName()), configuration.getTaskDocumentEsPort())
-        );
+        if (configuration.isEnabled()) {
+            Settings settings = Settings.settingsBuilder()
+                    .put("client.transport.ignore_cluster_name", true)
+                    .build();
+            return TransportClient.builder().settings(settings).build().addTransportAddress(
+                    new InetSocketTransportAddress(InetAddress.getByName(configuration.getTaskDocumentEsHostName()), configuration.getTaskDocumentEsPort())
+            );
+        }
+        return TransportClient.builder().build();
     }
 
     @Provides
