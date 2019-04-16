@@ -17,7 +17,10 @@
 package com.netflix.titus.testkit.perf.load.plan.catalog;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.List;
 
+import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.testkit.perf.load.plan.JobExecutableGenerator;
 import com.netflix.titus.testkit.perf.load.plan.catalog.JobDescriptorCatalog.ContainerResourceAllocation;
 import reactor.core.publisher.Flux;
@@ -34,6 +37,15 @@ public final class JobExecutableGeneratorCatalog {
         public void completed(Executable executable) {
         }
     };
+
+    static final List<Pair<Integer, Integer>> LONG_RUNNING_SIZES_AND_COUNTS = Arrays.asList(
+            Pair.of(100, 5),
+            Pair.of(200, 3),
+            Pair.of(500, 3),
+            Pair.of(1000, 4),
+            Pair.of(5000, 1),
+            Pair.of(10000, 1)
+    );
 
     private JobExecutableGeneratorCatalog() {
     }
@@ -111,6 +123,26 @@ public final class JobExecutableGeneratorCatalog {
                         (int) sizeFactor * 1
                 )
                 .build();
+    }
+
+    public static JobExecutableGenerator longRunningServicesLoad(String capacityGroup) {
+        JobExecutableGenerator.ExecutionScenarioBuilder builder = JobExecutableGenerator.newBuilder();
+        for (int i = 0; i < LONG_RUNNING_SIZES_AND_COUNTS.size(); i++) {
+            int size = LONG_RUNNING_SIZES_AND_COUNTS.get(i).getLeft();
+            int count = LONG_RUNNING_SIZES_AND_COUNTS.get(i).getRight();
+            Duration totalDuration;
+            if (size > 1000) {
+                totalDuration = Duration.ofMinutes(30);
+            } else {
+                totalDuration = i % 2 == 0 ? Duration.ofMinutes(10) : Duration.ofMinutes(20);
+            }
+            builder.constantLoad(
+                    JobDescriptorCatalog.longRunningServiceJob(capacityGroup, size),
+                    JobExecutionPlanCatalog.terminateAndShrinkAutoScalingService(totalDuration),
+                    count
+            );
+        }
+        return builder.build();
     }
 
     public static JobExecutableGenerator batchJobs(int jobSize, int numberOfJobs) {

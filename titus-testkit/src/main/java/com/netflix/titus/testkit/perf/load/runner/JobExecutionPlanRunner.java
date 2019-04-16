@@ -100,7 +100,7 @@ public class JobExecutionPlanRunner extends ExecutionPlanRunner {
                 never -> {
                 },
                 e -> {
-                    logger.warn("Execution plan action for job {} failed with an error {}", executor.getName(), e.getMessage());
+                    logger.warn("Execution plan action failed for job " + executor.getName(), e);
                     terminateJob();
                 },
                 () -> {

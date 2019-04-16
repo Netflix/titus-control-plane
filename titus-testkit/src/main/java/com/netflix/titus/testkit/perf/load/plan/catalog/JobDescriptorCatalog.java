@@ -138,6 +138,29 @@ public final class JobDescriptorCatalog {
                 );
     }
 
+    public static JobDescriptor<ServiceJobExt> longRunningServiceJob(String capacityGroup, int size) {
+        String script = "launched: delay=1s; startInitiated: delay=30s; started: delay=30d; killInitiated: delay=120s";
+
+        return JobDescriptorGenerator.oneTaskServiceJobDescriptor()
+                .but(jd -> jd.toBuilder().withCapacityGroup(capacityGroup))
+                .but(jd -> jd.getContainer()
+                        .but(c -> c.toBuilder()
+                                .withEnv(CollectionsExt.copyAndAdd(c.getEnv(), "TASK_LIFECYCLE_1", script))
+                                .withContainerResources(
+                                        ContainerResources.newBuilder()
+                                                .withCpu(2.0)
+                                                .withMemoryMB(4096)
+                                                .withDiskMB(30720)
+                                                .withNetworkMbps(128)
+                                                .build()
+                                ))
+                )
+                .but(jd -> jd.getExtensions().toBuilder()
+                        .withCapacity(Capacity.newBuilder().withMin(0).withDesired(size).withMax(size * 2).build())
+                        .build()
+                );
+    }
+
     public static JobDescriptor<ServiceJobExt> serviceJobEasyToMigrate(ContainerResourceAllocation containerResourceAllocation, int min, int desired, int max) {
         return serviceJob(containerResourceAllocation, min, desired, max).toBuilder()
                 .withDisruptionBudget(EASY_TO_MIGRATE_DISRUPTION_BUDGET)
