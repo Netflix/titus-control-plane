@@ -173,7 +173,14 @@ public abstract class AbstractJobExecutor<E extends JobDescriptor.JobDescriptorE
 
         return context.getJobManagementClient()
                 .killJob(jobId, TEST_CALL_METADATA)
-                .onErrorResume(e -> Mono.error(new IOException("Failed to kill job " + name, e)))
+                .onErrorResume(e -> {
+                    Status.Code code = Status.fromThrowable(e).getCode();
+                    if (code == Status.Code.NOT_FOUND) {
+                        logger.info("Tried to kill job {} but it is already gone", jobId);
+                        return Mono.empty();
+                    }
+                    return Mono.error(new IOException("Failed to kill job " + name, e));
+                })
                 .doOnSuccess(ignored -> logger.info("Killed job {}", jobId));
     }
 
@@ -184,7 +191,14 @@ public abstract class AbstractJobExecutor<E extends JobDescriptor.JobDescriptorE
 
         return context.getJobManagementClient()
                 .killTask(taskId, false, TEST_CALL_METADATA)
-                .onErrorResume(e -> Mono.error(new IOException(String.format("Failed to kill task %s  of job %s: error=%s", taskId, name, e.getMessage()), e)))
+                .onErrorResume(e -> {
+                    Status.Code code = Status.fromThrowable(e).getCode();
+                    if (code == Status.Code.NOT_FOUND || code == Status.Code.FAILED_PRECONDITION) {
+                        logger.info("Tried to kill task {} but it is already gone", taskId);
+                        return Mono.empty();
+                    }
+                    return Mono.error(new IOException(String.format("Failed to kill task %s  of job %s: error=%s", taskId, name, e.getMessage()), e));
+                })
                 .doOnSuccess(ignored -> logger.info("Killed task {}", taskId));
     }
 
