@@ -25,6 +25,7 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.testkit.perf.load.ExecutionContext;
+import io.grpc.Status;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
@@ -48,7 +49,14 @@ public class ServiceJobExecutor extends AbstractJobExecutor<ServiceJobExt> {
         Preconditions.checkNotNull(jobId);
 
         return context.getJobManagementClient().killTask(taskId, true, TEST_CALL_METADATA)
-                .onErrorResume(e -> Mono.error(new IOException("Failed to terminate and shrink task " + taskId + " of job " + name, e)))
+                .onErrorResume(e -> {
+                    Status.Code code = Status.fromThrowable(e).getCode();
+                    if (code.equals(Status.Code.NOT_FOUND) || code.equals(Status.Code.FAILED_PRECONDITION)) {
+                        logger.info("Task {} not found while terminating it, or it was already not running - ignoring", taskId);
+                        return Mono.empty();
+                    }
+                    return Mono.error(new IOException("Failed to terminate and shrink task " + taskId + " of job " + name, e));
+                })
                 .doOnSuccess(ignored -> {
                     logger.info("Terminate and shrink succeeded for task {}", taskId);
                     Capacity newCapacity = this.currentCapacity.updateAndGet(current ->

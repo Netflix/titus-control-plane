@@ -75,6 +75,10 @@ public class ScenarioSpringResource {
                     "evictions",
                     "Runs service jobs with periodic random task eviction"
             ))
+            .put("longRunning", new ScenarioRepresentation(
+                    "longRunning",
+                    "Long running services on the critical tier, with a mixed size of job sizes"
+            ))
             .build();
 
     private final Orchestrator orchestrator;
@@ -119,6 +123,8 @@ public class ScenarioSpringResource {
             jobExecutableGenerator = JobExecutableGeneratorCatalog.batchJobs(request.getJobSize(), (int) request.getScaleFactor());
         } else if (jobPlan.equals("evictions")) {
             jobExecutableGenerator = JobExecutableGeneratorCatalog.evictions(request.getJobSize(), (int) request.getScaleFactor());
+        } else if (jobPlan.equals("longRunning")) {
+            jobExecutableGenerator = JobExecutableGeneratorCatalog.longRunningServicesLoad("longRunning");
         } else {
             throw new WebApplicationException(Response.Status.BAD_REQUEST);
         }
@@ -129,6 +135,8 @@ public class ScenarioSpringResource {
             agentExecutionPlans = Collections.emptyList();
         } else if (agentPlan.equals("perfLoad")) {
             agentExecutionPlans = AgentExecutableGeneratorCatalog.perfLoad((int) request.getScaleFactor());
+        } else if (agentPlan.equals("longRunning")) {
+            agentExecutionPlans = AgentExecutableGeneratorCatalog.longRunningLoad();
         } else {
             throw new WebApplicationException(Response.Status.BAD_REQUEST);
         }

@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.netflix.titus.api.jobmanager.JobAttributes;
+import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.model.job.migration.SystemDefaultMigrationPolicy;
@@ -28,7 +29,7 @@ import com.netflix.titus.api.jobmanager.model.job.retry.ImmediateRetryPolicy;
 
 /**
  * Represents compatibility between Jobs for tasks to be
- * {@link com.netflix.titus.api.jobmanager.service.V3JobOperations#moveServiceTask(String, String, String) moved}
+ * {@link com.netflix.titus.api.jobmanager.service.V3JobOperations#moveServiceTask(String, String, String, CallMetadata)}  moved}
  * across them.
  * <p>
  * Jobs are compatible when their descriptors are identical, ignoring the following values:
