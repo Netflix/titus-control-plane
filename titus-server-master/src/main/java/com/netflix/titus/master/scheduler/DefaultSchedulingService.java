@@ -249,7 +249,7 @@ public class DefaultSchedulingService implements SchedulingService {
         }
 
         TaskScheduler.Builder schedulerBuilder = new TaskScheduler.Builder()
-                .withLeaseRejectAction(virtualMachineService::rejectLease)
+                .withLeaseRejectAction(logExceptions("Failed to reject lease: ", virtualMachineService::rejectLease))
                 .withLeaseOfferExpirySecs(masterConfiguration.getMesosLeaseOfferExpirySecs())
                 .withFitnessCalculator(new TitusFitnessCalculator(schedulerConfiguration, agentManagementFitnessCalculator, agentResourceCache))
                 .withFitnessGoodEnoughFunction(TitusFitnessCalculator.fitnessGoodEnoughFunction)
@@ -782,4 +782,13 @@ public class DefaultSchedulingService implements SchedulingService {
         agentResourceCache.shutdown();
     }
 
+    private static <T> Action1<T> logExceptions(String prefix, Action1<T> action) {
+        return item -> {
+            try {
+                action.call(item);
+            } catch (Exception e) {
+                logger.error(prefix + item, e);
+            }
+        };
+    }
 }
