@@ -1,0 +1,5 @@
+#!/bin/bash
+
+set -eu -o pipefail
+
+./gradlew generateLock saveLock -PdependencyLock.includeTransitives=true -Pstatus=release

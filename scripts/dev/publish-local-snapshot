@@ -1,0 +1,6 @@
+#!/bin/bash
+
+set -eu -o pipefail
+
+./gradlew assemble publishToMavenLocal -PdependencyLock.ignore=true -Prelease.version=0.2.0-SNAPSHOT --parallel
+

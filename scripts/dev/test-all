@@ -1,0 +1,6 @@
+#!/bin/bash
+
+set -eu -o pipefail
+
+./gradlew testAll -PdependencyLock.ignore=true --parallel
+

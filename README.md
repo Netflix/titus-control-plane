@@ -15,6 +15,8 @@ scheduling containers on agents.
 
 ## Building and Testing
 
+For reference check some of the scripts commonly used by commiters in the `scripts/dev/` folder.
+
 ### Building
 
 ```sh-session
@@ -27,19 +29,14 @@ scheduling containers on agents.
 ./gradlew test
 ```
 
-### Run Integration Tests
-
-```sh-session
-./gradlew integrationTest
-```
-
-### Run All Tests
+### Run All Tests (including integration)
 
 ```sh-session
 ./gradlew testAll
 ```
 
 ## Extensions
+
 There are several extensions in the `titus-ext` folder for integrations with various systems. In order to use
 these extensions, a wrapper project that reconfigures the guice bindings is needed. A tutorial project for binding
 the different implementations is coming soon.
@@ -53,8 +50,8 @@ containers will be launched as nested containers (docker-in-docker) inside the `
 
 The last versions known to work:
 
-* docker-engine `18.06.0-ce`
-* docker-compose `1.22.0`
+- docker-engine `18.06.0-ce`
+- docker-compose `1.22.0`
 
 To build and launch all components:
 
@@ -86,7 +83,7 @@ docker-compose exec agent bash
 
 By default, all titus-agent containers will join a cluster named `unknown-instanceGroup`.
 Before any tasks can be scheduled, that cluster needs to be activated. Note that
-this is necessary *every time the Titus master is restarted*, since `instanceGroup`
+this is necessary _every time the Titus master is restarted_, since `instanceGroup`
 state is not being persisted:
 
 ```sh-session

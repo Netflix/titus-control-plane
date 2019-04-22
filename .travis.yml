@@ -2,8 +2,8 @@ dist: xenial
 language: java
 jdk:
   - openjdk8
-install: "./installViaTravis.sh"
-script: travis_wait ./buildViaTravis.sh
+install: scripts/ci/travis/install
+script: travis_wait scripts/ci/travis/build-release
 before_cache:
   - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
   - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
