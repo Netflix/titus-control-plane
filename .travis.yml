@@ -3,7 +3,7 @@ language: java
 jdk:
   - openjdk8
 install: scripts/ci/travis/install
-script: travis_wait scripts/ci/travis/build-release
+script: travis_wait 30 scripts/ci/travis/build-release
 before_cache:
   - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
   - rm -fr $HOME/.gradle/caches/*/plugin-resolution/
