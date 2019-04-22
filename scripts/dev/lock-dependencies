@@ -8,4 +8,3 @@ set -eu -o pipefail
 # new versions as part of a PR, so changes can be built/published before being merged into master.
 
 ./gradlew generateLock saveLock -PdependencyLock.includeTransitives=true -Pstatus=release
-

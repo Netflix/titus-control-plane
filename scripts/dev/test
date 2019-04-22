@@ -6,4 +6,3 @@ set -eu -o pipefail
 # changes before opening a PR, for a fast feedback cycle.
 
 ./gradlew build -PdependencyLock.ignore=true --parallel
-

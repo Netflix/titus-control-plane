@@ -6,4 +6,3 @@ set -eu -o pipefail
 # opening PRs.
 
 ./gradlew testAll -PdependencyLock.ignore=true --parallel
-
