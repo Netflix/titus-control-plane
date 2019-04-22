@@ -103,8 +103,8 @@ public class ClusterAgentAutoScaler {
     private static final long SCALE_DOWN_TOKEN_BUCKET_REFILL_AMOUNT = 2;
     private static final long SCALE_DOWN_TOKEN_BUCKET_REFILL_INTERVAL_MS = 1_000;
 
-    private static final Comparator<Map.Entry<AgentInstanceGroup, List<AgentInstance>>> IDLE_INSTANCE_COMPARATOR = Comparator.comparing(e -> e.getKey().getLifecycleStatus().getState(), Comparator.reverseOrder());
-    private static final Comparator<AgentInstanceGroup> ACTIVE_INSTANCE_GROUP_COMPARATOR = Comparator.comparing(ig -> ig.getLifecycleStatus().getState());
+    private static final Comparator<AgentInstanceGroup> PREFER_ACTIVE_INSTANCE_GROUP_COMPARATOR = Comparator.comparing(ig -> ig.getLifecycleStatus().getState());
+    private static final Comparator<AgentInstanceGroup> PREFER_PHASEDOUT_INSTANCE_GROUP_COMPARATOR = PREFER_ACTIVE_INSTANCE_GROUP_COMPARATOR.reversed();
 
     private final TitusRuntime titusRuntime;
     private final ClusterOperationsConfiguration configuration;
@@ -333,7 +333,7 @@ public class ClusterAgentAutoScaler {
         return agentManagementService.getInstanceGroups().stream()
                 .filter(ig -> ig.getLifecycleStatus().getState() == InstanceGroupLifecycleState.Active ||
                         ig.getLifecycleStatus().getState() == InstanceGroupLifecycleState.PhasedOut)
-                .sorted(ACTIVE_INSTANCE_GROUP_COMPARATOR)
+                .sorted(PREFER_ACTIVE_INSTANCE_GROUP_COMPARATOR)
                 .collect(Collectors.toList());
     }
 
@@ -376,7 +376,6 @@ public class ClusterAgentAutoScaler {
                             instanceGroup.getInstanceType().equals(primaryInstanceType) &&
                             !instanceGroup.getAttributes().containsKey(ClusterOperationsAttributes.NOT_REMOVABLE);
                 })
-                .sorted(IDLE_INSTANCE_COMPARATOR)
                 .flatMap(e -> e.getValue().stream().filter(i -> {
                     InstanceLifecycleStatus lifecycleStatus = i.getLifecycleStatus();
                     return lifecycleStatus.getState() == InstanceLifecycleState.Started &&
@@ -430,8 +429,11 @@ public class ClusterAgentAutoScaler {
             instances.add(agentInstance);
         }
 
+        List<AgentInstanceGroup> instanceGroupsToScaleDown = scalableInstanceGroups.stream()
+                .sorted(PREFER_PHASEDOUT_INSTANCE_GROUP_COMPARATOR)
+                .collect(Collectors.toList());
         int count = 0;
-        for (AgentInstanceGroup instanceGroup : scalableInstanceGroups) {
+        for (AgentInstanceGroup instanceGroup : instanceGroupsToScaleDown) {
             int remainingAgentsToRemove = scaleDownCount - count;
             if (remainingAgentsToRemove <= 0) {
                 break;

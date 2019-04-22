@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
@@ -60,6 +61,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.matches;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -294,6 +296,52 @@ public class ClusterAgentAutoScalerTest {
     }
 
     @Test
+    public void testScaleUpForActiveAndPhasedOutInstanceGroups() {
+        AgentInstanceGroup activeInstanceGroup = AgentInstanceGroup.newBuilder()
+                .withId("activeInstanceGroup")
+                .withTier(Tier.Flex)
+                .withLifecycleStatus(InstanceGroupLifecycleStatus.newBuilder()
+                        .withState(InstanceGroupLifecycleState.Active)
+                        .withTimestamp(titusRuntime.getClock().wallTime())
+                        .build())
+                .withInstanceType("r4.16xlarge")
+                .withMin(0)
+                .withCurrent(0)
+                .withMax(10)
+                .withAttributes(Collections.emptyMap())
+                .build();
+        AgentInstanceGroup phasedOutInstanceGroup = AgentInstanceGroup.newBuilder()
+                .withId("phasedOutInstanceGroup")
+                .withTier(Tier.Flex)
+                .withLifecycleStatus(InstanceGroupLifecycleStatus.newBuilder()
+                        .withState(InstanceGroupLifecycleState.PhasedOut)
+                        .withTimestamp(titusRuntime.getClock().wallTime())
+                        .build())
+                .withInstanceType("r4.16xlarge")
+                .withMin(0)
+                .withCurrent(0)
+                .withMax(10)
+                .withAttributes(Collections.emptyMap())
+                .build();
+        List<AgentInstanceGroup> instanceGroups = Lists.newArrayList(phasedOutInstanceGroup, activeInstanceGroup);
+        when(agentManagementService.getInstanceGroups()).thenReturn(instanceGroups);
+
+        when(agentManagementService.getAgentInstances("activeInstanceGroup")).thenReturn(Collections.emptyList());
+        when(agentManagementService.getAgentInstances("phasedOutInstanceGroup")).thenReturn(Collections.emptyList());
+        when(agentManagementService.scaleUp(eq("activeInstanceGroup"), anyInt())).thenReturn(Completable.complete());
+
+        testScheduler.advanceTimeBy(6, TimeUnit.MINUTES);
+
+        ClusterAgentAutoScaler clusterAgentAutoScaler = new ClusterAgentAutoScaler(titusRuntime, configuration,
+                agentManagementService, v3JobOperations, schedulingService, testScheduler);
+
+        clusterAgentAutoScaler.doAgentScaling().await();
+
+        verify(agentManagementService, times(1)).scaleUp(eq("activeInstanceGroup"), eq(5));
+        verify(agentManagementService, times(0)).scaleUp(eq("phasedOutInstanceGroup"), anyInt());
+    }
+
+    @Test
     public void testScaleDownForNonPrimaryInstanceType() {
         AgentInstanceGroup instanceGroup = AgentInstanceGroup.newBuilder()
                 .withId("instanceGroup1")
@@ -349,7 +397,7 @@ public class ClusterAgentAutoScalerTest {
         List<Task> tasks = createTasks(17, "jobId");
         for (int i = 0; i < tasks.size(); i++) {
             Task task = tasks.get(i);
-            when(task.getTaskContext()).thenReturn(singletonMap(TaskAttributes.TASK_ATTRIBUTES_AGENT_ID, "agentInstance" + i));
+            when(task.getTaskContext()).thenReturn(singletonMap(TaskAttributes.TASK_ATTRIBUTES_AGENT_ID, "instanceGroup1" + i));
         }
 
         when(v3JobOperations.getTasks()).thenReturn(tasks);
@@ -362,6 +410,59 @@ public class ClusterAgentAutoScalerTest {
         clusterAgentAutoScaler.doAgentScaling().await();
 
         verify(agentManagementService, times(3)).updateAgentInstanceAttributes(any(), any());
+    }
+
+    @Test
+    public void testScaleDownForIdleAgentsPrefersPhasedOutInstanceGroups() {
+        when(configuration.getFlexMinIdle()).thenReturn(0);
+        when(configuration.getFlexMaxIdle()).thenReturn(5);
+
+        AgentInstanceGroup activeInstanceGroup = AgentInstanceGroup.newBuilder()
+                .withId("activeInstanceGroup")
+                .withTier(Tier.Flex)
+                .withLifecycleStatus(InstanceGroupLifecycleStatus.newBuilder()
+                        .withState(InstanceGroupLifecycleState.Active)
+                        .withTimestamp(titusRuntime.getClock().wallTime())
+                        .build())
+                .withInstanceType("r4.16xlarge")
+                .withMin(0)
+                .withCurrent(5)
+                .withMax(10)
+                .withAttributes(Collections.emptyMap())
+                .build();
+        AgentInstanceGroup phasedOutInstanceGroup = AgentInstanceGroup.newBuilder()
+                .withId("phasedOutInstanceGroup")
+                .withTier(Tier.Flex)
+                .withLifecycleStatus(InstanceGroupLifecycleStatus.newBuilder()
+                        .withState(InstanceGroupLifecycleState.PhasedOut)
+                        .withTimestamp(titusRuntime.getClock().wallTime())
+                        .build())
+                .withInstanceType("r4.16xlarge")
+                .withMin(0)
+                .withCurrent(5)
+                .withMax(10)
+                .withAttributes(Collections.emptyMap())
+                .build();
+        List<AgentInstanceGroup> instanceGroups = Lists.newArrayList(phasedOutInstanceGroup, activeInstanceGroup);
+        when(agentManagementService.getInstanceGroups()).thenReturn(instanceGroups);
+
+        List<AgentInstance> activeInstances = createAgents(5, "activeInstanceGroup", false);
+        when(agentManagementService.getAgentInstances("activeInstanceGroup")).thenReturn(activeInstances);
+
+        List<AgentInstance> phasedOutInstances = createAgents(5, "phasedOutInstanceGroup", false);
+        when(agentManagementService.getAgentInstances("phasedOutInstanceGroup")).thenReturn(phasedOutInstances);
+
+        when(v3JobOperations.getTasks()).thenReturn(Collections.emptyList());
+
+        testScheduler.advanceTimeBy(11, TimeUnit.MINUTES);
+
+        ClusterAgentAutoScaler clusterAgentAutoScaler = new ClusterAgentAutoScaler(titusRuntime, configuration,
+                agentManagementService, v3JobOperations, schedulingService, testScheduler);
+
+        clusterAgentAutoScaler.doAgentScaling().await();
+
+        verify(agentManagementService, times(5)).updateAgentInstanceAttributes(matches("phasedOutInstanceGroup.*"), any());
+        verify(agentManagementService, times(0)).updateAgentInstanceAttributes(matches("activeInstanceGroup.*"), any());
     }
 
     @Test
@@ -412,7 +513,7 @@ public class ClusterAgentAutoScalerTest {
         for (int i = 0; i < count; i++) {
             Map<String, String> attributes = removable ? createAgentAttributesWithRemovable(now) : Collections.emptyMap();
             AgentInstance agentInstance = AgentInstance.newBuilder()
-                    .withId("agentInstance" + i)
+                    .withId(instanceGroupId + i)
                     .withInstanceGroupId(instanceGroupId)
                     .withDeploymentStatus(InstanceLifecycleStatus.newBuilder().withState(InstanceLifecycleState.Started).withLaunchTimestamp(now).build())
                     .withAttributes(attributes)
