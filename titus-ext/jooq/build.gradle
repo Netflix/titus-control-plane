@@ -37,10 +37,19 @@ dependencies {
     testCompile project(':titus-testkit')
 
     jooqRuntime "postgresql:postgresql:${postgresqlVersion}"
+    jooqRuntime "org.slf4j:slf4j-log4j12:${slf4jVersion}"
+}
+
+sourceSets {
+   jooq {
+       resources {
+           srcDirs = ['src/jooq/resources']
+       }
+   }
 }
 
 jooq {
-    titus(sourceSets.main) {
+    relocation(sourceSets.main) {
         generator {
             name = 'org.jooq.codegen.DefaultGenerator'
             strategy {
@@ -99,3 +108,12 @@ jooq {
         }
     }
 }
+
+tasks.generateRelocationJooqSchemaSource.with {
+    jooqClasspath += sourceSets.jooq.resources.sourceDirectories
+}
+
+tasks.generateActivityJooqSchemaSource.with {
+    jooqClasspath += sourceSets.jooq.resources.sourceDirectories
+}
+
