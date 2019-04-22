@@ -128,7 +128,7 @@ public class EurekaContainerHealthService implements ContainerHealthService {
         List<InstanceInfo> instances = eurekaClient.getInstancesById(task.getId());
 
         // If a job is disabled, the real Eureka state is hidden. If the container is not registered with Eureka in
-        // the disabled job, we also do not put any constrains here. In both cases we report it is healthy.
+        // the disabled job, we also do not put any constraints here. In both cases we report it is healthy.
         if (JobFunctions.isDisabled(job)) {
             return ContainerHealthState.Healthy;
         }
@@ -222,7 +222,7 @@ public class EurekaContainerHealthService implements ContainerHealthService {
             return Flux.empty();
         }
 
-        // We need to examine in if a job 'enabled' status was changed.
+        // Examine if a job's 'enabled' status was changed.
         boolean isCurrentDisabled = JobFunctions.isDisabled(current);
         if (isCurrentDisabled == JobFunctions.isDisabled(previous)) {
             return Flux.empty();
