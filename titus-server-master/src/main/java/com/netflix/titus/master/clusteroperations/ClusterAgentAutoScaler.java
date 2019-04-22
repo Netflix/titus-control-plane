@@ -19,6 +19,7 @@ package com.netflix.titus.master.clusteroperations;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -101,6 +102,9 @@ public class ClusterAgentAutoScaler {
     private static final long SCALE_DOWN_TOKEN_BUCKET_CAPACITY = 50;
     private static final long SCALE_DOWN_TOKEN_BUCKET_REFILL_AMOUNT = 2;
     private static final long SCALE_DOWN_TOKEN_BUCKET_REFILL_INTERVAL_MS = 1_000;
+
+    private static final Comparator<Map.Entry<AgentInstanceGroup, List<AgentInstance>>> IDLE_INSTANCE_COMPARATOR = Comparator.comparing(e -> e.getKey().getLifecycleStatus().getState(), Comparator.reverseOrder());
+    private static final Comparator<AgentInstanceGroup> ACTIVE_INSTANCE_GROUP_COMPARATOR = Comparator.comparing(ig -> ig.getLifecycleStatus().getState());
 
     private final TitusRuntime titusRuntime;
     private final ClusterOperationsConfiguration configuration;
@@ -324,8 +328,12 @@ public class ClusterAgentAutoScaler {
     }
 
     private List<AgentInstanceGroup> getActiveInstanceGroups() {
+        // return both active and phased out instance groups with active being first in the list
+        // in order to scale up active instance groups first.
         return agentManagementService.getInstanceGroups().stream()
-                .filter(ig -> ig.getLifecycleStatus().getState() == InstanceGroupLifecycleState.Active)
+                .filter(ig -> ig.getLifecycleStatus().getState() == InstanceGroupLifecycleState.Active ||
+                        ig.getLifecycleStatus().getState() == InstanceGroupLifecycleState.PhasedOut)
+                .sorted(ACTIVE_INSTANCE_GROUP_COMPARATOR)
                 .collect(Collectors.toList());
     }
 
@@ -360,6 +368,7 @@ public class ClusterAgentAutoScaler {
                                                         Map<String, Long> numberOfTasksOnAgent,
                                                         long finished,
                                                         long elapsed) {
+        // use reverse order of instance group state such that PhasedOut instances are scaled down first.
         return instancesForActiveInstanceGroups.entrySet().stream()
                 .filter(e -> {
                     AgentInstanceGroup instanceGroup = e.getKey();
@@ -367,6 +376,7 @@ public class ClusterAgentAutoScaler {
                             instanceGroup.getInstanceType().equals(primaryInstanceType) &&
                             !instanceGroup.getAttributes().containsKey(ClusterOperationsAttributes.NOT_REMOVABLE);
                 })
+                .sorted(IDLE_INSTANCE_COMPARATOR)
                 .flatMap(e -> e.getValue().stream().filter(i -> {
                     InstanceLifecycleStatus lifecycleStatus = i.getLifecycleStatus();
                     return lifecycleStatus.getState() == InstanceLifecycleState.Started &&
