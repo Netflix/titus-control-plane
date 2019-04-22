@@ -69,3 +69,6 @@ bin/
 
 # Scala build
 *.cache
+
+# VSCode specific files/directories
+.vscode/

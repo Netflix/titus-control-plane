@@ -1,5 +1,5 @@
 #!/bin/bash
-# This script will build the project.
+# Used by the install step on Travis
 
 if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then
   echo -e "Assemble Pull Request #$TRAVIS_PULL_REQUEST => Branch [$TRAVIS_BRANCH]"
@@ -14,3 +14,4 @@ else
   echo -e 'WARN: Should not be here => Branch ['$TRAVIS_BRANCH']  Tag ['$TRAVIS_TAG']  Pull Request ['$TRAVIS_PULL_REQUEST']'
   ./gradlew assemble --stacktrace
 fi
+

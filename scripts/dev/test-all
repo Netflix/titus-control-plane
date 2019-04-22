@@ -1,0 +1,9 @@
+#!/bin/bash
+
+set -eu -o pipefail
+
+# Run all tests with fresh dependencies, including unit and integration tests. It is recommended to run this before
+# opening PRs.
+
+./gradlew testAll -PdependencyLock.ignore=true --parallel
+
