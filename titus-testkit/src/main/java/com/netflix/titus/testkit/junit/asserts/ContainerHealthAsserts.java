@@ -55,4 +55,9 @@ public final class ContainerHealthAsserts {
         assertThat(event).isInstanceOf(ContainerHealthUpdateEvent.class);
         assertContainerHealth(((ContainerHealthUpdateEvent) event).getContainerHealthStatus(), expectedTaskId, expectedHealthState);
     }
+
+    public static void assertContainerHealthAndEvent(ContainerHealthEvent event, ContainerHealthStatus healthStatus, String expectedTaskId, ContainerHealthState expectedHealthState) {
+        assertContainerHealth(healthStatus, expectedTaskId, expectedHealthState);
+        assertContainerHealthEvent(event, expectedTaskId, expectedHealthState);
+    }
 }
