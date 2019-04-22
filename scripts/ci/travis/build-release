@@ -1,5 +1,5 @@
 #!/bin/bash
-# This script will build the project.
+# Used as the script step on Travis
 
 if [ "$TITUS_INTEGRATION_TEST" == "true" ]; then
   echo -e "Running integration tests (PR=$TRAVIS_PULL_REQUEST) => Branch [$TRAVIS_BRANCH]"
