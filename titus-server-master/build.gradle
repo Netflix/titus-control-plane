@@ -8,7 +8,6 @@ dependencies {
 
     // Netflix dependencies
     compile "com.netflix.fenzo:fenzo-core:${fenzoVersion}"
-    compile "com.netflix.fenzo:fenzo-triggers:${fenzoVersion}"
     compile "com.netflix.archaius:archaius2-guice:${archaius2Version}"
     compile "com.netflix.numerus:numerus:${numerusVersion}"
     compile "com.netflix.governator:governator-core:${governatorVersion}"
