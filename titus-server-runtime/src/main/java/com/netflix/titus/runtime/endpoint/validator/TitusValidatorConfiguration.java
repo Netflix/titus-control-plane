@@ -22,6 +22,6 @@ import com.netflix.titus.common.model.validator.EntityValidatorConfiguration;
 
 @Configuration(prefix = "titus.validate.job")
 public interface TitusValidatorConfiguration extends EntityValidatorConfiguration {
-    @DefaultValue("2000")
+    @DefaultValue("5000")
     int getTimeoutMs();
 }

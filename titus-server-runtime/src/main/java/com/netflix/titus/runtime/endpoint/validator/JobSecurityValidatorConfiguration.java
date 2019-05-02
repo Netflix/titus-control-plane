@@ -34,6 +34,6 @@ public interface JobSecurityValidatorConfiguration extends EntityValidatorConfig
      * Since IAM validations are on the job accept path the timeout value is aggressive.
      * This must be smaller than {@link TitusValidatorConfiguration#getTimeoutMs()}.
      */
-    @DefaultValue("1000")
+    @DefaultValue("4500")
     long getIamValidationTimeoutMs();
 }

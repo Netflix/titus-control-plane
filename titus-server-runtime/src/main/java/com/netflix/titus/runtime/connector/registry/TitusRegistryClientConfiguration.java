@@ -28,7 +28,7 @@ public interface TitusRegistryClientConfiguration {
     @DefaultValue("true")
     boolean isSecure();
 
-    @DefaultValue("500")
+    @DefaultValue("2200")
     int getRegistryTimeoutMs();
 
     @DefaultValue("2")
