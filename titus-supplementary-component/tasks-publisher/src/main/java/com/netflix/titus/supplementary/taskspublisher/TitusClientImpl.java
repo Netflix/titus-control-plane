@@ -15,16 +15,23 @@
  */
 package com.netflix.titus.supplementary.taskspublisher;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.annotation.Nonnull;
+
+import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
+import com.github.benmanes.caffeine.cache.AsyncLoadingCache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.patterns.PolledMeter;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobId;
-import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
+import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceFutureStub;
+import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
 import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskId;
@@ -42,19 +49,27 @@ import static com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor.CA
 public class TitusClientImpl implements TitusClient {
     private static final Logger logger = LoggerFactory.getLogger(TitusClientImpl.class);
     private static final String CLIENT_ID = "tasksPublisher";
-    private final JobManagementServiceGrpc.JobManagementServiceStub jobManagementService;
+    public static final int MAX_CACHE_SIZE = 40000;
+    private final JobManagementServiceStub jobManagementService;
+    private JobManagementServiceFutureStub jobManagementServiceFutureStub;
+    private final Registry registry;
     private AtomicInteger numJobUpdates = new AtomicInteger(0);
     private AtomicInteger numTaskUpdates = new AtomicInteger(0);
     private AtomicInteger numSnapshotUpdates = new AtomicInteger(0);
     private AtomicInteger numMissingJobUpdate = new AtomicInteger(0);
     private AtomicInteger apiErrors = new AtomicInteger(0);
 
-    private Map<String, Job> jobs = new ConcurrentHashMap<>(100);
+    private AsyncLoadingCache<String, Job> jobs;
 
 
-    public TitusClientImpl(JobManagementServiceGrpc.JobManagementServiceStub jobManagementService, Registry registry) {
+    public TitusClientImpl(JobManagementServiceStub jobManagementService,
+                           JobManagementServiceFutureStub jobManagementServiceFutureStub,
+                           Registry registry) {
         this.jobManagementService = jobManagementService;
-        configureMetrics(registry);
+        this.jobManagementServiceFutureStub = jobManagementServiceFutureStub;
+        this.registry = registry;
+        configureMetrics();
+        buildCacheForJobs();
     }
 
     @Override
@@ -90,17 +105,13 @@ public class TitusClientImpl implements TitusClient {
                         switch (jobChangeNotification.getNotificationCase()) {
                             case JOBUPDATE:
                                 final Job job = jobChangeNotification.getJobUpdate().getJob();
-                                jobs.putIfAbsent(job.getId(), job);
+                                jobs.put(job.getId(), CompletableFuture.completedFuture(job));
                                 logger.debug("<{}> JobUpdate {}", Thread.currentThread().getName(), jobChangeNotification.getJobUpdate().getJob().getId());
                                 numJobUpdates.incrementAndGet();
                                 break;
                             case TASKUPDATE:
                                 logger.debug("<{}> TaskUpdate {}", Thread.currentThread().getName(), jobChangeNotification.getTaskUpdate().getTask().getId());
                                 final Task task = jobChangeNotification.getTaskUpdate().getTask();
-                                // Ordering failure for Job, Task updates ?
-                                if (!jobs.containsKey(task.getJobId())) {
-                                    numMissingJobUpdate.incrementAndGet();
-                                }
                                 sink.next(task);
                                 numTaskUpdates.incrementAndGet();
                                 break;
@@ -130,34 +141,10 @@ public class TitusClientImpl implements TitusClient {
 
     @Override
     public Mono<Job> getJobById(String jobId) {
-        return Mono.create(sink -> {
-            if (jobs.containsKey(jobId)) {
-                sink.success(jobs.get(jobId));
-            } else {
-                attachCallerId(jobManagementService, CLIENT_ID)
-                        .findJob(JobId.newBuilder().setId(jobId).build(), new StreamObserver<Job>() {
-                            @Override
-                            public void onNext(Job job) {
-                                logger.debug("<{}> Getting Job for Id {}", Thread.currentThread().getName(), job.getId());
-                                sink.success(job);
-                            }
-
-                            @Override
-                            public void onError(Throwable t) {
-                                logger.error(t.getMessage());
-                                apiErrors.incrementAndGet();
-                                sink.error(t);
-                            }
-
-                            @Override
-                            public void onCompleted() {
-                            }
-                        });
-            }
-        });
+        return Mono.fromFuture(jobs.get(jobId));
     }
 
-    private void configureMetrics(Registry registry) {
+    private void configureMetrics() {
         PolledMeter.using(registry)
                 .withId(registry.createId(EsTaskPublisherMetrics.METRIC_ES_PUBLISHER + "titusApi.errors"))
                 .monitorValue(apiErrors);
@@ -180,6 +167,27 @@ public class TitusClientImpl implements TitusClient {
         Metadata metadata = new Metadata();
         metadata.put(CALLER_ID_KEY, callerId);
         return serviceStub.withInterceptors(MetadataUtils.newAttachHeadersInterceptor(metadata));
+    }
+
+    private void buildCacheForJobs() {
+        jobs = Caffeine.newBuilder()
+                .maximumSize(MAX_CACHE_SIZE)
+                .buildAsync(new AsyncCacheLoader<String, Job>() {
+                    @Nonnull
+                    @Override
+                    public CompletableFuture<Job> asyncLoad(@Nonnull String jobId, @Nonnull Executor executor) {
+                        CompletableFuture<Job> jobResult = new CompletableFuture<>();
+                        ListenableFuture<Job> jobFuture = jobManagementServiceFutureStub.findJob(JobId.newBuilder().setId(jobId).build());
+                        jobFuture.addListener(() -> {
+                            try {
+                                jobResult.complete(jobFuture.get());
+                            } catch (Exception e) {
+                                logger.error("Exception in fetching job {} :: ", jobId, e);
+                            }
+                        }, executor);
+                        return jobResult;
+                    }
+                });
     }
 
 }
