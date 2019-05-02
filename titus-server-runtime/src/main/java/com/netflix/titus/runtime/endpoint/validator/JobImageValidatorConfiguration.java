@@ -29,6 +29,6 @@ public interface JobImageValidatorConfiguration extends EntityValidatorConfigura
      * Since Image validations are on the job accept path the timeout value is aggressive.
      * This must be smaller than {@link TitusValidatorConfiguration#getTimeoutMs()}.
      */
-    @DefaultValue("1200")
+    @DefaultValue("4500")
     long getJobImageValidationTimeoutMs();
 }
