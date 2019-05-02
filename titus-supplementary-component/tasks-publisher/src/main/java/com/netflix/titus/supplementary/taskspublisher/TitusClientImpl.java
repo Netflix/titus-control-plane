@@ -18,7 +18,6 @@ package com.netflix.titus.supplementary.taskspublisher;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
-
 import javax.annotation.Nonnull;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
@@ -51,15 +50,15 @@ public class TitusClientImpl implements TitusClient {
     private static final String CLIENT_ID = "tasksPublisher";
     public static final int MAX_CACHE_SIZE = 40000;
     private final JobManagementServiceStub jobManagementService;
-    private JobManagementServiceFutureStub jobManagementServiceFutureStub;
+    private final JobManagementServiceFutureStub jobManagementServiceFutureStub;
     private final Registry registry;
-    private AtomicInteger numJobUpdates = new AtomicInteger(0);
-    private AtomicInteger numTaskUpdates = new AtomicInteger(0);
-    private AtomicInteger numSnapshotUpdates = new AtomicInteger(0);
-    private AtomicInteger numMissingJobUpdate = new AtomicInteger(0);
-    private AtomicInteger apiErrors = new AtomicInteger(0);
+    private final AtomicInteger numJobUpdates = new AtomicInteger(0);
+    private final AtomicInteger numTaskUpdates = new AtomicInteger(0);
+    private final AtomicInteger numSnapshotUpdates = new AtomicInteger(0);
+    private final AtomicInteger numMissingJobUpdate = new AtomicInteger(0);
+    private final AtomicInteger apiErrors = new AtomicInteger(0);
 
-    private AsyncLoadingCache<String, Job> jobs;
+    private final AsyncLoadingCache<String, Job> jobs;
 
 
     public TitusClientImpl(JobManagementServiceStub jobManagementService,
@@ -68,8 +67,8 @@ public class TitusClientImpl implements TitusClient {
         this.jobManagementService = jobManagementService;
         this.jobManagementServiceFutureStub = jobManagementServiceFutureStub;
         this.registry = registry;
+        jobs = buildCacheForJobs();
         configureMetrics();
-        buildCacheForJobs();
     }
 
     @Override
@@ -169,8 +168,8 @@ public class TitusClientImpl implements TitusClient {
         return serviceStub.withInterceptors(MetadataUtils.newAttachHeadersInterceptor(metadata));
     }
 
-    private void buildCacheForJobs() {
-        jobs = Caffeine.newBuilder()
+    private AsyncLoadingCache<String, Job> buildCacheForJobs() {
+        return Caffeine.newBuilder()
                 .maximumSize(MAX_CACHE_SIZE)
                 .buildAsync(new AsyncCacheLoader<String, Job>() {
                     @Nonnull
@@ -183,11 +182,11 @@ public class TitusClientImpl implements TitusClient {
                                 jobResult.complete(jobFuture.get());
                             } catch (Exception e) {
                                 logger.error("Exception in fetching job {} :: ", jobId, e);
+                                jobResult.completeExceptionally(e);
                             }
                         }, executor);
                         return jobResult;
                     }
                 });
     }
-
 }
