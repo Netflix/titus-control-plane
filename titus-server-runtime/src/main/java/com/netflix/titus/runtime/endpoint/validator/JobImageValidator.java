@@ -149,7 +149,7 @@ public class JobImageValidator implements EntityValidator<JobDescriptor> {
 
         String imageName = image.getName();
         String imageVersion = image.getDigest().isEmpty() ? image.getTag() : image.getDigest();
-        String imageResource = String.format("%s:%s", imageName, imageVersion);
+        String imageResource = String.format("%s_%s", imageName, imageVersion);
         if (throwable instanceof TitusRegistryException) {
             TitusRegistryException tre = (TitusRegistryException) throwable;
             // Use a more specific error tag if available
