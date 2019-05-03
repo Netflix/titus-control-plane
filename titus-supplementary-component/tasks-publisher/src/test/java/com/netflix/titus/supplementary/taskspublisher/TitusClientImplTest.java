@@ -14,6 +14,7 @@ import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
+import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceFutureStub;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
 import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
 import com.netflix.titus.grpc.protogen.Task;
@@ -29,7 +30,6 @@ import io.grpc.stub.StreamObserver;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
 
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.assertj.core.api.Java6Assertions.fail;
@@ -95,7 +95,8 @@ public class TitusClientImplTest {
                 .usePlaintext(true)
                 .build();
         final JobManagementServiceStub jobManagementServiceStub = JobManagementServiceGrpc.newStub(channel);
-        titusClient = new TitusClientImpl(jobManagementServiceStub, new DefaultRegistry());
+        final JobManagementServiceFutureStub jobManagementServiceFutureStub = JobManagementServiceGrpc.newFutureStub(channel);
+        titusClient = new TitusClientImpl(jobManagementServiceStub, jobManagementServiceFutureStub, new DefaultRegistry());
     }
 
     @After
