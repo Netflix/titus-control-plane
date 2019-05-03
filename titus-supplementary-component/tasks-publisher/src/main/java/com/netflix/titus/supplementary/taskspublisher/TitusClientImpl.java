@@ -19,10 +19,13 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 import com.github.benmanes.caffeine.cache.AsyncCacheLoader;
 import com.github.benmanes.caffeine.cache.AsyncLoadingCache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.patterns.PolledMeter;
@@ -48,7 +51,7 @@ import static com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor.CA
 public class TitusClientImpl implements TitusClient {
     private static final Logger logger = LoggerFactory.getLogger(TitusClientImpl.class);
     private static final String CLIENT_ID = "tasksPublisher";
-    public static final int MAX_CACHE_SIZE = 40000;
+    private static final int MAX_CACHE_SIZE = 40000;
     private final JobManagementServiceStub jobManagementService;
     private final JobManagementServiceFutureStub jobManagementServiceFutureStub;
     private final Registry registry;
@@ -175,18 +178,32 @@ public class TitusClientImpl implements TitusClient {
                     @Nonnull
                     @Override
                     public CompletableFuture<Job> asyncLoad(@Nonnull String jobId, @Nonnull Executor executor) {
-                        CompletableFuture<Job> jobResult = new CompletableFuture<>();
                         ListenableFuture<Job> jobFuture = jobManagementServiceFutureStub.findJob(JobId.newBuilder().setId(jobId).build());
-                        jobFuture.addListener(() -> {
-                            try {
-                                jobResult.complete(jobFuture.get());
-                            } catch (Exception e) {
-                                logger.error("Exception in fetching job {} :: ", jobId, e);
-                                jobResult.completeExceptionally(e);
-                            }
-                        }, executor);
-                        return jobResult;
+                        return toCompletableFuture(jobFuture, executor);
                     }
                 });
+    }
+
+    private <T> CompletableFuture<T> toCompletableFuture(ListenableFuture<T> listenableFuture, Executor executor) {
+        CompletableFuture<T> completableFuture = new CompletableFuture<T>() {
+            @Override
+            public boolean cancel(boolean mayInterruptIfRunning) {
+                listenableFuture.cancel(mayInterruptIfRunning);
+                return super.cancel(mayInterruptIfRunning);
+            }
+        };
+
+        Futures.addCallback(listenableFuture, new FutureCallback<T>() {
+            @Override
+            public void onSuccess(@Nullable T result) {
+                completableFuture.complete(result);
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                completableFuture.completeExceptionally(t);
+            }
+        }, executor);
+        return completableFuture;
     }
 }
