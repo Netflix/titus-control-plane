@@ -251,8 +251,10 @@ public class EurekaContainerHealthService implements ContainerHealthService {
 
     private ContainerHealthUpdateEvent recordNewState(ConcurrentMap<String, ContainerHealthEvent> state, Task task, ContainerHealthUpdateEvent newEvent) {
         if (task.getStatus().getState() != TaskState.Finished) {
+            logger.info("Recording new Eureka health state for a task: taskId={}, healthStatus={}", task.getId(), newEvent.getContainerHealthStatus());
             state.put(task.getId(), newEvent);
         } else {
+            logger.info("Removing Eureka health status for finished task: taskId={}", task.getId());
             state.remove(task.getId());
         }
         return newEvent;
