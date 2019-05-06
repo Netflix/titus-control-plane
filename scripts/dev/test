@@ -1,0 +1,8 @@
+#!/bin/bash
+
+set -eu -o pipefail
+
+# Compile and run unit tests with fresh dependencies. Run this regularly during development while working on local
+# changes before opening a PR, for a fast feedback cycle.
+
+./gradlew build -PdependencyLock.ignore=true --parallel

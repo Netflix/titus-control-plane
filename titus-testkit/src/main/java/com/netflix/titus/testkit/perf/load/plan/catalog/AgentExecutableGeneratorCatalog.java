@@ -18,9 +18,11 @@ package com.netflix.titus.testkit.perf.load.plan.catalog;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.aws.AwsInstanceType;
+import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.testkit.perf.load.plan.ExecutionPlan;
 
 import static com.netflix.titus.testkit.perf.load.plan.catalog.AgentExecutionPlanCatalog.periodicallyRedeployedPartition;
@@ -28,6 +30,7 @@ import static com.netflix.titus.testkit.perf.load.plan.catalog.AgentExecutionPla
 public final class AgentExecutableGeneratorCatalog {
 
     private static final int PARTITION_MAX_SIZE = 100;
+    private static final int LONG_RUNNING_SERVICES_PER_M4 = 32;
 
     private AgentExecutableGeneratorCatalog() {
     }
@@ -39,13 +42,31 @@ public final class AgentExecutableGeneratorCatalog {
         int remained = 200 * sizeFactor;
 
         List<ExecutionPlan> plans = new ArrayList<>();
-        int partitionIdx = 1;
-        while (remained > 0) {
+        for (int partitionIdx = 1; remained > 0; partitionIdx++) {
             int partitionSize = Math.min(PARTITION_MAX_SIZE, remained);
             plans.add(periodicallyRedeployedPartition("perfCritical" + partitionIdx, Tier.Critical, AwsInstanceType.M4_16XLarge, 0, partitionSize / 2, partitionSize));
             plans.add(periodicallyRedeployedPartition("perfFlex" + partitionIdx, Tier.Flex, AwsInstanceType.R4_16XLarge, 0, partitionSize / 2, partitionSize));
             remained -= partitionSize;
-            partitionIdx++;
+        }
+        return plans;
+    }
+
+    /**
+     * Agent setup counterpart for {@link JobExecutableGeneratorCatalog#longRunningServicesLoad(String)}.
+     */
+    public static List<ExecutionPlan> longRunningLoad() {
+        int totalTasks = 0;
+        for (Pair<Integer, Integer> sizeAndCount : JobExecutableGeneratorCatalog.LONG_RUNNING_SIZES_AND_COUNTS) {
+            totalTasks += sizeAndCount.getLeft() * sizeAndCount.getRight();
+        }
+
+        String groupId = UUID.randomUUID().toString();
+        List<ExecutionPlan> plans = new ArrayList<>();
+        int remained = (int) Math.ceil(((double) totalTasks) / LONG_RUNNING_SERVICES_PER_M4);
+        for (int idx = 1; remained > 0; idx++) {
+            int partitionSize = Math.min(PARTITION_MAX_SIZE, remained);
+            plans.add(periodicallyRedeployedPartition("perfCritical_" + groupId + "_" + idx, Tier.Critical, AwsInstanceType.M4_16XLarge, 0, partitionSize, partitionSize));
+            remained -= partitionSize;
         }
         return plans;
     }

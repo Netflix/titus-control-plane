@@ -70,7 +70,7 @@ public class JobImageValidator implements EntityValidator<JobDescriptor> {
                 .then(Mono.just(Collections.<ValidationError>emptySet()))
                 .doOnSuccess(j -> validatorMetrics.incrementValidationSuccess(image.getName()))
                 .onErrorResume(throwable -> {
-                    if (isValidationOK(throwable, image.getName())) {
+                    if (isValidationOK(throwable, image)) {
                         return Mono.just(Collections.emptySet());
                     }
                     return Mono.just(
@@ -89,11 +89,12 @@ public class JobImageValidator implements EntityValidator<JobDescriptor> {
             return Mono.just(jobDescriptor);
         }
 
-        String imageName = jobDescriptor.getContainer().getImage().getName();
+        Image image = jobDescriptor.getContainer().getImage();
         return sanitizeImage(jobDescriptor)
                 .timeout(Duration.ofMillis(configuration.getJobImageValidationTimeoutMs()))
-                .doOnSuccess(j -> validatorMetrics.incrementValidationSuccess(imageName))
-                .onErrorReturn(throwable -> isValidationOK(throwable, imageName), jobDescriptor);
+                .doOnSuccess(j -> validatorMetrics.incrementValidationSuccess(image.getName()))
+                .onErrorReturn(throwable ->
+                        isValidationOK(throwable, image), jobDescriptor);
     }
 
     private Mono<JobDescriptor> sanitizeImage(JobDescriptor jobDescriptor) {
@@ -143,13 +144,17 @@ public class JobImageValidator implements EntityValidator<JobDescriptor> {
     }
 
     // Determines if this Exception should produce a validation failure
-    private boolean isValidationOK(Throwable throwable, String imageName) {
+    private boolean isValidationOK(Throwable throwable, Image image) {
         logger.error("Exception while checking image digest", throwable);
+
+        String imageName = image.getName();
+        String imageVersion = image.getDigest().isEmpty() ? image.getTag() : image.getDigest();
+        String imageResource = String.format("%s_%s", imageName, imageVersion);
         if (throwable instanceof TitusRegistryException) {
             TitusRegistryException tre = (TitusRegistryException) throwable;
             // Use a more specific error tag if available
             validatorMetrics.incrementValidationError(
-                    imageName,
+                    imageResource,
                     tre.getErrorCode().name()
             );
             // We are ignoring most image validation errors. We will filter
@@ -162,7 +167,7 @@ public class JobImageValidator implements EntityValidator<JobDescriptor> {
             }
         }
         validatorMetrics.incrementValidationError(
-                imageName,
+                imageResource,
                 throwable.getClass().getSimpleName()
         );
         return true;

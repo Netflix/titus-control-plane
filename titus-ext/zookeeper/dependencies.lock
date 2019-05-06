@@ -6,17 +6,10 @@
                 "com.google.inject:guice"
             ]
         },
-        "c3p0:c3p0": {
-            "locked": "0.9.1.1",
-            "transitive": [
-                "org.quartz-scheduler:quartz"
-            ]
-        },
         "com.fasterxml.jackson.core:jackson-annotations": {
             "locked": "2.9.0",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
-                "com.netflix.fenzo:fenzo-triggers",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
                 "org.mock-server:mockserver-core"
@@ -300,13 +293,7 @@
             ]
         },
         "com.netflix.fenzo:fenzo-core": {
-            "locked": "1.1.0-rc.3",
-            "transitive": [
-                "com.netflix.titus:titus-server-master"
-            ]
-        },
-        "com.netflix.fenzo:fenzo-triggers": {
-            "locked": "1.1.0-rc.3",
+            "locked": "1.1.0-rc.4",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -804,7 +791,6 @@
             "locked": "1.3.8",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop",
-                "com.netflix.fenzo:fenzo-triggers",
                 "com.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
             ]
@@ -912,10 +898,9 @@
             ]
         },
         "joda-time:joda-time": {
-            "locked": "2.9.9",
+            "locked": "2.3",
             "transitive": [
-                "com.github.fge:json-schema-validator",
-                "com.netflix.fenzo:fenzo-triggers"
+                "com.github.fge:json-schema-validator"
             ]
         },
         "junit:junit": {
@@ -1133,12 +1118,6 @@
                 "com.github.fge:json-schema-core"
             ]
         },
-        "org.quartz-scheduler:quartz": {
-            "locked": "2.2.1",
-            "transitive": [
-                "com.netflix.fenzo:fenzo-triggers"
-            ]
-        },
         "org.reactivestreams:reactive-streams": {
             "locked": "1.0.2",
             "transitive": [
@@ -1192,7 +1171,6 @@
             "transitive": [
                 "com.netflix.archaius:archaius2-core",
                 "com.netflix.fenzo:fenzo-core",
-                "com.netflix.fenzo:fenzo-triggers",
                 "com.netflix.governator:governator-core",
                 "com.netflix.spectator:spectator-api",
                 "com.netflix.titus:titus-api",
@@ -1209,7 +1187,6 @@
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-logging",
                 "org.mock-server:mockserver-netty",
-                "org.quartz-scheduler:quartz",
                 "org.slf4j:slf4j-log4j12"
             ]
         },
@@ -1318,17 +1295,10 @@
                 "com.google.inject:guice"
             ]
         },
-        "c3p0:c3p0": {
-            "locked": "0.9.1.1",
-            "transitive": [
-                "org.quartz-scheduler:quartz"
-            ]
-        },
         "com.fasterxml.jackson.core:jackson-annotations": {
             "locked": "2.9.0",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
-                "com.netflix.fenzo:fenzo-triggers",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
                 "org.mock-server:mockserver-core"
@@ -1612,13 +1582,7 @@
             ]
         },
         "com.netflix.fenzo:fenzo-core": {
-            "locked": "1.1.0-rc.3",
-            "transitive": [
-                "com.netflix.titus:titus-server-master"
-            ]
-        },
-        "com.netflix.fenzo:fenzo-triggers": {
-            "locked": "1.1.0-rc.3",
+            "locked": "1.1.0-rc.4",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -2116,7 +2080,6 @@
             "locked": "1.3.8",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop",
-                "com.netflix.fenzo:fenzo-triggers",
                 "com.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
             ]
@@ -2224,10 +2187,9 @@
             ]
         },
         "joda-time:joda-time": {
-            "locked": "2.9.9",
+            "locked": "2.3",
             "transitive": [
-                "com.github.fge:json-schema-validator",
-                "com.netflix.fenzo:fenzo-triggers"
+                "com.github.fge:json-schema-validator"
             ]
         },
         "junit:junit": {
@@ -2445,12 +2407,6 @@
                 "com.github.fge:json-schema-core"
             ]
         },
-        "org.quartz-scheduler:quartz": {
-            "locked": "2.2.1",
-            "transitive": [
-                "com.netflix.fenzo:fenzo-triggers"
-            ]
-        },
         "org.reactivestreams:reactive-streams": {
             "locked": "1.0.2",
             "transitive": [
@@ -2504,7 +2460,6 @@
             "transitive": [
                 "com.netflix.archaius:archaius2-core",
                 "com.netflix.fenzo:fenzo-core",
-                "com.netflix.fenzo:fenzo-triggers",
                 "com.netflix.governator:governator-core",
                 "com.netflix.spectator:spectator-api",
                 "com.netflix.titus:titus-api",
@@ -2521,7 +2476,6 @@
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-logging",
                 "org.mock-server:mockserver-netty",
-                "org.quartz-scheduler:quartz",
                 "org.slf4j:slf4j-log4j12"
             ]
         },
@@ -2630,17 +2584,10 @@
                 "com.google.inject:guice"
             ]
         },
-        "c3p0:c3p0": {
-            "locked": "0.9.1.1",
-            "transitive": [
-                "org.quartz-scheduler:quartz"
-            ]
-        },
         "com.fasterxml.jackson.core:jackson-annotations": {
             "locked": "2.9.0",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
-                "com.netflix.fenzo:fenzo-triggers",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
                 "org.mock-server:mockserver-core"
@@ -2924,13 +2871,7 @@
             ]
         },
         "com.netflix.fenzo:fenzo-core": {
-            "locked": "1.1.0-rc.3",
-            "transitive": [
-                "com.netflix.titus:titus-server-master"
-            ]
-        },
-        "com.netflix.fenzo:fenzo-triggers": {
-            "locked": "1.1.0-rc.3",
+            "locked": "1.1.0-rc.4",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -3428,7 +3369,6 @@
             "locked": "1.3.8",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop",
-                "com.netflix.fenzo:fenzo-triggers",
                 "com.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
             ]
@@ -3536,10 +3476,9 @@
             ]
         },
         "joda-time:joda-time": {
-            "locked": "2.9.9",
+            "locked": "2.3",
             "transitive": [
-                "com.github.fge:json-schema-validator",
-                "com.netflix.fenzo:fenzo-triggers"
+                "com.github.fge:json-schema-validator"
             ]
         },
         "junit:junit": {
@@ -3757,12 +3696,6 @@
                 "com.github.fge:json-schema-core"
             ]
         },
-        "org.quartz-scheduler:quartz": {
-            "locked": "2.2.1",
-            "transitive": [
-                "com.netflix.fenzo:fenzo-triggers"
-            ]
-        },
         "org.reactivestreams:reactive-streams": {
             "locked": "1.0.2",
             "transitive": [
@@ -3816,7 +3749,6 @@
             "transitive": [
                 "com.netflix.archaius:archaius2-core",
                 "com.netflix.fenzo:fenzo-core",
-                "com.netflix.fenzo:fenzo-triggers",
                 "com.netflix.governator:governator-core",
                 "com.netflix.spectator:spectator-api",
                 "com.netflix.titus:titus-api",
@@ -3833,7 +3765,6 @@
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-logging",
                 "org.mock-server:mockserver-netty",
-                "org.quartz-scheduler:quartz",
                 "org.slf4j:slf4j-log4j12"
             ]
         },
@@ -4006,17 +3937,10 @@
                 "com.google.inject:guice"
             ]
         },
-        "c3p0:c3p0": {
-            "locked": "0.9.1.1",
-            "transitive": [
-                "org.quartz-scheduler:quartz"
-            ]
-        },
         "com.fasterxml.jackson.core:jackson-annotations": {
             "locked": "2.9.0",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
-                "com.netflix.fenzo:fenzo-triggers",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
                 "org.mock-server:mockserver-core"
@@ -4300,13 +4224,7 @@
             ]
         },
         "com.netflix.fenzo:fenzo-core": {
-            "locked": "1.1.0-rc.3",
-            "transitive": [
-                "com.netflix.titus:titus-server-master"
-            ]
-        },
-        "com.netflix.fenzo:fenzo-triggers": {
-            "locked": "1.1.0-rc.3",
+            "locked": "1.1.0-rc.4",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -4804,7 +4722,6 @@
             "locked": "1.3.8",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop",
-                "com.netflix.fenzo:fenzo-triggers",
                 "com.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
             ]
@@ -4912,10 +4829,9 @@
             ]
         },
         "joda-time:joda-time": {
-            "locked": "2.9.9",
+            "locked": "2.3",
             "transitive": [
-                "com.github.fge:json-schema-validator",
-                "com.netflix.fenzo:fenzo-triggers"
+                "com.github.fge:json-schema-validator"
             ]
         },
         "junit:junit": {
@@ -5133,12 +5049,6 @@
                 "com.github.fge:json-schema-core"
             ]
         },
-        "org.quartz-scheduler:quartz": {
-            "locked": "2.2.1",
-            "transitive": [
-                "com.netflix.fenzo:fenzo-triggers"
-            ]
-        },
         "org.reactivestreams:reactive-streams": {
             "locked": "1.0.2",
             "transitive": [
@@ -5192,7 +5102,6 @@
             "transitive": [
                 "com.netflix.archaius:archaius2-core",
                 "com.netflix.fenzo:fenzo-core",
-                "com.netflix.fenzo:fenzo-triggers",
                 "com.netflix.governator:governator-core",
                 "com.netflix.spectator:spectator-api",
                 "com.netflix.titus:titus-api",
@@ -5209,7 +5118,6 @@
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-logging",
                 "org.mock-server:mockserver-netty",
-                "org.quartz-scheduler:quartz",
                 "org.slf4j:slf4j-log4j12"
             ]
         },
@@ -5319,17 +5227,10 @@
                 "com.google.inject:guice"
             ]
         },
-        "c3p0:c3p0": {
-            "locked": "0.9.1.1",
-            "transitive": [
-                "org.quartz-scheduler:quartz"
-            ]
-        },
         "com.fasterxml.jackson.core:jackson-annotations": {
             "locked": "2.9.0",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
-                "com.netflix.fenzo:fenzo-triggers",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
                 "org.mock-server:mockserver-core"
@@ -5613,13 +5514,7 @@
             ]
         },
         "com.netflix.fenzo:fenzo-core": {
-            "locked": "1.1.0-rc.3",
-            "transitive": [
-                "com.netflix.titus:titus-server-master"
-            ]
-        },
-        "com.netflix.fenzo:fenzo-triggers": {
-            "locked": "1.1.0-rc.3",
+            "locked": "1.1.0-rc.4",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -6117,7 +6012,6 @@
             "locked": "1.3.8",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop",
-                "com.netflix.fenzo:fenzo-triggers",
                 "com.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
             ]
@@ -6225,10 +6119,9 @@
             ]
         },
         "joda-time:joda-time": {
-            "locked": "2.9.9",
+            "locked": "2.3",
             "transitive": [
-                "com.github.fge:json-schema-validator",
-                "com.netflix.fenzo:fenzo-triggers"
+                "com.github.fge:json-schema-validator"
             ]
         },
         "junit:junit": {
@@ -6446,12 +6339,6 @@
                 "com.github.fge:json-schema-core"
             ]
         },
-        "org.quartz-scheduler:quartz": {
-            "locked": "2.2.1",
-            "transitive": [
-                "com.netflix.fenzo:fenzo-triggers"
-            ]
-        },
         "org.reactivestreams:reactive-streams": {
             "locked": "1.0.2",
             "transitive": [
@@ -6505,7 +6392,6 @@
             "transitive": [
                 "com.netflix.archaius:archaius2-core",
                 "com.netflix.fenzo:fenzo-core",
-                "com.netflix.fenzo:fenzo-triggers",
                 "com.netflix.governator:governator-core",
                 "com.netflix.spectator:spectator-api",
                 "com.netflix.titus:titus-api",
@@ -6522,7 +6408,6 @@
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-logging",
                 "org.mock-server:mockserver-netty",
-                "org.quartz-scheduler:quartz",
                 "org.slf4j:slf4j-log4j12"
             ]
         },
@@ -6632,12 +6517,6 @@
                 "com.google.inject:guice"
             ]
         },
-        "c3p0:c3p0": {
-            "locked": "0.9.1.1",
-            "transitive": [
-                "org.quartz-scheduler:quartz"
-            ]
-        },
         "cglib:cglib-nodep": {
             "locked": "3.1",
             "transitive": [
@@ -6692,7 +6571,6 @@
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
-                "com.netflix.fenzo:fenzo-triggers",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
                 "org.mock-server:mockserver-core"
@@ -7075,13 +6953,7 @@
             ]
         },
         "com.netflix.fenzo:fenzo-core": {
-            "locked": "1.1.0-rc.3",
-            "transitive": [
-                "com.netflix.titus:titus-server-master"
-            ]
-        },
-        "com.netflix.fenzo:fenzo-triggers": {
-            "locked": "1.1.0-rc.3",
+            "locked": "1.1.0-rc.4",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -7670,7 +7542,6 @@
             "locked": "1.3.8",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop",
-                "com.netflix.fenzo:fenzo-triggers",
                 "com.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
             ]
@@ -7795,10 +7666,9 @@
             ]
         },
         "joda-time:joda-time": {
-            "locked": "2.9.9",
+            "locked": "2.4",
             "transitive": [
                 "com.github.fge:json-schema-validator",
-                "com.netflix.fenzo:fenzo-triggers",
                 "org.apache.cassandra:cassandra-all"
             ]
         },
@@ -8271,12 +8141,6 @@
                 "com.github.jnr:jnr-ffi"
             ]
         },
-        "org.quartz-scheduler:quartz": {
-            "locked": "2.2.1",
-            "transitive": [
-                "com.netflix.fenzo:fenzo-triggers"
-            ]
-        },
         "org.reactivestreams:reactive-streams": {
             "locked": "1.0.2",
             "transitive": [
@@ -8346,7 +8210,6 @@
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.netflix.archaius:archaius2-core",
                 "com.netflix.fenzo:fenzo-core",
-                "com.netflix.fenzo:fenzo-triggers",
                 "com.netflix.governator:governator-core",
                 "com.netflix.spectator:spectator-api",
                 "com.netflix.titus:titus-api",
@@ -8377,7 +8240,6 @@
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-logging",
                 "org.mock-server:mockserver-netty",
-                "org.quartz-scheduler:quartz",
                 "org.slf4j:jcl-over-slf4j",
                 "org.slf4j:jul-to-slf4j",
                 "org.slf4j:slf4j-log4j12",
@@ -8589,12 +8451,6 @@
                 "com.google.inject:guice"
             ]
         },
-        "c3p0:c3p0": {
-            "locked": "0.9.1.1",
-            "transitive": [
-                "org.quartz-scheduler:quartz"
-            ]
-        },
         "cglib:cglib-nodep": {
             "locked": "3.1",
             "transitive": [
@@ -8649,7 +8505,6 @@
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
-                "com.netflix.fenzo:fenzo-triggers",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
                 "org.mock-server:mockserver-core"
@@ -9032,13 +8887,7 @@
             ]
         },
         "com.netflix.fenzo:fenzo-core": {
-            "locked": "1.1.0-rc.3",
-            "transitive": [
-                "com.netflix.titus:titus-server-master"
-            ]
-        },
-        "com.netflix.fenzo:fenzo-triggers": {
-            "locked": "1.1.0-rc.3",
+            "locked": "1.1.0-rc.4",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -9627,7 +9476,6 @@
             "locked": "1.3.8",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop",
-                "com.netflix.fenzo:fenzo-triggers",
                 "com.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
             ]
@@ -9752,10 +9600,9 @@
             ]
         },
         "joda-time:joda-time": {
-            "locked": "2.9.9",
+            "locked": "2.4",
             "transitive": [
                 "com.github.fge:json-schema-validator",
-                "com.netflix.fenzo:fenzo-triggers",
                 "org.apache.cassandra:cassandra-all"
             ]
         },
@@ -10228,12 +10075,6 @@
                 "com.github.jnr:jnr-ffi"
             ]
         },
-        "org.quartz-scheduler:quartz": {
-            "locked": "2.2.1",
-            "transitive": [
-                "com.netflix.fenzo:fenzo-triggers"
-            ]
-        },
         "org.reactivestreams:reactive-streams": {
             "locked": "1.0.2",
             "transitive": [
@@ -10303,7 +10144,6 @@
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.netflix.archaius:archaius2-core",
                 "com.netflix.fenzo:fenzo-core",
-                "com.netflix.fenzo:fenzo-triggers",
                 "com.netflix.governator:governator-core",
                 "com.netflix.spectator:spectator-api",
                 "com.netflix.titus:titus-api",
@@ -10334,7 +10174,6 @@
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-logging",
                 "org.mock-server:mockserver-netty",
-                "org.quartz-scheduler:quartz",
                 "org.slf4j:jcl-over-slf4j",
                 "org.slf4j:jul-to-slf4j",
                 "org.slf4j:slf4j-log4j12",
@@ -10546,12 +10385,6 @@
                 "com.google.inject:guice"
             ]
         },
-        "c3p0:c3p0": {
-            "locked": "0.9.1.1",
-            "transitive": [
-                "org.quartz-scheduler:quartz"
-            ]
-        },
         "cglib:cglib-nodep": {
             "locked": "3.1",
             "transitive": [
@@ -10606,7 +10439,6 @@
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
-                "com.netflix.fenzo:fenzo-triggers",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
                 "org.mock-server:mockserver-core"
@@ -10989,13 +10821,7 @@
             ]
         },
         "com.netflix.fenzo:fenzo-core": {
-            "locked": "1.1.0-rc.3",
-            "transitive": [
-                "com.netflix.titus:titus-server-master"
-            ]
-        },
-        "com.netflix.fenzo:fenzo-triggers": {
-            "locked": "1.1.0-rc.3",
+            "locked": "1.1.0-rc.4",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -11584,7 +11410,6 @@
             "locked": "1.3.8",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop",
-                "com.netflix.fenzo:fenzo-triggers",
                 "com.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
             ]
@@ -11709,10 +11534,9 @@
             ]
         },
         "joda-time:joda-time": {
-            "locked": "2.9.9",
+            "locked": "2.4",
             "transitive": [
                 "com.github.fge:json-schema-validator",
-                "com.netflix.fenzo:fenzo-triggers",
                 "org.apache.cassandra:cassandra-all"
             ]
         },
@@ -12185,12 +12009,6 @@
                 "com.github.jnr:jnr-ffi"
             ]
         },
-        "org.quartz-scheduler:quartz": {
-            "locked": "2.2.1",
-            "transitive": [
-                "com.netflix.fenzo:fenzo-triggers"
-            ]
-        },
         "org.reactivestreams:reactive-streams": {
             "locked": "1.0.2",
             "transitive": [
@@ -12260,7 +12078,6 @@
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.netflix.archaius:archaius2-core",
                 "com.netflix.fenzo:fenzo-core",
-                "com.netflix.fenzo:fenzo-triggers",
                 "com.netflix.governator:governator-core",
                 "com.netflix.spectator:spectator-api",
                 "com.netflix.titus:titus-api",
@@ -12291,7 +12108,6 @@
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-logging",
                 "org.mock-server:mockserver-netty",
-                "org.quartz-scheduler:quartz",
                 "org.slf4j:jcl-over-slf4j",
                 "org.slf4j:jul-to-slf4j",
                 "org.slf4j:slf4j-log4j12",
@@ -12504,12 +12320,6 @@
                 "com.google.inject:guice"
             ]
         },
-        "c3p0:c3p0": {
-            "locked": "0.9.1.1",
-            "transitive": [
-                "org.quartz-scheduler:quartz"
-            ]
-        },
         "cglib:cglib-nodep": {
             "locked": "3.1",
             "transitive": [
@@ -12564,7 +12374,6 @@
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
-                "com.netflix.fenzo:fenzo-triggers",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
                 "org.mock-server:mockserver-core"
@@ -12947,13 +12756,7 @@
             ]
         },
         "com.netflix.fenzo:fenzo-core": {
-            "locked": "1.1.0-rc.3",
-            "transitive": [
-                "com.netflix.titus:titus-server-master"
-            ]
-        },
-        "com.netflix.fenzo:fenzo-triggers": {
-            "locked": "1.1.0-rc.3",
+            "locked": "1.1.0-rc.4",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -13542,7 +13345,6 @@
             "locked": "1.3.8",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop",
-                "com.netflix.fenzo:fenzo-triggers",
                 "com.netflix.titus:titus-common",
                 "io.reactivex:rxnetty"
             ]
@@ -13667,10 +13469,9 @@
             ]
         },
         "joda-time:joda-time": {
-            "locked": "2.9.9",
+            "locked": "2.4",
             "transitive": [
                 "com.github.fge:json-schema-validator",
-                "com.netflix.fenzo:fenzo-triggers",
                 "org.apache.cassandra:cassandra-all"
             ]
         },
@@ -14143,12 +13944,6 @@
                 "com.github.jnr:jnr-ffi"
             ]
         },
-        "org.quartz-scheduler:quartz": {
-            "locked": "2.2.1",
-            "transitive": [
-                "com.netflix.fenzo:fenzo-triggers"
-            ]
-        },
         "org.reactivestreams:reactive-streams": {
             "locked": "1.0.2",
             "transitive": [
@@ -14218,7 +14013,6 @@
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.netflix.archaius:archaius2-core",
                 "com.netflix.fenzo:fenzo-core",
-                "com.netflix.fenzo:fenzo-triggers",
                 "com.netflix.governator:governator-core",
                 "com.netflix.spectator:spectator-api",
                 "com.netflix.titus:titus-api",
@@ -14249,7 +14043,6 @@
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-logging",
                 "org.mock-server:mockserver-netty",
-                "org.quartz-scheduler:quartz",
                 "org.slf4j:jcl-over-slf4j",
                 "org.slf4j:jul-to-slf4j",
                 "org.slf4j:slf4j-log4j12",

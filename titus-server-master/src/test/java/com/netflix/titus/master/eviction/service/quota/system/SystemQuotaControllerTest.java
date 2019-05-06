@@ -110,7 +110,7 @@ public class SystemQuotaControllerTest {
         // Emit error
         budgetEmitter.onError(new RuntimeException("Simulated error"));
         budgetEmitter.onNext(SystemDisruptionBudget.newBasicSystemDisruptionBudget(5, 5));
-        Awaitility.await().timeout(5, TimeUnit.SECONDS).until(() -> quotaController.getQuota(Reference.system()).getQuota() == 5);
+        Awaitility.await().timeout(10, TimeUnit.SECONDS).until(() -> quotaController.getQuota(Reference.system()).getQuota() == 5);
     }
 
     private SystemQuotaController newSystemQuotaController() {

@@ -21,6 +21,8 @@ import java.util.Optional;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
+import javax.swing.text.html.Option;
+
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
@@ -124,7 +126,15 @@ public class TaskRelocationIntegrationTest {
     }
 
     private Optional<TaskRelocationPlan> findRelocationPlan(String taskId) {
-        TaskRelocationPlans plans = client.getCurrentTaskRelocationPlans(TaskRelocationQuery.getDefaultInstance());
+        TaskRelocationPlans plans;
+        try {
+            plans = client.getCurrentTaskRelocationPlans(TaskRelocationQuery.getDefaultInstance());
+        } catch (StatusRuntimeException e) {
+            if (e.getMessage().contains("Relocation workflow not ready yet")) {
+                return Optional.empty();
+            }
+            throw e;
+        }
 
         Optional<TaskRelocationPlan> taskPlan = plans.getPlansList().stream().filter(p -> p.getTaskId().equals(taskId)).findFirst();
         if (taskPlan.isPresent()) {

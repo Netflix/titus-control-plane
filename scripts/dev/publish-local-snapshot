@@ -1,0 +1,8 @@
+#!/bin/bash
+
+set -eu -o pipefail
+
+# Publish a snapshot version to the local maven repo. This can be useful during development, when working locally on
+# other projects that depend on artifacts generated here.
+
+./gradlew assemble publishToMavenLocal -PdependencyLock.ignore=true -Prelease.version=0.2.0-SNAPSHOT --parallel
