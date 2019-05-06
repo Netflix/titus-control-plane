@@ -16,6 +16,7 @@
 
 package com.netflix.titus.ext.eureka.containerhealth;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -23,6 +24,8 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -48,10 +51,13 @@ import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.rx.ReactorExt;
+import com.netflix.titus.common.util.rx.ReactorRetriers;
 import com.netflix.titus.common.util.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Schedulers;
 
 @Singleton
 public class EurekaContainerHealthService implements ContainerHealthService {
@@ -60,11 +66,14 @@ public class EurekaContainerHealthService implements ContainerHealthService {
 
     public static final String NAME = "eureka";
 
+    private static final Duration RETRY_INTERVAL = Duration.ofSeconds(5);
+
     private final ReadOnlyJobOperations jobOperations;
     private final EurekaClient eurekaClient;
     private final TitusRuntime titusRuntime;
 
     private final Flux<ContainerHealthEvent> healthStatuses;
+    private Disposable eventLoggerDisposable;
 
     @Inject
     public EurekaContainerHealthService(ReadOnlyJobOperations jobOperations, EurekaClient eurekaClient, TitusRuntime titusRuntime) {
@@ -83,6 +92,24 @@ public class EurekaContainerHealthService implements ContainerHealthService {
             return Flux.merge(eurekaCallbacks, ReactorExt.toFlux(jobOperations.observeJobs()))
                     .flatMap(event -> handleJobManagerOrEurekaStatusUpdate(event, current));
         }).share().compose(ReactorExt.badSubscriberHandler(logger));
+
+    }
+
+    @PostConstruct
+    public void start() {
+        this.eventLoggerDisposable = healthStatuses
+                .retryWhen(ReactorRetriers.instrumentedRetryer("EurekaContainerHealthServiceEventLogger", RETRY_INTERVAL, logger))
+                .subscribeOn(Schedulers.parallel())
+                .subscribe(
+                        event -> logger.info("Eureka health status update: {}", event),
+                        e -> logger.error("Unexpected error"),
+                        () -> logger.info("Eureka health event logger terminated")
+                );
+    }
+
+    @PreDestroy
+    public void shutdown() {
+        ReactorExt.safeDispose(eventLoggerDisposable);
     }
 
     @Override
@@ -106,7 +133,7 @@ public class EurekaContainerHealthService implements ContainerHealthService {
                 .withTaskId(task.getId())
                 .withTimestamp(titusRuntime.getClock().wallTime())
                 .withState(takeStateOf(job, task))
-                .withReason(takeStateReasonOf(task))
+                .withReason(takeStateReasonOf(job, task))
                 .build();
     }
 
@@ -143,11 +170,11 @@ public class EurekaContainerHealthService implements ContainerHealthService {
                 : ContainerHealthState.Unhealthy;
     }
 
-    private String takeStateReasonOf(Task task) {
+    private String takeStateReasonOf(Job<?> job, Task task) {
         List<InstanceInfo> instances = eurekaClient.getInstancesById(task.getId());
 
         if (CollectionsExt.isNullOrEmpty(instances)) {
-            return "not registered";
+            return JobFunctions.isDisabled(job) ? "not registered, and job disabled" : "not registered";
         }
 
         // If it is finished, ignore Eureka status
@@ -242,7 +269,7 @@ public class EurekaContainerHealthService implements ContainerHealthService {
         }
 
         ContainerHealthState newTaskState = takeStateOf(job, task);
-        String newReason = takeStateReasonOf(task);
+        String newReason = takeStateReasonOf(job, task);
         if (lastEvent.getContainerHealthStatus().getState() == newTaskState && lastEvent.getContainerHealthStatus().getReason().equals(newReason)) {
             return Optional.empty();
         }
@@ -251,10 +278,8 @@ public class EurekaContainerHealthService implements ContainerHealthService {
 
     private ContainerHealthUpdateEvent recordNewState(ConcurrentMap<String, ContainerHealthEvent> state, Task task, ContainerHealthUpdateEvent newEvent) {
         if (task.getStatus().getState() != TaskState.Finished) {
-            logger.info("Recording new Eureka health state for a task: taskId={}, healthStatus={}", task.getId(), newEvent.getContainerHealthStatus());
             state.put(task.getId(), newEvent);
         } else {
-            logger.info("Removing Eureka health status for finished task: taskId={}", task.getId());
             state.remove(task.getId());
         }
         return newEvent;
