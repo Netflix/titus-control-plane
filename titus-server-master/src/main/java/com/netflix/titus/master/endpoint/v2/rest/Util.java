@@ -24,6 +24,9 @@ import com.netflix.titus.api.supervisor.service.MasterDescription;
 public class Util {
 
     public static boolean isLocalHost(MasterDescription master) {
+        if(master == null) {
+            return false;
+        }
         try {
             InetAddress localHost = InetAddress.getLocalHost();
             for (InetAddress addr : InetAddress.getAllByName(master.getHostname())) {
