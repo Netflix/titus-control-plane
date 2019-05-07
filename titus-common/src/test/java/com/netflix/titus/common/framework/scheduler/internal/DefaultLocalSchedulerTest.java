@@ -69,7 +69,7 @@ public class DefaultLocalSchedulerTest {
         localScheduler.events().subscribe(eventSubscriber);
     }
 
-    @Test
+    @Test(timeout = 60_000)
     public void testScheduleMono() throws Exception {
         AtomicLong tickCounter = new AtomicLong();
         ScheduleReference reference = localScheduler.scheduleMono(
@@ -83,7 +83,7 @@ public class DefaultLocalSchedulerTest {
         testExecutionLifecycle(reference, tickCounter);
     }
 
-    @Test
+    @Test(timeout = 60_000)
     public void testScheduleAction() throws Exception {
         AtomicLong tickCounter = new AtomicLong();
         ScheduleReference reference = localScheduler.schedule(
@@ -110,10 +110,9 @@ public class DefaultLocalSchedulerTest {
 
         // Now cancel it
         assertThat(reference.isClosed()).isFalse();
-        reference.close();
-        await().timeout(10, TimeUnit.SECONDS).until(reference::isClosed);
+        reference.cancel();
+        await().until(reference::isClosed);
 
-        assertThat(reference.isClosed()).isTrue();
         assertThat(reference.getSchedule().getCurrentAction().getStatus().getState().isFinal()).isTrue();
         assertThat(localScheduler.getActiveSchedules()).isEmpty();
         assertThat(localScheduler.getArchivedSchedules()).hasSize(1);

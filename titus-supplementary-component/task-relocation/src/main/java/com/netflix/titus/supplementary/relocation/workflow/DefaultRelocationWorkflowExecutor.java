@@ -173,7 +173,7 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
 
     @PreDestroy
     public void shutdown() {
-        IOExt.closeSilently(newRelocationPlanEmitter::dispose, localSchedulerDisposable);
+        IOExt.closeSilently(newRelocationPlanEmitter::dispose, localSchedulerDisposable::cancel);
     }
 
     @Override
