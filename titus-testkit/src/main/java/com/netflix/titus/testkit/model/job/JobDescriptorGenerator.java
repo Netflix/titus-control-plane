@@ -70,6 +70,7 @@ public final class JobDescriptorGenerator {
     public static DataGenerator<ServiceJobExt> serviceJobExtensions() {
         return retryPolicies().map(retryPolicy -> JobModel.newServiceJobExt()
                 .withCapacity(JobModel.newCapacity().withMin(0).withDesired(1).withMax(2).build())
+                .withEnabled(true)
                 .withServiceJobProcesses(ServiceJobProcesses.newBuilder().withDisableDecreaseDesired(false).withDisableDecreaseDesired(false).build())
                 .withRetryPolicy(retryPolicy)
                 .build()
@@ -124,7 +125,7 @@ public final class JobDescriptorGenerator {
                 });
     }
 
-    public static DataGenerator<JobDescriptor<ServiceJobExt>> serviceJobDescriptors() {
+    public static DataGenerator<JobDescriptor<ServiceJobExt>> serviceJobDescriptors(Function<JobDescriptor<ServiceJobExt>, JobDescriptor<ServiceJobExt>>... modifiers) {
         DataGenerator<JobDescriptor.Builder<ServiceJobExt>> withOwner = union(
                 items(JobModel.<ServiceJobExt>newJobDescriptor()),
                 owners(),
@@ -155,11 +156,21 @@ public final class JobDescriptorGenerator {
                 serviceJobExtensions(),
                 (builder, serviceJobExt) -> builder.but().withExtensions(serviceJobExt)
         );
-        return withExtensions.map(builder -> builder.withAttributes(CollectionsExt.<String, String>newHashMap()
-                .entry(JobAttributes.JOB_ATTRIBUTES_CELL, TEST_CELL_NAME)
-                .entry(JobAttributes.JOB_ATTRIBUTES_STACK, TEST_STACK_NAME)
-                .entry("labelA", "valueA")
-                .toMap()).build());
+        return withExtensions
+                .map(builder -> builder.withAttributes(CollectionsExt.<String, String>newHashMap()
+                                .entry(JobAttributes.JOB_ATTRIBUTES_CELL, TEST_CELL_NAME)
+                                .entry(JobAttributes.JOB_ATTRIBUTES_STACK, TEST_STACK_NAME)
+                                .entry("labelA", "valueA")
+                                .toMap()
+                        ).build()
+                )
+                .map(jd -> {
+                    JobDescriptor<ServiceJobExt> result = jd;
+                    for (Function<JobDescriptor<ServiceJobExt>, JobDescriptor<ServiceJobExt>> modifier : modifiers) {
+                        result = modifier.apply(result);
+                    }
+                    return result;
+                });
     }
 
     public static JobDescriptor<BatchJobExt> batchJobDescriptor(int desired) {

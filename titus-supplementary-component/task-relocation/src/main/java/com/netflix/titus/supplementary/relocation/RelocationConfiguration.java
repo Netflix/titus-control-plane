@@ -51,7 +51,7 @@ public class RelocationConfiguration {
      * {@link #getRelocationScheduleIntervalMs()} interval, and should be a multiplication of the latter.
      */
     public long getDeschedulingIntervalMs() {
-        return SpringConfigurationUtil.getLong(environment, PREFIX + "deschedulingIntervalMs", 300_000);
+        return SpringConfigurationUtil.getLong(environment, PREFIX + "deschedulingIntervalMs", 120_000);
     }
 
     public long getRelocationTimeoutMs() {

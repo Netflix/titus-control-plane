@@ -29,11 +29,13 @@ import com.netflix.titus.api.containerhealth.service.ContainerHealthService;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
+import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.common.data.generator.DataGenerator;
 import com.netflix.titus.common.data.generator.MutableDataGenerator;
@@ -83,6 +85,10 @@ public class JobComponentStub {
     }
 
     public JobComponentStub addBatchTemplate(String templateId, DataGenerator<JobDescriptor<BatchJobExt>> jobDescriptorGenerator) {
+        return addJobTemplate(templateId, (DataGenerator) jobDescriptorGenerator);
+    }
+
+    public JobComponentStub addServiceTemplate(String templateId, DataGenerator<JobDescriptor<ServiceJobExt>> jobDescriptorGenerator) {
         return addJobTemplate(templateId, (DataGenerator) jobDescriptorGenerator);
     }
 
@@ -150,6 +156,10 @@ public class JobComponentStub {
                         .withAttributes(CollectionsExt.copyAndAdd(task.getAttributes(), attributeName, attributeValue))
                         .build()
         );
+    }
+
+    public void changeJobEnabledStatus(Job<?> job, boolean enabled) {
+        stubbedJobData.changeJob(job.getId(), j -> JobFunctions.changeJobEnabledStatus(JobFunctions.asServiceJob(j), enabled));
     }
 
     public Job finishJob(Job job) {

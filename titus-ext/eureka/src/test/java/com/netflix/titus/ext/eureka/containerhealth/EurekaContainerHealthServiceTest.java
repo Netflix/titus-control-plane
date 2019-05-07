@@ -38,10 +38,11 @@ import org.junit.Test;
 import reactor.core.Disposable;
 import reactor.test.StepVerifier;
 
-import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.ofBatchSize;
+import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.ofServiceSize;
 import static com.netflix.titus.testkit.junit.asserts.ContainerHealthAsserts.assertContainerHealth;
+import static com.netflix.titus.testkit.junit.asserts.ContainerHealthAsserts.assertContainerHealthAndEvent;
 import static com.netflix.titus.testkit.junit.asserts.ContainerHealthAsserts.assertContainerHealthEvent;
-import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.batchJobDescriptors;
+import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.serviceJobDescriptors;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class EurekaContainerHealthServiceTest {
@@ -64,7 +65,7 @@ public class EurekaContainerHealthServiceTest {
 
     @Before
     public void setUp() {
-        this.job1 = jobManagerStub.addBatchTemplate("testJob", batchJobDescriptors(ofBatchSize(1)))
+        this.job1 = jobManagerStub.addServiceTemplate("testJob", serviceJobDescriptors(ofServiceSize(1)))
                 .createJobAndTasks("testJob").getLeft();
 
         this.task1 = jobOperations.getTasks(job1.getId()).get(0);
@@ -76,27 +77,18 @@ public class EurekaContainerHealthServiceTest {
         StepVerifier.create(healthService.events(false))
                 // Task launched, but not in Eureka yet.
                 .then(() -> jobManagerStub.moveTaskToState(taskId1, TaskState.Launched))
-                .assertNext(event -> {
-                    assertContainerHealth(healthService.getHealthStatus(taskId1), taskId1, ContainerHealthState.Unknown);
-                    assertContainerHealthEvent(event, taskId1, ContainerHealthState.Unknown);
-                })
+                .assertNext(event -> assertContainerHealthAndEvent(event, healthService.getHealthStatus(taskId1), taskId1, ContainerHealthState.Unknown))
 
                 // Task started and registered with Eureka
                 .then(() -> {
                     eurekaServer.register(newInstanceInfo(taskId1, InstanceStatus.UP));
                     jobManagerStub.moveTaskToState(taskId1, TaskState.Started);
                 })
-                .assertNext(event -> {
-                    assertContainerHealth(healthService.getHealthStatus(taskId1), taskId1, ContainerHealthState.Healthy);
-                    assertContainerHealthEvent(event, taskId1, ContainerHealthState.Healthy);
-                })
+                .assertNext(event -> assertContainerHealthAndEvent(event, healthService.getHealthStatus(taskId1), taskId1, ContainerHealthState.Healthy))
 
                 // Task terminated
                 .then(() -> jobManagerStub.moveTaskToState(task1, TaskState.Finished))
-                .assertNext(event -> {
-                    assertContainerHealth(healthService.getHealthStatus(taskId1), taskId1, ContainerHealthState.Terminated);
-                    assertContainerHealthEvent(event, taskId1, ContainerHealthState.Terminated);
-                })
+                .assertNext(event -> assertContainerHealthAndEvent(event, healthService.getHealthStatus(taskId1), taskId1, ContainerHealthState.Terminated))
 
                 .thenCancel()
                 .verify(Duration.ofSeconds(5));
@@ -108,23 +100,12 @@ public class EurekaContainerHealthServiceTest {
 
         StepVerifier.create(healthService.events(false))
                 // Change state to UP
-                .then(() -> {
-                    eurekaServer.register(newInstanceInfo(taskId1, InstanceStatus.UP));
-                    eurekaServer.triggerCacheRefreshUpdate();
-                })
-                .assertNext(event -> {
-                    assertContainerHealth(healthService.getHealthStatus(taskId1), taskId1, ContainerHealthState.Healthy);
-                    assertContainerHealthEvent(event, taskId1, ContainerHealthState.Healthy);
-                })
+                .then(() -> registerAndRefresh(InstanceStatus.UP))
+                .assertNext(event -> assertContainerHealthAndEvent(event, healthService.getHealthStatus(taskId1), taskId1, ContainerHealthState.Healthy))
+
                 // Change state to DOWN
-                .then(() -> {
-                    eurekaServer.register(newInstanceInfo(taskId1, InstanceStatus.DOWN));
-                    eurekaServer.triggerCacheRefreshUpdate();
-                })
-                .assertNext(event -> {
-                    assertContainerHealth(healthService.getHealthStatus(taskId1), taskId1, ContainerHealthState.Unhealthy);
-                    assertContainerHealthEvent(event, taskId1, ContainerHealthState.Unhealthy);
-                })
+                .then(() -> registerAndRefresh(InstanceStatus.DOWN))
+                .assertNext(event -> assertContainerHealthAndEvent(event, healthService.getHealthStatus(taskId1), taskId1, ContainerHealthState.Unhealthy))
 
                 .thenCancel()
                 .verify(Duration.ofSeconds(5));
@@ -136,32 +117,81 @@ public class EurekaContainerHealthServiceTest {
 
         StepVerifier.create(healthService.events(false))
                 // Change state to UP
-                .then(() -> {
-                    eurekaServer.register(newInstanceInfo(taskId1, InstanceStatus.UP));
-                    eurekaServer.triggerCacheRefreshUpdate();
-                })
-                .assertNext(event -> {
-                    assertContainerHealth(healthService.getHealthStatus(taskId1), taskId1, ContainerHealthState.Healthy);
-                    assertContainerHealthEvent(event, taskId1, ContainerHealthState.Healthy);
-                })
+                .then(() -> registerAndRefresh(InstanceStatus.UP))
+                .assertNext(event -> assertContainerHealthAndEvent(event, healthService.getHealthStatus(taskId1), taskId1, ContainerHealthState.Healthy))
+
                 // Unregister in Eureka
                 .then(() -> {
                     eurekaServer.unregister(taskId1);
                     eurekaServer.triggerCacheRefreshUpdate();
                 })
-                .assertNext(event -> {
-                    assertContainerHealth(healthService.getHealthStatus(taskId1), taskId1, ContainerHealthState.Unknown);
-                    assertContainerHealthEvent(event, taskId1, ContainerHealthState.Unknown);
-                })
+                .assertNext(event -> assertContainerHealthAndEvent(event, healthService.getHealthStatus(taskId1), taskId1, ContainerHealthState.Unknown))
+
                 // Register again
+                .then(() -> registerAndRefresh(InstanceStatus.UP))
+                .assertNext(event -> assertContainerHealthAndEvent(event, healthService.getHealthStatus(taskId1), taskId1, ContainerHealthState.Healthy))
+
+                .thenCancel()
+                .verify(Duration.ofSeconds(5));
+    }
+
+    @Test
+    public void testOutOfServiceJobWithRealStateUp() {
+        jobManagerStub.moveTaskToState(taskId1, TaskState.Started);
+
+        StepVerifier.create(healthService.events(false))
+                // Change state to OUT_OF_SERVICE
                 .then(() -> {
-                    eurekaServer.register(newInstanceInfo(taskId1, InstanceStatus.UP));
-                    eurekaServer.triggerCacheRefreshUpdate();
+                    jobManagerStub.changeJobEnabledStatus(job1, false);
+                    registerAndRefresh(InstanceStatus.OUT_OF_SERVICE);
                 })
-                .assertNext(event -> {
-                    assertContainerHealth(healthService.getHealthStatus(taskId1), taskId1, ContainerHealthState.Healthy);
-                    assertContainerHealthEvent(event, taskId1, ContainerHealthState.Healthy);
-                })
+                .assertNext(event -> assertContainerHealthAndEvent(event, healthService.getHealthStatus(taskId1), taskId1, ContainerHealthState.Healthy))
+
+                .thenCancel()
+                .verify(Duration.ofSeconds(5));
+    }
+
+    @Test
+    public void testOutOfServiceJobWithRealStateDown() {
+        jobManagerStub.moveTaskToState(taskId1, TaskState.Started);
+
+        StepVerifier.create(healthService.events(false))
+                // Register first with DOWN state
+                .then(() -> registerAndRefresh(InstanceStatus.DOWN))
+                .assertNext(event -> assertContainerHealthAndEvent(event, healthService.getHealthStatus(taskId1), taskId1, ContainerHealthState.Unhealthy))
+
+                // Disable job and change state to OUT_OF_SERVICE
+                .then(() -> jobManagerStub.changeJobEnabledStatus(job1, false))
+                .assertNext(event -> assertContainerHealthAndEvent(event, healthService.getHealthStatus(taskId1), taskId1, ContainerHealthState.Healthy))
+                .then(() -> registerAndRefresh(InstanceStatus.OUT_OF_SERVICE))
+                .assertNext(event -> assertContainerHealthAndEvent(event, healthService.getHealthStatus(taskId1), taskId1, ContainerHealthState.Healthy))
+
+                // Enable job and remove OUT_OF_SERVICE override
+                .then(() -> jobManagerStub.changeJobEnabledStatus(job1, true))
+                .assertNext(event -> assertContainerHealthAndEvent(event, healthService.getHealthStatus(taskId1), taskId1, ContainerHealthState.Unhealthy))
+                .then(() -> registerAndRefresh(InstanceStatus.UP))
+                .assertNext(event -> assertContainerHealthAndEvent(event, healthService.getHealthStatus(taskId1), taskId1, ContainerHealthState.Healthy))
+
+                .thenCancel()
+                .verify(Duration.ofSeconds(5_000));
+    }
+
+    @Test
+    public void testOutOfServiceJobWithRealStateNotRegistered() {
+        jobManagerStub.moveTaskToState(taskId1, TaskState.Started);
+
+        StepVerifier.create(healthService.events(false))
+                // Check enabled job for not registered container
+                .then(eurekaServer::triggerCacheRefreshUpdate)
+                .assertNext(event -> assertContainerHealthAndEvent(event, healthService.getHealthStatus(taskId1), taskId1, ContainerHealthState.Unknown))
+
+                // Disable job
+                .then(() -> jobManagerStub.changeJobEnabledStatus(job1, false))
+                .assertNext(event -> assertContainerHealthAndEvent(event, healthService.getHealthStatus(taskId1), taskId1, ContainerHealthState.Healthy))
+
+                // Enable again
+                .then(() -> jobManagerStub.changeJobEnabledStatus(job1, true))
+                .assertNext(event -> assertContainerHealthAndEvent(event, healthService.getHealthStatus(taskId1), taskId1, ContainerHealthState.Unknown))
 
                 .thenCancel()
                 .verify(Duration.ofSeconds(5));
@@ -173,10 +203,7 @@ public class EurekaContainerHealthServiceTest {
 
         StepVerifier.create(healthService.events(false))
                 // Start the task and register with Eureka
-                .then(() -> {
-                    eurekaServer.register(newInstanceInfo(taskId1, InstanceStatus.UP));
-                    eurekaServer.triggerCacheRefreshUpdate();
-                })
+                .then(() -> registerAndRefresh(InstanceStatus.UP))
                 .assertNext(event -> assertContainerHealthEvent(event, taskId1, ContainerHealthState.Healthy))
 
                 // Lose task
@@ -218,17 +245,20 @@ public class EurekaContainerHealthServiceTest {
         );
 
         // Event 2
-        eurekaServer.register(newInstanceInfo(taskId1, InstanceStatus.DOWN));
-        eurekaServer.triggerCacheRefreshUpdate();
+        registerAndRefresh(InstanceStatus.DOWN);
 
         assertThat(subscription2.isDisposed()).isTrue();
 
         // Event 3
-        eurekaServer.register(newInstanceInfo(taskId1, InstanceStatus.UP));
-        eurekaServer.triggerCacheRefreshUpdate();
+        registerAndRefresh(InstanceStatus.UP);
 
         assertThat(subscriber1.isDisposed()).isFalse();
         assertThat(subscriber1.getAllItems()).hasSize(3);
+    }
+
+    private void registerAndRefresh(InstanceStatus status) {
+        eurekaServer.register(newInstanceInfo(taskId1, status));
+        eurekaServer.triggerCacheRefreshUpdate();
     }
 
     private InstanceInfo newInstanceInfo(String taskId, InstanceStatus instanceStatus) {

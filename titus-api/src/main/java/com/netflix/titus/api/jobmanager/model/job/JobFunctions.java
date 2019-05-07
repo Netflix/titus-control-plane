@@ -101,6 +101,10 @@ public final class JobFunctions {
         return jobDescriptor.getExtensions() instanceof ServiceJobExt;
     }
 
+    public static boolean isDisabled(Job<?> job) {
+        return JobFunctions.isServiceJob(job) && !((ServiceJobExt) job.getJobDescriptor().getExtensions()).isEnabled();
+    }
+
     public static Job<ServiceJobExt> asServiceJob(Job<?> job) {
         if (isServiceJob(job)) {
             return (Job<ServiceJobExt>) job;
