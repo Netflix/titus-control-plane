@@ -56,7 +56,6 @@ import com.netflix.titus.common.util.time.Clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
-import reactor.core.Disposables;
 import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -178,7 +177,7 @@ public class DefaultLocalScheduler implements LocalScheduler {
             if (holder == null) {
                 throw LocalSchedulerException.scheduleNotFound(scheduleId);
             }
-            holder.cancel();
+            holder.cancelInternal();
         }, worker);
     }
 
@@ -251,8 +250,8 @@ public class DefaultLocalScheduler implements LocalScheduler {
                 }
 
                 @Override
-                public void close() {
-                    cancel();
+                public void cancel() {
+                    cancelInternal();
                 }
             };
         }
@@ -265,12 +264,16 @@ public class DefaultLocalScheduler implements LocalScheduler {
             return reference;
         }
 
-        private void cancel() {
+        private void cancelInternal() {
             if (closed) {
                 return;
             }
-            closed = true;
-            if (executor.cancel()) {
+            boolean cancelled;
+            synchronized (this) {
+                closed = true;
+                cancelled = executor.cancel();
+            }
+            if (cancelled) {
                 eventProcessor.onNext(new ScheduleUpdateEvent(executor.getSchedule()));
             }
         }
@@ -284,11 +287,17 @@ public class DefaultLocalScheduler implements LocalScheduler {
 
             SchedulingState currentState = executor.getAction().getStatus().getState();
             if (currentState.isFinal()) {
-                if (closed) {
-                    doCleanup();
-                } else {
-                    this.executor = executor.nextScheduledActionExecutor(currentState == SchedulingState.Failed);
+                boolean nextIteration;
+                synchronized (this) {
+                    nextIteration = !closed;
+                    if (nextIteration) {
+                        this.executor = executor.nextScheduledActionExecutor(currentState == SchedulingState.Failed);
+                    }
+                }
+                if (nextIteration) {
                     eventProcessor.onNext(new ScheduleUpdateEvent(executor.getSchedule()));
+                } else {
+                    doCleanup();
                 }
             }
         }

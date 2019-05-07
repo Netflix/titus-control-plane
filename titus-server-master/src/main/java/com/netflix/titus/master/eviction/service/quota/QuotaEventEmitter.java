@@ -84,7 +84,7 @@ public class QuotaEventEmitter {
 
     @PreDestroy
     public void shutdown() {
-        scheduleReference.close();
+        scheduleReference.cancel();
     }
 
     public Flux<EvictionEvent> events(boolean includeSnapshot) {
