@@ -47,7 +47,8 @@ import com.netflix.titus.supplementary.relocation.util.RelocationUtil;
  */
 public class RelocationMetricsStep {
 
-    private static final String REMAINING_RELOCATION_METRICS = RelocationMetrics.METRIC_ROOT + "remaining";
+    private static final String JOB_REMAINING_RELOCATION_METRICS = RelocationMetrics.METRIC_ROOT + "jobs";
+    private static final String TASK_REMAINING_RELOCATION_METRICS = RelocationMetrics.METRIC_ROOT + "tasks";
 
     private final ReadOnlyAgentOperations agentOperations;
     private final ReadOnlyJobOperations jobOperations;
@@ -90,13 +91,18 @@ public class RelocationMetricsStep {
         private Job<?> job;
         private List<Task> tasks;
 
-        private final Id metricsId;
+        private final Id jobsRemainingId;
+        private final Id tasksRemainingId;
 
         JobMetrics(Job<?> job) {
             this.job = job;
             this.legacy = DisruptionBudgetFunctions.isLegacyJob(job);
             this.legacyPolicyName = legacy ? getLegacyPolicy(job) : null;
-            this.metricsId = registry.createId(REMAINING_RELOCATION_METRICS,
+            this.jobsRemainingId = registry.createId(JOB_REMAINING_RELOCATION_METRICS,
+                    "jobId", job.getId(),
+                    "legacy", Boolean.toString(legacy)
+            );
+            this.tasksRemainingId = registry.createId(TASK_REMAINING_RELOCATION_METRICS,
                     "jobId", job.getId(),
                     "legacy", Boolean.toString(legacy)
             );
@@ -198,27 +204,44 @@ public class RelocationMetricsStep {
                 policyType = job.getJobDescriptor().getDisruptionBudget().getDisruptionBudgetPolicy().getClass().getSimpleName();
             }
 
-            registry.gauge(metricsId.withTags(
+            // Job level
+            int totalToRelocate = evacuatedAgentMatches + jobRelocationRequestMatches + taskRelocationRequestMatches + taskRelocationUnrecognized;
+            registry.gauge(jobsRemainingId.withTags(
+                    "relocationRequired", "false",
+                    "policy", policyType
+            )).set((totalToRelocate == 0 && noRelocation > 0) ? 1 : 0);
+            registry.gauge(jobsRemainingId.withTags(
+                    "relocationRequired", "true",
+                    "policy", policyType
+            )).set(totalToRelocate > 0 ? 1 : 0);
+
+            // Task aggregates
+            registry.gauge(tasksRemainingId.withTags(
                     "trigger", "noRelocation",
                     "policy", policyType
             )).set(noRelocation);
 
-            registry.gauge(metricsId.withTags(
+            registry.gauge(tasksRemainingId.withTags(
                     "trigger", "evacuatedAgents",
                     "policy", policyType
             )).set(evacuatedAgentMatches);
 
-            registry.gauge(metricsId.withTags(
+            registry.gauge(tasksRemainingId.withTags(
                     "trigger", "jobRelocationRequest",
                     "policy", policyType
             )).set(jobRelocationRequestMatches);
 
-            registry.gauge(metricsId.withTags(
+            registry.gauge(tasksRemainingId.withTags(
                     "trigger", "taskRelocationRequest",
                     "policy", policyType
             )).set(taskRelocationRequestMatches);
 
-            registry.gauge(metricsId.withTags(
+            registry.gauge(tasksRemainingId.withTags(
+                    "trigger", "unrecognized",
+                    "policy", policyType
+            )).set(taskRelocationUnrecognized);
+
+            registry.gauge(tasksRemainingId.withTags(
                     "trigger", "unrecognized",
                     "policy", policyType
             )).set(taskRelocationUnrecognized);

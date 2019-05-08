@@ -16,6 +16,7 @@
 
 package com.netflix.titus.supplementary.relocation.util;
 
+import java.util.Map;
 import java.util.Optional;
 
 import com.netflix.titus.api.agent.model.AgentInstance;
@@ -133,13 +134,12 @@ public class RelocationPredicates {
     }
 
     public static boolean isRelocationRequired(AgentInstance agentInstance) {
-        return agentInstance.getAttributes()
-                .getOrDefault(RelocationAttributes.RELOCATION_REQUIRED, "false")
-                .equalsIgnoreCase("true");
+        return checkRelocationAttribute(agentInstance.getAttributes());
     }
 
     public static boolean isRelocationRequired(AgentInstanceGroup instanceGroup) {
-        return instanceGroup.getLifecycleStatus().getState() == InstanceGroupLifecycleState.Removable;
+        return instanceGroup.getLifecycleStatus().getState() == InstanceGroupLifecycleState.Removable
+                || checkRelocationAttribute(instanceGroup.getAttributes());
     }
 
     private static boolean isRelocationRequiredImmediately(AgentInstance agentInstance) {
@@ -149,9 +149,7 @@ public class RelocationPredicates {
     }
 
     private static boolean isRelocationRequired(Task task) {
-        return task.getAttributes()
-                .getOrDefault(RelocationAttributes.RELOCATION_REQUIRED, "false")
-                .equalsIgnoreCase("true");
+        return checkRelocationAttribute(task.getAttributes());
     }
 
     private static boolean isRelocationRequiredImmediately(Task task) {
@@ -184,6 +182,10 @@ public class RelocationPredicates {
         return task.getAttributes()
                 .getOrDefault(RelocationAttributes.RELOCATION_NOT_ALLOWED, "false")
                 .equalsIgnoreCase("true");
+    }
+
+    private static boolean checkRelocationAttribute(Map<String, String> attributes) {
+        return attributes.getOrDefault(RelocationAttributes.RELOCATION_REQUIRED, "false").equalsIgnoreCase("true");
     }
 
     private static long getJobTimestamp(Job<?> job, String key) {
