@@ -19,8 +19,10 @@ package com.netflix.titus.common.util;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import com.google.common.base.Preconditions;
 
@@ -35,7 +37,7 @@ public final class Evaluators {
     /**
      * Do nothing consumer.
      */
-    public static  <T> void doNothing(T value) {
+    public static <T> void doNothing(T value) {
     }
 
     /**
@@ -92,5 +94,16 @@ public final class Evaluators {
             result.add(transformer.apply(i));
         }
         return result;
+    }
+
+    @SafeVarargs
+    public static <T> Optional<T> firstPresent(Supplier<Optional<T>>... optionalSuppliers) {
+        for (Supplier<Optional<T>> optionalSupplier : optionalSuppliers) {
+            Optional<T> optional = optionalSupplier.get();
+            if (optional.isPresent()) {
+                return optional;
+            }
+        }
+        return Optional.empty();
     }
 }

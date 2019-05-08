@@ -28,11 +28,19 @@ import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.SelfManagedDisruptionBudgetPolicy;
 import com.netflix.titus.common.util.DateTimeExt;
+import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.supplementary.relocation.RelocationAttributes;
 
 import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.hasDisruptionBudget;
 
 public class RelocationPredicates {
+
+    public enum RelocationTrigger {
+        Instance,
+        InstanceGroup,
+        Job,
+        Task
+    }
 
     public static Optional<String> checkIfNeedsRelocationPlan(Job<?> job,
                                                               Task task,
@@ -75,33 +83,40 @@ public class RelocationPredicates {
         return Optional.empty();
     }
 
-    public static Optional<String> checkIfMustBeRelocatedImmediately(Job<?> job, Task task, AgentInstance instance) {
+    public static Optional<Pair<RelocationTrigger, String>> checkIfMustBeRelocatedImmediately(Job<?> job, Task task, AgentInstance instance) {
         if (isRelocationRequiredImmediately(instance)) {
-            return Optional.of("Agent instance tagged for immediate eviction");
+            return Optional.of(Pair.of(RelocationTrigger.Instance, "Agent instance tagged for immediate eviction"));
         }
 
         if (isRelocationRequiredImmediately(task)) {
-            return Optional.of("Task marked for immediate eviction");
+            return Optional.of(Pair.of(RelocationTrigger.Task, "Task marked for immediate eviction"));
         }
 
         if (isRelocationRequiredByImmediately(job, task)) {
-            return Optional.of("Job marked for immediate eviction");
+            return Optional.of(Pair.of(RelocationTrigger.Job, "Job marked for immediate eviction"));
         }
 
         return Optional.empty();
     }
 
-    public static Optional<String> checkIfRelocationRequired(Job<?> job, Task task) {
+    public static Optional<Pair<RelocationTrigger, String>> checkIfRelocationRequired(Job<?> job, Task task) {
         if (isRelocationRequired(task)) {
-            return Optional.of("Task marked for eviction");
+            return Optional.of(Pair.of(RelocationTrigger.Task, "Task marked for eviction"));
         }
 
         if (isRelocationRequiredBy(job, task)) {
             long timestamp = getJobTimestamp(job, RelocationAttributes.RELOCATION_REQUIRED_BY);
-            return Optional.of(String.format("Job tasks created before %s marked for eviction", DateTimeExt.toUtcDateTimeString(timestamp)));
+            return Optional.of(Pair.of(RelocationTrigger.Job, String.format("Job tasks created before %s marked for eviction", DateTimeExt.toUtcDateTimeString(timestamp))));
         }
 
         return Optional.empty();
+    }
+
+    public static Optional<Pair<RelocationTrigger, String>> checkIfRelocationRequired(Job<?> job, Task task, AgentInstance instance) {
+        if (isRelocationRequired(instance)) {
+            return Optional.of(Pair.of(RelocationTrigger.Instance, "Agent tagged for eviction"));
+        }
+        return checkIfRelocationRequired(job, task);
     }
 
     public static Optional<String> checkIfRelocationBlocked(Job<?> job, Task task, AgentInstance instance) {
@@ -121,6 +136,10 @@ public class RelocationPredicates {
         return agentInstance.getAttributes()
                 .getOrDefault(RelocationAttributes.RELOCATION_REQUIRED, "false")
                 .equalsIgnoreCase("true");
+    }
+
+    public static boolean isRelocationRequired(AgentInstanceGroup instanceGroup) {
+        return instanceGroup.getLifecycleStatus().getState() == InstanceGroupLifecycleState.Removable;
     }
 
     private static boolean isRelocationRequiredImmediately(AgentInstance agentInstance) {
