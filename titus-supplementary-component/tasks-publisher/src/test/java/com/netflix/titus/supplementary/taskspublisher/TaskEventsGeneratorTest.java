@@ -23,9 +23,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import com.netflix.spectator.api.DefaultRegistry;
-import com.netflix.titus.ext.elasticsearch.TaskDocument;
 import com.netflix.titus.runtime.endpoint.common.EmptyLogStorageInfo;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
+import com.netflix.titus.supplementary.taskspublisher.es.EsClient;
+import com.netflix.titus.supplementary.taskspublisher.es.EsPublisher;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import org.junit.Test;
 import org.mockito.stubbing.Answer;
@@ -57,15 +58,15 @@ public class TaskEventsGeneratorTest {
             final List<TaskDocument> documents = invocation.getArgument(0);
             final List<EsClient.BulkEsIndexRespItem> bulkEsIndexRespItemList = documents.stream().map(doc -> {
                 final EsClient.BulkEsIndexRespItem bulkEsIndexRespItem = new EsClient.BulkEsIndexRespItem();
-                bulkEsIndexRespItem.index = new EsClient.EsIndexResp();
-                bulkEsIndexRespItem.index.created = true;
-                bulkEsIndexRespItem.index.result = "created";
-                bulkEsIndexRespItem.index._id = doc.getId();
+                bulkEsIndexRespItem.setIndex(new EsClient.EsIndexResp());
+                bulkEsIndexRespItem.getIndex().setCreated(true);
+                bulkEsIndexRespItem.getIndex().setResult("created");
+                bulkEsIndexRespItem.getIndex().set_id(doc.getId());
                 return bulkEsIndexRespItem;
             }).collect(Collectors.toList());
 
             final EsClient.BulkEsIndexResp bulkEsIndexResp = new EsClient.BulkEsIndexResp();
-            bulkEsIndexResp.items = bulkEsIndexRespItemList;
+            bulkEsIndexResp.setItems(bulkEsIndexRespItemList);
             return Mono.just(bulkEsIndexResp);
         });
         return esClient;

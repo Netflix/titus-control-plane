@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.netflix.titus.supplementary.taskspublisher;
+package com.netflix.titus.supplementary.taskspublisher.es;
 
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -25,7 +25,10 @@ import com.netflix.spectator.api.Functions;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.patterns.PolledMeter;
 import com.netflix.titus.common.util.rx.ReactorExt;
-import com.netflix.titus.ext.elasticsearch.TaskDocument;
+import com.netflix.titus.supplementary.taskspublisher.TaskDocument;
+import com.netflix.titus.supplementary.taskspublisher.TaskEventsGenerator;
+import com.netflix.titus.supplementary.taskspublisher.TaskPublisherRetryUtil;
+import com.netflix.titus.supplementary.taskspublisher.TasksPublisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;

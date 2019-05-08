@@ -13,16 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.netflix.titus.supplementary.taskspublisher;
+package com.netflix.titus.supplementary.taskspublisher.es;
 
-import java.text.SimpleDateFormat;
-import java.util.TimeZone;
+import org.springframework.web.reactive.function.client.WebClient;
 
-class ElasticSearchUtils {
-    static final SimpleDateFormat DATE_FORMAT;
-
-    static {
-        DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
-        DATE_FORMAT.setTimeZone(TimeZone.getTimeZone("UTC"));
-    }
+public interface EsWebClientFactory {
+    WebClient buildWebClient();
 }
