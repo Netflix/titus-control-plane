@@ -53,6 +53,7 @@ public class DefaultEsWebClientFactory implements EsWebClientFactory {
         return HttpClient.create().tcpConfiguration(tcpClient -> {
             TcpClient tcpClientWithConnectionTimeout = tcpClient.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 1000);
             return tcpClientWithConnectionTimeout.doOnConnected(connection -> {
+                //TODO Investigate why WriteTimeoutHandler appears to be broken in netty-handler 4.1.36.RELEASE package.
                 connection.addHandlerLast(new ReadTimeoutHandler(READ_TIMEOUT_SECONDS));
             });
         });
