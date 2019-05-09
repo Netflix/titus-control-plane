@@ -16,6 +16,7 @@
 
 package com.netflix.titus.supplementary.relocation.workflow.step;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -23,8 +24,10 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import com.netflix.spectator.api.BasicTag;
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
+import com.netflix.spectator.api.Tag;
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
@@ -98,14 +101,15 @@ public class RelocationMetricsStep {
             this.job = job;
             this.legacy = DisruptionBudgetFunctions.isLegacyJob(job);
             this.legacyPolicyName = legacy ? getLegacyPolicy(job) : null;
-            this.jobsRemainingId = registry.createId(JOB_REMAINING_RELOCATION_METRICS,
-                    "jobId", job.getId(),
-                    "legacy", Boolean.toString(legacy)
+
+            List<Tag> tags = Arrays.asList(
+                    new BasicTag("jobId", job.getId()),
+                    new BasicTag("application", job.getJobDescriptor().getApplicationName()),
+                    new BasicTag("capacityGroup", job.getJobDescriptor().getCapacityGroup()),
+                    new BasicTag("legacy", Boolean.toString(legacy))
             );
-            this.tasksRemainingId = registry.createId(TASK_REMAINING_RELOCATION_METRICS,
-                    "jobId", job.getId(),
-                    "legacy", Boolean.toString(legacy)
-            );
+            this.jobsRemainingId = registry.createId(JOB_REMAINING_RELOCATION_METRICS, tags);
+            this.tasksRemainingId = registry.createId(TASK_REMAINING_RELOCATION_METRICS, tags);
         }
 
         Job<?> getJob() {
