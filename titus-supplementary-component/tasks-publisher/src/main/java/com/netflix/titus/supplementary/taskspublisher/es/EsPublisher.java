@@ -36,6 +36,7 @@ import reactor.core.publisher.ConnectableFlux;
 
 public class EsPublisher implements TasksPublisher {
     private static final Logger logger = LoggerFactory.getLogger(EsPublisher.class);
+    private static final int MAX_CONCURRENCY = 20;
     private TaskEventsGenerator taskEventsGenerator;
     private final EsClient esClient;
     private Registry registry;
@@ -68,7 +69,8 @@ public class EsPublisher implements TasksPublisher {
                         esClient.bulkIndexTaskDocument(taskDocuments)
                                 .retryWhen(TaskPublisherRetryUtil.buildRetryHandler(
                                         TaskPublisherRetryUtil.INITIAL_RETRY_DELAY_MS,
-                                        TaskPublisherRetryUtil.MAX_RETRY_DELAY_MS, 3)))
+                                        TaskPublisherRetryUtil.MAX_RETRY_DELAY_MS, 3)),
+                        MAX_CONCURRENCY)
                 .doOnError(e -> {
                     logger.error("Error in indexing documents (Retrying) : ", e);
                     numErrors.incrementAndGet();
