@@ -44,11 +44,12 @@ import static com.netflix.titus.api.relocation.model.RelocationFunctions.areEqua
 import static com.netflix.titus.supplementary.relocation.util.RelocationPredicates.checkIfNeedsRelocationPlan;
 
 /**
- * Step at which all containers that are requested to terminate are identified, and their relocation timestamps are set.
+ * Step at which all self managed containers that are requested to terminate are identified,
+ * and their relocation timestamps are set.
  */
-public class MustBeRelocatedTaskCollectorStep {
+public class MustBeRelocatedSelfManagedTaskCollectorStep {
 
-    private static final Logger logger = LoggerFactory.getLogger(MustBeRelocatedTaskCollectorStep.class);
+    private static final Logger logger = LoggerFactory.getLogger(MustBeRelocatedSelfManagedTaskCollectorStep.class);
 
     private final ReadOnlyAgentOperations agentOperations;
     private final ReadOnlyJobOperations jobOperations;
@@ -57,9 +58,9 @@ public class MustBeRelocatedTaskCollectorStep {
 
     private Map<String, TaskRelocationPlan> lastResult = Collections.emptyMap();
 
-    public MustBeRelocatedTaskCollectorStep(ReadOnlyAgentOperations agentOperations,
-                                            ReadOnlyJobOperations jobOperations,
-                                            TitusRuntime titusRuntime) {
+    public MustBeRelocatedSelfManagedTaskCollectorStep(ReadOnlyAgentOperations agentOperations,
+                                                       ReadOnlyJobOperations jobOperations,
+                                                       TitusRuntime titusRuntime) {
         this.agentOperations = agentOperations;
         this.jobOperations = jobOperations;
         this.clock = titusRuntime.getClock();

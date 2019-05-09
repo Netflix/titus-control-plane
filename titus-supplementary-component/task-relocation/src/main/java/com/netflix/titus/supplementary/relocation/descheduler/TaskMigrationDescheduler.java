@@ -85,7 +85,7 @@ class TaskMigrationDescheduler {
             if (job != null && instance != null) {
                 RelocationPredicates.checkIfMustBeRelocatedImmediately(job, task, instance).ifPresent(reason -> {
                     evictionQuotaTracker.consumeQuotaNoError(job.getId());
-                    result.put(task.getId(), newDeschedulingResultForRequestedRelocation(now, task, instance, reason));
+                    result.put(task.getId(), newDeschedulingResultForRequestedRelocation(now, task, instance, reason.getRight()));
                 });
             }
         });
@@ -105,7 +105,7 @@ class TaskMigrationDescheduler {
                         long quota = evictionQuotaTracker.getJobEvictionQuota(task.getJobId());
                         if (quota > 0) {
                             evictionQuotaTracker.consumeQuota(task.getJobId());
-                            result.put(task.getId(), newDeschedulingResultForRequestedRelocation(now, task, instance, reason));
+                            result.put(task.getId(), newDeschedulingResultForRequestedRelocation(now, task, instance, reason.getRight()));
                         }
                     }
                 });

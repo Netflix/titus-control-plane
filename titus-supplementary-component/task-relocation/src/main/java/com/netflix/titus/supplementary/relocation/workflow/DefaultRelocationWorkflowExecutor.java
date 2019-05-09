@@ -52,8 +52,9 @@ import com.netflix.titus.supplementary.relocation.model.DeschedulingResult;
 import com.netflix.titus.supplementary.relocation.store.TaskRelocationResultStore;
 import com.netflix.titus.supplementary.relocation.store.TaskRelocationStore;
 import com.netflix.titus.supplementary.relocation.workflow.step.DeschedulerStep;
-import com.netflix.titus.supplementary.relocation.workflow.step.MustBeRelocatedTaskCollectorStep;
+import com.netflix.titus.supplementary.relocation.workflow.step.MustBeRelocatedSelfManagedTaskCollectorStep;
 import com.netflix.titus.supplementary.relocation.workflow.step.MustBeRelocatedTaskStoreUpdateStep;
+import com.netflix.titus.supplementary.relocation.workflow.step.RelocationMetricsStep;
 import com.netflix.titus.supplementary.relocation.workflow.step.RelocationTransactionLogger;
 import com.netflix.titus.supplementary.relocation.workflow.step.TaskEvictionResultStoreStep;
 import com.netflix.titus.supplementary.relocation.workflow.step.TaskEvictionStep;
@@ -86,7 +87,8 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
     private final WorkflowMetrics metrics;
     private final ScheduleReference localSchedulerDisposable;
 
-    private final MustBeRelocatedTaskCollectorStep mustBeRelocatedTaskCollectorStep;
+    private final RelocationMetricsStep relocationMetricsStep;
+    private final MustBeRelocatedSelfManagedTaskCollectorStep mustBeRelocatedSelfManagedTaskCollectorStep;
     private final DeschedulerStep deschedulerStep;
     private final MustBeRelocatedTaskStoreUpdateStep mustBeRelocatedTaskStoreUpdateStep;
     private final TaskEvictionResultStoreStep taskEvictionResultStoreStep;
@@ -124,7 +126,8 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
         ensureReplicatorsReady();
 
         RelocationTransactionLogger transactionLog = new RelocationTransactionLogger(jobOperations);
-        this.mustBeRelocatedTaskCollectorStep = new MustBeRelocatedTaskCollectorStep(agentOperations, jobOperations, titusRuntime);
+        this.relocationMetricsStep = new RelocationMetricsStep(agentOperations, jobOperations, titusRuntime);
+        this.mustBeRelocatedSelfManagedTaskCollectorStep = new MustBeRelocatedSelfManagedTaskCollectorStep(agentOperations, jobOperations, titusRuntime);
         this.mustBeRelocatedTaskStoreUpdateStep = new MustBeRelocatedTaskStoreUpdateStep(activeStore, transactionLog, titusRuntime);
         this.deschedulerStep = new DeschedulerStep(deschedulerService, transactionLog, titusRuntime);
         this.taskEvictionStep = new TaskEvictionStep(evictionServiceClient, titusRuntime, transactionLog, Schedulers.parallel());
@@ -232,9 +235,12 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
             return false;
         }
 
-        // Relocation plan
-        Map<String, TaskRelocationPlan> newRelocationPlan = mustBeRelocatedTaskCollectorStep.collectTasksThatMustBeRelocated();
-        this.lastRelocationPlan = mustBeRelocatedTaskStoreUpdateStep.persistChangesInStore(newRelocationPlan);
+        // Metrics
+        relocationMetricsStep.updateMetrics();
+
+        // Self managed relocation plans
+        Map<String, TaskRelocationPlan> newSelfManagedRelocationPlan = mustBeRelocatedSelfManagedTaskCollectorStep.collectTasksThatMustBeRelocated();
+        this.lastRelocationPlan = mustBeRelocatedTaskStoreUpdateStep.persistChangesInStore(newSelfManagedRelocationPlan);
         newRelocationPlanEmitter.onNext(new ArrayList<>(lastRelocationPlan.values()));
 
         if (descheduling) {

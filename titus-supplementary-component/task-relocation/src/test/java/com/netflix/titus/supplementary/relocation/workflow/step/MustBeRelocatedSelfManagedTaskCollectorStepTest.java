@@ -32,13 +32,13 @@ import org.junit.Test;
 import static com.netflix.titus.supplementary.relocation.TestDataFactory.newSelfManagedDisruptionBudget;
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class MustBeRelocatedTaskCollectorStepTest extends AbstractTaskRelocationTest {
+public class MustBeRelocatedSelfManagedTaskCollectorStepTest extends AbstractTaskRelocationTest {
 
-    private final MustBeRelocatedTaskCollectorStep step;
+    private final MustBeRelocatedSelfManagedTaskCollectorStep step;
 
-    public MustBeRelocatedTaskCollectorStepTest() {
+    public MustBeRelocatedSelfManagedTaskCollectorStepTest() {
         super(TestDataFactory.activeRemovableSetup());
-        this.step = new MustBeRelocatedTaskCollectorStep(agentOperations, jobOperations, titusRuntime);
+        this.step = new MustBeRelocatedSelfManagedTaskCollectorStep(agentOperations, jobOperations, titusRuntime);
     }
 
     @Test
