@@ -13,13 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.netflix.titus.supplementary.taskspublisher;
+package com.netflix.titus.supplementary.taskspublisher.es;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.netflix.titus.supplementary.taskspublisher.config.EsPublisherConfiguration;
 import io.netty.channel.ChannelOption;
 import io.netty.handler.timeout.ReadTimeoutHandler;
-import io.netty.handler.timeout.WriteTimeoutHandler;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.netty.http.client.HttpClient;
@@ -29,7 +28,6 @@ import reactor.netty.tcp.TcpClient;
 public class DefaultEsWebClientFactory implements EsWebClientFactory {
 
     public static final int READ_TIMEOUT_SECONDS = 20;
-    public static final int WRITE_TIMEOUT_SECONDS = 20;
 
     private EsPublisherConfiguration esPublisherConfiguration;
 
@@ -55,8 +53,8 @@ public class DefaultEsWebClientFactory implements EsWebClientFactory {
         return HttpClient.create().tcpConfiguration(tcpClient -> {
             TcpClient tcpClientWithConnectionTimeout = tcpClient.option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 1000);
             return tcpClientWithConnectionTimeout.doOnConnected(connection -> {
+                //TODO Investigate why WriteTimeoutHandler appears to be broken in netty-handler 4.1.36.RELEASE package.
                 connection.addHandlerLast(new ReadTimeoutHandler(READ_TIMEOUT_SECONDS));
-                connection.addHandlerLast(new WriteTimeoutHandler(WRITE_TIMEOUT_SECONDS));
             });
         });
     }

@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.netflix.titus.supplementary.taskspublisher;
+package com.netflix.titus.supplementary.taskspublisher.es;
 
 
 import java.util.List;
 
-import com.netflix.titus.ext.elasticsearch.TaskDocument;
+import com.netflix.titus.supplementary.taskspublisher.TaskDocument;
 import reactor.core.publisher.Mono;
 
 public interface EsClient {
@@ -142,7 +142,7 @@ public interface EsClient {
         }
     }
 
-    public static class IndexHeaderLine {
+    class IndexHeaderLine {
         private IndexHeader index;
 
         public IndexHeader getIndex() {
@@ -154,7 +154,7 @@ public interface EsClient {
         }
     }
 
-    public static class IndexHeader {
+    class IndexHeader {
         private String _index;
         private String _type;
         private String _id;

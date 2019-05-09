@@ -1,4 +1,4 @@
-package com.netflix.titus.supplementary.taskspublisher;
+package com.netflix.titus.supplementary.taskspublisher.es;
 
 import java.text.SimpleDateFormat;
 import java.util.Collections;
@@ -9,7 +9,7 @@ import java.util.stream.Collectors;
 
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Job;
-import com.netflix.titus.ext.elasticsearch.TaskDocument;
+import com.netflix.titus.supplementary.taskspublisher.TaskDocument;
 import com.netflix.titus.supplementary.taskspublisher.config.EsPublisherConfiguration;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import org.junit.Test;

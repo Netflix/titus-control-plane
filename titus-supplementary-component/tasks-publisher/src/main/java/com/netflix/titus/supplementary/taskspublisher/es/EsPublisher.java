@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.netflix.titus.supplementary.taskspublisher;
+package com.netflix.titus.supplementary.taskspublisher.es;
 
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -25,7 +25,10 @@ import com.netflix.spectator.api.Functions;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.patterns.PolledMeter;
 import com.netflix.titus.common.util.rx.ReactorExt;
-import com.netflix.titus.ext.elasticsearch.TaskDocument;
+import com.netflix.titus.supplementary.taskspublisher.TaskDocument;
+import com.netflix.titus.supplementary.taskspublisher.TaskEventsGenerator;
+import com.netflix.titus.supplementary.taskspublisher.TaskPublisherRetryUtil;
+import com.netflix.titus.supplementary.taskspublisher.TasksPublisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
@@ -33,6 +36,7 @@ import reactor.core.publisher.ConnectableFlux;
 
 public class EsPublisher implements TasksPublisher {
     private static final Logger logger = LoggerFactory.getLogger(EsPublisher.class);
+    private static final int MAX_CONCURRENCY = 20;
     private TaskEventsGenerator taskEventsGenerator;
     private final EsClient esClient;
     private Registry registry;
@@ -65,7 +69,8 @@ public class EsPublisher implements TasksPublisher {
                         esClient.bulkIndexTaskDocument(taskDocuments)
                                 .retryWhen(TaskPublisherRetryUtil.buildRetryHandler(
                                         TaskPublisherRetryUtil.INITIAL_RETRY_DELAY_MS,
-                                        TaskPublisherRetryUtil.MAX_RETRY_DELAY_MS, 3)))
+                                        TaskPublisherRetryUtil.MAX_RETRY_DELAY_MS, 3)),
+                        MAX_CONCURRENCY)
                 .doOnError(e -> {
                     logger.error("Error in indexing documents (Retrying) : ", e);
                     numErrors.incrementAndGet();

@@ -20,10 +20,10 @@ import java.util.Map;
 
 import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.ext.elasticsearch.TaskDocument;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
+import com.netflix.titus.supplementary.taskspublisher.es.ElasticSearchUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.ConnectableFlux;
