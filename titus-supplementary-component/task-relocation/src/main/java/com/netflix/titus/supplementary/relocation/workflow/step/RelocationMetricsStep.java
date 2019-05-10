@@ -78,12 +78,14 @@ public class RelocationMetricsStep {
         });
 
         // Remove jobs no longer running.
+        Set<String> toRemove = new HashSet<>();
         metrics.keySet().forEach(jobId -> {
             if (!jobIds.contains(jobId)) {
                 metrics.get(jobId).remove();
-                metrics.remove(jobId);
+                toRemove.add(jobId);
             }
         });
+        toRemove.forEach(metrics::remove);
     }
 
     private class JobMetrics {
