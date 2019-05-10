@@ -25,10 +25,9 @@
             ]
         },
         "com.carrotsearch:hppc": {
-            "locked": "0.7.1",
+            "locked": "0.5.4",
             "transitive": [
-                "org.apache.cassandra:cassandra-thrift",
-                "org.elasticsearch:elasticsearch"
+                "org.apache.cassandra:cassandra-thrift"
             ]
         },
         "com.clearspring.analytics:stream": {
@@ -68,7 +67,6 @@
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.fasterxml.jackson.module:jackson-module-parameter-names",
-                "org.elasticsearch:elasticsearch-x-content",
                 "org.mock-server:mockserver-core"
             ]
         },
@@ -87,23 +85,10 @@
                 "org.springframework.boot:spring-boot-starter-json"
             ]
         },
-        "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor": {
-            "locked": "2.9.8",
-            "transitive": [
-                "org.elasticsearch:elasticsearch-x-content"
-            ]
-        },
-        "com.fasterxml.jackson.dataformat:jackson-dataformat-smile": {
-            "locked": "2.9.8",
-            "transitive": [
-                "org.elasticsearch:elasticsearch-x-content"
-            ]
-        },
         "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml": {
             "locked": "2.9.8",
             "transitive": [
-                "io.swagger:swagger-core",
-                "org.elasticsearch:elasticsearch-x-content"
+                "io.swagger:swagger-core"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
@@ -536,7 +521,6 @@
             "project": true,
             "transitive": [
                 "com.netflix.titus:titus-ext-cassandra",
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
@@ -545,7 +529,6 @@
             "transitive": [
                 "com.netflix.titus:titus-api",
                 "com.netflix.titus:titus-ext-cassandra",
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
@@ -559,12 +542,6 @@
             "project": true,
             "transitive": [
                 "com.netflix.titus:titus-testkit"
-            ]
-        },
-        "com.netflix.titus:titus-ext-elasticsearch": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-supplementary-component-tasks-publisher"
             ]
         },
         "com.netflix.titus:titus-grpc-api": {
@@ -588,7 +565,6 @@
         "com.netflix.titus:titus-server-master": {
             "project": true,
             "transitive": [
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-testkit"
             ]
         },
@@ -654,12 +630,6 @@
             "locked": "1.19",
             "transitive": [
                 "com.sun.jersey.contribs:jersey-guice"
-            ]
-        },
-        "com.tdunning:t-digest": {
-            "locked": "3.2",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
             ]
         },
         "com.thinkaurelius.thrift:thrift-server": {
@@ -1161,8 +1131,7 @@
             "locked": "2.10.1",
             "transitive": [
                 "com.github.fge:json-schema-validator",
-                "org.apache.cassandra:cassandra-all",
-                "org.elasticsearch:elasticsearch"
+                "org.apache.cassandra:cassandra-all"
             ]
         },
         "junit:junit": {
@@ -1217,10 +1186,9 @@
             ]
         },
         "net.sf.jopt-simple:jopt-simple": {
-            "locked": "5.0.2",
+            "locked": "4.6",
             "transitive": [
-                "com.github.fge:json-schema-validator",
-                "org.elasticsearch:elasticsearch-cli"
+                "com.github.fge:json-schema-validator"
             ]
         },
         "org.antlr:ST4": {
@@ -1284,104 +1252,13 @@
         "org.apache.logging.log4j:log4j-api": {
             "locked": "2.11.1",
             "transitive": [
-                "org.apache.logging.log4j:log4j-to-slf4j",
-                "org.elasticsearch:elasticsearch"
+                "org.apache.logging.log4j:log4j-to-slf4j"
             ]
         },
         "org.apache.logging.log4j:log4j-to-slf4j": {
             "locked": "2.11.1",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-logging"
-            ]
-        },
-        "org.apache.lucene:lucene-analyzers-common": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-backward-codecs": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-core": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-grouping": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-highlighter": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-join": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-memory": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-misc": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-queries": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-queryparser": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-sandbox": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-spatial": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-spatial-extras": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-spatial3d": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-suggest": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
             ]
         },
         "org.apache.mesos:mesos": {
@@ -1535,44 +1412,6 @@
                 "org.eclipse.jetty:jetty-webapp"
             ]
         },
-        "org.elasticsearch:elasticsearch": {
-            "locked": "6.4.3",
-            "transitive": [
-                "com.netflix.titus:titus-ext-elasticsearch"
-            ]
-        },
-        "org.elasticsearch:elasticsearch-cli": {
-            "locked": "6.4.3",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.elasticsearch:elasticsearch-core": {
-            "locked": "6.4.3",
-            "transitive": [
-                "org.elasticsearch:elasticsearch",
-                "org.elasticsearch:elasticsearch-cli",
-                "org.elasticsearch:elasticsearch-x-content"
-            ]
-        },
-        "org.elasticsearch:elasticsearch-secure-sm": {
-            "locked": "6.4.3",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.elasticsearch:elasticsearch-x-content": {
-            "locked": "6.4.3",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.elasticsearch:jna": {
-            "locked": "4.5.1",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
         "org.fusesource:sigar": {
             "locked": "1.6.4",
             "transitive": [
@@ -1603,8 +1442,7 @@
         "org.hdrhistogram:HdrHistogram": {
             "locked": "2.1.11",
             "transitive": [
-                "com.netflix.titus:titus-common",
-                "org.elasticsearch:elasticsearch"
+                "com.netflix.titus:titus-common"
             ]
         },
         "org.hibernate.validator:hibernate-validator": {
@@ -1799,7 +1637,6 @@
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
@@ -1838,7 +1675,6 @@
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
@@ -2020,7 +1856,6 @@
                 "com.addthis.metrics:reporter-config3",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
                 "org.apache.cassandra:cassandra-all",
-                "org.elasticsearch:elasticsearch-x-content",
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
@@ -2063,10 +1898,9 @@
             ]
         },
         "com.carrotsearch:hppc": {
-            "locked": "0.7.1",
+            "locked": "0.5.4",
             "transitive": [
-                "org.apache.cassandra:cassandra-thrift",
-                "org.elasticsearch:elasticsearch"
+                "org.apache.cassandra:cassandra-thrift"
             ]
         },
         "com.clearspring.analytics:stream": {
@@ -2106,7 +1940,6 @@
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.fasterxml.jackson.module:jackson-module-parameter-names",
-                "org.elasticsearch:elasticsearch-x-content",
                 "org.mock-server:mockserver-core"
             ]
         },
@@ -2126,23 +1959,10 @@
                 "org.springframework.boot:spring-boot-starter-json"
             ]
         },
-        "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor": {
-            "locked": "2.9.8",
-            "transitive": [
-                "org.elasticsearch:elasticsearch-x-content"
-            ]
-        },
-        "com.fasterxml.jackson.dataformat:jackson-dataformat-smile": {
-            "locked": "2.9.8",
-            "transitive": [
-                "org.elasticsearch:elasticsearch-x-content"
-            ]
-        },
         "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml": {
             "locked": "2.9.8",
             "transitive": [
-                "io.swagger:swagger-core",
-                "org.elasticsearch:elasticsearch-x-content"
+                "io.swagger:swagger-core"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
@@ -2576,7 +2396,6 @@
             "project": true,
             "transitive": [
                 "com.netflix.titus:titus-ext-cassandra",
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
@@ -2585,7 +2404,6 @@
             "transitive": [
                 "com.netflix.titus:titus-api",
                 "com.netflix.titus:titus-ext-cassandra",
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
@@ -2599,12 +2417,6 @@
             "project": true,
             "transitive": [
                 "com.netflix.titus:titus-testkit"
-            ]
-        },
-        "com.netflix.titus:titus-ext-elasticsearch": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-supplementary-component-tasks-publisher"
             ]
         },
         "com.netflix.titus:titus-grpc-api": {
@@ -2628,7 +2440,6 @@
         "com.netflix.titus:titus-server-master": {
             "project": true,
             "transitive": [
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-testkit"
             ]
         },
@@ -2694,12 +2505,6 @@
             "locked": "1.19",
             "transitive": [
                 "com.sun.jersey.contribs:jersey-guice"
-            ]
-        },
-        "com.tdunning:t-digest": {
-            "locked": "3.2",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
             ]
         },
         "com.thinkaurelius.thrift:thrift-server": {
@@ -3207,8 +3012,7 @@
             "locked": "2.10.1",
             "transitive": [
                 "com.github.fge:json-schema-validator",
-                "org.apache.cassandra:cassandra-all",
-                "org.elasticsearch:elasticsearch"
+                "org.apache.cassandra:cassandra-all"
             ]
         },
         "junit:junit": {
@@ -3263,10 +3067,9 @@
             ]
         },
         "net.sf.jopt-simple:jopt-simple": {
-            "locked": "5.0.2",
+            "locked": "4.6",
             "transitive": [
-                "com.github.fge:json-schema-validator",
-                "org.elasticsearch:elasticsearch-cli"
+                "com.github.fge:json-schema-validator"
             ]
         },
         "org.antlr:ST4": {
@@ -3330,104 +3133,13 @@
         "org.apache.logging.log4j:log4j-api": {
             "locked": "2.11.1",
             "transitive": [
-                "org.apache.logging.log4j:log4j-to-slf4j",
-                "org.elasticsearch:elasticsearch"
+                "org.apache.logging.log4j:log4j-to-slf4j"
             ]
         },
         "org.apache.logging.log4j:log4j-to-slf4j": {
             "locked": "2.11.1",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-logging"
-            ]
-        },
-        "org.apache.lucene:lucene-analyzers-common": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-backward-codecs": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-core": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-grouping": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-highlighter": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-join": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-memory": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-misc": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-queries": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-queryparser": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-sandbox": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-spatial": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-spatial-extras": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-spatial3d": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-suggest": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
             ]
         },
         "org.apache.mesos:mesos": {
@@ -3581,44 +3293,6 @@
                 "org.eclipse.jetty:jetty-webapp"
             ]
         },
-        "org.elasticsearch:elasticsearch": {
-            "locked": "6.4.3",
-            "transitive": [
-                "com.netflix.titus:titus-ext-elasticsearch"
-            ]
-        },
-        "org.elasticsearch:elasticsearch-cli": {
-            "locked": "6.4.3",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.elasticsearch:elasticsearch-core": {
-            "locked": "6.4.3",
-            "transitive": [
-                "org.elasticsearch:elasticsearch",
-                "org.elasticsearch:elasticsearch-cli",
-                "org.elasticsearch:elasticsearch-x-content"
-            ]
-        },
-        "org.elasticsearch:elasticsearch-secure-sm": {
-            "locked": "6.4.3",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.elasticsearch:elasticsearch-x-content": {
-            "locked": "6.4.3",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.elasticsearch:jna": {
-            "locked": "4.5.1",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
         "org.fusesource:sigar": {
             "locked": "1.6.4",
             "transitive": [
@@ -3650,8 +3324,7 @@
             "locked": "2.1.11",
             "transitive": [
                 "com.netflix.titus:titus-common",
-                "io.micrometer:micrometer-core",
-                "org.elasticsearch:elasticsearch"
+                "io.micrometer:micrometer-core"
             ]
         },
         "org.hibernate.validator:hibernate-validator": {
@@ -3852,7 +3525,6 @@
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
@@ -3891,7 +3563,6 @@
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
@@ -4093,7 +3764,6 @@
                 "com.addthis.metrics:reporter-config3",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
                 "org.apache.cassandra:cassandra-all",
-                "org.elasticsearch:elasticsearch-x-content",
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
@@ -4136,10 +3806,9 @@
             ]
         },
         "com.carrotsearch:hppc": {
-            "locked": "0.7.1",
+            "locked": "0.5.4",
             "transitive": [
-                "org.apache.cassandra:cassandra-thrift",
-                "org.elasticsearch:elasticsearch"
+                "org.apache.cassandra:cassandra-thrift"
             ]
         },
         "com.clearspring.analytics:stream": {
@@ -4179,7 +3848,6 @@
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.fasterxml.jackson.module:jackson-module-parameter-names",
-                "org.elasticsearch:elasticsearch-x-content",
                 "org.mock-server:mockserver-core"
             ]
         },
@@ -4199,23 +3867,10 @@
                 "org.springframework.boot:spring-boot-starter-json"
             ]
         },
-        "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor": {
-            "locked": "2.9.8",
-            "transitive": [
-                "org.elasticsearch:elasticsearch-x-content"
-            ]
-        },
-        "com.fasterxml.jackson.dataformat:jackson-dataformat-smile": {
-            "locked": "2.9.8",
-            "transitive": [
-                "org.elasticsearch:elasticsearch-x-content"
-            ]
-        },
         "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml": {
             "locked": "2.9.8",
             "transitive": [
-                "io.swagger:swagger-core",
-                "org.elasticsearch:elasticsearch-x-content"
+                "io.swagger:swagger-core"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
@@ -4649,7 +4304,6 @@
             "project": true,
             "transitive": [
                 "com.netflix.titus:titus-ext-cassandra",
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
@@ -4658,7 +4312,6 @@
             "transitive": [
                 "com.netflix.titus:titus-api",
                 "com.netflix.titus:titus-ext-cassandra",
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
@@ -4672,12 +4325,6 @@
             "project": true,
             "transitive": [
                 "com.netflix.titus:titus-testkit"
-            ]
-        },
-        "com.netflix.titus:titus-ext-elasticsearch": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-supplementary-component-tasks-publisher"
             ]
         },
         "com.netflix.titus:titus-grpc-api": {
@@ -4701,7 +4348,6 @@
         "com.netflix.titus:titus-server-master": {
             "project": true,
             "transitive": [
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-testkit"
             ]
         },
@@ -4767,12 +4413,6 @@
             "locked": "1.19",
             "transitive": [
                 "com.sun.jersey.contribs:jersey-guice"
-            ]
-        },
-        "com.tdunning:t-digest": {
-            "locked": "3.2",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
             ]
         },
         "com.thinkaurelius.thrift:thrift-server": {
@@ -5280,8 +4920,7 @@
             "locked": "2.10.1",
             "transitive": [
                 "com.github.fge:json-schema-validator",
-                "org.apache.cassandra:cassandra-all",
-                "org.elasticsearch:elasticsearch"
+                "org.apache.cassandra:cassandra-all"
             ]
         },
         "junit:junit": {
@@ -5336,10 +4975,9 @@
             ]
         },
         "net.sf.jopt-simple:jopt-simple": {
-            "locked": "5.0.2",
+            "locked": "4.6",
             "transitive": [
-                "com.github.fge:json-schema-validator",
-                "org.elasticsearch:elasticsearch-cli"
+                "com.github.fge:json-schema-validator"
             ]
         },
         "org.antlr:ST4": {
@@ -5403,104 +5041,13 @@
         "org.apache.logging.log4j:log4j-api": {
             "locked": "2.11.1",
             "transitive": [
-                "org.apache.logging.log4j:log4j-to-slf4j",
-                "org.elasticsearch:elasticsearch"
+                "org.apache.logging.log4j:log4j-to-slf4j"
             ]
         },
         "org.apache.logging.log4j:log4j-to-slf4j": {
             "locked": "2.11.1",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-logging"
-            ]
-        },
-        "org.apache.lucene:lucene-analyzers-common": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-backward-codecs": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-core": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-grouping": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-highlighter": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-join": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-memory": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-misc": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-queries": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-queryparser": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-sandbox": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-spatial": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-spatial-extras": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-spatial3d": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-suggest": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
             ]
         },
         "org.apache.mesos:mesos": {
@@ -5654,44 +5201,6 @@
                 "org.eclipse.jetty:jetty-webapp"
             ]
         },
-        "org.elasticsearch:elasticsearch": {
-            "locked": "6.4.3",
-            "transitive": [
-                "com.netflix.titus:titus-ext-elasticsearch"
-            ]
-        },
-        "org.elasticsearch:elasticsearch-cli": {
-            "locked": "6.4.3",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.elasticsearch:elasticsearch-core": {
-            "locked": "6.4.3",
-            "transitive": [
-                "org.elasticsearch:elasticsearch",
-                "org.elasticsearch:elasticsearch-cli",
-                "org.elasticsearch:elasticsearch-x-content"
-            ]
-        },
-        "org.elasticsearch:elasticsearch-secure-sm": {
-            "locked": "6.4.3",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.elasticsearch:elasticsearch-x-content": {
-            "locked": "6.4.3",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.elasticsearch:jna": {
-            "locked": "4.5.1",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
         "org.fusesource:sigar": {
             "locked": "1.6.4",
             "transitive": [
@@ -5723,8 +5232,7 @@
             "locked": "2.1.11",
             "transitive": [
                 "com.netflix.titus:titus-common",
-                "io.micrometer:micrometer-core",
-                "org.elasticsearch:elasticsearch"
+                "io.micrometer:micrometer-core"
             ]
         },
         "org.hibernate.validator:hibernate-validator": {
@@ -5925,7 +5433,6 @@
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
@@ -5965,7 +5472,6 @@
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
@@ -6167,7 +5673,6 @@
                 "com.addthis.metrics:reporter-config3",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
                 "org.apache.cassandra:cassandra-all",
-                "org.elasticsearch:elasticsearch-x-content",
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
@@ -6273,10 +5778,9 @@
             ]
         },
         "com.carrotsearch:hppc": {
-            "locked": "0.7.1",
+            "locked": "0.5.4",
             "transitive": [
-                "org.apache.cassandra:cassandra-thrift",
-                "org.elasticsearch:elasticsearch"
+                "org.apache.cassandra:cassandra-thrift"
             ]
         },
         "com.clearspring.analytics:stream": {
@@ -6316,7 +5820,6 @@
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.fasterxml.jackson.module:jackson-module-parameter-names",
-                "org.elasticsearch:elasticsearch-x-content",
                 "org.mock-server:mockserver-core"
             ]
         },
@@ -6335,23 +5838,10 @@
                 "org.springframework.boot:spring-boot-starter-json"
             ]
         },
-        "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor": {
-            "locked": "2.9.8",
-            "transitive": [
-                "org.elasticsearch:elasticsearch-x-content"
-            ]
-        },
-        "com.fasterxml.jackson.dataformat:jackson-dataformat-smile": {
-            "locked": "2.9.8",
-            "transitive": [
-                "org.elasticsearch:elasticsearch-x-content"
-            ]
-        },
         "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml": {
             "locked": "2.9.8",
             "transitive": [
-                "io.swagger:swagger-core",
-                "org.elasticsearch:elasticsearch-x-content"
+                "io.swagger:swagger-core"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
@@ -6784,7 +6274,6 @@
             "project": true,
             "transitive": [
                 "com.netflix.titus:titus-ext-cassandra",
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
@@ -6793,7 +6282,6 @@
             "transitive": [
                 "com.netflix.titus:titus-api",
                 "com.netflix.titus:titus-ext-cassandra",
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
@@ -6807,12 +6295,6 @@
             "project": true,
             "transitive": [
                 "com.netflix.titus:titus-testkit"
-            ]
-        },
-        "com.netflix.titus:titus-ext-elasticsearch": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-supplementary-component-tasks-publisher"
             ]
         },
         "com.netflix.titus:titus-grpc-api": {
@@ -6836,7 +6318,6 @@
         "com.netflix.titus:titus-server-master": {
             "project": true,
             "transitive": [
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-testkit"
             ]
         },
@@ -6902,12 +6383,6 @@
             "locked": "1.19",
             "transitive": [
                 "com.sun.jersey.contribs:jersey-guice"
-            ]
-        },
-        "com.tdunning:t-digest": {
-            "locked": "3.2",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
             ]
         },
         "com.thinkaurelius.thrift:thrift-server": {
@@ -7409,8 +6884,7 @@
             "locked": "2.10.1",
             "transitive": [
                 "com.github.fge:json-schema-validator",
-                "org.apache.cassandra:cassandra-all",
-                "org.elasticsearch:elasticsearch"
+                "org.apache.cassandra:cassandra-all"
             ]
         },
         "junit:junit": {
@@ -7465,10 +6939,9 @@
             ]
         },
         "net.sf.jopt-simple:jopt-simple": {
-            "locked": "5.0.2",
+            "locked": "4.6",
             "transitive": [
-                "com.github.fge:json-schema-validator",
-                "org.elasticsearch:elasticsearch-cli"
+                "com.github.fge:json-schema-validator"
             ]
         },
         "org.antlr:ST4": {
@@ -7532,104 +7005,13 @@
         "org.apache.logging.log4j:log4j-api": {
             "locked": "2.11.1",
             "transitive": [
-                "org.apache.logging.log4j:log4j-to-slf4j",
-                "org.elasticsearch:elasticsearch"
+                "org.apache.logging.log4j:log4j-to-slf4j"
             ]
         },
         "org.apache.logging.log4j:log4j-to-slf4j": {
             "locked": "2.11.1",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-logging"
-            ]
-        },
-        "org.apache.lucene:lucene-analyzers-common": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-backward-codecs": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-core": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-grouping": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-highlighter": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-join": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-memory": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-misc": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-queries": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-queryparser": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-sandbox": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-spatial": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-spatial-extras": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-spatial3d": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-suggest": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
             ]
         },
         "org.apache.mesos:mesos": {
@@ -7783,44 +7165,6 @@
                 "org.eclipse.jetty:jetty-webapp"
             ]
         },
-        "org.elasticsearch:elasticsearch": {
-            "locked": "6.4.3",
-            "transitive": [
-                "com.netflix.titus:titus-ext-elasticsearch"
-            ]
-        },
-        "org.elasticsearch:elasticsearch-cli": {
-            "locked": "6.4.3",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.elasticsearch:elasticsearch-core": {
-            "locked": "6.4.3",
-            "transitive": [
-                "org.elasticsearch:elasticsearch",
-                "org.elasticsearch:elasticsearch-cli",
-                "org.elasticsearch:elasticsearch-x-content"
-            ]
-        },
-        "org.elasticsearch:elasticsearch-secure-sm": {
-            "locked": "6.4.3",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.elasticsearch:elasticsearch-x-content": {
-            "locked": "6.4.3",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.elasticsearch:jna": {
-            "locked": "4.5.1",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
         "org.fusesource:sigar": {
             "locked": "1.6.4",
             "transitive": [
@@ -7851,8 +7195,7 @@
         "org.hdrhistogram:HdrHistogram": {
             "locked": "2.1.11",
             "transitive": [
-                "com.netflix.titus:titus-common",
-                "org.elasticsearch:elasticsearch"
+                "com.netflix.titus:titus-common"
             ]
         },
         "org.hibernate.validator:hibernate-validator": {
@@ -8047,7 +7390,6 @@
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
@@ -8087,7 +7429,6 @@
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
@@ -8269,7 +7610,6 @@
                 "com.addthis.metrics:reporter-config3",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
                 "org.apache.cassandra:cassandra-all",
-                "org.elasticsearch:elasticsearch-x-content",
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
@@ -8312,10 +7652,9 @@
             ]
         },
         "com.carrotsearch:hppc": {
-            "locked": "0.7.1",
+            "locked": "0.5.4",
             "transitive": [
-                "org.apache.cassandra:cassandra-thrift",
-                "org.elasticsearch:elasticsearch"
+                "org.apache.cassandra:cassandra-thrift"
             ]
         },
         "com.clearspring.analytics:stream": {
@@ -8355,7 +7694,6 @@
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.fasterxml.jackson.module:jackson-module-parameter-names",
-                "org.elasticsearch:elasticsearch-x-content",
                 "org.mock-server:mockserver-core"
             ]
         },
@@ -8375,23 +7713,10 @@
                 "org.springframework.boot:spring-boot-starter-json"
             ]
         },
-        "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor": {
-            "locked": "2.9.8",
-            "transitive": [
-                "org.elasticsearch:elasticsearch-x-content"
-            ]
-        },
-        "com.fasterxml.jackson.dataformat:jackson-dataformat-smile": {
-            "locked": "2.9.8",
-            "transitive": [
-                "org.elasticsearch:elasticsearch-x-content"
-            ]
-        },
         "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml": {
             "locked": "2.9.8",
             "transitive": [
-                "io.swagger:swagger-core",
-                "org.elasticsearch:elasticsearch-x-content"
+                "io.swagger:swagger-core"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
@@ -8825,7 +8150,6 @@
             "project": true,
             "transitive": [
                 "com.netflix.titus:titus-ext-cassandra",
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
@@ -8834,7 +8158,6 @@
             "transitive": [
                 "com.netflix.titus:titus-api",
                 "com.netflix.titus:titus-ext-cassandra",
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
@@ -8848,12 +8171,6 @@
             "project": true,
             "transitive": [
                 "com.netflix.titus:titus-testkit"
-            ]
-        },
-        "com.netflix.titus:titus-ext-elasticsearch": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-supplementary-component-tasks-publisher"
             ]
         },
         "com.netflix.titus:titus-grpc-api": {
@@ -8877,7 +8194,6 @@
         "com.netflix.titus:titus-server-master": {
             "project": true,
             "transitive": [
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-testkit"
             ]
         },
@@ -8943,12 +8259,6 @@
             "locked": "1.19",
             "transitive": [
                 "com.sun.jersey.contribs:jersey-guice"
-            ]
-        },
-        "com.tdunning:t-digest": {
-            "locked": "3.2",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
             ]
         },
         "com.thinkaurelius.thrift:thrift-server": {
@@ -9456,8 +8766,7 @@
             "locked": "2.10.1",
             "transitive": [
                 "com.github.fge:json-schema-validator",
-                "org.apache.cassandra:cassandra-all",
-                "org.elasticsearch:elasticsearch"
+                "org.apache.cassandra:cassandra-all"
             ]
         },
         "junit:junit": {
@@ -9512,10 +8821,9 @@
             ]
         },
         "net.sf.jopt-simple:jopt-simple": {
-            "locked": "5.0.2",
+            "locked": "4.6",
             "transitive": [
-                "com.github.fge:json-schema-validator",
-                "org.elasticsearch:elasticsearch-cli"
+                "com.github.fge:json-schema-validator"
             ]
         },
         "org.antlr:ST4": {
@@ -9579,104 +8887,13 @@
         "org.apache.logging.log4j:log4j-api": {
             "locked": "2.11.1",
             "transitive": [
-                "org.apache.logging.log4j:log4j-to-slf4j",
-                "org.elasticsearch:elasticsearch"
+                "org.apache.logging.log4j:log4j-to-slf4j"
             ]
         },
         "org.apache.logging.log4j:log4j-to-slf4j": {
             "locked": "2.11.1",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-logging"
-            ]
-        },
-        "org.apache.lucene:lucene-analyzers-common": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-backward-codecs": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-core": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-grouping": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-highlighter": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-join": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-memory": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-misc": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-queries": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-queryparser": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-sandbox": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-spatial": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-spatial-extras": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-spatial3d": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-suggest": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
             ]
         },
         "org.apache.mesos:mesos": {
@@ -9830,44 +9047,6 @@
                 "org.eclipse.jetty:jetty-webapp"
             ]
         },
-        "org.elasticsearch:elasticsearch": {
-            "locked": "6.4.3",
-            "transitive": [
-                "com.netflix.titus:titus-ext-elasticsearch"
-            ]
-        },
-        "org.elasticsearch:elasticsearch-cli": {
-            "locked": "6.4.3",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.elasticsearch:elasticsearch-core": {
-            "locked": "6.4.3",
-            "transitive": [
-                "org.elasticsearch:elasticsearch",
-                "org.elasticsearch:elasticsearch-cli",
-                "org.elasticsearch:elasticsearch-x-content"
-            ]
-        },
-        "org.elasticsearch:elasticsearch-secure-sm": {
-            "locked": "6.4.3",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.elasticsearch:elasticsearch-x-content": {
-            "locked": "6.4.3",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.elasticsearch:jna": {
-            "locked": "4.5.1",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
         "org.fusesource:sigar": {
             "locked": "1.6.4",
             "transitive": [
@@ -9899,8 +9078,7 @@
             "locked": "2.1.11",
             "transitive": [
                 "com.netflix.titus:titus-common",
-                "io.micrometer:micrometer-core",
-                "org.elasticsearch:elasticsearch"
+                "io.micrometer:micrometer-core"
             ]
         },
         "org.hibernate.validator:hibernate-validator": {
@@ -10101,7 +9279,6 @@
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
@@ -10141,7 +9318,6 @@
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
@@ -10343,7 +9519,6 @@
                 "com.addthis.metrics:reporter-config3",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
                 "org.apache.cassandra:cassandra-all",
-                "org.elasticsearch:elasticsearch-x-content",
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
@@ -10392,10 +9567,9 @@
             ]
         },
         "com.carrotsearch:hppc": {
-            "locked": "0.7.1",
+            "locked": "0.5.4",
             "transitive": [
-                "org.apache.cassandra:cassandra-thrift",
-                "org.elasticsearch:elasticsearch"
+                "org.apache.cassandra:cassandra-thrift"
             ]
         },
         "com.clearspring.analytics:stream": {
@@ -10435,7 +9609,6 @@
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.fasterxml.jackson.module:jackson-module-parameter-names",
-                "org.elasticsearch:elasticsearch-x-content",
                 "org.mock-server:mockserver-core"
             ]
         },
@@ -10454,23 +9627,10 @@
                 "org.springframework.boot:spring-boot-starter-json"
             ]
         },
-        "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor": {
-            "locked": "2.9.8",
-            "transitive": [
-                "org.elasticsearch:elasticsearch-x-content"
-            ]
-        },
-        "com.fasterxml.jackson.dataformat:jackson-dataformat-smile": {
-            "locked": "2.9.8",
-            "transitive": [
-                "org.elasticsearch:elasticsearch-x-content"
-            ]
-        },
         "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml": {
             "locked": "2.9.8",
             "transitive": [
-                "io.swagger:swagger-core",
-                "org.elasticsearch:elasticsearch-x-content"
+                "io.swagger:swagger-core"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
@@ -10907,7 +10067,6 @@
             "project": true,
             "transitive": [
                 "com.netflix.titus:titus-ext-cassandra",
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
@@ -10916,7 +10075,6 @@
             "transitive": [
                 "com.netflix.titus:titus-api",
                 "com.netflix.titus:titus-ext-cassandra",
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
@@ -10930,12 +10088,6 @@
             "project": true,
             "transitive": [
                 "com.netflix.titus:titus-testkit"
-            ]
-        },
-        "com.netflix.titus:titus-ext-elasticsearch": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-supplementary-component-tasks-publisher"
             ]
         },
         "com.netflix.titus:titus-grpc-api": {
@@ -10959,7 +10111,6 @@
         "com.netflix.titus:titus-server-master": {
             "project": true,
             "transitive": [
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-testkit"
             ]
         },
@@ -11025,12 +10176,6 @@
             "locked": "1.19",
             "transitive": [
                 "com.sun.jersey.contribs:jersey-guice"
-            ]
-        },
-        "com.tdunning:t-digest": {
-            "locked": "3.2",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
             ]
         },
         "com.thinkaurelius.thrift:thrift-server": {
@@ -11537,8 +10682,7 @@
             "locked": "2.10.1",
             "transitive": [
                 "com.github.fge:json-schema-validator",
-                "org.apache.cassandra:cassandra-all",
-                "org.elasticsearch:elasticsearch"
+                "org.apache.cassandra:cassandra-all"
             ]
         },
         "junit:junit": {
@@ -11594,10 +10738,9 @@
             ]
         },
         "net.sf.jopt-simple:jopt-simple": {
-            "locked": "5.0.2",
+            "locked": "4.6",
             "transitive": [
-                "com.github.fge:json-schema-validator",
-                "org.elasticsearch:elasticsearch-cli"
+                "com.github.fge:json-schema-validator"
             ]
         },
         "org.antlr:ST4": {
@@ -11661,104 +10804,13 @@
         "org.apache.logging.log4j:log4j-api": {
             "locked": "2.11.1",
             "transitive": [
-                "org.apache.logging.log4j:log4j-to-slf4j",
-                "org.elasticsearch:elasticsearch"
+                "org.apache.logging.log4j:log4j-to-slf4j"
             ]
         },
         "org.apache.logging.log4j:log4j-to-slf4j": {
             "locked": "2.11.1",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-logging"
-            ]
-        },
-        "org.apache.lucene:lucene-analyzers-common": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-backward-codecs": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-core": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-grouping": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-highlighter": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-join": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-memory": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-misc": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-queries": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-queryparser": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-sandbox": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-spatial": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-spatial-extras": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-spatial3d": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-suggest": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
             ]
         },
         "org.apache.mesos:mesos": {
@@ -11913,44 +10965,6 @@
                 "org.eclipse.jetty:jetty-webapp"
             ]
         },
-        "org.elasticsearch:elasticsearch": {
-            "locked": "6.4.3",
-            "transitive": [
-                "com.netflix.titus:titus-ext-elasticsearch"
-            ]
-        },
-        "org.elasticsearch:elasticsearch-cli": {
-            "locked": "6.4.3",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.elasticsearch:elasticsearch-core": {
-            "locked": "6.4.3",
-            "transitive": [
-                "org.elasticsearch:elasticsearch",
-                "org.elasticsearch:elasticsearch-cli",
-                "org.elasticsearch:elasticsearch-x-content"
-            ]
-        },
-        "org.elasticsearch:elasticsearch-secure-sm": {
-            "locked": "6.4.3",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.elasticsearch:elasticsearch-x-content": {
-            "locked": "6.4.3",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.elasticsearch:jna": {
-            "locked": "4.5.1",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
         "org.fusesource:sigar": {
             "locked": "1.6.4",
             "transitive": [
@@ -11984,8 +10998,7 @@
         "org.hdrhistogram:HdrHistogram": {
             "locked": "2.1.11",
             "transitive": [
-                "com.netflix.titus:titus-common",
-                "org.elasticsearch:elasticsearch"
+                "com.netflix.titus:titus-common"
             ]
         },
         "org.hibernate.validator:hibernate-validator": {
@@ -12182,7 +11195,6 @@
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
@@ -12221,7 +11233,6 @@
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
@@ -12403,7 +11414,6 @@
                 "com.addthis.metrics:reporter-config3",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
                 "org.apache.cassandra:cassandra-all",
-                "org.elasticsearch:elasticsearch-x-content",
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
@@ -12452,10 +11462,9 @@
             ]
         },
         "com.carrotsearch:hppc": {
-            "locked": "0.7.1",
+            "locked": "0.5.4",
             "transitive": [
-                "org.apache.cassandra:cassandra-thrift",
-                "org.elasticsearch:elasticsearch"
+                "org.apache.cassandra:cassandra-thrift"
             ]
         },
         "com.clearspring.analytics:stream": {
@@ -12495,7 +11504,6 @@
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.fasterxml.jackson.module:jackson-module-parameter-names",
-                "org.elasticsearch:elasticsearch-x-content",
                 "org.mock-server:mockserver-core"
             ]
         },
@@ -12515,23 +11523,10 @@
                 "org.springframework.boot:spring-boot-starter-json"
             ]
         },
-        "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor": {
-            "locked": "2.9.8",
-            "transitive": [
-                "org.elasticsearch:elasticsearch-x-content"
-            ]
-        },
-        "com.fasterxml.jackson.dataformat:jackson-dataformat-smile": {
-            "locked": "2.9.8",
-            "transitive": [
-                "org.elasticsearch:elasticsearch-x-content"
-            ]
-        },
         "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml": {
             "locked": "2.9.8",
             "transitive": [
-                "io.swagger:swagger-core",
-                "org.elasticsearch:elasticsearch-x-content"
+                "io.swagger:swagger-core"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
@@ -12969,7 +11964,6 @@
             "project": true,
             "transitive": [
                 "com.netflix.titus:titus-ext-cassandra",
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
@@ -12978,7 +11972,6 @@
             "transitive": [
                 "com.netflix.titus:titus-api",
                 "com.netflix.titus:titus-ext-cassandra",
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
@@ -12992,12 +11985,6 @@
             "project": true,
             "transitive": [
                 "com.netflix.titus:titus-testkit"
-            ]
-        },
-        "com.netflix.titus:titus-ext-elasticsearch": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-supplementary-component-tasks-publisher"
             ]
         },
         "com.netflix.titus:titus-grpc-api": {
@@ -13021,7 +12008,6 @@
         "com.netflix.titus:titus-server-master": {
             "project": true,
             "transitive": [
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-testkit"
             ]
         },
@@ -13087,12 +12073,6 @@
             "locked": "1.19",
             "transitive": [
                 "com.sun.jersey.contribs:jersey-guice"
-            ]
-        },
-        "com.tdunning:t-digest": {
-            "locked": "3.2",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
             ]
         },
         "com.thinkaurelius.thrift:thrift-server": {
@@ -13605,8 +12585,7 @@
             "locked": "2.10.1",
             "transitive": [
                 "com.github.fge:json-schema-validator",
-                "org.apache.cassandra:cassandra-all",
-                "org.elasticsearch:elasticsearch"
+                "org.apache.cassandra:cassandra-all"
             ]
         },
         "junit:junit": {
@@ -13662,10 +12641,9 @@
             ]
         },
         "net.sf.jopt-simple:jopt-simple": {
-            "locked": "5.0.2",
+            "locked": "4.6",
             "transitive": [
-                "com.github.fge:json-schema-validator",
-                "org.elasticsearch:elasticsearch-cli"
+                "com.github.fge:json-schema-validator"
             ]
         },
         "org.antlr:ST4": {
@@ -13729,104 +12707,13 @@
         "org.apache.logging.log4j:log4j-api": {
             "locked": "2.11.1",
             "transitive": [
-                "org.apache.logging.log4j:log4j-to-slf4j",
-                "org.elasticsearch:elasticsearch"
+                "org.apache.logging.log4j:log4j-to-slf4j"
             ]
         },
         "org.apache.logging.log4j:log4j-to-slf4j": {
             "locked": "2.11.1",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-logging"
-            ]
-        },
-        "org.apache.lucene:lucene-analyzers-common": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-backward-codecs": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-core": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-grouping": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-highlighter": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-join": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-memory": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-misc": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-queries": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-queryparser": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-sandbox": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-spatial": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-spatial-extras": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-spatial3d": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-suggest": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
             ]
         },
         "org.apache.mesos:mesos": {
@@ -13981,44 +12868,6 @@
                 "org.eclipse.jetty:jetty-webapp"
             ]
         },
-        "org.elasticsearch:elasticsearch": {
-            "locked": "6.4.3",
-            "transitive": [
-                "com.netflix.titus:titus-ext-elasticsearch"
-            ]
-        },
-        "org.elasticsearch:elasticsearch-cli": {
-            "locked": "6.4.3",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.elasticsearch:elasticsearch-core": {
-            "locked": "6.4.3",
-            "transitive": [
-                "org.elasticsearch:elasticsearch",
-                "org.elasticsearch:elasticsearch-cli",
-                "org.elasticsearch:elasticsearch-x-content"
-            ]
-        },
-        "org.elasticsearch:elasticsearch-secure-sm": {
-            "locked": "6.4.3",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.elasticsearch:elasticsearch-x-content": {
-            "locked": "6.4.3",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.elasticsearch:jna": {
-            "locked": "4.5.1",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
         "org.fusesource:sigar": {
             "locked": "1.6.4",
             "transitive": [
@@ -14053,8 +12902,7 @@
             "locked": "2.1.11",
             "transitive": [
                 "com.netflix.titus:titus-common",
-                "io.micrometer:micrometer-core",
-                "org.elasticsearch:elasticsearch"
+                "io.micrometer:micrometer-core"
             ]
         },
         "org.hibernate.validator:hibernate-validator": {
@@ -14257,7 +13105,6 @@
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
@@ -14296,7 +13143,6 @@
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
@@ -14498,7 +13344,6 @@
                 "com.addthis.metrics:reporter-config3",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
                 "org.apache.cassandra:cassandra-all",
-                "org.elasticsearch:elasticsearch-x-content",
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
@@ -14547,10 +13392,9 @@
             ]
         },
         "com.carrotsearch:hppc": {
-            "locked": "0.7.1",
+            "locked": "0.5.4",
             "transitive": [
-                "org.apache.cassandra:cassandra-thrift",
-                "org.elasticsearch:elasticsearch"
+                "org.apache.cassandra:cassandra-thrift"
             ]
         },
         "com.clearspring.analytics:stream": {
@@ -14590,7 +13434,6 @@
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.fasterxml.jackson.module:jackson-module-parameter-names",
-                "org.elasticsearch:elasticsearch-x-content",
                 "org.mock-server:mockserver-core"
             ]
         },
@@ -14609,23 +13452,10 @@
                 "org.springframework.boot:spring-boot-starter-json"
             ]
         },
-        "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor": {
-            "locked": "2.9.8",
-            "transitive": [
-                "org.elasticsearch:elasticsearch-x-content"
-            ]
-        },
-        "com.fasterxml.jackson.dataformat:jackson-dataformat-smile": {
-            "locked": "2.9.8",
-            "transitive": [
-                "org.elasticsearch:elasticsearch-x-content"
-            ]
-        },
         "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml": {
             "locked": "2.9.8",
             "transitive": [
-                "io.swagger:swagger-core",
-                "org.elasticsearch:elasticsearch-x-content"
+                "io.swagger:swagger-core"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
@@ -15062,7 +13892,6 @@
             "project": true,
             "transitive": [
                 "com.netflix.titus:titus-ext-cassandra",
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
@@ -15071,7 +13900,6 @@
             "transitive": [
                 "com.netflix.titus:titus-api",
                 "com.netflix.titus:titus-ext-cassandra",
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
@@ -15085,12 +13913,6 @@
             "project": true,
             "transitive": [
                 "com.netflix.titus:titus-testkit"
-            ]
-        },
-        "com.netflix.titus:titus-ext-elasticsearch": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-supplementary-component-tasks-publisher"
             ]
         },
         "com.netflix.titus:titus-grpc-api": {
@@ -15114,7 +13936,6 @@
         "com.netflix.titus:titus-server-master": {
             "project": true,
             "transitive": [
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-testkit"
             ]
         },
@@ -15180,12 +14001,6 @@
             "locked": "1.19",
             "transitive": [
                 "com.sun.jersey.contribs:jersey-guice"
-            ]
-        },
-        "com.tdunning:t-digest": {
-            "locked": "3.2",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
             ]
         },
         "com.thinkaurelius.thrift:thrift-server": {
@@ -15692,8 +14507,7 @@
             "locked": "2.10.1",
             "transitive": [
                 "com.github.fge:json-schema-validator",
-                "org.apache.cassandra:cassandra-all",
-                "org.elasticsearch:elasticsearch"
+                "org.apache.cassandra:cassandra-all"
             ]
         },
         "junit:junit": {
@@ -15749,10 +14563,9 @@
             ]
         },
         "net.sf.jopt-simple:jopt-simple": {
-            "locked": "5.0.2",
+            "locked": "4.6",
             "transitive": [
-                "com.github.fge:json-schema-validator",
-                "org.elasticsearch:elasticsearch-cli"
+                "com.github.fge:json-schema-validator"
             ]
         },
         "org.antlr:ST4": {
@@ -15816,104 +14629,13 @@
         "org.apache.logging.log4j:log4j-api": {
             "locked": "2.11.1",
             "transitive": [
-                "org.apache.logging.log4j:log4j-to-slf4j",
-                "org.elasticsearch:elasticsearch"
+                "org.apache.logging.log4j:log4j-to-slf4j"
             ]
         },
         "org.apache.logging.log4j:log4j-to-slf4j": {
             "locked": "2.11.1",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-logging"
-            ]
-        },
-        "org.apache.lucene:lucene-analyzers-common": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-backward-codecs": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-core": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-grouping": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-highlighter": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-join": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-memory": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-misc": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-queries": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-queryparser": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-sandbox": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-spatial": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-spatial-extras": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-spatial3d": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-suggest": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
             ]
         },
         "org.apache.mesos:mesos": {
@@ -16068,44 +14790,6 @@
                 "org.eclipse.jetty:jetty-webapp"
             ]
         },
-        "org.elasticsearch:elasticsearch": {
-            "locked": "6.4.3",
-            "transitive": [
-                "com.netflix.titus:titus-ext-elasticsearch"
-            ]
-        },
-        "org.elasticsearch:elasticsearch-cli": {
-            "locked": "6.4.3",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.elasticsearch:elasticsearch-core": {
-            "locked": "6.4.3",
-            "transitive": [
-                "org.elasticsearch:elasticsearch",
-                "org.elasticsearch:elasticsearch-cli",
-                "org.elasticsearch:elasticsearch-x-content"
-            ]
-        },
-        "org.elasticsearch:elasticsearch-secure-sm": {
-            "locked": "6.4.3",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.elasticsearch:elasticsearch-x-content": {
-            "locked": "6.4.3",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.elasticsearch:jna": {
-            "locked": "4.5.1",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
         "org.fusesource:sigar": {
             "locked": "1.6.4",
             "transitive": [
@@ -16139,8 +14823,7 @@
         "org.hdrhistogram:HdrHistogram": {
             "locked": "2.1.11",
             "transitive": [
-                "com.netflix.titus:titus-common",
-                "org.elasticsearch:elasticsearch"
+                "com.netflix.titus:titus-common"
             ]
         },
         "org.hibernate.validator:hibernate-validator": {
@@ -16337,7 +15020,6 @@
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
@@ -16377,7 +15059,6 @@
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
@@ -16559,7 +15240,6 @@
                 "com.addthis.metrics:reporter-config3",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
                 "org.apache.cassandra:cassandra-all",
-                "org.elasticsearch:elasticsearch-x-content",
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
@@ -16608,10 +15288,9 @@
             ]
         },
         "com.carrotsearch:hppc": {
-            "locked": "0.7.1",
+            "locked": "0.5.4",
             "transitive": [
-                "org.apache.cassandra:cassandra-thrift",
-                "org.elasticsearch:elasticsearch"
+                "org.apache.cassandra:cassandra-thrift"
             ]
         },
         "com.clearspring.analytics:stream": {
@@ -16651,7 +15330,6 @@
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
                 "com.fasterxml.jackson.module:jackson-module-parameter-names",
-                "org.elasticsearch:elasticsearch-x-content",
                 "org.mock-server:mockserver-core"
             ]
         },
@@ -16671,23 +15349,10 @@
                 "org.springframework.boot:spring-boot-starter-json"
             ]
         },
-        "com.fasterxml.jackson.dataformat:jackson-dataformat-cbor": {
-            "locked": "2.9.8",
-            "transitive": [
-                "org.elasticsearch:elasticsearch-x-content"
-            ]
-        },
-        "com.fasterxml.jackson.dataformat:jackson-dataformat-smile": {
-            "locked": "2.9.8",
-            "transitive": [
-                "org.elasticsearch:elasticsearch-x-content"
-            ]
-        },
         "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml": {
             "locked": "2.9.8",
             "transitive": [
-                "io.swagger:swagger-core",
-                "org.elasticsearch:elasticsearch-x-content"
+                "io.swagger:swagger-core"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
@@ -17125,7 +15790,6 @@
             "project": true,
             "transitive": [
                 "com.netflix.titus:titus-ext-cassandra",
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
@@ -17134,7 +15798,6 @@
             "transitive": [
                 "com.netflix.titus:titus-api",
                 "com.netflix.titus:titus-ext-cassandra",
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
@@ -17148,12 +15811,6 @@
             "project": true,
             "transitive": [
                 "com.netflix.titus:titus-testkit"
-            ]
-        },
-        "com.netflix.titus:titus-ext-elasticsearch": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-supplementary-component-tasks-publisher"
             ]
         },
         "com.netflix.titus:titus-grpc-api": {
@@ -17177,7 +15834,6 @@
         "com.netflix.titus:titus-server-master": {
             "project": true,
             "transitive": [
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-testkit"
             ]
         },
@@ -17243,12 +15899,6 @@
             "locked": "1.19",
             "transitive": [
                 "com.sun.jersey.contribs:jersey-guice"
-            ]
-        },
-        "com.tdunning:t-digest": {
-            "locked": "3.2",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
             ]
         },
         "com.thinkaurelius.thrift:thrift-server": {
@@ -17761,8 +16411,7 @@
             "locked": "2.10.1",
             "transitive": [
                 "com.github.fge:json-schema-validator",
-                "org.apache.cassandra:cassandra-all",
-                "org.elasticsearch:elasticsearch"
+                "org.apache.cassandra:cassandra-all"
             ]
         },
         "junit:junit": {
@@ -17818,10 +16467,9 @@
             ]
         },
         "net.sf.jopt-simple:jopt-simple": {
-            "locked": "5.0.2",
+            "locked": "4.6",
             "transitive": [
-                "com.github.fge:json-schema-validator",
-                "org.elasticsearch:elasticsearch-cli"
+                "com.github.fge:json-schema-validator"
             ]
         },
         "org.antlr:ST4": {
@@ -17885,104 +16533,13 @@
         "org.apache.logging.log4j:log4j-api": {
             "locked": "2.11.1",
             "transitive": [
-                "org.apache.logging.log4j:log4j-to-slf4j",
-                "org.elasticsearch:elasticsearch"
+                "org.apache.logging.log4j:log4j-to-slf4j"
             ]
         },
         "org.apache.logging.log4j:log4j-to-slf4j": {
             "locked": "2.11.1",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-logging"
-            ]
-        },
-        "org.apache.lucene:lucene-analyzers-common": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-backward-codecs": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-core": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-grouping": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-highlighter": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-join": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-memory": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-misc": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-queries": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-queryparser": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-sandbox": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-spatial": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-spatial-extras": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-spatial3d": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.apache.lucene:lucene-suggest": {
-            "locked": "7.4.0",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
             ]
         },
         "org.apache.mesos:mesos": {
@@ -18137,44 +16694,6 @@
                 "org.eclipse.jetty:jetty-webapp"
             ]
         },
-        "org.elasticsearch:elasticsearch": {
-            "locked": "6.4.3",
-            "transitive": [
-                "com.netflix.titus:titus-ext-elasticsearch"
-            ]
-        },
-        "org.elasticsearch:elasticsearch-cli": {
-            "locked": "6.4.3",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.elasticsearch:elasticsearch-core": {
-            "locked": "6.4.3",
-            "transitive": [
-                "org.elasticsearch:elasticsearch",
-                "org.elasticsearch:elasticsearch-cli",
-                "org.elasticsearch:elasticsearch-x-content"
-            ]
-        },
-        "org.elasticsearch:elasticsearch-secure-sm": {
-            "locked": "6.4.3",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.elasticsearch:elasticsearch-x-content": {
-            "locked": "6.4.3",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
-        "org.elasticsearch:jna": {
-            "locked": "4.5.1",
-            "transitive": [
-                "org.elasticsearch:elasticsearch"
-            ]
-        },
         "org.fusesource:sigar": {
             "locked": "1.6.4",
             "transitive": [
@@ -18209,8 +16728,7 @@
             "locked": "2.1.11",
             "transitive": [
                 "com.netflix.titus:titus-common",
-                "io.micrometer:micrometer-core",
-                "org.elasticsearch:elasticsearch"
+                "io.micrometer:micrometer-core"
             ]
         },
         "org.hibernate.validator:hibernate-validator": {
@@ -18413,7 +16931,6 @@
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
@@ -18453,7 +16970,6 @@
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
-                "com.netflix.titus:titus-ext-elasticsearch",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
@@ -18655,7 +17171,6 @@
                 "com.addthis.metrics:reporter-config3",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
                 "org.apache.cassandra:cassandra-all",
-                "org.elasticsearch:elasticsearch-x-content",
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
