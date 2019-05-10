@@ -19,9 +19,7 @@ package com.netflix.titus.master.eviction.service.quota.system;
 import java.time.DayOfWeek;
 import java.time.Duration;
 import java.time.Month;
-import java.util.concurrent.TimeUnit;
 
-import com.jayway.awaitility.Awaitility;
 import com.netflix.titus.api.eviction.model.SystemDisruptionBudget;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.Day;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.TimeWindow;
@@ -36,6 +34,7 @@ import org.junit.Before;
 import org.junit.Test;
 import reactor.core.publisher.EmitterProcessor;
 
+import static com.jayway.awaitility.Awaitility.await;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -102,7 +101,7 @@ public class SystemQuotaControllerTest {
         assertThat(quotaController.consume("someTaskId").isApproved()).isFalse();
     }
 
-    @Test
+    @Test(timeout = 60_000)
     public void testRetryOnFailure() {
         budgetEmitter.onNext(SystemDisruptionBudget.newBasicSystemDisruptionBudget(1, 1));
         quotaController = newSystemQuotaController();
@@ -110,7 +109,7 @@ public class SystemQuotaControllerTest {
         // Emit error
         budgetEmitter.onError(new RuntimeException("Simulated error"));
         budgetEmitter.onNext(SystemDisruptionBudget.newBasicSystemDisruptionBudget(5, 5));
-        Awaitility.await().timeout(10, TimeUnit.SECONDS).until(() -> quotaController.getQuota(Reference.system()).getQuota() == 5);
+        await().until(() -> quotaController.getQuota(Reference.system()).getQuota() == 5);
     }
 
     private SystemQuotaController newSystemQuotaController() {
