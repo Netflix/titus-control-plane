@@ -78,6 +78,7 @@ import rx.Completable;
 import rx.Scheduler;
 import rx.Subscription;
 
+import static com.netflix.titus.common.util.CollectionsExt.asSet;
 import static com.netflix.titus.master.MetricConstants.METRIC_CLUSTER_OPERATIONS;
 import static com.netflix.titus.master.clusteroperations.ClusterOperationFunctions.canFit;
 import static com.netflix.titus.master.clusteroperations.ClusterOperationFunctions.getNumberOfTasksOnAgents;
@@ -104,7 +105,8 @@ public class ClusterAgentAutoScaler {
     private static final long SCALE_DOWN_TOKEN_BUCKET_REFILL_INTERVAL_MS = 1_000;
 
     private static final Comparator<AgentInstanceGroup> PREFER_ACTIVE_INSTANCE_GROUP_COMPARATOR = Comparator.comparing(ig -> ig.getLifecycleStatus().getState());
-    private static final Comparator<AgentInstanceGroup> PREFER_PHASEDOUT_INSTANCE_GROUP_COMPARATOR = PREFER_ACTIVE_INSTANCE_GROUP_COMPARATOR.reversed();
+    private static final Comparator<AgentInstanceGroup> PREFER_PHASED_OUT_INSTANCE_GROUP_COMPARATOR = PREFER_ACTIVE_INSTANCE_GROUP_COMPARATOR.reversed();
+    private static final Set<String> IGNORED_HARD_CONSTRAINT_NAMES = asSet("machineid", "machinetype");
 
     private final TitusRuntime titusRuntime;
     private final ClusterOperationsConfiguration configuration;
@@ -430,7 +432,7 @@ public class ClusterAgentAutoScaler {
         }
 
         List<AgentInstanceGroup> instanceGroupsToScaleDown = scalableInstanceGroups.stream()
-                .sorted(PREFER_PHASEDOUT_INSTANCE_GROUP_COMPARATOR)
+                .sorted(PREFER_PHASED_OUT_INSTANCE_GROUP_COMPARATOR)
                 .collect(Collectors.toList());
         int count = 0;
         for (AgentInstanceGroup instanceGroup : instanceGroupsToScaleDown) {
@@ -514,14 +516,18 @@ public class ClusterAgentAutoScaler {
                                                    Map<String, Job> allJobs,
                                                    Map<String, Task> allTasks,
                                                    ResourceDimension resourceDimension) {
-        Set<String> filteredTaskIds = new HashSet<>();
+        Set<String> tasksIdsForScaling = new HashSet<>();
         for (String taskId : taskIds) {
-            ContainerResources taskContainerResources = getTaskContainerResources(taskId, allJobs, allTasks);
-            if (taskContainerResources != null && canFit(taskContainerResources, resourceDimension)) {
-                filteredTaskIds.add(taskId);
+            Pair<Job, Task> jobTaskPair = getJobTaskPair(taskId, allJobs, allTasks);
+            if (jobTaskPair != null) {
+                Job job = jobTaskPair.getLeft();
+                ContainerResources containerResources = job.getJobDescriptor().getContainer().getContainerResources();
+                if (!hasIgnoredHardConstraint(job) && canFit(containerResources, resourceDimension)) {
+                    tasksIdsForScaling.add(taskId);
+                }
             }
         }
-        return filteredTaskIds;
+        return tasksIdsForScaling;
     }
 
     private int calculateAgentScaleUpCountByDominantResource(Set<String> taskIds,
@@ -533,12 +539,15 @@ public class ClusterAgentAutoScaler {
         double totalDiskMB = 0;
         double totalNetworkMbps = 0;
         for (String taskId : taskIds) {
-            ContainerResources taskContainerResources = getTaskContainerResources(taskId, allJobs, allTasks);
-            if (taskContainerResources != null) {
-                totalCpus += taskContainerResources.getCpu();
-                totalMemoryMB += taskContainerResources.getMemoryMB();
-                totalDiskMB += taskContainerResources.getDiskMB();
-                totalNetworkMbps += taskContainerResources.getNetworkMbps();
+            Pair<Job, Task> jobTaskPair = getJobTaskPair(taskId, allJobs, allTasks);
+            if (jobTaskPair != null) {
+                ContainerResources containerResources = jobTaskPair.getLeft().getJobDescriptor().getContainer().getContainerResources();
+                if (containerResources != null) {
+                    totalCpus += containerResources.getCpu();
+                    totalMemoryMB += containerResources.getMemoryMB();
+                    totalDiskMB += containerResources.getDiskMB();
+                    totalNetworkMbps += containerResources.getNetworkMbps();
+                }
             }
         }
 
@@ -550,7 +559,7 @@ public class ClusterAgentAutoScaler {
         return Ints.max(instancesByCpu, instancesByMemory, instancesByDisk, instancesByNetwork);
     }
 
-    private ContainerResources getTaskContainerResources(String taskId, Map<String, Job> allJobs, Map<String, Task> allTasks) {
+    private Pair<Job, Task> getJobTaskPair(String taskId, Map<String, Job> allJobs, Map<String, Task> allTasks) {
         Task task = allTasks.get(taskId);
         if (task == null) {
             return null;
@@ -559,7 +568,12 @@ public class ClusterAgentAutoScaler {
         if (job == null) {
             return null;
         }
-        return job.getJobDescriptor().getContainer().getContainerResources();
+        return Pair.of(job, task);
+    }
+
+    private boolean hasIgnoredHardConstraint(Job job) {
+        Set<String> constraintNames = job.getJobDescriptor().getContainer().getHardConstraints().keySet();
+        return constraintNames.stream().anyMatch(IGNORED_HARD_CONSTRAINT_NAMES::contains);
     }
 
     private static class TierAutoScalerExecution {

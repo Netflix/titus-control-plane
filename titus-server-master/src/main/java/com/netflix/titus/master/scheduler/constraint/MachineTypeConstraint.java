@@ -23,28 +23,29 @@ import com.netflix.fenzo.TaskRequest;
 import com.netflix.fenzo.TaskTrackerState;
 import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.titus.api.agent.model.AgentInstance;
-import com.netflix.titus.api.agent.model.AgentInstanceGroup;
-import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.common.annotation.Experimental;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 import com.netflix.titus.master.scheduler.SchedulerUtils;
 
 /**
- * Experimental constraint such that workloads can prefer a machine that is part of an active instance group.
+ * Experimental constraint such that workloads can prefer a specific machine type.
  */
 @Experimental(deadline = "06/2019")
-public class ActiveHostConstraint implements ConstraintEvaluator {
-    public static final String NAME = "ActiveHostConstraint";
+public class MachineTypeConstraint implements ConstraintEvaluator {
+    public static final String NAME = "MachineTypeConstraint";
 
     private static final Result VALID = new Result(true, null);
-    private static final Result INVALID = new Result(false, "The machine's instance group is not active");
+    private static final Result MACHINE_DOES_NOT_EXIST = new Result(false, "The machine does not exist");
+    private static final Result MACHINE_TYPE_DOES_NOT_MATCH = new Result(false, "The machine type does not match the specified machine type");
     private final SchedulerConfiguration configuration;
     private final AgentManagementService agentManagementService;
+    private final String machineType;
 
-    public ActiveHostConstraint(SchedulerConfiguration configuration, AgentManagementService agentManagementService) {
+    public MachineTypeConstraint(SchedulerConfiguration configuration, AgentManagementService agentManagementService, String machineType) {
         this.configuration = configuration;
         this.agentManagementService = agentManagementService;
+        this.machineType = machineType;
     }
 
     @Override
@@ -56,24 +57,11 @@ public class ActiveHostConstraint implements ConstraintEvaluator {
     public Result evaluate(TaskRequest taskRequest, VirtualMachineCurrentState targetVM, TaskTrackerState taskTrackerState) {
         Optional<AgentInstance> instanceOpt = SchedulerUtils.findInstance(agentManagementService, configuration.getInstanceAttributeName(), targetVM);
         if (!instanceOpt.isPresent()) {
-            return INVALID;
+            return MACHINE_DOES_NOT_EXIST;
         }
 
-        AgentInstance instance = instanceOpt.get();
-        String instanceGroupId = instance.getInstanceGroupId();
-
-        Optional<AgentInstanceGroup> instanceGroupOpt = agentManagementService.findInstanceGroup(instanceGroupId);
-        if (!instanceGroupOpt.isPresent()) {
-            return INVALID;
-        }
-
-        AgentInstanceGroup instanceGroup = instanceGroupOpt.get();
-        InstanceGroupLifecycleState state = instanceGroup.getLifecycleStatus().getState();
-
-        if (state != InstanceGroupLifecycleState.Active) {
-            return INVALID;
-        }
-
-        return VALID;
+        AgentInstance agentInstance = instanceOpt.get();
+        String instanceInstanceType = agentInstance.getAttributes().getOrDefault(configuration.getMachineTypeAttributeName(), "");
+        return instanceInstanceType.equalsIgnoreCase(machineType) ? VALID : MACHINE_TYPE_DOES_NOT_MATCH;
     }
 }

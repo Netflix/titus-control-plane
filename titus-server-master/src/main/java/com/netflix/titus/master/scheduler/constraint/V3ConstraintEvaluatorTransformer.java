@@ -27,6 +27,7 @@ import com.netflix.fenzo.ConstraintEvaluator;
 import com.netflix.fenzo.VMTaskFitnessCalculator;
 import com.netflix.fenzo.plugins.ExclusiveHostConstraint;
 import com.netflix.titus.api.agent.service.AgentManagementService;
+import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.config.MasterConfiguration;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
@@ -34,13 +35,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Maps V3 API constraint definitions into Fenzo model. The following constraint are available:
+ * Maps V3 API constraint definitions into Fenzo model.
+ * Supported Constraints:
  * <ul>
- * <li>host</li>
  * <li>exclusiveHost</li>
- * <li>serverGroup</li>
  * <li>uniqueHost</li>
  * <li>zoneBalance</li>
+ * </ul>
+ * <p>
+ * Experimental Constraints:
+ * <ul>
+ * <li>activeHost</li>
+ * <li>availabilityZone</li>
+ * <li>machineId</li>
+ * <li>machineType</li>
  * </ul>
  */
 @Singleton
@@ -54,9 +62,12 @@ public class V3ConstraintEvaluatorTransformer implements ConstraintEvaluatorTran
     private static final String EXCLUSIVE_HOST = "exclusivehost";
     private static final String UNIQUE_HOST = "uniquehost";
     private static final String ZONE_BALANCE = "zonebalance";
+
+    // Experimental Constraints
     private static final String ACTIVE_HOST = "activehost";
-    private static final String HOST = "host";
-    private static final String SERVER_GROUP = "servergroup";
+    private static final String AVAILABILITY_ZONE = "availabilityzone";
+    private static final String MACHINE_ID = "machineid";
+    private static final String MACHINE_TYPE = "machinetype";
 
     private final MasterConfiguration config;
     private final SchedulerConfiguration schedulerConfiguration;
@@ -91,8 +102,18 @@ public class V3ConstraintEvaluatorTransformer implements ConstraintEvaluatorTran
                 return "true".equals(value)
                         ? Optional.of(new ActiveHostConstraint(schedulerConfiguration, agentManagementService))
                         : Optional.empty();
-            case HOST:
-            case SERVER_GROUP:
+            case AVAILABILITY_ZONE:
+                return StringExt.isNotEmpty(value)
+                        ? Optional.of(new AvailabilityZoneConstraint(schedulerConfiguration, agentManagementService, value))
+                        : Optional.empty();
+            case MACHINE_ID:
+                return StringExt.isNotEmpty(value)
+                        ? Optional.of(new MachineIdConstraint(schedulerConfiguration, agentManagementService, value))
+                        : Optional.empty();
+            case MACHINE_TYPE:
+                return StringExt.isNotEmpty(value)
+                        ? Optional.of(new MachineTypeConstraint(schedulerConfiguration, agentManagementService, value))
+                        : Optional.empty();
         }
         logger.error("Unknown or not supported job hard constraint: {}", name);
         return Optional.empty();
@@ -115,8 +136,18 @@ public class V3ConstraintEvaluatorTransformer implements ConstraintEvaluatorTran
                 return "true".equals(value)
                         ? Optional.of(AsSoftConstraint.get(new ActiveHostConstraint(schedulerConfiguration, agentManagementService)))
                         : Optional.empty();
-            case HOST:
-            case SERVER_GROUP:
+            case AVAILABILITY_ZONE:
+                return StringExt.isNotEmpty(value)
+                        ? Optional.of(AsSoftConstraint.get(new AvailabilityZoneConstraint(schedulerConfiguration, agentManagementService, value)))
+                        : Optional.empty();
+            case MACHINE_ID:
+                return StringExt.isNotEmpty(value)
+                        ? Optional.of(AsSoftConstraint.get(new MachineIdConstraint(schedulerConfiguration, agentManagementService, value)))
+                        : Optional.empty();
+            case MACHINE_TYPE:
+                return StringExt.isNotEmpty(value)
+                        ? Optional.of(AsSoftConstraint.get(new MachineTypeConstraint(schedulerConfiguration, agentManagementService, value)))
+                        : Optional.empty();
         }
         logger.error("Unknown or not supported job hard constraint: {}", name);
         return Optional.empty();

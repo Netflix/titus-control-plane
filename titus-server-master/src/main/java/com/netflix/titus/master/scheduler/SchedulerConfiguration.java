@@ -18,6 +18,7 @@ package com.netflix.titus.master.scheduler;
 
 import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
+import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.master.scheduler.fitness.networkinterface.TitusNetworkInterfaceFitnessEvaluator;
 
 @Configuration(prefix = "titus.scheduler")
@@ -114,4 +115,16 @@ public interface SchedulerConfiguration {
      */
     @DefaultValue("true")
     boolean isCriticalTierJobSpreadingEnabled();
+
+    /**
+     * Availability zone attribute name to look at on the {@link AgentInstance}.
+     */
+    @DefaultValue("availabilityZone")
+    String getAvailabilityZoneAttributeName();
+
+    /**
+     * Machine type attribute name to look at on the {@link AgentInstance}.
+     */
+    @DefaultValue("machineType")
+    String getMachineTypeAttributeName();
 }

@@ -101,6 +101,8 @@ public class AwsInstanceCloudConnector implements InstanceCloudConnector {
 
     static final String TAG_TERMINATE = "TitusAgentPendingTermination";
     static final String TAG_ASG_NAME = "aws:autoscaling:groupName";
+    static final String TAG_EC2_AVAILABILITY_ZONE = "aws:ec2:availabilityZone";
+    static final String TAG_EC2_INSTANCE_TYPE = "aws:ec2:instanceType";
     static final String TAG_ASG_FILTER_NAME = "tag:" + TAG_ASG_NAME;
     static final String DEFAULT_INSTANCE_TYPE = "unknown";
 
@@ -496,9 +498,16 @@ public class AwsInstanceCloudConnector implements InstanceCloudConnector {
     }
 
     private Instance toInstance(com.amazonaws.services.ec2.model.Instance awsInstance, String instanceGroupId) {
-        Map<String, String> attributes = CollectionsExt.isNullOrEmpty(awsInstance.getTags())
+        Map<String, String> awsTags = CollectionsExt.isNullOrEmpty(awsInstance.getTags())
                 ? Collections.emptyMap()
                 : awsInstance.getTags().stream().collect(Collectors.toMap(Tag::getKey, Tag::getValue));
+
+        Map<String, String> defaultAttributes = CollectionsExt.asMap(
+                TAG_EC2_AVAILABILITY_ZONE, awsInstance.getPlacement().getAvailabilityZone(),
+                TAG_EC2_INSTANCE_TYPE, awsInstance.getInstanceType()
+        );
+
+        Map<String, String> attributes = CollectionsExt.merge(awsTags, defaultAttributes);
 
         return Instance.newBuilder()
                 .withId(awsInstance.getInstanceId())
