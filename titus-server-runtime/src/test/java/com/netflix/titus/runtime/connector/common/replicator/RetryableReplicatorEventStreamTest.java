@@ -86,7 +86,7 @@ public class RetryableReplicatorEventStreamTest {
 
                 // Fail again
                 .then(() -> eventSubject.onError(new RuntimeException("simulated error")))
-                .expectNoEvent(Duration.ofMillis(RetryableReplicatorEventStream.INITIAL_RETRY_DELAY_MS))
+                .expectNoEvent(Duration.ofMillis(RetryableReplicatorEventStream.INITIAL_RETRY_DELAY_MS * 2))
 
                 // Recover again
                 .then(() -> eventSubject.onNext(new ReplicatorEvent<>("even3", "trigger3", 3)))
@@ -121,7 +121,7 @@ public class RetryableReplicatorEventStreamTest {
         }));
 
         return new RetryableReplicatorEventStream<>(
-                "initialSnapshot", "initialEvent", delegate, new DataReplicatorMetrics("test", titusRuntime), titusRuntime, Schedulers.parallel()
+                delegate, new DataReplicatorMetrics("test", titusRuntime), titusRuntime, Schedulers.parallel()
         );
     }
 

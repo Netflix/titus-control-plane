@@ -16,6 +16,8 @@
 
 package com.netflix.titus.runtime.connector.common.replicator;
 
+import java.time.Duration;
+
 import reactor.core.publisher.Flux;
 
 /**
@@ -24,6 +26,8 @@ import reactor.core.publisher.Flux;
 public interface ReplicatorEventStream<SNAPSHOT, TRIGGER> {
 
     long LATENCY_REPORT_INTERVAL_MS = 1_000;
+
+    Duration LATENCY_REPORT_INTERVAL = Duration.ofMillis(1_000);
 
     Flux<ReplicatorEvent<SNAPSHOT, TRIGGER>> connect();
 }

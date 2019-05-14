@@ -17,69 +17,75 @@
 package com.netflix.titus.common.util.rx;
 
 import java.time.Duration;
-import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
-import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 public class ReactorReEmitterOperatorTest {
 
-    private static final long INTERVAL_MS = 1_000;
+    private static final Duration EMIT_INTERVAL = Duration.ofMillis(1_000);
 
-    private final DirectProcessor<String> subject = DirectProcessor.create();
+    private boolean cancelled;
 
     @Test
     public void testReEmits() {
         StepVerifier
-                .withVirtualTime(this::newReEmitter)
+                .withVirtualTime(() -> newReEmitter(EMIT_INTERVAL.multipliedBy(5), EMIT_INTERVAL.multipliedBy(2)))
                 .expectSubscription()
 
                 // Until first item is emitted, there is nothing to re-emit.
-                .expectNoEvent(advanceSteps(2))
+                .expectNoEvent(emitSteps(5))
 
-                // Emit 'A' and wait for re-emit
-                .then(() -> subject.onNext("A"))
-                .expectNext("A")
+                // First emit
+                .expectNext("0")
+                .expectNoEvent(EMIT_INTERVAL)
+                .expectNext(toReEmitted("0"))
 
-                .expectNoEvent(advanceSteps(1))
-                .expectNext("a")
-
-                // Emit 'B' and wait for re-emit
-                .then(() -> subject.onNext("B"))
-                .expectNext("B")
-
-                .expectNoEvent(advanceSteps(1))
-                .expectNext("b")
+                // Second emit
+                .expectNoEvent(EMIT_INTERVAL)
+                .expectNext("1")
+                .expectNoEvent(EMIT_INTERVAL)
+                .expectNext(toReEmitted("1"))
 
                 .thenCancel()
                 .verify();
+
+        assertThat(cancelled).isTrue();
     }
 
     @Test
     public void testNoReEmits() {
+        Duration sourceInterval = EMIT_INTERVAL.dividedBy(2);
+
         StepVerifier
-                .withVirtualTime(this::newReEmitter)
+                .withVirtualTime(() -> newReEmitter(Duration.ofSeconds(0), sourceInterval))
 
-                .then(() -> subject.onNext("A"))
-                .expectNext("A")
-                .expectNoEvent(Duration.ofMillis(INTERVAL_MS - 1))
-
-                .then(() -> subject.onNext("B"))
-                .expectNext("B")
-                .expectNoEvent(Duration.ofMillis(INTERVAL_MS - 1))
+                .expectNext("0")
+                .expectNoEvent(sourceInterval)
+                .expectNext("1")
+                .expectNoEvent(sourceInterval)
+                .expectNext("2")
 
                 .thenCancel()
                 .verify();
     }
 
-    private Duration advanceSteps(int steps) {
-        return Duration.ofMillis(steps * INTERVAL_MS);
+    private Duration emitSteps(int steps) {
+        return EMIT_INTERVAL.multipliedBy(steps);
     }
 
-    private Flux<String> newReEmitter() {
-        return subject.compose(ReactorExt.reEmitter(String::toLowerCase, INTERVAL_MS, TimeUnit.MILLISECONDS, Schedulers.parallel()));
+    private Flux<String> newReEmitter(Duration delay, Duration interval) {
+        Flux<String> source = Flux.interval(delay, interval)
+                .map(Object::toString)
+                .doOnCancel(() -> this.cancelled = true);
+        return source.compose(ReactorExt.reEmitter(this::toReEmitted, EMIT_INTERVAL, Schedulers.parallel()));
+    }
+
+    private String toReEmitted(String tick) {
+        return "Re-emitted#" + tick;
     }
 }

@@ -23,7 +23,6 @@ import javax.inject.Provider;
 import javax.inject.Singleton;
 
 import com.netflix.titus.api.agent.model.event.AgentEvent;
-import com.netflix.titus.api.agent.model.event.AgentSnapshotEndEvent;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.runtime.connector.agent.AgentDataReplicator;
@@ -78,8 +77,6 @@ public class AgentDataReplicatorProvider implements Provider<AgentDataReplicator
         );
 
         return new RetryableReplicatorEventStream<>(
-                AgentSnapshot.empty(),
-                AgentSnapshotEndEvent.snapshotEnd(),
                 grpcEventStream,
                 new AgentDataReplicatorMetrics(AGENT_REPLICATOR_RETRYABLE_STREAM, titusRuntime),
                 titusRuntime,

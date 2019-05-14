@@ -23,7 +23,6 @@ import javax.inject.Provider;
 import javax.inject.Singleton;
 
 import com.netflix.titus.api.eviction.model.event.EvictionEvent;
-import com.netflix.titus.api.eviction.model.event.EvictionSnapshotEndEvent;
 import com.netflix.titus.api.model.Level;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExceptionExt;
@@ -79,8 +78,6 @@ public class EvictionDataReplicatorProvider implements Provider<EvictionDataRepl
         );
 
         return new RetryableReplicatorEventStream<>(
-                EvictionDataSnapshot.empty(),
-                EvictionSnapshotEndEvent.getInstance(),
                 grpcEventStream,
                 new EvictionDataReplicatorMetrics(EVICTION_REPLICATOR_RETRYABLE_STREAM, titusRuntime),
                 titusRuntime,

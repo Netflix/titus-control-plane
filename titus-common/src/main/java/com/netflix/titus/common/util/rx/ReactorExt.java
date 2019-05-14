@@ -165,8 +165,8 @@ public final class ReactorExt {
      * If the source observable does not emit any item in the configured amount of time, the last emitted value is
      * re-emitted again, optionally updated by the transformer.
      */
-    public static <T> Function<Flux<T>, Publisher<T>> reEmitter(Function<T, T> transformer, long interval, TimeUnit timeUnit, Scheduler scheduler) {
-        return new ReactorReEmitterOperator<>(transformer, interval, timeUnit, scheduler);
+    public static <T> Function<Flux<T>, Publisher<T>> reEmitter(Function<T, T> transformer, Duration interval, Scheduler scheduler) {
+        return new ReactorReEmitterOperator<>(transformer, interval, scheduler);
     }
 
     public static void safeDispose(Disposable... disposables) {
