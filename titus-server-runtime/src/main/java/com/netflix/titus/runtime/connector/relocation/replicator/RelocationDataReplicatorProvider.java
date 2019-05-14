@@ -85,8 +85,6 @@ public class RelocationDataReplicatorProvider implements Provider<RelocationData
         );
 
         return new RetryableReplicatorEventStream<>(
-                TaskRelocationSnapshot.empty(),
-                TaskRelocationEvent.newSnapshotEndEvent(),
                 grpcEventStream,
                 new DataReplicatorMetrics<>(RELOCATION_REPLICATOR_RETRYABLE_STREAM, titusRuntime),
                 titusRuntime,

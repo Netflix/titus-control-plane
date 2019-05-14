@@ -16,8 +16,6 @@
 
 package com.netflix.titus.runtime.connector.common.replicator;
 
-import java.util.concurrent.TimeUnit;
-
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import org.slf4j.Logger;
@@ -47,7 +45,7 @@ public abstract class AbstractReplicatorEventStream<SNAPSHOT, TRIGGER> implement
                         // If there are no events in the stream, we will periodically emit the last cache instance
                         // with the updated cache update timestamp, so it does not look stale.
                         cacheEvent -> new ReplicatorEvent<>(cacheEvent.getSnapshot(), cacheEvent.getTrigger(), titusRuntime.getClock().wallTime()),
-                        LATENCY_REPORT_INTERVAL_MS, TimeUnit.MILLISECONDS,
+                        LATENCY_REPORT_INTERVAL,
                         scheduler
                 ))
                 .doOnNext(event -> {
