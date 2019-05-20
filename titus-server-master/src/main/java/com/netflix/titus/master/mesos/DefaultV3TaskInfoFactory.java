@@ -210,6 +210,9 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
         // Configure EFS
         containerInfoBuilder.addAllEfsConfigInfo(setupEfsMounts(containerResources.getEfsMounts()));
 
+        // Configure shared memory size
+        containerInfoBuilder.setShmSizeMB(containerResources.getShmMB());
+
         return containerInfoBuilder;
     }
 

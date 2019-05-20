@@ -17,11 +17,13 @@
 package com.netflix.titus.api.jobmanager.model.job;
 
 import java.util.List;
+import java.util.Objects;
 import javax.validation.Valid;
 import javax.validation.constraints.Min;
 
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.EfsMountsSanitizer;
 import com.netflix.titus.api.model.EfsMount;
+import com.netflix.titus.common.model.sanitizer.ClassInvariant;
 import com.netflix.titus.common.model.sanitizer.FieldInvariant;
 import com.netflix.titus.common.model.sanitizer.FieldSanitizer;
 import com.netflix.titus.common.util.CollectionsExt;
@@ -30,6 +32,7 @@ import static com.netflix.titus.common.util.CollectionsExt.nonNull;
 
 /**
  */
+@ClassInvariant(condition = "shmMB <= memoryMB", message = "'shmMB' (#{shmMB}) must be <= 'memoryMB' (#{memoryMB})")
 public class ContainerResources {
 
     @FieldSanitizer(adjuster = "T(java.lang.Math).max(@constraints.getCpuMin(), value)")
@@ -57,7 +60,19 @@ public class ContainerResources {
 
     private final boolean allocateIP;
 
-    public ContainerResources(double cpu, int gpu, int memoryMB, int diskMB, int networkMbps, List<EfsMount> efsMounts, boolean allocateIP) {
+    // If provided value is 0, rewrite to a common default
+    @FieldSanitizer(adjuster = "value == 0 ? @constraints.getShmMegabytesDefault() : value")
+    @Min(value = 0, message = "'shmMB'(#{#root}) must be >= 0")
+    private final int shmMB;
+
+    public ContainerResources(double cpu,
+                              int gpu,
+                              int memoryMB,
+                              int diskMB,
+                              int networkMbps,
+                              List<EfsMount> efsMounts,
+                              boolean allocateIP,
+                              int shmMB) {
         this.cpu = cpu;
         this.gpu = gpu;
         this.memoryMB = memoryMB;
@@ -65,8 +80,8 @@ public class ContainerResources {
         this.networkMbps = networkMbps;
         this.efsMounts = CollectionsExt.nullableImmutableCopyOf(efsMounts);
         this.allocateIP = allocateIP;
+        this.shmMB = shmMB;
     }
-
     public double getCpu() {
         return cpu;
     }
@@ -95,6 +110,10 @@ public class ContainerResources {
         return allocateIP;
     }
 
+    public int getShmMB() {
+        return shmMB;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -103,43 +122,20 @@ public class ContainerResources {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
         ContainerResources that = (ContainerResources) o;
-
-        if (Double.compare(that.cpu, cpu) != 0) {
-            return false;
-        }
-        if (gpu != that.gpu) {
-            return false;
-        }
-        if (memoryMB != that.memoryMB) {
-            return false;
-        }
-        if (diskMB != that.diskMB) {
-            return false;
-        }
-        if (networkMbps != that.networkMbps) {
-            return false;
-        }
-        if (allocateIP != that.allocateIP) {
-            return false;
-        }
-        return efsMounts != null ? efsMounts.equals(that.efsMounts) : that.efsMounts == null;
+        return Double.compare(that.cpu, cpu) == 0 &&
+                gpu == that.gpu &&
+                memoryMB == that.memoryMB &&
+                diskMB == that.diskMB &&
+                networkMbps == that.networkMbps &&
+                allocateIP == that.allocateIP &&
+                shmMB == that.shmMB &&
+                efsMounts.equals(that.efsMounts);
     }
 
     @Override
     public int hashCode() {
-        int result;
-        long temp;
-        temp = Double.doubleToLongBits(cpu);
-        result = (int) (temp ^ (temp >>> 32));
-        result = 31 * result + gpu;
-        result = 31 * result + memoryMB;
-        result = 31 * result + diskMB;
-        result = 31 * result + networkMbps;
-        result = 31 * result + (efsMounts != null ? efsMounts.hashCode() : 0);
-        result = 31 * result + (allocateIP ? 1 : 0);
-        return result;
+        return Objects.hash(cpu, gpu, memoryMB, diskMB, networkMbps, efsMounts, allocateIP, shmMB);
     }
 
     @Override
@@ -152,6 +148,7 @@ public class ContainerResources {
                 ", networkMbps=" + networkMbps +
                 ", efsMounts=" + efsMounts +
                 ", allocateIP=" + allocateIP +
+                ", shmMB=" + shmMB +
                 '}';
     }
 
@@ -171,7 +168,8 @@ public class ContainerResources {
                 .withDiskMB(containerResources.getDiskMB())
                 .withNetworkMbps(containerResources.getNetworkMbps())
                 .withAllocateIP(containerResources.isAllocateIP())
-                .withEfsMounts(containerResources.getEfsMounts());
+                .withEfsMounts(containerResources.getEfsMounts())
+                .witShmMB(containerResources.getShmMB());
     }
 
     public static final class Builder {
@@ -182,6 +180,7 @@ public class ContainerResources {
         private int networkMbps;
         private List<EfsMount> efsMounts;
         private boolean allocateIP;
+        private int shmMB;
 
         private Builder() {
         }
@@ -221,12 +220,24 @@ public class ContainerResources {
             return this;
         }
 
+        public Builder witShmMB(int shmMB) {
+            this.shmMB = shmMB;
+            return this;
+        }
+
         public Builder but() {
-            return newBuilder().withCpu(cpu).withGpu(gpu).withMemoryMB(memoryMB).withDiskMB(diskMB).withNetworkMbps(networkMbps).withEfsMounts(efsMounts);
+            return newBuilder()
+                    .withCpu(cpu)
+                    .withGpu(gpu)
+                    .withMemoryMB(memoryMB)
+                    .withDiskMB(diskMB)
+                    .withNetworkMbps(networkMbps)
+                    .withEfsMounts(efsMounts)
+                    .witShmMB(shmMB);
         }
 
         public ContainerResources build() {
-            ContainerResources containerResources = new ContainerResources(cpu, gpu, memoryMB, diskMB, networkMbps, nonNull(efsMounts), allocateIP);
+            ContainerResources containerResources = new ContainerResources(cpu, gpu, memoryMB, diskMB, networkMbps, nonNull(efsMounts), allocateIP, shmMB);
             return containerResources;
         }
     }

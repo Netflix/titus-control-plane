@@ -96,6 +96,7 @@ public class TaskDocument {
     private double networkMbps;
     private double disk;
     private int gpu;
+    private int shm;
     private Map<String, String> env;
     private int retries;
     private boolean restartOnSuccess;
@@ -186,6 +187,10 @@ public class TaskDocument {
 
     public double getDisk() {
         return disk;
+    }
+
+    public int getShm() {
+        return shm;
     }
 
     public int getGpu() {
@@ -391,6 +396,7 @@ public class TaskDocument {
         taskDocument.networkMbps = containerResources.getNetworkMbps();
         taskDocument.disk = containerResources.getDiskMB();
         taskDocument.gpu = containerResources.getGpu();
+        taskDocument.shm = containerResources.getShmMB();
         taskDocument.allocateIpAddress = containerResources.isAllocateIP();
         taskDocument.env = container.getEnv();
         taskDocument.iamProfile = container.getSecurityProfile().getIamRole();
