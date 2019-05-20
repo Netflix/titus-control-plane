@@ -191,6 +191,7 @@ public final class V3GrpcModelConverters {
                 .withNetworkMbps(grpcResources.getNetworkMbps())
                 .withAllocateIP(grpcResources.getAllocateIP())
                 .withEfsMounts(coreEfsMounts)
+                .withShmMB(grpcResources.getShmSizeMB())
                 .build();
     }
 
@@ -566,6 +567,7 @@ public final class V3GrpcModelConverters {
                 .setNetworkMbps(containerResources.getNetworkMbps())
                 .setAllocateIP(containerResources.isAllocateIP())
                 .addAllEfsMounts(grpcEfsMounts)
+                .setShmSizeMB(containerResources.getShmMB())
                 .build();
     }
 

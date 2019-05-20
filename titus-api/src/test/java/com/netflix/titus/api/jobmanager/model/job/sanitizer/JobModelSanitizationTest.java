@@ -244,6 +244,44 @@ public class JobModelSanitizationTest {
     }
 
     @Test
+    public void testJobWithShmTooLarge() {
+        JobDescriptor<BatchJobExt> jobDescriptor = oneTaskBatchJobDescriptor();
+        JobDescriptor<BatchJobExt> shmTooLarge = JobModel.newJobDescriptor(jobDescriptor)
+                .withContainer(JobModel.newContainer(jobDescriptor.getContainer())
+                        .withContainerResources(
+                                JobModel.newContainerResources(jobDescriptor.getContainer().getContainerResources())
+                                .withMemoryMB(1024)
+                                .withShmMB(2048)
+                                .build()
+                        ).build()
+                ).build();
+
+        Job<BatchJobExt> job = JobGenerator.batchJobs(shmTooLarge).getValue();
+        assertThat(entitySanitizer.validate(job)).hasSize(1);
+    }
+
+    @Test
+    public void testJobWithUnsetShm() {
+        JobDescriptor<BatchJobExt> jobDescriptor = oneTaskBatchJobDescriptor();
+        JobDescriptor<BatchJobExt> shmUnset = JobModel.newJobDescriptor(jobDescriptor)
+                .withContainer(JobModel.newContainer(jobDescriptor.getContainer())
+                        .withContainerResources(
+                                JobModel.newContainerResources(jobDescriptor.getContainer().getContainerResources())
+                                        .withShmMB(0)
+                                        .build()
+                        ).build()
+                ).build();
+        Job<BatchJobExt> job = JobGenerator.batchJobs(shmUnset).getValue();
+        assertThat(job.getJobDescriptor().getContainer().getContainerResources().getShmMB()).isZero();
+
+        // Now do cleanup
+        Job<BatchJobExt> sanitized = entitySanitizer.sanitize(job).get();
+        assertThat(entitySanitizer.validate(sanitized)).isEmpty();
+        assertThat(sanitized.getJobDescriptor().getContainer().getContainerResources().getShmMB())
+                .isEqualTo(constraints.getShmMegabytesDefault());
+    }
+
+    @Test
     public void testJobWithTooLargeEntryPoint() {
         // Make key/value pair size 1MB
         char[] manyChars = new char[1025];

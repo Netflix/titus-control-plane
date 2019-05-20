@@ -30,6 +30,7 @@ public abstract class ContainerResourcesMixin {
                                    @JsonProperty("diskMB") int diskMB,
                                    @JsonProperty("networkMbps") int networkMbps,
                                    @JsonProperty("efsMounts") List<EfsMount> efsMounts,
-                                   @JsonProperty("allocateIP") boolean allocateIP) {
+                                   @JsonProperty("allocateIP") boolean allocateIP,
+                                   @JsonProperty("shmMB") int shmMB) {
     }
 }

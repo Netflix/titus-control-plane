@@ -85,6 +85,13 @@ public interface JobConfiguration {
     @DefaultValue("40000")
     int getNetworkMbpsMax();
 
+    /**
+     * Default value for shared memory size if none is provided. This value is derived from the Docker
+     * default value: https://docs.docker.com/engine/reference/run/#runtime-constraints-on-resources.
+     */
+    @DefaultValue("64")
+    int getShmMegabytesDefault();
+
     @DefaultValue("" + DEFAULT_RUNTIME_LIMIT_SEC)
     long getDefaultRuntimeLimitSec();
 
