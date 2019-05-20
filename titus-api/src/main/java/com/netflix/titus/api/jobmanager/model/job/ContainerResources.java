@@ -27,6 +27,8 @@ import com.netflix.titus.common.model.sanitizer.ClassInvariant;
 import com.netflix.titus.common.model.sanitizer.FieldInvariant;
 import com.netflix.titus.common.model.sanitizer.FieldSanitizer;
 import com.netflix.titus.common.util.CollectionsExt;
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 import static com.netflix.titus.common.util.CollectionsExt.nonNull;
 
@@ -130,7 +132,7 @@ public class ContainerResources {
                 networkMbps == that.networkMbps &&
                 allocateIP == that.allocateIP &&
                 shmMB == that.shmMB &&
-                efsMounts.equals(that.efsMounts);
+                Objects.equals(efsMounts, that.efsMounts);
     }
 
     @Override
@@ -169,7 +171,7 @@ public class ContainerResources {
                 .withNetworkMbps(containerResources.getNetworkMbps())
                 .withAllocateIP(containerResources.isAllocateIP())
                 .withEfsMounts(containerResources.getEfsMounts())
-                .witShmMB(containerResources.getShmMB());
+                .withShmMB(containerResources.getShmMB());
     }
 
     public static final class Builder {
@@ -220,7 +222,7 @@ public class ContainerResources {
             return this;
         }
 
-        public Builder witShmMB(int shmMB) {
+        public Builder withShmMB(int shmMB) {
             this.shmMB = shmMB;
             return this;
         }
@@ -233,7 +235,7 @@ public class ContainerResources {
                     .withDiskMB(diskMB)
                     .withNetworkMbps(networkMbps)
                     .withEfsMounts(efsMounts)
-                    .witShmMB(shmMB);
+                    .withShmMB(shmMB);
         }
 
         public ContainerResources build() {

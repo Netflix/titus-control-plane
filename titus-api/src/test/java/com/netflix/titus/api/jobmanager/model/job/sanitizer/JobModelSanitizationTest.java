@@ -251,7 +251,7 @@ public class JobModelSanitizationTest {
                         .withContainerResources(
                                 JobModel.newContainerResources(jobDescriptor.getContainer().getContainerResources())
                                 .withMemoryMB(1024)
-                                .witShmMB(2048)
+                                .withShmMB(2048)
                                 .build()
                         ).build()
                 ).build();
@@ -267,7 +267,7 @@ public class JobModelSanitizationTest {
                 .withContainer(JobModel.newContainer(jobDescriptor.getContainer())
                         .withContainerResources(
                                 JobModel.newContainerResources(jobDescriptor.getContainer().getContainerResources())
-                                        .witShmMB(0)
+                                        .withShmMB(0)
                                         .build()
                         ).build()
                 ).build();
