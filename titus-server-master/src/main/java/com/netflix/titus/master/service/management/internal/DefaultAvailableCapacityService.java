@@ -32,6 +32,7 @@ import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.util.guice.annotation.Activator;
+import com.netflix.titus.common.util.rx.SchedulerExt;
 import com.netflix.titus.common.util.spectator.ExecutionMetrics;
 import com.netflix.titus.master.MetricConstants;
 import com.netflix.titus.master.agent.ServerInfo;
@@ -67,7 +68,7 @@ public class DefaultAvailableCapacityService implements AvailableCapacityService
                                            ServerInfoResolver serverInfoResolver,
                                            AgentManagementService agentManagementService,
                                            Registry registry) {
-        this(configuration, serverInfoResolver, agentManagementService, registry, Schedulers.io());
+        this(configuration, serverInfoResolver, agentManagementService, registry, SchedulerExt.createSingleThreadScheduler("available-capacity-service"));
     }
 
     @VisibleForTesting

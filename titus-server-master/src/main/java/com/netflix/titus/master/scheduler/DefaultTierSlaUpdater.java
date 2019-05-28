@@ -30,6 +30,7 @@ import com.netflix.fenzo.sla.ResAllocsBuilder;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.model.Tier;
+import com.netflix.titus.common.util.rx.SchedulerExt;
 import com.netflix.titus.master.model.ResourceDimensions;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import com.netflix.titus.master.service.management.AvailableCapacityService;
@@ -53,7 +54,7 @@ public class DefaultTierSlaUpdater implements TierSlaUpdater {
     public DefaultTierSlaUpdater(SchedulerConfiguration schedulerConfiguration,
                                  ApplicationSlaManagementService applicationSlaManagementService,
                                  AvailableCapacityService availableCapacityService) {
-        this(schedulerConfiguration, applicationSlaManagementService, availableCapacityService, Schedulers.io());
+        this(schedulerConfiguration, applicationSlaManagementService, availableCapacityService, SchedulerExt.createSingleThreadScheduler("tier-sla-updater"));
     }
 
     /**
