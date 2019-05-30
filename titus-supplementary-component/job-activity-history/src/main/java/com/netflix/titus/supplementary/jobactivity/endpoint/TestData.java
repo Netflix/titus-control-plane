@@ -39,4 +39,8 @@ public class TestData {
                 )
                 .build();
     }
+
+    public static TaskActivityQueryResult newTaskActivityQueryResult() {
+        return TaskActivityQueryResult.newBuilder();
+    }
 }

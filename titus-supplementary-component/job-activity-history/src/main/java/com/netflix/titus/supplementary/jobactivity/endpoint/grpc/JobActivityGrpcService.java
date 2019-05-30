@@ -32,4 +32,10 @@ public class JobActivityGrpcService extends JobActivityServiceGrpc.JobActivitySe
         responseObserver.onNext(TestData.newJobActivityQueryResult());
         responseObserver.onCompleted();
     }
+
+    @Override
+    public void getTaskActivityRecords(TaskActivityQuery request, StreamObserver<TaskActivityQueryResult> responseObserver) {
+        responseObserver.onNext(TestData.newTaskActivityQueryResult());
+        responseObserver.onCompleted();
+    }
 }
