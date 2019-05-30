@@ -16,23 +16,68 @@
 
 package com.netflix.titus.api.supervisor.model;
 
+import java.util.List;
+
 import com.netflix.titus.common.util.CollectionsExt;
 
 public final class MasterInstanceFunctions {
+
+    private static final int MAX_STATUS_HISTORY_SIZE = 20;
 
     private MasterInstanceFunctions() {
     }
 
     public static MasterInstance moveTo(MasterInstance masterInstance, MasterStatus nextStatus) {
+        List<MasterStatus> statusHistory = CollectionsExt.copyAndAdd(masterInstance.getStatusHistory(), masterInstance.getStatus());
+        if (statusHistory.size() > MAX_STATUS_HISTORY_SIZE) {
+            statusHistory = statusHistory.subList(0, MAX_STATUS_HISTORY_SIZE);
+        }
+
         return masterInstance.toBuilder()
                 .withStatus(nextStatus)
-                .withStatusHistory(CollectionsExt.copyAndAdd(masterInstance.getStatusHistory(), masterInstance.getStatus()))
+                .withStatusHistory(statusHistory)
                 .build();
     }
 
     public static boolean areDifferent(MasterInstance first, MasterInstance second) {
-        MasterInstance firstNoTimestamp = first.toBuilder().withStatus(first.getStatus().toBuilder().withTimestamp(0).build()).build();
-        MasterInstance secondNoTimestamp = second.toBuilder().withStatus(second.getStatus().toBuilder().withTimestamp(0).build()).build();
-        return !firstNoTimestamp.equals(secondNoTimestamp);
+        if (first == null) {
+            return second != null;
+        }
+        if (second == null) {
+            return true;
+        }
+        return !clearTimestamp(first).equals(clearTimestamp(second));
+    }
+
+    public static boolean areDifferent(MasterStatus first, MasterStatus second) {
+        if (first == null) {
+            return second != null;
+        }
+        if (second == null) {
+            return true;
+        }
+        return !clearTimestamp(first).equals(clearTimestamp(second));
+    }
+
+    public static boolean areDifferent(ReadinessStatus first, ReadinessStatus second) {
+        if (first == null) {
+            return second != null;
+        }
+        if (second == null) {
+            return true;
+        }
+        return !clearTimestamp(first).equals(clearTimestamp(second));
+    }
+
+    private static MasterInstance clearTimestamp(MasterInstance instance) {
+        return instance.toBuilder().withStatus(instance.getStatus().toBuilder().withTimestamp(0).build()).build();
+    }
+
+    private static MasterStatus clearTimestamp(MasterStatus status) {
+        return status.toBuilder().withTimestamp(0).build();
+    }
+
+    private static ReadinessStatus clearTimestamp(ReadinessStatus first) {
+        return first.toBuilder().withTimestamp(0).build();
     }
 }

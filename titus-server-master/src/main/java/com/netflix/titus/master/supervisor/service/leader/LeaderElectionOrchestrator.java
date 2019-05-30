@@ -26,19 +26,20 @@ import javax.inject.Singleton;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.netflix.spectator.api.Registry;
-import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.common.util.CollectionsExt;
-import com.netflix.titus.common.util.rx.ObservableExt;
-import com.netflix.titus.common.util.spectator.SpectatorExt;
-import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.master.MetricConstants;
-import com.netflix.titus.master.supervisor.SupervisorConfiguration;
 import com.netflix.titus.api.supervisor.model.MasterInstance;
 import com.netflix.titus.api.supervisor.model.MasterState;
 import com.netflix.titus.api.supervisor.model.MasterStatus;
 import com.netflix.titus.api.supervisor.service.LeaderElector;
 import com.netflix.titus.api.supervisor.service.LocalMasterInstanceResolver;
 import com.netflix.titus.api.supervisor.service.MasterMonitor;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.common.util.rx.ObservableExt;
+import com.netflix.titus.common.util.rx.ReactorExt;
+import com.netflix.titus.common.util.spectator.SpectatorExt;
+import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.master.MetricConstants;
+import com.netflix.titus.master.supervisor.SupervisorConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;
@@ -121,7 +122,7 @@ public class LeaderElectionOrchestrator {
     }
 
     private static MasterInstance fetchInitialMasterInstance(LocalMasterInstanceResolver localMasterInstanceResolver) {
-        MasterInstance masterInstance = localMasterInstanceResolver.observeLocalMasterInstanceUpdates()
+        MasterInstance masterInstance = ReactorExt.toObservable(localMasterInstanceResolver.observeLocalMasterInstanceUpdates())
                 .take(1)
                 .timeout(MASTER_INITIAL_UPDATE_TIMEOUT_MS, TimeUnit.MILLISECONDS, Schedulers.computation())
                 .toBlocking()
@@ -150,7 +151,7 @@ public class LeaderElectionOrchestrator {
 
     private Subscription subscribeToLocalMasterUpdateStream() {
         Observable<?> updateStream = Observable.merge(
-                localMasterInstanceResolver.observeLocalMasterInstanceUpdates(),
+                ReactorExt.toObservable(localMasterInstanceResolver.observeLocalMasterInstanceUpdates()),
                 leaderElector.awaitElection()
         ).compose(
                 ObservableExt.mapWithState(
@@ -191,8 +192,7 @@ public class LeaderElectionOrchestrator {
             MasterInstance newMasterInstance = currentMaster.toBuilder()
                     .withStatus(MasterStatus.newBuilder()
                             .withState(newState)
-                            .withReasonCode(MasterStatus.REASON_CODE_NORMAL)
-                            .withReasonMessage("Leader activation status change")
+                            .withMessage("Leader activation status change")
                             .withTimestamp(titusRuntime.getClock().wallTime())
                             .build()
                     )

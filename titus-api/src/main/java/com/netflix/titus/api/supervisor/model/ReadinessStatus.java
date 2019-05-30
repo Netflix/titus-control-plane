@@ -18,19 +18,24 @@ package com.netflix.titus.api.supervisor.model;
 
 import java.util.Objects;
 
-public class MasterStatus {
+public class ReadinessStatus {
 
-    private final MasterState state;
+    private static final ReadinessStatus NOT_READY = ReadinessStatus.newBuilder()
+            .withState(ReadinessState.NotReady)
+            .withMessage("Not ready")
+            .build();
+
+    private final ReadinessState state;
     private final String message;
     private final long timestamp;
 
-    public MasterStatus(MasterState state, String message, long timestamp) {
+    public ReadinessStatus(ReadinessState state, String message, long timestamp) {
         this.state = state;
         this.message = message;
         this.timestamp = timestamp;
     }
 
-    public MasterState getState() {
+    public ReadinessState getState() {
         return state;
     }
 
@@ -50,7 +55,7 @@ public class MasterStatus {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        MasterStatus that = (MasterStatus) o;
+        ReadinessStatus that = (ReadinessStatus) o;
         return timestamp == that.timestamp &&
                 state == that.state &&
                 Objects.equals(message, that.message);
@@ -63,7 +68,7 @@ public class MasterStatus {
 
     @Override
     public String toString() {
-        return "MasterStatus{" +
+        return "ReadinessStatus{" +
                 "state=" + state +
                 ", message='" + message + '\'' +
                 ", timestamp=" + timestamp +
@@ -74,19 +79,24 @@ public class MasterStatus {
         return newBuilder().withState(state).withMessage(message).withTimestamp(timestamp);
     }
 
+    public static ReadinessStatus notReadyNow(long now) {
+        return NOT_READY.toBuilder().withTimestamp(now).build();
+    }
+
     public static Builder newBuilder() {
         return new Builder();
     }
 
     public static final class Builder {
-        private MasterState state;
+
+        private ReadinessState state;
         private String message;
         private long timestamp;
 
         private Builder() {
         }
 
-        public Builder withState(MasterState state) {
+        public Builder withState(ReadinessState state) {
             this.state = state;
             return this;
         }
@@ -101,12 +111,8 @@ public class MasterStatus {
             return this;
         }
 
-        public Builder but() {
-            return newBuilder().withState(state).withMessage(message).withTimestamp(timestamp);
-        }
-
-        public MasterStatus build() {
-            return new MasterStatus(state, message, timestamp);
+        public ReadinessStatus build() {
+            return new ReadinessStatus(state, message, timestamp);
         }
     }
 }

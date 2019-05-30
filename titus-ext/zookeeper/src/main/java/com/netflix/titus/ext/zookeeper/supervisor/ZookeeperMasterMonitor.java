@@ -83,8 +83,7 @@ public class ZookeeperMasterMonitor implements MasterMonitor {
             .withIpAddress("0.0.0.0")
             .withStatus(MasterStatus.newBuilder()
                     .withState(MasterState.Starting)
-                    .withReasonCode("unresolvedMasterState")
-                    .withReasonMessage("TitusMaster instance state not known yet")
+                    .withMessage("TitusMaster instance state not known yet")
                     .build()
             )
             .build();

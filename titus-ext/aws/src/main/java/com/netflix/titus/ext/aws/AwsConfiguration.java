@@ -16,11 +16,19 @@
 
 package com.netflix.titus.ext.aws;
 
+import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
 
+@Configuration(prefix = "titusMaster.ext.aws")
 public interface AwsConfiguration {
 
     String getRegion();
+
+    /**
+     * Titus master ASG name.
+     */
+    @DefaultValue("TitusMasterAsgName")
+    String getTitusMasterAsgName();
 
     /**
      * Fetching all instance groups in {@link AwsInstanceCloudConnector#getInstanceGroups()} method may require

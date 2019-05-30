@@ -22,6 +22,9 @@ import com.netflix.archaius.api.annotations.DefaultValue;
 @Configuration(prefix = "titus.supervisor")
 public interface SupervisorConfiguration {
 
+    @DefaultValue("TitusMasterInstanceId")
+    String getTitusMasterInstanceId();
+
     /**
      * @return whether or not the instance is forced to join into the leader election process instead of going through the
      * lifecycle states. This property is useful in case the system used to resolve the other instances is not functioning.

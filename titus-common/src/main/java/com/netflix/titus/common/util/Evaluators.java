@@ -84,6 +84,16 @@ public final class Evaluators {
         }
     }
 
+    public static <T> boolean equal(T first, T second) {
+        if (first == null) {
+            return second == null;
+        }
+        if (second == null) {
+            return false;
+        }
+        return first.equals(second);
+    }
+
     public static <T> List<T> evaluateTimes(int count, Function<Integer, T> transformer) {
         Preconditions.checkArgument(count >= 0);
         if (count == 0) {

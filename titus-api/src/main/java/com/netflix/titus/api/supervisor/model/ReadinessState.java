@@ -14,20 +14,21 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.api.supervisor.service;
+package com.netflix.titus.api.supervisor.model;
 
-import com.netflix.titus.api.supervisor.model.MasterInstance;
-import reactor.core.publisher.Flux;
-
-/**
- * Each cluster/supervised member must resolve its own state and advertise it to other members.
- * This interface is implemented by components providing own state resolution strategies.
- */
-public interface LocalMasterInstanceResolver {
+public enum ReadinessState {
+    /**
+     * Master instance not ready yet.
+     */
+    NotReady,
 
     /**
-     * Emits the current member state, and state updates subsequently. The stream never completes, unless explicitly
-     * terminated by a subscriber.
+     * Master instance not allowed to join leader election process.
      */
-    Flux<MasterInstance> observeLocalMasterInstanceUpdates();
+    Disabled,
+
+    /**
+     * Master instance ready, and allowed to join leader election process.
+     */
+    Enabled
 }

@@ -48,8 +48,7 @@ public class SupervisorGrpcModelConverters {
     public static MasterStatus toCoreStatus(com.netflix.titus.grpc.protogen.MasterStatus grpcStatus) {
         return MasterStatus.newBuilder()
                 .withState(toCoreState(grpcStatus.getState()))
-                .withReasonCode(grpcStatus.getReasonCode())
-                .withReasonMessage(grpcStatus.getReasonMessage())
+                .withMessage(grpcStatus.getReasonMessage())
                 .withTimestamp(grpcStatus.getTimestamp())
                 .build();
     }
@@ -58,8 +57,8 @@ public class SupervisorGrpcModelConverters {
         return com.netflix.titus.grpc.protogen.MasterStatus.newBuilder()
                 .setState(toGrpcState(masterStatus.getState()))
                 .setTimestamp(masterStatus.getTimestamp())
-                .setReasonCode(masterStatus.getReasonCode())
-                .setReasonMessage(masterStatus.getReasonMessage())
+                .setReasonCode("<deprecated>")
+                .setReasonMessage(masterStatus.getMessage())
                 .build();
     }
 
