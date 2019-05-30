@@ -19,6 +19,8 @@ package com.netflix.titus.supplementary.jobactivity.endpoint;
 import com.netflix.titus.grpc.protogen.CallMetadata;
 import com.netflix.titus.grpc.protogen.JobActivityQueryResult;
 import com.netflix.titus.grpc.protogen.JobActivityRecord;
+import com.netflix.titus.grpc.protogen.TaskActivityQueryResult;
+
 
 /**
  * TODO Remove when REST/GRPC endpoints fully implemented.
@@ -41,6 +43,6 @@ public class TestData {
     }
 
     public static TaskActivityQueryResult newTaskActivityQueryResult() {
-        return TaskActivityQueryResult.newBuilder();
+        return TaskActivityQueryResult.newBuilder().build();
     }
 }

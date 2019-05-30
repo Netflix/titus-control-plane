@@ -19,7 +19,9 @@ package com.netflix.titus.supplementary.jobactivity.endpoint.grpc;
 import javax.inject.Singleton;
 
 import com.netflix.titus.grpc.protogen.JobActivityQuery;
+import com.netflix.titus.grpc.protogen.TaskActivityQuery;
 import com.netflix.titus.grpc.protogen.JobActivityQueryResult;
+import com.netflix.titus.grpc.protogen.TaskActivityQueryResult;
 import com.netflix.titus.grpc.protogen.JobActivityServiceGrpc;
 import com.netflix.titus.supplementary.jobactivity.endpoint.TestData;
 import io.grpc.stub.StreamObserver;
@@ -35,7 +37,7 @@ public class JobActivityGrpcService extends JobActivityServiceGrpc.JobActivitySe
 
     @Override
     public void getTaskActivityRecords(TaskActivityQuery request, StreamObserver<TaskActivityQueryResult> responseObserver) {
-        responseObserver.onNext(TestData.newTaskActivityQueryResult());
+        //responseObserver.onNext(TestData.newTaskActivityQueryResult());
         responseObserver.onCompleted();
     }
 }

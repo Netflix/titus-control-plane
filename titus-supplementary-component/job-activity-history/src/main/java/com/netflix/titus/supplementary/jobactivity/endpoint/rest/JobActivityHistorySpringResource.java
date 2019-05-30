@@ -17,6 +17,7 @@
 package com.netflix.titus.supplementary.jobactivity.endpoint.rest;
 
 import com.netflix.titus.grpc.protogen.JobActivityQueryResult;
+import com.netflix.titus.grpc.protogen.TaskActivityQueryResult;
 import com.netflix.titus.supplementary.jobactivity.endpoint.TestData;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;

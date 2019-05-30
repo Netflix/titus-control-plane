@@ -29,6 +29,16 @@ message JobActivityRecord {
     uint64 timestamp = 4;
 }
 
+message TaskActivityRecord {
+    CallMetadata callMetadata = 1;
+
+    message Change {
+        Task task = 2;
+    }
+
+    uint64 timestamp = 3;
+}
+
 // ----------------------------------------------------------------------------
 // Service
 
@@ -36,13 +46,25 @@ message JobActivityQuery {
     string id = 1;
 }
 
+message TaskActivityQuery {
+    string id = 1;
+}
+
 message JobActivityQueryResult {
     repeated JobActivityRecord records = 1;
 }
 
+message TaskActivityQueryResult {
+    repeated TaskActivityRecord records = 1;
+}
+
 service JobActivityService {
 
-    /// Get all known TitusMaster instances.
+    /// Get all known active job records.
     rpc GetJobActivityRecords (JobActivityQuery) returns (JobActivityQueryResult) {
+    }
+
+    // Get all known active task record history
+    rpc GetTaskActivityRecords (TaskActivityQuery) returns (TaskActivityQueryResult) {
     }
 }
