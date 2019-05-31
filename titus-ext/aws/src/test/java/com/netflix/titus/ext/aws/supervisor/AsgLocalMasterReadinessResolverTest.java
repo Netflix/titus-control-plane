@@ -109,51 +109,45 @@ public class AsgLocalMasterReadinessResolverTest {
 
     @Test
     public void testResolve() {
-        Iterator<ReadinessStatus> it = resolver.observeLocalMasterReadinessUpdates().toIterable().iterator();
-        assertThat(it.next().getState()).isEqualTo(ReadinessState.NotReady);
-        assertThat(it.next().getState()).isEqualTo(ReadinessState.Disabled);
+        Iterator<ReadinessStatus> it = newStreamInitiallyDisabled();
 
         // Change to NonLeader
         currentTagState.set("true");
-        assertThat(it.next().getState()).isEqualTo(ReadinessState.Enabled);
+        awaitState(it, ReadinessState.Enabled);
 
         // Change to Inactive
         currentTagState.set("false");
-        assertThat(it.next().getState()).isEqualTo(ReadinessState.Disabled);
+        awaitState(it, ReadinessState.Disabled);
 
         // Change to NonLeader
         currentTagState.set("true");
-        assertThat(it.next().getState()).isEqualTo(ReadinessState.Enabled);
+        awaitState(it, ReadinessState.Enabled);
 
         // Remove tag
         currentTagState.set(null);
-        assertThat(it.next().getState()).isEqualTo(ReadinessState.Disabled);
+        awaitState(it, ReadinessState.Disabled);
     }
 
     @Test
     public void testInvalidTagValues() {
-        Iterator<ReadinessStatus> it = resolver.observeLocalMasterReadinessUpdates().toIterable().iterator();
-        assertThat(it.next().getState()).isEqualTo(ReadinessState.NotReady);
-        assertThat(it.next().getState()).isEqualTo(ReadinessState.Disabled);
+        Iterator<ReadinessStatus> it = newStreamInitiallyDisabled();
 
         // Change to NonLeader
         currentTagState.set("true");
-        assertThat(it.next().getState()).isEqualTo(ReadinessState.Enabled);
+        awaitState(it, ReadinessState.Enabled);
 
         // Set bad state, and wait until it is read
         currentTagState.set("bad_state");
-        assertThat(it.next().getState()).isEqualTo(ReadinessState.Disabled);
+        awaitState(it, ReadinessState.Disabled);
 
         // Change to NonLeader to trigger update
         currentTagState.set("true");
-        assertThat(it.next().getState()).isEqualTo(ReadinessState.Enabled);
+        awaitState(it, ReadinessState.Enabled);
     }
 
     @Test
     public void testAwsClientError() {
-        Iterator<ReadinessStatus> it = resolver.observeLocalMasterReadinessUpdates().toIterable().iterator();
-        assertThat(it.next().getState()).isEqualTo(ReadinessState.NotReady);
-        assertThat(it.next().getState()).isEqualTo(ReadinessState.Disabled);
+        Iterator<ReadinessStatus> it = newStreamInitiallyDisabled();
 
         // Simulate error
         int currentCounter = invocationCounter.get();
@@ -162,6 +156,17 @@ public class AsgLocalMasterReadinessResolverTest {
 
         // Change to NonLeader to trigger update
         currentTagState.set("true");
-        assertThat(it.next().getState()).isEqualTo(ReadinessState.Enabled);
+        awaitState(it, ReadinessState.Enabled);
+    }
+
+    private Iterator<ReadinessStatus> newStreamInitiallyDisabled() {
+        Iterator<ReadinessStatus> it = resolver.observeLocalMasterReadinessUpdates().toIterable().iterator();
+        assertThat(it.next().getState()).isEqualTo(ReadinessState.NotReady);
+        assertThat(it.next().getState()).isEqualTo(ReadinessState.Disabled);
+        return it;
+    }
+
+    private void awaitState(Iterator<ReadinessStatus> it, ReadinessState state) {
+        await().until(() -> it.next().getState() == state);
     }
 }
