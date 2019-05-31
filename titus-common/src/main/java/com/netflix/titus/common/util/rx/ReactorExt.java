@@ -210,7 +210,10 @@ public final class ReactorExt {
      * In case subscriber does not provide exception handler, the error is propagated back to source, and the stream is broken.
      * In some scenarios it is undesirable behavior. This method wraps the unprotected flux, and logs all unhandled
      * exceptions using the provided logger.
+     *
+     * @deprecated use {@link #badSubscriberHandler(Logger)}
      */
+    @Deprecated
     public static <T> Flux<T> protectFromMissingExceptionHandlers(Flux<T> unprotectedStream, Logger logger) {
         return Flux.create(sink -> {
             Disposable disposable = unprotectedStream.subscribe(

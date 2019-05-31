@@ -19,6 +19,7 @@ package com.netflix.titus.common.util.proxy;
 import com.google.common.base.Preconditions;
 import com.netflix.titus.common.util.proxy.annotation.NoIntercept;
 import com.netflix.titus.common.util.proxy.annotation.ObservableResult;
+import reactor.core.publisher.Flux;
 import rx.Completable;
 import rx.Observable;
 
@@ -32,6 +33,9 @@ public interface MyApi {
 
     @ObservableResult
     Observable<String> observableEcho(String message);
+
+    @ObservableResult
+    Flux<String> fluxEcho(String message);
 
     @ObservableResult(enabled = false)
     Observable<String> untrackedObservableEcho(String message);
@@ -56,6 +60,14 @@ public interface MyApi {
             return Observable.unsafeCreate(subscriber -> {
                 subscriber.onNext(buildReply(message));
                 subscriber.onCompleted();
+            });
+        }
+
+        @Override
+        public Flux<String> fluxEcho(String message) {
+            return Flux.create(emitter -> {
+                emitter.next(buildReply(message));
+                emitter.complete();
             });
         }
 

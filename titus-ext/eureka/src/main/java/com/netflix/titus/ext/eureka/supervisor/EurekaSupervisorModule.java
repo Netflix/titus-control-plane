@@ -21,12 +21,12 @@ import javax.inject.Singleton;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
-import com.netflix.titus.api.supervisor.service.LocalMasterInstanceResolver;
+import com.netflix.titus.api.supervisor.service.LocalMasterReadinessResolver;
 
 public class EurekaSupervisorModule extends AbstractModule {
     @Override
     protected void configure() {
-        bind(LocalMasterInstanceResolver.class).to(EurekaLocalMasterInstanceResolver.class);
+        bind(LocalMasterReadinessResolver.class).to(EurekaLocalMasterReadinessResolver.class);
     }
 
     @Provides

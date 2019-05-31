@@ -23,6 +23,7 @@ import java.util.List;
 
 import com.netflix.titus.common.util.proxy.MyApi;
 import org.junit.Test;
+import reactor.core.publisher.Flux;
 import rx.Completable;
 import rx.Observable;
 
@@ -31,7 +32,7 @@ import static org.assertj.core.api.Assertions.fail;
 
 public class InterceptingInvocationHandlerTest {
 
-    private enum InterceptionPoint {Before, After, AfterException, AfterObservable, AfterCompletable}
+    private enum InterceptionPoint {Before, After, AfterException, AfterObservable, AfterFlux, AfterCompletable}
 
     private static final String MESSAGE = "abcdefg";
 
@@ -66,6 +67,12 @@ public class InterceptingInvocationHandlerTest {
     }
 
     @Test
+    public void testFluxResult() {
+        assertThat(myApi.fluxEcho(MESSAGE).blockFirst()).startsWith(MESSAGE);
+        verifyInterceptionPointsCalled(InterceptionPoint.Before, InterceptionPoint.After, InterceptionPoint.AfterFlux);
+    }
+
+    @Test
     public void testFailedObservableResult() {
         try {
             myApi.observableEcho(null).toBlocking().first();
@@ -90,7 +97,7 @@ public class InterceptingInvocationHandlerTest {
     private void verifyInterceptionPointsCalled(InterceptionPoint... interceptionPoints) {
         assertThat(handler.interceptionPoints).hasSize(interceptionPoints.length);
         for (int i = 0; i < interceptionPoints.length; i++) {
-            assertThat(interceptionPoints[i]).isEqualTo(handler.interceptionPoints.get(i));
+            assertThat(handler.interceptionPoints.get(i)).isEqualTo(interceptionPoints[i]);
         }
     }
 
@@ -121,6 +128,12 @@ public class InterceptingInvocationHandlerTest {
         @Override
         protected Observable<Object> afterObservable(Method method, Observable<Object> result, Boolean aBoolean) {
             interceptionPoints.add(InterceptionPoint.AfterObservable);
+            return result;
+        }
+
+        @Override
+        protected Flux<Object> afterFlux(Method method, Flux<Object> result, Boolean aBoolean) {
+            interceptionPoints.add(InterceptionPoint.AfterFlux);
             return result;
         }
 

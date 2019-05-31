@@ -229,7 +229,8 @@ class ScheduledActionExecutor {
                                     effectiveError = new TimeoutException(String.format("Action did not complete in time: timeout=%sms", descriptor.getTimeout().toMillis()));
                                 }
 
-                                ExceptionExt.silent(() -> descriptor.getOnErrorHandler().accept(action, error));
+                                Throwable finalEffectiveError = effectiveError;
+                                ExceptionExt.silent(() -> descriptor.getOnErrorHandler().accept(action, finalEffectiveError));
                                 this.error = effectiveError;
                                 this.actionCompleted = true;
                             },

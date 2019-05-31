@@ -30,8 +30,7 @@ public class MasterInstanceGenerator {
     public static DataGenerator<MasterInstance> masterInstances(MasterState initialState, String... ids) {
         MasterStatus masterStatus = MasterStatus.newBuilder()
                 .withState(initialState)
-                .withReasonCode("initialValueInTest")
-                .withReasonMessage("Initial value")
+                .withMessage("Initial value")
                 .build();
 
         List<MasterInstance> values = new ArrayList<>();
@@ -57,8 +56,7 @@ public class MasterInstanceGenerator {
         return current.toBuilder()
                 .withStatus(MasterStatus.newBuilder()
                         .withState(state)
-                        .withReasonCode("testTransition")
-                        .withReasonMessage("Requested by test")
+                        .withMessage("Requested by test")
                         .build()
                 )
                 .build();

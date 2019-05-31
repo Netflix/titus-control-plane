@@ -49,6 +49,12 @@ public class Main {
             "terminate", "shrink", "tag", "tagged", "reaper", "scaleUp", "scaleDown");
 
     private static final AwsConfiguration CONFIGURATION = new AwsConfiguration() {
+
+        @Override
+        public String getTitusMasterAsgName() {
+            return "TitusMaster";
+        }
+
         @Override
         public String getRegion() {
             return REGION;

@@ -130,6 +130,7 @@ public class ScheduleDescriptor {
         return newBuilder()
                 .withName(name)
                 .withDescription(description)
+                .withInitialDelay(initialDelay)
                 .withInterval(interval)
                 .withRetryerSupplier(retryerSupplier)
                 .withTimeout(timeout)

@@ -16,18 +16,20 @@
 
 package com.netflix.titus.api.supervisor.service;
 
-import com.netflix.titus.api.supervisor.model.MasterInstance;
+import com.netflix.titus.api.supervisor.model.ReadinessStatus;
 import reactor.core.publisher.Flux;
 
 /**
- * Each cluster/supervised member must resolve its own state and advertise it to other members.
- * This interface is implemented by components providing their own state resolution strategies.
+ * A given master instance can join a leader election process when multiple criteria are met. For example:
+ * <ul>
+ * <li>bootstrap process has finished</li>
+ * <li>an instance is health/li>
+ * <li>an administrator configured the instance to be part of the leader election process</li>
+ * <p>
+ * {@link LocalMasterReadinessResolver} implementations provide different readiness checks. A given master instance
+ * is ready, if all the constituents agree on it.
  */
-public interface LocalMasterInstanceResolver {
+public interface LocalMasterReadinessResolver {
 
-    /**
-     * Emits the current member state, and state updates subsequently. The stream never completes, unless explicitly
-     * terminated by a subscriber.
-     */
-    Flux<MasterInstance> observeLocalMasterInstanceUpdates();
+    Flux<ReadinessStatus> observeLocalMasterReadinessUpdates();
 }

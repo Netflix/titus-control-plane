@@ -16,27 +16,35 @@
 
 package com.netflix.titus.master.supervisor.service;
 
+import java.util.Collections;
 import javax.inject.Singleton;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
+import com.netflix.titus.api.supervisor.model.MasterInstance;
+import com.netflix.titus.api.supervisor.model.MasterState;
+import com.netflix.titus.api.supervisor.model.MasterStatus;
 import com.netflix.titus.api.supervisor.service.LeaderActivator;
 import com.netflix.titus.api.supervisor.service.LeaderElector;
 import com.netflix.titus.api.supervisor.service.LocalMasterInstanceResolver;
+import com.netflix.titus.api.supervisor.service.LocalMasterReadinessResolver;
 import com.netflix.titus.api.supervisor.service.MasterMonitor;
 import com.netflix.titus.api.supervisor.service.SupervisorOperations;
+import com.netflix.titus.api.supervisor.service.resolver.AlwaysEnabledLocalMasterReadinessResolver;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.NetworkExt;
 import com.netflix.titus.master.supervisor.SupervisorConfiguration;
 import com.netflix.titus.master.supervisor.service.leader.GuiceLeaderActivator;
 import com.netflix.titus.master.supervisor.service.leader.ImmediateLeaderElector;
-import com.netflix.titus.master.supervisor.service.leader.ImmediateLocalMasterInstanceResolver;
 import com.netflix.titus.master.supervisor.service.leader.LeaderElectionOrchestrator;
 import com.netflix.titus.master.supervisor.service.leader.LocalMasterMonitor;
+import com.netflix.titus.master.supervisor.service.resolver.DefaultLocalMasterInstanceResolver;
 
 public class SupervisorServiceModule extends AbstractModule {
     @Override
     protected void configure() {
-        bind(LocalMasterInstanceResolver.class).to(ImmediateLocalMasterInstanceResolver.class);
+        bind(LocalMasterReadinessResolver.class).toInstance(AlwaysEnabledLocalMasterReadinessResolver.getInstance());
         bind(MasterMonitor.class).to(LocalMasterMonitor.class);
         bind(LeaderElector.class).to(ImmediateLeaderElector.class).asEagerSingleton();
         bind(LeaderActivator.class).to(GuiceLeaderActivator.class);
@@ -48,5 +56,26 @@ public class SupervisorServiceModule extends AbstractModule {
     @Singleton
     public SupervisorConfiguration getSupervisorConfiguration(ConfigProxyFactory factory) {
         return factory.newProxy(SupervisorConfiguration.class);
+    }
+
+    @Provides
+    @Singleton
+    public LocalMasterInstanceResolver getLocalMasterInstanceResolver(SupervisorConfiguration configuration,
+                                                                      LocalMasterReadinessResolver localMasterReadinessResolver,
+                                                                      TitusRuntime titusRuntime) {
+        String ipAddress = NetworkExt.getLocalIPs().flatMap(ips -> ips.stream().filter(NetworkExt::isIpV4).findFirst()).orElse("127.0.0.1");
+
+        MasterInstance initial = MasterInstance.newBuilder()
+                .withInstanceId(configuration.getTitusMasterInstanceId())
+                .withIpAddress(ipAddress)
+                .withStatusHistory(Collections.emptyList())
+                .withStatus(MasterStatus.newBuilder()
+                        .withState(MasterState.Starting)
+                        .withMessage("Bootstrapping")
+                        .withTimestamp(titusRuntime.getClock().wallTime())
+                        .build()
+                )
+                .build();
+        return new DefaultLocalMasterInstanceResolver(localMasterReadinessResolver, initial);
     }
 }

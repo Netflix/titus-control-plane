@@ -30,7 +30,7 @@ public class SpectatorInvocationHandlerTest {
 
     private final TitusRuntime titusRuntime = TitusRuntimes.test();
 
-    private final MyApi myApi = ProxyCatalog.createSpectatorProxy(MyApi.class, new MyApi.MyApiImpl(), titusRuntime);
+    private final MyApi myApi = ProxyCatalog.createSpectatorProxy("myInstance", MyApi.class, new MyApi.MyApiImpl(), titusRuntime, true);
 
     @Test
     public void testSuccessfulMethodInvocation() {

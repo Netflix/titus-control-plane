@@ -201,7 +201,7 @@ public class ProxyMethodInterceptor implements MethodInterceptor {
                         interceptors.add(new LoggingProxyBuilder(interf, null).titusRuntime(titusRuntimeProvider.get()).buildHandler());
                         break;
                     case Spectator:
-                        interceptors.add(new SpectatorInvocationHandler<>(interf, titusRuntimeProvider.get(), true));
+                        interceptors.add(new SpectatorInvocationHandler<>(interf.getSimpleName(), interf, titusRuntimeProvider.get(), true));
                         break;
                     case ActiveGuard:
                         interceptors.add(new GuardingInvocationHandler<>(interf, instance -> activationLifecycle.get().isActive(instance)));

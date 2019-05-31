@@ -32,10 +32,10 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import com.netflix.titus.api.supervisor.service.LeaderActivator;
-import com.netflix.titus.master.config.MasterConfiguration;
-import com.netflix.titus.master.endpoint.v2.rest.Util;
 import com.netflix.titus.api.supervisor.service.MasterDescription;
 import com.netflix.titus.api.supervisor.service.MasterMonitor;
+import com.netflix.titus.master.config.MasterConfiguration;
+import com.netflix.titus.master.endpoint.v2.rest.Util;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,7 +46,13 @@ public class LeaderRedirectingFilter implements Filter {
 
     private static final Logger logger = LoggerFactory.getLogger(LeaderRedirectingFilter.class);
 
-    private static final Set<String> ALWAYS_OPEN_PATHS = asSet("/api/v2/leader", "/api/v2/status", "/api/v3/supervisor", "/health");
+    private static final Set<String> ALWAYS_OPEN_PATHS = asSet(
+            "/api/v2/leader",
+            "/api/v2/status",
+            "/api/v3/supervisor",
+            "/health",
+            "/api/diagnostic"
+    );
 
     private final MasterConfiguration config;
     private final MasterMonitor masterMonitor;

@@ -16,14 +16,14 @@
 
 package com.netflix.titus.master.supervisor.service.leader;
 
-import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.common.runtime.TitusRuntimes;
-import com.netflix.titus.master.supervisor.SupervisorConfiguration;
 import com.netflix.titus.api.supervisor.model.MasterInstance;
 import com.netflix.titus.api.supervisor.model.MasterState;
 import com.netflix.titus.api.supervisor.service.LeaderElector;
 import com.netflix.titus.api.supervisor.service.LocalMasterInstanceResolver;
 import com.netflix.titus.api.supervisor.service.MasterMonitor;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.runtime.TitusRuntimes;
+import com.netflix.titus.master.supervisor.SupervisorConfiguration;
 import com.netflix.titus.testkit.model.supervisor.MasterInstanceGenerator;
 import org.junit.After;
 import org.junit.Before;
@@ -31,6 +31,7 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
+import reactor.core.publisher.DirectProcessor;
 import rx.Completable;
 import rx.schedulers.Schedulers;
 import rx.schedulers.TestScheduler;
@@ -54,7 +55,7 @@ public class LeaderElectionOrchestratorTest {
     private final SupervisorConfiguration configuration = mock(SupervisorConfiguration.class);
 
     private final LocalMasterInstanceResolver localMasterInstanceResolver = mock(LocalMasterInstanceResolver.class);
-    private final PublishSubject<MasterInstance> localMasterUpdates = PublishSubject.create();
+    private final DirectProcessor<MasterInstance> localMasterUpdates = DirectProcessor.create();
 
     private final MasterMonitor masterMonitor = mock(MasterMonitor.class);
     private final InOrder masterMonitorInOrder = inOrder(masterMonitor);

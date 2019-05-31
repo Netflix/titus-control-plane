@@ -122,8 +122,7 @@ public class ZookeeperMasterMonitorTest {
         // Change state
         MasterInstance updated = MasterInstanceFunctions.moveTo(initial, MasterStatus.newBuilder()
                 .withState(MasterState.NonLeader)
-                .withReasonCode("nextStep")
-                .withReasonMessage("testing")
+                .withMessage("testing")
                 .build()
         );
         assertThat(masterMonitor.updateOwnMasterInstance(updated).get()).isNull();
