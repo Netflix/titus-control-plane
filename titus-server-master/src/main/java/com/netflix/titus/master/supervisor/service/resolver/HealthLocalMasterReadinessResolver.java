@@ -47,7 +47,7 @@ public class HealthLocalMasterReadinessResolver implements LocalMasterReadinessR
 
     private static final Logger logger = LoggerFactory.getLogger(HealthLocalMasterReadinessResolver.class);
 
-    private static final ScheduleDescriptor REFRESH_SCHEDULER_DESCRIPTOR = ScheduleDescriptor.newBuilder()
+    static final ScheduleDescriptor REFRESH_SCHEDULER_DESCRIPTOR = ScheduleDescriptor.newBuilder()
             .withName(HealthLocalMasterReadinessResolver.class.getSimpleName())
             .withDescription("Local Master state adapter")
             .withInitialDelay(Duration.ZERO)
@@ -96,7 +96,7 @@ public class HealthLocalMasterReadinessResolver implements LocalMasterReadinessR
     }
 
     private Mono<ReadinessStatus> refresh() {
-        return Mono.fromFuture(healthCheckAggregator.check())
+        return Mono.defer(() -> Mono.fromFuture(healthCheckAggregator.check()))
                 .map(health -> {
                     ReadinessStatus.Builder builder = ReadinessStatus.newBuilder().withTimestamp(clock.wallTime());
                     if (health.isHealthy()) {

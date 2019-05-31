@@ -110,6 +110,7 @@ public class AsgLocalMasterReadinessResolverTest {
     @Test
     public void testResolve() {
         Iterator<ReadinessStatus> it = resolver.observeLocalMasterReadinessUpdates().toIterable().iterator();
+        assertThat(it.next().getState()).isEqualTo(ReadinessState.NotReady);
         assertThat(it.next().getState()).isEqualTo(ReadinessState.Disabled);
 
         // Change to NonLeader
@@ -132,6 +133,7 @@ public class AsgLocalMasterReadinessResolverTest {
     @Test
     public void testInvalidTagValues() {
         Iterator<ReadinessStatus> it = resolver.observeLocalMasterReadinessUpdates().toIterable().iterator();
+        assertThat(it.next().getState()).isEqualTo(ReadinessState.NotReady);
         assertThat(it.next().getState()).isEqualTo(ReadinessState.Disabled);
 
         // Change to NonLeader
@@ -150,6 +152,7 @@ public class AsgLocalMasterReadinessResolverTest {
     @Test
     public void testAwsClientError() {
         Iterator<ReadinessStatus> it = resolver.observeLocalMasterReadinessUpdates().toIterable().iterator();
+        assertThat(it.next().getState()).isEqualTo(ReadinessState.NotReady);
         assertThat(it.next().getState()).isEqualTo(ReadinessState.Disabled);
 
         // Simulate error

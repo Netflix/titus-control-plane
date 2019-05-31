@@ -18,6 +18,8 @@ package com.netflix.titus.common.util.proxy.internal;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import com.netflix.spectator.api.BasicTag;
@@ -26,14 +28,24 @@ import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.Tag;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.time.Clock;
+import reactor.core.Disposable;
+import reactor.core.publisher.Flux;
 import rx.Completable;
 import rx.Observable;
 import rx.Subscription;
+
+import static java.util.Arrays.asList;
 
 /**
  * Method invocation metrics collector.
  */
 public class SpectatorInvocationHandler<API, NATIVE> extends InterceptingInvocationHandler<API, NATIVE, Long> {
+
+    private static final String INVOCATION_COUNTER_METRIC_NAME = "titusMaster.api.invocation.count";
+    private static final String INVOCATION_TIME_METRIC_NAME = "titusMaster.api.invocation.executionTime";
+    private static final String RESULT_SUBSCRIPTION_COUNT_METRIC_NAME = "titusMaster.api.invocation.subscriptions";
+    private static final String RESULT_SUBSCRIPTION_EMITS_METRIC_NAME = "titusMaster.api.invocation.subscriptionEmits";
+    private static final String RESULT_SUBSCRIPTION_TIME_METRIC_NAME = "titusMaster.api.invocation.subscriptionTime";
 
     private static final Tag TAG_STATUS_SUCCESS = new BasicTag("status", "success");
     private static final Tag TAG_STATUS_ERROR = new BasicTag("status", "error");
@@ -41,26 +53,19 @@ public class SpectatorInvocationHandler<API, NATIVE> extends InterceptingInvocat
     private static final Tag TAG_CALL_STAGE_ON_METHOD_EXIT = new BasicTag("callStage", "onMethodExit");
     private static final Tag TAG_CALL_STAGE_ON_COMPLETED = new BasicTag("callStage", "onCompleted");
 
-    private final Class<API> apiInterface;
     private final Registry registry;
     private final Clock clock;
-    private final String invocationCounterMetricName;
-    private final String invocationTimeMetricName;
-    private final String resultSubscriptionCountMetricName;
-    private final String resultSubscriptionEmitMetricName;
-    private final String resultSubscriptionTimeMetricName;
 
-    public SpectatorInvocationHandler(Class<API> apiInterface, TitusRuntime titusRuntime, boolean followObservableResults) {
+    private final List<Tag> commonTags;
+
+    public SpectatorInvocationHandler(String instanceName, Class<API> apiInterface, TitusRuntime titusRuntime, boolean followObservableResults) {
         super(apiInterface, followObservableResults);
-        this.apiInterface = apiInterface;
         this.registry = titusRuntime.getRegistry();
         this.clock = titusRuntime.getClock();
-
-        this.invocationCounterMetricName = "titusMaster.api." + apiInterface.getSimpleName() + ".invocations";
-        this.invocationTimeMetricName = "titusMaster.api." + apiInterface.getSimpleName() + ".executionTime";
-        this.resultSubscriptionCountMetricName = "titusMaster.api." + apiInterface.getSimpleName() + ".subscriptions";
-        this.resultSubscriptionEmitMetricName = "titusMaster.api." + apiInterface.getSimpleName() + ".subscriptionEmits";
-        this.resultSubscriptionTimeMetricName = "titusMaster.api." + apiInterface.getSimpleName() + ".subscriptionTime";
+        this.commonTags = asList(
+                new BasicTag("instance", instanceName),
+                new BasicTag("class", apiInterface.getName())
+        );
     }
 
     @Override
@@ -71,10 +76,11 @@ public class SpectatorInvocationHandler<API, NATIVE> extends InterceptingInvocat
     @Override
     protected void after(Method method, Object result, Long startTime) {
         registry.counter(
-                invocationCounterMetricName,
-                "class", apiInterface.getName(),
-                "method", method.getName(),
-                "status", "success"
+                INVOCATION_COUNTER_METRIC_NAME,
+                tags(
+                        "method", method.getName(),
+                        "status", "success"
+                )
         ).increment();
 
         reportExecutionTime(method, startTime, TAG_STATUS_SUCCESS, TAG_CALL_STAGE_ON_METHOD_EXIT);
@@ -87,11 +93,12 @@ public class SpectatorInvocationHandler<API, NATIVE> extends InterceptingInvocat
     @Override
     protected void afterException(Method method, Throwable error, Long startTime) {
         registry.counter(
-                invocationCounterMetricName,
-                "class", apiInterface.getName(),
-                "method", method.getName(),
-                "status", "error",
-                "exception", getExceptionName(error)
+                INVOCATION_COUNTER_METRIC_NAME,
+                tags(
+                        "method", method.getName(),
+                        "status", "error",
+                        "exception", getExceptionName(error)
+                )
         ).increment();
 
         reportExecutionTime(method, startTime, TAG_STATUS_ERROR, TAG_CALL_STAGE_ON_METHOD_EXIT);
@@ -105,36 +112,38 @@ public class SpectatorInvocationHandler<API, NATIVE> extends InterceptingInvocat
             long subscriptionTime = clock.wallTime();
 
             registry.counter(
-                    resultSubscriptionCountMetricName,
-                    "class", apiInterface.getName(),
-                    "method", method.getName(),
-                    "subscriptionStage", "subscribed"
+                    RESULT_SUBSCRIPTION_COUNT_METRIC_NAME,
+                    tags(
+                            "method", method.getName(),
+                            "subscriptionStage", "subscribed"
+                    )
             ).increment();
             reportSubscriptionExecutionTime(method, methodExitTime, subscriptionTime);
 
             Subscription subscription = result.doOnUnsubscribe(() -> {
                 registry.counter(
-                        resultSubscriptionCountMetricName,
-                        "class", apiInterface.getName(),
-                        "method", method.getName(),
-                        "subscriptionStage", "unsubscribed"
+                        RESULT_SUBSCRIPTION_COUNT_METRIC_NAME,
+                        tags(
+                                "method", method.getName(),
+                                "subscriptionStage", "unsubscribed"
+                        )
                 ).increment();
             }).subscribe(
                     next -> {
                         registry.counter(
-                                resultSubscriptionEmitMetricName,
-                                "class", apiInterface.getName(),
-                                "method", method.getName()
+                                RESULT_SUBSCRIPTION_EMITS_METRIC_NAME,
+                                tags("method", method.getName())
                         ).increment();
                         subscriber.onNext(next);
                     },
                     error -> {
                         registry.counter(
-                                resultSubscriptionCountMetricName,
-                                "class", apiInterface.getName(),
-                                "method", method.getName(),
-                                "subscriptionStage", "onError",
-                                "exception", getExceptionName(error)
+                                RESULT_SUBSCRIPTION_COUNT_METRIC_NAME,
+                                tags(
+                                        "method", method.getName(),
+                                        "subscriptionStage", "onError",
+                                        "exception", getExceptionName(error)
+                                )
                         ).increment();
                         reportExecutionTime(method, subscriptionTime, TAG_STATUS_ERROR, TAG_CALL_STAGE_ON_COMPLETED);
 
@@ -142,10 +151,11 @@ public class SpectatorInvocationHandler<API, NATIVE> extends InterceptingInvocat
                     },
                     () -> {
                         registry.counter(
-                                resultSubscriptionCountMetricName,
-                                "class", apiInterface.getName(),
-                                "method", method.getName(),
-                                "subscriptionStage", "onCompleted"
+                                RESULT_SUBSCRIPTION_COUNT_METRIC_NAME,
+                                tags(
+                                        "method", method.getName(),
+                                        "subscriptionStage", "onCompleted"
+                                )
                         ).increment();
                         reportExecutionTime(method, subscriptionTime, TAG_STATUS_SUCCESS, TAG_CALL_STAGE_ON_COMPLETED);
 
@@ -158,6 +168,69 @@ public class SpectatorInvocationHandler<API, NATIVE> extends InterceptingInvocat
     }
 
     @Override
+    protected Flux<Object> afterFlux(Method method, Flux<Object> result, Long startTime) {
+        long methodExitTime = clock.wallTime();
+
+        return Flux.create(emitter -> {
+            long subscriptionTime = clock.wallTime();
+
+            registry.counter(
+                    RESULT_SUBSCRIPTION_COUNT_METRIC_NAME,
+                    tags(
+                            "method", method.getName(),
+                            "subscriptionStage", "subscribed"
+                    )
+            ).increment();
+            reportSubscriptionExecutionTime(method, methodExitTime, subscriptionTime);
+
+            Disposable subscription = result.doOnCancel(() -> {
+                registry.counter(
+                        RESULT_SUBSCRIPTION_COUNT_METRIC_NAME,
+                        tags(
+                                "method", method.getName(),
+                                "subscriptionStage", "unsubscribed"
+                        )
+                ).increment();
+            }).subscribe(
+                    next -> {
+                        registry.counter(
+                                RESULT_SUBSCRIPTION_EMITS_METRIC_NAME,
+                                tags("method", method.getName())
+                        ).increment();
+                        emitter.next(next);
+                    },
+                    error -> {
+                        registry.counter(
+                                RESULT_SUBSCRIPTION_COUNT_METRIC_NAME,
+                                tags(
+                                        "method", method.getName(),
+                                        "subscriptionStage", "onError",
+                                        "exception", getExceptionName(error)
+                                )
+                        ).increment();
+                        reportExecutionTime(method, subscriptionTime, TAG_STATUS_ERROR, TAG_CALL_STAGE_ON_COMPLETED);
+
+                        emitter.error(error);
+                    },
+                    () -> {
+                        registry.counter(
+                                RESULT_SUBSCRIPTION_COUNT_METRIC_NAME,
+                                tags(
+                                        "method", method.getName(),
+                                        "subscriptionStage", "onCompleted"
+                                )
+                        ).increment();
+                        reportExecutionTime(method, subscriptionTime, TAG_STATUS_SUCCESS, TAG_CALL_STAGE_ON_COMPLETED);
+
+                        emitter.complete();
+                    }
+            );
+
+            emitter.onCancel(subscription);
+        });
+    }
+
+    @Override
     protected Completable afterCompletable(Method method, Completable result, Long aLong) {
         long methodExitTime = clock.wallTime();
 
@@ -165,28 +238,31 @@ public class SpectatorInvocationHandler<API, NATIVE> extends InterceptingInvocat
             long subscriptionTime = clock.wallTime();
 
             registry.counter(
-                    resultSubscriptionCountMetricName,
-                    "class", apiInterface.getName(),
-                    "method", method.getName(),
-                    "subscriptionStage", "subscribed"
+                    RESULT_SUBSCRIPTION_COUNT_METRIC_NAME,
+                    tags(
+                            "method", method.getName(),
+                            "subscriptionStage", "subscribed"
+                    )
             ).increment();
             reportSubscriptionExecutionTime(method, methodExitTime, subscriptionTime);
 
             Subscription subscription = result
                     .doOnUnsubscribe(() -> {
                         registry.counter(
-                                resultSubscriptionCountMetricName,
-                                "class", apiInterface.getName(),
-                                "method", method.getName(),
-                                "subscriptionStage", "unsubscribed"
+                                RESULT_SUBSCRIPTION_COUNT_METRIC_NAME,
+                                tags(
+                                        "method", method.getName(),
+                                        "subscriptionStage", "unsubscribed"
+                                )
                         ).increment();
                     }).subscribe(
                             () -> {
                                 registry.counter(
-                                        resultSubscriptionCountMetricName,
-                                        "class", apiInterface.getName(),
-                                        "method", method.getName(),
-                                        "subscriptionStage", "onCompleted"
+                                        RESULT_SUBSCRIPTION_COUNT_METRIC_NAME,
+                                        tags(
+                                                "method", method.getName(),
+                                                "subscriptionStage", "onCompleted"
+                                        )
                                 ).increment();
                                 reportExecutionTime(method, subscriptionTime, TAG_STATUS_SUCCESS, TAG_CALL_STAGE_ON_COMPLETED);
 
@@ -194,11 +270,12 @@ public class SpectatorInvocationHandler<API, NATIVE> extends InterceptingInvocat
                             },
                             error -> {
                                 registry.counter(
-                                        resultSubscriptionCountMetricName,
-                                        "class", apiInterface.getName(),
-                                        "method", method.getName(),
-                                        "subscriptionStage", "onError",
-                                        "exception", getExceptionName(error)
+                                        RESULT_SUBSCRIPTION_COUNT_METRIC_NAME,
+                                        tags(
+                                                "method", method.getName(),
+                                                "subscriptionStage", "onError",
+                                                "exception", getExceptionName(error)
+                                        )
                                 ).increment();
                                 reportExecutionTime(method, subscriptionTime, TAG_STATUS_ERROR, TAG_CALL_STAGE_ON_COMPLETED);
 
@@ -211,18 +288,16 @@ public class SpectatorInvocationHandler<API, NATIVE> extends InterceptingInvocat
     }
 
     private void reportExecutionTime(Method method, Long startTime, Tag... tags) {
-        Id id = registry.createId(invocationTimeMetricName,
-                "class", apiInterface.getName(),
-                "method", method.getName()
+        Id id = registry.createId(INVOCATION_TIME_METRIC_NAME,
+                tags("method", method.getName())
         ).withTags(tags);
         registry.timer(id).record(clock.wallTime() - startTime, TimeUnit.MILLISECONDS);
     }
 
     private void reportSubscriptionExecutionTime(Method method, Long startTime, long endTime) {
         registry.timer(
-                resultSubscriptionTimeMetricName,
-                "class", apiInterface.getName(),
-                "method", method.getName()
+                RESULT_SUBSCRIPTION_TIME_METRIC_NAME,
+                tags("method", method.getName())
         ).record(endTime - startTime, TimeUnit.MILLISECONDS);
     }
 
@@ -234,5 +309,14 @@ public class SpectatorInvocationHandler<API, NATIVE> extends InterceptingInvocat
         return error instanceof InvocationHandler
                 ? error.getCause().getClass().getName()
                 : error.getClass().getName();
+    }
+
+    private List<Tag> tags(String... values) {
+        List<Tag> result = new ArrayList<>(commonTags.size() + values.length / 2);
+        result.addAll(commonTags);
+        for (int i = 0; i < values.length / 2; i++) {
+            result.add(new BasicTag(values[i * 2], values[i * 2 + 1]));
+        }
+        return result;
     }
 }

@@ -27,6 +27,7 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.proxy.LoggingProxyBuilder;
 import com.netflix.titus.common.util.time.Clock;
 import org.slf4j.Logger;
+import reactor.core.publisher.Flux;
 import rx.Completable;
 import rx.Observable;
 
@@ -165,6 +166,12 @@ public class LoggingInvocationHandler<API, NATIVE> extends InterceptingInvocatio
                     }
             );
         });
+    }
+
+    @Override
+    protected Flux<Object> afterFlux(Method method, Flux<Object> result, Long aLong) {
+        // TODO implement
+        return result;
     }
 
     @Override

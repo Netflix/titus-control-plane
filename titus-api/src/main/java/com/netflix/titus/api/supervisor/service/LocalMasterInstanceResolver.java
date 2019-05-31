@@ -21,7 +21,7 @@ import reactor.core.publisher.Flux;
 
 /**
  * Each cluster/supervised member must resolve its own state and advertise it to other members.
- * This interface is implemented by components providing own state resolution strategies.
+ * This interface is implemented by components providing their own state resolution strategies.
  */
 public interface LocalMasterInstanceResolver {
 

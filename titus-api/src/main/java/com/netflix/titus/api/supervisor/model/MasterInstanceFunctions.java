@@ -30,7 +30,7 @@ public final class MasterInstanceFunctions {
     public static MasterInstance moveTo(MasterInstance masterInstance, MasterStatus nextStatus) {
         List<MasterStatus> statusHistory = CollectionsExt.copyAndAdd(masterInstance.getStatusHistory(), masterInstance.getStatus());
         if (statusHistory.size() > MAX_STATUS_HISTORY_SIZE) {
-            statusHistory = statusHistory.subList(0, MAX_STATUS_HISTORY_SIZE);
+            statusHistory = statusHistory.subList(statusHistory.size() - MAX_STATUS_HISTORY_SIZE, statusHistory.size());
         }
 
         return masterInstance.toBuilder()

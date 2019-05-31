@@ -138,7 +138,7 @@ public class AsgLocalMasterReadinessResolver implements LocalMasterReadinessReso
                         String value = tagDescription.getValue();
                         setNewTagValue(value);
 
-                        boolean enabled = "true".equalsIgnoreCase(value);
+                        boolean enabled = Boolean.valueOf(value);
                         effectiveState = enabled ? ReadinessState.Enabled : ReadinessState.Disabled;
                         message = "Set as tag on ASG: " + configuration.getTitusMasterAsgName();
                     }

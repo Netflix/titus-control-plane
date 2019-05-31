@@ -50,6 +50,7 @@ import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.rx.ReactorRetriers;
 import com.netflix.titus.common.util.tuple.Pair;
@@ -95,8 +96,8 @@ public class EurekaContainerHealthService implements ContainerHealthService {
 
     }
 
-    @PostConstruct
-    public void start() {
+    @Activator
+    public void activate() {
         this.eventLoggerDisposable = healthStatuses
                 .retryWhen(ReactorRetriers.instrumentedRetryer("EurekaContainerHealthServiceEventLogger", RETRY_INTERVAL, logger))
                 .subscribeOn(Schedulers.parallel())

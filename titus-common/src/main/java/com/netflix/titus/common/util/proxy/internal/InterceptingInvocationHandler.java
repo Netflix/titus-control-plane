@@ -26,9 +26,10 @@ import java.util.Set;
 import com.netflix.titus.common.util.ReflectionExt;
 import com.netflix.titus.common.util.proxy.ProxyInvocationChain;
 import com.netflix.titus.common.util.proxy.annotation.ObservableResult;
-import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.common.util.tuple.Triple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Flux;
 import rx.Completable;
 import rx.Observable;
 
@@ -40,15 +41,17 @@ abstract class InterceptingInvocationHandler<API, NATIVE, CONTEXT> extends Abstr
 
     private final boolean followObservableResults;
     private final Set<Method> observableResultFollowers;
+    private final Set<Method> fluxResultFollowers;
     private final Set<Method> completableResultFollowers;
 
     InterceptingInvocationHandler(Class<API> apiInterface, boolean followObservableResults) {
         super(apiInterface);
         this.followObservableResults = followObservableResults;
 
-        Pair<Set<Method>, Set<Method>> asynchronousResultFollowers = findObservableAndCompletableResultFollowers(apiInterface, getIncludedMethods());
-        this.observableResultFollowers = asynchronousResultFollowers.getLeft();
-        this.completableResultFollowers = asynchronousResultFollowers.getRight();
+        Triple<Set<Method>, Set<Method>, Set<Method>> asynchronousResultFollowers = findObservableAndCompletableResultFollowers(apiInterface, getIncludedMethods());
+        this.observableResultFollowers = asynchronousResultFollowers.getFirst();
+        this.fluxResultFollowers = asynchronousResultFollowers.getSecond();
+        this.completableResultFollowers = asynchronousResultFollowers.getThird();
     }
 
     @Override
@@ -87,6 +90,8 @@ abstract class InterceptingInvocationHandler<API, NATIVE, CONTEXT> extends Abstr
         }
         if (observableResultFollowers.contains(method)) {
             result = afterObservable(method, (Observable<Object>) result, context);
+        } else if (fluxResultFollowers.contains(method)) {
+            result = afterFlux(method, (Flux<Object>) result, context);
         } else if (completableResultFollowers.contains(method)) {
             result = afterCompletable(method, (Completable) result, context);
         }
@@ -102,27 +107,33 @@ abstract class InterceptingInvocationHandler<API, NATIVE, CONTEXT> extends Abstr
 
     protected abstract Observable<Object> afterObservable(Method method, Observable<Object> result, CONTEXT context);
 
+    protected abstract Flux<Object> afterFlux(Method method, Flux<Object> result, CONTEXT context);
+
     protected abstract Completable afterCompletable(Method method, Completable result, CONTEXT context);
 
-    private Pair<Set<Method>, Set<Method>> findObservableAndCompletableResultFollowers(Class<API> apiInterface, Set<Method> includedMethodSet) {
+    private Triple<Set<Method>, Set<Method>, Set<Method>> findObservableAndCompletableResultFollowers(Class<API> apiInterface, Set<Method> includedMethodSet) {
         Set<Method> followedObservables = new HashSet<>();
+        Set<Method> followedFlux = new HashSet<>();
         Set<Method> followedCompletables = new HashSet<>();
         boolean enabledByDefault = followObservableResults || enablesTarget(apiInterface.getAnnotations());
         for (Method method : includedMethodSet) {
             boolean isObservableResult = method.getReturnType().isAssignableFrom(Observable.class);
+            boolean isFluxResult = method.getReturnType().isAssignableFrom(Flux.class);
             boolean isCompletableResult = !isObservableResult && method.getReturnType().isAssignableFrom(Completable.class);
-            if (isObservableResult || isCompletableResult) {
+            if (isObservableResult || isFluxResult || isCompletableResult) {
                 boolean methodEnabled = enabledByDefault || enablesTarget(method.getAnnotations());
                 if (methodEnabled) {
                     if (isObservableResult) {
                         followedObservables.add(method);
+                    } else if (isFluxResult) {
+                        followedFlux.add(method);
                     } else {
                         followedCompletables.add(method);
                     }
                 }
             }
         }
-        return Pair.of(followedObservables, followedCompletables);
+        return Triple.of(followedObservables, followedFlux, followedCompletables);
     }
 
     private boolean enablesTarget(Annotation[] annotations) {
