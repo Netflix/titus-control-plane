@@ -35,14 +35,6 @@ message TaskActivityRecord {
 // ----------------------------------------------------------------------------
 // Service
 
-message JobActivityQuery {
-    string id = 1;
-}
-
-message TaskActivityQuery {
-    string id = 1;
-}
-
 message JobActivityQueryResult {
     repeated JobActivityRecord records = 1;
 }
@@ -54,10 +46,10 @@ message TaskActivityQueryResult {
 service JobActivityService {
 
     /// Get all known active job records.
-    rpc GetJobActivityRecords (JobActivityQuery) returns (JobActivityQueryResult) {
+    rpc GetJobActivityRecords (JobId) returns (JobActivityQueryResult) {
     }
 
     // Get all known active task record history
-    rpc GetTaskActivityRecords (TaskActivityQuery) returns (TaskActivityQueryResult) {
+    rpc GetTaskActivityRecords (TaskId) returns (TaskActivityQueryResult) {
     }
 }
