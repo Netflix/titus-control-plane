@@ -57,6 +57,7 @@ import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_SCALE
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TASK_KILLED;
 
 public class TaskDocument {
+
     private String id;
     private String instanceId;
     private String jobId;
@@ -73,6 +74,7 @@ public class TaskDocument {
     private String startedAt;
     private String finishedAt;
     private String state;
+    private Map<String, String> jobLabels;
     private ComputedFields computedFields;
     private Map<String, String> titusContext;
 
@@ -289,6 +291,10 @@ public class TaskDocument {
         return state;
     }
 
+    public Map<String, String> getJobLabels() {
+        return jobLabels;
+    }
+
     public String getHost() {
         return host;
     }
@@ -439,6 +445,7 @@ public class TaskDocument {
         taskDocument.instanceId = task.getId();
         taskDocument.jobId = task.getJobId();
         taskDocument.state = toV2TaskState(task.getStatus()).name();
+        taskDocument.jobLabels = job.getJobDescriptor().getAttributes();
         taskDocument.host = taskContext.get(TASK_ATTRIBUTES_AGENT_HOST);
         taskDocument.tier = taskContext.getOrDefault(TASK_ATTRIBUTES_TIER, "Unknown");
         taskDocument.computedFields = new ComputedFields();
