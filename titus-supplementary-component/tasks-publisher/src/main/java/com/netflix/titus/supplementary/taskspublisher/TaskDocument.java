@@ -22,6 +22,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 import com.google.common.base.Strings;
 import com.netflix.titus.api.endpoint.v2.rest.representation.TitusJobType;
@@ -41,6 +42,11 @@ import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.common.util.StringExt;
 
+import static com.netflix.titus.api.FeatureRolloutPlans.ENTRY_POINT_STRICT_VALIDATION_FEATURE;
+import static com.netflix.titus.api.FeatureRolloutPlans.ENVIRONMENT_VARIABLE_NAMES_STRICT_VALIDATION_FEATURE;
+import static com.netflix.titus.api.FeatureRolloutPlans.IAM_ROLE_REQUIRED_FEATURE;
+import static com.netflix.titus.api.FeatureRolloutPlans.MIN_DISK_SIZE_STRICT_VALIDATION_FEATURE;
+import static com.netflix.titus.api.FeatureRolloutPlans.SECURITY_GROUPS_REQUIRED_FEATURE;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_ASG;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_ID;
@@ -57,6 +63,9 @@ import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_SCALE
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TASK_KILLED;
 
 public class TaskDocument {
+
+    private static final String NON_COMPLIANT_PREFIX = "titus.noncompliant.details.";
+
     private String id;
     private String instanceId;
     private String jobId;
@@ -116,6 +125,13 @@ public class TaskDocument {
     private String containerIp;
     private String networkInterfaceId;
     private String networkInterfaceIndex;
+
+    // Job non-complient tags
+    private String environmentVariablesNameViolations;
+    private String missingIamRole;
+    private String missingSecurityGroups;
+    private String entryPointViolations;
+    private String diskSizeViolations;
 
     public String getName() {
         return name;
@@ -337,6 +353,26 @@ public class TaskDocument {
         return tier;
     }
 
+    public String getEnvironmentVariablesNameViolations() {
+        return environmentVariablesNameViolations;
+    }
+
+    public String getMissingIamRole() {
+        return missingIamRole;
+    }
+
+    public String getMissingSecurityGroups() {
+        return missingSecurityGroups;
+    }
+
+    public String getEntryPointViolations() {
+        return entryPointViolations;
+    }
+
+    public String getDiskSizeViolations() {
+        return diskSizeViolations;
+    }
+
     public static class ComputedFields {
         Long msFromSubmittedToLaunched;
         Long msFromLaunchedToStarting;
@@ -505,6 +541,8 @@ public class TaskDocument {
         taskDocument.message = task.getStatus().getReasonMessage();
         taskDocument.titusContext = context;
 
+        extractComplianceData(job, taskDocument);
+
         return taskDocument;
     }
 
@@ -549,5 +587,20 @@ public class TaskDocument {
         taskDocument.networkInterfaceId = Strings.nullToEmpty(taskContext.get(TASK_ATTRIBUTES_NETWORK_INTERFACE_ID));
         taskDocument.containerIp = Strings.nullToEmpty(taskContext.get(TASK_ATTRIBUTES_CONTAINER_IP));
         taskDocument.networkInterfaceIndex = Strings.nullToEmpty(taskContext.get(TASK_ATTRIBUTES_NETWORK_INTERFACE_INDEX));
+    }
+
+    private static void extractComplianceData(Job<?> job, TaskDocument taskDocument) {
+        processNonCompliant(job, ENVIRONMENT_VARIABLE_NAMES_STRICT_VALIDATION_FEATURE, value -> taskDocument.environmentVariablesNameViolations = value);
+        processNonCompliant(job, IAM_ROLE_REQUIRED_FEATURE, value -> taskDocument.missingIamRole = value);
+        processNonCompliant(job, SECURITY_GROUPS_REQUIRED_FEATURE, value -> taskDocument.missingSecurityGroups = value);
+        processNonCompliant(job, ENTRY_POINT_STRICT_VALIDATION_FEATURE, value -> taskDocument.entryPointViolations = value);
+        processNonCompliant(job, MIN_DISK_SIZE_STRICT_VALIDATION_FEATURE, value -> taskDocument.diskSizeViolations = value);
+    }
+
+    private static void processNonCompliant(Job<?> job, String key, Consumer<String> setter) {
+        String value = job.getJobDescriptor().getAttributes().get(NON_COMPLIANT_PREFIX + key);
+        if (value != null) {
+            setter.accept(value);
+        }
     }
 }
