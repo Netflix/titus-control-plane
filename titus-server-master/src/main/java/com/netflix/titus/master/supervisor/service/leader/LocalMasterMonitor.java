@@ -61,6 +61,7 @@ public class LocalMasterMonitor implements MasterMonitor {
         this.master = masterDescription;
         this.ownMasterInstance = MasterInstance.newBuilder()
                 .withInstanceId(masterDescription.getHostIP())
+                .withInstanceGroupId("embeddedGroupId")
                 .withIpAddress(masterDescription.getHostIP())
                 .withStatus(MasterStatus.newBuilder()
                         .withState(MasterState.LeaderActivated)

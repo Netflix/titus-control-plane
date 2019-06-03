@@ -38,6 +38,7 @@ public class MasterInstanceGenerator {
             values.add(
                     MasterInstance.newBuilder()
                             .withInstanceId(ids[i])
+                            .withInstanceGroupId("testInstanceGroup")
                             .withIpAddress("1.0.0." + i)
                             .withStatus(masterStatus)
                             .withStatusHistory(Collections.emptyList())

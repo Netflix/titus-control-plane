@@ -448,6 +448,25 @@ public final class StringExt {
     }
 
     /**
+     * Removes quotes (single or double) around the provided text. If a quote is provided on the left or right side
+     * only it is not removed. For example "abc" becomes abc, but "abc is left as "abc.
+     */
+    public static String removeSurroundingQuotes(String text) {
+        if (isEmpty(text) || text.length() < 2) {
+            return text;
+        }
+        char first = text.charAt(0);
+        char last = text.charAt(text.length() - 1);
+        if (first != last) {
+            return text;
+        }
+        if (first == '"' || first == '\'') {
+            return text.substring(1, text.length() - 1);
+        }
+        return text;
+    }
+
+    /**
      * Append the value to the end of the text if the value is not already there.
      */
     public static String appendToEndIfMissing(String text, String value) {

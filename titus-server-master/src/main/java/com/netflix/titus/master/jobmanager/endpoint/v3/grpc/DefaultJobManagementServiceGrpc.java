@@ -77,7 +77,7 @@ import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.master.config.CellInfoResolver;
 import com.netflix.titus.master.endpoint.common.CellDecorator;
-import com.netflix.titus.master.endpoint.grpc.GrpcEndpointConfiguration;
+import com.netflix.titus.master.endpoint.grpc.GrpcMasterEndpointConfiguration;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import com.netflix.titus.master.model.ResourceDimensions;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
@@ -120,7 +120,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
             .setSnapshotEnd(JobChangeNotification.SnapshotEnd.newBuilder())
             .build();
 
-    private final GrpcEndpointConfiguration configuration;
+    private final GrpcMasterEndpointConfiguration configuration;
     private final AgentManagementService agentManagementService;
     private final ApplicationSlaManagementService capacityGroupService;
     private final V3JobOperations jobOperations;
@@ -133,7 +133,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     private final TitusRuntime titusRuntime;
 
     @Inject
-    public DefaultJobManagementServiceGrpc(GrpcEndpointConfiguration configuration,
+    public DefaultJobManagementServiceGrpc(GrpcMasterEndpointConfiguration configuration,
                                            AgentManagementService agentManagementService,
                                            ApplicationSlaManagementService capacityGroupService,
                                            V3JobOperations jobOperations,

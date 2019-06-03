@@ -70,7 +70,7 @@ public class TitusMasterGrpcServer {
     private final EvictionServiceImplBase evictionService;
     private final AutoScalingServiceImplBase appAutoScalingService;
     private final SchedulerServiceImplBase schedulerService;
-    private final GrpcEndpointConfiguration config;
+    private final GrpcMasterEndpointConfiguration config;
     private final LeaderServerInterceptor leaderServerInterceptor;
     private final TitusRuntime titusRuntime;
     private final LoadBalancerServiceImplBase loadBalancerService;
@@ -89,7 +89,7 @@ public class TitusMasterGrpcServer {
             AutoScalingServiceImplBase appAutoScalingService,
             LoadBalancerServiceImplBase loadBalancerService,
             SchedulerServiceImplBase schedulerService,
-            GrpcEndpointConfiguration config,
+            GrpcMasterEndpointConfiguration config,
             LeaderServerInterceptor leaderServerInterceptor,
             TitusRuntime titusRuntime
     ) {

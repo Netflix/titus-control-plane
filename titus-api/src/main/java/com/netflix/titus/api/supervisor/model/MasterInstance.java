@@ -18,6 +18,7 @@ package com.netflix.titus.api.supervisor.model;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import com.google.common.base.Preconditions;
@@ -26,19 +27,35 @@ import com.netflix.titus.common.util.Evaluators;
 public class MasterInstance {
 
     private final String instanceId;
+    private final String instanceGroupId;
     private final String ipAddress;
     private final MasterStatus status;
     private final List<MasterStatus> statusHistory;
+    private final List<ServerPort> serverPorts;
+    private final Map<String, String> labels;
 
-    public MasterInstance(String instanceId, String ipAddress, MasterStatus status, List<MasterStatus> statusHistory) {
+    public MasterInstance(String instanceId,
+                          String instanceGroupId,
+                          String ipAddress,
+                          MasterStatus status,
+                          List<MasterStatus> statusHistory,
+                          List<ServerPort> serverPorts,
+                          Map<String, String> labels) {
         this.instanceId = instanceId;
+        this.instanceGroupId = instanceGroupId;
         this.ipAddress = ipAddress;
         this.status = status;
         this.statusHistory = statusHistory;
+        this.serverPorts = serverPorts;
+        this.labels = labels;
     }
 
     public String getInstanceId() {
         return instanceId;
+    }
+
+    public String getInstanceGroupId() {
+        return instanceGroupId;
     }
 
     public String getIpAddress() {
@@ -53,6 +70,14 @@ public class MasterInstance {
         return statusHistory;
     }
 
+    public List<ServerPort> getServerPorts() {
+        return serverPorts;
+    }
+
+    public Map<String, String> getLabels() {
+        return labels;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -63,28 +88,41 @@ public class MasterInstance {
         }
         MasterInstance that = (MasterInstance) o;
         return Objects.equals(instanceId, that.instanceId) &&
+                Objects.equals(instanceGroupId, that.instanceGroupId) &&
                 Objects.equals(ipAddress, that.ipAddress) &&
                 Objects.equals(status, that.status) &&
-                Objects.equals(statusHistory, that.statusHistory);
+                Objects.equals(statusHistory, that.statusHistory) &&
+                Objects.equals(serverPorts, that.serverPorts) &&
+                Objects.equals(labels, that.labels);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(instanceId, ipAddress, status, statusHistory);
+        return Objects.hash(instanceId, instanceGroupId, ipAddress, status, statusHistory, serverPorts, labels);
     }
 
     @Override
     public String toString() {
         return "MasterInstance{" +
                 "instanceId='" + instanceId + '\'' +
+                ", instanceGroupId='" + instanceGroupId + '\'' +
                 ", ipAddress='" + ipAddress + '\'' +
                 ", status=" + status +
                 ", statusHistory=" + statusHistory +
+                ", serverPorts=" + serverPorts +
+                ", labels=" + labels +
                 '}';
     }
 
     public Builder toBuilder() {
-        return newBuilder().withInstanceId(instanceId).withIpAddress(ipAddress).withStatus(status).withStatusHistory(statusHistory);
+        return newBuilder()
+                .withInstanceId(instanceId)
+                .withInstanceGroupId(instanceGroupId)
+                .withIpAddress(ipAddress)
+                .withStatus(status)
+                .withStatusHistory(statusHistory)
+                .withServerPorts(serverPorts)
+                .withLabels(labels);
     }
 
     public static Builder newBuilder() {
@@ -93,15 +131,23 @@ public class MasterInstance {
 
     public static final class Builder {
         private String instanceId;
+        private String instanceGroupId;
         private String ipAddress;
         private MasterStatus status;
         private List<MasterStatus> statusHistory;
+        private List<ServerPort> serverPorts;
+        private Map<String, String> labels;
 
         private Builder() {
         }
 
         public Builder withInstanceId(String instanceId) {
             this.instanceId = instanceId;
+            return this;
+        }
+
+        public Builder withInstanceGroupId(String instanceGroupId) {
+            this.instanceGroupId = instanceGroupId;
             return this;
         }
 
@@ -120,17 +166,26 @@ public class MasterInstance {
             return this;
         }
 
-        public Builder but() {
-            return newBuilder().withInstanceId(instanceId).withIpAddress(ipAddress).withStatus(status).withStatusHistory(statusHistory);
+        public Builder withServerPorts(List<ServerPort> serverPorts) {
+            this.serverPorts = serverPorts;
+            return this;
+        }
+
+        public Builder withLabels(Map<String, String> labels) {
+            this.labels = labels;
+            return this;
         }
 
         public MasterInstance build() {
             Preconditions.checkNotNull(instanceId, "Instance id not set");
+            Preconditions.checkNotNull(instanceGroupId, "Instance group id not set");
             Preconditions.checkNotNull(ipAddress, "ip address not set");
             Preconditions.checkNotNull(status, "status not set");
 
             this.statusHistory = Evaluators.getOrDefault(statusHistory, Collections.emptyList());
-            return new MasterInstance(instanceId, ipAddress, status, statusHistory);
+            this.serverPorts = Evaluators.getOrDefault(serverPorts, Collections.emptyList());
+            this.labels = Evaluators.getOrDefault(labels, Collections.emptyMap());
+            return new MasterInstance(instanceId, instanceGroupId, ipAddress, status, statusHistory, serverPorts, labels);
         }
     }
 }

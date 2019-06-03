@@ -21,7 +21,7 @@ import javax.inject.Singleton;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
-import com.netflix.titus.master.endpoint.grpc.GrpcEndpointConfiguration;
+import com.netflix.titus.master.endpoint.grpc.GrpcMasterEndpointConfiguration;
 import com.netflix.titus.master.endpoint.grpc.TitusMasterGrpcServer;
 import com.netflix.titus.runtime.endpoint.authorization.AuthorizationServiceModule;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolveModule;
@@ -36,7 +36,7 @@ public class MasterEndpointModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public GrpcEndpointConfiguration getGrpcEndpointConfiguration(ConfigProxyFactory factory) {
-        return factory.newProxy(GrpcEndpointConfiguration.class);
+    public GrpcMasterEndpointConfiguration getGrpcEndpointConfiguration(ConfigProxyFactory factory) {
+        return factory.newProxy(GrpcMasterEndpointConfiguration.class);
     }
 }
