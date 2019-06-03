@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -98,7 +98,7 @@ public class DefaultV3TaskInfoFactoryTest {
         BatchJobTask task = tasks.getValue();
         V3ConstraintEvaluatorTransformer transformer = new V3ConstraintEvaluatorTransformer(masterConfiguration,
                 mock(SchedulerConfiguration.class), new TaskCache(mock(V3JobOperations.class)),
-                mock(AgentManagementService.class));
+                mock(AgentManagementService.class), mock(V3JobOperations.class));
 
         V3QueueableTask fenzoTask = new V3QueueableTask(Tier.Flex, null, job, task,
                 () -> Collections.singleton(task.getId()),

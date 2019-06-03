@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ import com.netflix.fenzo.ConstraintEvaluator;
 import com.netflix.fenzo.VMTaskFitnessCalculator;
 import com.netflix.fenzo.plugins.ExclusiveHostConstraint;
 import com.netflix.titus.api.agent.service.AgentManagementService;
+import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.config.MasterConfiguration;
@@ -73,16 +74,19 @@ public class V3ConstraintEvaluatorTransformer implements ConstraintEvaluatorTran
     private final SchedulerConfiguration schedulerConfiguration;
     private final TaskCache taskCache;
     private final AgentManagementService agentManagementService;
+    private final V3JobOperations v3JobOperations;
 
     @Inject
     public V3ConstraintEvaluatorTransformer(MasterConfiguration config,
                                             SchedulerConfiguration schedulerConfiguration,
                                             TaskCache taskCache,
-                                            AgentManagementService agentManagementService) {
+                                            AgentManagementService agentManagementService,
+                                            V3JobOperations v3JobOperations) {
         this.config = config;
         this.schedulerConfiguration = schedulerConfiguration;
         this.taskCache = taskCache;
         this.agentManagementService = agentManagementService;
+        this.v3JobOperations = v3JobOperations;
     }
 
     @Override
@@ -151,5 +155,10 @@ public class V3ConstraintEvaluatorTransformer implements ConstraintEvaluatorTran
         }
         logger.error("Unknown or not supported job hard constraint: {}", name);
         return Optional.empty();
+    }
+
+    @Override
+    public Optional<ConstraintEvaluator> ipAllocationConstraint() {
+        return Optional.of(new IpAllocationConstraint(schedulerConfiguration, taskCache, agentManagementService, v3JobOperations));
     }
 }

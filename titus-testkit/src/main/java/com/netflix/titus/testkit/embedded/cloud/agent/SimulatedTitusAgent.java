@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -75,6 +75,7 @@ public class SimulatedTitusAgent {
     private final Protos.SlaveID slaveId;
     private final Offer.Builder offerTemplate;
     private final AwsInstanceType instanceType;
+    private final String zoneId;
     private final double totalCPUs;
     private final double totalGPUs;
     private final int totalMemory;
@@ -117,8 +118,6 @@ public class SimulatedTitusAgent {
         this.computeResources = computeResources;
         this.containerPlayersManager = containerPlayersManager;
         this.worker = scheduler.createWorker();
-        logger.info("Creating a new agent {} with instance type {} and resources {cpu={}, memory={}, disk={}, networkMbs={}}",
-                slaveId.getValue(), instanceType, cpus, memory, disk, totalNetworkMbs);
         this.clusterName = clusterName;
         this.hostName = hostName;
         this.slaveId = slaveId;
@@ -141,6 +140,11 @@ public class SimulatedTitusAgent {
         this.availableNetworkMbs = totalNetworkMbs;
 
         this.networkResourceTracker = new NetworkResourceTracker(ipPerEni);
+
+        this.zoneId = getZoneIdFromOfferTemplate(offerTemplate).orElse("");
+
+        logger.info("Creating a new agent {} with instance type {} and zone {} and resources {cpu={}, memory={}, disk={}, networkMbs={}}",
+                slaveId.getValue(), instanceType, zoneId, cpus, memory, disk, totalNetworkMbs);
 
         emitAvailableOffers(0);
     }
@@ -216,6 +220,10 @@ public class SimulatedTitusAgent {
         return availableNetworkMbs;
     }
 
+    public String getZoneId() {
+        return zoneId;
+    }
+
     public List<TaskExecutorHolder> getTaskExecutorHolders() {
         return new ArrayList<>(pendingTasks.values());
     }
@@ -281,6 +289,15 @@ public class SimulatedTitusAgent {
         taskExecutorHolders.forEach(launchedTasksSubject::onNext);
         emitAvailableOffers(REOFFER_DELAY_MS);
         return taskExecutorHolders;
+    }
+
+    private Optional<String> getZoneIdFromOfferTemplate(Offer.Builder offerTemplate) {
+        for (Attribute attribute : offerTemplate.getAttributesList()) {
+            if (attribute.getName().equals("zone")) {
+                return Optional.of(attribute.getText().getValue());
+            }
+        }
+        return Optional.empty();
     }
 
     private List<TaskExecutorHolder> launchTasksInternal(Collection<Protos.TaskInfo> tasks) {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,10 +17,13 @@
 package com.netflix.titus.master.jobmanager.service.common;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -35,6 +38,7 @@ import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.jobmanager.store.JobStore;
 import com.netflix.titus.common.framework.reconciler.ChangeAction;
@@ -42,13 +46,14 @@ import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.time.Clock;
-import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
-import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
 import com.netflix.titus.master.jobmanager.service.common.action.task.BasicTaskActions;
 import com.netflix.titus.master.jobmanager.service.common.action.task.KillInitiatedActions;
 import com.netflix.titus.master.jobmanager.service.common.action.task.TaskTimeoutChangeActions;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
+import com.netflix.titus.master.mesos.VirtualMachineMasterService;
+
+import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_IP_ALLOCATION_ID;
 
 /**
  * Collection of functions useful for batch and service difference resolvers.
@@ -226,6 +231,51 @@ public class DifferenceResolverUtils {
         countingFun.accept(runningJobHolder);
 
         return pendingTaskIds.size();
+    }
+
+    // Determines unassigned IP allocations based on the current reference view
+    public static Set<String> getUnassignedIpAllocations(JobView refJobView) {
+        // Get all IP allocations from the job
+        Set<String> unassignedIpAddressIds = refJobView.getJob().getJobDescriptor().getContainer().getContainerResources().getSignedIpAddressAllocations()
+                .stream()
+                .map(signedIpAddressAllocation -> signedIpAddressAllocation.getIpAddressAllocation().getAllocationId())
+                .collect(Collectors.toCollection(ConcurrentSkipListSet::new));
+
+        // Filter out those that are assigned
+        ((List<Task>)refJobView.getTasks()).stream()
+                .map(Task.class::cast)
+                .filter(task -> !TaskState.isTerminalState(task.getStatus().getState()))
+                .map(task -> task.getTaskContext().getOrDefault(TASK_ATTRIBUTES_IP_ALLOCATION_ID, ""))
+                .forEach(unassignedIpAddressIds::remove);
+
+        return unassignedIpAddressIds;
+    }
+
+    // Copies specific task context entries from a previous task to a replacement task
+    private static Map<String, String> getTaskContextFromPreviousTask(Task previousTask) {
+        // Copy the IP allocation task context to the replacement task
+        return previousTask.getTaskContext().containsKey(TASK_ATTRIBUTES_IP_ALLOCATION_ID)
+                ? Collections.singletonMap(TASK_ATTRIBUTES_IP_ALLOCATION_ID, previousTask.getTaskContext().get(TASK_ATTRIBUTES_IP_ALLOCATION_ID))
+                : Collections.emptyMap();
+    }
+
+    // Creates task context for an initial task
+    private static Map<String, String> getInitialTaskContext(Set<String> unassignedIpAllocations) {
+        if (!unassignedIpAllocations.isEmpty()) {
+            String ipAllocationId = unassignedIpAllocations.iterator().next();
+            unassignedIpAllocations.remove(ipAllocationId);
+            return Collections.singletonMap(TASK_ATTRIBUTES_IP_ALLOCATION_ID, ipAllocationId);
+        }
+        return Collections.emptyMap();
+    }
+
+    // Get task context for a new or replacement task
+    public static Map<String, String> getTaskContext(Optional<EntityHolder> optionalPreviousTaskEntityHolder,
+                                                     Set<String> unassignedIpAllocations) {
+        return optionalPreviousTaskEntityHolder
+                .map(entityHolder -> (Task)entityHolder.getEntity())
+                .map(DifferenceResolverUtils::getTaskContextFromPreviousTask)
+                .orElseGet(() -> getInitialTaskContext(unassignedIpAllocations));
     }
 
     public static class JobView<EXT extends JobDescriptor.JobDescriptorExt, TASK extends Task> {

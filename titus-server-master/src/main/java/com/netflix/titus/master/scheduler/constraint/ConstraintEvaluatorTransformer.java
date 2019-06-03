@@ -31,4 +31,6 @@ public interface ConstraintEvaluatorTransformer<CONSTRAINT> {
     Optional<ConstraintEvaluator> hardConstraint(CONSTRAINT constraint, Supplier<Set<String>> activeTasksGetter);
 
     Optional<VMTaskFitnessCalculator> softConstraint(CONSTRAINT constraint, Supplier<Set<String>> activeTasksGetter);
+
+    Optional<ConstraintEvaluator> ipAllocationConstraint();
 }
