@@ -34,7 +34,7 @@ public class StringExtTest {
     private enum EnumValue {A, B, C, D}
 
     @Test
-    public void testParseEnumListIgnoreCase() throws Exception {
+    public void testParseEnumListIgnoreCase() {
         assertThat(parseEnumListIgnoreCase("", EnumValue.class)).isEmpty();
         assertThat(parseEnumListIgnoreCase("  ", EnumValue.class)).isEmpty();
         assertThat(parseEnumListIgnoreCase("a , B", EnumValue.class)).contains(EnumValue.A, EnumValue.B);
@@ -51,7 +51,7 @@ public class StringExtTest {
     }
 
     @Test
-    public void testParseKeyValueList() throws Exception {
+    public void testParseKeyValueList() {
         Map<String, String> actual = parseKeyValueList("key1:value1,key2:value2,key3:,key4");
         assertThat(actual).containsAllEntriesOf(ImmutableMap.<String, String>
                 builder().put("key1", "value1").put("key2", "value2").put("key3", "").put("key4", "").build()
@@ -60,8 +60,8 @@ public class StringExtTest {
 
     @Test
     public void testRemoveQuotes() {
-        assertThat(StringExt.removeQuotes("\"abc")).isEqualTo("\"abc");
-        assertThat(StringExt.removeQuotes("\"abc\"")).isEqualTo("abc");
-        assertThat(StringExt.removeQuotes("abc\"")).isEqualTo("abc\"");
+        assertThat(StringExt.removeSurroundingQuotes("\"abc")).isEqualTo("\"abc");
+        assertThat(StringExt.removeSurroundingQuotes("\"abc\"")).isEqualTo("abc");
+        assertThat(StringExt.removeSurroundingQuotes("abc\"")).isEqualTo("abc\"");
     }
 }

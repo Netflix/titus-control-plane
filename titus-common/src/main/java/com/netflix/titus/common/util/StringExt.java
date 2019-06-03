@@ -447,7 +447,11 @@ public final class StringExt {
         return "\"" + text + "\"";
     }
 
-    public static String removeQuotes(String text) {
+    /**
+     * Removes quotes (single or double) around the provided text. If a quote is provided on the left or right side
+     * only it is not removed. For example "abc" becomes abc, but "abc is left as "abc.
+     */
+    public static String removeSurroundingQuotes(String text) {
         if (isEmpty(text) || text.length() < 2) {
             return text;
         }
