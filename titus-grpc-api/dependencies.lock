@@ -375,8 +375,8 @@
     },
     "protobuf": {
         "com.netflix.titus:titus-api-definitions": {
-            "locked": "0.0.1-rc62",
-            "requested": "0.0.1-rc62"
+            "locked": "0.0.1-rc63",
+            "requested": "0.0.1-rc63"
         }
     },
     "protobufToolsLocator_grpc": {
@@ -756,7 +756,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.27.0",
+            "locked": "2.28.2",
             "requested": "2.+"
         },
         "org.objenesis:objenesis": {
@@ -924,7 +924,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.27.0",
+            "locked": "2.28.2",
             "requested": "2.+"
         },
         "org.objenesis:objenesis": {
@@ -1098,7 +1098,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.27.0",
+            "locked": "2.28.2",
             "requested": "2.+"
         },
         "org.objenesis:objenesis": {
@@ -1279,7 +1279,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.27.0",
+            "locked": "2.28.2",
             "requested": "2.+"
         },
         "org.objenesis:objenesis": {

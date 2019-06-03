@@ -8088,7 +8088,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.27.0",
+            "locked": "2.28.2",
             "requested": "2.+",
             "transitive": [
                 "com.netflix.titus:titus-testkit"
@@ -10022,7 +10022,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.27.0",
+            "locked": "2.28.2",
             "requested": "2.+",
             "transitive": [
                 "com.netflix.titus:titus-testkit"
@@ -11956,7 +11956,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.27.0",
+            "locked": "2.28.2",
             "requested": "2.+",
             "transitive": [
                 "com.netflix.titus:titus-testkit"
@@ -13891,7 +13891,7 @@
             ]
         },
         "org.mockito:mockito-core": {
-            "locked": "2.27.0",
+            "locked": "2.28.2",
             "requested": "2.+",
             "transitive": [
                 "com.netflix.titus:titus-testkit"
