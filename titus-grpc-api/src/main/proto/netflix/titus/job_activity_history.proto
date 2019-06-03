@@ -20,22 +20,15 @@ option go_package = "titus";
 message JobActivityRecord {
 
     CallMetadata callMetadata = 1;
-
-    message Change {
-        Job job = 2;
-        Task task = 3;
-    }
-
+    Job job = 2;
+    Task task = 3;
     uint64 timestamp = 4;
 }
 
 message TaskActivityRecord {
+
     CallMetadata callMetadata = 1;
-
-    message Change {
-        Task task = 2;
-    }
-
+    Task task = 2;
     uint64 timestamp = 3;
 }
 
