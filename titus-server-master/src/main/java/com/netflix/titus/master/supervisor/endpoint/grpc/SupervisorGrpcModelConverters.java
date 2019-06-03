@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 import com.netflix.titus.api.supervisor.model.MasterInstance;
 import com.netflix.titus.api.supervisor.model.MasterState;
 import com.netflix.titus.api.supervisor.model.MasterStatus;
+import com.netflix.titus.api.supervisor.model.ServerPort;
 import com.netflix.titus.api.supervisor.model.event.MasterInstanceRemovedEvent;
 import com.netflix.titus.api.supervisor.model.event.MasterInstanceUpdateEvent;
 import com.netflix.titus.api.supervisor.model.event.SupervisorEvent;
@@ -30,18 +31,42 @@ public class SupervisorGrpcModelConverters {
     public static MasterInstance toCoreMasterInstance(com.netflix.titus.grpc.protogen.MasterInstance grpcMasterInstance) {
         return MasterInstance.newBuilder()
                 .withInstanceId(grpcMasterInstance.getInstanceId())
+                .withInstanceGroupId(grpcMasterInstance.getInstanceGroupId())
                 .withIpAddress(grpcMasterInstance.getIpAddress())
                 .withStatus(toCoreStatus(grpcMasterInstance.getStatus()))
                 .withStatusHistory(grpcMasterInstance.getStatusHistoryList().stream().map(SupervisorGrpcModelConverters::toCoreStatus).collect(Collectors.toList()))
+                .withServerPorts(grpcMasterInstance.getServerPortsList().stream().map(SupervisorGrpcModelConverters::toCoreServerPort).collect(Collectors.toList()))
+                .withLabels(grpcMasterInstance.getLabelsMap())
                 .build();
     }
 
     public static com.netflix.titus.grpc.protogen.MasterInstance toGrpcMasterInstance(MasterInstance masterInstance) {
         return com.netflix.titus.grpc.protogen.MasterInstance.newBuilder()
                 .setInstanceId(masterInstance.getInstanceId())
+                .setInstanceGroupId(masterInstance.getInstanceGroupId())
                 .setIpAddress(masterInstance.getIpAddress())
                 .setStatus(toGrpcStatus(masterInstance.getStatus()))
                 .addAllStatusHistory(masterInstance.getStatusHistory().stream().map(SupervisorGrpcModelConverters::toGrpcStatus).collect(Collectors.toList()))
+                .addAllServerPorts(masterInstance.getServerPorts().stream().map(SupervisorGrpcModelConverters::toGrpcServerPort).collect(Collectors.toList()))
+                .putAllLabels(masterInstance.getLabels())
+                .build();
+    }
+
+    private static ServerPort toCoreServerPort(com.netflix.titus.grpc.protogen.ServerPort grpcServerPort) {
+        return ServerPort.newBuilder()
+                .withPortNumber(grpcServerPort.getPortNumber())
+                .withProtocol(grpcServerPort.getProtocol())
+                .withSecure(grpcServerPort.getSecure())
+                .withDescription(grpcServerPort.getDescription())
+                .build();
+    }
+
+    private static com.netflix.titus.grpc.protogen.ServerPort toGrpcServerPort(ServerPort coreServerPort) {
+        return com.netflix.titus.grpc.protogen.ServerPort.newBuilder()
+                .setPortNumber(coreServerPort.getPortNumber())
+                .setProtocol(coreServerPort.getProtocol())
+                .setSecure(coreServerPort.isSecure())
+                .setDescription(coreServerPort.getDescription())
                 .build();
     }
 

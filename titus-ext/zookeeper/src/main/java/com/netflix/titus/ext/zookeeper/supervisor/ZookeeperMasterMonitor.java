@@ -80,12 +80,15 @@ public class ZookeeperMasterMonitor implements MasterMonitor {
     @VisibleForTesting
     static final MasterInstance UNKNOWN_MASTER_INSTANCE = MasterInstance.newBuilder()
             .withInstanceId("unknownId")
+            .withInstanceGroupId("unknownId")
             .withIpAddress("0.0.0.0")
             .withStatus(MasterStatus.newBuilder()
                     .withState(MasterState.Starting)
                     .withMessage("TitusMaster instance state not known yet")
                     .build()
             )
+            .withServerPorts(Collections.emptyList())
+            .withLabels(Collections.emptyMap())
             .build();
 
     private static final long OWN_MASTER_REFRESH_INTERVAL_MS = 30_000;

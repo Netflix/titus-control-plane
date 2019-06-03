@@ -25,6 +25,7 @@ import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.titus.api.supervisor.model.MasterInstance;
 import com.netflix.titus.api.supervisor.model.MasterState;
 import com.netflix.titus.api.supervisor.model.MasterStatus;
+import com.netflix.titus.api.supervisor.model.ServerPort;
 import com.netflix.titus.api.supervisor.service.LeaderActivator;
 import com.netflix.titus.api.supervisor.service.LeaderElector;
 import com.netflix.titus.api.supervisor.service.LocalMasterInstanceResolver;
@@ -34,6 +35,7 @@ import com.netflix.titus.api.supervisor.service.SupervisorOperations;
 import com.netflix.titus.api.supervisor.service.resolver.AlwaysEnabledLocalMasterReadinessResolver;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.NetworkExt;
+import com.netflix.titus.master.endpoint.grpc.GrpcMasterEndpointConfiguration;
 import com.netflix.titus.master.supervisor.SupervisorConfiguration;
 import com.netflix.titus.master.supervisor.service.leader.GuiceLeaderActivator;
 import com.netflix.titus.master.supervisor.service.leader.ImmediateLeaderElector;
@@ -58,15 +60,28 @@ public class SupervisorServiceModule extends AbstractModule {
         return factory.newProxy(SupervisorConfiguration.class);
     }
 
+    /**
+     * As MasterInstance data contain a lot of details that are deployment specific, this binding is provided here
+     * for completeness/as an example only. It should be overridden by deployment specific configuration.
+     */
     @Provides
     @Singleton
     public LocalMasterInstanceResolver getLocalMasterInstanceResolver(SupervisorConfiguration configuration,
+                                                                      GrpcMasterEndpointConfiguration grpcServerConfiguration,
                                                                       LocalMasterReadinessResolver localMasterReadinessResolver,
                                                                       TitusRuntime titusRuntime) {
         String ipAddress = NetworkExt.getLocalIPs().flatMap(ips -> ips.stream().filter(NetworkExt::isIpV4).findFirst()).orElse("127.0.0.1");
 
+        ServerPort grpcPort = ServerPort.newBuilder()
+                .withPortNumber(grpcServerConfiguration.getPort())
+                .withSecure(false)
+                .withProtocol("grpc")
+                .withDescription("TitusMaster GRPC endpoint")
+                .build();
+
         MasterInstance initial = MasterInstance.newBuilder()
                 .withInstanceId(configuration.getTitusMasterInstanceId())
+                .withInstanceGroupId(configuration.getTitusMasterInstanceId() + "Group")
                 .withIpAddress(ipAddress)
                 .withStatusHistory(Collections.emptyList())
                 .withStatus(MasterStatus.newBuilder()
@@ -75,6 +90,7 @@ public class SupervisorServiceModule extends AbstractModule {
                         .withTimestamp(titusRuntime.getClock().wallTime())
                         .build()
                 )
+                .withServerPorts(Collections.singletonList(grpcPort))
                 .build();
         return new DefaultLocalMasterInstanceResolver(localMasterReadinessResolver, initial);
     }

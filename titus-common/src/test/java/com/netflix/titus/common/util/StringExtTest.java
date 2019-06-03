@@ -57,4 +57,11 @@ public class StringExtTest {
                 builder().put("key1", "value1").put("key2", "value2").put("key3", "").put("key4", "").build()
         );
     }
+
+    @Test
+    public void testRemoveQuotes() {
+        assertThat(StringExt.removeQuotes("\"abc")).isEqualTo("\"abc");
+        assertThat(StringExt.removeQuotes("\"abc\"")).isEqualTo("abc");
+        assertThat(StringExt.removeQuotes("abc\"")).isEqualTo("abc\"");
+    }
 }

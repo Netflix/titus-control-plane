@@ -50,6 +50,7 @@ public class ZookeeperTestUtils {
     public static MasterInstance newMasterInstance(String instanceId, MasterState initialState) {
         return MasterInstance.newBuilder()
                 .withInstanceId(instanceId)
+                .withInstanceGroupId(instanceId + "Group")
                 .withIpAddress("1.2.3.4")
                 .withStatus(MasterStatus.newBuilder()
                         .withState(initialState)

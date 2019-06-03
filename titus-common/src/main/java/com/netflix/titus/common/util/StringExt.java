@@ -447,6 +447,21 @@ public final class StringExt {
         return "\"" + text + "\"";
     }
 
+    public static String removeQuotes(String text) {
+        if (isEmpty(text) || text.length() < 2) {
+            return text;
+        }
+        char first = text.charAt(0);
+        char last = text.charAt(text.length() - 1);
+        if (first != last) {
+            return text;
+        }
+        if (first == '"' || first == '\'') {
+            return text.substring(1, text.length() - 1);
+        }
+        return text;
+    }
+
     /**
      * Append the value to the end of the text if the value is not already there.
      */

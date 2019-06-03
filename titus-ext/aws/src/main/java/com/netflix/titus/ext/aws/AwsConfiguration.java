@@ -19,7 +19,7 @@ package com.netflix.titus.ext.aws;
 import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
 
-@Configuration(prefix = "titusMaster.ext.aws")
+@Configuration(prefix = "titus.ext.aws")
 public interface AwsConfiguration {
 
     String getRegion();
