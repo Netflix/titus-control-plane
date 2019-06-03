@@ -20,29 +20,35 @@ option go_package = "titus";
 message JobActivityRecord {
 
     CallMetadata callMetadata = 1;
-
-    message Change {
-        Job job = 2;
-        Task task = 3;
-    }
-
+    Job job = 2;
     uint64 timestamp = 4;
+}
+
+message TaskActivityRecord {
+
+    CallMetadata callMetadata = 1;
+    Task task = 2;
+    uint64 timestamp = 3;
 }
 
 // ----------------------------------------------------------------------------
 // Service
 
-message JobActivityQuery {
-    string id = 1;
-}
-
 message JobActivityQueryResult {
     repeated JobActivityRecord records = 1;
 }
 
+message TaskActivityQueryResult {
+    repeated TaskActivityRecord records = 1;
+}
+
 service JobActivityService {
 
-    /// Get all known TitusMaster instances.
-    rpc GetJobActivityRecords (JobActivityQuery) returns (JobActivityQueryResult) {
+    /// Get all known active job records.
+    rpc GetJobActivityRecords (JobId) returns (JobActivityQueryResult) {
+    }
+
+    // Get all known active task record history
+    rpc GetTaskActivityRecords (TaskId) returns (TaskActivityQueryResult) {
     }
 }
