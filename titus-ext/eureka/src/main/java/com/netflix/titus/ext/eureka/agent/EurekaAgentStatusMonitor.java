@@ -34,6 +34,7 @@ import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.model.monitor.AgentStatus;
+import com.netflix.titus.api.agent.service.AgentManagementException;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.agent.service.AgentStatusMonitor;
 import com.netflix.titus.common.util.CollectionsExt;
@@ -109,9 +110,23 @@ public class EurekaAgentStatusMonitor implements AgentStatusMonitor, EurekaEvent
     private void refreshAgentDiscoveryStatus() {
         List<String> allInstanceIds = new ArrayList<>();
         for (AgentInstanceGroup instanceGroup : agentManagementService.getInstanceGroups()) {
-            for (AgentInstance instance : agentManagementService.getAgentInstances(instanceGroup.getId())) {
+            List<AgentInstance> agentInstances;
+            try {
+                agentInstances = agentManagementService.getAgentInstances(instanceGroup.getId());
+            } catch (AgentManagementException e) {
+                // 'getAgentInstances' may fail if the instance group is not found, which may happen when it is
+                // being removed. This is more likely to happen during bootstrap when there are stale data in the database.
+                continue;
+            }
+
+            for (AgentInstance instance : agentInstances) {
                 allInstanceIds.add(instance.getId());
-                updateInstanceStatus(instance);
+                try {
+                    updateInstanceStatus(instance);
+                } catch (Exception e) {
+                    logger.warn("Failed to update instance status for: instanceId={}, error={}", instance.getId(), e.getMessage());
+                    logger.debug("Stack trace", e);
+                }
             }
         }
         CollectionsExt.copyAndRemove(statusByInstanceId.keySet(), allInstanceIds).forEach(id -> {
