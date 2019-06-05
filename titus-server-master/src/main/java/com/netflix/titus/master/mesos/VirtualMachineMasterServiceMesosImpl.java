@@ -69,7 +69,7 @@ public class VirtualMachineMasterServiceMesosImpl implements VirtualMachineMaste
     private ExecutorService executor;
     private final MesosConfiguration mesosConfiguration;
     private MesosMasterResolver mesosMasterResolver;
-    private Subject<String, String> vmLeaseRescindedObserver;
+    private Subject<LeaseRescindedEvent, LeaseRescindedEvent> vmLeaseRescindedObserver;
     private Subject<ContainerEvent, ContainerEvent> vmTaskStatusObserver;
     private ObjectMapper mapper = new ObjectMapper();
     private final AtomicBoolean initializationDone = new AtomicBoolean(false);
@@ -215,7 +215,7 @@ public class VirtualMachineMasterServiceMesosImpl implements VirtualMachineMaste
     }
 
     @Override
-    public Observable<String> getLeaseRescindedObservable() {
+    public Observable<LeaseRescindedEvent> getLeaseRescindedObservable() {
         return vmLeaseRescindedObserver;
     }
 
@@ -227,7 +227,7 @@ public class VirtualMachineMasterServiceMesosImpl implements VirtualMachineMaste
     /**
      * Due to circular dependency with SchedulingService, activate via VirtualMachineMasterServiceActivator
      */
-    void enterActiveMode() {
+    public void enterActiveMode() {
         // Due to circular dependency, we need to differ services access until the activation phase.
         V3JobOperations v3JobOperations = injector.getInstance(V3JobOperations.class);
 

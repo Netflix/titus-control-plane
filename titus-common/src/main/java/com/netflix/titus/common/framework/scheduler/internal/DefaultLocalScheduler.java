@@ -27,7 +27,6 @@ import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -136,16 +135,24 @@ public class DefaultLocalScheduler implements LocalScheduler {
 
     @Override
     public ScheduleReference schedule(ScheduleDescriptor scheduleDescriptor, Consumer<ExecutionContext> action, boolean isolated) {
+        ExecutorService executorService = isolated ?
+                Executors.newSingleThreadScheduledExecutor(r -> {
+                    Thread thread = new Thread(SCHEDULER_THREAD_GROUP, r, scheduleDescriptor.getName());
+                    thread.setDaemon(true);
+                    return thread;
+                })
+                :
+                null;
+        return schedule(scheduleDescriptor, action, executorService);
+    }
+
+    @Override
+    public ScheduleReference schedule(ScheduleDescriptor scheduleDescriptor, Consumer<ExecutionContext> action, ExecutorService executorService) {
         Scheduler actionScheduler;
         Runnable cleanup;
-        if (isolated) {
-            Executor executor = Executors.newSingleThreadScheduledExecutor(r -> {
-                Thread thread = new Thread(SCHEDULER_THREAD_GROUP, r, scheduleDescriptor.getName());
-                thread.setDaemon(true);
-                return thread;
-            });
-            actionScheduler = Schedulers.fromExecutor(executor);
-            cleanup = ((ExecutorService) executor)::shutdown;
+        if (executorService != null) {
+            actionScheduler = Schedulers.fromExecutorService(executorService);
+            cleanup = executorService::shutdown;
         } else {
             actionScheduler = this.scheduler;
             cleanup = DO_NOTHING;

@@ -92,4 +92,16 @@ public interface MesosConfiguration {
      */
     @DefaultValue("")
     String getRegistryUrl();
+
+    /**
+     * @return whether or not the kube api server integration is enabled. Only applied at startup.
+     */
+    @DefaultValue("false")
+    boolean isKubeApiServerIntegrationEnabled();
+
+    /**
+     * @return the url of the Kube API Server
+     */
+    @DefaultValue("localhost:8080")
+    String getKubeApiServerUrl();
 }

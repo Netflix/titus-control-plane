@@ -78,6 +78,7 @@ import com.netflix.titus.common.util.spectator.SpectatorExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.config.MasterConfiguration;
 import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
+import com.netflix.titus.master.mesos.LeaseRescindedEvent;
 import com.netflix.titus.master.mesos.TaskInfoFactory;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.model.job.TitusQueuableTask;
@@ -348,16 +349,22 @@ public class DefaultSchedulingService implements SchedulingService {
                 });
     }
 
-    private TaskScheduler setupTaskScheduler(Observable<String> vmLeaseRescindedObservable,
+    private TaskScheduler setupTaskScheduler(Observable<LeaseRescindedEvent> vmLeaseRescindedObservable,
                                              TaskScheduler.Builder schedulerBuilder) {
         int minMinIdle = 4;
         final TaskScheduler scheduler = schedulerBuilder.withMaxOffersToReject(Math.max(1, minMinIdle)).build();
         vmLeaseRescindedObservable
-                .doOnNext(s -> {
-                    if (s.equals("ALL")) {
-                        scheduler.expireAllLeases();
-                    } else {
-                        scheduler.expireLease(s);
+                .doOnNext(event -> {
+                    switch (event.getType()) {
+                        case All:
+                            scheduler.expireAllLeases();
+                            break;
+                        case LeaseId:
+                            scheduler.expireLease(event.getValue());
+                            break;
+                        case Hostname:
+                            scheduler.expireAllLeases(event.getValue());
+                            break;
                     }
                 })
                 .subscribe();

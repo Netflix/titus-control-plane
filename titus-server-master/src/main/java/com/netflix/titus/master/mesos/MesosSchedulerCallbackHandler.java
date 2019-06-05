@@ -81,7 +81,7 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
             TaskState.TASK_RUNNING
     );
 
-    private Observer<String> vmLeaseRescindedObserver;
+    private Observer<LeaseRescindedEvent> vmLeaseRescindedObserver;
     private Observer<ContainerEvent> vmTaskStatusObserver;
     private static final Logger logger = LoggerFactory.getLogger(MesosSchedulerCallbackHandler.class);
     private final V3JobOperations v3JobOperations;
@@ -126,7 +126,7 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
 
     public MesosSchedulerCallbackHandler(
             Action1<List<? extends VirtualMachineLease>> leaseHandler,
-            Observer<String> vmLeaseRescindedObserver,
+            Observer<LeaseRescindedEvent> vmLeaseRescindedObserver,
             Observer<ContainerEvent> vmTaskStatusObserver,
             V3JobOperations v3JobOperations,
             Optional<FitInjection> taskStatusUpdateFitInjection,
@@ -250,8 +250,9 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
 
     @Override
     public void offerRescinded(SchedulerDriver driver, OfferID offerId) {
-        logMesosCallbackInfo("Rescinded offer: %s", offerId.getValue());
-        vmLeaseRescindedObserver.onNext(offerId.getValue());
+        String leaseId = offerId.getValue();
+        logMesosCallbackInfo("Rescinded offer: %s", leaseId);
+        vmLeaseRescindedObserver.onNext(LeaseRescindedEvent.leaseIdEvent(leaseId));
         numOfferRescinded.increment();
     }
 
@@ -276,7 +277,7 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
     }
 
     private synchronized void initializeNewDriver(final SchedulerDriver driver) {
-        vmLeaseRescindedObserver.onNext("ALL");
+        vmLeaseRescindedObserver.onNext(LeaseRescindedEvent.allEvent());
         if (reconcilerFuture != null) {
             reconcilerFuture.cancel(true);
         }

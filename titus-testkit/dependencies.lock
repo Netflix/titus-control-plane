@@ -230,7 +230,7 @@
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
+            "locked": "3.0.2",
             "transitive": [
                 "com.github.fge:btf",
                 "com.github.fge:jackson-coreutils",
@@ -238,21 +238,24 @@
                 "com.github.fge:json-schema-validator",
                 "com.github.fge:msg-simple",
                 "com.github.fge:uri-template",
+                "com.google.guava:guava",
                 "com.twitter:util-cache_2.11",
                 "com.twitter:util-collection_2.11",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.code.gson:gson": {
-            "locked": "2.7",
+            "locked": "2.8.0",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
-                "io.grpc:grpc-core"
+                "io.grpc:grpc-core",
+                "io.kubernetes:client-java-api"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.1.2",
+            "locked": "2.1.3",
             "transitive": [
+                "com.google.guava:guava",
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
                 "com.google.truth:truth",
@@ -260,7 +263,7 @@
             ]
         },
         "com.google.guava:guava": {
-            "locked": "20.0",
+            "locked": "25.1-jre",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.datastax.cassandra:cassandra-driver-extras",
@@ -279,6 +282,7 @@
                 "io.grpc:grpc-core",
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
+                "io.kubernetes:client-java",
                 "io.opencensus:opencensus-api",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-jaxrs",
@@ -333,6 +337,12 @@
                 "com.sun.jersey.contribs:jersey-guice"
             ]
         },
+        "com.google.j2objc:j2objc-annotations": {
+            "locked": "1.1",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
         "com.google.protobuf:protobuf-java": {
             "locked": "3.5.1",
             "transitive": [
@@ -343,6 +353,8 @@
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-master",
                 "io.grpc:grpc-protobuf",
+                "io.kubernetes:client-java",
+                "io.kubernetes:client-java-proto",
                 "org.apache.mesos:mesos"
             ]
         },
@@ -576,10 +588,31 @@
                 "com.netflix.titus:titus-common"
             ]
         },
+        "com.squareup.okhttp:logging-interceptor": {
+            "locked": "2.7.5",
+            "transitive": [
+                "io.kubernetes:client-java-api"
+            ]
+        },
+        "com.squareup.okhttp:okhttp": {
+            "locked": "2.7.5",
+            "transitive": [
+                "com.squareup.okhttp:logging-interceptor",
+                "com.squareup.okhttp:okhttp-ws",
+                "io.kubernetes:client-java-api"
+            ]
+        },
+        "com.squareup.okhttp:okhttp-ws": {
+            "locked": "2.7.5",
+            "transitive": [
+                "io.kubernetes:client-java"
+            ]
+        },
         "com.squareup.okio:okio": {
             "locked": "1.13.0",
             "transitive": [
-                "com.squareup.okhttp3:okhttp"
+                "com.squareup.okhttp3:okhttp",
+                "com.squareup.okhttp:okhttp"
             ]
         },
         "com.sun.jersey.contribs:jersey-guice": {
@@ -735,10 +768,11 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.9",
+            "locked": "1.11",
             "transitive": [
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:util-codec_2.11",
+                "io.kubernetes:client-java",
                 "org.apache.cassandra:cassandra-all"
             ]
         },
@@ -822,6 +856,24 @@
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api"
+            ]
+        },
+        "io.kubernetes:client-java": {
+            "locked": "4.0.0",
+            "transitive": [
+                "com.netflix.titus:titus-server-master"
+            ]
+        },
+        "io.kubernetes:client-java-api": {
+            "locked": "4.0.0",
+            "transitive": [
+                "io.kubernetes:client-java"
+            ]
+        },
+        "io.kubernetes:client-java-proto": {
+            "locked": "4.0.0",
+            "transitive": [
+                "io.kubernetes:client-java"
             ]
         },
         "io.netty:netty": {
@@ -1009,9 +1061,34 @@
                 "com.netflix.titus:titus-server-master"
             ]
         },
+        "io.sundr:builder-annotations": {
+            "locked": "0.9.2",
+            "transitive": [
+                "io.kubernetes:client-java-api"
+            ]
+        },
+        "io.sundr:resourcecify-annotations": {
+            "locked": "0.9.2",
+            "transitive": [
+                "io.sundr:builder-annotations"
+            ]
+        },
+        "io.sundr:sundr-codegen": {
+            "locked": "0.9.2",
+            "transitive": [
+                "io.sundr:builder-annotations"
+            ]
+        },
+        "io.sundr:sundr-core": {
+            "locked": "0.9.2",
+            "transitive": [
+                "io.sundr:builder-annotations"
+            ]
+        },
         "io.swagger:swagger-annotations": {
             "locked": "1.5.12",
             "transitive": [
+                "io.kubernetes:client-java-api",
                 "io.swagger:swagger-models"
             ]
         },
@@ -1116,9 +1193,10 @@
             ]
         },
         "joda-time:joda-time": {
-            "locked": "2.4",
+            "locked": "2.9.3",
             "transitive": [
                 "com.github.fge:json-schema-validator",
+                "io.kubernetes:client-java-api",
                 "org.apache.cassandra:cassandra-all"
             ]
         },
@@ -1209,6 +1287,12 @@
                 "org.apache.cassandra:cassandra-all"
             ]
         },
+        "org.apache.commons:commons-compress": {
+            "locked": "1.18",
+            "transitive": [
+                "io.kubernetes:client-java"
+            ]
+        },
         "org.apache.commons:commons-io": {
             "locked": "1.3.2",
             "transitive": [
@@ -1216,11 +1300,13 @@
             ]
         },
         "org.apache.commons:commons-lang3": {
-            "locked": "3.4",
+            "locked": "3.7",
             "transitive": [
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
                 "com.netflix.archaius:archaius2-core",
+                "io.kubernetes:client-java",
+                "io.kubernetes:client-java-api",
                 "io.swagger:swagger-core",
                 "org.apache.cassandra:cassandra-all",
                 "org.apache.cassandra:cassandra-thrift",
@@ -1298,10 +1384,17 @@
             ]
         },
         "org.bouncycastle:bcpkix-jdk15on": {
-            "locked": "1.52",
+            "locked": "1.59",
             "transitive": [
+                "io.kubernetes:client-java",
                 "org.bouncycastle:bcmail-jdk15on",
                 "org.mock-server:mockserver-core"
+            ]
+        },
+        "org.bouncycastle:bcprov-ext-jdk15on": {
+            "locked": "1.59",
+            "transitive": [
+                "io.kubernetes:client-java"
             ]
         },
         "org.bouncycastle:bcprov-jdk15on": {
@@ -1325,6 +1418,12 @@
                 "com.netflix.titus:titus-ext-cassandra-testkit"
             ]
         },
+        "org.checkerframework:checker-qual": {
+            "locked": "2.0.0",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
         "org.codehaus.jackson:jackson-core-asl": {
             "locked": "1.9.2",
             "transitive": [
@@ -1336,6 +1435,12 @@
             "locked": "1.9.2",
             "transitive": [
                 "org.apache.cassandra:cassandra-all"
+            ]
+        },
+        "org.codehaus.mojo:animal-sniffer-annotations": {
+            "locked": "1.14",
+            "transitive": [
+                "com.google.guava:guava"
             ]
         },
         "org.eclipse.jdt.core.compiler:ecj": {
@@ -1459,6 +1564,12 @@
             "transitive": [
                 "org.hibernate.validator:hibernate-validator",
                 "org.hibernate:hibernate-validator"
+            ]
+        },
+        "org.joda:joda-convert": {
+            "locked": "1.2",
+            "transitive": [
+                "io.kubernetes:client-java-api"
             ]
         },
         "org.json:json": {
@@ -1633,6 +1744,7 @@
                 "com.thinkaurelius.thrift:thrift-server",
                 "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard.metrics:metrics-jvm",
+                "io.kubernetes:client-java",
                 "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
@@ -1828,6 +1940,7 @@
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
+                "io.kubernetes:client-java",
                 "org.apache.cassandra:cassandra-all",
                 "org.springframework.boot:spring-boot-starter"
             ]
@@ -2076,7 +2189,7 @@
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
+            "locked": "3.0.2",
             "transitive": [
                 "com.github.fge:btf",
                 "com.github.fge:jackson-coreutils",
@@ -2084,21 +2197,24 @@
                 "com.github.fge:json-schema-validator",
                 "com.github.fge:msg-simple",
                 "com.github.fge:uri-template",
+                "com.google.guava:guava",
                 "com.twitter:util-cache_2.11",
                 "com.twitter:util-collection_2.11",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.code.gson:gson": {
-            "locked": "2.7",
+            "locked": "2.8.0",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
-                "io.grpc:grpc-core"
+                "io.grpc:grpc-core",
+                "io.kubernetes:client-java-api"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.1.2",
+            "locked": "2.1.3",
             "transitive": [
+                "com.google.guava:guava",
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
                 "com.google.truth:truth",
@@ -2106,7 +2222,7 @@
             ]
         },
         "com.google.guava:guava": {
-            "locked": "20.0",
+            "locked": "25.1-jre",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.datastax.cassandra:cassandra-driver-extras",
@@ -2125,6 +2241,7 @@
                 "io.grpc:grpc-core",
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
+                "io.kubernetes:client-java",
                 "io.opencensus:opencensus-api",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-jaxrs",
@@ -2179,6 +2296,12 @@
                 "com.sun.jersey.contribs:jersey-guice"
             ]
         },
+        "com.google.j2objc:j2objc-annotations": {
+            "locked": "1.1",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
         "com.google.protobuf:protobuf-java": {
             "locked": "3.5.1",
             "transitive": [
@@ -2189,6 +2312,8 @@
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-master",
                 "io.grpc:grpc-protobuf",
+                "io.kubernetes:client-java",
+                "io.kubernetes:client-java-proto",
                 "org.apache.mesos:mesos"
             ]
         },
@@ -2422,10 +2547,31 @@
                 "com.netflix.titus:titus-common"
             ]
         },
+        "com.squareup.okhttp:logging-interceptor": {
+            "locked": "2.7.5",
+            "transitive": [
+                "io.kubernetes:client-java-api"
+            ]
+        },
+        "com.squareup.okhttp:okhttp": {
+            "locked": "2.7.5",
+            "transitive": [
+                "com.squareup.okhttp:logging-interceptor",
+                "com.squareup.okhttp:okhttp-ws",
+                "io.kubernetes:client-java-api"
+            ]
+        },
+        "com.squareup.okhttp:okhttp-ws": {
+            "locked": "2.7.5",
+            "transitive": [
+                "io.kubernetes:client-java"
+            ]
+        },
         "com.squareup.okio:okio": {
             "locked": "1.13.0",
             "transitive": [
-                "com.squareup.okhttp3:okhttp"
+                "com.squareup.okhttp3:okhttp",
+                "com.squareup.okhttp:okhttp"
             ]
         },
         "com.sun.jersey.contribs:jersey-guice": {
@@ -2581,10 +2727,11 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.9",
+            "locked": "1.11",
             "transitive": [
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:util-codec_2.11",
+                "io.kubernetes:client-java",
                 "org.apache.cassandra:cassandra-all"
             ]
         },
@@ -2668,6 +2815,24 @@
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api"
+            ]
+        },
+        "io.kubernetes:client-java": {
+            "locked": "4.0.0",
+            "transitive": [
+                "com.netflix.titus:titus-server-master"
+            ]
+        },
+        "io.kubernetes:client-java-api": {
+            "locked": "4.0.0",
+            "transitive": [
+                "io.kubernetes:client-java"
+            ]
+        },
+        "io.kubernetes:client-java-proto": {
+            "locked": "4.0.0",
+            "transitive": [
+                "io.kubernetes:client-java"
             ]
         },
         "io.netty:netty": {
@@ -2855,9 +3020,34 @@
                 "com.netflix.titus:titus-server-master"
             ]
         },
+        "io.sundr:builder-annotations": {
+            "locked": "0.9.2",
+            "transitive": [
+                "io.kubernetes:client-java-api"
+            ]
+        },
+        "io.sundr:resourcecify-annotations": {
+            "locked": "0.9.2",
+            "transitive": [
+                "io.sundr:builder-annotations"
+            ]
+        },
+        "io.sundr:sundr-codegen": {
+            "locked": "0.9.2",
+            "transitive": [
+                "io.sundr:builder-annotations"
+            ]
+        },
+        "io.sundr:sundr-core": {
+            "locked": "0.9.2",
+            "transitive": [
+                "io.sundr:builder-annotations"
+            ]
+        },
         "io.swagger:swagger-annotations": {
             "locked": "1.5.12",
             "transitive": [
+                "io.kubernetes:client-java-api",
                 "io.swagger:swagger-models"
             ]
         },
@@ -2962,9 +3152,10 @@
             ]
         },
         "joda-time:joda-time": {
-            "locked": "2.4",
+            "locked": "2.9.3",
             "transitive": [
                 "com.github.fge:json-schema-validator",
+                "io.kubernetes:client-java-api",
                 "org.apache.cassandra:cassandra-all"
             ]
         },
@@ -3055,6 +3246,12 @@
                 "org.apache.cassandra:cassandra-all"
             ]
         },
+        "org.apache.commons:commons-compress": {
+            "locked": "1.18",
+            "transitive": [
+                "io.kubernetes:client-java"
+            ]
+        },
         "org.apache.commons:commons-io": {
             "locked": "1.3.2",
             "transitive": [
@@ -3062,11 +3259,13 @@
             ]
         },
         "org.apache.commons:commons-lang3": {
-            "locked": "3.4",
+            "locked": "3.7",
             "transitive": [
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
                 "com.netflix.archaius:archaius2-core",
+                "io.kubernetes:client-java",
+                "io.kubernetes:client-java-api",
                 "io.swagger:swagger-core",
                 "org.apache.cassandra:cassandra-all",
                 "org.apache.cassandra:cassandra-thrift",
@@ -3144,10 +3343,17 @@
             ]
         },
         "org.bouncycastle:bcpkix-jdk15on": {
-            "locked": "1.52",
+            "locked": "1.59",
             "transitive": [
+                "io.kubernetes:client-java",
                 "org.bouncycastle:bcmail-jdk15on",
                 "org.mock-server:mockserver-core"
+            ]
+        },
+        "org.bouncycastle:bcprov-ext-jdk15on": {
+            "locked": "1.59",
+            "transitive": [
+                "io.kubernetes:client-java"
             ]
         },
         "org.bouncycastle:bcprov-jdk15on": {
@@ -3171,6 +3377,12 @@
                 "com.netflix.titus:titus-ext-cassandra-testkit"
             ]
         },
+        "org.checkerframework:checker-qual": {
+            "locked": "2.0.0",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
         "org.codehaus.jackson:jackson-core-asl": {
             "locked": "1.9.2",
             "transitive": [
@@ -3182,6 +3394,12 @@
             "locked": "1.9.2",
             "transitive": [
                 "org.apache.cassandra:cassandra-all"
+            ]
+        },
+        "org.codehaus.mojo:animal-sniffer-annotations": {
+            "locked": "1.14",
+            "transitive": [
+                "com.google.guava:guava"
             ]
         },
         "org.eclipse.jdt.core.compiler:ecj": {
@@ -3305,6 +3523,12 @@
             "transitive": [
                 "org.hibernate.validator:hibernate-validator",
                 "org.hibernate:hibernate-validator"
+            ]
+        },
+        "org.joda:joda-convert": {
+            "locked": "1.2",
+            "transitive": [
+                "io.kubernetes:client-java-api"
             ]
         },
         "org.json:json": {
@@ -3479,6 +3703,7 @@
                 "com.thinkaurelius.thrift:thrift-server",
                 "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard.metrics:metrics-jvm",
+                "io.kubernetes:client-java",
                 "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
@@ -3674,6 +3899,7 @@
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
+                "io.kubernetes:client-java",
                 "org.apache.cassandra:cassandra-all",
                 "org.springframework.boot:spring-boot-starter"
             ]
@@ -3922,7 +4148,7 @@
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
+            "locked": "3.0.2",
             "transitive": [
                 "com.github.fge:btf",
                 "com.github.fge:jackson-coreutils",
@@ -3930,21 +4156,24 @@
                 "com.github.fge:json-schema-validator",
                 "com.github.fge:msg-simple",
                 "com.github.fge:uri-template",
+                "com.google.guava:guava",
                 "com.twitter:util-cache_2.11",
                 "com.twitter:util-collection_2.11",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.code.gson:gson": {
-            "locked": "2.7",
+            "locked": "2.8.0",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
-                "io.grpc:grpc-core"
+                "io.grpc:grpc-core",
+                "io.kubernetes:client-java-api"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.1.2",
+            "locked": "2.1.3",
             "transitive": [
+                "com.google.guava:guava",
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
                 "com.google.truth:truth",
@@ -3952,7 +4181,7 @@
             ]
         },
         "com.google.guava:guava": {
-            "locked": "20.0",
+            "locked": "25.1-jre",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.datastax.cassandra:cassandra-driver-extras",
@@ -3971,6 +4200,7 @@
                 "io.grpc:grpc-core",
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
+                "io.kubernetes:client-java",
                 "io.opencensus:opencensus-api",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-jaxrs",
@@ -4025,6 +4255,12 @@
                 "com.sun.jersey.contribs:jersey-guice"
             ]
         },
+        "com.google.j2objc:j2objc-annotations": {
+            "locked": "1.1",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
         "com.google.protobuf:protobuf-java": {
             "locked": "3.5.1",
             "transitive": [
@@ -4035,6 +4271,8 @@
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-master",
                 "io.grpc:grpc-protobuf",
+                "io.kubernetes:client-java",
+                "io.kubernetes:client-java-proto",
                 "org.apache.mesos:mesos"
             ]
         },
@@ -4268,10 +4506,31 @@
                 "com.netflix.titus:titus-common"
             ]
         },
+        "com.squareup.okhttp:logging-interceptor": {
+            "locked": "2.7.5",
+            "transitive": [
+                "io.kubernetes:client-java-api"
+            ]
+        },
+        "com.squareup.okhttp:okhttp": {
+            "locked": "2.7.5",
+            "transitive": [
+                "com.squareup.okhttp:logging-interceptor",
+                "com.squareup.okhttp:okhttp-ws",
+                "io.kubernetes:client-java-api"
+            ]
+        },
+        "com.squareup.okhttp:okhttp-ws": {
+            "locked": "2.7.5",
+            "transitive": [
+                "io.kubernetes:client-java"
+            ]
+        },
         "com.squareup.okio:okio": {
             "locked": "1.13.0",
             "transitive": [
-                "com.squareup.okhttp3:okhttp"
+                "com.squareup.okhttp3:okhttp",
+                "com.squareup.okhttp:okhttp"
             ]
         },
         "com.sun.jersey.contribs:jersey-guice": {
@@ -4427,10 +4686,11 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.9",
+            "locked": "1.11",
             "transitive": [
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:util-codec_2.11",
+                "io.kubernetes:client-java",
                 "org.apache.cassandra:cassandra-all"
             ]
         },
@@ -4514,6 +4774,24 @@
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api"
+            ]
+        },
+        "io.kubernetes:client-java": {
+            "locked": "4.0.0",
+            "transitive": [
+                "com.netflix.titus:titus-server-master"
+            ]
+        },
+        "io.kubernetes:client-java-api": {
+            "locked": "4.0.0",
+            "transitive": [
+                "io.kubernetes:client-java"
+            ]
+        },
+        "io.kubernetes:client-java-proto": {
+            "locked": "4.0.0",
+            "transitive": [
+                "io.kubernetes:client-java"
             ]
         },
         "io.netty:netty": {
@@ -4701,9 +4979,34 @@
                 "com.netflix.titus:titus-server-master"
             ]
         },
+        "io.sundr:builder-annotations": {
+            "locked": "0.9.2",
+            "transitive": [
+                "io.kubernetes:client-java-api"
+            ]
+        },
+        "io.sundr:resourcecify-annotations": {
+            "locked": "0.9.2",
+            "transitive": [
+                "io.sundr:builder-annotations"
+            ]
+        },
+        "io.sundr:sundr-codegen": {
+            "locked": "0.9.2",
+            "transitive": [
+                "io.sundr:builder-annotations"
+            ]
+        },
+        "io.sundr:sundr-core": {
+            "locked": "0.9.2",
+            "transitive": [
+                "io.sundr:builder-annotations"
+            ]
+        },
         "io.swagger:swagger-annotations": {
             "locked": "1.5.12",
             "transitive": [
+                "io.kubernetes:client-java-api",
                 "io.swagger:swagger-models"
             ]
         },
@@ -4808,9 +5111,10 @@
             ]
         },
         "joda-time:joda-time": {
-            "locked": "2.4",
+            "locked": "2.9.3",
             "transitive": [
                 "com.github.fge:json-schema-validator",
+                "io.kubernetes:client-java-api",
                 "org.apache.cassandra:cassandra-all"
             ]
         },
@@ -4901,6 +5205,12 @@
                 "org.apache.cassandra:cassandra-all"
             ]
         },
+        "org.apache.commons:commons-compress": {
+            "locked": "1.18",
+            "transitive": [
+                "io.kubernetes:client-java"
+            ]
+        },
         "org.apache.commons:commons-io": {
             "locked": "1.3.2",
             "transitive": [
@@ -4908,11 +5218,13 @@
             ]
         },
         "org.apache.commons:commons-lang3": {
-            "locked": "3.4",
+            "locked": "3.7",
             "transitive": [
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
                 "com.netflix.archaius:archaius2-core",
+                "io.kubernetes:client-java",
+                "io.kubernetes:client-java-api",
                 "io.swagger:swagger-core",
                 "org.apache.cassandra:cassandra-all",
                 "org.apache.cassandra:cassandra-thrift",
@@ -4990,10 +5302,17 @@
             ]
         },
         "org.bouncycastle:bcpkix-jdk15on": {
-            "locked": "1.52",
+            "locked": "1.59",
             "transitive": [
+                "io.kubernetes:client-java",
                 "org.bouncycastle:bcmail-jdk15on",
                 "org.mock-server:mockserver-core"
+            ]
+        },
+        "org.bouncycastle:bcprov-ext-jdk15on": {
+            "locked": "1.59",
+            "transitive": [
+                "io.kubernetes:client-java"
             ]
         },
         "org.bouncycastle:bcprov-jdk15on": {
@@ -5017,6 +5336,12 @@
                 "com.netflix.titus:titus-ext-cassandra-testkit"
             ]
         },
+        "org.checkerframework:checker-qual": {
+            "locked": "2.0.0",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
         "org.codehaus.jackson:jackson-core-asl": {
             "locked": "1.9.2",
             "transitive": [
@@ -5028,6 +5353,12 @@
             "locked": "1.9.2",
             "transitive": [
                 "org.apache.cassandra:cassandra-all"
+            ]
+        },
+        "org.codehaus.mojo:animal-sniffer-annotations": {
+            "locked": "1.14",
+            "transitive": [
+                "com.google.guava:guava"
             ]
         },
         "org.eclipse.jdt.core.compiler:ecj": {
@@ -5151,6 +5482,12 @@
             "transitive": [
                 "org.hibernate.validator:hibernate-validator",
                 "org.hibernate:hibernate-validator"
+            ]
+        },
+        "org.joda:joda-convert": {
+            "locked": "1.2",
+            "transitive": [
+                "io.kubernetes:client-java-api"
             ]
         },
         "org.json:json": {
@@ -5325,6 +5662,7 @@
                 "com.thinkaurelius.thrift:thrift-server",
                 "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard.metrics:metrics-jvm",
+                "io.kubernetes:client-java",
                 "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
@@ -5521,6 +5859,7 @@
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
+                "io.kubernetes:client-java",
                 "org.apache.cassandra:cassandra-all",
                 "org.springframework.boot:spring-boot-starter"
             ]
@@ -5832,7 +6171,7 @@
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
+            "locked": "3.0.2",
             "transitive": [
                 "com.github.fge:btf",
                 "com.github.fge:jackson-coreutils",
@@ -5840,21 +6179,24 @@
                 "com.github.fge:json-schema-validator",
                 "com.github.fge:msg-simple",
                 "com.github.fge:uri-template",
+                "com.google.guava:guava",
                 "com.twitter:util-cache_2.11",
                 "com.twitter:util-collection_2.11",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.code.gson:gson": {
-            "locked": "2.7",
+            "locked": "2.8.0",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
-                "io.grpc:grpc-core"
+                "io.grpc:grpc-core",
+                "io.kubernetes:client-java-api"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.1.2",
+            "locked": "2.1.3",
             "transitive": [
+                "com.google.guava:guava",
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
                 "com.google.truth:truth",
@@ -5862,7 +6204,7 @@
             ]
         },
         "com.google.guava:guava": {
-            "locked": "20.0",
+            "locked": "25.1-jre",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.datastax.cassandra:cassandra-driver-extras",
@@ -5881,6 +6223,7 @@
                 "io.grpc:grpc-core",
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
+                "io.kubernetes:client-java",
                 "io.opencensus:opencensus-api",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-jaxrs",
@@ -5935,6 +6278,12 @@
                 "com.sun.jersey.contribs:jersey-guice"
             ]
         },
+        "com.google.j2objc:j2objc-annotations": {
+            "locked": "1.1",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
         "com.google.protobuf:protobuf-java": {
             "locked": "3.5.1",
             "transitive": [
@@ -5945,6 +6294,8 @@
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-master",
                 "io.grpc:grpc-protobuf",
+                "io.kubernetes:client-java",
+                "io.kubernetes:client-java-proto",
                 "org.apache.mesos:mesos"
             ]
         },
@@ -6178,10 +6529,31 @@
                 "com.netflix.titus:titus-common"
             ]
         },
+        "com.squareup.okhttp:logging-interceptor": {
+            "locked": "2.7.5",
+            "transitive": [
+                "io.kubernetes:client-java-api"
+            ]
+        },
+        "com.squareup.okhttp:okhttp": {
+            "locked": "2.7.5",
+            "transitive": [
+                "com.squareup.okhttp:logging-interceptor",
+                "com.squareup.okhttp:okhttp-ws",
+                "io.kubernetes:client-java-api"
+            ]
+        },
+        "com.squareup.okhttp:okhttp-ws": {
+            "locked": "2.7.5",
+            "transitive": [
+                "io.kubernetes:client-java"
+            ]
+        },
         "com.squareup.okio:okio": {
             "locked": "1.13.0",
             "transitive": [
-                "com.squareup.okhttp3:okhttp"
+                "com.squareup.okhttp3:okhttp",
+                "com.squareup.okhttp:okhttp"
             ]
         },
         "com.sun.jersey.contribs:jersey-guice": {
@@ -6337,10 +6709,11 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.9",
+            "locked": "1.11",
             "transitive": [
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:util-codec_2.11",
+                "io.kubernetes:client-java",
                 "org.apache.cassandra:cassandra-all"
             ]
         },
@@ -6424,6 +6797,24 @@
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api"
+            ]
+        },
+        "io.kubernetes:client-java": {
+            "locked": "4.0.0",
+            "transitive": [
+                "com.netflix.titus:titus-server-master"
+            ]
+        },
+        "io.kubernetes:client-java-api": {
+            "locked": "4.0.0",
+            "transitive": [
+                "io.kubernetes:client-java"
+            ]
+        },
+        "io.kubernetes:client-java-proto": {
+            "locked": "4.0.0",
+            "transitive": [
+                "io.kubernetes:client-java"
             ]
         },
         "io.netty:netty": {
@@ -6611,9 +7002,34 @@
                 "com.netflix.titus:titus-server-master"
             ]
         },
+        "io.sundr:builder-annotations": {
+            "locked": "0.9.2",
+            "transitive": [
+                "io.kubernetes:client-java-api"
+            ]
+        },
+        "io.sundr:resourcecify-annotations": {
+            "locked": "0.9.2",
+            "transitive": [
+                "io.sundr:builder-annotations"
+            ]
+        },
+        "io.sundr:sundr-codegen": {
+            "locked": "0.9.2",
+            "transitive": [
+                "io.sundr:builder-annotations"
+            ]
+        },
+        "io.sundr:sundr-core": {
+            "locked": "0.9.2",
+            "transitive": [
+                "io.sundr:builder-annotations"
+            ]
+        },
         "io.swagger:swagger-annotations": {
             "locked": "1.5.12",
             "transitive": [
+                "io.kubernetes:client-java-api",
                 "io.swagger:swagger-models"
             ]
         },
@@ -6718,9 +7134,10 @@
             ]
         },
         "joda-time:joda-time": {
-            "locked": "2.4",
+            "locked": "2.9.3",
             "transitive": [
                 "com.github.fge:json-schema-validator",
+                "io.kubernetes:client-java-api",
                 "org.apache.cassandra:cassandra-all"
             ]
         },
@@ -6811,6 +7228,12 @@
                 "org.apache.cassandra:cassandra-all"
             ]
         },
+        "org.apache.commons:commons-compress": {
+            "locked": "1.18",
+            "transitive": [
+                "io.kubernetes:client-java"
+            ]
+        },
         "org.apache.commons:commons-io": {
             "locked": "1.3.2",
             "transitive": [
@@ -6818,11 +7241,13 @@
             ]
         },
         "org.apache.commons:commons-lang3": {
-            "locked": "3.4",
+            "locked": "3.7",
             "transitive": [
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
                 "com.netflix.archaius:archaius2-core",
+                "io.kubernetes:client-java",
+                "io.kubernetes:client-java-api",
                 "io.swagger:swagger-core",
                 "org.apache.cassandra:cassandra-all",
                 "org.apache.cassandra:cassandra-thrift",
@@ -6900,10 +7325,17 @@
             ]
         },
         "org.bouncycastle:bcpkix-jdk15on": {
-            "locked": "1.52",
+            "locked": "1.59",
             "transitive": [
+                "io.kubernetes:client-java",
                 "org.bouncycastle:bcmail-jdk15on",
                 "org.mock-server:mockserver-core"
+            ]
+        },
+        "org.bouncycastle:bcprov-ext-jdk15on": {
+            "locked": "1.59",
+            "transitive": [
+                "io.kubernetes:client-java"
             ]
         },
         "org.bouncycastle:bcprov-jdk15on": {
@@ -6927,6 +7359,12 @@
                 "com.netflix.titus:titus-ext-cassandra-testkit"
             ]
         },
+        "org.checkerframework:checker-qual": {
+            "locked": "2.0.0",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
         "org.codehaus.jackson:jackson-core-asl": {
             "locked": "1.9.2",
             "transitive": [
@@ -6938,6 +7376,12 @@
             "locked": "1.9.2",
             "transitive": [
                 "org.apache.cassandra:cassandra-all"
+            ]
+        },
+        "org.codehaus.mojo:animal-sniffer-annotations": {
+            "locked": "1.14",
+            "transitive": [
+                "com.google.guava:guava"
             ]
         },
         "org.eclipse.jdt.core.compiler:ecj": {
@@ -7061,6 +7505,12 @@
             "transitive": [
                 "org.hibernate.validator:hibernate-validator",
                 "org.hibernate:hibernate-validator"
+            ]
+        },
+        "org.joda:joda-convert": {
+            "locked": "1.2",
+            "transitive": [
+                "io.kubernetes:client-java-api"
             ]
         },
         "org.json:json": {
@@ -7235,6 +7685,7 @@
                 "com.thinkaurelius.thrift:thrift-server",
                 "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard.metrics:metrics-jvm",
+                "io.kubernetes:client-java",
                 "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
@@ -7431,6 +7882,7 @@
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
+                "io.kubernetes:client-java",
                 "org.apache.cassandra:cassandra-all",
                 "org.springframework.boot:spring-boot-starter"
             ]
@@ -7679,7 +8131,7 @@
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
+            "locked": "3.0.2",
             "transitive": [
                 "com.github.fge:btf",
                 "com.github.fge:jackson-coreutils",
@@ -7687,21 +8139,24 @@
                 "com.github.fge:json-schema-validator",
                 "com.github.fge:msg-simple",
                 "com.github.fge:uri-template",
+                "com.google.guava:guava",
                 "com.twitter:util-cache_2.11",
                 "com.twitter:util-collection_2.11",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.code.gson:gson": {
-            "locked": "2.7",
+            "locked": "2.8.0",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
-                "io.grpc:grpc-core"
+                "io.grpc:grpc-core",
+                "io.kubernetes:client-java-api"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.1.2",
+            "locked": "2.1.3",
             "transitive": [
+                "com.google.guava:guava",
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
                 "com.google.truth:truth",
@@ -7709,7 +8164,7 @@
             ]
         },
         "com.google.guava:guava": {
-            "locked": "20.0",
+            "locked": "25.1-jre",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.datastax.cassandra:cassandra-driver-extras",
@@ -7728,6 +8183,7 @@
                 "io.grpc:grpc-core",
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
+                "io.kubernetes:client-java",
                 "io.opencensus:opencensus-api",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-jaxrs",
@@ -7782,6 +8238,12 @@
                 "com.sun.jersey.contribs:jersey-guice"
             ]
         },
+        "com.google.j2objc:j2objc-annotations": {
+            "locked": "1.1",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
         "com.google.protobuf:protobuf-java": {
             "locked": "3.5.1",
             "transitive": [
@@ -7792,6 +8254,8 @@
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-master",
                 "io.grpc:grpc-protobuf",
+                "io.kubernetes:client-java",
+                "io.kubernetes:client-java-proto",
                 "org.apache.mesos:mesos"
             ]
         },
@@ -8025,10 +8489,31 @@
                 "com.netflix.titus:titus-common"
             ]
         },
+        "com.squareup.okhttp:logging-interceptor": {
+            "locked": "2.7.5",
+            "transitive": [
+                "io.kubernetes:client-java-api"
+            ]
+        },
+        "com.squareup.okhttp:okhttp": {
+            "locked": "2.7.5",
+            "transitive": [
+                "com.squareup.okhttp:logging-interceptor",
+                "com.squareup.okhttp:okhttp-ws",
+                "io.kubernetes:client-java-api"
+            ]
+        },
+        "com.squareup.okhttp:okhttp-ws": {
+            "locked": "2.7.5",
+            "transitive": [
+                "io.kubernetes:client-java"
+            ]
+        },
         "com.squareup.okio:okio": {
             "locked": "1.13.0",
             "transitive": [
-                "com.squareup.okhttp3:okhttp"
+                "com.squareup.okhttp3:okhttp",
+                "com.squareup.okhttp:okhttp"
             ]
         },
         "com.sun.jersey.contribs:jersey-guice": {
@@ -8184,10 +8669,11 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.9",
+            "locked": "1.11",
             "transitive": [
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:util-codec_2.11",
+                "io.kubernetes:client-java",
                 "org.apache.cassandra:cassandra-all"
             ]
         },
@@ -8271,6 +8757,24 @@
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api"
+            ]
+        },
+        "io.kubernetes:client-java": {
+            "locked": "4.0.0",
+            "transitive": [
+                "com.netflix.titus:titus-server-master"
+            ]
+        },
+        "io.kubernetes:client-java-api": {
+            "locked": "4.0.0",
+            "transitive": [
+                "io.kubernetes:client-java"
+            ]
+        },
+        "io.kubernetes:client-java-proto": {
+            "locked": "4.0.0",
+            "transitive": [
+                "io.kubernetes:client-java"
             ]
         },
         "io.netty:netty": {
@@ -8458,9 +8962,34 @@
                 "com.netflix.titus:titus-server-master"
             ]
         },
+        "io.sundr:builder-annotations": {
+            "locked": "0.9.2",
+            "transitive": [
+                "io.kubernetes:client-java-api"
+            ]
+        },
+        "io.sundr:resourcecify-annotations": {
+            "locked": "0.9.2",
+            "transitive": [
+                "io.sundr:builder-annotations"
+            ]
+        },
+        "io.sundr:sundr-codegen": {
+            "locked": "0.9.2",
+            "transitive": [
+                "io.sundr:builder-annotations"
+            ]
+        },
+        "io.sundr:sundr-core": {
+            "locked": "0.9.2",
+            "transitive": [
+                "io.sundr:builder-annotations"
+            ]
+        },
         "io.swagger:swagger-annotations": {
             "locked": "1.5.12",
             "transitive": [
+                "io.kubernetes:client-java-api",
                 "io.swagger:swagger-models"
             ]
         },
@@ -8565,9 +9094,10 @@
             ]
         },
         "joda-time:joda-time": {
-            "locked": "2.4",
+            "locked": "2.9.3",
             "transitive": [
                 "com.github.fge:json-schema-validator",
+                "io.kubernetes:client-java-api",
                 "org.apache.cassandra:cassandra-all"
             ]
         },
@@ -8658,6 +9188,12 @@
                 "org.apache.cassandra:cassandra-all"
             ]
         },
+        "org.apache.commons:commons-compress": {
+            "locked": "1.18",
+            "transitive": [
+                "io.kubernetes:client-java"
+            ]
+        },
         "org.apache.commons:commons-io": {
             "locked": "1.3.2",
             "transitive": [
@@ -8665,11 +9201,13 @@
             ]
         },
         "org.apache.commons:commons-lang3": {
-            "locked": "3.4",
+            "locked": "3.7",
             "transitive": [
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
                 "com.netflix.archaius:archaius2-core",
+                "io.kubernetes:client-java",
+                "io.kubernetes:client-java-api",
                 "io.swagger:swagger-core",
                 "org.apache.cassandra:cassandra-all",
                 "org.apache.cassandra:cassandra-thrift",
@@ -8747,10 +9285,17 @@
             ]
         },
         "org.bouncycastle:bcpkix-jdk15on": {
-            "locked": "1.52",
+            "locked": "1.59",
             "transitive": [
+                "io.kubernetes:client-java",
                 "org.bouncycastle:bcmail-jdk15on",
                 "org.mock-server:mockserver-core"
+            ]
+        },
+        "org.bouncycastle:bcprov-ext-jdk15on": {
+            "locked": "1.59",
+            "transitive": [
+                "io.kubernetes:client-java"
             ]
         },
         "org.bouncycastle:bcprov-jdk15on": {
@@ -8774,6 +9319,12 @@
                 "com.netflix.titus:titus-ext-cassandra-testkit"
             ]
         },
+        "org.checkerframework:checker-qual": {
+            "locked": "2.0.0",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
         "org.codehaus.jackson:jackson-core-asl": {
             "locked": "1.9.2",
             "transitive": [
@@ -8785,6 +9336,12 @@
             "locked": "1.9.2",
             "transitive": [
                 "org.apache.cassandra:cassandra-all"
+            ]
+        },
+        "org.codehaus.mojo:animal-sniffer-annotations": {
+            "locked": "1.14",
+            "transitive": [
+                "com.google.guava:guava"
             ]
         },
         "org.eclipse.jdt.core.compiler:ecj": {
@@ -8908,6 +9465,12 @@
             "transitive": [
                 "org.hibernate.validator:hibernate-validator",
                 "org.hibernate:hibernate-validator"
+            ]
+        },
+        "org.joda:joda-convert": {
+            "locked": "1.2",
+            "transitive": [
+                "io.kubernetes:client-java-api"
             ]
         },
         "org.json:json": {
@@ -9082,6 +9645,7 @@
                 "com.thinkaurelius.thrift:thrift-server",
                 "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard.metrics:metrics-jvm",
+                "io.kubernetes:client-java",
                 "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
@@ -9278,6 +9842,7 @@
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
+                "io.kubernetes:client-java",
                 "org.apache.cassandra:cassandra-all",
                 "org.springframework.boot:spring-boot-starter"
             ]
@@ -9532,7 +10097,7 @@
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
+            "locked": "3.0.2",
             "transitive": [
                 "com.github.fge:btf",
                 "com.github.fge:jackson-coreutils",
@@ -9540,21 +10105,24 @@
                 "com.github.fge:json-schema-validator",
                 "com.github.fge:msg-simple",
                 "com.github.fge:uri-template",
+                "com.google.guava:guava",
                 "com.twitter:util-cache_2.11",
                 "com.twitter:util-collection_2.11",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.code.gson:gson": {
-            "locked": "2.7",
+            "locked": "2.8.0",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
-                "io.grpc:grpc-core"
+                "io.grpc:grpc-core",
+                "io.kubernetes:client-java-api"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.1.2",
+            "locked": "2.1.3",
             "transitive": [
+                "com.google.guava:guava",
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
                 "com.google.truth:truth",
@@ -9562,7 +10130,7 @@
             ]
         },
         "com.google.guava:guava": {
-            "locked": "20.0",
+            "locked": "25.1-jre",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.datastax.cassandra:cassandra-driver-extras",
@@ -9581,6 +10149,7 @@
                 "io.grpc:grpc-core",
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
+                "io.kubernetes:client-java",
                 "io.opencensus:opencensus-api",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-jaxrs",
@@ -9635,6 +10204,12 @@
                 "com.sun.jersey.contribs:jersey-guice"
             ]
         },
+        "com.google.j2objc:j2objc-annotations": {
+            "locked": "1.1",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
         "com.google.protobuf:protobuf-java": {
             "locked": "3.5.1",
             "transitive": [
@@ -9645,6 +10220,8 @@
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-master",
                 "io.grpc:grpc-protobuf",
+                "io.kubernetes:client-java",
+                "io.kubernetes:client-java-proto",
                 "org.apache.mesos:mesos"
             ]
         },
@@ -9882,10 +10459,31 @@
                 "com.netflix.titus:titus-common"
             ]
         },
+        "com.squareup.okhttp:logging-interceptor": {
+            "locked": "2.7.5",
+            "transitive": [
+                "io.kubernetes:client-java-api"
+            ]
+        },
+        "com.squareup.okhttp:okhttp": {
+            "locked": "2.7.5",
+            "transitive": [
+                "com.squareup.okhttp:logging-interceptor",
+                "com.squareup.okhttp:okhttp-ws",
+                "io.kubernetes:client-java-api"
+            ]
+        },
+        "com.squareup.okhttp:okhttp-ws": {
+            "locked": "2.7.5",
+            "transitive": [
+                "io.kubernetes:client-java"
+            ]
+        },
         "com.squareup.okio:okio": {
             "locked": "1.13.0",
             "transitive": [
-                "com.squareup.okhttp3:okhttp"
+                "com.squareup.okhttp3:okhttp",
+                "com.squareup.okhttp:okhttp"
             ]
         },
         "com.sun.jersey.contribs:jersey-guice": {
@@ -10041,10 +10639,11 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.9",
+            "locked": "1.11",
             "transitive": [
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:util-codec_2.11",
+                "io.kubernetes:client-java",
                 "org.apache.cassandra:cassandra-all"
             ]
         },
@@ -10128,6 +10727,24 @@
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api"
+            ]
+        },
+        "io.kubernetes:client-java": {
+            "locked": "4.0.0",
+            "transitive": [
+                "com.netflix.titus:titus-server-master"
+            ]
+        },
+        "io.kubernetes:client-java-api": {
+            "locked": "4.0.0",
+            "transitive": [
+                "io.kubernetes:client-java"
+            ]
+        },
+        "io.kubernetes:client-java-proto": {
+            "locked": "4.0.0",
+            "transitive": [
+                "io.kubernetes:client-java"
             ]
         },
         "io.netty:netty": {
@@ -10320,9 +10937,34 @@
                 "com.netflix.titus:titus-server-master"
             ]
         },
+        "io.sundr:builder-annotations": {
+            "locked": "0.9.2",
+            "transitive": [
+                "io.kubernetes:client-java-api"
+            ]
+        },
+        "io.sundr:resourcecify-annotations": {
+            "locked": "0.9.2",
+            "transitive": [
+                "io.sundr:builder-annotations"
+            ]
+        },
+        "io.sundr:sundr-codegen": {
+            "locked": "0.9.2",
+            "transitive": [
+                "io.sundr:builder-annotations"
+            ]
+        },
+        "io.sundr:sundr-core": {
+            "locked": "0.9.2",
+            "transitive": [
+                "io.sundr:builder-annotations"
+            ]
+        },
         "io.swagger:swagger-annotations": {
             "locked": "1.5.12",
             "transitive": [
+                "io.kubernetes:client-java-api",
                 "io.swagger:swagger-models"
             ]
         },
@@ -10427,9 +11069,10 @@
             ]
         },
         "joda-time:joda-time": {
-            "locked": "2.4",
+            "locked": "2.9.3",
             "transitive": [
                 "com.github.fge:json-schema-validator",
+                "io.kubernetes:client-java-api",
                 "org.apache.cassandra:cassandra-all"
             ]
         },
@@ -10520,6 +11163,12 @@
                 "org.apache.cassandra:cassandra-all"
             ]
         },
+        "org.apache.commons:commons-compress": {
+            "locked": "1.18",
+            "transitive": [
+                "io.kubernetes:client-java"
+            ]
+        },
         "org.apache.commons:commons-io": {
             "locked": "1.3.2",
             "transitive": [
@@ -10527,11 +11176,13 @@
             ]
         },
         "org.apache.commons:commons-lang3": {
-            "locked": "3.4",
+            "locked": "3.7",
             "transitive": [
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
                 "com.netflix.archaius:archaius2-core",
+                "io.kubernetes:client-java",
+                "io.kubernetes:client-java-api",
                 "io.swagger:swagger-core",
                 "org.apache.cassandra:cassandra-all",
                 "org.apache.cassandra:cassandra-thrift",
@@ -10609,10 +11260,17 @@
             ]
         },
         "org.bouncycastle:bcpkix-jdk15on": {
-            "locked": "1.52",
+            "locked": "1.59",
             "transitive": [
+                "io.kubernetes:client-java",
                 "org.bouncycastle:bcmail-jdk15on",
                 "org.mock-server:mockserver-core"
+            ]
+        },
+        "org.bouncycastle:bcprov-ext-jdk15on": {
+            "locked": "1.59",
+            "transitive": [
+                "io.kubernetes:client-java"
             ]
         },
         "org.bouncycastle:bcprov-jdk15on": {
@@ -10636,6 +11294,12 @@
                 "com.netflix.titus:titus-ext-cassandra-testkit"
             ]
         },
+        "org.checkerframework:checker-qual": {
+            "locked": "2.0.0",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
         "org.codehaus.jackson:jackson-core-asl": {
             "locked": "1.9.2",
             "transitive": [
@@ -10647,6 +11311,12 @@
             "locked": "1.9.2",
             "transitive": [
                 "org.apache.cassandra:cassandra-all"
+            ]
+        },
+        "org.codehaus.mojo:animal-sniffer-annotations": {
+            "locked": "1.14",
+            "transitive": [
+                "com.google.guava:guava"
             ]
         },
         "org.eclipse.jdt.core.compiler:ecj": {
@@ -10773,6 +11443,12 @@
             "transitive": [
                 "org.hibernate.validator:hibernate-validator",
                 "org.hibernate:hibernate-validator"
+            ]
+        },
+        "org.joda:joda-convert": {
+            "locked": "1.2",
+            "transitive": [
+                "io.kubernetes:client-java-api"
             ]
         },
         "org.json:json": {
@@ -10948,6 +11624,7 @@
                 "com.thinkaurelius.thrift:thrift-server",
                 "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard.metrics:metrics-jvm",
+                "io.kubernetes:client-java",
                 "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
@@ -11143,6 +11820,7 @@
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
+                "io.kubernetes:client-java",
                 "org.apache.cassandra:cassandra-all",
                 "org.springframework.boot:spring-boot-starter"
             ]
@@ -11397,7 +12075,7 @@
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
+            "locked": "3.0.2",
             "transitive": [
                 "com.github.fge:btf",
                 "com.github.fge:jackson-coreutils",
@@ -11405,21 +12083,24 @@
                 "com.github.fge:json-schema-validator",
                 "com.github.fge:msg-simple",
                 "com.github.fge:uri-template",
+                "com.google.guava:guava",
                 "com.twitter:util-cache_2.11",
                 "com.twitter:util-collection_2.11",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.code.gson:gson": {
-            "locked": "2.7",
+            "locked": "2.8.0",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
-                "io.grpc:grpc-core"
+                "io.grpc:grpc-core",
+                "io.kubernetes:client-java-api"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.1.2",
+            "locked": "2.1.3",
             "transitive": [
+                "com.google.guava:guava",
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
                 "com.google.truth:truth",
@@ -11427,7 +12108,7 @@
             ]
         },
         "com.google.guava:guava": {
-            "locked": "20.0",
+            "locked": "25.1-jre",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.datastax.cassandra:cassandra-driver-extras",
@@ -11446,6 +12127,7 @@
                 "io.grpc:grpc-core",
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
+                "io.kubernetes:client-java",
                 "io.opencensus:opencensus-api",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-jaxrs",
@@ -11500,6 +12182,12 @@
                 "com.sun.jersey.contribs:jersey-guice"
             ]
         },
+        "com.google.j2objc:j2objc-annotations": {
+            "locked": "1.1",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
         "com.google.protobuf:protobuf-java": {
             "locked": "3.5.1",
             "transitive": [
@@ -11510,6 +12198,8 @@
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-master",
                 "io.grpc:grpc-protobuf",
+                "io.kubernetes:client-java",
+                "io.kubernetes:client-java-proto",
                 "org.apache.mesos:mesos"
             ]
         },
@@ -11747,10 +12437,31 @@
                 "com.netflix.titus:titus-common"
             ]
         },
+        "com.squareup.okhttp:logging-interceptor": {
+            "locked": "2.7.5",
+            "transitive": [
+                "io.kubernetes:client-java-api"
+            ]
+        },
+        "com.squareup.okhttp:okhttp": {
+            "locked": "2.7.5",
+            "transitive": [
+                "com.squareup.okhttp:logging-interceptor",
+                "com.squareup.okhttp:okhttp-ws",
+                "io.kubernetes:client-java-api"
+            ]
+        },
+        "com.squareup.okhttp:okhttp-ws": {
+            "locked": "2.7.5",
+            "transitive": [
+                "io.kubernetes:client-java"
+            ]
+        },
         "com.squareup.okio:okio": {
             "locked": "1.13.0",
             "transitive": [
-                "com.squareup.okhttp3:okhttp"
+                "com.squareup.okhttp3:okhttp",
+                "com.squareup.okhttp:okhttp"
             ]
         },
         "com.sun.jersey.contribs:jersey-guice": {
@@ -11906,10 +12617,11 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.9",
+            "locked": "1.11",
             "transitive": [
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:util-codec_2.11",
+                "io.kubernetes:client-java",
                 "org.apache.cassandra:cassandra-all"
             ]
         },
@@ -11993,6 +12705,24 @@
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api"
+            ]
+        },
+        "io.kubernetes:client-java": {
+            "locked": "4.0.0",
+            "transitive": [
+                "com.netflix.titus:titus-server-master"
+            ]
+        },
+        "io.kubernetes:client-java-api": {
+            "locked": "4.0.0",
+            "transitive": [
+                "io.kubernetes:client-java"
+            ]
+        },
+        "io.kubernetes:client-java-proto": {
+            "locked": "4.0.0",
+            "transitive": [
+                "io.kubernetes:client-java"
             ]
         },
         "io.netty:netty": {
@@ -12185,9 +12915,34 @@
                 "com.netflix.titus:titus-server-master"
             ]
         },
+        "io.sundr:builder-annotations": {
+            "locked": "0.9.2",
+            "transitive": [
+                "io.kubernetes:client-java-api"
+            ]
+        },
+        "io.sundr:resourcecify-annotations": {
+            "locked": "0.9.2",
+            "transitive": [
+                "io.sundr:builder-annotations"
+            ]
+        },
+        "io.sundr:sundr-codegen": {
+            "locked": "0.9.2",
+            "transitive": [
+                "io.sundr:builder-annotations"
+            ]
+        },
+        "io.sundr:sundr-core": {
+            "locked": "0.9.2",
+            "transitive": [
+                "io.sundr:builder-annotations"
+            ]
+        },
         "io.swagger:swagger-annotations": {
             "locked": "1.5.12",
             "transitive": [
+                "io.kubernetes:client-java-api",
                 "io.swagger:swagger-models"
             ]
         },
@@ -12292,9 +13047,10 @@
             ]
         },
         "joda-time:joda-time": {
-            "locked": "2.4",
+            "locked": "2.9.3",
             "transitive": [
                 "com.github.fge:json-schema-validator",
+                "io.kubernetes:client-java-api",
                 "org.apache.cassandra:cassandra-all"
             ]
         },
@@ -12385,6 +13141,12 @@
                 "org.apache.cassandra:cassandra-all"
             ]
         },
+        "org.apache.commons:commons-compress": {
+            "locked": "1.18",
+            "transitive": [
+                "io.kubernetes:client-java"
+            ]
+        },
         "org.apache.commons:commons-io": {
             "locked": "1.3.2",
             "transitive": [
@@ -12392,11 +13154,13 @@
             ]
         },
         "org.apache.commons:commons-lang3": {
-            "locked": "3.4",
+            "locked": "3.7",
             "transitive": [
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
                 "com.netflix.archaius:archaius2-core",
+                "io.kubernetes:client-java",
+                "io.kubernetes:client-java-api",
                 "io.swagger:swagger-core",
                 "org.apache.cassandra:cassandra-all",
                 "org.apache.cassandra:cassandra-thrift",
@@ -12474,10 +13238,17 @@
             ]
         },
         "org.bouncycastle:bcpkix-jdk15on": {
-            "locked": "1.52",
+            "locked": "1.59",
             "transitive": [
+                "io.kubernetes:client-java",
                 "org.bouncycastle:bcmail-jdk15on",
                 "org.mock-server:mockserver-core"
+            ]
+        },
+        "org.bouncycastle:bcprov-ext-jdk15on": {
+            "locked": "1.59",
+            "transitive": [
+                "io.kubernetes:client-java"
             ]
         },
         "org.bouncycastle:bcprov-jdk15on": {
@@ -12501,6 +13272,12 @@
                 "com.netflix.titus:titus-ext-cassandra-testkit"
             ]
         },
+        "org.checkerframework:checker-qual": {
+            "locked": "2.0.0",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
         "org.codehaus.jackson:jackson-core-asl": {
             "locked": "1.9.2",
             "transitive": [
@@ -12512,6 +13289,12 @@
             "locked": "1.9.2",
             "transitive": [
                 "org.apache.cassandra:cassandra-all"
+            ]
+        },
+        "org.codehaus.mojo:animal-sniffer-annotations": {
+            "locked": "1.14",
+            "transitive": [
+                "com.google.guava:guava"
             ]
         },
         "org.eclipse.jdt.core.compiler:ecj": {
@@ -12638,6 +13421,12 @@
             "transitive": [
                 "org.hibernate.validator:hibernate-validator",
                 "org.hibernate:hibernate-validator"
+            ]
+        },
+        "org.joda:joda-convert": {
+            "locked": "1.2",
+            "transitive": [
+                "io.kubernetes:client-java-api"
             ]
         },
         "org.json:json": {
@@ -12813,6 +13602,7 @@
                 "com.thinkaurelius.thrift:thrift-server",
                 "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard.metrics:metrics-jvm",
+                "io.kubernetes:client-java",
                 "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
@@ -13008,6 +13798,7 @@
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
+                "io.kubernetes:client-java",
                 "org.apache.cassandra:cassandra-all",
                 "org.springframework.boot:spring-boot-starter"
             ]
@@ -13262,7 +14053,7 @@
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
+            "locked": "3.0.2",
             "transitive": [
                 "com.github.fge:btf",
                 "com.github.fge:jackson-coreutils",
@@ -13270,21 +14061,24 @@
                 "com.github.fge:json-schema-validator",
                 "com.github.fge:msg-simple",
                 "com.github.fge:uri-template",
+                "com.google.guava:guava",
                 "com.twitter:util-cache_2.11",
                 "com.twitter:util-collection_2.11",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.code.gson:gson": {
-            "locked": "2.7",
+            "locked": "2.8.0",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
-                "io.grpc:grpc-core"
+                "io.grpc:grpc-core",
+                "io.kubernetes:client-java-api"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.1.2",
+            "locked": "2.1.3",
             "transitive": [
+                "com.google.guava:guava",
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
                 "com.google.truth:truth",
@@ -13292,7 +14086,7 @@
             ]
         },
         "com.google.guava:guava": {
-            "locked": "20.0",
+            "locked": "25.1-jre",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.datastax.cassandra:cassandra-driver-extras",
@@ -13311,6 +14105,7 @@
                 "io.grpc:grpc-core",
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
+                "io.kubernetes:client-java",
                 "io.opencensus:opencensus-api",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-jaxrs",
@@ -13365,6 +14160,12 @@
                 "com.sun.jersey.contribs:jersey-guice"
             ]
         },
+        "com.google.j2objc:j2objc-annotations": {
+            "locked": "1.1",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
         "com.google.protobuf:protobuf-java": {
             "locked": "3.5.1",
             "transitive": [
@@ -13375,6 +14176,8 @@
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-master",
                 "io.grpc:grpc-protobuf",
+                "io.kubernetes:client-java",
+                "io.kubernetes:client-java-proto",
                 "org.apache.mesos:mesos"
             ]
         },
@@ -13612,10 +14415,31 @@
                 "com.netflix.titus:titus-common"
             ]
         },
+        "com.squareup.okhttp:logging-interceptor": {
+            "locked": "2.7.5",
+            "transitive": [
+                "io.kubernetes:client-java-api"
+            ]
+        },
+        "com.squareup.okhttp:okhttp": {
+            "locked": "2.7.5",
+            "transitive": [
+                "com.squareup.okhttp:logging-interceptor",
+                "com.squareup.okhttp:okhttp-ws",
+                "io.kubernetes:client-java-api"
+            ]
+        },
+        "com.squareup.okhttp:okhttp-ws": {
+            "locked": "2.7.5",
+            "transitive": [
+                "io.kubernetes:client-java"
+            ]
+        },
         "com.squareup.okio:okio": {
             "locked": "1.13.0",
             "transitive": [
-                "com.squareup.okhttp3:okhttp"
+                "com.squareup.okhttp3:okhttp",
+                "com.squareup.okhttp:okhttp"
             ]
         },
         "com.sun.jersey.contribs:jersey-guice": {
@@ -13771,10 +14595,11 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.9",
+            "locked": "1.11",
             "transitive": [
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:util-codec_2.11",
+                "io.kubernetes:client-java",
                 "org.apache.cassandra:cassandra-all"
             ]
         },
@@ -13858,6 +14683,24 @@
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api"
+            ]
+        },
+        "io.kubernetes:client-java": {
+            "locked": "4.0.0",
+            "transitive": [
+                "com.netflix.titus:titus-server-master"
+            ]
+        },
+        "io.kubernetes:client-java-api": {
+            "locked": "4.0.0",
+            "transitive": [
+                "io.kubernetes:client-java"
+            ]
+        },
+        "io.kubernetes:client-java-proto": {
+            "locked": "4.0.0",
+            "transitive": [
+                "io.kubernetes:client-java"
             ]
         },
         "io.netty:netty": {
@@ -14050,9 +14893,34 @@
                 "com.netflix.titus:titus-server-master"
             ]
         },
+        "io.sundr:builder-annotations": {
+            "locked": "0.9.2",
+            "transitive": [
+                "io.kubernetes:client-java-api"
+            ]
+        },
+        "io.sundr:resourcecify-annotations": {
+            "locked": "0.9.2",
+            "transitive": [
+                "io.sundr:builder-annotations"
+            ]
+        },
+        "io.sundr:sundr-codegen": {
+            "locked": "0.9.2",
+            "transitive": [
+                "io.sundr:builder-annotations"
+            ]
+        },
+        "io.sundr:sundr-core": {
+            "locked": "0.9.2",
+            "transitive": [
+                "io.sundr:builder-annotations"
+            ]
+        },
         "io.swagger:swagger-annotations": {
             "locked": "1.5.12",
             "transitive": [
+                "io.kubernetes:client-java-api",
                 "io.swagger:swagger-models"
             ]
         },
@@ -14157,9 +15025,10 @@
             ]
         },
         "joda-time:joda-time": {
-            "locked": "2.4",
+            "locked": "2.9.3",
             "transitive": [
                 "com.github.fge:json-schema-validator",
+                "io.kubernetes:client-java-api",
                 "org.apache.cassandra:cassandra-all"
             ]
         },
@@ -14250,6 +15119,12 @@
                 "org.apache.cassandra:cassandra-all"
             ]
         },
+        "org.apache.commons:commons-compress": {
+            "locked": "1.18",
+            "transitive": [
+                "io.kubernetes:client-java"
+            ]
+        },
         "org.apache.commons:commons-io": {
             "locked": "1.3.2",
             "transitive": [
@@ -14257,11 +15132,13 @@
             ]
         },
         "org.apache.commons:commons-lang3": {
-            "locked": "3.4",
+            "locked": "3.7",
             "transitive": [
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
                 "com.netflix.archaius:archaius2-core",
+                "io.kubernetes:client-java",
+                "io.kubernetes:client-java-api",
                 "io.swagger:swagger-core",
                 "org.apache.cassandra:cassandra-all",
                 "org.apache.cassandra:cassandra-thrift",
@@ -14339,10 +15216,17 @@
             ]
         },
         "org.bouncycastle:bcpkix-jdk15on": {
-            "locked": "1.52",
+            "locked": "1.59",
             "transitive": [
+                "io.kubernetes:client-java",
                 "org.bouncycastle:bcmail-jdk15on",
                 "org.mock-server:mockserver-core"
+            ]
+        },
+        "org.bouncycastle:bcprov-ext-jdk15on": {
+            "locked": "1.59",
+            "transitive": [
+                "io.kubernetes:client-java"
             ]
         },
         "org.bouncycastle:bcprov-jdk15on": {
@@ -14366,6 +15250,12 @@
                 "com.netflix.titus:titus-ext-cassandra-testkit"
             ]
         },
+        "org.checkerframework:checker-qual": {
+            "locked": "2.0.0",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
         "org.codehaus.jackson:jackson-core-asl": {
             "locked": "1.9.2",
             "transitive": [
@@ -14377,6 +15267,12 @@
             "locked": "1.9.2",
             "transitive": [
                 "org.apache.cassandra:cassandra-all"
+            ]
+        },
+        "org.codehaus.mojo:animal-sniffer-annotations": {
+            "locked": "1.14",
+            "transitive": [
+                "com.google.guava:guava"
             ]
         },
         "org.eclipse.jdt.core.compiler:ecj": {
@@ -14503,6 +15399,12 @@
             "transitive": [
                 "org.hibernate.validator:hibernate-validator",
                 "org.hibernate:hibernate-validator"
+            ]
+        },
+        "org.joda:joda-convert": {
+            "locked": "1.2",
+            "transitive": [
+                "io.kubernetes:client-java-api"
             ]
         },
         "org.json:json": {
@@ -14678,6 +15580,7 @@
                 "com.thinkaurelius.thrift:thrift-server",
                 "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard.metrics:metrics-jvm",
+                "io.kubernetes:client-java",
                 "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
@@ -14874,6 +15777,7 @@
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
+                "io.kubernetes:client-java",
                 "org.apache.cassandra:cassandra-all",
                 "org.springframework.boot:spring-boot-starter"
             ]
@@ -15128,7 +16032,7 @@
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
+            "locked": "3.0.2",
             "transitive": [
                 "com.github.fge:btf",
                 "com.github.fge:jackson-coreutils",
@@ -15136,21 +16040,24 @@
                 "com.github.fge:json-schema-validator",
                 "com.github.fge:msg-simple",
                 "com.github.fge:uri-template",
+                "com.google.guava:guava",
                 "com.twitter:util-cache_2.11",
                 "com.twitter:util-collection_2.11",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.code.gson:gson": {
-            "locked": "2.7",
+            "locked": "2.8.0",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
-                "io.grpc:grpc-core"
+                "io.grpc:grpc-core",
+                "io.kubernetes:client-java-api"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.1.2",
+            "locked": "2.1.3",
             "transitive": [
+                "com.google.guava:guava",
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
                 "com.google.truth:truth",
@@ -15158,7 +16065,7 @@
             ]
         },
         "com.google.guava:guava": {
-            "locked": "20.0",
+            "locked": "25.1-jre",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.datastax.cassandra:cassandra-driver-extras",
@@ -15177,6 +16084,7 @@
                 "io.grpc:grpc-core",
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
+                "io.kubernetes:client-java",
                 "io.opencensus:opencensus-api",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-jaxrs",
@@ -15231,6 +16139,12 @@
                 "com.sun.jersey.contribs:jersey-guice"
             ]
         },
+        "com.google.j2objc:j2objc-annotations": {
+            "locked": "1.1",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
         "com.google.protobuf:protobuf-java": {
             "locked": "3.5.1",
             "transitive": [
@@ -15241,6 +16155,8 @@
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-master",
                 "io.grpc:grpc-protobuf",
+                "io.kubernetes:client-java",
+                "io.kubernetes:client-java-proto",
                 "org.apache.mesos:mesos"
             ]
         },
@@ -15478,10 +16394,31 @@
                 "com.netflix.titus:titus-common"
             ]
         },
+        "com.squareup.okhttp:logging-interceptor": {
+            "locked": "2.7.5",
+            "transitive": [
+                "io.kubernetes:client-java-api"
+            ]
+        },
+        "com.squareup.okhttp:okhttp": {
+            "locked": "2.7.5",
+            "transitive": [
+                "com.squareup.okhttp:logging-interceptor",
+                "com.squareup.okhttp:okhttp-ws",
+                "io.kubernetes:client-java-api"
+            ]
+        },
+        "com.squareup.okhttp:okhttp-ws": {
+            "locked": "2.7.5",
+            "transitive": [
+                "io.kubernetes:client-java"
+            ]
+        },
         "com.squareup.okio:okio": {
             "locked": "1.13.0",
             "transitive": [
-                "com.squareup.okhttp3:okhttp"
+                "com.squareup.okhttp3:okhttp",
+                "com.squareup.okhttp:okhttp"
             ]
         },
         "com.sun.jersey.contribs:jersey-guice": {
@@ -15637,10 +16574,11 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.9",
+            "locked": "1.11",
             "transitive": [
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:util-codec_2.11",
+                "io.kubernetes:client-java",
                 "org.apache.cassandra:cassandra-all"
             ]
         },
@@ -15724,6 +16662,24 @@
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-grpc-api"
+            ]
+        },
+        "io.kubernetes:client-java": {
+            "locked": "4.0.0",
+            "transitive": [
+                "com.netflix.titus:titus-server-master"
+            ]
+        },
+        "io.kubernetes:client-java-api": {
+            "locked": "4.0.0",
+            "transitive": [
+                "io.kubernetes:client-java"
+            ]
+        },
+        "io.kubernetes:client-java-proto": {
+            "locked": "4.0.0",
+            "transitive": [
+                "io.kubernetes:client-java"
             ]
         },
         "io.netty:netty": {
@@ -15916,9 +16872,34 @@
                 "com.netflix.titus:titus-server-master"
             ]
         },
+        "io.sundr:builder-annotations": {
+            "locked": "0.9.2",
+            "transitive": [
+                "io.kubernetes:client-java-api"
+            ]
+        },
+        "io.sundr:resourcecify-annotations": {
+            "locked": "0.9.2",
+            "transitive": [
+                "io.sundr:builder-annotations"
+            ]
+        },
+        "io.sundr:sundr-codegen": {
+            "locked": "0.9.2",
+            "transitive": [
+                "io.sundr:builder-annotations"
+            ]
+        },
+        "io.sundr:sundr-core": {
+            "locked": "0.9.2",
+            "transitive": [
+                "io.sundr:builder-annotations"
+            ]
+        },
         "io.swagger:swagger-annotations": {
             "locked": "1.5.12",
             "transitive": [
+                "io.kubernetes:client-java-api",
                 "io.swagger:swagger-models"
             ]
         },
@@ -16023,9 +17004,10 @@
             ]
         },
         "joda-time:joda-time": {
-            "locked": "2.4",
+            "locked": "2.9.3",
             "transitive": [
                 "com.github.fge:json-schema-validator",
+                "io.kubernetes:client-java-api",
                 "org.apache.cassandra:cassandra-all"
             ]
         },
@@ -16116,6 +17098,12 @@
                 "org.apache.cassandra:cassandra-all"
             ]
         },
+        "org.apache.commons:commons-compress": {
+            "locked": "1.18",
+            "transitive": [
+                "io.kubernetes:client-java"
+            ]
+        },
         "org.apache.commons:commons-io": {
             "locked": "1.3.2",
             "transitive": [
@@ -16123,11 +17111,13 @@
             ]
         },
         "org.apache.commons:commons-lang3": {
-            "locked": "3.4",
+            "locked": "3.7",
             "transitive": [
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
                 "com.netflix.archaius:archaius2-core",
+                "io.kubernetes:client-java",
+                "io.kubernetes:client-java-api",
                 "io.swagger:swagger-core",
                 "org.apache.cassandra:cassandra-all",
                 "org.apache.cassandra:cassandra-thrift",
@@ -16205,10 +17195,17 @@
             ]
         },
         "org.bouncycastle:bcpkix-jdk15on": {
-            "locked": "1.52",
+            "locked": "1.59",
             "transitive": [
+                "io.kubernetes:client-java",
                 "org.bouncycastle:bcmail-jdk15on",
                 "org.mock-server:mockserver-core"
+            ]
+        },
+        "org.bouncycastle:bcprov-ext-jdk15on": {
+            "locked": "1.59",
+            "transitive": [
+                "io.kubernetes:client-java"
             ]
         },
         "org.bouncycastle:bcprov-jdk15on": {
@@ -16232,6 +17229,12 @@
                 "com.netflix.titus:titus-ext-cassandra-testkit"
             ]
         },
+        "org.checkerframework:checker-qual": {
+            "locked": "2.0.0",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
         "org.codehaus.jackson:jackson-core-asl": {
             "locked": "1.9.2",
             "transitive": [
@@ -16243,6 +17246,12 @@
             "locked": "1.9.2",
             "transitive": [
                 "org.apache.cassandra:cassandra-all"
+            ]
+        },
+        "org.codehaus.mojo:animal-sniffer-annotations": {
+            "locked": "1.14",
+            "transitive": [
+                "com.google.guava:guava"
             ]
         },
         "org.eclipse.jdt.core.compiler:ecj": {
@@ -16369,6 +17378,12 @@
             "transitive": [
                 "org.hibernate.validator:hibernate-validator",
                 "org.hibernate:hibernate-validator"
+            ]
+        },
+        "org.joda:joda-convert": {
+            "locked": "1.2",
+            "transitive": [
+                "io.kubernetes:client-java-api"
             ]
         },
         "org.json:json": {
@@ -16544,6 +17559,7 @@
                 "com.thinkaurelius.thrift:thrift-server",
                 "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard.metrics:metrics-jvm",
+                "io.kubernetes:client-java",
                 "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
@@ -16740,6 +17756,7 @@
                 "com.addthis.metrics:reporter-config-base",
                 "com.addthis.metrics:reporter-config3",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
+                "io.kubernetes:client-java",
                 "org.apache.cassandra:cassandra-all",
                 "org.springframework.boot:spring-boot-starter"
             ]

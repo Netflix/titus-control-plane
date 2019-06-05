@@ -16,20 +16,26 @@
 
 package com.netflix.titus.master.mesos;
 
+import java.time.Duration;
 import javax.inject.Singleton;
 
 import com.google.inject.AbstractModule;
+import com.google.inject.Injector;
 import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.runtime.health.guice.HealthModule;
+import com.netflix.titus.common.framework.scheduler.LocalScheduler;
+import com.netflix.titus.common.framework.scheduler.internal.DefaultLocalScheduler;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.master.mesos.kubeapiserver.KubeApiServerIntegrator;
 import com.netflix.titus.master.mesos.resolver.DefaultMesosMasterResolver;
+import reactor.core.scheduler.Schedulers;
 
 public class MesosModule extends AbstractModule {
     @Override
     protected void configure() {
         bind(MesosMasterResolver.class).to(DefaultMesosMasterResolver.class);
         bind(MesosSchedulerDriverFactory.class).to(StdSchedulerDriverFactory.class);
-        bind(VirtualMachineMasterService.class).to(VirtualMachineMasterServiceMesosImpl.class);
         bind(VirtualMachineMasterServiceActivator.class).asEagerSingleton();
 
         bind(WorkerStateMonitor.class).asEagerSingleton();
@@ -46,5 +52,21 @@ public class MesosModule extends AbstractModule {
     @Singleton
     public MesosConfiguration getMesosConfiguration(ConfigProxyFactory factory) {
         return factory.newProxy(MesosConfiguration.class);
+    }
+
+    @Provides
+    @Singleton
+    public LocalScheduler getLocalScheduler(TitusRuntime titusRuntime) {
+        return new DefaultLocalScheduler(Duration.ofMillis(100), Schedulers.elastic(), titusRuntime.getClock(), titusRuntime.getRegistry());
+    }
+
+    @Provides
+    @Singleton
+    public VirtualMachineMasterService getVirtualMachineMasterService(MesosConfiguration configuration,
+                                                                      Injector injector) {
+        if (configuration.isKubeApiServerIntegrationEnabled()) {
+            return injector.getInstance(KubeApiServerIntegrator.class);
+        }
+        return injector.getInstance(VirtualMachineMasterServiceMesosImpl.class);
     }
 }
