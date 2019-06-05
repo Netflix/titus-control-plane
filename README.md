@@ -15,7 +15,7 @@ scheduling containers on agents.
 
 ## Building and Testing
 
-For reference, check some of the scripts commonly used by commiters in the `scripts/dev/` folder.
+For reference, check some of the scripts commonly used by committers in the `scripts/dev/` folder.
 
 ### Building
 
