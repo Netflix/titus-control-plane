@@ -38,6 +38,6 @@ public class VirtualMachineMasterServiceActivator {
 
     @Activator
     public void enterActiveMode() {
-        ((VirtualMachineMasterServiceMesosImpl) virtualMachineMasterService).enterActiveMode();
+        virtualMachineMasterService.enterActiveMode();
     }
 }

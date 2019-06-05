@@ -18,10 +18,10 @@ package com.netflix.titus.common.framework.scheduler;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import com.netflix.titus.common.annotation.Experimental;
 import com.netflix.titus.common.framework.scheduler.model.Schedule;
 import com.netflix.titus.common.framework.scheduler.model.ScheduleDescriptor;
 import com.netflix.titus.common.framework.scheduler.model.event.LocalSchedulerEvent;
@@ -32,7 +32,6 @@ import reactor.core.scheduler.Scheduler;
 /**
  * Simple scheduler for running tasks periodically within a JVM process.
  */
-@Experimental(deadline = "12/30/2018")
 public interface LocalScheduler {
 
     /**
@@ -88,6 +87,11 @@ public interface LocalScheduler {
      * isolated flag to true. Isolated actions run on their own thread.
      */
     ScheduleReference schedule(ScheduleDescriptor scheduleDescriptor, Consumer<ExecutionContext> action, boolean isolated);
+
+    /**
+     * Schedule an action which is executed synchronously using the provided {@link java.util.concurrent.ExecutorService}.
+     */
+    ScheduleReference schedule(ScheduleDescriptor scheduleDescriptor, Consumer<ExecutionContext> action, ExecutorService executorService);
 
     /**
      * Cancel a schedule with the given id.

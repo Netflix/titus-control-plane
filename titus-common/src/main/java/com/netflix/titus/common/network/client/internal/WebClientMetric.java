@@ -16,54 +16,31 @@
 
 package com.netflix.titus.common.network.client.internal;
 
-import java.util.concurrent.TimeUnit;
-
-import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
+import com.netflix.titus.common.network.client.ClientMetrics;
+import com.netflix.titus.common.util.time.Clock;
 import org.springframework.http.HttpMethod;
 import reactor.netty.Connection;
 import reactor.netty.http.client.HttpClientResponse;
 
 public class WebClientMetric {
     private static final String WEB_CLIENT_METRICS = "titus.webClient.";
-    private static final String WEB_CLIENT_REQUEST = WEB_CLIENT_METRICS + "request";
-    private static final String WEB_CLIENT_LATENCY = WEB_CLIENT_METRICS + "latency";
-    private static final String WEB_CLIENT_ENDPOINT_TAG = "endpoint";
-    private static final String WEB_CLIENT_METHOD_TAG = "method";
-    private static final String WEB_CLIENT_PATH_TAG = "path";
 
-    private final Registry registry;
-    private final Id requestId;
-    private final Id latencyId;
+    private final ClientMetrics delegate;
 
-    public WebClientMetric(String endpointName, Registry registry) {
-        this.registry = registry;
-
-        requestId = registry.createId(WEB_CLIENT_REQUEST)
-                .withTag(WEB_CLIENT_ENDPOINT_TAG, endpointName);
-        latencyId = registry.createId(WEB_CLIENT_LATENCY)
-                .withTag(WEB_CLIENT_ENDPOINT_TAG, endpointName);
+    public WebClientMetric(String endpointName, Registry registry, Clock clock) {
+        delegate = new ClientMetrics(WEB_CLIENT_METRICS, endpointName, registry, clock);
     }
 
     public void registerLatency(HttpMethod method, long startTimeMs) {
-        registry.timer(latencyId
-                .withTag(WEB_CLIENT_METHOD_TAG, method.name()))
-                .record(System.currentTimeMillis() - startTimeMs, TimeUnit.MILLISECONDS);
+        delegate.registerLatency(method.name(), startTimeMs);
     }
 
     public void incrementOnSuccess(HttpClientResponse response, Connection connection) {
-        registry.counter(requestId
-                .withTag(WEB_CLIENT_METHOD_TAG, response.method().name())
-                .withTag(WEB_CLIENT_PATH_TAG, response.path())
-                .withTag("statusCode", response.status().toString())
-        ).increment();
+        delegate.incrementOnSuccess(response.method().name(), response.path(), response.status().toString());
     }
 
     public void incrementOnError(HttpClientResponse response, Throwable throwable) {
-        registry.counter(requestId
-                .withTag(WEB_CLIENT_METHOD_TAG, response.method().name())
-                .withTag(WEB_CLIENT_PATH_TAG, response.path())
-                .withTag("error", throwable.getClass().getSimpleName())
-        ).increment();
+        delegate.incrementOnError(response.method().name(), response.path(), throwable);
     }
 }
