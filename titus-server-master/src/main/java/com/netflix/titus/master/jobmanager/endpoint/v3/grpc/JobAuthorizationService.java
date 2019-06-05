@@ -17,7 +17,6 @@
 package com.netflix.titus.master.jobmanager.endpoint.v3.grpc;
 
 import java.util.Map;
-import java.util.function.Predicate;
 
 import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Job;
@@ -31,12 +30,6 @@ import reactor.core.publisher.Mono;
 public abstract class JobAuthorizationService implements AuthorizationService {
 
     private static final String SECURITY_ATTRIBUTE_SECURITY_DOMAIN = "titus.securityDomain";
-
-    private final Predicate<String> callerIdPredicate;
-
-    protected JobAuthorizationService(Predicate<String> callerIdPredicate) {
-        this.callerIdPredicate = callerIdPredicate;
-    }
 
     @Override
     public <T> Mono<AuthorizationStatus> authorize(CallMetadata callMetadata, T object) {
@@ -75,10 +68,6 @@ public abstract class JobAuthorizationService implements AuthorizationService {
     }
 
     private Mono<AuthorizationStatus> authorizeCaller(JobDescriptor<?> jobDescriptor, String originalCallerId) {
-        if (!callerIdPredicate.test(originalCallerId)) {
-            return Mono.just(AuthorizationStatus.success("User not white listed for authorization; granted by default: callerId=" + originalCallerId));
-        }
-
         return authorize(originalCallerId, buildSecurityDomainId(jobDescriptor), jobDescriptor);
     }
 
