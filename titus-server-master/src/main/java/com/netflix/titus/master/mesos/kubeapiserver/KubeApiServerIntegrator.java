@@ -164,9 +164,13 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         String nodeName = taskInfo.getSlaveId().getValue();
         String encodedContainerInfo = Base64.getEncoder().encodeToString(taskInfo.getData().toByteArray());
 
+        Map<String, String> annotations = new HashMap<>();
+        annotations.put("containerInfo", encodedContainerInfo);
+        annotations.putAll(PerformanceToolUtil.findPerformanceTestAnnotations(taskInfo));
+
         V1ObjectMeta metadata = new V1ObjectMeta()
                 .name(taskId)
-                .annotations(Collections.singletonMap("containerInfo", encodedContainerInfo));
+                .annotations(annotations);
 
         V1Container container = new V1Container()
                 .name(taskId)
