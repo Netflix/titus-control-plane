@@ -52,11 +52,11 @@ public final class JobExecutionPlanCatalog {
                 .build();
     }
 
-    public static ExecutionPlan batchWithKilledTasks() {
+    public static ExecutionPlan batchWithKilledTasks(Duration killInterval) {
         return ExecutionPlan.jobExecutionPlan()
                 .label("start")
                 .killRandomTask()
-                .delay(30, TimeUnit.SECONDS)
+                .delay(killInterval)
                 .loop("start")
                 .build();
     }
@@ -83,19 +83,19 @@ public final class JobExecutionPlanCatalog {
                 .build();
     }
 
-    public static ExecutionPlan terminateAndShrinkAutoScalingService(Duration duration) {
+    public static ExecutionPlan terminateAndShrinkAutoScalingService(Duration jobDuration, Duration stepInterval) {
         return ExecutionPlan.jobExecutionPlan()
-                .totalRunningTime(duration)
+                .totalRunningTime(jobDuration)
                 .scaleUp(5)
                 .label("start")
-                .scaleUp(10)
-                .scaleUp(10)
-                .scaleUp(10)
-                .delay(30, TimeUnit.SECONDS)
+                .delay(stepInterval)
+                .scaleUp(2)
                 .label("shrinking")
+                .delay(stepInterval)
                 .terminateAndShrinkRandomTask()
-                .loop("shrinking", 19)
-                .scaleDown(10)
+                .loop("shrinking", 2)
+                .delay(stepInterval)
+                .scaleDown(1)
                 .loop("start")
                 .awaitCompletion()
                 .build();

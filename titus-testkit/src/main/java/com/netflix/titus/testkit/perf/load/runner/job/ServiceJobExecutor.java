@@ -90,13 +90,13 @@ public class ServiceJobExecutor extends AbstractJobExecutor<ServiceJobExt> {
     @Override
     public Mono<Void> scaleUp(int delta) {
         Capacity capacity = currentCapacity.get();
-        return updateInstanceCount(capacity.getMin(), capacity.getDesired() + delta, capacity.getMax());
+        return updateInstanceCount(capacity.getMin(), Math.min(capacity.getMax(), capacity.getDesired() + delta), capacity.getMax());
     }
 
     @Override
     public Mono<Void> scaleDown(int delta) {
         Capacity capacity = currentCapacity.get();
-        return updateInstanceCount(capacity.getMin(), capacity.getDesired() - delta, capacity.getMax());
+        return updateInstanceCount(capacity.getMin(), Math.max(capacity.getMin(), capacity.getDesired() - delta), capacity.getMax());
     }
 
     public static Mono<ServiceJobExecutor> submitJob(JobDescriptor<ServiceJobExt> jobSpec, ExecutionContext context) {
