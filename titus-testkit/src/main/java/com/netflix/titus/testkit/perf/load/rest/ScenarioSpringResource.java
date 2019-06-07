@@ -65,7 +65,11 @@ public class ScenarioSpringResource {
             ))
             .put("perfLoad", new ScenarioRepresentation(
                     "perfLoad",
-                    "Load test scenario for performance testing"
+                    "Load test scenario for performance testing (accepts 'scaleFactor' and 'churnFactor' parameters)"
+            ))
+            .put("perfLoad2", new ScenarioRepresentation(
+                    "perfLoad2",
+                    "Load test scenario for performance testing (accepts 'totalTaskCount' and 'churnRateSec' parameters)"
             ))
             .put("batchJobs", new ScenarioRepresentation(
                     "batchJobs",
@@ -113,16 +117,21 @@ public class ScenarioSpringResource {
         String jobPlan = request.getJobPlan();
         JobExecutableGenerator jobExecutableGenerator;
 
+        int scaleFactor = request.getScaleFactor() <= 0 ? 1 : (int) request.getScaleFactor();
+        double churnFactor = request.getChurnFactor() <= 0 ? 1 : request.getChurnFactor();
+
         if (StringExt.isEmpty(jobPlan) || jobPlan.equals("empty")) {
             jobExecutableGenerator = JobExecutableGeneratorCatalog.empty();
         } else if (jobPlan.equals("mixedLoad")) {
             jobExecutableGenerator = JobExecutableGeneratorCatalog.mixedLoad(request.getScaleFactor());
         } else if (jobPlan.equals("perfLoad")) {
-            jobExecutableGenerator = JobExecutableGeneratorCatalog.perfLoad(request.getScaleFactor());
+            jobExecutableGenerator = JobExecutableGeneratorCatalog.perfLoad(request.getScaleFactor(), churnFactor);
+        } else if (jobPlan.equals("perfLoad2")) {
+            jobExecutableGenerator = JobExecutableGeneratorCatalog.perfLoad(request.getTotalTaskCount(), request.getChurnRateSec());
         } else if (jobPlan.equals("batchJobs")) {
-            jobExecutableGenerator = JobExecutableGeneratorCatalog.batchJobs(request.getJobSize(), (int) request.getScaleFactor());
+            jobExecutableGenerator = JobExecutableGeneratorCatalog.batchJobs(request.getJobSize(), scaleFactor);
         } else if (jobPlan.equals("evictions")) {
-            jobExecutableGenerator = JobExecutableGeneratorCatalog.evictions(request.getJobSize(), (int) request.getScaleFactor());
+            jobExecutableGenerator = JobExecutableGeneratorCatalog.evictions(request.getJobSize(), scaleFactor);
         } else if (jobPlan.equals("longRunning")) {
             jobExecutableGenerator = JobExecutableGeneratorCatalog.longRunningServicesLoad("longRunning");
         } else {
@@ -133,8 +142,8 @@ public class ScenarioSpringResource {
         List<ExecutionPlan> agentExecutionPlans;
         if (StringExt.isEmpty(agentPlan) || agentPlan.equals("empty")) {
             agentExecutionPlans = Collections.emptyList();
-        } else if (agentPlan.equals("perfLoad")) {
-            agentExecutionPlans = AgentExecutableGeneratorCatalog.perfLoad((int) request.getScaleFactor());
+        } else if (agentPlan.equals("perfLoad") || agentPlan.equals("perfLoad2")) {
+            agentExecutionPlans = AgentExecutableGeneratorCatalog.perfLoad(scaleFactor);
         } else if (agentPlan.equals("longRunning")) {
             agentExecutionPlans = AgentExecutableGeneratorCatalog.longRunningLoad();
         } else {

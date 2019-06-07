@@ -25,16 +25,25 @@ public class StartScenarioRequest {
     private final String agentPlan;
     private final int jobSize;
     private final double scaleFactor;
+    private final double churnFactor;
+    private final int totalTaskCount;
+    private final int churnRateSec;
 
     @JsonCreator
     public StartScenarioRequest(@JsonProperty("jobPlan") String jobPlan,
                                 @JsonProperty("jobSize") int jobSize,
                                 @JsonProperty("agentPlan") String agentPlan,
-                                @JsonProperty("scaleFactor") double scaleFactor) {
+                                @JsonProperty("scaleFactor") double scaleFactor,
+                                @JsonProperty("churnFactor") double churnFactor,
+                                @JsonProperty("totalTaskCount") int totalTaskCount,
+                                @JsonProperty("churnRateSec") int churnRateSec) {
         this.jobPlan = jobPlan;
         this.agentPlan = agentPlan;
         this.jobSize = jobSize;
         this.scaleFactor = scaleFactor;
+        this.churnFactor = churnFactor;
+        this.totalTaskCount = totalTaskCount;
+        this.churnRateSec = churnRateSec;
     }
 
     public String getJobPlan() {
@@ -51,5 +60,17 @@ public class StartScenarioRequest {
 
     public double getScaleFactor() {
         return scaleFactor;
+    }
+
+    public double getChurnFactor() {
+        return churnFactor;
+    }
+
+    public int getTotalTaskCount() {
+        return totalTaskCount;
+    }
+
+    public int getChurnRateSec() {
+        return churnRateSec;
     }
 }

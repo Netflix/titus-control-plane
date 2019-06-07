@@ -36,10 +36,10 @@ public final class AgentExecutableGeneratorCatalog {
     }
 
     /**
-     * Agent setup counterpart for {@link JobExecutableGeneratorCatalog#perfLoad(double)}.
+     * Agent setup counterpart for {@link JobExecutableGeneratorCatalog#perfLoad(double, double)}.
      */
     public static List<ExecutionPlan> perfLoad(int sizeFactor) {
-        int remained = 200 * sizeFactor;
+        int remained = 300 * sizeFactor;
 
         List<ExecutionPlan> plans = new ArrayList<>();
         for (int partitionIdx = 1; remained > 0; partitionIdx++) {

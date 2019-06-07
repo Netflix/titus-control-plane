@@ -83,44 +83,63 @@ public final class JobExecutableGeneratorCatalog {
     /**
      * A mix of service/batch jobs for system performance testing with the wide functional area coverage.
      */
-    public static JobExecutableGenerator perfLoad(double sizeFactor) {
+    public static JobExecutableGenerator perfLoad(int taskCount, int churnRateSec) {
+        int taskCountBaseline = 20 + 10 * 10 + 5 * 3 + 5 * 20 + 10 * 90 + 10 * 90 + 500;
+        int churnInHourBaseline =
+                60 / 5 * 20
+                        + 60 / 10 * 10 * 10
+                        + 60 / 30 * 5 * 3
+                        + 60 / 10 * 5 * 20
+                        + 60 / 10 * 90 * 10
+                        + 60 / 30 * 90 * 10
+                        + 500;
+        double churnFactor = churnInHourBaseline / 3600.0 / churnRateSec;
+
+        double sizeFactor = ((double) taskCount) / taskCountBaseline;
+        return perfLoad(sizeFactor, churnFactor);
+    }
+
+    /**
+     * A mix of service/batch jobs for system performance testing with the wide functional area coverage.
+     */
+    public static JobExecutableGenerator perfLoad(double sizeFactor, double churnFactor) {
         return JobExecutableGenerator.newBuilder()
                 // Batch
                 .constantLoad(
-                        JobDescriptorCatalog.batchJobEasyToMigrate(ContainerResourceAllocation.Small, 1, Duration.ofMinutes(5)),
-                        JobExecutionPlanCatalog.batchWithKilledTasks(),
-                        (int) sizeFactor * 20
+                        JobDescriptorCatalog.batchJobEasyToMigrate(ContainerResourceAllocation.Small, 1, Duration.ofMinutes((long) (5 * churnFactor))),
+                        JobExecutionPlanCatalog.batchWithKilledTasks(Duration.ofMinutes((long) (1 * churnFactor))),
+                        (int) (sizeFactor * 20)
                 )
                 .constantLoad(
-                        JobDescriptorCatalog.batchJobEasyToMigrate(ContainerResourceAllocation.Medium, 10, Duration.ofMinutes(10)),
+                        JobDescriptorCatalog.batchJobEasyToMigrate(ContainerResourceAllocation.Medium, 10, Duration.ofMinutes((long) (10 * churnFactor))),
                         JobExecutionPlanCatalog.monitoredBatchJob(),
-                        (int) sizeFactor * 10
+                        (int) (sizeFactor * 10)
                 )
                 .constantLoad(
-                        JobDescriptorCatalog.batchJobEasyToMigrate(ContainerResourceAllocation.Large, 5, Duration.ofMinutes(30)),
-                        JobExecutionPlanCatalog.batchWithKilledTasks(),
-                        (int) sizeFactor * 3
+                        JobDescriptorCatalog.batchJobEasyToMigrate(ContainerResourceAllocation.Large, 5, Duration.ofMinutes((long) (30 * churnFactor))),
+                        JobExecutionPlanCatalog.batchWithKilledTasks(Duration.ofMinutes((long) (1 * churnFactor))),
+                        (int) (sizeFactor * 3)
                 )
                 // Service
                 .constantLoad(
                         JobDescriptorCatalog.serviceJobEasyToMigrate(ContainerResourceAllocation.Small, 0, 5, 5),
-                        JobExecutionPlanCatalog.monitoredServiceJob(Duration.ofMinutes(10)),
-                        (int) sizeFactor * 20
+                        JobExecutionPlanCatalog.monitoredServiceJob(Duration.ofMinutes((long) (10 * churnFactor))),
+                        (int) (sizeFactor * 20)
                 )
                 .constantLoad(
-                        JobDescriptorCatalog.serviceJobEasyToMigrate(ContainerResourceAllocation.Medium, 0, 10, 100),
-                        JobExecutionPlanCatalog.terminateAndShrinkAutoScalingService(Duration.ofMinutes(10)),
-                        (int) sizeFactor * 10
+                        JobDescriptorCatalog.serviceJobEasyToMigrate(ContainerResourceAllocation.Medium, 80, 90, 100),
+                        JobExecutionPlanCatalog.terminateAndShrinkAutoScalingService(Duration.ofMinutes((long) (10 * churnFactor)), Duration.ofSeconds((long) (10 * churnFactor))),
+                        (int) (sizeFactor * 10)
                 )
                 .constantLoad(
-                        JobDescriptorCatalog.serviceJobEasyToMigrate(ContainerResourceAllocation.Large, 5, 10, 100),
-                        JobExecutionPlanCatalog.terminateAndShrinkAutoScalingService(Duration.ofMinutes(30)),
-                        (int) sizeFactor * 10
+                        JobDescriptorCatalog.serviceJobEasyToMigrate(ContainerResourceAllocation.Large, 80, 90, 100),
+                        JobExecutionPlanCatalog.terminateAndShrinkAutoScalingService(Duration.ofMinutes((long) (30 * churnFactor)), Duration.ofSeconds((long) (30 * churnFactor))),
+                        (int) (sizeFactor * 10)
                 )
                 .constantLoad(
                         JobDescriptorCatalog.serviceJobEasyToMigrate(ContainerResourceAllocation.Large, 5, 500, 1000),
-                        JobExecutionPlanCatalog.monitoredServiceJob(Duration.ofMinutes(60)),
-                        (int) sizeFactor * 1
+                        JobExecutionPlanCatalog.monitoredServiceJob(Duration.ofMinutes((long) (60 * churnFactor))),
+                        (int) (sizeFactor * 1)
                 )
                 .build();
     }
@@ -138,7 +157,7 @@ public final class JobExecutableGeneratorCatalog {
             }
             builder.constantLoad(
                     JobDescriptorCatalog.longRunningServiceJob(capacityGroup, size),
-                    JobExecutionPlanCatalog.terminateAndShrinkAutoScalingService(totalDuration),
+                    JobExecutionPlanCatalog.terminateAndShrinkAutoScalingService(totalDuration, Duration.ofSeconds(30)),
                     count
             );
         }
