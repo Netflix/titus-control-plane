@@ -63,17 +63,18 @@ class PerformanceToolUtil {
         Matcher matcher = TASK_STATE_RULES_RE.matcher(envValue);
         while (matcher.find()) {
             String state = matcher.group(1);
-            long delayMs = TimeUnitExt.toMillis(matcher.group(2)).orElse(-1L);
+            String delayWithUnits = matcher.group(2);
+            long delayMs = TimeUnitExt.toMillis(delayWithUnits).orElse(-1L);
             if (delayMs > 0) {
                 switch (state) {
                     case "startInitiated":
-                        annotations.put(PREPARE_TIME, "" + delayMs);
+                        annotations.put(PREPARE_TIME, delayWithUnits);
                         break;
                     case "started":
-                        annotations.put(RUN_TIME, "" + delayMs);
+                        annotations.put(RUN_TIME, delayWithUnits);
                         break;
                     case "killInitiated":
-                        annotations.put(KILL_TIME, "" + delayMs);
+                        annotations.put(KILL_TIME, delayWithUnits);
                         break;
                 }
             }
