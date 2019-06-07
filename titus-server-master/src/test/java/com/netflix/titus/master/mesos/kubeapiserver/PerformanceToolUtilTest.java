@@ -34,9 +34,9 @@ public class PerformanceToolUtilTest {
                 "selector: slots=0.. slotStep=2; launched: delay=2s; startInitiated: delay=3s; started: delay=60s; killInitiated: delay=5s"
         );
         Map<String, String> annotations = PerformanceToolUtil.findPerformanceTestAnnotations(taskInfo);
-        assertThat(annotations).containsEntry(PerformanceToolUtil.PREPARE_TIME, "" + Duration.ofSeconds(3).toMillis());
-        assertThat(annotations).containsEntry(PerformanceToolUtil.RUN_TIME, "" + Duration.ofSeconds(60).toMillis());
-        assertThat(annotations).containsEntry(PerformanceToolUtil.KILL_TIME, "" + Duration.ofSeconds(5).toMillis());
+        assertThat(annotations).containsEntry(PerformanceToolUtil.PREPARE_TIME, "3s");
+        assertThat(annotations).containsEntry(PerformanceToolUtil.RUN_TIME, "60s");
+        assertThat(annotations).containsEntry(PerformanceToolUtil.KILL_TIME, "5s");
     }
 
     private Protos.TaskInfo newTaskInfo(String key, String value) {
