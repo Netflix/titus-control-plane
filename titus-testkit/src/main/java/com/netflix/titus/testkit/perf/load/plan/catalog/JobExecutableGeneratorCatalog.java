@@ -164,10 +164,10 @@ public final class JobExecutableGeneratorCatalog {
         return builder.build();
     }
 
-    public static JobExecutableGenerator batchJobs(int jobSize, int numberOfJobs) {
+    public static JobExecutableGenerator batchJobs(int jobSize, int numberOfJobs, double churnFactor) {
         return JobExecutableGenerator.newBuilder()
                 .constantLoad(
-                        JobDescriptorCatalog.batchJob(ContainerResourceAllocation.Small, jobSize, Duration.ofSeconds(60)),
+                        JobDescriptorCatalog.batchJob(ContainerResourceAllocation.Small, jobSize, Duration.ofSeconds((long) (600 / churnFactor))),
                         JobExecutionPlanCatalog.uninterruptedJob(),
                         numberOfJobs
                 )
