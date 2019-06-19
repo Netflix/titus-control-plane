@@ -31,7 +31,7 @@ public interface FeatureActivationConfiguration {
      * <p>
      * This change was introduced in Q4/2018. The feature flag should be removed by the end of Q2/2019.
      */
-    @DefaultValue("false")
+    @DefaultValue("true")
     boolean isMergingTaskMigrationPlanInGatewayEnabled();
 
 
