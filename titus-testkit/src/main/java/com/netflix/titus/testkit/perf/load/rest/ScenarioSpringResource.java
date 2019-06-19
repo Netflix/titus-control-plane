@@ -129,7 +129,7 @@ public class ScenarioSpringResource {
         } else if (jobPlan.equals("perfLoad2")) {
             jobExecutableGenerator = JobExecutableGeneratorCatalog.perfLoad(request.getTotalTaskCount(), request.getChurnRateSec());
         } else if (jobPlan.equals("batchJobs")) {
-            jobExecutableGenerator = JobExecutableGeneratorCatalog.batchJobs(request.getJobSize(), scaleFactor);
+            jobExecutableGenerator = JobExecutableGeneratorCatalog.batchJobs(request.getJobSize(), scaleFactor, churnFactor);
         } else if (jobPlan.equals("evictions")) {
             jobExecutableGenerator = JobExecutableGeneratorCatalog.evictions(request.getJobSize(), scaleFactor);
         } else if (jobPlan.equals("longRunning")) {
