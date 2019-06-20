@@ -147,7 +147,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
     public Observable<String> createJob(JobDescriptor jobDescriptor, CallMetadata callMetadata) {
         com.netflix.titus.api.jobmanager.model.job.JobDescriptor coreJobDescriptor;
         try {
-            coreJobDescriptor = V3GrpcModelConverters.toCoreJobDescriptor(jobDescriptor);
+            coreJobDescriptor = JobFunctions.filterOutTitusAttributes(V3GrpcModelConverters.toCoreJobDescriptor(jobDescriptor));
         } catch (Exception e) {
             return Observable.error(TitusServiceException.invalidArgument(e));
         }

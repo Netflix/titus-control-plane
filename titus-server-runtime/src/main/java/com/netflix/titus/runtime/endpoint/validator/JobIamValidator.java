@@ -27,9 +27,11 @@ import javax.inject.Singleton;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.connector.cloud.IamConnector;
 import com.netflix.titus.api.iam.service.IamConnectorException;
+import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.common.model.validator.EntityValidator;
 import com.netflix.titus.common.model.validator.ValidationError;
+import com.netflix.titus.common.util.CollectionsExt;
 import reactor.core.publisher.Mono;
 
 /**
@@ -80,7 +82,7 @@ public class JobIamValidator implements EntityValidator<JobDescriptor> {
                     String errorReason = throwable.getClass().getSimpleName();
                     if (throwable instanceof IamConnectorException) {
                         // Use a more specific error tag if available
-                        errorReason = ((IamConnectorException)throwable).getErrorCode().name();
+                        errorReason = ((IamConnectorException) throwable).getErrorCode().name();
                     }
                     validatorMetrics.incrementValidationError(iamRoleName, errorReason);
                     return Mono.just(Collections.singleton(
@@ -106,6 +108,13 @@ public class JobIamValidator implements EntityValidator<JobDescriptor> {
         if (isIamArn(iamRoleName)) {
             return Mono.just(jobDescriptor);
         }
+
+        JobDescriptor onErrorFallback = jobDescriptor.toBuilder()
+                .withAttributes(CollectionsExt.copyAndAdd(
+                        ((JobDescriptor<?>) jobDescriptor).getAttributes(),
+                        JobAttributes.JOB_ATTRIBUTES_SANITIZATION_IAM_SKIPPED, "true"))
+                .build();
+
         return iamConnector.getIamRole(iamRoleName)
                 .timeout(Duration.ofMillis(configuration.getIamValidationTimeoutMs()))
                 .map(iamRole -> jobDescriptor
@@ -120,7 +129,7 @@ public class JobIamValidator implements EntityValidator<JobDescriptor> {
                         )
                         .build()
                 )
-                .onErrorReturn(jobDescriptor);
+                .onErrorReturn(onErrorFallback);
     }
 
     private boolean isIamArn(String iamRoleName) {

@@ -23,10 +23,12 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.netflix.spectator.api.Registry;
+import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.common.model.validator.EntityValidator;
 import com.netflix.titus.common.model.validator.ValidationError;
+import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.runtime.connector.registry.RegistryClient;
 import com.netflix.titus.runtime.connector.registry.TitusRegistryException;
 import org.slf4j.Logger;
@@ -89,12 +91,17 @@ public class JobImageValidator implements EntityValidator<JobDescriptor> {
             return Mono.just(jobDescriptor);
         }
 
+        JobDescriptor onErrorFallback = jobDescriptor.toBuilder()
+                .withAttributes(CollectionsExt.copyAndAdd(
+                        ((JobDescriptor<?>) jobDescriptor).getAttributes(),
+                        JobAttributes.JOB_ATTRIBUTES_SANITIZATION_IMAGE_SKIPPED, "true"))
+                .build();
         Image image = jobDescriptor.getContainer().getImage();
+
         return sanitizeImage(jobDescriptor)
                 .timeout(Duration.ofMillis(configuration.getJobImageValidationTimeoutMs()))
                 .doOnSuccess(j -> validatorMetrics.incrementValidationSuccess(image.getName()))
-                .onErrorReturn(throwable ->
-                        isValidationOK(throwable, image), jobDescriptor);
+                .onErrorReturn(throwable -> isValidationOK(throwable, image), onErrorFallback);
     }
 
     private Mono<JobDescriptor> sanitizeImage(JobDescriptor jobDescriptor) {

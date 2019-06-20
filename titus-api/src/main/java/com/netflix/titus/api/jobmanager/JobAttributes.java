@@ -16,6 +16,8 @@
 
 package com.netflix.titus.api.jobmanager;
 
+import com.netflix.titus.common.model.validator.EntityValidator;
+
 /**
  * Constant keys for Job attributes. Attributes that begin with <b>titus.</b> are readonly system generated attributes
  * while attributes that begin with <b>titusParameter.</b> are user supplied parameters.
@@ -41,6 +43,16 @@ public final class JobAttributes {
      * Unique Cell name for a deployment.
      */
     public static final String JOB_ATTRIBUTES_CELL = TITUS_ATTRIBUTE_PREFIX + "cell";
+
+    /**
+     * Set by {@link EntityValidator} for iam roles when failing open
+     */
+    public static final String JOB_ATTRIBUTES_SANITIZATION_IAM_SKIPPED = TITUS_ATTRIBUTE_PREFIX + ".sanitization.iam.skipped";
+
+    /**
+     * Set by {@link EntityValidator} for container images (digest) when failing open
+     */
+    public static final String JOB_ATTRIBUTES_SANITIZATION_IMAGE_SKIPPED = TITUS_ATTRIBUTE_PREFIX + ".sanitization.image.skipped";
 
     // Container Attributes
 

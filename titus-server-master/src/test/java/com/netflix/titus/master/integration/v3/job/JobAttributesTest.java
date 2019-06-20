@@ -20,6 +20,7 @@ import java.util.Collections;
 
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.master.integration.BaseIntegrationTest;
 import com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates;
 import com.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
@@ -51,6 +52,17 @@ public class JobAttributesTest extends BaseIntegrationTest {
     @Before
     public void setUp() throws Exception {
         instanceGroupsScenarioBuilder.synchronizeWithCloud().template(InstanceGroupScenarioTemplates.basicCloudActivation());
+    }
+
+    @Test(timeout = TEST_TIMEOUT_MS)
+    public void testIgnoreTitusAttributesFromInput() throws Exception {
+        JobDescriptor<ServiceJobExt> job = oneTaskServiceJobDescriptor().but(jd ->
+                jd.toBuilder().withAttributes(CollectionsExt.copyAndAdd(jd.getAttributes(), "titus.something", "foo"))
+        );
+        jobsScenarioBuilder.schedule(job, jobScenarioBuilder -> jobScenarioBuilder
+                .template(ScenarioTemplates.jobAccepted())
+                .assertJob(j -> !j.getJobDescriptor().getAttributes().containsKey("titus.something"))
+        );
     }
 
     @Test(timeout = TEST_TIMEOUT_MS)

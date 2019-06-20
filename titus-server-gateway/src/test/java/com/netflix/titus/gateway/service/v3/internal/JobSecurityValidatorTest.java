@@ -23,6 +23,7 @@ import java.util.Set;
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.titus.api.connector.cloud.IamConnector;
 import com.netflix.titus.api.iam.service.IamConnectorException;
+import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.SecurityProfile;
 import com.netflix.titus.common.model.validator.ValidationError;
@@ -52,9 +53,9 @@ public class JobSecurityValidatorTest {
 
     private final JobDescriptor<?> jobDescriptorWithValidIam = JobDescriptorGenerator.batchJobDescriptors()
             .map(jd -> jd.but(d -> d.getContainer().toBuilder()
-            .withSecurityProfile(SecurityProfile.newBuilder()
-                    .withIamRole(VALID_IAM_ROLE_NAME)
-                    .build())
+                    .withSecurityProfile(SecurityProfile.newBuilder()
+                            .withIamRole(VALID_IAM_ROLE_NAME)
+                            .build())
             ))
             .getValue();
 
@@ -106,6 +107,22 @@ public class JobSecurityValidatorTest {
         Mono<Set<ValidationError>> validationErrorsMono = iamValidator.validate(jobDescriptorWithInvalidIam);
         StepVerifier.create(validationErrorsMono)
                 .assertNext(validationErrors -> validationErrorsContainsJust(validationErrors, errorMsg))
+                .verifyComplete();
+    }
+
+    @Test
+    public void testIamSanitizationFailsOpen() {
+        when(iamConnector.getIamRole(INVALID_IAM_ROLE_NAME))
+                .thenReturn(Mono.error(IamConnectorException.iamRoleUnexpectedError(INVALID_IAM_ROLE_NAME)));
+
+        Mono<JobDescriptor> sanitized = iamValidator.sanitize(jobDescriptorWithInvalidIam);
+        StepVerifier.create(sanitized)
+                .assertNext(jobDescriptor -> {
+                    assertThat(jobDescriptor.getContainer().getSecurityProfile().getIamRole())
+                            .isEqualTo(jobDescriptorWithInvalidIam.getContainer().getSecurityProfile().getIamRole());
+                    assertThat(((JobDescriptor<?>) jobDescriptor).getAttributes())
+                            .containsEntry(JobAttributes.JOB_ATTRIBUTES_SANITIZATION_IAM_SKIPPED, "true");
+                })
                 .verifyComplete();
     }
 
