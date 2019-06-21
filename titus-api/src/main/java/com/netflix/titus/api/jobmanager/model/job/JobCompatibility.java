@@ -61,13 +61,24 @@ public class JobCompatibility {
     }
 
     public static JobCompatibility of(JobDescriptor<ServiceJobExt> from, JobDescriptor<ServiceJobExt> to) {
-        JobDescriptor<ServiceJobExt> jobFromNormalized = unsetIgnoredFieldsForCompatibility(from);
-        JobDescriptor<ServiceJobExt> jobToNormalized = unsetIgnoredFieldsForCompatibility(to);
+        boolean ignoreImage = isImageSanitizationSkipped(from) || isImageSanitizationSkipped(to);
+        boolean ignoreIam = isIamSanitizationSkipped(from) || isIamSanitizationSkipped(to);
+        JobDescriptor<ServiceJobExt> jobFromNormalized = unsetIgnoredFieldsForCompatibility(from, ignoreImage, ignoreIam);
+        JobDescriptor<ServiceJobExt> jobToNormalized = unsetIgnoredFieldsForCompatibility(to, ignoreImage, ignoreIam);
         boolean identical = jobFromNormalized.equals(jobToNormalized);
         return new JobCompatibility(jobFromNormalized, jobToNormalized, identical);
     }
 
-    private static JobDescriptor<ServiceJobExt> unsetIgnoredFieldsForCompatibility(JobDescriptor<ServiceJobExt> descriptor) {
+    private static boolean isImageSanitizationSkipped(JobDescriptor<?> jobDescriptor) {
+        return Boolean.parseBoolean(jobDescriptor.getAttributes().get(JobAttributes.JOB_ATTRIBUTES_SANITIZATION_SKIPPED_IMAGE));
+    }
+
+    private static boolean isIamSanitizationSkipped(JobDescriptor<?> jobDescriptor) {
+        return Boolean.parseBoolean(jobDescriptor.getAttributes().get(JobAttributes.JOB_ATTRIBUTES_SANITIZATION_SKIPPED_IAM));
+    }
+
+    private static JobDescriptor<ServiceJobExt> unsetIgnoredFieldsForCompatibility(JobDescriptor<ServiceJobExt> descriptor,
+                                                                                   boolean ignoreImage, boolean ignoreIam) {
         Container container = descriptor.getContainer();
         SecurityProfile securityProfile = container.getSecurityProfile();
         Map<String, String> onlyTitusContainerAttributes = filterOutNonTitusAttributes(container.getAttributes());
@@ -79,9 +90,11 @@ public class JobCompatibility {
                 .withJobGroupInfo(JobGroupInfo.newBuilder().build())
                 .withAttributes(Collections.emptyMap())
                 .withContainer(container.toBuilder()
+                        .withImage(ignoreImage ? Image.newBuilder().build() : container.getImage())
                         .withAttributes(onlyTitusContainerAttributes)
                         .withSecurityProfile(securityProfile.toBuilder()
                                 .withAttributes(onlyTitusSecurityAttributes)
+                                .withIamRole(ignoreIam ? "" : container.getSecurityProfile().getIamRole())
                                 .build())
                         .build())
                 .withExtensions(ServiceJobExt.newBuilder()

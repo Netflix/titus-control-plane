@@ -223,6 +223,12 @@ public final class CollectionsExt {
         return result;
     }
 
+    public static <K, V> Map<K, V> copyAndRemoveByKey(Map<K, V> original, Predicate<K> keysPredicate) {
+        return original.entrySet().stream()
+                .filter(entry -> !keysPredicate.test(entry.getKey()))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
     public static <K, V> Map<K, V> copyAndRemoveByValue(Map<K, V> original, Predicate<V> removePredicate) {
         return original.entrySet().stream()
                 .filter(entry -> !removePredicate.test(entry.getValue()))

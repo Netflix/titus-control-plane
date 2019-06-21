@@ -17,6 +17,7 @@
 package com.netflix.titus.gateway.service.v3.internal;
 
 import com.netflix.spectator.api.DefaultRegistry;
+import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.common.model.validator.ValidationError;
@@ -108,7 +109,9 @@ public class JobImageValidatorTest {
         StepVerifier.create(validator.sanitize(jobDescriptorWithTag))
                 .assertNext(jd -> {
                     assertThat(jd.getContainer().getImage().getDigest()).isNullOrEmpty();
-                    assertThat(jd.getContainer().getImage().equals(jobDescriptorWithTag.getContainer().getImage())).isTrue();
+                    assertThat(jd.getContainer().getImage()).isEqualTo(jobDescriptorWithTag.getContainer().getImage());
+                    assertThat(((JobDescriptor<?>) jd).getAttributes())
+                            .containsEntry(JobAttributes.JOB_ATTRIBUTES_SANITIZATION_SKIPPED_IMAGE, "true");
                 })
                 .verifyComplete();
     }

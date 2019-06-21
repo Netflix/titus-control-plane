@@ -26,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor.JobDescriptorExt;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.ContainerHealthProvider;
@@ -169,6 +170,14 @@ public final class JobFunctions {
     public static JobDescriptor<BatchJobExt> changeBatchJobSize(JobDescriptor<BatchJobExt> jobDescriptor, int size) {
         BatchJobExt ext = jobDescriptor.getExtensions().toBuilder().withSize(size).build();
         return jobDescriptor.toBuilder().withExtensions(ext).build();
+    }
+
+    public static JobDescriptor<?> filterOutSanitizationAttributes(JobDescriptor<?> jobDescriptor) {
+        return jobDescriptor.toBuilder().withAttributes(
+                CollectionsExt.copyAndRemoveByKey(jobDescriptor.getAttributes(),
+                        key -> key.startsWith(JobAttributes.JOB_ATTRIBUTE_SANITIZATION_PREFIX)
+                )
+        ).build();
     }
 
     public static <E extends JobDescriptorExt> JobDescriptor<E> appendJobDescriptorAttribute(JobDescriptor<E> jobDescriptor,

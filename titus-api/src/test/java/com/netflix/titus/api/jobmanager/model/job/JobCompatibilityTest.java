@@ -16,6 +16,7 @@
 
 package com.netflix.titus.api.jobmanager.model.job;
 
+import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.SelfManagedDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
@@ -174,4 +175,30 @@ public class JobCompatibilityTest {
         JobCompatibility compatibility2 = JobCompatibility.of(reference, incompatible);
         assertThat(compatibility2.isCompatible()).isFalse();
     }
+
+    @Test
+    public void testSanitizationCanFailOpen() {
+        // when jobs are cloned, they can have different values for sanitized fields
+        // if sanitization fails open for one but not for the other
+
+        JobDescriptor<ServiceJobExt> base = JobDescriptorGenerator.oneTaskServiceJobDescriptor();
+        JobDescriptor<ServiceJobExt> from = base.toBuilder()
+                .withContainer(base.getContainer().but(c -> c.getSecurityProfile().toBuilder().withIamRole("simpleName")))
+                .withAttributes(CollectionsExt.copyAndAdd(base.getAttributes(), JobAttributes.JOB_ATTRIBUTES_SANITIZATION_SKIPPED_IAM, "true"))
+                .build();
+        JobDescriptor<ServiceJobExt> to = base.toBuilder()
+                .withContainer(base.getContainer().but(c -> c.getSecurityProfile().toBuilder().withIamRole("arn:aws:fullyQualified/12345/simpleName")))
+                .build();
+        assertThat(JobCompatibility.of(from, to).isCompatible()).isTrue();
+
+        JobDescriptor<ServiceJobExt> from2 = base.toBuilder()
+                .withContainer(base.getContainer().but(c -> c.getImage().toBuilder().withDigest("foo-digest-123").build()))
+                .build();
+        JobDescriptor<ServiceJobExt> to2 = base.toBuilder()
+                .withContainer(base.getContainer().but(c -> c.getImage().toBuilder().withDigest("").build()))
+                .withAttributes(CollectionsExt.copyAndAdd(base.getAttributes(), JobAttributes.JOB_ATTRIBUTES_SANITIZATION_SKIPPED_IMAGE, "true"))
+                .build();
+        assertThat(JobCompatibility.of(from2, to2).isCompatible()).isTrue();
+    }
+
 }
