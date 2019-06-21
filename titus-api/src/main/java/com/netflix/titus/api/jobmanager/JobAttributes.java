@@ -48,12 +48,12 @@ public final class JobAttributes {
     /**
      * Set by {@link EntityValidator} for iam roles when failing open
      */
-    public static final String JOB_ATTRIBUTES_SANITIZATION_IAM_SKIPPED = JOB_ATTRIBUTE_SANITIZATION_PREFIX + "skipped.iam";
+    public static final String JOB_ATTRIBUTES_SANITIZATION_SKIPPED_IAM = JOB_ATTRIBUTE_SANITIZATION_PREFIX + "skipped.iam";
 
     /**
      * Set by {@link EntityValidator} for container images (digest) when failing open
      */
-    public static final String JOB_ATTRIBUTES_SANITIZATION_IMAGE_SKIPPED = JOB_ATTRIBUTE_SANITIZATION_PREFIX + "skipped.image";
+    public static final String JOB_ATTRIBUTES_SANITIZATION_SKIPPED_IMAGE = JOB_ATTRIBUTE_SANITIZATION_PREFIX + "skipped.image";
 
     // Container Attributes
 

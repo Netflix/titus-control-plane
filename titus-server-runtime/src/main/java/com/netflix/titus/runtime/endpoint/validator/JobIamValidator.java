@@ -112,7 +112,7 @@ public class JobIamValidator implements EntityValidator<JobDescriptor> {
         JobDescriptor onErrorFallback = jobDescriptor.toBuilder()
                 .withAttributes(CollectionsExt.copyAndAdd(
                         ((JobDescriptor<?>) jobDescriptor).getAttributes(),
-                        JobAttributes.JOB_ATTRIBUTES_SANITIZATION_IAM_SKIPPED, "true"))
+                        JobAttributes.JOB_ATTRIBUTES_SANITIZATION_SKIPPED_IAM, "true"))
                 .build();
 
         return iamConnector.getIamRole(iamRoleName)

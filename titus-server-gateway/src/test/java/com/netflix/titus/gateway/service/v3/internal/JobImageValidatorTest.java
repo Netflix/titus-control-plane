@@ -111,7 +111,7 @@ public class JobImageValidatorTest {
                     assertThat(jd.getContainer().getImage().getDigest()).isNullOrEmpty();
                     assertThat(jd.getContainer().getImage()).isEqualTo(jobDescriptorWithTag.getContainer().getImage());
                     assertThat(((JobDescriptor<?>) jd).getAttributes())
-                            .containsEntry(JobAttributes.JOB_ATTRIBUTES_SANITIZATION_IMAGE_SKIPPED, "true");
+                            .containsEntry(JobAttributes.JOB_ATTRIBUTES_SANITIZATION_SKIPPED_IMAGE, "true");
                 })
                 .verifyComplete();
     }

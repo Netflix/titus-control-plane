@@ -121,7 +121,7 @@ public class JobSecurityValidatorTest {
                     assertThat(jobDescriptor.getContainer().getSecurityProfile().getIamRole())
                             .isEqualTo(jobDescriptorWithInvalidIam.getContainer().getSecurityProfile().getIamRole());
                     assertThat(((JobDescriptor<?>) jobDescriptor).getAttributes())
-                            .containsEntry(JobAttributes.JOB_ATTRIBUTES_SANITIZATION_IAM_SKIPPED, "true");
+                            .containsEntry(JobAttributes.JOB_ATTRIBUTES_SANITIZATION_SKIPPED_IAM, "true");
                 })
                 .verifyComplete();
     }

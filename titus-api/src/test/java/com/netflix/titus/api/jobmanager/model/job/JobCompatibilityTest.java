@@ -184,7 +184,7 @@ public class JobCompatibilityTest {
         JobDescriptor<ServiceJobExt> base = JobDescriptorGenerator.oneTaskServiceJobDescriptor();
         JobDescriptor<ServiceJobExt> from = base.toBuilder()
                 .withContainer(base.getContainer().but(c -> c.getSecurityProfile().toBuilder().withIamRole("simpleName")))
-                .withAttributes(CollectionsExt.copyAndAdd(base.getAttributes(), JobAttributes.JOB_ATTRIBUTES_SANITIZATION_IAM_SKIPPED, "true"))
+                .withAttributes(CollectionsExt.copyAndAdd(base.getAttributes(), JobAttributes.JOB_ATTRIBUTES_SANITIZATION_SKIPPED_IAM, "true"))
                 .build();
         JobDescriptor<ServiceJobExt> to = base.toBuilder()
                 .withContainer(base.getContainer().but(c -> c.getSecurityProfile().toBuilder().withIamRole("arn:aws:fullyQualified/12345/simpleName")))
@@ -196,7 +196,7 @@ public class JobCompatibilityTest {
                 .build();
         JobDescriptor<ServiceJobExt> to2 = base.toBuilder()
                 .withContainer(base.getContainer().but(c -> c.getImage().toBuilder().withDigest("").build()))
-                .withAttributes(CollectionsExt.copyAndAdd(base.getAttributes(), JobAttributes.JOB_ATTRIBUTES_SANITIZATION_IMAGE_SKIPPED, "true"))
+                .withAttributes(CollectionsExt.copyAndAdd(base.getAttributes(), JobAttributes.JOB_ATTRIBUTES_SANITIZATION_SKIPPED_IMAGE, "true"))
                 .build();
         assertThat(JobCompatibility.of(from2, to2).isCompatible()).isTrue();
     }

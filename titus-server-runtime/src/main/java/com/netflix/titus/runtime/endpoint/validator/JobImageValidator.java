@@ -94,7 +94,7 @@ public class JobImageValidator implements EntityValidator<JobDescriptor> {
         JobDescriptor onErrorFallback = jobDescriptor.toBuilder()
                 .withAttributes(CollectionsExt.copyAndAdd(
                         ((JobDescriptor<?>) jobDescriptor).getAttributes(),
-                        JobAttributes.JOB_ATTRIBUTES_SANITIZATION_IMAGE_SKIPPED, "true"))
+                        JobAttributes.JOB_ATTRIBUTES_SANITIZATION_SKIPPED_IMAGE, "true"))
                 .build();
         Image image = jobDescriptor.getContainer().getImage();
 

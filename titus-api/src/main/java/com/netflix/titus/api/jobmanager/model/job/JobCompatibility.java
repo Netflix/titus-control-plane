@@ -70,11 +70,11 @@ public class JobCompatibility {
     }
 
     private static boolean isImageSanitizationSkipped(JobDescriptor<?> jobDescriptor) {
-        return Boolean.parseBoolean(jobDescriptor.getAttributes().get(JobAttributes.JOB_ATTRIBUTES_SANITIZATION_IMAGE_SKIPPED));
+        return Boolean.parseBoolean(jobDescriptor.getAttributes().get(JobAttributes.JOB_ATTRIBUTES_SANITIZATION_SKIPPED_IMAGE));
     }
 
     private static boolean isIamSanitizationSkipped(JobDescriptor<?> jobDescriptor) {
-        return Boolean.parseBoolean(jobDescriptor.getAttributes().get(JobAttributes.JOB_ATTRIBUTES_SANITIZATION_IAM_SKIPPED));
+        return Boolean.parseBoolean(jobDescriptor.getAttributes().get(JobAttributes.JOB_ATTRIBUTES_SANITIZATION_SKIPPED_IAM));
     }
 
     private static JobDescriptor<ServiceJobExt> unsetIgnoredFieldsForCompatibility(JobDescriptor<ServiceJobExt> descriptor,
