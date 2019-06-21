@@ -172,10 +172,10 @@ public final class JobFunctions {
         return jobDescriptor.toBuilder().withExtensions(ext).build();
     }
 
-    public static JobDescriptor<?> filterOutTitusAttributes(JobDescriptor<?> jobDescriptor) {
+    public static JobDescriptor<?> filterOutSanitizationAttributes(JobDescriptor<?> jobDescriptor) {
         return jobDescriptor.toBuilder().withAttributes(
                 CollectionsExt.copyAndRemoveByKey(jobDescriptor.getAttributes(),
-                        key -> key.startsWith(JobAttributes.TITUS_ATTRIBUTE_PREFIX)
+                        key -> key.startsWith(JobAttributes.JOB_ATTRIBUTE_SANITIZATION_PREFIX)
                 )
         ).build();
     }

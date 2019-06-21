@@ -26,6 +26,7 @@ public final class JobAttributes {
 
     public static final String TITUS_ATTRIBUTE_PREFIX = "titus.";
     public static final String TITUS_PARAMETER_ATTRIBUTE_PREFIX = "titusParameter.";
+    public static final String JOB_ATTRIBUTE_SANITIZATION_PREFIX = TITUS_ATTRIBUTE_PREFIX + "sanitization.";
 
     // Job Descriptor Attributes
 
@@ -47,12 +48,12 @@ public final class JobAttributes {
     /**
      * Set by {@link EntityValidator} for iam roles when failing open
      */
-    public static final String JOB_ATTRIBUTES_SANITIZATION_IAM_SKIPPED = TITUS_ATTRIBUTE_PREFIX + ".sanitization.iam.skipped";
+    public static final String JOB_ATTRIBUTES_SANITIZATION_IAM_SKIPPED = JOB_ATTRIBUTE_SANITIZATION_PREFIX + "skipped.iam";
 
     /**
      * Set by {@link EntityValidator} for container images (digest) when failing open
      */
-    public static final String JOB_ATTRIBUTES_SANITIZATION_IMAGE_SKIPPED = TITUS_ATTRIBUTE_PREFIX + ".sanitization.image.skipped";
+    public static final String JOB_ATTRIBUTES_SANITIZATION_IMAGE_SKIPPED = JOB_ATTRIBUTE_SANITIZATION_PREFIX + "skipped.image";
 
     // Container Attributes
 
