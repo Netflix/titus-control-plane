@@ -57,11 +57,11 @@ public class JobAttributesTest extends BaseIntegrationTest {
     @Test(timeout = TEST_TIMEOUT_MS)
     public void testIgnoreTitusAttributesFromInput() throws Exception {
         JobDescriptor<ServiceJobExt> job = oneTaskServiceJobDescriptor().but(jd ->
-                jd.toBuilder().withAttributes(CollectionsExt.copyAndAdd(jd.getAttributes(), "titus.something", "foo"))
+                jd.toBuilder().withAttributes(CollectionsExt.copyAndAdd(jd.getAttributes(), "titus.sanitization.something", "foo"))
         );
         jobsScenarioBuilder.schedule(job, jobScenarioBuilder -> jobScenarioBuilder
                 .template(ScenarioTemplates.jobAccepted())
-                .assertJob(j -> !j.getJobDescriptor().getAttributes().containsKey("titus.something"))
+                .assertJob(j -> !j.getJobDescriptor().getAttributes().containsKey("titus.sanitization.something"))
         );
     }
 
