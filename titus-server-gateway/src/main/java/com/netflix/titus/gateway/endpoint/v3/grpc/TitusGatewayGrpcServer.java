@@ -48,6 +48,7 @@ import io.grpc.ServerBuilder;
 import io.grpc.ServerInterceptor;
 import io.grpc.ServerInterceptors;
 import io.grpc.ServiceDescriptor;
+import io.grpc.protobuf.services.ProtoReflectionService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -103,26 +104,32 @@ public class TitusGatewayGrpcServer {
     public void start() {
         if (!started.getAndSet(true)) {
             this.port = config.getPort();
-            ServerBuilder serverBuilder = configure(ServerBuilder.forPort(port));
-            serverBuilder.addService(ServerInterceptors.intercept(
-                    healthService,
-                    createInterceptors(HealthGrpc.getServiceDescriptor())
-            )).addService(ServerInterceptors.intercept(
-                    jobManagementService,
-                    createInterceptors(JobManagementServiceGrpc.getServiceDescriptor())
-            )).addService(ServerInterceptors.intercept(
-                    evictionService,
-                    createInterceptors(EvictionServiceGrpc.getServiceDescriptor())
-            )).addService(ServerInterceptors.intercept(
-                    agentManagementService,
-                    createInterceptors(AgentManagementServiceGrpc.getServiceDescriptor())
-            )).addService(ServerInterceptors.intercept(
-                    appAutoScalingService,
-                    createInterceptors(AutoScalingServiceGrpc.getServiceDescriptor())
-            )).addService(ServerInterceptors.intercept(
-                    schedulerService,
-                    createInterceptors(SchedulerServiceGrpc.getServiceDescriptor())
-            ));
+            ServerBuilder serverBuilder = configure(ServerBuilder.forPort(port))
+                    .addService(ServerInterceptors.intercept(
+                            healthService,
+                            createInterceptors(HealthGrpc.getServiceDescriptor())
+                    ))
+                    .addService(ServerInterceptors.intercept(
+                            jobManagementService,
+                            createInterceptors(JobManagementServiceGrpc.getServiceDescriptor())
+                    ))
+                    .addService(ServerInterceptors.intercept(
+                            evictionService,
+                            createInterceptors(EvictionServiceGrpc.getServiceDescriptor())
+                    ))
+                    .addService(ServerInterceptors.intercept(
+                            agentManagementService,
+                            createInterceptors(AgentManagementServiceGrpc.getServiceDescriptor())
+                    ))
+                    .addService(ServerInterceptors.intercept(
+                            appAutoScalingService,
+                            createInterceptors(AutoScalingServiceGrpc.getServiceDescriptor())
+                    ))
+                    .addService(ServerInterceptors.intercept(
+                            schedulerService,
+                            createInterceptors(SchedulerServiceGrpc.getServiceDescriptor())
+                    ))
+                    .addService(ProtoReflectionService.newInstance());
 
             if (config.getLoadBalancerGrpcEnabled()) {
                 serverBuilder.addService(ServerInterceptors.intercept(
