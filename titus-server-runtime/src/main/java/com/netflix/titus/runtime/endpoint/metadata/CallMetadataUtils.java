@@ -65,6 +65,16 @@ public class CallMetadataUtils {
         return String.join("/", callMetadata.getCallPath());
     }
 
+    public static String getFirstCallerId(CallMetadata callMetadata) {
+        StringBuilder builder = new StringBuilder();
+        if (callMetadata.getCallers().isEmpty()) {
+            builder.append("calledBy=Titus");
+            return builder.toString();
+        }
+        builder.append("calledBy=").append(callMetadata.getCallers().get(0).getId());
+        return builder.toString();
+    }
+
     public static String toReasonString(CallMetadata callMetadata) {
         StringBuilder builder = new StringBuilder();
         builder.append("calledBy=").append(callMetadata.getCallerId());
@@ -72,7 +82,7 @@ public class CallMetadataUtils {
 
         List<String> callPath = callMetadata.getCallPath();
         if (callPath.isEmpty()) {
-            builder.append("direct to TitusMaster");
+            builder.append("Titus");
         } else {
             for (int i = 0; i < callPath.size(); i++) {
                 if (i > 0) {
