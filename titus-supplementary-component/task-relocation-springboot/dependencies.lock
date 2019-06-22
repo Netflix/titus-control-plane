@@ -54,7 +54,7 @@
             ]
         },
         "com.github.akarnokd:rxjava2-interop": {
-            "locked": "0.13.5",
+            "locked": "0.13.6",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -1266,7 +1266,7 @@
             ]
         },
         "com.github.akarnokd:rxjava2-interop": {
-            "locked": "0.13.5",
+            "locked": "0.13.6",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -2604,7 +2604,7 @@
             ]
         },
         "com.github.akarnokd:rxjava2-interop": {
-            "locked": "0.13.5",
+            "locked": "0.13.6",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -3984,7 +3984,7 @@
             ]
         },
         "com.github.akarnokd:rxjava2-interop": {
-            "locked": "0.13.5",
+            "locked": "0.13.6",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -5197,7 +5197,7 @@
             ]
         },
         "com.github.akarnokd:rxjava2-interop": {
-            "locked": "0.13.5",
+            "locked": "0.13.6",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -6520,7 +6520,7 @@
             ]
         },
         "com.github.akarnokd:rxjava2-interop": {
-            "locked": "0.13.5",
+            "locked": "0.13.6",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -7788,7 +7788,7 @@
             ]
         },
         "com.github.akarnokd:rxjava2-interop": {
-            "locked": "0.13.5",
+            "locked": "0.13.6",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -9160,7 +9160,7 @@
             ]
         },
         "com.github.akarnokd:rxjava2-interop": {
-            "locked": "0.13.5",
+            "locked": "0.13.6",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -10429,7 +10429,7 @@
             ]
         },
         "com.github.akarnokd:rxjava2-interop": {
-            "locked": "0.13.5",
+            "locked": "0.13.6",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
