@@ -22,6 +22,7 @@ dependencies {
 
     // GRPC dependencies
     compile "io.grpc:grpc-netty-shaded:${grpcVersion}"
+    compile "io.grpc:grpc-services:${grpcVersion}"
 
     testCompile project(':titus-testkit')
 }
