@@ -28,6 +28,7 @@ import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.validator.EntityValidator;
+import com.netflix.titus.common.model.validator.EntityValidatorConfiguration;
 import com.netflix.titus.common.model.validator.ValidationError;
 import com.netflix.titus.runtime.endpoint.validator.AggregatingValidator;
 import com.netflix.titus.runtime.endpoint.validator.TitusValidatorConfiguration;
@@ -285,6 +286,22 @@ public class AggregatingValidatorTest {
         assertThat(errors).allMatch(error -> error.getType().equals(ValidationError.Type.HARD));
     }
 
+    @Test
+    public void validateIsProtectedAgainstEmpty() {
+        EntityValidator<JobDescriptor> pass = new PassJobValidator(ValidationError.Type.HARD);
+        EntityValidator<JobDescriptor> empty = new EmptyValidator();
+        AggregatingValidator validator = new AggregatingValidator(
+                configuration,
+                registry,
+                Arrays.asList(empty, pass, empty),
+                Collections.emptySet()
+        );
+        Mono<Set<ValidationError>> mono = validator.validate(MOCK_JOB);
+        StepVerifier.create(mono)
+                .expectNext(Collections.emptySet())
+                .verifyComplete();
+    }
+
     // Sanitizer tests
 
     @Test
@@ -357,4 +374,22 @@ public class AggregatingValidatorTest {
     private void validateErrorType(Collection<ValidationError> hardErrors, ValidationError.Type errorType) {
         assertThat(hardErrors).allMatch(error -> error.getType().equals(errorType));
     }
+
+    private static class EmptyValidator implements EntityValidator<JobDescriptor> {
+        @Override
+        public Mono<Set<ValidationError>> validate(JobDescriptor entity) {
+            return Mono.empty();
+        }
+
+        @Override
+        public Mono<JobDescriptor> sanitize(JobDescriptor entity) {
+            return Mono.empty();
+        }
+
+        @Override
+        public ValidationError.Type getErrorType(EntityValidatorConfiguration configuration) {
+            return ValidationError.Type.HARD;
+        }
+    }
+
 }
