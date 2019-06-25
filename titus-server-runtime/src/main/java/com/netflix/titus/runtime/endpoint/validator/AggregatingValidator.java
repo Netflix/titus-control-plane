@@ -20,7 +20,6 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
@@ -30,6 +29,7 @@ import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.common.model.validator.EntityValidator;
 import com.netflix.titus.common.model.validator.ValidationError;
+import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.tuple.Triple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -119,15 +119,14 @@ public class AggregatingValidator implements EntityValidator<JobDescriptor> {
                         v.validate(jobDescriptor) // (ValidatorClassName, ValidationError.Type, Mono)
                                 .subscribeOn(Schedulers.parallel()))
                 )
-                .map(triple -> triple.getThird().timeout(
-                        timeout,
-                        Mono.just(
-                                new HashSet<>(Collections.singletonList(
+                .map(triple -> triple.getThird()
+                        .timeout(timeout, Mono.just(
+                                CollectionsExt.asSet(
                                         // Field: ValidatorClassName, Description: TimeoutMessage, Type: [SOFT|HARD]
-                                        new ValidationError(triple.getFirst(), getTimeoutMsg(timeout), triple.getSecond()))
+                                        new ValidationError(triple.getFirst(), getTimeoutMsg(timeout), triple.getSecond())
                                 )
-                        )
-                )
+                        ))
+                        .switchIfEmpty(Mono.just(Collections.emptySet()))
                         .doOnSuccessOrError(this::registerMetrics))
                 .collect(Collectors.toList());
     }
