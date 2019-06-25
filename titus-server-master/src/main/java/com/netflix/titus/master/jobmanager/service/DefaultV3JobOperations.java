@@ -435,7 +435,8 @@ public class DefaultV3JobOperations implements V3JobOperations {
                         }
                         reasonCode = TaskStatus.REASON_SCALED_DOWN;
                     }
-                    String reason = String.format("%s %s(shrink=%s)", Evaluators.getOrDefault(callMetadata.getCallReason(), "<no_reason>"), CallMetadataUtils.getFirstCallerId(callMetadata), shrink);
+                    String reason = String.format("%s %s(shrink=%s)", Evaluators.getOrDefault(callMetadata.getCallReason(), "<no_reason>"),
+                            Evaluators.getOrDefault(CallMetadataUtils.getFirstCallerId(callMetadata), "<no_caller>"), shrink);
                     ChangeAction killAction = KillInitiatedActions.userInitiateTaskKillAction(
                             engineChildPair.getLeft(), vmService, store, task.getId(), shrink, reasonCode, reason, titusRuntime, callMetadata
                     );
