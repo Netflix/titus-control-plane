@@ -39,7 +39,6 @@ import reactor.core.Disposable;
 import reactor.test.StepVerifier;
 
 import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.ofServiceSize;
-import static com.netflix.titus.testkit.junit.asserts.ContainerHealthAsserts.assertContainerHealth;
 import static com.netflix.titus.testkit.junit.asserts.ContainerHealthAsserts.assertContainerHealthAndEvent;
 import static com.netflix.titus.testkit.junit.asserts.ContainerHealthAsserts.assertContainerHealthEvent;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.serviceJobDescriptors;
