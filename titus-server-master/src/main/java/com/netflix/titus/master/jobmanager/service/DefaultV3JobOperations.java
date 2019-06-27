@@ -82,6 +82,7 @@ import com.netflix.titus.master.jobmanager.service.service.action.BasicServiceJo
 import com.netflix.titus.master.jobmanager.service.service.action.MoveTaskBetweenJobsAction;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.service.management.ManagementSubsystemInitializer;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataUtils;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -434,7 +435,8 @@ public class DefaultV3JobOperations implements V3JobOperations {
                         }
                         reasonCode = TaskStatus.REASON_SCALED_DOWN;
                     }
-                    String reason = String.format("%s (shrink=%s)", Evaluators.getOrDefault(callMetadata.getCallReason(), "<no_reason>"), shrink);
+                    String reason = String.format("%s %s(shrink=%s)", Evaluators.getOrDefault(CallMetadataUtils.getFirstCallerId(callMetadata), "<no_caller>"),
+                            Evaluators.getOrDefault(callMetadata.getCallReason(), "<no_reason>"), shrink);
                     ChangeAction killAction = KillInitiatedActions.userInitiateTaskKillAction(
                             engineChildPair.getLeft(), vmService, store, task.getId(), shrink, reasonCode, reason, titusRuntime, callMetadata
                     );
