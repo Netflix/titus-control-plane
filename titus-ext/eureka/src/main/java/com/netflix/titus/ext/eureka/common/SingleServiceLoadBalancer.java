@@ -36,7 +36,7 @@ import com.netflix.titus.common.util.time.Clock;
 
 /**
  * Helper class to track a collection of servers registered with Eureka with properties helping to determine their health,
- * as well as uniform load distribution.
+ * as well as uniform load distribution. The load balancer implements round robin algorithm with bad node isolation.
  */
 public class SingleServiceLoadBalancer implements Closeable, EurekaEventListener {
 

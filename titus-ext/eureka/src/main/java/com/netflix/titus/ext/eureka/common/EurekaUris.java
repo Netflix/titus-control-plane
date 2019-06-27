@@ -26,11 +26,11 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 public class EurekaUris {
 
-    public static final String EUREKA_SCHEMA = "eureka";
+    public static final String EUREKA_SCHEME = "eureka";
     public static final String EUREKA_SECURE_PARAM = "secure";
 
     public static URI failIfEurekaUriInvalid(URI eurekaUri) {
-        Preconditions.checkArgument(isEurekaSchema(eurekaUri), "Not Eureka schema in URI: %s", eurekaUri);
+        Preconditions.checkArgument(isEurekaScheme(eurekaUri), "Not Eureka scheme in URI: %s", eurekaUri);
         Preconditions.checkArgument(StringExt.isNotEmpty(eurekaUri.getHost()), "Service name not defined in URI: %s", eurekaUri);
         return eurekaUri;
     }
@@ -39,8 +39,8 @@ public class EurekaUris {
         return eurekaUri.getHost();
     }
 
-    public static boolean isEurekaSchema(URI eurekaUri) {
-        return EUREKA_SCHEMA.equalsIgnoreCase(eurekaUri.getScheme());
+    public static boolean isEurekaScheme(URI eurekaUri) {
+        return EUREKA_SCHEME.equalsIgnoreCase(eurekaUri.getScheme());
     }
 
     public static boolean isSecure(URI eurekaUri) {
