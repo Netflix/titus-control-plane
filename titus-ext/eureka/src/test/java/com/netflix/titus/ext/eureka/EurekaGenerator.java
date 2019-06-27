@@ -30,6 +30,16 @@ import static com.netflix.titus.common.util.Evaluators.getOrDefault;
  */
 public class EurekaGenerator {
 
+    public static InstanceInfo newInstanceInfo(String instanceId, String vipAddress, String ipAddress, InstanceInfo.InstanceStatus status) {
+        return InstanceInfo.Builder.newBuilder()
+                .setInstanceId(instanceId)
+                .setAppName("testApp")
+                .setVIPAddress(vipAddress)
+                .setIPAddr(ipAddress)
+                .setStatus(status)
+                .build();
+    }
+
     public static InstanceInfo newTaskInstanceInfo(Job<?> job, Task task) {
         return newTaskInstanceInfo(job, task, InstanceStatus.UP);
     }

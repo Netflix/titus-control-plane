@@ -22,6 +22,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import com.netflix.appinfo.ApplicationInfoManager;
@@ -80,7 +81,9 @@ public class EurekaServerStub {
 
         @Override
         public List<InstanceInfo> getInstancesByVipAddress(String vipAddress, boolean secure) {
-            return null;
+            return instanceInfos.values().stream()
+                    .filter(instance -> secure ? vipAddress.equals(instance.getSecureVipAddress()) : vipAddress.equals(instance.getVIPAddress()))
+                    .collect(Collectors.toList());
         }
 
         @Override

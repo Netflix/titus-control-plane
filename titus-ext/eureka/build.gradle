@@ -17,6 +17,7 @@
 dependencies {
     compile project(':titus-server-master')
     compile "com.netflix.eureka:eureka-client:${eurekaVersion}"
+    compile "org.springframework.cloud:spring-cloud-commons:${springCloudVersion}"
 
     testCompile project(':titus-testkit')
 }
