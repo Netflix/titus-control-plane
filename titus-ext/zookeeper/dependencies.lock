@@ -55,7 +55,7 @@
             ]
         },
         "com.github.akarnokd:rxjava2-interop": {
-            "locked": "0.13.6",
+            "locked": "0.13.7",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -131,6 +131,7 @@
                 "com.github.fge:msg-simple",
                 "com.github.fge:uri-template",
                 "com.google.guava:guava",
+                "com.google.instrumentation:instrumentation-api",
                 "com.twitter:util-cache_2.11",
                 "com.twitter:util-collection_2.11",
                 "io.grpc:grpc-core"
@@ -160,6 +161,7 @@
                 "com.github.fge:jackson-coreutils",
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
+                "com.google.instrumentation:instrumentation-api",
                 "com.google.protobuf:protobuf-java-util",
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
@@ -223,6 +225,12 @@
                 "com.netflix.governator:governator-providers",
                 "com.netflix.titus:titus-server-master",
                 "com.sun.jersey.contribs:jersey-guice"
+            ]
+        },
+        "com.google.instrumentation:instrumentation-api": {
+            "locked": "0.4.3",
+            "transitive": [
+                "io.grpc:grpc-services"
             ]
         },
         "com.google.j2objc:j2objc-annotations": {
@@ -638,7 +646,8 @@
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-grpc-api"
+                "com.netflix.titus:titus-grpc-api",
+                "io.grpc:grpc-services"
             ]
         },
         "io.grpc:grpc-protobuf-lite": {
@@ -647,11 +656,18 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
+        "io.grpc:grpc-services": {
+            "locked": "1.10.1",
+            "transitive": [
+                "com.netflix.titus:titus-server-runtime"
+            ]
+        },
         "io.grpc:grpc-stub": {
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-grpc-api"
+                "com.netflix.titus:titus-grpc-api",
+                "io.grpc:grpc-services"
             ]
         },
         "io.kubernetes:client-java": {
@@ -834,7 +850,7 @@
             ]
         },
         "io.reactivex.rxjava2:rxjava": {
-            "locked": "2.2.9",
+            "locked": "2.2.10",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop"
             ]
@@ -1457,7 +1473,7 @@
             ]
         },
         "com.github.akarnokd:rxjava2-interop": {
-            "locked": "0.13.6",
+            "locked": "0.13.7",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -1533,6 +1549,7 @@
                 "com.github.fge:msg-simple",
                 "com.github.fge:uri-template",
                 "com.google.guava:guava",
+                "com.google.instrumentation:instrumentation-api",
                 "com.twitter:util-cache_2.11",
                 "com.twitter:util-collection_2.11",
                 "io.grpc:grpc-core"
@@ -1562,6 +1579,7 @@
                 "com.github.fge:jackson-coreutils",
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
+                "com.google.instrumentation:instrumentation-api",
                 "com.google.protobuf:protobuf-java-util",
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
@@ -1625,6 +1643,12 @@
                 "com.netflix.governator:governator-providers",
                 "com.netflix.titus:titus-server-master",
                 "com.sun.jersey.contribs:jersey-guice"
+            ]
+        },
+        "com.google.instrumentation:instrumentation-api": {
+            "locked": "0.4.3",
+            "transitive": [
+                "io.grpc:grpc-services"
             ]
         },
         "com.google.j2objc:j2objc-annotations": {
@@ -2040,7 +2064,8 @@
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-grpc-api"
+                "com.netflix.titus:titus-grpc-api",
+                "io.grpc:grpc-services"
             ]
         },
         "io.grpc:grpc-protobuf-lite": {
@@ -2049,11 +2074,18 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
+        "io.grpc:grpc-services": {
+            "locked": "1.10.1",
+            "transitive": [
+                "com.netflix.titus:titus-server-runtime"
+            ]
+        },
         "io.grpc:grpc-stub": {
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-grpc-api"
+                "com.netflix.titus:titus-grpc-api",
+                "io.grpc:grpc-services"
             ]
         },
         "io.kubernetes:client-java": {
@@ -2236,7 +2268,7 @@
             ]
         },
         "io.reactivex.rxjava2:rxjava": {
-            "locked": "2.2.9",
+            "locked": "2.2.10",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop"
             ]
@@ -2859,7 +2891,7 @@
             ]
         },
         "com.github.akarnokd:rxjava2-interop": {
-            "locked": "0.13.6",
+            "locked": "0.13.7",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -2935,6 +2967,7 @@
                 "com.github.fge:msg-simple",
                 "com.github.fge:uri-template",
                 "com.google.guava:guava",
+                "com.google.instrumentation:instrumentation-api",
                 "com.twitter:util-cache_2.11",
                 "com.twitter:util-collection_2.11",
                 "io.grpc:grpc-core"
@@ -2964,6 +2997,7 @@
                 "com.github.fge:jackson-coreutils",
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
+                "com.google.instrumentation:instrumentation-api",
                 "com.google.protobuf:protobuf-java-util",
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
@@ -3027,6 +3061,12 @@
                 "com.netflix.governator:governator-providers",
                 "com.netflix.titus:titus-server-master",
                 "com.sun.jersey.contribs:jersey-guice"
+            ]
+        },
+        "com.google.instrumentation:instrumentation-api": {
+            "locked": "0.4.3",
+            "transitive": [
+                "io.grpc:grpc-services"
             ]
         },
         "com.google.j2objc:j2objc-annotations": {
@@ -3442,7 +3482,8 @@
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-grpc-api"
+                "com.netflix.titus:titus-grpc-api",
+                "io.grpc:grpc-services"
             ]
         },
         "io.grpc:grpc-protobuf-lite": {
@@ -3451,11 +3492,18 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
+        "io.grpc:grpc-services": {
+            "locked": "1.10.1",
+            "transitive": [
+                "com.netflix.titus:titus-server-runtime"
+            ]
+        },
         "io.grpc:grpc-stub": {
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-grpc-api"
+                "com.netflix.titus:titus-grpc-api",
+                "io.grpc:grpc-services"
             ]
         },
         "io.kubernetes:client-java": {
@@ -3638,7 +3686,7 @@
             ]
         },
         "io.reactivex.rxjava2:rxjava": {
-            "locked": "2.2.9",
+            "locked": "2.2.10",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop"
             ]
@@ -4325,7 +4373,7 @@
             ]
         },
         "com.github.akarnokd:rxjava2-interop": {
-            "locked": "0.13.6",
+            "locked": "0.13.7",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -4401,6 +4449,7 @@
                 "com.github.fge:msg-simple",
                 "com.github.fge:uri-template",
                 "com.google.guava:guava",
+                "com.google.instrumentation:instrumentation-api",
                 "com.twitter:util-cache_2.11",
                 "com.twitter:util-collection_2.11",
                 "io.grpc:grpc-core"
@@ -4430,6 +4479,7 @@
                 "com.github.fge:jackson-coreutils",
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
+                "com.google.instrumentation:instrumentation-api",
                 "com.google.protobuf:protobuf-java-util",
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
@@ -4493,6 +4543,12 @@
                 "com.netflix.governator:governator-providers",
                 "com.netflix.titus:titus-server-master",
                 "com.sun.jersey.contribs:jersey-guice"
+            ]
+        },
+        "com.google.instrumentation:instrumentation-api": {
+            "locked": "0.4.3",
+            "transitive": [
+                "io.grpc:grpc-services"
             ]
         },
         "com.google.j2objc:j2objc-annotations": {
@@ -4908,7 +4964,8 @@
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-grpc-api"
+                "com.netflix.titus:titus-grpc-api",
+                "io.grpc:grpc-services"
             ]
         },
         "io.grpc:grpc-protobuf-lite": {
@@ -4917,11 +4974,18 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
+        "io.grpc:grpc-services": {
+            "locked": "1.10.1",
+            "transitive": [
+                "com.netflix.titus:titus-server-runtime"
+            ]
+        },
         "io.grpc:grpc-stub": {
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-grpc-api"
+                "com.netflix.titus:titus-grpc-api",
+                "io.grpc:grpc-services"
             ]
         },
         "io.kubernetes:client-java": {
@@ -5104,7 +5168,7 @@
             ]
         },
         "io.reactivex.rxjava2:rxjava": {
-            "locked": "2.2.9",
+            "locked": "2.2.10",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop"
             ]
@@ -5728,7 +5792,7 @@
             ]
         },
         "com.github.akarnokd:rxjava2-interop": {
-            "locked": "0.13.6",
+            "locked": "0.13.7",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -5804,6 +5868,7 @@
                 "com.github.fge:msg-simple",
                 "com.github.fge:uri-template",
                 "com.google.guava:guava",
+                "com.google.instrumentation:instrumentation-api",
                 "com.twitter:util-cache_2.11",
                 "com.twitter:util-collection_2.11",
                 "io.grpc:grpc-core"
@@ -5833,6 +5898,7 @@
                 "com.github.fge:jackson-coreutils",
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
+                "com.google.instrumentation:instrumentation-api",
                 "com.google.protobuf:protobuf-java-util",
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
@@ -5896,6 +5962,12 @@
                 "com.netflix.governator:governator-providers",
                 "com.netflix.titus:titus-server-master",
                 "com.sun.jersey.contribs:jersey-guice"
+            ]
+        },
+        "com.google.instrumentation:instrumentation-api": {
+            "locked": "0.4.3",
+            "transitive": [
+                "io.grpc:grpc-services"
             ]
         },
         "com.google.j2objc:j2objc-annotations": {
@@ -6311,7 +6383,8 @@
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-grpc-api"
+                "com.netflix.titus:titus-grpc-api",
+                "io.grpc:grpc-services"
             ]
         },
         "io.grpc:grpc-protobuf-lite": {
@@ -6320,11 +6393,18 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
+        "io.grpc:grpc-services": {
+            "locked": "1.10.1",
+            "transitive": [
+                "com.netflix.titus:titus-server-runtime"
+            ]
+        },
         "io.grpc:grpc-stub": {
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-grpc-api"
+                "com.netflix.titus:titus-grpc-api",
+                "io.grpc:grpc-services"
             ]
         },
         "io.kubernetes:client-java": {
@@ -6507,7 +6587,7 @@
             ]
         },
         "io.reactivex.rxjava2:rxjava": {
-            "locked": "2.2.9",
+            "locked": "2.2.10",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop"
             ]
@@ -7200,7 +7280,7 @@
             ]
         },
         "com.github.akarnokd:rxjava2-interop": {
-            "locked": "0.13.6",
+            "locked": "0.13.7",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -7321,6 +7401,7 @@
                 "com.github.fge:msg-simple",
                 "com.github.fge:uri-template",
                 "com.google.guava:guava",
+                "com.google.instrumentation:instrumentation-api",
                 "com.twitter:util-cache_2.11",
                 "com.twitter:util-collection_2.11",
                 "io.grpc:grpc-core"
@@ -7352,6 +7433,7 @@
                 "com.github.fge:jackson-coreutils",
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
+                "com.google.instrumentation:instrumentation-api",
                 "com.google.protobuf:protobuf-java-util",
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
@@ -7419,6 +7501,12 @@
                 "com.netflix.governator:governator-providers",
                 "com.netflix.titus:titus-server-master",
                 "com.sun.jersey.contribs:jersey-guice"
+            ]
+        },
+        "com.google.instrumentation:instrumentation-api": {
+            "locked": "0.4.3",
+            "transitive": [
+                "io.grpc:grpc-services"
             ]
         },
         "com.google.j2objc:j2objc-annotations": {
@@ -7945,7 +8033,8 @@
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-grpc-api"
+                "com.netflix.titus:titus-grpc-api",
+                "io.grpc:grpc-services"
             ]
         },
         "io.grpc:grpc-protobuf-lite": {
@@ -7954,11 +8043,18 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
+        "io.grpc:grpc-services": {
+            "locked": "1.10.1",
+            "transitive": [
+                "com.netflix.titus:titus-server-runtime"
+            ]
+        },
         "io.grpc:grpc-stub": {
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-grpc-api"
+                "com.netflix.titus:titus-grpc-api",
+                "io.grpc:grpc-services"
             ]
         },
         "io.kubernetes:client-java": {
@@ -8150,7 +8246,7 @@
             "requested": "3.1.+"
         },
         "io.reactivex.rxjava2:rxjava": {
-            "locked": "2.2.9",
+            "locked": "2.2.10",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop"
             ]
@@ -9247,7 +9343,7 @@
             ]
         },
         "com.github.akarnokd:rxjava2-interop": {
-            "locked": "0.13.6",
+            "locked": "0.13.7",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -9368,6 +9464,7 @@
                 "com.github.fge:msg-simple",
                 "com.github.fge:uri-template",
                 "com.google.guava:guava",
+                "com.google.instrumentation:instrumentation-api",
                 "com.twitter:util-cache_2.11",
                 "com.twitter:util-collection_2.11",
                 "io.grpc:grpc-core"
@@ -9399,6 +9496,7 @@
                 "com.github.fge:jackson-coreutils",
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
+                "com.google.instrumentation:instrumentation-api",
                 "com.google.protobuf:protobuf-java-util",
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
@@ -9466,6 +9564,12 @@
                 "com.netflix.governator:governator-providers",
                 "com.netflix.titus:titus-server-master",
                 "com.sun.jersey.contribs:jersey-guice"
+            ]
+        },
+        "com.google.instrumentation:instrumentation-api": {
+            "locked": "0.4.3",
+            "transitive": [
+                "io.grpc:grpc-services"
             ]
         },
         "com.google.j2objc:j2objc-annotations": {
@@ -9992,7 +10096,8 @@
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-grpc-api"
+                "com.netflix.titus:titus-grpc-api",
+                "io.grpc:grpc-services"
             ]
         },
         "io.grpc:grpc-protobuf-lite": {
@@ -10001,11 +10106,18 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
+        "io.grpc:grpc-services": {
+            "locked": "1.10.1",
+            "transitive": [
+                "com.netflix.titus:titus-server-runtime"
+            ]
+        },
         "io.grpc:grpc-stub": {
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-grpc-api"
+                "com.netflix.titus:titus-grpc-api",
+                "io.grpc:grpc-services"
             ]
         },
         "io.kubernetes:client-java": {
@@ -10197,7 +10309,7 @@
             "requested": "3.1.+"
         },
         "io.reactivex.rxjava2:rxjava": {
-            "locked": "2.2.9",
+            "locked": "2.2.10",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop"
             ]
@@ -11294,7 +11406,7 @@
             ]
         },
         "com.github.akarnokd:rxjava2-interop": {
-            "locked": "0.13.6",
+            "locked": "0.13.7",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -11415,6 +11527,7 @@
                 "com.github.fge:msg-simple",
                 "com.github.fge:uri-template",
                 "com.google.guava:guava",
+                "com.google.instrumentation:instrumentation-api",
                 "com.twitter:util-cache_2.11",
                 "com.twitter:util-collection_2.11",
                 "io.grpc:grpc-core"
@@ -11446,6 +11559,7 @@
                 "com.github.fge:jackson-coreutils",
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
+                "com.google.instrumentation:instrumentation-api",
                 "com.google.protobuf:protobuf-java-util",
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
@@ -11513,6 +11627,12 @@
                 "com.netflix.governator:governator-providers",
                 "com.netflix.titus:titus-server-master",
                 "com.sun.jersey.contribs:jersey-guice"
+            ]
+        },
+        "com.google.instrumentation:instrumentation-api": {
+            "locked": "0.4.3",
+            "transitive": [
+                "io.grpc:grpc-services"
             ]
         },
         "com.google.j2objc:j2objc-annotations": {
@@ -12039,7 +12159,8 @@
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-grpc-api"
+                "com.netflix.titus:titus-grpc-api",
+                "io.grpc:grpc-services"
             ]
         },
         "io.grpc:grpc-protobuf-lite": {
@@ -12048,11 +12169,18 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
+        "io.grpc:grpc-services": {
+            "locked": "1.10.1",
+            "transitive": [
+                "com.netflix.titus:titus-server-runtime"
+            ]
+        },
         "io.grpc:grpc-stub": {
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-grpc-api"
+                "com.netflix.titus:titus-grpc-api",
+                "io.grpc:grpc-services"
             ]
         },
         "io.kubernetes:client-java": {
@@ -12244,7 +12372,7 @@
             "requested": "3.1.+"
         },
         "io.reactivex.rxjava2:rxjava": {
-            "locked": "2.2.9",
+            "locked": "2.2.10",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop"
             ]
@@ -13342,7 +13470,7 @@
             ]
         },
         "com.github.akarnokd:rxjava2-interop": {
-            "locked": "0.13.6",
+            "locked": "0.13.7",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -13463,6 +13591,7 @@
                 "com.github.fge:msg-simple",
                 "com.github.fge:uri-template",
                 "com.google.guava:guava",
+                "com.google.instrumentation:instrumentation-api",
                 "com.twitter:util-cache_2.11",
                 "com.twitter:util-collection_2.11",
                 "io.grpc:grpc-core"
@@ -13494,6 +13623,7 @@
                 "com.github.fge:jackson-coreutils",
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
+                "com.google.instrumentation:instrumentation-api",
                 "com.google.protobuf:protobuf-java-util",
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
@@ -13561,6 +13691,12 @@
                 "com.netflix.governator:governator-providers",
                 "com.netflix.titus:titus-server-master",
                 "com.sun.jersey.contribs:jersey-guice"
+            ]
+        },
+        "com.google.instrumentation:instrumentation-api": {
+            "locked": "0.4.3",
+            "transitive": [
+                "io.grpc:grpc-services"
             ]
         },
         "com.google.j2objc:j2objc-annotations": {
@@ -14087,7 +14223,8 @@
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-grpc-api"
+                "com.netflix.titus:titus-grpc-api",
+                "io.grpc:grpc-services"
             ]
         },
         "io.grpc:grpc-protobuf-lite": {
@@ -14096,11 +14233,18 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
+        "io.grpc:grpc-services": {
+            "locked": "1.10.1",
+            "transitive": [
+                "com.netflix.titus:titus-server-runtime"
+            ]
+        },
         "io.grpc:grpc-stub": {
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-grpc-api"
+                "com.netflix.titus:titus-grpc-api",
+                "io.grpc:grpc-services"
             ]
         },
         "io.kubernetes:client-java": {
@@ -14292,7 +14436,7 @@
             "requested": "3.1.+"
         },
         "io.reactivex.rxjava2:rxjava": {
-            "locked": "2.2.9",
+            "locked": "2.2.10",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop"
             ]
