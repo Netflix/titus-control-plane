@@ -17,18 +17,19 @@
 package com.netflix.titus.federation.service;
 
 import com.netflix.titus.api.federation.model.Cell;
+import com.netflix.titus.grpc.protogen.JobDescriptor;
 
 /**
  * CellRouter determines which cell to route a request to amongst a set of Cells.
  */
 public interface CellRouter {
     /**
-     * routeKey is a blocking call that returns the Cell to use based on the provided key.
+     * routeKey is a blocking call that returns the Cell to use based on the {@link JobDescriptor}.
      * The key should correspond to what the routing implementation expects, e.g., Job IDs
      * or Capacity Group names.
      *
-     * @param key
+     * @param jobDescriptor
      * @return Cell
      */
-    Cell routeKey(String key);
+    Cell routeKey(JobDescriptor jobDescriptor);
 }

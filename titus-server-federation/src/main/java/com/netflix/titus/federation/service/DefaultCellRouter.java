@@ -16,9 +16,12 @@
 
 package com.netflix.titus.federation.service;
 
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
@@ -26,15 +29,20 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.netflix.titus.api.federation.model.Cell;
+import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.cache.MemoizedFunction;
 import com.netflix.titus.federation.startup.TitusFederationConfiguration;
+import com.netflix.titus.grpc.protogen.JobDescriptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Singleton
 public class DefaultCellRouter implements CellRouter {
     private static final Logger logger = LoggerFactory.getLogger(DefaultCellRouter.class);
+    // The key used to route jobs if no other key could be determined.
+    private static final String DEFAULT_ROUTE_KEY = "DEFAULT_FEDERATION_ROUTE_KEY";
 
     private final CellInfoResolver cellInfoResolver;
     private final TitusFederationConfiguration federationConfiguration;
@@ -62,17 +70,66 @@ public class DefaultCellRouter implements CellRouter {
     }
 
     /**
+     * routeKeyFor is a memory-based, blocking call that extracts a Cell route key from a JobDescriptor.
+     *
+     * @param jobDescriptor
+     * @return key used for finding a suitable cell from configured routing rules
+     */
+    private static String routeKeyFor(JobDescriptor jobDescriptor) {
+        if (!jobDescriptor.getCapacityGroup().isEmpty()) {
+            return jobDescriptor.getCapacityGroup();
+        }
+        if (!jobDescriptor.getApplicationName().isEmpty()) {
+            return jobDescriptor.getApplicationName();
+        }
+        return DEFAULT_ROUTE_KEY;
+    }
+
+    /**
      * Iterate each of the regular expressions in the order they are defined, and returns the first match it encounters.
      * If no match, defaults to {@link CellInfoResolver#getDefault()}.
+     *
+     * @param jobDescriptor
      */
     @Override
-    public Cell routeKey(String key) {
+    public Cell routeKey(JobDescriptor jobDescriptor) {
+        Optional<Cell> pinnedCell = getCellPinnedToJob(jobDescriptor);
+        if (pinnedCell.isPresent()) {
+            return pinnedCell.get();
+        }
+
+        String routeKey = routeKeyFor(jobDescriptor);
         Map<Cell, Pattern> cellRoutingPatterns = compileRoutingPatterns.apply(federationConfiguration.getRoutingRules());
-        return cellRoutingPatterns.entrySet().stream()
-                .filter(entry -> entry.getValue().matcher(key).matches())
+        Set<String> antiAffinityNames = StringExt.splitByCommaIntoSet(
+                jobDescriptor.getAttributesMap().get(JobAttributes.JOB_PARAMETER_ATTRIBUTES_CELL_AVOID)
+        );
+
+
+        Optional<Cell> found = cellRoutingPatterns.entrySet().stream()
+                .filter(entry -> entry.getValue().matcher(routeKey).matches() &&
+                        !antiAffinityNames.contains(entry.getKey().getName()))
                 .findFirst()
-                .map(Map.Entry::getKey)
+                .map(Map.Entry::getKey);
+
+        if (found.isPresent()) {
+            return found.get();
+        }
+
+        // fallback to any cell that is not in the anti affinity list, or the default when all available cells are rejected
+        return cellInfoResolver.resolve().stream()
+                .filter(cell -> !antiAffinityNames.contains(cell.getName()))
+                .findAny()
                 .orElseGet(cellInfoResolver::getDefault);
+    }
+
+    private Optional<Cell> getCellPinnedToJob(JobDescriptor jobDescriptor) {
+        String requestedCell = jobDescriptor.getAttributesMap().get(JobAttributes.JOB_PARAMETER_ATTRIBUTES_CELL_REQUEST);
+        if (StringExt.isEmpty(requestedCell)) {
+            return Optional.empty();
+        }
+        return cellInfoResolver.resolve().stream()
+                .filter(cell -> cell.getName().equals(requestedCell))
+                .findAny();
     }
 
 }

@@ -125,13 +125,12 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
 
     @Override
     public Observable<String> createJob(JobDescriptor jobDescriptor, CallMetadata callMetadata) {
-        String routeKey = CellRouterUtil.getRouteKeyFromJob(jobDescriptor);
-        Cell cell = router.routeKey(routeKey);
-        logger.debug("Routing JobDescriptor {} to Cell {} with key {}", jobDescriptor, cell, routeKey);
+        Cell cell = router.routeKey(jobDescriptor);
+        logger.debug("Routing JobDescriptor {} to Cell {}", jobDescriptor, cell);
 
         Optional<JobManagementServiceStub> optionalClient = CellConnectorUtil.toStub(cell, connector, JobManagementServiceGrpc::newStub);
         if (!optionalClient.isPresent()) {
-            return Observable.error(TitusServiceException.cellNotFound(routeKey));
+            return Observable.error(TitusServiceException.cellNotFound(cell.getName()));
         }
         JobManagementServiceStub client = wrap(optionalClient.get());
 
