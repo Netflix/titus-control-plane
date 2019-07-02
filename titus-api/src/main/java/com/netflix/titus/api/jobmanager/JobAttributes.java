@@ -41,7 +41,7 @@ public final class JobAttributes {
     public static final String JOB_ATTRIBUTES_STACK = TITUS_ATTRIBUTE_PREFIX + "stack";
 
     /**
-     * Unique Cell name for a deployment.
+     * Unique Cell name for a deployment that the Job has been assigned to.
      */
     public static final String JOB_ATTRIBUTES_CELL = TITUS_ATTRIBUTE_PREFIX + "cell";
 
@@ -54,6 +54,16 @@ public final class JobAttributes {
      * Set by {@link EntityValidator} for container images (digest) when failing open
      */
     public static final String JOB_ATTRIBUTES_SANITIZATION_SKIPPED_IMAGE = JOB_ATTRIBUTE_SANITIZATION_PREFIX + "skipped.image";
+
+    /**
+     * (Experimental) allow jobs to request being placed into a particular cell (affinity)
+     */
+    public static final String JOB_PARAMETER_ATTRIBUTES_CELL_REQUEST = TITUS_PARAMETER_ATTRIBUTE_PREFIX + "cell.request";
+
+    /**
+     * (Experimental) allow jobs to request not being placed into a comma separated list of cell names (anti affinity)
+     */
+    public static final String JOB_PARAMETER_ATTRIBUTES_CELL_AVOID = TITUS_PARAMETER_ATTRIBUTE_PREFIX + "cell.avoid";
 
     // Container Attributes
 

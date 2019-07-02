@@ -111,7 +111,7 @@ public class DefaultLocalSchedulerTest {
         // Now cancel it
         assertThat(reference.isClosed()).isFalse();
         reference.cancel();
-        await().until(reference::isClosed);
+        await().atMost(30, TimeUnit.SECONDS).until(reference::isClosed);
 
         assertThat(reference.getSchedule().getCurrentAction().getStatus().getState().isFinal()).isTrue();
         assertThat(localScheduler.getActiveSchedules()).isEmpty();
