@@ -49,7 +49,7 @@ public class PassJobValidator implements EntityValidator<JobDescriptor> {
 
     @Override
     public Mono<JobDescriptor> sanitize(JobDescriptor entity) {
-      return Mono.just(entity);
+        return Mono.just(entity);
     }
 
     @Override

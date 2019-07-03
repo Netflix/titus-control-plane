@@ -42,13 +42,11 @@ import reactor.core.scheduler.Schedulers;
 @Singleton
 public class AggregatingValidator implements EntityValidator<JobDescriptor> {
     private static final Logger logger = LoggerFactory.getLogger(AggregatingValidator.class);
-    private final TitusValidatorConfiguration configuration;
 
+    private final TitusValidatorConfiguration configuration;
     private final Duration timeout;
     private final Collection<EntityValidator<JobDescriptor>> validators;
-
     private final Collection<EntityValidator<JobDescriptor>> sanitizers;
-
     private final ValidatorMetrics validatorMetrics;
 
     /**
@@ -70,9 +68,7 @@ public class AggregatingValidator implements EntityValidator<JobDescriptor> {
         this.configuration = configuration;
         this.timeout = Duration.ofMillis(this.configuration.getTimeoutMs());
         this.validators = validators;
-
         this.sanitizers = sanitizers;
-
         this.validatorMetrics = new ValidatorMetrics(this.getClass().getSimpleName(), registry);
     }
 
@@ -100,11 +96,9 @@ public class AggregatingValidator implements EntityValidator<JobDescriptor> {
     public Mono<JobDescriptor> sanitize(JobDescriptor entity) {
         Mono<JobDescriptor> sanitizedJobDescriptorMono = Mono.just(entity);
         for (EntityValidator<JobDescriptor> sanitizer : sanitizers) {
-            sanitizedJobDescriptorMono = sanitizedJobDescriptorMono
-                    .flatMap(sanitizer::sanitize);
+            sanitizedJobDescriptorMono = sanitizedJobDescriptorMono.flatMap(sanitizer::sanitize);
         }
-        return sanitizedJobDescriptorMono
-                .timeout(timeout);
+        return sanitizedJobDescriptorMono.timeout(timeout);
     }
 
     private Collection<Mono<Set<ValidationError>>> getMonos(

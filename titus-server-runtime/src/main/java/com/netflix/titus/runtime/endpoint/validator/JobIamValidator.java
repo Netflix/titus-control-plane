@@ -29,9 +29,9 @@ import com.netflix.titus.api.connector.cloud.IamConnector;
 import com.netflix.titus.api.iam.service.IamConnectorException;
 import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.common.model.validator.EntityValidator;
 import com.netflix.titus.common.model.validator.ValidationError;
-import com.netflix.titus.common.util.CollectionsExt;
 import reactor.core.publisher.Mono;
 
 /**
@@ -93,43 +93,35 @@ public class JobIamValidator implements EntityValidator<JobDescriptor> {
                 });
     }
 
-    /**
-     * We do not expect to sanitize the IAM at the moment, this is a noop.
-     */
     @Override
     public Mono<JobDescriptor> sanitize(JobDescriptor jobDescriptor) {
+        if (isDisabled()) {
+            return Mono.just(withSanitizationSkipped(jobDescriptor));
+        }
+
         String iamRoleName = jobDescriptor.getContainer().getSecurityProfile().getIamRole();
 
         // If empty, it should be set to ARN value or rejected, but not in this place.
         if (iamRoleName.isEmpty()) {
             return Mono.just(jobDescriptor);
         }
-
         if (isIamArn(iamRoleName)) {
             return Mono.just(jobDescriptor);
         }
 
-        JobDescriptor onErrorFallback = jobDescriptor.toBuilder()
-                .withAttributes(CollectionsExt.copyAndAdd(
-                        ((JobDescriptor<?>) jobDescriptor).getAttributes(),
-                        JobAttributes.JOB_ATTRIBUTES_SANITIZATION_SKIPPED_IAM, "true"))
-                .build();
-
         return iamConnector.getIamRole(iamRoleName)
                 .timeout(Duration.ofMillis(configuration.getIamValidationTimeoutMs()))
-                .map(iamRole -> jobDescriptor
-                        .toBuilder().withContainer(
-                                jobDescriptor.getContainer().toBuilder()
-                                        .withSecurityProfile(
-                                                jobDescriptor.getContainer().getSecurityProfile().toBuilder()
-                                                        .withIamRole(iamRole.getResourceName())
-                                                        .build()
-                                        )
+                .map(iamRole -> jobDescriptor.toBuilder()
+                        .withContainer(jobDescriptor.getContainer().toBuilder()
+                                .withSecurityProfile(jobDescriptor.getContainer().getSecurityProfile().toBuilder()
+                                        .withIamRole(iamRole.getResourceName())
                                         .build()
+                                )
+                                .build()
                         )
                         .build()
                 )
-                .onErrorReturn(onErrorFallback);
+                .onErrorReturn(withSanitizationSkipped(jobDescriptor));
     }
 
     private boolean isIamArn(String iamRoleName) {
@@ -139,5 +131,12 @@ public class JobIamValidator implements EntityValidator<JobDescriptor> {
 
     private boolean isDisabled() {
         return !configuration.isIamValidatorEnabled();
+    }
+
+    @SuppressWarnings("unchecked")
+    private JobDescriptor withSanitizationSkipped(JobDescriptor jobDescriptor) {
+        return JobFunctions.appendJobDescriptorAttribute(jobDescriptor,
+                JobAttributes.JOB_ATTRIBUTES_SANITIZATION_SKIPPED_IAM, true
+        );
     }
 }
