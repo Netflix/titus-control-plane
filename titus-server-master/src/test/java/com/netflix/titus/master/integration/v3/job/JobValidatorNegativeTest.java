@@ -16,7 +16,6 @@
 
 package com.netflix.titus.master.integration.v3.job;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -61,7 +60,7 @@ public class JobValidatorNegativeTest extends BaseIntegrationTest {
     private static final Logger logger = LoggerFactory.getLogger(JobValidatorNegativeTest.class);
 
     private static final TitusValidatorConfiguration configuration = mock(TitusValidatorConfiguration.class);
-    private static final List<EntityValidator<JobDescriptor>> validators = Arrays.asList(new FailJobValidator());
+    private static final List<EntityValidator<JobDescriptor>> validators = Collections.singletonList(new FailJobValidator());
     private static final List<EntityValidator<JobDescriptor>> sanitizers = Collections.emptyList();
 
     private static TitusStackResource titusStackResource;
@@ -77,13 +76,9 @@ public class JobValidatorNegativeTest extends BaseIntegrationTest {
         // This is an arbitrary large timeout; the FailJobValidator fails instantaneously, so
         // timeout never occurs.
         when(configuration.getTimeoutMs()).thenReturn(10 * 1000);
-        titusStackResource =
-                getTitusStackResource(
-                        new AggregatingValidator(
-                                configuration,
-                                new DefaultRegistry(),
-                                validators,
-                                sanitizers));
+        titusStackResource = getTitusStackResource(
+                new AggregatingValidator(configuration, new DefaultRegistry(), validators, sanitizers)
+        );
     }
 
     @Before
@@ -101,13 +96,13 @@ public class JobValidatorNegativeTest extends BaseIntegrationTest {
             client.createJob(jobDescriptor).getId();
             fail("Expected test to fail");
         } catch (StatusRuntimeException e) {
-            logger.info("Received StatusRuntimeException: {}",  e.getMessage());
+            logger.info("Received StatusRuntimeException: {}", e.getMessage());
             assertThat(e.getMessage()).contains(FailJobValidator.ERR_DESCRIPTION);
             assertThat(e.getMessage()).contains(FailJobValidator.ERR_FIELD);
         }
     }
 
-    private static final TitusStackResource getTitusStackResource(EntityValidator<JobDescriptor> validator) {
+    private static TitusStackResource getTitusStackResource(EntityValidator<JobDescriptor> validator) {
         SimulatedCloud simulatedCloud = SimulatedClouds.basicCloud(2);
 
         return new TitusStackResource(EmbeddedTitusCell.aTitusCell()

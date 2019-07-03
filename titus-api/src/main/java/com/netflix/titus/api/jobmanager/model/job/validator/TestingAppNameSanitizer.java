@@ -53,7 +53,7 @@ public class TestingAppNameSanitizer implements EntityValidator<JobDescriptor> {
     }
 
     @Override
-    public ValidationError.Type getErrorType(EntityValidatorConfiguration configuration) {
+    public ValidationError.Type getErrorType() {
         return ValidationError.Type.HARD;
     }
 }

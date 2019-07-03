@@ -31,7 +31,11 @@ public class ValidationError {
      */
     public enum Type {
         HARD,
-        SOFT
+        SOFT;
+
+        public static Type from(EntityValidatorConfiguration configuration) {
+            return valueOf(configuration.getErrorType().trim().toUpperCase());
+        }
     }
 
     public ValidationError(String field, String description) {

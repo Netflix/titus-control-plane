@@ -17,6 +17,7 @@
 package com.netflix.titus.runtime.endpoint.validator;
 
 import java.util.Arrays;
+import java.util.Collections;
 import javax.inject.Singleton;
 
 import com.google.inject.AbstractModule;
@@ -54,6 +55,6 @@ public class TitusValidatorModule extends AbstractModule {
                 configuration,
                 registry,
                 Arrays.asList(new PassJobValidator(), jobIamValidator),
-                Arrays.asList(jobImageValidator));
+                Collections.singletonList(jobImageValidator));
     }
 }

@@ -24,7 +24,6 @@ import java.util.UUID;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.validator.EntityValidator;
-import com.netflix.titus.common.model.validator.EntityValidatorConfiguration;
 import com.netflix.titus.common.model.validator.ValidationError;
 import reactor.core.publisher.Mono;
 
@@ -59,7 +58,7 @@ public class FailJobValidator implements EntityValidator<JobDescriptor> {
     }
 
     @Override
-    public ValidationError.Type getErrorType(EntityValidatorConfiguration configuration) {
+    public ValidationError.Type getErrorType() {
         return errorType;
     }
 }

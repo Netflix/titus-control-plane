@@ -26,9 +26,9 @@ import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.common.model.validator.EntityValidator;
 import com.netflix.titus.common.model.validator.ValidationError;
-import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.runtime.connector.registry.RegistryClient;
 import com.netflix.titus.runtime.connector.registry.TitusRegistryException;
 import org.slf4j.Logger;
@@ -80,7 +80,7 @@ public class JobImageValidator implements EntityValidator<JobDescriptor> {
                                     new ValidationError(
                                             JobImageValidator.class.getSimpleName(),
                                             throwable.getMessage(),
-                                            getErrorType(configuration))
+                                            getErrorType())
                             ));
                 });
     }
@@ -88,20 +88,19 @@ public class JobImageValidator implements EntityValidator<JobDescriptor> {
     @Override
     public Mono<JobDescriptor> sanitize(JobDescriptor jobDescriptor) {
         if (isDisabled()) {
-            return Mono.just(jobDescriptor);
+            return Mono.just(withSanitizationSkipped(jobDescriptor));
         }
 
-        JobDescriptor onErrorFallback = jobDescriptor.toBuilder()
-                .withAttributes(CollectionsExt.copyAndAdd(
-                        ((JobDescriptor<?>) jobDescriptor).getAttributes(),
-                        JobAttributes.JOB_ATTRIBUTES_SANITIZATION_SKIPPED_IMAGE, "true"))
-                .build();
         Image image = jobDescriptor.getContainer().getImage();
-
         return sanitizeImage(jobDescriptor)
                 .timeout(Duration.ofMillis(configuration.getJobImageValidationTimeoutMs()))
                 .doOnSuccess(j -> validatorMetrics.incrementValidationSuccess(image.getName()))
-                .onErrorReturn(throwable -> isValidationOK(throwable, image), onErrorFallback);
+                .onErrorReturn(throwable -> isValidationOK(throwable, image), withSanitizationSkipped(jobDescriptor));
+    }
+
+    @Override
+    public ValidationError.Type getErrorType() {
+        return ValidationError.Type.from(configuration);
     }
 
     private Mono<JobDescriptor> sanitizeImage(JobDescriptor jobDescriptor) {
@@ -178,5 +177,12 @@ public class JobImageValidator implements EntityValidator<JobDescriptor> {
                 throwable.getClass().getSimpleName()
         );
         return true;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static JobDescriptor withSanitizationSkipped(JobDescriptor jobDescriptor) {
+        return JobFunctions.appendJobDescriptorAttribute(jobDescriptor,
+                JobAttributes.JOB_ATTRIBUTES_SANITIZATION_SKIPPED_IMAGE, true
+        );
     }
 }
