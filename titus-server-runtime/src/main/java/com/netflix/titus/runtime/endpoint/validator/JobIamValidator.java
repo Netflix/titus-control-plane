@@ -89,7 +89,7 @@ public class JobIamValidator implements EntityValidator<JobDescriptor> {
                             new ValidationError(
                                     JobIamValidator.class.getSimpleName(),
                                     throwable.getMessage(),
-                                    getErrorType(configuration))));
+                                    getErrorType())));
                 });
     }
 
@@ -122,6 +122,11 @@ public class JobIamValidator implements EntityValidator<JobDescriptor> {
                         .build()
                 )
                 .onErrorReturn(withSanitizationSkipped(jobDescriptor));
+    }
+
+    @Override
+    public ValidationError.Type getErrorType() {
+        return ValidationError.Type.from(configuration);
     }
 
     private boolean isIamArn(String iamRoleName) {

@@ -80,7 +80,7 @@ public class JobImageValidator implements EntityValidator<JobDescriptor> {
                                     new ValidationError(
                                             JobImageValidator.class.getSimpleName(),
                                             throwable.getMessage(),
-                                            getErrorType(configuration))
+                                            getErrorType())
                             ));
                 });
     }
@@ -96,6 +96,11 @@ public class JobImageValidator implements EntityValidator<JobDescriptor> {
                 .timeout(Duration.ofMillis(configuration.getJobImageValidationTimeoutMs()))
                 .doOnSuccess(j -> validatorMetrics.incrementValidationSuccess(image.getName()))
                 .onErrorReturn(throwable -> isValidationOK(throwable, image), withSanitizationSkipped(jobDescriptor));
+    }
+
+    @Override
+    public ValidationError.Type getErrorType() {
+        return ValidationError.Type.from(configuration);
     }
 
     private Mono<JobDescriptor> sanitizeImage(JobDescriptor jobDescriptor) {

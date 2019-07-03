@@ -16,9 +16,9 @@
 
 package com.netflix.titus.common.model.validator;
 
-import reactor.core.publisher.Mono;
-
 import java.util.Set;
+
+import reactor.core.publisher.Mono;
 
 /**
  * A EntityValidator determines whether an object of the parameterized type is valid.  If it finds an object to be invalid it
@@ -40,7 +40,5 @@ public interface EntityValidator<T> {
     /**
      * Returns the error type indicating how to treat validation errors.
      */
-    default ValidationError.Type getErrorType(EntityValidatorConfiguration configuration) {
-        return ValidationError.Type.valueOf(configuration.getErrorType().toUpperCase());
-    }
+    ValidationError.Type getErrorType();
 }

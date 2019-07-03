@@ -28,7 +28,6 @@ import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.validator.EntityValidator;
-import com.netflix.titus.common.model.validator.EntityValidatorConfiguration;
 import com.netflix.titus.common.model.validator.ValidationError;
 import com.netflix.titus.runtime.endpoint.validator.AggregatingValidator;
 import com.netflix.titus.runtime.endpoint.validator.TitusValidatorConfiguration;
@@ -387,9 +386,8 @@ public class AggregatingValidatorTest {
         }
 
         @Override
-        public ValidationError.Type getErrorType(EntityValidatorConfiguration configuration) {
+        public ValidationError.Type getErrorType() {
             return ValidationError.Type.HARD;
         }
     }
-
 }

@@ -29,10 +29,6 @@ import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.common.model.validator.EntityValidator;
 import com.netflix.titus.common.model.validator.ValidationError;
-import com.netflix.titus.common.util.CollectionsExt;
-import com.netflix.titus.common.util.tuple.Triple;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
@@ -41,8 +37,6 @@ import reactor.core.scheduler.Schedulers;
  */
 @Singleton
 public class AggregatingValidator implements EntityValidator<JobDescriptor> {
-    private static final Logger logger = LoggerFactory.getLogger(AggregatingValidator.class);
-
     private final TitusValidatorConfiguration configuration;
     private final Duration timeout;
     private final Collection<EntityValidator<JobDescriptor>> validators;
@@ -101,25 +95,22 @@ public class AggregatingValidator implements EntityValidator<JobDescriptor> {
         return sanitizedJobDescriptorMono.timeout(timeout);
     }
 
+    @Override
+    public ValidationError.Type getErrorType() {
+        return ValidationError.Type.from(configuration);
+    }
+
     private Collection<Mono<Set<ValidationError>>> getMonos(
             JobDescriptor jobDescriptor,
             Duration timeout,
             Collection<EntityValidator<JobDescriptor>> validators) {
 
         return validators.stream()
-                .map(v -> new Triple<>(
-                        v.getClass().getSimpleName(),
-                        v.getErrorType(configuration),
-                        v.validate(jobDescriptor) // (ValidatorClassName, ValidationError.Type, Mono)
-                                .subscribeOn(Schedulers.parallel()))
-                )
-                .map(triple -> triple.getThird()
-                        .timeout(timeout, Mono.just(
-                                CollectionsExt.asSet(
-                                        // Field: ValidatorClassName, Description: TimeoutMessage, Type: [SOFT|HARD]
-                                        new ValidationError(triple.getFirst(), getTimeoutMsg(timeout), triple.getSecond())
-                                )
-                        ))
+                .map(v -> v.validate(jobDescriptor)
+                        .subscribeOn(Schedulers.parallel())
+                        .timeout(timeout, Mono.just(Collections.singleton(
+                                new ValidationError(v.getClass().getSimpleName(), getTimeoutMsg(timeout), v.getErrorType())
+                        )))
                         .switchIfEmpty(Mono.just(Collections.emptySet()))
                         .doOnSuccessOrError(this::registerMetrics))
                 .collect(Collectors.toList());
