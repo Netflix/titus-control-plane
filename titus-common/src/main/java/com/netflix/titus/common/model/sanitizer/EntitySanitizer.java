@@ -16,11 +16,8 @@
 
 package com.netflix.titus.common.model.sanitizer;
 
-import com.netflix.titus.common.model.validator.ValidationError;
-
 import java.util.Optional;
 import java.util.Set;
-import javax.validation.ConstraintViolation;
 
 /**
  * Whenever data is exchanged with an external entity (REST, database), there is a risk, that the entity

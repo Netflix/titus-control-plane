@@ -35,7 +35,7 @@ import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.PercentagePer
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.SelfManagedDisruptionBudgetPolicy;
 import com.netflix.titus.api.json.ObjectMappers;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
-import com.netflix.titus.common.model.validator.ValidationError;
+import com.netflix.titus.common.model.sanitizer.ValidationError;
 import com.netflix.titus.common.util.StringExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.common.model.validator;
+package com.netflix.titus.runtime.endpoint.admission;
 
 import java.util.Set;
 
+import com.netflix.titus.common.model.sanitizer.ValidationError;
 import reactor.core.publisher.Mono;
 
 /**
@@ -37,8 +38,5 @@ public interface EntityValidator<T> {
      */
     Mono<T> sanitize(T entity);
 
-    /**
-     * Returns the error type indicating how to treat validation errors.
-     */
     ValidationError.Type getErrorType();
 }

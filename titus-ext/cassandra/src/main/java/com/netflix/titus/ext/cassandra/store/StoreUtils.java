@@ -22,7 +22,6 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import javax.validation.ConstraintViolation;
 
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
@@ -36,7 +35,7 @@ import com.google.common.util.concurrent.Futures;
 import com.netflix.titus.api.agent.store.AgentStoreException;
 import com.netflix.titus.api.json.ObjectMappers;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
-import com.netflix.titus.common.model.validator.ValidationError;
+import com.netflix.titus.common.model.sanitizer.ValidationError;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;

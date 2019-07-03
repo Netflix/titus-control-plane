@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,43 +14,39 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.api.jobmanager.model.job.validator;
+package com.netflix.titus.runtime.endpoint.admission;
 
-import java.util.Collections;
 import java.util.Set;
-import javax.inject.Singleton;
 
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import com.netflix.titus.common.model.validator.EntityValidator;
-import com.netflix.titus.common.model.validator.ValidationError;
+import com.netflix.titus.common.model.sanitizer.ValidationError;
 import reactor.core.publisher.Mono;
 
 /**
- * This {@link EntityValidator} implementation always causes validation to pass.  It is used as a default implementation which
- * should be overridden.
+ * This validator never completes.  It is used to test validation in the face of unresponsive service calls.
  */
-@Singleton
-public class PassJobValidator implements EntityValidator<JobDescriptor> {
+class NeverJobValidator implements EntityValidator<JobDescriptor> {
     private final ValidationError.Type errorType;
 
-    public PassJobValidator() {
+    public NeverJobValidator() {
         this(ValidationError.Type.HARD);
     }
 
-    public PassJobValidator(ValidationError.Type errorType) {
+    NeverJobValidator(ValidationError.Type errorType) {
         this.errorType = errorType;
     }
 
     @Override
     public Mono<Set<ValidationError>> validate(JobDescriptor entity) {
-        return Mono.just(Collections.emptySet());
+        return Mono.never();
     }
 
     @Override
     public Mono<JobDescriptor> sanitize(JobDescriptor entity) {
-        return Mono.just(entity);
+        return Mono.never();
     }
 
+    @Override
     public ValidationError.Type getErrorType() {
         return errorType;
     }

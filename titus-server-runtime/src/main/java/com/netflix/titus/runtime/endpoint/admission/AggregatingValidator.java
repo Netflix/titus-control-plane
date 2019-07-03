@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.endpoint.validator;
+package com.netflix.titus.runtime.endpoint.admission;
 
 import java.time.Duration;
 import java.util.Arrays;
@@ -27,8 +27,7 @@ import javax.inject.Singleton;
 
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import com.netflix.titus.common.model.validator.EntityValidator;
-import com.netflix.titus.common.model.validator.ValidationError;
+import com.netflix.titus.common.model.sanitizer.ValidationError;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
@@ -97,7 +96,7 @@ public class AggregatingValidator implements EntityValidator<JobDescriptor> {
 
     @Override
     public ValidationError.Type getErrorType() {
-        return ValidationError.Type.from(configuration);
+        return configuration.toValidatorErrorType();
     }
 
     private Collection<Mono<Set<ValidationError>>> getMonos(

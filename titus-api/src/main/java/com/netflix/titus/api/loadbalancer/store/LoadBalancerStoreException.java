@@ -16,9 +16,9 @@
 
 package com.netflix.titus.api.loadbalancer.store;
 
-import com.netflix.titus.common.model.validator.ValidationError;
-
 import java.util.Set;
+
+import com.netflix.titus.common.model.sanitizer.ValidationError;
 
 public class LoadBalancerStoreException extends RuntimeException {
     public enum ErrorCode {

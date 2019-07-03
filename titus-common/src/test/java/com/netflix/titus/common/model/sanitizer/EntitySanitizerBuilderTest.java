@@ -18,9 +18,7 @@ package com.netflix.titus.common.model.sanitizer;
 
 import java.util.Optional;
 import java.util.Set;
-import javax.validation.ConstraintViolation;
 
-import com.netflix.titus.common.model.validator.ValidationError;
 import org.junit.Test;
 
 import static com.netflix.titus.common.util.ReflectionExt.isStandardDataType;

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.endpoint.validator;
+package com.netflix.titus.runtime.endpoint.admission;
 
 import java.util.Collections;
 import java.util.Map;

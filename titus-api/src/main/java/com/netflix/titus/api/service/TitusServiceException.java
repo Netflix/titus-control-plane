@@ -16,13 +16,12 @@
 
 package com.netflix.titus.api.service;
 
-import com.netflix.titus.common.model.validator.ValidationError;
-
 import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import javax.validation.ConstraintViolation;
+
+import com.netflix.titus.common.model.sanitizer.ValidationError;
 
 import static java.lang.String.format;
 

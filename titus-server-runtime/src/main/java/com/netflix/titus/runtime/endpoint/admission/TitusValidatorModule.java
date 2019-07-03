@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.endpoint.validator;
+package com.netflix.titus.runtime.endpoint.admission;
 
-import java.util.Arrays;
 import java.util.Collections;
 import javax.inject.Singleton;
 
@@ -25,8 +24,6 @@ import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import com.netflix.titus.api.jobmanager.model.job.validator.PassJobValidator;
-import com.netflix.titus.common.model.validator.EntityValidator;
 import com.netflix.titus.runtime.TitusEntitySanitizerModule;
 
 /**
@@ -54,7 +51,7 @@ public class TitusValidatorModule extends AbstractModule {
         return new AggregatingValidator(
                 configuration,
                 registry,
-                Arrays.asList(new PassJobValidator(), jobIamValidator),
+                Collections.singletonList(jobIamValidator),
                 Collections.singletonList(jobImageValidator));
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.api.jobmanager.model.job.validator;
+package com.netflix.titus.runtime.endpoint.admission;
 
 import java.time.Duration;
 import java.util.Arrays;
@@ -27,10 +27,7 @@ import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.service.TitusServiceException;
-import com.netflix.titus.common.model.validator.EntityValidator;
-import com.netflix.titus.common.model.validator.ValidationError;
-import com.netflix.titus.runtime.endpoint.validator.AggregatingValidator;
-import com.netflix.titus.runtime.endpoint.validator.TitusValidatorConfiguration;
+import com.netflix.titus.common.model.sanitizer.ValidationError;
 import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 import org.junit.Before;
 import org.junit.Test;
@@ -52,14 +49,15 @@ public class AggregatingValidatorTest {
     @Before
     public void setUp() {
         when(configuration.getTimeoutMs()).thenReturn(500);
+        when(configuration.getErrorType()).thenReturn("HARD");
     }
 
     // Hard validation tests
 
     @Test
     public void validateHardPassPass() {
-        EntityValidator pass0 = new PassJobValidator(ValidationError.Type.HARD);
-        EntityValidator pass1 = new PassJobValidator(ValidationError.Type.HARD);
+        EntityValidator pass0 = new PassJobValidator();
+        EntityValidator pass1 = new PassJobValidator();
         AggregatingValidator validator = new AggregatingValidator(
                 configuration,
                 registry,
@@ -94,7 +92,7 @@ public class AggregatingValidatorTest {
 
     @Test
     public void validateHardPassFail() {
-        EntityValidator pass = new PassJobValidator(ValidationError.Type.HARD);
+        EntityValidator pass = new PassJobValidator();
         EntityValidator fail = new FailJobValidator(ValidationError.Type.HARD);
         AggregatingValidator validator = new AggregatingValidator(
                 configuration,
@@ -114,7 +112,7 @@ public class AggregatingValidatorTest {
 
     @Test
     public void validateHardPassTimeout() {
-        EntityValidator pass = new PassJobValidator(ValidationError.Type.HARD);
+        EntityValidator pass = new PassJobValidator();
         EntityValidator never = new NeverJobValidator(ValidationError.Type.HARD);
         EntityValidator validator = new AggregatingValidator(
                 configuration,
@@ -134,9 +132,9 @@ public class AggregatingValidatorTest {
 
     @Test
     public void validateHardPassFailTimeout() {
-        EntityValidator pass = new PassJobValidator(ValidationError.Type.HARD);
-        EntityValidator fail = new FailJobValidator(ValidationError.Type.HARD);
-        EntityValidator never = new NeverJobValidator(ValidationError.Type.HARD);
+        EntityValidator pass = new PassJobValidator();
+        EntityValidator fail = new FailJobValidator();
+        EntityValidator never = new NeverJobValidator();
         EntityValidator parallelValidator = new AggregatingValidator(
                 configuration,
                 registry,
@@ -187,7 +185,7 @@ public class AggregatingValidatorTest {
 
     @Test
     public void validateSoftFailure() {
-        EntityValidator fail = new FailJobValidator(ValidationError.Type.SOFT);
+        EntityValidator fail = new FailJobValidator(ValidationError.Type.HARD);
         EntityValidator validator = new AggregatingValidator(
                 configuration,
                 registry,
@@ -206,7 +204,7 @@ public class AggregatingValidatorTest {
 
     @Test
     public void validateSoftPass() {
-        EntityValidator pass = new PassJobValidator(ValidationError.Type.SOFT);
+        EntityValidator pass = new PassJobValidator();
         EntityValidator validator = new AggregatingValidator(
                 configuration,
                 registry,
@@ -251,8 +249,8 @@ public class AggregatingValidatorTest {
 
     @Test
     public void validateHardSoftPass() {
-        EntityValidator pass0 = new PassJobValidator(ValidationError.Type.HARD);
-        EntityValidator pass1 = new PassJobValidator(ValidationError.Type.SOFT);
+        EntityValidator pass0 = new PassJobValidator();
+        EntityValidator pass1 = new PassJobValidator();
         EntityValidator validator = new AggregatingValidator(
                 configuration,
                 registry,
@@ -268,7 +266,7 @@ public class AggregatingValidatorTest {
     @Test
     public void validateHardSoftFail() {
         EntityValidator fail0 = new FailJobValidator(ValidationError.Type.HARD);
-        EntityValidator fail1 = new FailJobValidator(ValidationError.Type.SOFT);
+        EntityValidator fail1 = new FailJobValidator(ValidationError.Type.HARD);
         EntityValidator validator = new AggregatingValidator(
                 configuration,
                 registry,
@@ -287,7 +285,7 @@ public class AggregatingValidatorTest {
 
     @Test
     public void validateIsProtectedAgainstEmpty() {
-        EntityValidator<JobDescriptor> pass = new PassJobValidator(ValidationError.Type.HARD);
+        EntityValidator<JobDescriptor> pass = new PassJobValidator();
         EntityValidator<JobDescriptor> empty = new EmptyValidator();
         AggregatingValidator validator = new AggregatingValidator(
                 configuration,
@@ -387,7 +385,7 @@ public class AggregatingValidatorTest {
 
         @Override
         public ValidationError.Type getErrorType() {
-            return ValidationError.Type.HARD;
+            return ValidationError.Type.SOFT;
         }
     }
 }
