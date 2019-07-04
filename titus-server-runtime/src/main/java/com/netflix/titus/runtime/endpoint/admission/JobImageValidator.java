@@ -35,10 +35,10 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 
 /**
- * This {@link EntityValidator} implementation validates and sanitizes Job image information.
+ * This {@link AdmissionValidator} implementation validates and sanitizes Job image information.
  */
 @Singleton
-public class JobImageValidator implements EntityValidator<JobDescriptor> {
+public class JobImageValidator implements AdmissionValidator<JobDescriptor> {
     private static final Logger logger = LoggerFactory.getLogger(JobImageValidator.class);
 
     private final JobImageValidatorConfiguration configuration;
@@ -79,7 +79,7 @@ public class JobImageValidator implements EntityValidator<JobDescriptor> {
                                     new ValidationError(
                                             JobImageValidator.class.getSimpleName(),
                                             throwable.getMessage(),
-                                            configuration.toValidatorErrorType())
+                                            getErrorType())
                             ));
                 });
     }

@@ -22,12 +22,12 @@ import com.netflix.titus.common.model.sanitizer.ValidationError;
 import reactor.core.publisher.Mono;
 
 /**
- * A EntityValidator determines whether an object of the parameterized type is valid.  If it finds an object to be invalid it
+ * A AdmissionValidator determines whether an object of the parameterized type is valid.  If it finds an object to be invalid it
  * returns a non-empty set of {@link ValidationError}s.
  *
- * @param <T> The type of object this EntityValidator validates.
+ * @param <T> The type of object this AdmissionValidator validates.
  */
-public interface EntityValidator<T> {
+public interface AdmissionValidator<T> {
     Mono<Set<ValidationError>> validate(T entity);
 
     /**
@@ -38,5 +38,8 @@ public interface EntityValidator<T> {
      */
     Mono<T> sanitize(T entity);
 
+    /**
+     * Returns the error type this validator will produce in the {@link AdmissionValidator#validate(Object)} method.
+     */
     ValidationError.Type getErrorType();
 }

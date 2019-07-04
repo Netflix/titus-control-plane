@@ -25,7 +25,7 @@ import reactor.core.publisher.Mono;
 /**
  * This validator never completes.  It is used to test validation in the face of unresponsive service calls.
  */
-class NeverJobValidator implements EntityValidator<JobDescriptor> {
+class NeverJobValidator implements AdmissionValidator<JobDescriptor> {
     private final ValidationError.Type errorType;
 
     public NeverJobValidator() {

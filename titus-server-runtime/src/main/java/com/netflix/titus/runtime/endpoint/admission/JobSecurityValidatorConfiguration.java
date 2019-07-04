@@ -22,7 +22,7 @@ import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
 
 @Configuration(prefix = "titus.validate.job.security")
-public interface JobSecurityValidatorConfiguration extends EntityValidatorConfiguration {
+public interface JobSecurityValidatorConfiguration extends AdmissionValidatorConfiguration {
     @DefaultValue("true")
     boolean isIamValidatorEnabled();
 

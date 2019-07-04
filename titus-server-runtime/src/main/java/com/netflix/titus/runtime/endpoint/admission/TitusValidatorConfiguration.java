@@ -20,7 +20,7 @@ import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
 
 @Configuration(prefix = "titus.validate.job")
-public interface TitusValidatorConfiguration extends EntityValidatorConfiguration {
+public interface TitusValidatorConfiguration extends AdmissionValidatorConfiguration {
     @DefaultValue("5000")
     int getTimeoutMs();
 }

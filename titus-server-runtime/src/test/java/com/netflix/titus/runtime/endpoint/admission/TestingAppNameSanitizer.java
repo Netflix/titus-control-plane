@@ -25,10 +25,10 @@ import com.netflix.titus.common.model.sanitizer.ValidationError;
 import reactor.core.publisher.Mono;
 
 /**
- * This {@link EntityValidator} implementation ensures a job's appname matches a specific
+ * This {@link AdmissionValidator} implementation ensures a job's appname matches a specific
  * string. It is only used for testing purposes.
  */
-class TestingAppNameSanitizer implements EntityValidator<JobDescriptor> {
+class TestingAppNameSanitizer implements AdmissionValidator<JobDescriptor> {
     final static String desiredAppName = "desiredAppName";
     private static final String ERR_FIELD = "fail-field";
     private static final String ERR_DESCRIPTION =

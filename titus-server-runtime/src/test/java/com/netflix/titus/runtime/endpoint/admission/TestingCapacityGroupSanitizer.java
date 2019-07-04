@@ -25,10 +25,10 @@ import com.netflix.titus.common.model.sanitizer.ValidationError;
 import reactor.core.publisher.Mono;
 
 /**
- * This {@link EntityValidator} implementation ensures a job's capacity group matches a specific
+ * This {@link AdmissionValidator} implementation ensures a job's capacity group matches a specific
  * string. It is only used for testing purposes.
  */
-class TestingCapacityGroupSanitizer implements EntityValidator<JobDescriptor> {
+class TestingCapacityGroupSanitizer implements AdmissionValidator<JobDescriptor> {
     final static String desiredCapacityGroup = "desiredCapacityGroup";
     private static final String ERR_FIELD = "fail-field";
     private static final String ERR_DESCRIPTION =

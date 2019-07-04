@@ -27,9 +27,9 @@ import com.netflix.titus.common.model.sanitizer.ValidationError;
 import reactor.core.publisher.Mono;
 
 /**
- * This {@link EntityValidator} implementation always causes validation to fail.  It is used for testing purposes.
+ * This {@link AdmissionValidator} implementation always causes validation to fail.  It is used for testing purposes.
  */
-public class FailJobValidator implements EntityValidator<JobDescriptor> {
+public class FailJobValidator implements AdmissionValidator<JobDescriptor> {
     public static final String ERR_FIELD = "fail-field";
     public static final String ERR_DESCRIPTION = "The FailJobValidator should always fail with a unique error:";
 

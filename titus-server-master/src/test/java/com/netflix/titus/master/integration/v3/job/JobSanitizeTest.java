@@ -19,7 +19,7 @@ package com.netflix.titus.master.integration.v3.job;
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import com.netflix.titus.runtime.endpoint.admission.EntityValidator;
+import com.netflix.titus.runtime.endpoint.admission.AdmissionValidator;
 import com.netflix.titus.common.model.sanitizer.ValidationError;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobId;
@@ -166,7 +166,7 @@ public class JobSanitizeTest extends BaseIntegrationTest {
         assertTrue(resultJobDescriptor.getJobDescriptor().getContainer().getImage().getDigest().isEmpty());
     }
 
-    private TitusStackResource getTitusStackResource(EntityValidator<JobDescriptor> validator) {
+    private TitusStackResource getTitusStackResource(AdmissionValidator<JobDescriptor> validator) {
         SimulatedCloud simulatedCloud = SimulatedClouds.basicCloud(2);
 
         return new TitusStackResource(EmbeddedTitusCell.aTitusCell()

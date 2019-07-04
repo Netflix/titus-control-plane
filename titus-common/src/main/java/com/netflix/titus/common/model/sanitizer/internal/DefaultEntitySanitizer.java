@@ -37,9 +37,6 @@ import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.spel.support.ReflectiveMethodResolver;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 
-/**
- *
- */
 public class DefaultEntitySanitizer implements EntitySanitizer {
 
     private final Validator validator;

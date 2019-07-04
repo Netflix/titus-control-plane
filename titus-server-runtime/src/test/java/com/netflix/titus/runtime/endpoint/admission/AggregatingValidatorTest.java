@@ -56,8 +56,8 @@ public class AggregatingValidatorTest {
 
     @Test
     public void validateHardPassPass() {
-        EntityValidator pass0 = new PassJobValidator();
-        EntityValidator pass1 = new PassJobValidator();
+        AdmissionValidator pass0 = new PassJobValidator();
+        AdmissionValidator pass1 = new PassJobValidator();
         AggregatingValidator validator = new AggregatingValidator(
                 configuration,
                 registry,
@@ -72,8 +72,8 @@ public class AggregatingValidatorTest {
 
     @Test
     public void validateHardFailFail() {
-        EntityValidator fail0 = new FailJobValidator(ValidationError.Type.HARD);
-        EntityValidator fail1 = new FailJobValidator(ValidationError.Type.HARD);
+        AdmissionValidator fail0 = new FailJobValidator(ValidationError.Type.HARD);
+        AdmissionValidator fail1 = new FailJobValidator(ValidationError.Type.HARD);
         AggregatingValidator validator = new AggregatingValidator(
                 configuration,
                 registry,
@@ -92,8 +92,8 @@ public class AggregatingValidatorTest {
 
     @Test
     public void validateHardPassFail() {
-        EntityValidator pass = new PassJobValidator();
-        EntityValidator fail = new FailJobValidator(ValidationError.Type.HARD);
+        AdmissionValidator pass = new PassJobValidator();
+        AdmissionValidator fail = new FailJobValidator(ValidationError.Type.HARD);
         AggregatingValidator validator = new AggregatingValidator(
                 configuration,
                 registry,
@@ -112,9 +112,9 @@ public class AggregatingValidatorTest {
 
     @Test
     public void validateHardPassTimeout() {
-        EntityValidator pass = new PassJobValidator();
-        EntityValidator never = new NeverJobValidator(ValidationError.Type.HARD);
-        EntityValidator validator = new AggregatingValidator(
+        AdmissionValidator pass = new PassJobValidator();
+        AdmissionValidator never = new NeverJobValidator(ValidationError.Type.HARD);
+        AdmissionValidator validator = new AggregatingValidator(
                 configuration,
                 registry,
                 Arrays.asList(pass, never),
@@ -132,10 +132,10 @@ public class AggregatingValidatorTest {
 
     @Test
     public void validateHardPassFailTimeout() {
-        EntityValidator pass = new PassJobValidator();
-        EntityValidator fail = new FailJobValidator();
-        EntityValidator never = new NeverJobValidator();
-        EntityValidator parallelValidator = new AggregatingValidator(
+        AdmissionValidator pass = new PassJobValidator();
+        AdmissionValidator fail = new FailJobValidator();
+        AdmissionValidator never = new NeverJobValidator();
+        AdmissionValidator parallelValidator = new AggregatingValidator(
                 configuration,
                 registry,
                 Arrays.asList(pass, fail, never),
@@ -166,8 +166,8 @@ public class AggregatingValidatorTest {
 
     @Test
     public void validateSoftTimeout() {
-        EntityValidator never = new NeverJobValidator(ValidationError.Type.SOFT);
-        EntityValidator validator = new AggregatingValidator(
+        AdmissionValidator never = new NeverJobValidator(ValidationError.Type.SOFT);
+        AdmissionValidator validator = new AggregatingValidator(
                 configuration,
                 registry,
                 Arrays.asList(never),
@@ -185,8 +185,8 @@ public class AggregatingValidatorTest {
 
     @Test
     public void validateSoftFailure() {
-        EntityValidator fail = new FailJobValidator(ValidationError.Type.HARD);
-        EntityValidator validator = new AggregatingValidator(
+        AdmissionValidator fail = new FailJobValidator(ValidationError.Type.HARD);
+        AdmissionValidator validator = new AggregatingValidator(
                 configuration,
                 registry,
                 Arrays.asList(fail),
@@ -204,8 +204,8 @@ public class AggregatingValidatorTest {
 
     @Test
     public void validateSoftPass() {
-        EntityValidator pass = new PassJobValidator();
-        EntityValidator validator = new AggregatingValidator(
+        AdmissionValidator pass = new PassJobValidator();
+        AdmissionValidator validator = new AggregatingValidator(
                 configuration,
                 registry,
                 Arrays.asList(pass),
@@ -221,9 +221,9 @@ public class AggregatingValidatorTest {
 
     @Test
     public void validateHardSoftTimeout() {
-        EntityValidator<JobDescriptor> never0 = new NeverJobValidator(ValidationError.Type.HARD);
-        EntityValidator never1 = new NeverJobValidator(ValidationError.Type.SOFT);
-        EntityValidator validator = new AggregatingValidator(
+        AdmissionValidator<JobDescriptor> never0 = new NeverJobValidator(ValidationError.Type.HARD);
+        AdmissionValidator never1 = new NeverJobValidator(ValidationError.Type.SOFT);
+        AdmissionValidator validator = new AggregatingValidator(
                 configuration,
                 registry,
                 Arrays.asList(never0, never1),
@@ -249,9 +249,9 @@ public class AggregatingValidatorTest {
 
     @Test
     public void validateHardSoftPass() {
-        EntityValidator pass0 = new PassJobValidator();
-        EntityValidator pass1 = new PassJobValidator();
-        EntityValidator validator = new AggregatingValidator(
+        AdmissionValidator pass0 = new PassJobValidator();
+        AdmissionValidator pass1 = new PassJobValidator();
+        AdmissionValidator validator = new AggregatingValidator(
                 configuration,
                 registry,
                 Arrays.asList(pass0, pass1),
@@ -265,9 +265,9 @@ public class AggregatingValidatorTest {
 
     @Test
     public void validateHardSoftFail() {
-        EntityValidator fail0 = new FailJobValidator(ValidationError.Type.HARD);
-        EntityValidator fail1 = new FailJobValidator(ValidationError.Type.HARD);
-        EntityValidator validator = new AggregatingValidator(
+        AdmissionValidator fail0 = new FailJobValidator(ValidationError.Type.HARD);
+        AdmissionValidator fail1 = new FailJobValidator(ValidationError.Type.HARD);
+        AdmissionValidator validator = new AggregatingValidator(
                 configuration,
                 registry,
                 Arrays.asList(fail0, fail1),
@@ -285,8 +285,8 @@ public class AggregatingValidatorTest {
 
     @Test
     public void validateIsProtectedAgainstEmpty() {
-        EntityValidator<JobDescriptor> pass = new PassJobValidator();
-        EntityValidator<JobDescriptor> empty = new EmptyValidator();
+        AdmissionValidator<JobDescriptor> pass = new PassJobValidator();
+        AdmissionValidator<JobDescriptor> empty = new EmptyValidator();
         AggregatingValidator validator = new AggregatingValidator(
                 configuration,
                 registry,
@@ -305,8 +305,8 @@ public class AggregatingValidatorTest {
     public void sanitizePassPass() {
         final String initialAppName = "initialAppName";
         final String initialCapacityGroup = "initialCapacityGroup";
-        EntityValidator appNameSanitizer = new TestingAppNameSanitizer();
-        EntityValidator capacityGroupSanitizer = new TestingCapacityGroupSanitizer();
+        AdmissionValidator appNameSanitizer = new TestingAppNameSanitizer();
+        AdmissionValidator capacityGroupSanitizer = new TestingCapacityGroupSanitizer();
 
         JobDescriptor<?> jobDescriptor = JobDescriptorGenerator.batchJobDescriptors()
                 .map(jd -> jd.toBuilder()
@@ -333,8 +333,8 @@ public class AggregatingValidatorTest {
     public void sanitizePassFail() {
         final String initialAppName = "initialAppName";
         final String initialCapacityGroup = "initialCapacityGroup";
-        EntityValidator appNameSanitizer = new TestingAppNameSanitizer();
-        EntityValidator failSanitizer = new FailJobValidator();
+        AdmissionValidator appNameSanitizer = new TestingAppNameSanitizer();
+        AdmissionValidator failSanitizer = new FailJobValidator();
 
         JobDescriptor<?> jobDescriptor = JobDescriptorGenerator.batchJobDescriptors()
                 .map(jd -> jd.toBuilder()
@@ -372,7 +372,7 @@ public class AggregatingValidatorTest {
         assertThat(hardErrors).allMatch(error -> error.getType().equals(errorType));
     }
 
-    private static class EmptyValidator implements EntityValidator<JobDescriptor> {
+    private static class EmptyValidator implements AdmissionValidator<JobDescriptor> {
         @Override
         public Mono<Set<ValidationError>> validate(JobDescriptor entity) {
             return Mono.empty();
@@ -385,7 +385,7 @@ public class AggregatingValidatorTest {
 
         @Override
         public ValidationError.Type getErrorType() {
-            return ValidationError.Type.SOFT;
+            return ValidationError.Type.HARD;
         }
     }
 }

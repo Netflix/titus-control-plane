@@ -25,11 +25,11 @@ import com.netflix.titus.common.model.sanitizer.ValidationError;
 import reactor.core.publisher.Mono;
 
 /**
- * This {@link EntityValidator} implementation always causes validation to pass.  It is used as a default implementation which
+ * This {@link AdmissionValidator} implementation always causes validation to pass.  It is used as a default implementation which
  * should be overridden.
  */
 @Singleton
-public class PassJobValidator implements EntityValidator<JobDescriptor> {
+public class PassJobValidator implements AdmissionValidator<JobDescriptor> {
     private final ValidationError.Type errorType;
 
     public PassJobValidator() {

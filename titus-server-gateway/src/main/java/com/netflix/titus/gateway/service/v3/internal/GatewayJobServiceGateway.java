@@ -42,7 +42,7 @@ import com.netflix.titus.api.model.Pagination;
 import com.netflix.titus.api.model.PaginationUtil;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
-import com.netflix.titus.runtime.endpoint.admission.EntityValidator;
+import com.netflix.titus.runtime.endpoint.admission.AdmissionValidator;
 import com.netflix.titus.common.model.sanitizer.ValidationError;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExceptionExt;
@@ -104,7 +104,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
     private final LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo;
     private final TaskRelocationDataInjector taskRelocationDataInjector;
     private final NeedsMigrationQueryHandler needsMigrationQueryHandler;
-    private final EntityValidator<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> validator;
+    private final AdmissionValidator<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> validator;
     private final Clock clock;
 
     @Inject
@@ -121,7 +121,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
                                     @Named(SECURITY_GROUPS_REQUIRED_FEATURE) Predicate<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> securityGroupsRequiredPredicate,
                                     @Named(ENVIRONMENT_VARIABLE_NAMES_STRICT_VALIDATION_FEATURE) Predicate<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> environmentVariableNamesStrictValidationPredicate,
                                     JobAssertions jobAssertions,
-                                    EntityValidator<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> validator,
+                                    AdmissionValidator<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> validator,
                                     TitusRuntime titusRuntime) {
         super(new SanitizingJobServiceGateway(
                 new GrpcJobServiceGateway(

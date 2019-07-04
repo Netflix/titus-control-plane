@@ -34,10 +34,10 @@ import com.netflix.titus.common.model.sanitizer.ValidationError;
 import reactor.core.publisher.Mono;
 
 /**
- * This {@link EntityValidator} implementation validates and sanitizes Job IAM information.
+ * This {@link AdmissionValidator} implementation validates and sanitizes Job IAM information.
  */
 @Singleton
-public class JobIamValidator implements EntityValidator<JobDescriptor> {
+public class JobIamValidator implements AdmissionValidator<JobDescriptor> {
     private final JobSecurityValidatorConfiguration configuration;
     private final IamConnector iamConnector;
     private final ValidatorMetrics validatorMetrics;
@@ -88,7 +88,7 @@ public class JobIamValidator implements EntityValidator<JobDescriptor> {
                             new ValidationError(
                                     JobIamValidator.class.getSimpleName(),
                                     throwable.getMessage(),
-                                    configuration.toValidatorErrorType())));
+                                    getErrorType())));
                 });
     }
 
