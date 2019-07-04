@@ -19,6 +19,7 @@ package com.netflix.titus.master.integration.v3.job;
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import com.netflix.titus.runtime.endpoint.admission.AdmissionSanitizer;
 import com.netflix.titus.runtime.endpoint.admission.AdmissionValidator;
 import com.netflix.titus.common.model.sanitizer.ValidationError;
 import com.netflix.titus.grpc.protogen.Job;
@@ -29,8 +30,9 @@ import com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTem
 import com.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import com.netflix.titus.runtime.connector.registry.RegistryClient;
 import com.netflix.titus.runtime.connector.registry.TitusRegistryException;
-import com.netflix.titus.runtime.endpoint.admission.JobImageValidator;
+import com.netflix.titus.runtime.endpoint.admission.JobImageSanitizer;
 import com.netflix.titus.runtime.endpoint.admission.JobImageValidatorConfiguration;
+import com.netflix.titus.runtime.endpoint.admission.PassJobValidator;
 import com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCell;
 import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMasters;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
@@ -72,7 +74,8 @@ public class JobSanitizeTest extends BaseIntegrationTest {
     private final RegistryClient registryClient = mock(RegistryClient.class);
 
     private final TitusStackResource titusStackResource = getTitusStackResource(
-            new JobImageValidator(configuration, registryClient, new DefaultRegistry())
+            new PassJobValidator(),
+            new JobImageSanitizer(configuration, registryClient, new DefaultRegistry())
     );
     private final InstanceGroupsScenarioBuilder instanceGroupsScenarioBuilder = new InstanceGroupsScenarioBuilder(titusStackResource);
     private JobManagementServiceGrpc.JobManagementServiceBlockingStub client;
@@ -166,7 +169,8 @@ public class JobSanitizeTest extends BaseIntegrationTest {
         assertTrue(resultJobDescriptor.getJobDescriptor().getContainer().getImage().getDigest().isEmpty());
     }
 
-    private TitusStackResource getTitusStackResource(AdmissionValidator<JobDescriptor> validator) {
+    private TitusStackResource getTitusStackResource(AdmissionValidator<JobDescriptor> validator,
+                                                     AdmissionSanitizer<JobDescriptor> sanitizer) {
         SimulatedCloud simulatedCloud = SimulatedClouds.basicCloud(2);
 
         return new TitusStackResource(EmbeddedTitusCell.aTitusCell()
@@ -175,6 +179,7 @@ public class JobSanitizeTest extends BaseIntegrationTest {
                         .build())
                 .withDefaultGateway()
                 .withJobValidator(validator)
+                .withJobSanitizer(sanitizer)
                 .build());
     }
 }

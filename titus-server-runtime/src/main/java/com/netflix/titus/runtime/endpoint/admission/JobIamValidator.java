@@ -37,7 +37,7 @@ import reactor.core.publisher.Mono;
  * This {@link AdmissionValidator} implementation validates and sanitizes Job IAM information.
  */
 @Singleton
-public class JobIamValidator implements AdmissionValidator<JobDescriptor> {
+public class JobIamValidator implements AdmissionValidator<JobDescriptor>, AdmissionSanitizer<JobDescriptor> {
     private final JobSecurityValidatorConfiguration configuration;
     private final IamConnector iamConnector;
     private final ValidatorMetrics validatorMetrics;

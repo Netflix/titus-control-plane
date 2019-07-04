@@ -305,8 +305,8 @@ public class AggregatingValidatorTest {
     public void sanitizePassPass() {
         final String initialAppName = "initialAppName";
         final String initialCapacityGroup = "initialCapacityGroup";
-        AdmissionValidator appNameSanitizer = new TestingAppNameSanitizer();
-        AdmissionValidator capacityGroupSanitizer = new TestingCapacityGroupSanitizer();
+        AdmissionSanitizer<JobDescriptor> appNameSanitizer = new TestingAppNameSanitizer();
+        AdmissionSanitizer<JobDescriptor> capacityGroupSanitizer = new TestingCapacityGroupSanitizer();
 
         JobDescriptor<?> jobDescriptor = JobDescriptorGenerator.batchJobDescriptors()
                 .map(jd -> jd.toBuilder()
@@ -333,8 +333,8 @@ public class AggregatingValidatorTest {
     public void sanitizePassFail() {
         final String initialAppName = "initialAppName";
         final String initialCapacityGroup = "initialCapacityGroup";
-        AdmissionValidator appNameSanitizer = new TestingAppNameSanitizer();
-        AdmissionValidator failSanitizer = new FailJobValidator();
+        AdmissionSanitizer<JobDescriptor> appNameSanitizer = new TestingAppNameSanitizer();
+        AdmissionSanitizer<JobDescriptor> failSanitizer = new FailJobValidator();
 
         JobDescriptor<?> jobDescriptor = JobDescriptorGenerator.batchJobDescriptors()
                 .map(jd -> jd.toBuilder()
@@ -372,7 +372,7 @@ public class AggregatingValidatorTest {
         assertThat(hardErrors).allMatch(error -> error.getType().equals(errorType));
     }
 
-    private static class EmptyValidator implements AdmissionValidator<JobDescriptor> {
+    private static class EmptyValidator implements AdmissionValidator<JobDescriptor>, AdmissionSanitizer<JobDescriptor> {
         @Override
         public Mono<Set<ValidationError>> validate(JobDescriptor entity) {
             return Mono.empty();

@@ -23,7 +23,6 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.spectator.api.Registry;
-import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.runtime.TitusEntitySanitizerModule;
 
 /**
@@ -34,6 +33,8 @@ public class TitusAdmissionModule extends AbstractModule {
 
     @Override
     protected void configure() {
+        bind(AdmissionValidator.class).to(AggregatingValidator.class);
+        bind(AdmissionSanitizer.class).to(AggregatingValidator.class);
     }
 
     @Provides
@@ -44,14 +45,15 @@ public class TitusAdmissionModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public AdmissionValidator<JobDescriptor> getJobValidator(TitusValidatorConfiguration configuration,
-                                                             JobImageValidator jobImageValidator,
-                                                             JobIamValidator jobIamValidator,
-                                                             Registry registry) {
+    public AggregatingValidator getJobValidator(TitusValidatorConfiguration configuration,
+                                                JobImageSanitizer jobImageSanitizer,
+                                                JobIamValidator jobIamValidator,
+                                                Registry registry) {
         return new AggregatingValidator(
                 configuration,
                 registry,
                 Collections.singletonList(jobIamValidator),
-                Collections.singletonList(jobImageValidator));
+                Collections.singletonList(jobImageSanitizer)
+        );
     }
 }

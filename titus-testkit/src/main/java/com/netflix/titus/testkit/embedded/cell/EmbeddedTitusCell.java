@@ -19,6 +19,7 @@ package com.netflix.titus.testkit.embedded.cell;
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import com.netflix.titus.runtime.endpoint.admission.AdmissionSanitizer;
 import com.netflix.titus.runtime.endpoint.admission.AdmissionValidator;
 import com.netflix.titus.runtime.endpoint.admission.PassJobValidator;
 import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
@@ -81,6 +82,7 @@ public class EmbeddedTitusCell {
         private boolean enableREST;
         private boolean defaultGateway;
         private AdmissionValidator<JobDescriptor> validator = new PassJobValidator();
+        private AdmissionSanitizer<JobDescriptor> sanitizer = new PassJobValidator();
 
         public Builder withMaster(EmbeddedTitusMaster master) {
             this.master = master;
@@ -103,6 +105,11 @@ public class EmbeddedTitusCell {
             return this;
         }
 
+        public Builder withJobSanitizer(AdmissionSanitizer<JobDescriptor> sanitizer) {
+            this.sanitizer = sanitizer;
+            return this;
+        }
+
         public EmbeddedTitusCell build() {
             Preconditions.checkNotNull(master, "TitusMaster not set");
             Preconditions.checkState(gateway != null || defaultGateway, "TitusGateway not set, nor default gateway requested");
@@ -115,6 +122,7 @@ public class EmbeddedTitusCell {
                         .withStore(master.getJobStore())
                         .withEnableREST(enableREST)
                         .withJobValidator(validator)
+                        .withJobSanitizer(sanitizer)
                         .build();
             } else {
                 gateway = gateway.toBuilder()

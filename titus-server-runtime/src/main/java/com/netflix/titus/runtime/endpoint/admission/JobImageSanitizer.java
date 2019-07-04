@@ -17,8 +17,6 @@
 package com.netflix.titus.runtime.endpoint.admission;
 
 import java.time.Duration;
-import java.util.Collections;
-import java.util.Set;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -27,7 +25,6 @@ import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
-import com.netflix.titus.common.model.sanitizer.ValidationError;
 import com.netflix.titus.runtime.connector.registry.RegistryClient;
 import com.netflix.titus.runtime.connector.registry.TitusRegistryException;
 import org.slf4j.Logger;
@@ -38,50 +35,18 @@ import reactor.core.publisher.Mono;
  * This {@link AdmissionValidator} implementation validates and sanitizes Job image information.
  */
 @Singleton
-public class JobImageValidator implements AdmissionValidator<JobDescriptor> {
-    private static final Logger logger = LoggerFactory.getLogger(JobImageValidator.class);
+public class JobImageSanitizer implements AdmissionSanitizer<JobDescriptor> {
+    private static final Logger logger = LoggerFactory.getLogger(JobImageSanitizer.class);
 
     private final JobImageValidatorConfiguration configuration;
     private final RegistryClient registryClient;
     private final ValidatorMetrics validatorMetrics;
 
     @Inject
-    public JobImageValidator(JobImageValidatorConfiguration configuration, RegistryClient registryClient, Registry spectatorRegistry) {
+    public JobImageSanitizer(JobImageValidatorConfiguration configuration, RegistryClient registryClient, Registry spectatorRegistry) {
         this.configuration = configuration;
         this.registryClient = registryClient;
         this.validatorMetrics = new ValidatorMetrics(this.getClass().getSimpleName(), spectatorRegistry);
-    }
-
-    @Override
-    public Mono<Set<ValidationError>> validate(JobDescriptor jobDescriptor) {
-        if (isDisabled()) {
-            return Mono.just(Collections.emptySet());
-        }
-
-        Mono<Void> imageExistsMono;
-
-        Image image = jobDescriptor.getContainer().getImage();
-        if (hasDigest(image)) {
-            imageExistsMono = checkImageDigestExist(image);
-        } else {
-            imageExistsMono = checkImageTagExists(image);
-        }
-
-        return imageExistsMono
-                .then(Mono.just(Collections.<ValidationError>emptySet()))
-                .doOnSuccess(j -> validatorMetrics.incrementValidationSuccess(image.getName()))
-                .onErrorResume(throwable -> {
-                    if (isValidationOK(throwable, image)) {
-                        return Mono.just(Collections.emptySet());
-                    }
-                    return Mono.just(
-                            Collections.singleton(
-                                    new ValidationError(
-                                            JobImageValidator.class.getSimpleName(),
-                                            throwable.getMessage(),
-                                            getErrorType())
-                            ));
-                });
     }
 
     @Override
@@ -97,11 +62,6 @@ public class JobImageValidator implements AdmissionValidator<JobDescriptor> {
                 .onErrorReturn(throwable -> isValidationOK(throwable, image), withSanitizationSkipped(jobDescriptor));
     }
 
-    @Override
-    public ValidationError.Type getErrorType() {
-        return configuration.toValidatorErrorType();
-    }
-
     private Mono<JobDescriptor> sanitizeImage(JobDescriptor jobDescriptor) {
         // Check if a digest is provided
         // If so, check if it exists
@@ -113,10 +73,6 @@ public class JobImageValidator implements AdmissionValidator<JobDescriptor> {
 
         // If not, resolve to digest and return error if not found
         return addMissingImageDigest(jobDescriptor);
-    }
-
-    private Mono<Void> checkImageTagExists(Image image) {
-        return registryClient.getImageDigest(image.getName(), image.getTag()).then();
     }
 
     private Mono<Void> checkImageDigestExist(Image image) {
