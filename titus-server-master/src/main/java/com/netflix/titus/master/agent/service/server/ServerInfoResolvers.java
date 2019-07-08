@@ -26,7 +26,6 @@ import com.netflix.titus.master.agent.ServerInfo;
 import com.netflix.titus.master.agent.service.server.internal.AwsServerInfoResolver;
 import com.netflix.titus.master.agent.service.server.internal.PropertyServerInfoResolver;
 import com.netflix.titus.master.agent.service.server.internal.ServerInfoResolverAdapter;
-import io.reactivex.netty.client.RxClient;
 
 /**
  * A collection of predefined {@link ServerInfoResolver} implementations.
@@ -76,7 +75,7 @@ public final class ServerInfoResolvers {
     }
 
     /**
-     * {@link ServerInfoResolver} implementation that converts the original {@link RxClient.ServerInfo} values with
+     * {@link ServerInfoResolver} implementation that converts the original {@link ServerInfo} values with
      * the user provided function. It assumes the server data for a particular type never change, so the result is
      * cached permanently.
      */

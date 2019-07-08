@@ -28,9 +28,6 @@ dependencies {
     compile "org.apache.mesos:mesos:${mesosVersion}"
     compile "io.kubernetes:client-java:4.0.0"
     compile "com.github.spullara.cli-parser:cli-parser:${cliParserVersion}"
-    compile("io.reactivex:rxnetty:${rxnettyVersion}") {
-        exclude module: 'rxjava-core' // netty was pinned to rxjava-core 0.19.1
-    }
     compile "com.google.inject:guice:${guiceVersion}"
     compile "io.swagger:swagger-jaxrs:${swaggerVersion}"
     compile "org.webjars:swagger-ui:${swaggerUiVersion}"

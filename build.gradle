@@ -56,7 +56,6 @@ subprojects {
         guavaVersion = '20.+'
         servletVersion = '3.1.0'
         rxJava = '1.+'
-        rxnettyVersion = '0.4.+'
         hdrhistogramVersion = '2.1.+'
         hsqldbVersion = '2.4.+'
         apacheCommonsCliVersion = '1.3.+'

@@ -1,9 +1,6 @@
 dependencies {
     compile "com.google.guava:guava:${guavaVersion}"
     compile "io.reactivex:rxjava:${rxJava}"
-    compile("io.reactivex:rxnetty:${rxnettyVersion}") {
-        exclude module: 'rxjava-core' // netty was pinned to rxjava-core 0.19.1
-    }
     compile "org.hdrhistogram:HdrHistogram:${hdrhistogramVersion}"
 
     // Spring
