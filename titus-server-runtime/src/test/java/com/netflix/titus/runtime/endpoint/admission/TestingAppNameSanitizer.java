@@ -28,7 +28,7 @@ import reactor.core.publisher.Mono;
  * This {@link AdmissionValidator} implementation ensures a job's appname matches a specific
  * string. It is only used for testing purposes.
  */
-class TestingAppNameSanitizer implements AdmissionValidator<JobDescriptor> {
+class TestingAppNameSanitizer implements AdmissionValidator<JobDescriptor>, AdmissionSanitizer<JobDescriptor> {
     final static String desiredAppName = "desiredAppName";
     private static final String ERR_FIELD = "fail-field";
     private static final String ERR_DESCRIPTION =

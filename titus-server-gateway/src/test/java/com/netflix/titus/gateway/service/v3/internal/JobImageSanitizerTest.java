@@ -23,7 +23,7 @@ import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.common.model.sanitizer.ValidationError;
 import com.netflix.titus.runtime.connector.registry.RegistryClient;
 import com.netflix.titus.runtime.connector.registry.TitusRegistryException;
-import com.netflix.titus.runtime.endpoint.admission.JobImageValidator;
+import com.netflix.titus.runtime.endpoint.admission.JobImageSanitizer;
 import com.netflix.titus.runtime.endpoint.admission.JobImageValidatorConfiguration;
 import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 import org.junit.Before;
@@ -37,7 +37,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class JobImageValidatorTest {
+public class JobImageSanitizerTest {
 
     private static final String repo = "myRepo";
     private static final String tag = "myTag";
@@ -46,7 +46,7 @@ public class JobImageValidatorTest {
 
     private final JobImageValidatorConfiguration configuration = mock(JobImageValidatorConfiguration.class);
     private final RegistryClient registryClient = mock(RegistryClient.class);
-    private JobImageValidator validator;
+    private JobImageSanitizer sanitizer;
 
     private final JobDescriptor<?> jobDescriptorWithDigest = JobDescriptorGenerator.batchJobDescriptors()
             .map(jd -> jd.but(d -> d.getContainer().toBuilder()
@@ -72,14 +72,14 @@ public class JobImageValidatorTest {
         when(configuration.getJobImageValidationTimeoutMs()).thenReturn(1000L);
         when(configuration.getErrorType()).thenReturn(ValidationError.Type.HARD.name());
         when(registryClient.getImageDigest(anyString(), anyString())).thenReturn(Mono.just(digest));
-        validator = new JobImageValidator(configuration, registryClient, new DefaultRegistry());
+        sanitizer = new JobImageSanitizer(configuration, registryClient, new DefaultRegistry());
     }
 
     @Test
     public void testJobWithTagResolution() {
         when(registryClient.getImageDigest(anyString(), anyString())).thenReturn(Mono.just(digest));
 
-        StepVerifier.create(validator.sanitize(jobDescriptorWithTag))
+        StepVerifier.create(sanitizer.sanitize(jobDescriptorWithTag))
                 .assertNext(sanitizedJobDescriptor ->
                         assertThat(sanitizedJobDescriptor.getContainer().getImage().getDigest().equals(digest)).isTrue())
                 .verifyComplete();
@@ -90,7 +90,7 @@ public class JobImageValidatorTest {
         when(registryClient.getImageDigest(anyString(), anyString()))
                 .thenReturn(Mono.error(TitusRegistryException.imageNotFound(repo, tag)));
 
-        StepVerifier.create(validator.sanitize(jobDescriptorWithTag))
+        StepVerifier.create(sanitizer.sanitize(jobDescriptorWithTag))
                 .expectErrorSatisfies(throwable -> {
                     assertThat(throwable).isInstanceOf(TitusRegistryException.class);
                     assertThat(((TitusRegistryException) throwable).getErrorCode()).isEqualByComparingTo(TitusRegistryException.ErrorCode.IMAGE_NOT_FOUND);
@@ -106,7 +106,7 @@ public class JobImageValidatorTest {
         when(registryClient.getImageDigest(anyString(), anyString()))
                 .thenReturn(Mono.error(TitusRegistryException.internalError(repo, tag, HttpStatus.INTERNAL_SERVER_ERROR)));
 
-        StepVerifier.create(validator.sanitize(jobDescriptorWithTag))
+        StepVerifier.create(sanitizer.sanitize(jobDescriptorWithTag))
                 .assertNext(jd -> {
                     assertThat(jd.getContainer().getImage().getDigest()).isNullOrEmpty();
                     assertThat(jd.getContainer().getImage()).isEqualTo(jobDescriptorWithTag.getContainer().getImage());
@@ -120,45 +120,10 @@ public class JobImageValidatorTest {
     public void testJobWithDigestExists() {
         when(registryClient.getImageDigest(anyString(), anyString())).thenReturn(Mono.just(digest));
 
-        StepVerifier.create(validator.sanitize(jobDescriptorWithDigest))
+        StepVerifier.create(sanitizer.sanitize(jobDescriptorWithDigest))
                 .assertNext(sanitizedJobDescriptor -> {
                     assertThat(sanitizedJobDescriptor.getContainer().getImage().getDigest().equals(digest)).isTrue();
                     assertThat(sanitizedJobDescriptor.getContainer().getImage().getTag()).isEqualTo("");
-                })
-                .verifyComplete();
-    }
-
-    @Test
-    public void testValidateImageWithTag() {
-        when(registryClient.getImageDigest(anyString(), anyString())).thenReturn(Mono.just(digest));
-
-        StepVerifier.create(validator.validate(jobDescriptorWithTag))
-                .assertNext(validationErrors -> assertThat(validationErrors.isEmpty()).isTrue())
-                .verifyComplete();
-    }
-
-    @Test
-    public void testValidateImageWithDigest() {
-        when(registryClient.getImageDigest(anyString(), anyString())).thenReturn(Mono.just(digest));
-
-        StepVerifier.create(validator.validate(jobDescriptorWithDigest))
-                .assertNext(validationErrors -> assertThat(validationErrors.isEmpty()).isTrue())
-                .verifyComplete();
-    }
-
-    @Test
-    public void testValidateMissingImage() {
-        when(registryClient.getImageDigest(anyString(), anyString()))
-                .thenReturn(Mono.error(TitusRegistryException.imageNotFound(repo, tag)));
-
-        StepVerifier.create(validator.validate(jobDescriptorWithTag))
-                .assertNext(validationErrors -> {
-                    assertThat(validationErrors.size()).isEqualTo(1);
-                    assertThat(validationErrors)
-                            .allMatch(validationError ->
-                                    validationError.getField().equals(JobImageValidator.class.getSimpleName()))
-                            .allMatch(validationError ->
-                                    validationError.getDescription().endsWith(errorDescription));
                 })
                 .verifyComplete();
     }

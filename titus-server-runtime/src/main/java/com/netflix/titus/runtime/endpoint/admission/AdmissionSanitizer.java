@@ -16,22 +16,14 @@
 
 package com.netflix.titus.runtime.endpoint.admission;
 
-import java.util.Set;
-
-import com.netflix.titus.common.model.sanitizer.ValidationError;
 import reactor.core.publisher.Mono;
 
-/**
- * An <tt>AdmissionValidator</tt> determines whether an object of the parameterized type is valid.  If it finds an
- * object to be invalid it returns a non-empty set of {@link ValidationError}s.
- *
- * @param <T> The type of object this AdmissionValidator validates.
- */
-public interface AdmissionValidator<T> {
-    Mono<Set<ValidationError>> validate(T entity);
-
+public interface AdmissionSanitizer<T> {
     /**
-     * Returns the error type this validator will produce in the {@link AdmissionValidator#validate(Object)} method.
+     * Async method to clean and add missing data elements to an entity
+     *
+     * @return Returns a Mono/Single that emits a cleaned up version. If no changes were made, the emitted item will
+     * share a reference with the source parameter.
      */
-    ValidationError.Type getErrorType();
+    Mono<T> sanitize(T entity);
 }

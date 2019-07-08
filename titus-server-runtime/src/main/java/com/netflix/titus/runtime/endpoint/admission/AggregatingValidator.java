@@ -35,11 +35,11 @@ import reactor.core.scheduler.Schedulers;
  * An AggregatingValidator executes and aggregates the results of multiple {@link AdmissionValidator}s.
  */
 @Singleton
-public class AggregatingValidator implements AdmissionValidator<JobDescriptor> {
+public class AggregatingValidator implements AdmissionValidator<JobDescriptor>, AdmissionSanitizer<JobDescriptor> {
     private final TitusValidatorConfiguration configuration;
     private final Duration timeout;
     private final Collection<AdmissionValidator<JobDescriptor>> validators;
-    private final Collection<AdmissionValidator<JobDescriptor>> sanitizers;
+    private final Collection<AdmissionSanitizer<JobDescriptor>> sanitizers;
     private final ValidatorMetrics validatorMetrics;
 
     /**
@@ -57,7 +57,7 @@ public class AggregatingValidator implements AdmissionValidator<JobDescriptor> {
             TitusValidatorConfiguration configuration,
             Registry registry,
             Collection<AdmissionValidator<JobDescriptor>> validators,
-            Collection<AdmissionValidator<JobDescriptor>> sanitizers) {
+            Collection<AdmissionSanitizer<JobDescriptor>> sanitizers) {
         this.configuration = configuration;
         this.timeout = Duration.ofMillis(this.configuration.getTimeoutMs());
         this.validators = validators;
@@ -88,7 +88,7 @@ public class AggregatingValidator implements AdmissionValidator<JobDescriptor> {
     @Override
     public Mono<JobDescriptor> sanitize(JobDescriptor entity) {
         Mono<JobDescriptor> sanitizedJobDescriptorMono = Mono.just(entity);
-        for (AdmissionValidator<JobDescriptor> sanitizer : sanitizers) {
+        for (AdmissionSanitizer<JobDescriptor> sanitizer : sanitizers) {
             sanitizedJobDescriptorMono = sanitizedJobDescriptorMono.flatMap(sanitizer::sanitize);
         }
         return sanitizedJobDescriptorMono.timeout(timeout);

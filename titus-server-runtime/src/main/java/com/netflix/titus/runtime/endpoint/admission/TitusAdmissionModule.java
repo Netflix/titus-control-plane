@@ -21,19 +21,24 @@ import javax.inject.Singleton;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
+import com.google.inject.TypeLiteral;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.runtime.TitusEntitySanitizerModule;
 
 /**
- * This module provides dependencies for Titus validation ({@link AdmissionValidator}) which is beyond syntactic
- * validation.  See {@link TitusEntitySanitizerModule} for syntactic sanitization and validation.
+ * This module provides dependencies for Titus validation ({@link AdmissionValidator} and {@link AdmissionSanitizer})
+ * which is beyond syntactic validation. See {@link TitusEntitySanitizerModule} for syntactic sanitization and validation.
  */
 public class TitusAdmissionModule extends AbstractModule {
 
     @Override
     protected void configure() {
+        bind(new TypeLiteral<AdmissionValidator<JobDescriptor>>() {
+        }).to(AggregatingValidator.class);
+        bind(new TypeLiteral<AdmissionSanitizer<JobDescriptor>>() {
+        }).to(AggregatingValidator.class);
     }
 
     @Provides
@@ -44,14 +49,15 @@ public class TitusAdmissionModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public AdmissionValidator<JobDescriptor> getJobValidator(TitusValidatorConfiguration configuration,
-                                                             JobImageValidator jobImageValidator,
-                                                             JobIamValidator jobIamValidator,
-                                                             Registry registry) {
+    public AggregatingValidator getJobValidator(TitusValidatorConfiguration configuration,
+                                                JobImageSanitizer jobImageSanitizer,
+                                                JobIamValidator jobIamValidator,
+                                                Registry registry) {
         return new AggregatingValidator(
                 configuration,
                 registry,
                 Collections.singletonList(jobIamValidator),
-                Collections.singletonList(jobImageValidator));
+                Collections.singletonList(jobImageSanitizer)
+        );
     }
 }

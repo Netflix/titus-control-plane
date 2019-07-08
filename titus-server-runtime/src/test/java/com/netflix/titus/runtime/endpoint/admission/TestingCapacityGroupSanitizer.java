@@ -28,7 +28,7 @@ import reactor.core.publisher.Mono;
  * This {@link AdmissionValidator} implementation ensures a job's capacity group matches a specific
  * string. It is only used for testing purposes.
  */
-class TestingCapacityGroupSanitizer implements AdmissionValidator<JobDescriptor> {
+class TestingCapacityGroupSanitizer implements AdmissionValidator<JobDescriptor>, AdmissionSanitizer<JobDescriptor> {
     final static String desiredCapacityGroup = "desiredCapacityGroup";
     private static final String ERR_FIELD = "fail-field";
     private static final String ERR_DESCRIPTION =

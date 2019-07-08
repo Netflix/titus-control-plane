@@ -42,7 +42,6 @@ import com.netflix.titus.api.model.Pagination;
 import com.netflix.titus.api.model.PaginationUtil;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
-import com.netflix.titus.runtime.endpoint.admission.AdmissionValidator;
 import com.netflix.titus.common.model.sanitizer.ValidationError;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExceptionExt;
@@ -60,6 +59,8 @@ import com.netflix.titus.grpc.protogen.TaskId;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.runtime.connector.GrpcRequestConfiguration;
+import com.netflix.titus.runtime.endpoint.admission.AdmissionSanitizer;
+import com.netflix.titus.runtime.endpoint.admission.AdmissionValidator;
 import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
 import com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
@@ -105,6 +106,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
     private final TaskRelocationDataInjector taskRelocationDataInjector;
     private final NeedsMigrationQueryHandler needsMigrationQueryHandler;
     private final AdmissionValidator<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> validator;
+    private final AdmissionSanitizer<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> sanitizer;
     private final Clock clock;
 
     @Inject
@@ -122,6 +124,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
                                     @Named(ENVIRONMENT_VARIABLE_NAMES_STRICT_VALIDATION_FEATURE) Predicate<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> environmentVariableNamesStrictValidationPredicate,
                                     JobAssertions jobAssertions,
                                     AdmissionValidator<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> validator,
+                                    AdmissionSanitizer<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> sanitizer,
                                     TitusRuntime titusRuntime) {
         super(new SanitizingJobServiceGateway(
                 new GrpcJobServiceGateway(
@@ -140,6 +143,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
         this.taskRelocationDataInjector = taskRelocationDataInjector;
         this.needsMigrationQueryHandler = needsMigrationQueryHandler;
         this.validator = validator;
+        this.sanitizer = sanitizer;
         this.clock = titusRuntime.getClock();
     }
 
@@ -153,7 +157,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
         }
 
         Observable<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> sanitizedCoreJobDescriptorObs =
-                ReactorExt.toObservable(validator.sanitize(coreJobDescriptor))
+                ReactorExt.toObservable(sanitizer.sanitize(coreJobDescriptor))
                         .onErrorResumeNext(throwable -> Observable.error(TitusServiceException.invalidArgument(throwable)))
                         .flatMap(sanitizedCoreJobDescriptor -> ReactorExt.toObservable(validator.validate(sanitizedCoreJobDescriptor))
                                 .flatMap(errors -> {

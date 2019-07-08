@@ -29,7 +29,7 @@ import reactor.core.publisher.Mono;
  * should be overridden.
  */
 @Singleton
-public class PassJobValidator implements AdmissionValidator<JobDescriptor> {
+public class PassJobValidator implements AdmissionValidator<JobDescriptor>, AdmissionSanitizer<JobDescriptor> {
     private final ValidationError.Type errorType;
 
     public PassJobValidator() {

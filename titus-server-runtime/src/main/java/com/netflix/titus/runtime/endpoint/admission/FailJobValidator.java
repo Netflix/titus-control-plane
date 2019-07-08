@@ -29,7 +29,7 @@ import reactor.core.publisher.Mono;
 /**
  * This {@link AdmissionValidator} implementation always causes validation to fail.  It is used for testing purposes.
  */
-public class FailJobValidator implements AdmissionValidator<JobDescriptor> {
+public class FailJobValidator implements AdmissionValidator<JobDescriptor>, AdmissionSanitizer<JobDescriptor> {
     public static final String ERR_FIELD = "fail-field";
     public static final String ERR_DESCRIPTION = "The FailJobValidator should always fail with a unique error:";
 
