@@ -22,8 +22,8 @@ public interface AdmissionSanitizer<T> {
     /**
      * Async method to clean and add missing data elements to an entity
      *
-     * @return Returns a Mono/Single that emits an a cleaned up version. If no changes were made,
-     * the emitted item will share reference with the source parameter.
+     * @return Returns a Mono/Single that emits a cleaned up version. If no changes were made, the emitted item will
+     * share a reference with the source parameter.
      */
     Mono<T> sanitize(T entity);
 }
