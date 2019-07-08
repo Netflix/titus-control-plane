@@ -21,20 +21,24 @@ import javax.inject.Singleton;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
+import com.google.inject.TypeLiteral;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.spectator.api.Registry;
+import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.runtime.TitusEntitySanitizerModule;
 
 /**
- * This module provides dependencies for Titus validation ({@link AdmissionValidator}) which is beyond syntactic
- * validation.  See {@link TitusEntitySanitizerModule} for syntactic sanitization and validation.
+ * This module provides dependencies for Titus validation ({@link AdmissionValidator} and {@link AdmissionSanitizer})
+ * which is beyond syntactic validation. See {@link TitusEntitySanitizerModule} for syntactic sanitization and validation.
  */
 public class TitusAdmissionModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        bind(AdmissionValidator.class).to(AggregatingValidator.class);
-        bind(AdmissionSanitizer.class).to(AggregatingValidator.class);
+        bind(new TypeLiteral<AdmissionValidator<JobDescriptor>>() {
+        }).to(AggregatingValidator.class);
+        bind(new TypeLiteral<AdmissionSanitizer<JobDescriptor>>() {
+        }).to(AggregatingValidator.class);
     }
 
     @Provides
