@@ -22,8 +22,8 @@ import com.netflix.titus.common.model.sanitizer.ValidationError;
 import reactor.core.publisher.Mono;
 
 /**
- * A AdmissionValidator determines whether an object of the parameterized type is valid.  If it finds an object to be invalid it
- * returns a non-empty set of {@link ValidationError}s.
+ * An <tt>AdmissionValidator</tt> determines whether an object of the parameterized type is valid.  If it finds an
+ * object to be invalid it returns a non-empty set of {@link ValidationError}s.
  *
  * @param <T> The type of object this AdmissionValidator validates.
  */
