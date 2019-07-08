@@ -14,11 +14,16 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.common.model.validator;
+package com.netflix.titus.runtime.endpoint.admission;
 
 import com.netflix.archaius.api.annotations.DefaultValue;
+import com.netflix.titus.common.model.sanitizer.ValidationError;
 
-public interface EntityValidatorConfiguration {
+public interface AdmissionValidatorConfiguration {
     @DefaultValue("SOFT")
     String getErrorType();
+
+    default ValidationError.Type toValidatorErrorType() {
+        return ValidationError.Type.valueOf(getErrorType().trim().toUpperCase());
+    }
 }

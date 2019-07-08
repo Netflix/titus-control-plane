@@ -16,7 +16,7 @@
  *
  */
 
-package com.netflix.titus.runtime.endpoint.validator;
+package com.netflix.titus.runtime.endpoint.admission;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;

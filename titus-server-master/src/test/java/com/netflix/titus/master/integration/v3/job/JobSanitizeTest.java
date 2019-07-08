@@ -19,8 +19,8 @@ package com.netflix.titus.master.integration.v3.job;
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import com.netflix.titus.common.model.validator.EntityValidator;
-import com.netflix.titus.common.model.validator.ValidationError;
+import com.netflix.titus.runtime.endpoint.admission.AdmissionValidator;
+import com.netflix.titus.common.model.sanitizer.ValidationError;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
@@ -29,8 +29,8 @@ import com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTem
 import com.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import com.netflix.titus.runtime.connector.registry.RegistryClient;
 import com.netflix.titus.runtime.connector.registry.TitusRegistryException;
-import com.netflix.titus.runtime.endpoint.validator.JobImageValidator;
-import com.netflix.titus.runtime.endpoint.validator.JobImageValidatorConfiguration;
+import com.netflix.titus.runtime.endpoint.admission.JobImageValidator;
+import com.netflix.titus.runtime.endpoint.admission.JobImageValidatorConfiguration;
 import com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCell;
 import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMasters;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
@@ -166,7 +166,7 @@ public class JobSanitizeTest extends BaseIntegrationTest {
         assertTrue(resultJobDescriptor.getJobDescriptor().getContainer().getImage().getDigest().isEmpty());
     }
 
-    private TitusStackResource getTitusStackResource(EntityValidator<JobDescriptor> validator) {
+    private TitusStackResource getTitusStackResource(AdmissionValidator<JobDescriptor> validator) {
         SimulatedCloud simulatedCloud = SimulatedClouds.basicCloud(2);
 
         return new TitusStackResource(EmbeddedTitusCell.aTitusCell()

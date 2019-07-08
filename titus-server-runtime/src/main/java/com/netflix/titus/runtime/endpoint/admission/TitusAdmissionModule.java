@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.endpoint.validator;
+package com.netflix.titus.runtime.endpoint.admission;
 
-import java.util.Arrays;
 import java.util.Collections;
 import javax.inject.Singleton;
 
@@ -25,15 +24,13 @@ import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import com.netflix.titus.api.jobmanager.model.job.validator.PassJobValidator;
-import com.netflix.titus.common.model.validator.EntityValidator;
 import com.netflix.titus.runtime.TitusEntitySanitizerModule;
 
 /**
- * This module provides dependencies for Titus validation ({@link EntityValidator}) which is beyond syntactic
+ * This module provides dependencies for Titus validation ({@link AdmissionValidator}) which is beyond syntactic
  * validation.  See {@link TitusEntitySanitizerModule} for syntactic sanitization and validation.
  */
-public class TitusValidatorModule extends AbstractModule {
+public class TitusAdmissionModule extends AbstractModule {
 
     @Override
     protected void configure() {
@@ -47,14 +44,14 @@ public class TitusValidatorModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public EntityValidator<JobDescriptor> getJobValidator(TitusValidatorConfiguration configuration,
-                                                          JobImageValidator jobImageValidator,
-                                                          JobIamValidator jobIamValidator,
-                                                          Registry registry) {
+    public AdmissionValidator<JobDescriptor> getJobValidator(TitusValidatorConfiguration configuration,
+                                                             JobImageValidator jobImageValidator,
+                                                             JobIamValidator jobIamValidator,
+                                                             Registry registry) {
         return new AggregatingValidator(
                 configuration,
                 registry,
-                Arrays.asList(new PassJobValidator(), jobIamValidator),
+                Collections.singletonList(jobIamValidator),
                 Collections.singletonList(jobImageValidator));
     }
 }

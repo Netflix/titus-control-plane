@@ -21,15 +21,15 @@ import java.util.List;
 
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import com.netflix.titus.api.jobmanager.model.job.validator.FailJobValidator;
-import com.netflix.titus.api.jobmanager.model.job.validator.PassJobValidator;
-import com.netflix.titus.common.model.validator.EntityValidator;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.master.integration.BaseIntegrationTest;
 import com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates;
 import com.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
-import com.netflix.titus.runtime.endpoint.validator.AggregatingValidator;
-import com.netflix.titus.runtime.endpoint.validator.TitusValidatorConfiguration;
+import com.netflix.titus.runtime.endpoint.admission.AdmissionValidator;
+import com.netflix.titus.runtime.endpoint.admission.AggregatingValidator;
+import com.netflix.titus.runtime.endpoint.admission.FailJobValidator;
+import com.netflix.titus.runtime.endpoint.admission.PassJobValidator;
+import com.netflix.titus.runtime.endpoint.admission.TitusValidatorConfiguration;
 import com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCell;
 import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMasters;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
@@ -52,16 +52,16 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * This test suite proves that {@link EntityValidator <JobDescriptor>} failures behave as expected.  Outside of this test suite
- * the default EntityValidator is the {@link PassJobValidator}.  All
+ * This test suite proves that {@link AdmissionValidator <JobDescriptor>} failures behave as expected.  Outside of this test suite
+ * the default AdmissionValidator is the {@link PassJobValidator}.  All
  * other test suites prove that it does not invalidate jobs inappropriately.
  */
 public class JobValidatorNegativeTest extends BaseIntegrationTest {
     private static final Logger logger = LoggerFactory.getLogger(JobValidatorNegativeTest.class);
 
     private static final TitusValidatorConfiguration configuration = mock(TitusValidatorConfiguration.class);
-    private static final List<EntityValidator<JobDescriptor>> validators = Collections.singletonList(new FailJobValidator());
-    private static final List<EntityValidator<JobDescriptor>> sanitizers = Collections.emptyList();
+    private static final List<AdmissionValidator<JobDescriptor>> validators = Collections.singletonList(new FailJobValidator());
+    private static final List<AdmissionValidator<JobDescriptor>> sanitizers = Collections.emptyList();
 
     private static TitusStackResource titusStackResource;
     private final InstanceGroupsScenarioBuilder instanceGroupsScenarioBuilder = new InstanceGroupsScenarioBuilder(titusStackResource);
@@ -102,7 +102,7 @@ public class JobValidatorNegativeTest extends BaseIntegrationTest {
         }
     }
 
-    private static TitusStackResource getTitusStackResource(EntityValidator<JobDescriptor> validator) {
+    private static TitusStackResource getTitusStackResource(AdmissionValidator<JobDescriptor> validator) {
         SimulatedCloud simulatedCloud = SimulatedClouds.basicCloud(2);
 
         return new TitusStackResource(EmbeddedTitusCell.aTitusCell()

@@ -58,7 +58,7 @@ import com.netflix.titus.common.framework.reconciler.internal.DefaultReconciliat
 import com.netflix.titus.common.framework.reconciler.internal.InternalReconciliationEngine;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizerUtil;
-import com.netflix.titus.common.model.validator.ValidationError;
+import com.netflix.titus.common.model.sanitizer.ValidationError;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,43 +14,49 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.api.jobmanager.model.job.validator;
+package com.netflix.titus.runtime.endpoint.admission;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
-import javax.inject.Singleton;
+import java.util.UUID;
 
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import com.netflix.titus.common.model.validator.EntityValidator;
-import com.netflix.titus.common.model.validator.ValidationError;
+import com.netflix.titus.api.service.TitusServiceException;
+import com.netflix.titus.common.model.sanitizer.ValidationError;
 import reactor.core.publisher.Mono;
 
 /**
- * This {@link EntityValidator} implementation always causes validation to pass.  It is used as a default implementation which
- * should be overridden.
+ * This {@link AdmissionValidator} implementation always causes validation to fail.  It is used for testing purposes.
  */
-@Singleton
-public class PassJobValidator implements EntityValidator<JobDescriptor> {
+public class FailJobValidator implements AdmissionValidator<JobDescriptor> {
+    public static final String ERR_FIELD = "fail-field";
+    public static final String ERR_DESCRIPTION = "The FailJobValidator should always fail with a unique error:";
+
     private final ValidationError.Type errorType;
 
-    public PassJobValidator() {
+    public FailJobValidator() {
         this(ValidationError.Type.HARD);
     }
 
-    public PassJobValidator(ValidationError.Type errorType) {
+    public FailJobValidator(ValidationError.Type errorType) {
         this.errorType = errorType;
     }
 
     @Override
     public Mono<Set<ValidationError>> validate(JobDescriptor entity) {
-        return Mono.just(Collections.emptySet());
+        final String errorMsg = String.format("%s %s", ERR_DESCRIPTION, UUID.randomUUID().toString());
+        final ValidationError error = new ValidationError(ERR_FIELD, errorMsg);
+
+        return Mono.just(new HashSet<>(Collections.singletonList(error)));
     }
 
     @Override
     public Mono<JobDescriptor> sanitize(JobDescriptor entity) {
-        return Mono.just(entity);
+        return Mono.error(TitusServiceException.invalidArgument(ERR_DESCRIPTION));
     }
 
+    @Override
     public ValidationError.Type getErrorType() {
         return errorType;
     }

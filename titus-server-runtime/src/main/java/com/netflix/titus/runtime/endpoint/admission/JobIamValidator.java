@@ -16,7 +16,7 @@
  *
  */
 
-package com.netflix.titus.runtime.endpoint.validator;
+package com.netflix.titus.runtime.endpoint.admission;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -30,15 +30,14 @@ import com.netflix.titus.api.iam.service.IamConnectorException;
 import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
-import com.netflix.titus.common.model.validator.EntityValidator;
-import com.netflix.titus.common.model.validator.ValidationError;
+import com.netflix.titus.common.model.sanitizer.ValidationError;
 import reactor.core.publisher.Mono;
 
 /**
- * This {@link EntityValidator} implementation validates and sanitizes Job IAM information.
+ * This {@link AdmissionValidator} implementation validates and sanitizes Job IAM information.
  */
 @Singleton
-public class JobIamValidator implements EntityValidator<JobDescriptor> {
+public class JobIamValidator implements AdmissionValidator<JobDescriptor> {
     private final JobSecurityValidatorConfiguration configuration;
     private final IamConnector iamConnector;
     private final ValidatorMetrics validatorMetrics;
@@ -126,7 +125,7 @@ public class JobIamValidator implements EntityValidator<JobDescriptor> {
 
     @Override
     public ValidationError.Type getErrorType() {
-        return ValidationError.Type.from(configuration);
+        return configuration.toValidatorErrorType();
     }
 
     private boolean isIamArn(String iamRoleName) {

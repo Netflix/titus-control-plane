@@ -16,14 +16,13 @@
  *
  */
 
-package com.netflix.titus.runtime.endpoint.validator;
+package com.netflix.titus.runtime.endpoint.admission;
 
 import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
-import com.netflix.titus.common.model.validator.EntityValidatorConfiguration;
 
 @Configuration(prefix = "titus.validate.job.security")
-public interface JobSecurityValidatorConfiguration extends EntityValidatorConfiguration {
+public interface JobSecurityValidatorConfiguration extends AdmissionValidatorConfiguration {
     @DefaultValue("true")
     boolean isIamValidatorEnabled();
 

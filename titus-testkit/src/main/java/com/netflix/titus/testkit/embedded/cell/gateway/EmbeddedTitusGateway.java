@@ -28,9 +28,7 @@ import com.netflix.archaius.guice.ArchaiusModule;
 import com.netflix.governator.InjectorBuilder;
 import com.netflix.governator.LifecycleInjector;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import com.netflix.titus.api.jobmanager.model.job.validator.PassJobValidator;
 import com.netflix.titus.api.jobmanager.store.JobStore;
-import com.netflix.titus.common.model.validator.EntityValidator;
 import com.netflix.titus.gateway.endpoint.v3.grpc.TitusGatewayGrpcServer;
 import com.netflix.titus.gateway.startup.TitusGatewayModule;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
@@ -40,6 +38,8 @@ import com.netflix.titus.grpc.protogen.HealthGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.master.TitusMaster;
+import com.netflix.titus.runtime.endpoint.admission.AdmissionValidator;
+import com.netflix.titus.runtime.endpoint.admission.PassJobValidator;
 import com.netflix.titus.runtime.endpoint.common.rest.EmbeddedJettyModule;
 import com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor;
 import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMaster;
@@ -72,7 +72,7 @@ public class EmbeddedTitusGateway {
     private final Properties properties;
 
     private final DefaultSettableConfig config;
-    private final EntityValidator<JobDescriptor> validator;
+    private final AdmissionValidator<JobDescriptor> validator;
 
     private LifecycleInjector injector;
 
@@ -143,7 +143,7 @@ public class EmbeddedTitusGateway {
                             bind(JobStore.class).toInstance(store);
                         }
 
-                        bind(new TypeLiteral<EntityValidator<JobDescriptor>>() {
+                        bind(new TypeLiteral<AdmissionValidator<JobDescriptor>>() {
                         }).toInstance(validator);
                     }
                 })
@@ -251,7 +251,7 @@ public class EmbeddedTitusGateway {
         private boolean enableREST = true;
         private JobStore store;
         private Properties properties = new Properties();
-        private EntityValidator<JobDescriptor> validator = new PassJobValidator();
+        private AdmissionValidator<JobDescriptor> validator = new PassJobValidator();
         private EmbeddedTitusMaster embeddedTitusMaster;
 
         public Builder withMasterEndpoint(String host, int grpcPort, int httpPort) {
@@ -296,7 +296,7 @@ public class EmbeddedTitusGateway {
             return this;
         }
 
-        public Builder withJobValidator(EntityValidator<JobDescriptor> validator) {
+        public Builder withJobValidator(AdmissionValidator<JobDescriptor> validator) {
             this.validator = validator;
             return this;
         }

@@ -16,8 +16,6 @@
 
 package com.netflix.titus.common.model.sanitizer;
 
-import com.netflix.titus.common.model.validator.ValidationError;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;

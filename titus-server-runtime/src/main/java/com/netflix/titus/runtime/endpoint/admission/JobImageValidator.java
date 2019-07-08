@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.endpoint.validator;
+package com.netflix.titus.runtime.endpoint.admission;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -27,8 +27,7 @@ import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
-import com.netflix.titus.common.model.validator.EntityValidator;
-import com.netflix.titus.common.model.validator.ValidationError;
+import com.netflix.titus.common.model.sanitizer.ValidationError;
 import com.netflix.titus.runtime.connector.registry.RegistryClient;
 import com.netflix.titus.runtime.connector.registry.TitusRegistryException;
 import org.slf4j.Logger;
@@ -36,10 +35,10 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 
 /**
- * This {@link EntityValidator} implementation validates and sanitizes Job image information.
+ * This {@link AdmissionValidator} implementation validates and sanitizes Job image information.
  */
 @Singleton
-public class JobImageValidator implements EntityValidator<JobDescriptor> {
+public class JobImageValidator implements AdmissionValidator<JobDescriptor> {
     private static final Logger logger = LoggerFactory.getLogger(JobImageValidator.class);
 
     private final JobImageValidatorConfiguration configuration;
@@ -100,7 +99,7 @@ public class JobImageValidator implements EntityValidator<JobDescriptor> {
 
     @Override
     public ValidationError.Type getErrorType() {
-        return ValidationError.Type.from(configuration);
+        return configuration.toValidatorErrorType();
     }
 
     private Mono<JobDescriptor> sanitizeImage(JobDescriptor jobDescriptor) {

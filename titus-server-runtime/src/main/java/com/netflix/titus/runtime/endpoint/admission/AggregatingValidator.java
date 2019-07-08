@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.endpoint.validator;
+package com.netflix.titus.runtime.endpoint.admission;
 
 import java.time.Duration;
 import java.util.Arrays;
@@ -27,20 +27,19 @@ import javax.inject.Singleton;
 
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import com.netflix.titus.common.model.validator.EntityValidator;
-import com.netflix.titus.common.model.validator.ValidationError;
+import com.netflix.titus.common.model.sanitizer.ValidationError;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 /**
- * An AggregatingValidator executes and aggregates the results of multiple {@link EntityValidator}s.
+ * An AggregatingValidator executes and aggregates the results of multiple {@link AdmissionValidator}s.
  */
 @Singleton
-public class AggregatingValidator implements EntityValidator<JobDescriptor> {
+public class AggregatingValidator implements AdmissionValidator<JobDescriptor> {
     private final TitusValidatorConfiguration configuration;
     private final Duration timeout;
-    private final Collection<EntityValidator<JobDescriptor>> validators;
-    private final Collection<EntityValidator<JobDescriptor>> sanitizers;
+    private final Collection<AdmissionValidator<JobDescriptor>> validators;
+    private final Collection<AdmissionValidator<JobDescriptor>> sanitizers;
     private final ValidatorMetrics validatorMetrics;
 
     /**
@@ -57,8 +56,8 @@ public class AggregatingValidator implements EntityValidator<JobDescriptor> {
     public AggregatingValidator(
             TitusValidatorConfiguration configuration,
             Registry registry,
-            Collection<EntityValidator<JobDescriptor>> validators,
-            Collection<EntityValidator<JobDescriptor>> sanitizers) {
+            Collection<AdmissionValidator<JobDescriptor>> validators,
+            Collection<AdmissionValidator<JobDescriptor>> sanitizers) {
         this.configuration = configuration;
         this.timeout = Duration.ofMillis(this.configuration.getTimeoutMs());
         this.validators = validators;
@@ -89,7 +88,7 @@ public class AggregatingValidator implements EntityValidator<JobDescriptor> {
     @Override
     public Mono<JobDescriptor> sanitize(JobDescriptor entity) {
         Mono<JobDescriptor> sanitizedJobDescriptorMono = Mono.just(entity);
-        for (EntityValidator<JobDescriptor> sanitizer : sanitizers) {
+        for (AdmissionValidator<JobDescriptor> sanitizer : sanitizers) {
             sanitizedJobDescriptorMono = sanitizedJobDescriptorMono.flatMap(sanitizer::sanitize);
         }
         return sanitizedJobDescriptorMono.timeout(timeout);
@@ -97,13 +96,13 @@ public class AggregatingValidator implements EntityValidator<JobDescriptor> {
 
     @Override
     public ValidationError.Type getErrorType() {
-        return ValidationError.Type.from(configuration);
+        return configuration.toValidatorErrorType();
     }
 
     private Collection<Mono<Set<ValidationError>>> getMonos(
             JobDescriptor jobDescriptor,
             Duration timeout,
-            Collection<EntityValidator<JobDescriptor>> validators) {
+            Collection<AdmissionValidator<JobDescriptor>> validators) {
 
         return validators.stream()
                 .map(v -> v.validate(jobDescriptor)

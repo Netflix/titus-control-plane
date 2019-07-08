@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,31 +14,29 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.api.jobmanager.model.job.validator;
+package com.netflix.titus.runtime.endpoint.admission;
 
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import com.netflix.titus.common.model.validator.EntityValidator;
-import com.netflix.titus.common.model.validator.EntityValidatorConfiguration;
-import com.netflix.titus.common.model.validator.ValidationError;
+import com.netflix.titus.common.model.sanitizer.ValidationError;
 import reactor.core.publisher.Mono;
 
 /**
- * This {@link EntityValidator} implementation ensures a job's appname matches a specific
+ * This {@link AdmissionValidator} implementation ensures a job's capacity group matches a specific
  * string. It is only used for testing purposes.
  */
-public class TestingAppNameSanitizer implements EntityValidator<JobDescriptor> {
-    public final static String desiredAppName = "desiredAppName";
+class TestingCapacityGroupSanitizer implements AdmissionValidator<JobDescriptor> {
+    final static String desiredCapacityGroup = "desiredCapacityGroup";
     private static final String ERR_FIELD = "fail-field";
     private static final String ERR_DESCRIPTION =
-            String.format("The job does not have desired appname %s", desiredAppName);
+            String.format("The job does not have desired capacity group %s", desiredCapacityGroup);
 
     @Override
     public Mono<Set<ValidationError>> validate(JobDescriptor entity) {
-        if (entity.getApplicationName().equals(desiredAppName)) {
+        if (entity.getCapacityGroup().equals(desiredCapacityGroup)) {
             return Mono.just(Collections.emptySet());
         }
         final ValidationError error = new ValidationError(ERR_FIELD, ERR_DESCRIPTION);
@@ -48,7 +46,7 @@ public class TestingAppNameSanitizer implements EntityValidator<JobDescriptor> {
     @Override
     public Mono<JobDescriptor> sanitize(JobDescriptor entity) {
         return Mono.just(entity.toBuilder()
-                .withApplicationName(desiredAppName)
+                .withCapacityGroup(desiredCapacityGroup)
                 .build());
     }
 

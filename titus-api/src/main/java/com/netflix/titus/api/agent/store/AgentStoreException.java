@@ -16,10 +16,9 @@
 
 package com.netflix.titus.api.agent.store;
 
-import com.netflix.titus.common.model.validator.ValidationError;
-
 import java.util.Set;
-import javax.validation.ConstraintViolation;
+
+import com.netflix.titus.common.model.sanitizer.ValidationError;
 
 public class AgentStoreException extends RuntimeException {
 

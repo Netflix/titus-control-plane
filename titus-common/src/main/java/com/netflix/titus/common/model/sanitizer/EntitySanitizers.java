@@ -20,8 +20,6 @@ import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
 
-import com.netflix.titus.common.model.validator.ValidationError;
-
 /**
  * A collection of predefined sanitizers.
  */
