@@ -17,6 +17,7 @@
 package com.netflix.titus.runtime.endpoint.admission;
 
 import java.time.Duration;
+import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -25,6 +26,7 @@ import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
+import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.runtime.connector.registry.RegistryClient;
 import com.netflix.titus.runtime.connector.registry.TitusRegistryException;
 import org.slf4j.Logger;
@@ -35,8 +37,9 @@ import reactor.core.publisher.Mono;
  * This {@link AdmissionValidator} implementation validates and sanitizes Job image information.
  */
 @Singleton
-public class JobImageSanitizer implements AdmissionSanitizer<JobDescriptor> {
+public class JobImageSanitizer implements AdmissionSanitizer<JobDescriptor, Optional<Image>> {
     private static final Logger logger = LoggerFactory.getLogger(JobImageSanitizer.class);
+    private static final Optional<Image> SKIPPED = Optional.empty();
 
     private final JobImageValidatorConfiguration configuration;
     private final RegistryClient registryClient;
@@ -49,62 +52,51 @@ public class JobImageSanitizer implements AdmissionSanitizer<JobDescriptor> {
         this.validatorMetrics = new ValidatorMetrics(this.getClass().getSimpleName(), spectatorRegistry);
     }
 
+    /**
+     * @return sanitized Image or {@link Optional#empty()} when sanitization was skipped
+     */
     @Override
-    public Mono<JobDescriptor> sanitize(JobDescriptor jobDescriptor) {
+    public Mono<Optional<Image>> sanitize(JobDescriptor jobDescriptor) {
         if (isDisabled()) {
-            return Mono.just(withSanitizationSkipped(jobDescriptor));
+            return Mono.just(SKIPPED);
         }
 
         Image image = jobDescriptor.getContainer().getImage();
         return sanitizeImage(jobDescriptor)
+                .map(Optional::of)
                 .timeout(Duration.ofMillis(configuration.getJobImageValidationTimeoutMs()))
                 .doOnSuccess(j -> validatorMetrics.incrementValidationSuccess(image.getName()))
-                .onErrorReturn(throwable -> isValidationOK(throwable, image), withSanitizationSkipped(jobDescriptor));
+                .onErrorReturn(throwable -> isValidationOK(throwable, image), SKIPPED);
     }
 
-    private Mono<JobDescriptor> sanitizeImage(JobDescriptor jobDescriptor) {
-        // Check if a digest is provided
-        // If so, check if it exists
+    @Override
+    public JobDescriptor apply(JobDescriptor entity, Optional<Image> update) {
+        return update.map(image -> entity.toBuilder()
+                .withContainer(entity.getContainer().toBuilder()
+                        .withImage(image)
+                        .build())
+                .build())
+                .orElse(withSanitizationSkipped(entity));
+    }
+
+    private Mono<Image> sanitizeImage(JobDescriptor jobDescriptor) {
         Image image = jobDescriptor.getContainer().getImage();
-        if (hasDigest(image)) {
-            return checkImageDigestExist(image)
-                    .thenReturn(jobDescriptor);
+        if (StringExt.isNotEmpty(image.getDigest())) {
+            return checkImageDigestExist(image).then(Mono.empty());
         }
-
-        // If not, resolve to digest and return error if not found
-        return addMissingImageDigest(jobDescriptor);
-    }
-
-    private Mono<Void> checkImageDigestExist(Image image) {
-        return registryClient.getImageDigest(image.getName(), image.getDigest()).then();
-    }
-
-    private Mono<JobDescriptor> addMissingImageDigest(JobDescriptor jobDescriptor) {
-        Image image = jobDescriptor.getContainer().getImage();
-        if (hasDigest(image)) {
-            return Mono.just(jobDescriptor);
-        }
-
         return registryClient.getImageDigest(image.getName(), image.getTag())
-                .map(digest -> jobDescriptor.toBuilder()
-                        .withContainer(jobDescriptor.getContainer().toBuilder()
-                                .withImage(Image.newBuilder()
-                                        .withName(image.getName())
-                                        .withTag(image.getTag())
-                                        .withDigest(digest)
-                                        .build()).build()
-                        ).build());
+                .map(digest -> image.toBuilder().withDigest(digest).build());
     }
 
-    private boolean hasDigest(Image image) {
-        return null != image.getDigest() && !image.getDigest().isEmpty();
+    private Mono<String> checkImageDigestExist(Image image) {
+        return registryClient.getImageDigest(image.getName(), image.getDigest());
     }
 
     private boolean isDisabled() {
         return !configuration.isEnabled();
     }
 
-    // Determines if this Exception should produce a validation failure
+    // Determines if this Exception should produce a sanitization failure
     private boolean isValidationOK(Throwable throwable, Image image) {
         logger.error("Exception while checking image digest", throwable);
 

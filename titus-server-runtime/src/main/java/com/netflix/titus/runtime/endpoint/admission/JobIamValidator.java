@@ -20,6 +20,7 @@ package com.netflix.titus.runtime.endpoint.admission;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.Optional;
 import java.util.Set;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -28,6 +29,7 @@ import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.connector.cloud.IamConnector;
 import com.netflix.titus.api.iam.service.IamConnectorException;
 import com.netflix.titus.api.jobmanager.JobAttributes;
+import com.netflix.titus.api.jobmanager.model.job.Container;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.common.model.sanitizer.ValidationError;
@@ -37,7 +39,9 @@ import reactor.core.publisher.Mono;
  * This {@link AdmissionValidator} implementation validates and sanitizes Job IAM information.
  */
 @Singleton
-public class JobIamValidator implements AdmissionValidator<JobDescriptor>, AdmissionSanitizer<JobDescriptor> {
+public class JobIamValidator implements AdmissionValidator<JobDescriptor>, AdmissionSanitizer<JobDescriptor, Optional<String>> {
+    private static final Optional<String> SKIPPED = Optional.empty();
+
     private final JobSecurityValidatorConfiguration configuration;
     private final IamConnector iamConnector;
     private final ValidatorMetrics validatorMetrics;
@@ -92,35 +96,43 @@ public class JobIamValidator implements AdmissionValidator<JobDescriptor>, Admis
                 });
     }
 
+    /**
+     * @return sanitized role or {@link Optional#empty()} when sanitization was skipped
+     */
     @Override
-    public Mono<JobDescriptor> sanitize(JobDescriptor jobDescriptor) {
+    public Mono<Optional<String>> sanitize(JobDescriptor jobDescriptor) {
         if (isDisabled()) {
-            return Mono.just(withSanitizationSkipped(jobDescriptor));
+            return Mono.just(SKIPPED);
         }
 
         String iamRoleName = jobDescriptor.getContainer().getSecurityProfile().getIamRole();
 
         // If empty, it should be set to ARN value or rejected, but not in this place.
         if (iamRoleName.isEmpty()) {
-            return Mono.just(jobDescriptor);
+            return Mono.empty();
         }
         if (isIamArn(iamRoleName)) {
-            return Mono.just(jobDescriptor);
+            return Mono.empty();
         }
 
         return iamConnector.getIamRole(iamRoleName)
                 .timeout(Duration.ofMillis(configuration.getIamValidationTimeoutMs()))
-                .map(iamRole -> jobDescriptor.toBuilder()
-                        .withContainer(jobDescriptor.getContainer().toBuilder()
-                                .withSecurityProfile(jobDescriptor.getContainer().getSecurityProfile().toBuilder()
-                                        .withIamRole(iamRole.getResourceName())
-                                        .build()
-                                )
-                                .build()
-                        )
+                .map(iamRole -> Optional.of(iamRole.getResourceName()))
+                .onErrorReturn(SKIPPED);
+    }
+
+    @Override
+    public JobDescriptor apply(JobDescriptor entity, Optional<String> update) {
+        Container container = entity.getContainer();
+        return update.map(iamRole -> entity.toBuilder()
+                .withContainer(container.toBuilder()
+                        .withSecurityProfile(container.getSecurityProfile().toBuilder()
+                                .withIamRole(iamRole)
+                                .build())
                         .build()
                 )
-                .onErrorReturn(withSanitizationSkipped(jobDescriptor));
+                .build())
+                .orElse(withSanitizationSkipped(entity));
     }
 
     @Override

@@ -80,8 +80,11 @@ public class JobImageSanitizerTest {
         when(registryClient.getImageDigest(anyString(), anyString())).thenReturn(Mono.just(digest));
 
         StepVerifier.create(sanitizer.sanitize(jobDescriptorWithTag))
-                .assertNext(sanitizedJobDescriptor ->
-                        assertThat(sanitizedJobDescriptor.getContainer().getImage().getDigest().equals(digest)).isTrue())
+                .assertNext(sanitizedImage -> {
+                    assertThat(sanitizedImage).isPresent();
+                    JobDescriptor jobDescriptor = sanitizer.apply(jobDescriptorWithTag, sanitizedImage);
+                    assertThat(jobDescriptor.getContainer().getImage().getDigest().equals(digest)).isTrue();
+                })
                 .verifyComplete();
     }
 
@@ -107,7 +110,11 @@ public class JobImageSanitizerTest {
                 .thenReturn(Mono.error(TitusRegistryException.internalError(repo, tag, HttpStatus.INTERNAL_SERVER_ERROR)));
 
         StepVerifier.create(sanitizer.sanitize(jobDescriptorWithTag))
-                .assertNext(jd -> {
+                .assertNext(sanitizedImage -> {
+                    assertThat(sanitizedImage).isNotPresent();
+
+                    // Optional.empty() means sanitization is skipped
+                    JobDescriptor jd = sanitizer.apply(jobDescriptorWithTag, sanitizedImage);
                     assertThat(jd.getContainer().getImage().getDigest()).isNullOrEmpty();
                     assertThat(jd.getContainer().getImage()).isEqualTo(jobDescriptorWithTag.getContainer().getImage());
                     assertThat(((JobDescriptor<?>) jd).getAttributes())
@@ -118,13 +125,11 @@ public class JobImageSanitizerTest {
 
     @Test
     public void testJobWithDigestExists() {
-        when(registryClient.getImageDigest(anyString(), anyString())).thenReturn(Mono.just(digest));
+        Image image = jobDescriptorWithDigest.getContainer().getImage();
+        when(registryClient.getImageDigest(image.getName(), image.getDigest())).thenReturn(Mono.just(digest));
 
         StepVerifier.create(sanitizer.sanitize(jobDescriptorWithDigest))
-                .assertNext(sanitizedJobDescriptor -> {
-                    assertThat(sanitizedJobDescriptor.getContainer().getImage().getDigest().equals(digest)).isTrue();
-                    assertThat(sanitizedJobDescriptor.getContainer().getImage().getTag()).isEqualTo("");
-                })
+                .expectNextCount(0) // nothing to do when digest is valid
                 .verifyComplete();
     }
 }

@@ -25,7 +25,7 @@ import reactor.core.publisher.Mono;
 /**
  * This validator never completes.  It is used to test validation in the face of unresponsive service calls.
  */
-class NeverJobValidator implements AdmissionValidator<JobDescriptor>, AdmissionSanitizer<JobDescriptor> {
+class NeverJobValidator implements AdmissionValidator<JobDescriptor>, AdmissionSanitizer<JobDescriptor, JobDescriptor> {
     private final ValidationError.Type errorType;
 
     public NeverJobValidator() {
@@ -44,6 +44,11 @@ class NeverJobValidator implements AdmissionValidator<JobDescriptor>, AdmissionS
     @Override
     public Mono<JobDescriptor> sanitize(JobDescriptor entity) {
         return Mono.never();
+    }
+
+    @Override
+    public JobDescriptor apply(JobDescriptor entity, JobDescriptor update) {
+        throw new IllegalStateException("never called");
     }
 
     @Override

@@ -178,6 +178,16 @@ public class TitusServiceException extends RuntimeException {
                 .build();
     }
 
+    public static TitusServiceException internal(String message, Object... args) {
+        return internal(null, message, args);
+    }
+
+    public static TitusServiceException internal(Throwable cause, String message, Object... args) {
+        return TitusServiceException.newBuilder(ErrorCode.INTERNAL, format(message, args))
+                .withCause(cause)
+                .build();
+    }
+
     public static TitusServiceException notSupported() {
         return TitusServiceException.newBuilder(ErrorCode.NOT_SUPPORTED, "Not supported").build();
     }

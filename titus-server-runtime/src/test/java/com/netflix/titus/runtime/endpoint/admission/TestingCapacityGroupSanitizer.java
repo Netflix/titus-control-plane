@@ -16,42 +16,35 @@
 
 package com.netflix.titus.runtime.endpoint.admission;
 
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import com.netflix.titus.common.model.sanitizer.ValidationError;
 import reactor.core.publisher.Mono;
 
 /**
- * This {@link AdmissionValidator} implementation ensures a job's capacity group matches a specific
- * string. It is only used for testing purposes.
+ * This {@link AdmissionSanitizer} implementation ensures a job's capacity group matches a specific string.
+ * It is only used for testing purposes.
  */
-class TestingCapacityGroupSanitizer implements AdmissionValidator<JobDescriptor>, AdmissionSanitizer<JobDescriptor> {
-    final static String desiredCapacityGroup = "desiredCapacityGroup";
-    private static final String ERR_FIELD = "fail-field";
-    private static final String ERR_DESCRIPTION =
-            String.format("The job does not have desired capacity group %s", desiredCapacityGroup);
+class TestingCapacityGroupSanitizer implements AdmissionSanitizer<JobDescriptor, String> {
+    private final String desiredCapacityGroup;
 
-    @Override
-    public Mono<Set<ValidationError>> validate(JobDescriptor entity) {
-        if (entity.getCapacityGroup().equals(desiredCapacityGroup)) {
-            return Mono.just(Collections.emptySet());
-        }
-        final ValidationError error = new ValidationError(ERR_FIELD, ERR_DESCRIPTION);
-        return Mono.just(new HashSet<>(Collections.singletonList(error)));
+    TestingCapacityGroupSanitizer() {
+        this("desiredCapacityGroup");
+    }
+
+    TestingCapacityGroupSanitizer(String desiredCapacityGroup) {
+        this.desiredCapacityGroup = desiredCapacityGroup;
     }
 
     @Override
-    public Mono<JobDescriptor> sanitize(JobDescriptor entity) {
-        return Mono.just(entity.toBuilder()
-                .withCapacityGroup(desiredCapacityGroup)
-                .build());
+    public Mono<String> sanitize(JobDescriptor entity) {
+        return Mono.just(desiredCapacityGroup);
     }
 
     @Override
-    public ValidationError.Type getErrorType() {
-        return ValidationError.Type.HARD;
+    public JobDescriptor apply(JobDescriptor entity, String update) {
+        return entity.toBuilder().withCapacityGroup(update).build();
+    }
+
+    public String getDesiredCapacityGroup() {
+        return desiredCapacityGroup;
     }
 }

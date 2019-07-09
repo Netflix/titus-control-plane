@@ -29,7 +29,7 @@ import reactor.core.publisher.Mono;
  * should be overridden.
  */
 @Singleton
-public class PassJobValidator implements AdmissionValidator<JobDescriptor>, AdmissionSanitizer<JobDescriptor> {
+public class PassJobValidator implements AdmissionValidator<JobDescriptor> {
     private final ValidationError.Type errorType;
 
     public PassJobValidator() {
@@ -43,11 +43,6 @@ public class PassJobValidator implements AdmissionValidator<JobDescriptor>, Admi
     @Override
     public Mono<Set<ValidationError>> validate(JobDescriptor entity) {
         return Mono.just(Collections.emptySet());
-    }
-
-    @Override
-    public Mono<JobDescriptor> sanitize(JobDescriptor entity) {
-        return Mono.just(entity);
     }
 
     @Override

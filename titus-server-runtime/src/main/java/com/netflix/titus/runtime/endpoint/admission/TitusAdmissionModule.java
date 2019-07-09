@@ -16,6 +16,7 @@
 
 package com.netflix.titus.runtime.endpoint.admission;
 
+import java.util.Arrays;
 import java.util.Collections;
 import javax.inject.Singleton;
 
@@ -37,8 +38,6 @@ public class TitusAdmissionModule extends AbstractModule {
     protected void configure() {
         bind(new TypeLiteral<AdmissionValidator<JobDescriptor>>() {
         }).to(AggregatingValidator.class);
-        bind(new TypeLiteral<AdmissionSanitizer<JobDescriptor>>() {
-        }).to(AggregatingValidator.class);
     }
 
     @Provides
@@ -50,14 +49,16 @@ public class TitusAdmissionModule extends AbstractModule {
     @Provides
     @Singleton
     public AggregatingValidator getJobValidator(TitusValidatorConfiguration configuration,
-                                                JobImageSanitizer jobImageSanitizer,
                                                 JobIamValidator jobIamValidator,
                                                 Registry registry) {
-        return new AggregatingValidator(
-                configuration,
-                registry,
-                Collections.singletonList(jobIamValidator),
-                Collections.singletonList(jobImageSanitizer)
-        );
+        return new AggregatingValidator(configuration, registry, Collections.singletonList(jobIamValidator));
+    }
+
+    @Provides
+    @Singleton
+    public AggregatingSanitizer getJobSanitizer(TitusValidatorConfiguration configuration,
+                                                JobImageSanitizer jobImageSanitizer,
+                                                JobIamValidator jobIamSanitizer) {
+        return new AggregatingSanitizer(configuration, Arrays.asList(jobImageSanitizer, jobIamSanitizer));
     }
 }

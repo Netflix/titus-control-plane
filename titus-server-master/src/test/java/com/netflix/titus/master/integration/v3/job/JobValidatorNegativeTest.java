@@ -62,7 +62,6 @@ public class JobValidatorNegativeTest extends BaseIntegrationTest {
 
     private static final TitusValidatorConfiguration configuration = mock(TitusValidatorConfiguration.class);
     private static final List<AdmissionValidator<JobDescriptor>> validators = Collections.singletonList(new FailJobValidator());
-    private static final List<AdmissionSanitizer<JobDescriptor>> sanitizers = Collections.emptyList();
 
     private static TitusStackResource titusStackResource;
     private final InstanceGroupsScenarioBuilder instanceGroupsScenarioBuilder = new InstanceGroupsScenarioBuilder(titusStackResource);
@@ -77,8 +76,8 @@ public class JobValidatorNegativeTest extends BaseIntegrationTest {
         // This is an arbitrary large timeout; the FailJobValidator fails instantaneously, so
         // timeout never occurs.
         when(configuration.getTimeoutMs()).thenReturn(10 * 1000);
-        AggregatingValidator validator = new AggregatingValidator(configuration, new DefaultRegistry(), validators, sanitizers);
-        titusStackResource = getTitusStackResource(validator, validator);
+        AggregatingValidator validator = new AggregatingValidator(configuration, new DefaultRegistry(), validators);
+        titusStackResource = getTitusStackResource(validator);
     }
 
     @Before
@@ -102,8 +101,7 @@ public class JobValidatorNegativeTest extends BaseIntegrationTest {
         }
     }
 
-    private static TitusStackResource getTitusStackResource(AdmissionValidator<JobDescriptor> validator,
-                                                            AdmissionSanitizer<JobDescriptor> sanitizer) {
+    private static TitusStackResource getTitusStackResource(AdmissionValidator<JobDescriptor> validator) {
         SimulatedCloud simulatedCloud = SimulatedClouds.basicCloud(2);
 
         return new TitusStackResource(EmbeddedTitusCell.aTitusCell()
@@ -112,7 +110,18 @@ public class JobValidatorNegativeTest extends BaseIntegrationTest {
                         .build())
                 .withDefaultGateway()
                 .withJobValidator(validator)
-                .withJobSanitizer(sanitizer)
+                .build());
+    }
+
+    private static TitusStackResource getTitusStackResource(AdmissionSanitizer<JobDescriptor, ?> jobSanitizer) {
+        SimulatedCloud simulatedCloud = SimulatedClouds.basicCloud(2);
+
+        return new TitusStackResource(EmbeddedTitusCell.aTitusCell()
+                .withMaster(EmbeddedTitusMasters.basicMaster(simulatedCloud).toBuilder()
+                        .withCellName("cell-name")
+                        .build())
+                .withDefaultGateway()
+                .withJobSanitizers(Collections.singletonList(jobSanitizer))
                 .build());
     }
 }
