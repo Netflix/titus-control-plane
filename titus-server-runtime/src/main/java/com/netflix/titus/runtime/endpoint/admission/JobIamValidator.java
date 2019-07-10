@@ -21,7 +21,6 @@ package com.netflix.titus.runtime.endpoint.admission;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -102,7 +101,7 @@ public class JobIamValidator implements AdmissionValidator<JobDescriptor>, Admis
     }
 
     /**
-     * @return a {@link Function} that adds a sanitized role or job attributes when sanitization was skipped
+     * @return a {@link UnaryOperator} that adds a sanitized role or job attributes when sanitization was skipped
      */
     @Override
     public Mono<UnaryOperator<JobDescriptor>> sanitize(JobDescriptor jobDescriptor) {

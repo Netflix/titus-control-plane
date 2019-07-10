@@ -17,7 +17,6 @@
 package com.netflix.titus.runtime.endpoint.admission;
 
 import java.time.Duration;
-import java.util.Optional;
 import java.util.function.UnaryOperator;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -53,7 +52,7 @@ public class JobImageSanitizer implements AdmissionSanitizer<JobDescriptor> {
     }
 
     /**
-     * @return sanitized Image or {@link Optional#empty()} when sanitization was skipped
+     * @return a {@link UnaryOperator} that adds a sanitized Image or job attributes when sanitization was skipped
      */
     @Override
     public Mono<UnaryOperator<JobDescriptor>> sanitize(JobDescriptor jobDescriptor) {
