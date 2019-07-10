@@ -18,6 +18,7 @@ package com.netflix.titus.runtime.endpoint.admission;
 
 import java.util.Collections;
 import java.util.Set;
+import java.util.function.UnaryOperator;
 import javax.inject.Singleton;
 
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -29,7 +30,7 @@ import reactor.core.publisher.Mono;
  * should be overridden.
  */
 @Singleton
-public class PassJobValidator implements AdmissionValidator<JobDescriptor> {
+public class PassJobValidator implements AdmissionValidator<JobDescriptor>, AdmissionSanitizer<JobDescriptor> {
     private final ValidationError.Type errorType;
 
     public PassJobValidator() {
@@ -48,5 +49,10 @@ public class PassJobValidator implements AdmissionValidator<JobDescriptor> {
     @Override
     public ValidationError.Type getErrorType() {
         return errorType;
+    }
+
+    @Override
+    public Mono<UnaryOperator<JobDescriptor>> sanitize(JobDescriptor entity) {
+        return Mono.empty();
     }
 }

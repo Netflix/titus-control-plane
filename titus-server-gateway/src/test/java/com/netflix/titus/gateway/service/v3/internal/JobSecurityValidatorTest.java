@@ -116,13 +116,9 @@ public class JobSecurityValidatorTest {
         when(iamConnector.getIamRole(INVALID_IAM_ROLE_NAME))
                 .thenReturn(Mono.error(IamConnectorException.iamRoleUnexpectedError(INVALID_IAM_ROLE_NAME)));
 
-        Mono<Optional<String>> sanitized = iamValidator.sanitize(jobDescriptorWithInvalidIam);
+        Mono<JobDescriptor> sanitized = iamValidator.sanitizeAndApply(jobDescriptorWithInvalidIam);
         StepVerifier.create(sanitized)
-                .assertNext(sanitizedIamRole -> {
-                    assertThat(sanitizedIamRole).isNotPresent();
-
-                    // Optional.empty() means sanitization was skipped
-                    JobDescriptor jobDescriptor = iamValidator.apply(jobDescriptorWithInvalidIam, sanitizedIamRole);
+                .assertNext(jobDescriptor -> {
                     assertThat(jobDescriptor.getContainer().getSecurityProfile().getIamRole())
                             .isEqualTo(jobDescriptorWithInvalidIam.getContainer().getSecurityProfile().getIamRole());
                     assertThat(((JobDescriptor<?>) jobDescriptor).getAttributes())

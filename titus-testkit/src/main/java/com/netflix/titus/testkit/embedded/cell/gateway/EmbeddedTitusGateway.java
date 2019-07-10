@@ -17,7 +17,6 @@
 package com.netflix.titus.testkit.embedded.cell.gateway;
 
 import java.util.Collections;
-import java.util.List;
 import java.util.Properties;
 
 import com.google.common.base.Preconditions;
@@ -26,7 +25,6 @@ import com.google.inject.Module;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.google.inject.TypeLiteral;
-import com.google.inject.multibindings.Multibinder;
 import com.google.inject.util.Modules;
 import com.netflix.archaius.config.DefaultSettableConfig;
 import com.netflix.archaius.guice.ArchaiusModule;
@@ -81,7 +79,7 @@ public class EmbeddedTitusGateway {
 
     private final DefaultSettableConfig config;
     private final AdmissionValidator<JobDescriptor> validator;
-    private final List<? extends AdmissionSanitizer<JobDescriptor, ?>> jobSanitizers;
+    private final AdmissionSanitizer<JobDescriptor> jobSanitizer;
 
     private LifecycleInjector injector;
 
@@ -107,7 +105,7 @@ public class EmbeddedTitusGateway {
         this.config.setProperties(properties);
 
         this.validator = builder.validator;
-        this.jobSanitizers = builder.jobSanitizers;
+        this.jobSanitizer = builder.jobSanitizer;
 
         String resourceDir = TitusMaster.class.getClassLoader().getResource("static").toExternalForm();
         Properties props = new Properties();
@@ -159,8 +157,8 @@ public class EmbeddedTitusGateway {
 
                     @Provides
                     @Singleton
-                    public AggregatingSanitizer getJobSanitizer(TitusValidatorConfiguration configuration) {
-                        return new AggregatingSanitizer(configuration, jobSanitizers);
+                    public AdmissionSanitizer<JobDescriptor> getJobSanitizer(TitusValidatorConfiguration configuration) {
+                        return new AggregatingSanitizer(configuration, Collections.singletonList(jobSanitizer));
                     }
                 })
         ).createInjector();
@@ -268,7 +266,7 @@ public class EmbeddedTitusGateway {
         private JobStore store;
         private Properties properties = new Properties();
         private AdmissionValidator<JobDescriptor> validator = new PassJobValidator();
-        private List<? extends AdmissionSanitizer<JobDescriptor, ?>> jobSanitizers = Collections.emptyList();
+        private AdmissionSanitizer<JobDescriptor> jobSanitizer = new PassJobValidator();
         private EmbeddedTitusMaster embeddedTitusMaster;
 
         public Builder withMasterEndpoint(String host, int grpcPort, int httpPort) {
@@ -318,8 +316,8 @@ public class EmbeddedTitusGateway {
             return this;
         }
 
-        public Builder withJobSanitizers(List<? extends AdmissionSanitizer<JobDescriptor, ?>> jobSanitizers) {
-            this.jobSanitizers = jobSanitizers;
+        public Builder withJobSanitizer(AdmissionSanitizer<JobDescriptor> jobSanitizer) {
+            this.jobSanitizer = jobSanitizer;
             return this;
         }
 

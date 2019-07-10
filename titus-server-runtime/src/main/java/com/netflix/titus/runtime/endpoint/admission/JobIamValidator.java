@@ -20,13 +20,15 @@ package com.netflix.titus.runtime.endpoint.admission;
 
 import java.time.Duration;
 import java.util.Collections;
-import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.connector.cloud.IamConnector;
+import com.netflix.titus.api.iam.model.IamRole;
 import com.netflix.titus.api.iam.service.IamConnectorException;
 import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Container;
@@ -39,9 +41,7 @@ import reactor.core.publisher.Mono;
  * This {@link AdmissionValidator} implementation validates and sanitizes Job IAM information.
  */
 @Singleton
-public class JobIamValidator implements AdmissionValidator<JobDescriptor>, AdmissionSanitizer<JobDescriptor, Optional<String>> {
-    private static final Optional<String> SKIPPED = Optional.empty();
-
+public class JobIamValidator implements AdmissionValidator<JobDescriptor>, AdmissionSanitizer<JobDescriptor> {
     private final JobSecurityValidatorConfiguration configuration;
     private final IamConnector iamConnector;
     private final ValidatorMetrics validatorMetrics;
@@ -96,13 +96,18 @@ public class JobIamValidator implements AdmissionValidator<JobDescriptor>, Admis
                 });
     }
 
+    @Override
+    public ValidationError.Type getErrorType() {
+        return configuration.toValidatorErrorType();
+    }
+
     /**
-     * @return sanitized role or {@link Optional#empty()} when sanitization was skipped
+     * @return a {@link Function} that adds a sanitized role or job attributes when sanitization was skipped
      */
     @Override
-    public Mono<Optional<String>> sanitize(JobDescriptor jobDescriptor) {
+    public Mono<UnaryOperator<JobDescriptor>> sanitize(JobDescriptor jobDescriptor) {
         if (isDisabled()) {
-            return Mono.just(SKIPPED);
+            return Mono.just(JobIamValidator::skipSanitization);
         }
 
         String iamRoleName = jobDescriptor.getContainer().getSecurityProfile().getIamRole();
@@ -117,31 +122,28 @@ public class JobIamValidator implements AdmissionValidator<JobDescriptor>, Admis
 
         return iamConnector.getIamRole(iamRoleName)
                 .timeout(Duration.ofMillis(configuration.getIamValidationTimeoutMs()))
-                .map(iamRole -> Optional.of(iamRole.getResourceName()))
-                .onErrorReturn(SKIPPED);
+                .map(JobIamValidator::setIamRoleFunction)
+                .onErrorReturn(JobIamValidator::skipSanitization);
     }
 
-    @Override
-    public JobDescriptor apply(JobDescriptor entity, Optional<String> update) {
-        Container container = entity.getContainer();
-        return update.map(iamRole -> entity.toBuilder()
-                .withContainer(container.toBuilder()
-                        .withSecurityProfile(container.getSecurityProfile().toBuilder()
-                                .withIamRole(iamRole)
-                                .build())
-                        .build()
-                )
-                .build())
-                .orElse(withSanitizationSkipped(entity));
+    private static UnaryOperator<JobDescriptor> setIamRoleFunction(IamRole iamRole) {
+        return entity -> {
+            Container container = entity.getContainer();
+            return entity.toBuilder()
+                    .withContainer(container.toBuilder()
+                            .withSecurityProfile(container.getSecurityProfile().toBuilder()
+                                    .withIamRole(iamRole.getResourceName())
+                                    .build())
+                            .build()
+                    )
+                    .build();
+        };
     }
 
-    @Override
-    public ValidationError.Type getErrorType() {
-        return configuration.toValidatorErrorType();
-    }
-
+    /**
+     * Check if this looks like an ARN
+     */
     private boolean isIamArn(String iamRoleName) {
-        // Check if this looks like an ARN
         return iamRoleName.startsWith("arn:aws:");
     }
 
@@ -150,7 +152,7 @@ public class JobIamValidator implements AdmissionValidator<JobDescriptor>, Admis
     }
 
     @SuppressWarnings("unchecked")
-    private JobDescriptor withSanitizationSkipped(JobDescriptor jobDescriptor) {
+    private static JobDescriptor skipSanitization(JobDescriptor jobDescriptor) {
         return JobFunctions.appendJobDescriptorAttribute(jobDescriptor,
                 JobAttributes.JOB_ATTRIBUTES_SANITIZATION_SKIPPED_IAM, true
         );

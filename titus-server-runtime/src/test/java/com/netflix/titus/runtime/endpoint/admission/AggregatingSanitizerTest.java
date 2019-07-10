@@ -56,7 +56,7 @@ public class AggregatingSanitizerTest {
         AggregatingSanitizer sanitizer = new AggregatingSanitizer(configuration, Arrays.asList(
                 appNameSanitizer, capacityGroupSanitizer
         ));
-        StepVerifier.create(sanitizer.sanitize(jobDescriptor))
+        StepVerifier.create(sanitizer.sanitizeAndApply(jobDescriptor))
                 .assertNext(sanitizedJobDescriptor -> {
                     assertThat(sanitizedJobDescriptor.getApplicationName()).isEqualTo(appNameSanitizer.getDesiredAppName());
                     assertThat(sanitizedJobDescriptor.getCapacityGroup()).isEqualTo(capacityGroupSanitizer.getDesiredCapacityGroup());
@@ -78,7 +78,7 @@ public class AggregatingSanitizerTest {
                 new TestingAppNameSanitizer(),
                 new FailJobValidator()
         ));
-        StepVerifier.create(sanitizer.sanitize(jobDescriptor))
+        StepVerifier.create(sanitizer.sanitizeAndApply(jobDescriptor))
                 .expectError(TitusServiceException.class)
                 .verify();
     }
@@ -87,7 +87,7 @@ public class AggregatingSanitizerTest {
     public void noSanitizersIsANoop() {
         AggregatingSanitizer sanitizer = new AggregatingSanitizer(configuration, Collections.emptyList());
         JobDescriptor<?> jobDescriptor = JobDescriptorGenerator.batchJobDescriptors().getValue();
-        StepVerifier.create(sanitizer.sanitize(jobDescriptor))
+        StepVerifier.create(sanitizer.sanitizeAndApply(jobDescriptor))
                 .assertNext(sanitizedJobDescriptor -> assertThat(sanitizedJobDescriptor).isSameAs(jobDescriptor))
                 .verifyComplete();
     }
@@ -107,7 +107,7 @@ public class AggregatingSanitizerTest {
         AggregatingSanitizer sanitizer = new AggregatingSanitizer(configuration,
                 Arrays.asList(appNameSanitizer, neverSanitizer));
 
-        StepVerifier.create(sanitizer.sanitize(jobDescriptor))
+        StepVerifier.create(sanitizer.sanitizeAndApply(jobDescriptor))
                 .expectErrorMatches(error -> {
                     if (!(error instanceof TitusServiceException)) {
                         return false;
@@ -135,7 +135,7 @@ public class AggregatingSanitizerTest {
                 appNameSanitizer,
                 new EmptyValidator()
         ));
-        StepVerifier.create(sanitizer.sanitize(jobDescriptor))
+        StepVerifier.create(sanitizer.sanitizeAndApply(jobDescriptor))
                 .assertNext(sanitizedJobDescriptor -> assertThat(sanitizedJobDescriptor.getApplicationName())
                         .isEqualTo(appNameSanitizer.getDesiredAppName()))
                 .verifyComplete();
@@ -149,7 +149,7 @@ public class AggregatingSanitizerTest {
                 new EmptyValidator()
         ));
         JobDescriptor<?> jobDescriptor = JobDescriptorGenerator.batchJobDescriptors().getValue();
-        StepVerifier.create(sanitizer.sanitize(jobDescriptor))
+        StepVerifier.create(sanitizer.sanitizeAndApply(jobDescriptor))
                 .assertNext(sanitizedJobDescriptor -> assertThat(sanitizedJobDescriptor).isSameAs(jobDescriptor))
                 .verifyComplete();
     }

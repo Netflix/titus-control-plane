@@ -113,7 +113,7 @@ public class JobValidatorNegativeTest extends BaseIntegrationTest {
                 .build());
     }
 
-    private static TitusStackResource getTitusStackResource(AdmissionSanitizer<JobDescriptor, ?> jobSanitizer) {
+    private static TitusStackResource getTitusStackResource(AdmissionSanitizer<JobDescriptor> jobSanitizer) {
         SimulatedCloud simulatedCloud = SimulatedClouds.basicCloud(2);
 
         return new TitusStackResource(EmbeddedTitusCell.aTitusCell()
@@ -121,7 +121,7 @@ public class JobValidatorNegativeTest extends BaseIntegrationTest {
                         .withCellName("cell-name")
                         .build())
                 .withDefaultGateway()
-                .withJobSanitizers(Collections.singletonList(jobSanitizer))
+                .withJobSanitizer(jobSanitizer)
                 .build());
     }
 }

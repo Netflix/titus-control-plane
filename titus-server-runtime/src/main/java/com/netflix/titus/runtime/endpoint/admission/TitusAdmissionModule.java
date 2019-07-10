@@ -38,6 +38,8 @@ public class TitusAdmissionModule extends AbstractModule {
     protected void configure() {
         bind(new TypeLiteral<AdmissionValidator<JobDescriptor>>() {
         }).to(AggregatingValidator.class);
+        bind(new TypeLiteral<AdmissionSanitizer<JobDescriptor>>() {
+        }).to(AggregatingSanitizer.class);
     }
 
     @Provides

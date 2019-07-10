@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.UnaryOperator;
 
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.service.TitusServiceException;
@@ -29,7 +30,7 @@ import reactor.core.publisher.Mono;
 /**
  * This {@link AdmissionValidator} implementation always causes validation to fail.  It is used for testing purposes.
  */
-public class FailJobValidator implements AdmissionValidator<JobDescriptor>, AdmissionSanitizer<JobDescriptor, JobDescriptor> {
+public class FailJobValidator implements AdmissionValidator<JobDescriptor>, AdmissionSanitizer<JobDescriptor> {
     public static final String ERR_FIELD = "fail-field";
     public static final String ERR_DESCRIPTION = "The FailJobValidator should always fail with a unique error:";
 
@@ -52,13 +53,8 @@ public class FailJobValidator implements AdmissionValidator<JobDescriptor>, Admi
     }
 
     @Override
-    public Mono<JobDescriptor> sanitize(JobDescriptor entity) {
+    public Mono<UnaryOperator<JobDescriptor>> sanitize(JobDescriptor entity) {
         return Mono.error(TitusServiceException.invalidArgument(ERR_DESCRIPTION));
-    }
-
-    @Override
-    public JobDescriptor apply(JobDescriptor entity, JobDescriptor update) {
-        return entity;
     }
 
     @Override

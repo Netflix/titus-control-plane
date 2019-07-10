@@ -17,12 +17,13 @@
 package com.netflix.titus.runtime.endpoint.admission;
 
 import java.util.Set;
+import java.util.function.UnaryOperator;
 
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.common.model.sanitizer.ValidationError;
 import reactor.core.publisher.Mono;
 
-class EmptyValidator implements AdmissionValidator<JobDescriptor>, AdmissionSanitizer<JobDescriptor, JobDescriptor> {
+class EmptyValidator implements AdmissionValidator<JobDescriptor>, AdmissionSanitizer<JobDescriptor> {
     @Override
     public Mono<Set<ValidationError>> validate(JobDescriptor entity) {
         return Mono.empty();
@@ -34,12 +35,7 @@ class EmptyValidator implements AdmissionValidator<JobDescriptor>, AdmissionSani
     }
 
     @Override
-    public Mono<JobDescriptor> sanitize(JobDescriptor entity) {
+    public Mono<UnaryOperator<JobDescriptor>> sanitize(JobDescriptor entity) {
         return Mono.empty();
-    }
-
-    @Override
-    public JobDescriptor apply(JobDescriptor entity, JobDescriptor update) {
-        throw new IllegalStateException("never called");
     }
 }

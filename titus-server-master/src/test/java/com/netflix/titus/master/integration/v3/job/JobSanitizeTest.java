@@ -16,8 +16,6 @@
 
 package com.netflix.titus.master.integration.v3.job;
 
-import java.util.Collections;
-
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -168,7 +166,7 @@ public class JobSanitizeTest extends BaseIntegrationTest {
         assertTrue(resultJobDescriptor.getJobDescriptor().getContainer().getImage().getDigest().isEmpty());
     }
 
-    private TitusStackResource getTitusStackResource(AdmissionSanitizer<JobDescriptor, ?> sanitizer) {
+    private TitusStackResource getTitusStackResource(AdmissionSanitizer<JobDescriptor> sanitizer) {
         SimulatedCloud simulatedCloud = SimulatedClouds.basicCloud(2);
 
         return new TitusStackResource(EmbeddedTitusCell.aTitusCell()
@@ -176,7 +174,7 @@ public class JobSanitizeTest extends BaseIntegrationTest {
                         .withCellName("cell-name")
                         .build())
                 .withDefaultGateway()
-                .withJobSanitizers(Collections.singletonList(sanitizer))
+                .withJobSanitizer(sanitizer)
                 .build());
     }
 }

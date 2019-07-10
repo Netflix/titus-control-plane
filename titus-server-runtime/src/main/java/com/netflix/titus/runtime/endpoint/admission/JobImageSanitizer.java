@@ -18,6 +18,7 @@ package com.netflix.titus.runtime.endpoint.admission;
 
 import java.time.Duration;
 import java.util.Optional;
+import java.util.function.UnaryOperator;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -37,9 +38,8 @@ import reactor.core.publisher.Mono;
  * This {@link AdmissionValidator} implementation validates and sanitizes Job image information.
  */
 @Singleton
-public class JobImageSanitizer implements AdmissionSanitizer<JobDescriptor, Optional<Image>> {
+public class JobImageSanitizer implements AdmissionSanitizer<JobDescriptor> {
     private static final Logger logger = LoggerFactory.getLogger(JobImageSanitizer.class);
-    private static final Optional<Image> SKIPPED = Optional.empty();
 
     private final JobImageValidatorConfiguration configuration;
     private final RegistryClient registryClient;
@@ -56,27 +56,25 @@ public class JobImageSanitizer implements AdmissionSanitizer<JobDescriptor, Opti
      * @return sanitized Image or {@link Optional#empty()} when sanitization was skipped
      */
     @Override
-    public Mono<Optional<Image>> sanitize(JobDescriptor jobDescriptor) {
+    public Mono<UnaryOperator<JobDescriptor>> sanitize(JobDescriptor jobDescriptor) {
         if (isDisabled()) {
-            return Mono.just(SKIPPED);
+            return Mono.just(JobImageSanitizer::skipSanitization);
         }
 
         Image image = jobDescriptor.getContainer().getImage();
         return sanitizeImage(jobDescriptor)
-                .map(Optional::of)
+                .map(JobImageSanitizer::setImageFunction)
                 .timeout(Duration.ofMillis(configuration.getJobImageValidationTimeoutMs()))
                 .doOnSuccess(j -> validatorMetrics.incrementValidationSuccess(image.getName()))
-                .onErrorReturn(throwable -> isValidationOK(throwable, image), SKIPPED);
+                .onErrorReturn(throwable -> isValidationOK(throwable, image), JobImageSanitizer::skipSanitization);
     }
 
-    @Override
-    public JobDescriptor apply(JobDescriptor entity, Optional<Image> update) {
-        return update.map(image -> entity.toBuilder()
+    private static UnaryOperator<JobDescriptor> setImageFunction(Image image) {
+        return entity -> entity.toBuilder()
                 .withContainer(entity.getContainer().toBuilder()
                         .withImage(image)
                         .build())
-                .build())
-                .orElse(withSanitizationSkipped(entity));
+                .build();
     }
 
     private Mono<Image> sanitizeImage(JobDescriptor jobDescriptor) {
@@ -127,7 +125,7 @@ public class JobImageSanitizer implements AdmissionSanitizer<JobDescriptor, Opti
     }
 
     @SuppressWarnings("unchecked")
-    private static JobDescriptor withSanitizationSkipped(JobDescriptor jobDescriptor) {
+    private static JobDescriptor skipSanitization(JobDescriptor jobDescriptor) {
         return JobFunctions.appendJobDescriptorAttribute(jobDescriptor,
                 JobAttributes.JOB_ATTRIBUTES_SANITIZATION_SKIPPED_IMAGE, true
         );

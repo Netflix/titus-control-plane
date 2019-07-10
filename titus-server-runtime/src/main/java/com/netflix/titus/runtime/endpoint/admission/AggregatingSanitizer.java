@@ -17,10 +17,14 @@
 package com.netflix.titus.runtime.endpoint.admission;
 
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -31,12 +35,12 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 @Singleton
-public class AggregatingSanitizer {
-    private final Collection<? extends AdmissionSanitizer<JobDescriptor, ?>> sanitizers;
+public class AggregatingSanitizer implements AdmissionSanitizer<JobDescriptor> {
+    private final Collection<? extends AdmissionSanitizer<JobDescriptor>> sanitizers;
     private final Duration timeout;
 
     @Inject
-    public AggregatingSanitizer(TitusValidatorConfiguration configuration, Collection<? extends AdmissionSanitizer<JobDescriptor, ?>> sanitizers) {
+    public AggregatingSanitizer(TitusValidatorConfiguration configuration, Collection<? extends AdmissionSanitizer<JobDescriptor>> sanitizers) {
         this.sanitizers = sanitizers;
         this.timeout = Duration.ofMillis(configuration.getTimeoutMs());
     }
@@ -47,56 +51,37 @@ public class AggregatingSanitizer {
      * <p>
      * The iteration order of the sanitizers is not guaranteed. Any sanitization failure results in the Mono
      * emitting an error.
+     *
+     * @return a {@link Function} that applies partial updates through all sanitizers sequentially
      */
-    public Mono<JobDescriptor> sanitize(JobDescriptor entity) {
-        List<Mono<SanitizerWithResult>> sanitizersWithResults = sanitizers.stream()
+    public Mono<UnaryOperator<JobDescriptor>> sanitize(JobDescriptor entity) {
+        List<Mono<UnaryOperator<JobDescriptor>>> sanitizationFunctions = sanitizers.stream()
                 .map(s -> s.sanitize(entity)
                         .subscribeOn(Schedulers.parallel())
-                        .timeout(timeout)
-                        .map(r -> new SanitizerWithResult(s, Optional.of(r)))
                         // important: Mono.zip will be short circuited if members are empty
-                        .switchIfEmpty(Mono.just(new SanitizerWithResult(s, Optional.empty())))
+                        .switchIfEmpty(Mono.just(UnaryOperator.identity()))
                 )
                 .collect(Collectors.toList());
 
-        Mono<JobDescriptor> merged = Mono.zip(sanitizersWithResults, partials -> {
+        Mono<UnaryOperator<JobDescriptor>> merged = Mono.zip(sanitizationFunctions, partials -> {
             if (CollectionsExt.isNullOrEmpty(partials)) {
-                return entity;
+                return UnaryOperator.identity();
             }
-
-            JobDescriptor result = entity;
-            for (Object partial : partials) {
-                SanitizerWithResult partialWithResult = (SanitizerWithResult) partial;
-                Optional<?> optionalResult = partialWithResult.getResult();
-                if (!optionalResult.isPresent()) {
-                    continue;
-                }
-                result = partialWithResult.getSanitizer().apply(result, optionalResult.get());
-            }
-            return result;
+            //noinspection unchecked
+            return applyAll(Arrays.stream(partials).map(partial -> (UnaryOperator<JobDescriptor>) partial));
         });
 
-        return merged.timeout(timeout, Mono.error(() -> TitusServiceException.internal("Job sanitization timed out")))
-                .switchIfEmpty(Mono.just(entity));
+        return merged.switchIfEmpty(Mono.just(UnaryOperator.identity()))
+                .timeout(timeout, Mono.error(() -> TitusServiceException.internal("Job sanitization timed out")));
+
     }
 
-    // Not using Pair<U, V> for generics sanity
-    private static class SanitizerWithResult {
-        private final AdmissionSanitizer<JobDescriptor, ?> sanitizer;
-        private final Optional<?> result;
-
-        private SanitizerWithResult(AdmissionSanitizer<JobDescriptor, ?> sanitizer, Optional<?> result) {
-            this.sanitizer = sanitizer;
-            this.result = result;
-        }
-
-        @SuppressWarnings("unchecked")
-        public AdmissionSanitizer<JobDescriptor, Object> getSanitizer() {
-            return (AdmissionSanitizer<JobDescriptor, Object>) sanitizer;
-        }
-
-        public Optional<?> getResult() {
-            return result;
-        }
+    private static UnaryOperator<JobDescriptor> applyAll(Stream<UnaryOperator<JobDescriptor>> partialUpdates) {
+        return entity -> {
+            AtomicReference<JobDescriptor> result = new AtomicReference<>(entity);
+            partialUpdates.forEachOrdered(result::updateAndGet);
+            return result.get();
+        };
     }
+
 }

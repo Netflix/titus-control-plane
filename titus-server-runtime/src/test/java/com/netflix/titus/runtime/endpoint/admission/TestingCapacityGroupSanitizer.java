@@ -16,6 +16,8 @@
 
 package com.netflix.titus.runtime.endpoint.admission;
 
+import java.util.function.UnaryOperator;
+
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import reactor.core.publisher.Mono;
 
@@ -23,7 +25,7 @@ import reactor.core.publisher.Mono;
  * This {@link AdmissionSanitizer} implementation ensures a job's capacity group matches a specific string.
  * It is only used for testing purposes.
  */
-class TestingCapacityGroupSanitizer implements AdmissionSanitizer<JobDescriptor, String> {
+class TestingCapacityGroupSanitizer implements AdmissionSanitizer<JobDescriptor> {
     private final String desiredCapacityGroup;
 
     TestingCapacityGroupSanitizer() {
@@ -35,13 +37,8 @@ class TestingCapacityGroupSanitizer implements AdmissionSanitizer<JobDescriptor,
     }
 
     @Override
-    public Mono<String> sanitize(JobDescriptor entity) {
-        return Mono.just(desiredCapacityGroup);
-    }
-
-    @Override
-    public JobDescriptor apply(JobDescriptor entity, String update) {
-        return entity.toBuilder().withCapacityGroup(update).build();
+    public Mono<UnaryOperator<JobDescriptor>> sanitize(JobDescriptor entity) {
+        return Mono.just(jd -> jd.toBuilder().withCapacityGroup(desiredCapacityGroup).build());
     }
 
     public String getDesiredCapacityGroup() {
