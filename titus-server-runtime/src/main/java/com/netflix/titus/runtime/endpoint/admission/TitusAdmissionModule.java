@@ -22,7 +22,6 @@ import javax.inject.Singleton;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
-import com.google.inject.TypeLiteral;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -36,10 +35,6 @@ public class TitusAdmissionModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        bind(new TypeLiteral<AdmissionValidator<JobDescriptor>>() {
-        }).to(AggregatingValidator.class);
-        bind(new TypeLiteral<AdmissionSanitizer<JobDescriptor>>() {
-        }).to(AggregatingSanitizer.class);
     }
 
     @Provides
@@ -50,17 +45,17 @@ public class TitusAdmissionModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public AggregatingValidator getJobValidator(TitusValidatorConfiguration configuration,
-                                                JobIamValidator jobIamValidator,
-                                                Registry registry) {
+    public AdmissionValidator<JobDescriptor> getJobValidator(TitusValidatorConfiguration configuration,
+                                                             JobIamValidator jobIamValidator,
+                                                             Registry registry) {
         return new AggregatingValidator(configuration, registry, Collections.singletonList(jobIamValidator));
     }
 
     @Provides
     @Singleton
-    public AggregatingSanitizer getJobSanitizer(TitusValidatorConfiguration configuration,
-                                                JobImageSanitizer jobImageSanitizer,
-                                                JobIamValidator jobIamSanitizer) {
+    public AdmissionSanitizer<JobDescriptor> getJobSanitizer(TitusValidatorConfiguration configuration,
+                                                             JobImageSanitizer jobImageSanitizer,
+                                                             JobIamValidator jobIamSanitizer) {
         return new AggregatingSanitizer(configuration, Arrays.asList(jobImageSanitizer, jobIamSanitizer));
     }
 }
