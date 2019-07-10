@@ -13,6 +13,11 @@ cache:
     - $HOME/.gradle/wrapper/
 git:
   depth: false
+branches:
+  only:
+    - master
+    - /^v\d+\.\d+(\.\d+)?(-\S*)?$/
+    - /^hotfix(.*)$/
 env:
   global:
     - secure: hxROLyhmCI/zRYc8UQV244XboWRxGlKW33IVcbvbCNWjLp8UKQzAaKGnfaRUGNXYn+VmN43jagFBoBgMwiGGtHEbBDJH2UzlXWOlxY6dmsklwUnC1fMPwKqCGyeOyr+OxVhAffoRJOZ1CRDiV4VN0W7y0toFGa18aNp8qr1BCgXyvldFFUWT058AAZiG3+k/1qbgb2ndNyDDIo0wi9pp6yOUDIjUzy2QG2eBNZWcKZiPouqzyO96EMcV5eYf+UOhqabx5Q8YumPTV7cMTuAJ10ZAB0UfJYHWbt/e2aFJ5xQHFCWoJpo1Q724zI6iEfQoyjN3uj2g5HvXUXJRLD/RzQLimBPABwoVYdyRtTeuhhNTDW6078g7ONVups4pjW0U0tMdU9nO5PaojKVqqssPVsK10MU3+dcb8lpCA1z1DmAPJnlFoo4lTTDdP2zK+aDPF9YP04bxq9EjcxPf6gZ5qg/jR59dbPcuYel4YYMVNm+WCTqekAbgDvhnIEaS02gzMDmshEdgZAIc8YxTs4ZpYPTXzIGzvI5RW3WaMnjeCmrP2GUYKSWzinkVMI8nbgRfrGZrmbbQ/mFHMKpjeBRyzpVrZB2gFUiET43h35+td1lf3HDPS83DED8a5qMLeAhgHB6Tt6mR5S2n2dNUhMvpsTQgcLByvZn6ELMBX1UQqmg=
