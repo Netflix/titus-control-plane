@@ -26,9 +26,7 @@ import java.util.stream.Collectors;
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.sanitizer.ValidationError;
-import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 import org.junit.Before;
 import org.junit.Test;
 import reactor.core.publisher.Mono;
@@ -61,8 +59,8 @@ public class AggregatingValidatorTest {
         AggregatingValidator validator = new AggregatingValidator(
                 configuration,
                 registry,
-                Arrays.asList(pass0, pass1),
-                Collections.emptySet());
+                Arrays.asList(pass0, pass1)
+        );
         Mono<Set<ValidationError>> mono = validator.validate(MOCK_JOB);
 
         StepVerifier.create(mono)
@@ -77,8 +75,7 @@ public class AggregatingValidatorTest {
         AggregatingValidator validator = new AggregatingValidator(
                 configuration,
                 registry,
-                Arrays.asList(fail0, fail1),
-                Collections.emptySet());
+                Arrays.asList(fail0, fail1));
         Mono<Set<ValidationError>> mono = validator.validate(MOCK_JOB);
 
         StepVerifier.create(mono)
@@ -97,8 +94,7 @@ public class AggregatingValidatorTest {
         AggregatingValidator validator = new AggregatingValidator(
                 configuration,
                 registry,
-                Arrays.asList(pass, fail),
-                Collections.emptySet());
+                Arrays.asList(pass, fail));
         Mono<Set<ValidationError>> mono = validator.validate(MOCK_JOB);
 
         StepVerifier.create(mono)
@@ -117,8 +113,7 @@ public class AggregatingValidatorTest {
         AdmissionValidator validator = new AggregatingValidator(
                 configuration,
                 registry,
-                Arrays.asList(pass, never),
-                Collections.emptySet());
+                Arrays.asList(pass, never));
         Mono<Set<ValidationError>> mono = validator.validate(MOCK_JOB);
 
         StepVerifier.create(mono)
@@ -138,8 +133,7 @@ public class AggregatingValidatorTest {
         AdmissionValidator parallelValidator = new AggregatingValidator(
                 configuration,
                 registry,
-                Arrays.asList(pass, fail, never),
-                Collections.emptySet());
+                Arrays.asList(pass, fail, never));
         Mono<Set<ValidationError>> mono = parallelValidator.validate(MOCK_JOB);
 
         StepVerifier.create(mono)
@@ -170,8 +164,7 @@ public class AggregatingValidatorTest {
         AdmissionValidator validator = new AggregatingValidator(
                 configuration,
                 registry,
-                Arrays.asList(never),
-                Collections.emptySet());
+                Arrays.asList(never));
         Mono<Set<ValidationError>> mono = validator.validate(MOCK_JOB);
 
         StepVerifier.create(mono)
@@ -189,8 +182,7 @@ public class AggregatingValidatorTest {
         AdmissionValidator validator = new AggregatingValidator(
                 configuration,
                 registry,
-                Arrays.asList(fail),
-                Collections.emptySet());
+                Arrays.asList(fail));
         Mono<Set<ValidationError>> mono = validator.validate(MOCK_JOB);
 
         StepVerifier.create(mono)
@@ -208,8 +200,7 @@ public class AggregatingValidatorTest {
         AdmissionValidator validator = new AggregatingValidator(
                 configuration,
                 registry,
-                Arrays.asList(pass),
-                Collections.emptySet());
+                Arrays.asList(pass));
         Mono<Set<ValidationError>> mono = validator.validate(MOCK_JOB);
 
         StepVerifier.create(mono)
@@ -226,8 +217,7 @@ public class AggregatingValidatorTest {
         AdmissionValidator validator = new AggregatingValidator(
                 configuration,
                 registry,
-                Arrays.asList(never0, never1),
-                Collections.emptySet());
+                Arrays.asList(never0, never1));
         Mono<Set<ValidationError>> mono = validator.validate(MOCK_JOB);
 
         StepVerifier.create(mono)
@@ -254,8 +244,7 @@ public class AggregatingValidatorTest {
         AdmissionValidator validator = new AggregatingValidator(
                 configuration,
                 registry,
-                Arrays.asList(pass0, pass1),
-                Collections.emptySet());
+                Arrays.asList(pass0, pass1));
         Mono<Set<ValidationError>> mono = validator.validate(MOCK_JOB);
 
         StepVerifier.create(mono)
@@ -270,8 +259,7 @@ public class AggregatingValidatorTest {
         AdmissionValidator validator = new AggregatingValidator(
                 configuration,
                 registry,
-                Arrays.asList(fail0, fail1),
-                Collections.emptySet());
+                Arrays.asList(fail0, fail1));
         Mono<Set<ValidationError>> mono = validator.validate(MOCK_JOB);
 
         StepVerifier.create(mono)
@@ -290,68 +278,12 @@ public class AggregatingValidatorTest {
         AggregatingValidator validator = new AggregatingValidator(
                 configuration,
                 registry,
-                Arrays.asList(empty, pass, empty),
-                Collections.emptySet()
+                Arrays.asList(empty, pass, empty)
         );
         Mono<Set<ValidationError>> mono = validator.validate(MOCK_JOB);
         StepVerifier.create(mono)
                 .expectNext(Collections.emptySet())
                 .verifyComplete();
-    }
-
-    // Sanitizer tests
-
-    @Test
-    public void sanitizePassPass() {
-        final String initialAppName = "initialAppName";
-        final String initialCapacityGroup = "initialCapacityGroup";
-        AdmissionSanitizer<JobDescriptor> appNameSanitizer = new TestingAppNameSanitizer();
-        AdmissionSanitizer<JobDescriptor> capacityGroupSanitizer = new TestingCapacityGroupSanitizer();
-
-        JobDescriptor<?> jobDescriptor = JobDescriptorGenerator.batchJobDescriptors()
-                .map(jd -> jd.toBuilder()
-                        .withApplicationName(initialAppName)
-                        .withCapacityGroup(initialCapacityGroup)
-                        .build())
-                .getValue();
-
-        AggregatingValidator validator = new AggregatingValidator(
-                configuration,
-                registry,
-                Collections.emptySet(),
-                Arrays.asList(appNameSanitizer, capacityGroupSanitizer));
-
-        StepVerifier.create(validator.sanitize(jobDescriptor))
-                .assertNext(sanitizedJobDescriptor -> {
-                    assertThat(sanitizedJobDescriptor.getApplicationName().equals(TestingAppNameSanitizer.desiredAppName)).isTrue();
-                    assertThat(sanitizedJobDescriptor.getCapacityGroup().equals(TestingCapacityGroupSanitizer.desiredCapacityGroup)).isTrue();
-                })
-                .verifyComplete();
-    }
-
-    @Test
-    public void sanitizePassFail() {
-        final String initialAppName = "initialAppName";
-        final String initialCapacityGroup = "initialCapacityGroup";
-        AdmissionSanitizer<JobDescriptor> appNameSanitizer = new TestingAppNameSanitizer();
-        AdmissionSanitizer<JobDescriptor> failSanitizer = new FailJobValidator();
-
-        JobDescriptor<?> jobDescriptor = JobDescriptorGenerator.batchJobDescriptors()
-                .map(jd -> jd.toBuilder()
-                        .withApplicationName(initialAppName)
-                        .withCapacityGroup(initialCapacityGroup)
-                        .build())
-                .getValue();
-
-        AggregatingValidator validator = new AggregatingValidator(
-                configuration,
-                registry,
-                Collections.emptySet(),
-                Arrays.asList(appNameSanitizer, failSanitizer));
-
-        StepVerifier.create(validator.sanitize(jobDescriptor))
-                .expectError(TitusServiceException.class)
-                .verify();
     }
 
     private void validateFailErrors(Collection<ValidationError> failErrors) {
@@ -372,20 +304,4 @@ public class AggregatingValidatorTest {
         assertThat(hardErrors).allMatch(error -> error.getType().equals(errorType));
     }
 
-    private static class EmptyValidator implements AdmissionValidator<JobDescriptor>, AdmissionSanitizer<JobDescriptor> {
-        @Override
-        public Mono<Set<ValidationError>> validate(JobDescriptor entity) {
-            return Mono.empty();
-        }
-
-        @Override
-        public Mono<JobDescriptor> sanitize(JobDescriptor entity) {
-            return Mono.empty();
-        }
-
-        @Override
-        public ValidationError.Type getErrorType() {
-            return ValidationError.Type.HARD;
-        }
-    }
 }

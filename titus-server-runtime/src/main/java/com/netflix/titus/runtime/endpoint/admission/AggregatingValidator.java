@@ -35,11 +35,10 @@ import reactor.core.scheduler.Schedulers;
  * An AggregatingValidator executes and aggregates the results of multiple {@link AdmissionValidator}s.
  */
 @Singleton
-public class AggregatingValidator implements AdmissionValidator<JobDescriptor>, AdmissionSanitizer<JobDescriptor> {
+public class AggregatingValidator implements AdmissionValidator<JobDescriptor> {
     private final TitusValidatorConfiguration configuration;
     private final Duration timeout;
-    private final Collection<AdmissionValidator<JobDescriptor>> validators;
-    private final Collection<AdmissionSanitizer<JobDescriptor>> sanitizers;
+    private final Collection<? extends AdmissionValidator<JobDescriptor>> validators;
     private final ValidatorMetrics validatorMetrics;
 
     /**
@@ -56,12 +55,10 @@ public class AggregatingValidator implements AdmissionValidator<JobDescriptor>, 
     public AggregatingValidator(
             TitusValidatorConfiguration configuration,
             Registry registry,
-            Collection<AdmissionValidator<JobDescriptor>> validators,
-            Collection<AdmissionSanitizer<JobDescriptor>> sanitizers) {
+            Collection<? extends AdmissionValidator<JobDescriptor>> validators) {
         this.configuration = configuration;
         this.timeout = Duration.ofMillis(this.configuration.getTimeoutMs());
         this.validators = validators;
-        this.sanitizers = sanitizers;
         this.validatorMetrics = new ValidatorMetrics(this.getClass().getSimpleName(), registry);
     }
 
@@ -80,20 +77,6 @@ public class AggregatingValidator implements AdmissionValidator<JobDescriptor>, 
                 .defaultIfEmpty(Collections.emptySet());
     }
 
-    /**
-     * Sanitize executes all of sanitizers in serial, passing the sanitized result of the previous into the next.
-     * The iteration order of the sanitizers is not guaranteed. Any sanitization failure results in the Mono
-     * emitting an error.
-     */
-    @Override
-    public Mono<JobDescriptor> sanitize(JobDescriptor entity) {
-        Mono<JobDescriptor> sanitizedJobDescriptorMono = Mono.just(entity);
-        for (AdmissionSanitizer<JobDescriptor> sanitizer : sanitizers) {
-            sanitizedJobDescriptorMono = sanitizedJobDescriptorMono.flatMap(sanitizer::sanitize);
-        }
-        return sanitizedJobDescriptorMono.timeout(timeout);
-    }
-
     @Override
     public ValidationError.Type getErrorType() {
         return configuration.toValidatorErrorType();
@@ -102,7 +85,7 @@ public class AggregatingValidator implements AdmissionValidator<JobDescriptor>, 
     private Collection<Mono<Set<ValidationError>>> getMonos(
             JobDescriptor jobDescriptor,
             Duration timeout,
-            Collection<AdmissionValidator<JobDescriptor>> validators) {
+            Collection<? extends AdmissionValidator<JobDescriptor>> validators) {
 
         return validators.stream()
                 .map(v -> v.validate(jobDescriptor)

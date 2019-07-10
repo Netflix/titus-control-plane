@@ -42,7 +42,6 @@ public class JobImageSanitizerTest {
     private static final String repo = "myRepo";
     private static final String tag = "myTag";
     private static final String digest = "sha256:f9f5bb506406b80454a4255b33ed2e4383b9e4a32fb94d6f7e51922704e818fa";
-    private static final String errorDescription = "does not exist in registry";
 
     private final JobImageValidatorConfiguration configuration = mock(JobImageValidatorConfiguration.class);
     private final RegistryClient registryClient = mock(RegistryClient.class);
@@ -79,9 +78,9 @@ public class JobImageSanitizerTest {
     public void testJobWithTagResolution() {
         when(registryClient.getImageDigest(anyString(), anyString())).thenReturn(Mono.just(digest));
 
-        StepVerifier.create(sanitizer.sanitize(jobDescriptorWithTag))
-                .assertNext(sanitizedJobDescriptor ->
-                        assertThat(sanitizedJobDescriptor.getContainer().getImage().getDigest().equals(digest)).isTrue())
+        StepVerifier.create(sanitizer.sanitizeAndApply(jobDescriptorWithTag))
+                .assertNext(jobDescriptor -> assertThat(jobDescriptor.getContainer().getImage().getDigest())
+                        .isEqualTo(digest))
                 .verifyComplete();
     }
 
@@ -106,7 +105,7 @@ public class JobImageSanitizerTest {
         when(registryClient.getImageDigest(anyString(), anyString()))
                 .thenReturn(Mono.error(TitusRegistryException.internalError(repo, tag, HttpStatus.INTERNAL_SERVER_ERROR)));
 
-        StepVerifier.create(sanitizer.sanitize(jobDescriptorWithTag))
+        StepVerifier.create(sanitizer.sanitizeAndApply(jobDescriptorWithTag))
                 .assertNext(jd -> {
                     assertThat(jd.getContainer().getImage().getDigest()).isNullOrEmpty();
                     assertThat(jd.getContainer().getImage()).isEqualTo(jobDescriptorWithTag.getContainer().getImage());
@@ -118,13 +117,11 @@ public class JobImageSanitizerTest {
 
     @Test
     public void testJobWithDigestExists() {
-        when(registryClient.getImageDigest(anyString(), anyString())).thenReturn(Mono.just(digest));
+        Image image = jobDescriptorWithDigest.getContainer().getImage();
+        when(registryClient.getImageDigest(image.getName(), image.getDigest())).thenReturn(Mono.just(digest));
 
         StepVerifier.create(sanitizer.sanitize(jobDescriptorWithDigest))
-                .assertNext(sanitizedJobDescriptor -> {
-                    assertThat(sanitizedJobDescriptor.getContainer().getImage().getDigest().equals(digest)).isTrue();
-                    assertThat(sanitizedJobDescriptor.getContainer().getImage().getTag()).isEqualTo("");
-                })
+                .expectNextCount(0) // nothing to do when digest is valid
                 .verifyComplete();
     }
 }

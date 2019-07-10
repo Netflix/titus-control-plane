@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.UnaryOperator;
 
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.service.TitusServiceException;
@@ -52,7 +53,7 @@ public class FailJobValidator implements AdmissionValidator<JobDescriptor>, Admi
     }
 
     @Override
-    public Mono<JobDescriptor> sanitize(JobDescriptor entity) {
+    public Mono<UnaryOperator<JobDescriptor>> sanitize(JobDescriptor entity) {
         return Mono.error(TitusServiceException.invalidArgument(ERR_DESCRIPTION));
     }
 

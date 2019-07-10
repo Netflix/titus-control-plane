@@ -16,32 +16,26 @@
 
 package com.netflix.titus.runtime.endpoint.admission;
 
+import java.util.Set;
 import java.util.function.UnaryOperator;
 
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import com.netflix.titus.common.model.sanitizer.ValidationError;
 import reactor.core.publisher.Mono;
 
-/**
- * This {@link AdmissionSanitizer} implementation ensures a job's appname matches a specific string.
- * It is only used for testing purposes.
- */
-class TestingAppNameSanitizer implements AdmissionSanitizer<JobDescriptor> {
-    private final String desiredAppName;
-
-    TestingAppNameSanitizer() {
-        this("desiredAppName");
+class EmptyValidator implements AdmissionValidator<JobDescriptor>, AdmissionSanitizer<JobDescriptor> {
+    @Override
+    public Mono<Set<ValidationError>> validate(JobDescriptor entity) {
+        return Mono.empty();
     }
 
-    TestingAppNameSanitizer(String desiredAppName) {
-        this.desiredAppName = desiredAppName;
+    @Override
+    public ValidationError.Type getErrorType() {
+        return ValidationError.Type.HARD;
     }
 
     @Override
     public Mono<UnaryOperator<JobDescriptor>> sanitize(JobDescriptor entity) {
-        return Mono.just(jd -> entity.toBuilder().withApplicationName(desiredAppName).build());
-    }
-
-    public String getDesiredAppName() {
-        return desiredAppName;
+        return Mono.empty();
     }
 }

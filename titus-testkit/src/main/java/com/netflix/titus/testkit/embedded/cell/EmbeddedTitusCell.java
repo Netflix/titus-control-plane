@@ -82,7 +82,7 @@ public class EmbeddedTitusCell {
         private boolean enableREST;
         private boolean defaultGateway;
         private AdmissionValidator<JobDescriptor> validator = new PassJobValidator();
-        private AdmissionSanitizer<JobDescriptor> sanitizer = new PassJobValidator();
+        private AdmissionSanitizer<JobDescriptor> jobSanitizer = new PassJobValidator();
 
         public Builder withMaster(EmbeddedTitusMaster master) {
             this.master = master;
@@ -105,8 +105,8 @@ public class EmbeddedTitusCell {
             return this;
         }
 
-        public Builder withJobSanitizer(AdmissionSanitizer<JobDescriptor> sanitizer) {
-            this.sanitizer = sanitizer;
+        public Builder withJobSanitizer(AdmissionSanitizer<JobDescriptor> jobSanitizer) {
+            this.jobSanitizer = jobSanitizer;
             return this;
         }
 
@@ -122,7 +122,7 @@ public class EmbeddedTitusCell {
                         .withStore(master.getJobStore())
                         .withEnableREST(enableREST)
                         .withJobValidator(validator)
-                        .withJobSanitizer(sanitizer)
+                        .withJobSanitizer(jobSanitizer)
                         .build();
             } else {
                 gateway = gateway.toBuilder()

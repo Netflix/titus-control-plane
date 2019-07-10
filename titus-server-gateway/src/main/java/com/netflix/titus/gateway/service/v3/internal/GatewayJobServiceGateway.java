@@ -46,7 +46,6 @@ import com.netflix.titus.common.model.sanitizer.ValidationError;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.StringExt;
-import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.Job;
@@ -76,11 +75,13 @@ import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Mono;
 import rx.Observable;
 
 import static com.netflix.titus.api.FeatureRolloutPlans.ENVIRONMENT_VARIABLE_NAMES_STRICT_VALIDATION_FEATURE;
 import static com.netflix.titus.api.FeatureRolloutPlans.SECURITY_GROUPS_REQUIRED_FEATURE;
 import static com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_STRICT_SANITIZER;
+import static com.netflix.titus.common.util.rx.ReactorExt.toObservable;
 import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toGrpcPagination;
 import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toPage;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createRequestObservable;
@@ -157,9 +158,10 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
         }
 
         Observable<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> sanitizedCoreJobDescriptorObs =
-                ReactorExt.toObservable(sanitizer.sanitize(coreJobDescriptor))
+                toObservable(sanitizer.sanitizeAndApply(coreJobDescriptor)
+                        .switchIfEmpty(Mono.just(coreJobDescriptor)))
                         .onErrorResumeNext(throwable -> Observable.error(TitusServiceException.invalidArgument(throwable)))
-                        .flatMap(sanitizedCoreJobDescriptor -> ReactorExt.toObservable(validator.validate(sanitizedCoreJobDescriptor))
+                        .flatMap(sanitizedCoreJobDescriptor -> toObservable(validator.validate(sanitizedCoreJobDescriptor))
                                 .flatMap(errors -> {
                                     // Only emit an error on HARD validation errors
                                     errors = errors.stream().filter(ValidationError::isHard).collect(Collectors.toSet());

@@ -18,6 +18,7 @@
 
 package com.netflix.titus.gateway.service.v3.internal;
 
+import java.util.Optional;
 import java.util.Set;
 
 import com.netflix.spectator.api.DefaultRegistry;
@@ -115,7 +116,7 @@ public class JobSecurityValidatorTest {
         when(iamConnector.getIamRole(INVALID_IAM_ROLE_NAME))
                 .thenReturn(Mono.error(IamConnectorException.iamRoleUnexpectedError(INVALID_IAM_ROLE_NAME)));
 
-        Mono<JobDescriptor> sanitized = iamValidator.sanitize(jobDescriptorWithInvalidIam);
+        Mono<JobDescriptor> sanitized = iamValidator.sanitizeAndApply(jobDescriptorWithInvalidIam);
         StepVerifier.create(sanitized)
                 .assertNext(jobDescriptor -> {
                     assertThat(jobDescriptor.getContainer().getSecurityProfile().getIamRole())

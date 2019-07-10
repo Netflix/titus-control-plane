@@ -17,6 +17,7 @@
 package com.netflix.titus.runtime.endpoint.admission;
 
 import java.util.Set;
+import java.util.function.UnaryOperator;
 
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.common.model.sanitizer.ValidationError;
@@ -42,7 +43,7 @@ class NeverJobValidator implements AdmissionValidator<JobDescriptor>, AdmissionS
     }
 
     @Override
-    public Mono<JobDescriptor> sanitize(JobDescriptor entity) {
+    public Mono<UnaryOperator<JobDescriptor>> sanitize(JobDescriptor entity) {
         return Mono.never();
     }
 
