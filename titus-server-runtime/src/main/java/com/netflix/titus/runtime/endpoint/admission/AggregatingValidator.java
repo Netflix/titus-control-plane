@@ -38,7 +38,7 @@ import reactor.core.scheduler.Schedulers;
 public class AggregatingValidator implements AdmissionValidator<JobDescriptor> {
     private final TitusValidatorConfiguration configuration;
     private final Duration timeout;
-    private final Collection<AdmissionValidator<JobDescriptor>> validators;
+    private final Collection<? extends AdmissionValidator<JobDescriptor>> validators;
     private final ValidatorMetrics validatorMetrics;
 
     /**
@@ -55,7 +55,7 @@ public class AggregatingValidator implements AdmissionValidator<JobDescriptor> {
     public AggregatingValidator(
             TitusValidatorConfiguration configuration,
             Registry registry,
-            Collection<AdmissionValidator<JobDescriptor>> validators) {
+            Collection<? extends AdmissionValidator<JobDescriptor>> validators) {
         this.configuration = configuration;
         this.timeout = Duration.ofMillis(this.configuration.getTimeoutMs());
         this.validators = validators;
@@ -85,7 +85,7 @@ public class AggregatingValidator implements AdmissionValidator<JobDescriptor> {
     private Collection<Mono<Set<ValidationError>>> getMonos(
             JobDescriptor jobDescriptor,
             Duration timeout,
-            Collection<AdmissionValidator<JobDescriptor>> validators) {
+            Collection<? extends AdmissionValidator<JobDescriptor>> validators) {
 
         return validators.stream()
                 .map(v -> v.validate(jobDescriptor)

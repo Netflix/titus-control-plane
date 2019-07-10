@@ -58,6 +58,9 @@ public class AggregatingSanitizer implements AdmissionSanitizer<JobDescriptor> {
         List<Mono<UnaryOperator<JobDescriptor>>> sanitizationFunctions = sanitizers.stream()
                 .map(s -> s.sanitize(entity)
                         .subscribeOn(Schedulers.parallel())
+                        .timeout(timeout, Mono.error(() -> TitusServiceException.internal(
+                                s.getClass().getSimpleName() + " timed out running job sanitization")
+                        ))
                         // important: Mono.zip will be short circuited if members are empty
                         .switchIfEmpty(Mono.just(UnaryOperator.identity()))
                 )
@@ -72,7 +75,8 @@ public class AggregatingSanitizer implements AdmissionSanitizer<JobDescriptor> {
         });
 
         return merged.switchIfEmpty(Mono.just(UnaryOperator.identity()))
-                .timeout(timeout, Mono.error(() -> TitusServiceException.internal("Job sanitization timed out")));
+                .timeout(timeout.multipliedBy(2),
+                        Mono.error(() -> TitusServiceException.internal("Job sanitization timed out")));
 
     }
 

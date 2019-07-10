@@ -114,7 +114,7 @@ public class AggregatingSanitizerTest {
                     }
                     TitusServiceException titusException = (TitusServiceException) error;
                     return titusException.getErrorCode().equals(TitusServiceException.ErrorCode.INTERNAL) &&
-                            error.getMessage().contains("Job sanitization timed out");
+                            error.getMessage().contains("NeverJobValidator timed out");
 
                 })
                 .verify();
