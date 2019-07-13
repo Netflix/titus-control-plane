@@ -67,6 +67,12 @@ public class PropertiesExtTest {
     }
 
     @Test
+    public void testGetTopNames() {
+        Set<String> result = PropertiesExt.getTopNames(asList("top1.a", "top2.b", "single"), 1);
+        assertThat(result).contains("top1", "top2");
+    }
+
+    @Test
     public void testSplitNames() throws Exception {
         Map<String, Set<String>> result = PropertiesExt.splitNames(asList("top1", "top2.nested2"), 1);
         assertThat(result).containsEntry("top1", null);

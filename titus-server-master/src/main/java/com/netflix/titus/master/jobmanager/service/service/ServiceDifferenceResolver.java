@@ -154,7 +154,9 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
 
         if (hasJobState(referenceModel, JobState.KillInitiated)) {
             List<ChangeAction> killInitiatedActions = KillInitiatedActions.reconcilerInitiatedAllTasksKillInitiated(
-                    engine, vmService, jobStore, TaskStatus.REASON_TASK_KILLED, "Killing task as its job is in KillInitiated state", titusRuntime
+                    engine, vmService, jobStore, TaskStatus.REASON_TASK_KILLED,
+                    "Killing task as its job is in KillInitiated state", configuration.getConcurrentReconcilerStoreUpdateLimit(),
+                    titusRuntime
             );
             if (killInitiatedActions.isEmpty()) {
                 return findTaskStateTimeouts(engine, runningJobView, configuration, vmService, jobStore, titusRuntime);
@@ -261,6 +263,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
         }
         boolean isJobTerminating = refJob.getStatus().getState() == JobState.KillInitiated;
         for (EntityHolder referenceTaskHolder : refJobHolder.getChildren()) {
+
             ServiceJobTask refTask = referenceTaskHolder.getEntity();
             Optional<EntityHolder> storeHolder = storeJob.findById(referenceTaskHolder.getId());
             ServiceJobTask storeTask = storeHolder.get().getEntity();

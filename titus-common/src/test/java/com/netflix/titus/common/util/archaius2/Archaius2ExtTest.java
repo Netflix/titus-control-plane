@@ -16,11 +16,14 @@
 
 package com.netflix.titus.common.util.archaius2;
 
+import java.util.Collections;
 import java.util.Iterator;
 
 import com.netflix.archaius.DefaultPropertyFactory;
+import com.netflix.archaius.api.annotations.DefaultValue;
 import com.netflix.archaius.api.config.SettableConfig;
 import com.netflix.archaius.config.DefaultSettableConfig;
+import com.netflix.archaius.config.MapConfig;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -39,5 +42,27 @@ public class Archaius2ExtTest {
         config.setProperty("a", 2);
         factory.invalidate();
         assertThat(it.next()).isEqualTo(2);
+    }
+
+    @Test
+    public void testDefaultConfiguration() {
+        assertThat(Archaius2Ext.newDefaultConfiguration(MyConfig.class).getString()).isEqualTo("hello");
+    }
+
+    @Test
+    public void testConfigurationWithNoPrefix() {
+        MapConfig config = new MapConfig(Collections.singletonMap("string", "HELLO"));
+        assertThat(Archaius2Ext.newConfiguration(MyConfig.class, config).getString()).isEqualTo("HELLO");
+    }
+
+    @Test
+    public void testConfigurationWithPrefix() {
+        MapConfig config = new MapConfig(Collections.singletonMap("root.string", "HELLO"));
+        assertThat(Archaius2Ext.newConfiguration(MyConfig.class, "root", config).getString()).isEqualTo("HELLO");
+    }
+
+    private interface MyConfig {
+        @DefaultValue("hello")
+        String getString();
     }
 }

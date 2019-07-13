@@ -32,10 +32,18 @@ public interface JobConfiguration {
 
     int MAX_ENVIRONMENT_VARIABLES_SIZE_KB = 32;
 
+    /**
+     * @deprecated Replaced by job specific {@link CustomJobConfiguration#getMaxBatchJobSize()}
+     */
+    @Deprecated
     @DefaultValue("1000")
     int getMaxBatchJobSize();
 
-    @DefaultValue("2500")
+    /**
+     * @deprecated Replaced by job specific {@link CustomJobConfiguration#getMaxServiceJobSize()}
+     */
+    @Deprecated
+    @DefaultValue("10000")
     int getMaxServiceJobSize();
 
     @DefaultValue("1.0")

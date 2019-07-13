@@ -22,7 +22,10 @@ import javax.inject.Singleton;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
+import com.netflix.archaius.api.Config;
 import com.netflix.titus.api.agent.model.sanitizer.AgentSanitizerBuilder;
+import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import com.netflix.titus.api.jobmanager.model.job.sanitizer.CustomJobConfiguration;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobAssertions;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder;
@@ -31,6 +34,8 @@ import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.scheduler.model.sanitizer.SchedulerSanitizerBuilder;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.model.sanitizer.VerifierMode;
+import com.netflix.titus.common.util.archaius2.Archaius2Ext;
+import com.netflix.titus.common.util.archaius2.ObjectConfigurationResolver;
 
 import static com.netflix.titus.api.agent.model.sanitizer.AgentSanitizerBuilder.AGENT_SANITIZER;
 import static com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_PERMISSIVE_SANITIZER;
@@ -42,6 +47,9 @@ import static com.netflix.titus.api.scheduler.model.sanitizer.SchedulerSanitizer
  *
  */
 public class TitusEntitySanitizerModule extends AbstractModule {
+
+    public static final String CUSTOM_JOB_CONFIGURATION_ROOT = "titusMaster.job.customConfiguration";
+    public static final String DEFAULT_CUSTOM_JOB_CONFIGURATION_ROOT = "titusMaster.job.defaultCustomConfiguration";
 
     @Override
     protected void configure() {
@@ -109,5 +117,17 @@ public class TitusEntitySanitizerModule extends AbstractModule {
     @Singleton
     public JobConfiguration getJobConfiguration(ConfigProxyFactory factory) {
         return factory.newProxy(JobConfiguration.class);
+    }
+
+    @Provides
+    @Singleton
+    public ObjectConfigurationResolver<JobDescriptor, CustomJobConfiguration> getJobObjectConfigurationResolver(Config configuration,
+                                                                                                                ConfigProxyFactory factory) {
+        return Archaius2Ext.newObjectConfigurationResolver(
+                configuration.getPrefixedView(CUSTOM_JOB_CONFIGURATION_ROOT),
+                JobDescriptor::getApplicationName,
+                CustomJobConfiguration.class,
+                factory.newProxy(CustomJobConfiguration.class, DEFAULT_CUSTOM_JOB_CONFIGURATION_ROOT)
+        );
     }
 }

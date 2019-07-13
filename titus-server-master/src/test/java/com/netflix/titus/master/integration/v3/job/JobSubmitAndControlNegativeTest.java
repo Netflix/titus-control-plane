@@ -255,7 +255,7 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
 
     @Test
     public void testTooLargeServiceJob() throws Exception {
-        Capacity badCapacity = Capacity.newBuilder().setMin(1).setDesired(100).setMax(5000).build();
+        Capacity badCapacity = Capacity.newBuilder().setMin(1).setDesired(100).setMax(10_001).build();
         submitBadJob(
                 SERVICE_JOB_DESCR_BUILDER.setService(SERVICE_JOB_SPEC_BUILDER.setCapacity(badCapacity)).build(),
                 "extensions.capacity"
