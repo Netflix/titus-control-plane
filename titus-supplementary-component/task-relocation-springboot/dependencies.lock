@@ -635,7 +635,6 @@
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
@@ -668,7 +667,6 @@
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
@@ -700,8 +698,7 @@
         "io.netty:netty-transport-native-epoll": {
             "locked": "4.1.31.Final",
             "transitive": [
-                "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
@@ -754,13 +751,6 @@
             "locked": "1.3.8",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop",
-                "com.netflix.titus:titus-common",
-                "io.reactivex:rxnetty"
-            ]
-        },
-        "io.reactivex:rxnetty": {
-            "locked": "0.4.20",
-            "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
@@ -1091,7 +1081,6 @@
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
-                "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
                 "org.mock-server:mockserver-client-java",
@@ -1869,7 +1858,6 @@
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
@@ -1902,7 +1890,6 @@
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
@@ -1934,8 +1921,7 @@
         "io.netty:netty-transport-native-epoll": {
             "locked": "4.1.31.Final",
             "transitive": [
-                "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
@@ -1988,13 +1974,6 @@
             "locked": "1.3.8",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop",
-                "com.netflix.titus:titus-common",
-                "io.reactivex:rxnetty"
-            ]
-        },
-        "io.reactivex:rxnetty": {
-            "locked": "0.4.20",
-            "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
@@ -2372,7 +2351,6 @@
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
-                "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
                 "org.mock-server:mockserver-client-java",
@@ -3223,7 +3201,6 @@
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
@@ -3256,7 +3233,6 @@
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
@@ -3288,8 +3264,7 @@
         "io.netty:netty-transport-native-epoll": {
             "locked": "4.1.31.Final",
             "transitive": [
-                "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
@@ -3342,13 +3317,6 @@
             "locked": "1.3.8",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop",
-                "com.netflix.titus:titus-common",
-                "io.reactivex:rxnetty"
-            ]
-        },
-        "io.reactivex:rxnetty": {
-            "locked": "0.4.20",
-            "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
@@ -3726,7 +3694,6 @@
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
-                "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
                 "org.mock-server:mockserver-client-java",
@@ -4613,7 +4580,6 @@
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
@@ -4646,7 +4612,6 @@
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
@@ -4678,8 +4643,7 @@
         "io.netty:netty-transport-native-epoll": {
             "locked": "4.1.31.Final",
             "transitive": [
-                "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
@@ -4732,13 +4696,6 @@
             "locked": "1.3.8",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop",
-                "com.netflix.titus:titus-common",
-                "io.reactivex:rxnetty"
-            ]
-        },
-        "io.reactivex:rxnetty": {
-            "locked": "0.4.20",
-            "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
@@ -5069,7 +5026,6 @@
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
-                "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
                 "org.mock-server:mockserver-client-java",
@@ -5848,7 +5804,6 @@
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
@@ -5881,7 +5836,6 @@
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
@@ -5913,8 +5867,7 @@
         "io.netty:netty-transport-native-epoll": {
             "locked": "4.1.31.Final",
             "transitive": [
-                "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
@@ -5967,13 +5920,6 @@
             "locked": "1.3.8",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop",
-                "com.netflix.titus:titus-common",
-                "io.reactivex:rxnetty"
-            ]
-        },
-        "io.reactivex:rxnetty": {
-            "locked": "0.4.20",
-            "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
@@ -6351,7 +6297,6 @@
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
-                "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
                 "org.mock-server:mockserver-client-java",
@@ -7185,7 +7130,6 @@
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
@@ -7218,7 +7162,6 @@
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
@@ -7250,8 +7193,7 @@
         "io.netty:netty-transport-native-epoll": {
             "locked": "4.1.31.Final",
             "transitive": [
-                "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
@@ -7309,13 +7251,6 @@
             "locked": "1.3.8",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop",
-                "com.netflix.titus:titus-common",
-                "io.reactivex:rxnetty"
-            ]
-        },
-        "io.reactivex:rxnetty": {
-            "locked": "0.4.20",
-            "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
@@ -7687,7 +7622,6 @@
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
-                "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
                 "org.mock-server:mockserver-client-java",
@@ -8475,7 +8409,6 @@
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
@@ -8508,7 +8441,6 @@
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
@@ -8540,8 +8472,7 @@
         "io.netty:netty-transport-native-epoll": {
             "locked": "4.1.31.Final",
             "transitive": [
-                "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
@@ -8599,13 +8530,6 @@
             "locked": "1.3.8",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop",
-                "com.netflix.titus:titus-common",
-                "io.reactivex:rxnetty"
-            ]
-        },
-        "io.reactivex:rxnetty": {
-            "locked": "0.4.20",
-            "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
@@ -9024,7 +8948,6 @@
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
-                "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
                 "org.mock-server:mockserver-client-java",
@@ -9857,7 +9780,6 @@
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
@@ -9890,7 +9812,6 @@
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
@@ -9922,8 +9843,7 @@
         "io.netty:netty-transport-native-epoll": {
             "locked": "4.1.31.Final",
             "transitive": [
-                "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
@@ -9981,13 +9901,6 @@
             "locked": "1.3.8",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop",
-                "com.netflix.titus:titus-common",
-                "io.reactivex:rxnetty"
-            ]
-        },
-        "io.reactivex:rxnetty": {
-            "locked": "0.4.20",
-            "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
@@ -10359,7 +10272,6 @@
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
-                "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
                 "org.mock-server:mockserver-client-java",
@@ -11148,7 +11060,6 @@
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
@@ -11181,7 +11092,6 @@
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
@@ -11213,8 +11123,7 @@
         "io.netty:netty-transport-native-epoll": {
             "locked": "4.1.31.Final",
             "transitive": [
-                "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
@@ -11272,13 +11181,6 @@
             "locked": "1.3.8",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop",
-                "com.netflix.titus:titus-common",
-                "io.reactivex:rxnetty"
-            ]
-        },
-        "io.reactivex:rxnetty": {
-            "locked": "0.4.20",
-            "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
@@ -11697,7 +11599,6 @@
                 "com.netflix.titus:titus-server-runtime",
                 "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-task-relocation",
-                "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
                 "org.mock-server:mockserver-client-java",

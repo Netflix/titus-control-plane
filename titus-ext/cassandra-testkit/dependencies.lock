@@ -450,8 +450,7 @@
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
-                "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-http2": {
@@ -489,7 +488,6 @@
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.cassandraunit:cassandra-unit"
             ]
         },
@@ -521,8 +519,7 @@
         "io.netty:netty-transport-native-epoll": {
             "locked": "4.1.36.Final",
             "transitive": [
-                "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
@@ -575,13 +572,6 @@
             "locked": "1.3.8",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop",
-                "com.netflix.titus:titus-common",
-                "io.reactivex:rxnetty"
-            ]
-        },
-        "io.reactivex:rxnetty": {
-            "locked": "0.4.20",
-            "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
@@ -863,7 +853,6 @@
                 "com.thinkaurelius.thrift:thrift-server",
                 "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard.metrics:metrics-jvm",
-                "io.reactivex:rxnetty",
                 "org.apache.cassandra:cassandra-all",
                 "org.apache.cassandra:cassandra-thrift",
                 "org.apache.thrift:libthrift",
@@ -1405,8 +1394,7 @@
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
-                "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-http2": {
@@ -1444,7 +1432,6 @@
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.cassandraunit:cassandra-unit"
             ]
         },
@@ -1476,8 +1463,7 @@
         "io.netty:netty-transport-native-epoll": {
             "locked": "4.1.36.Final",
             "transitive": [
-                "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
@@ -1530,13 +1516,6 @@
             "locked": "1.3.8",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop",
-                "com.netflix.titus:titus-common",
-                "io.reactivex:rxnetty"
-            ]
-        },
-        "io.reactivex:rxnetty": {
-            "locked": "0.4.20",
-            "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
@@ -1818,7 +1797,6 @@
                 "com.thinkaurelius.thrift:thrift-server",
                 "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard.metrics:metrics-jvm",
-                "io.reactivex:rxnetty",
                 "org.apache.cassandra:cassandra-all",
                 "org.apache.cassandra:cassandra-thrift",
                 "org.apache.thrift:libthrift",
@@ -2360,8 +2338,7 @@
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
-                "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-http2": {
@@ -2399,7 +2376,6 @@
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.cassandraunit:cassandra-unit"
             ]
         },
@@ -2431,8 +2407,7 @@
         "io.netty:netty-transport-native-epoll": {
             "locked": "4.1.36.Final",
             "transitive": [
-                "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
@@ -2485,13 +2460,6 @@
             "locked": "1.3.8",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop",
-                "com.netflix.titus:titus-common",
-                "io.reactivex:rxnetty"
-            ]
-        },
-        "io.reactivex:rxnetty": {
-            "locked": "0.4.20",
-            "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
@@ -2773,7 +2741,6 @@
                 "com.thinkaurelius.thrift:thrift-server",
                 "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard.metrics:metrics-jvm",
-                "io.reactivex:rxnetty",
                 "org.apache.cassandra:cassandra-all",
                 "org.apache.cassandra:cassandra-thrift",
                 "org.apache.thrift:libthrift",
@@ -3379,8 +3346,7 @@
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
-                "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-http2": {
@@ -3418,7 +3384,6 @@
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.cassandraunit:cassandra-unit"
             ]
         },
@@ -3450,8 +3415,7 @@
         "io.netty:netty-transport-native-epoll": {
             "locked": "4.1.36.Final",
             "transitive": [
-                "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
@@ -3504,13 +3468,6 @@
             "locked": "1.3.8",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop",
-                "com.netflix.titus:titus-common",
-                "io.reactivex:rxnetty"
-            ]
-        },
-        "io.reactivex:rxnetty": {
-            "locked": "0.4.20",
-            "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
@@ -3792,7 +3749,6 @@
                 "com.thinkaurelius.thrift:thrift-server",
                 "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard.metrics:metrics-jvm",
-                "io.reactivex:rxnetty",
                 "org.apache.cassandra:cassandra-all",
                 "org.apache.cassandra:cassandra-thrift",
                 "org.apache.thrift:libthrift",
@@ -4335,8 +4291,7 @@
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
-                "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-http2": {
@@ -4374,7 +4329,6 @@
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.cassandraunit:cassandra-unit"
             ]
         },
@@ -4406,8 +4360,7 @@
         "io.netty:netty-transport-native-epoll": {
             "locked": "4.1.36.Final",
             "transitive": [
-                "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
@@ -4460,13 +4413,6 @@
             "locked": "1.3.8",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop",
-                "com.netflix.titus:titus-common",
-                "io.reactivex:rxnetty"
-            ]
-        },
-        "io.reactivex:rxnetty": {
-            "locked": "0.4.20",
-            "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
@@ -4748,7 +4694,6 @@
                 "com.thinkaurelius.thrift:thrift-server",
                 "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard.metrics:metrics-jvm",
-                "io.reactivex:rxnetty",
                 "org.apache.cassandra:cassandra-all",
                 "org.apache.cassandra:cassandra-thrift",
                 "org.apache.thrift:libthrift",
@@ -5301,8 +5246,7 @@
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
-                "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-http2": {
@@ -5340,7 +5284,6 @@
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.cassandraunit:cassandra-unit"
             ]
         },
@@ -5372,8 +5315,7 @@
         "io.netty:netty-transport-native-epoll": {
             "locked": "4.1.36.Final",
             "transitive": [
-                "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
@@ -5431,13 +5373,6 @@
             "locked": "1.3.8",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop",
-                "com.netflix.titus:titus-common",
-                "io.reactivex:rxnetty"
-            ]
-        },
-        "io.reactivex:rxnetty": {
-            "locked": "0.4.20",
-            "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
@@ -5754,7 +5689,6 @@
                 "com.thinkaurelius.thrift:thrift-server",
                 "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard.metrics:metrics-jvm",
-                "io.reactivex:rxnetty",
                 "org.apache.cassandra:cassandra-all",
                 "org.apache.cassandra:cassandra-thrift",
                 "org.apache.thrift:libthrift",
@@ -6306,8 +6240,7 @@
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
-                "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-http2": {
@@ -6345,7 +6278,6 @@
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.cassandraunit:cassandra-unit"
             ]
         },
@@ -6377,8 +6309,7 @@
         "io.netty:netty-transport-native-epoll": {
             "locked": "4.1.36.Final",
             "transitive": [
-                "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
@@ -6436,13 +6367,6 @@
             "locked": "1.3.8",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop",
-                "com.netflix.titus:titus-common",
-                "io.reactivex:rxnetty"
-            ]
-        },
-        "io.reactivex:rxnetty": {
-            "locked": "0.4.20",
-            "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
@@ -6759,7 +6683,6 @@
                 "com.thinkaurelius.thrift:thrift-server",
                 "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard.metrics:metrics-jvm",
-                "io.reactivex:rxnetty",
                 "org.apache.cassandra:cassandra-all",
                 "org.apache.cassandra:cassandra-thrift",
                 "org.apache.thrift:libthrift",
@@ -7311,8 +7234,7 @@
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
-                "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-http2": {
@@ -7350,7 +7272,6 @@
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.cassandraunit:cassandra-unit"
             ]
         },
@@ -7382,8 +7303,7 @@
         "io.netty:netty-transport-native-epoll": {
             "locked": "4.1.36.Final",
             "transitive": [
-                "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
@@ -7441,13 +7361,6 @@
             "locked": "1.3.8",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop",
-                "com.netflix.titus:titus-common",
-                "io.reactivex:rxnetty"
-            ]
-        },
-        "io.reactivex:rxnetty": {
-            "locked": "0.4.20",
-            "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
@@ -7764,7 +7677,6 @@
                 "com.thinkaurelius.thrift:thrift-server",
                 "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard.metrics:metrics-jvm",
-                "io.reactivex:rxnetty",
                 "org.apache.cassandra:cassandra-all",
                 "org.apache.cassandra:cassandra-thrift",
                 "org.apache.thrift:libthrift",
@@ -8317,8 +8229,7 @@
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
-                "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-http2": {
@@ -8356,7 +8267,6 @@
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.cassandraunit:cassandra-unit"
             ]
         },
@@ -8388,8 +8298,7 @@
         "io.netty:netty-transport-native-epoll": {
             "locked": "4.1.36.Final",
             "transitive": [
-                "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
@@ -8447,13 +8356,6 @@
             "locked": "1.3.8",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop",
-                "com.netflix.titus:titus-common",
-                "io.reactivex:rxnetty"
-            ]
-        },
-        "io.reactivex:rxnetty": {
-            "locked": "0.4.20",
-            "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
@@ -8770,7 +8672,6 @@
                 "com.thinkaurelius.thrift:thrift-server",
                 "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard.metrics:metrics-jvm",
-                "io.reactivex:rxnetty",
                 "org.apache.cassandra:cassandra-all",
                 "org.apache.cassandra:cassandra-thrift",
                 "org.apache.thrift:libthrift",

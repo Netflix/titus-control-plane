@@ -932,7 +932,6 @@
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
@@ -974,7 +973,6 @@
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
@@ -1010,8 +1008,7 @@
         "io.netty:netty-transport-native-epoll": {
             "locked": "4.1.36.Final",
             "transitive": [
-                "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
@@ -1066,15 +1063,7 @@
             "locked": "1.3.8",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop",
-                "com.netflix.titus:titus-common",
-                "io.reactivex:rxnetty"
-            ]
-        },
-        "io.reactivex:rxnetty": {
-            "locked": "0.4.20",
-            "transitive": [
-                "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-server-master"
+                "com.netflix.titus:titus-common"
             ]
         },
         "io.sundr:builder-annotations": {
@@ -1761,7 +1750,6 @@
                 "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard.metrics:metrics-jvm",
                 "io.kubernetes:client-java",
-                "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
                 "org.apache.cassandra:cassandra-all",
@@ -2907,7 +2895,6 @@
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
@@ -2949,7 +2936,6 @@
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
@@ -2985,8 +2971,7 @@
         "io.netty:netty-transport-native-epoll": {
             "locked": "4.1.36.Final",
             "transitive": [
-                "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
@@ -3041,15 +3026,7 @@
             "locked": "1.3.8",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop",
-                "com.netflix.titus:titus-common",
-                "io.reactivex:rxnetty"
-            ]
-        },
-        "io.reactivex:rxnetty": {
-            "locked": "0.4.20",
-            "transitive": [
-                "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-server-master"
+                "com.netflix.titus:titus-common"
             ]
         },
         "io.sundr:builder-annotations": {
@@ -3736,7 +3713,6 @@
                 "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard.metrics:metrics-jvm",
                 "io.kubernetes:client-java",
-                "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
                 "org.apache.cassandra:cassandra-all",
@@ -4882,7 +4858,6 @@
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
@@ -4924,7 +4899,6 @@
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
@@ -4960,8 +4934,7 @@
         "io.netty:netty-transport-native-epoll": {
             "locked": "4.1.36.Final",
             "transitive": [
-                "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
@@ -5016,15 +4989,7 @@
             "locked": "1.3.8",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop",
-                "com.netflix.titus:titus-common",
-                "io.reactivex:rxnetty"
-            ]
-        },
-        "io.reactivex:rxnetty": {
-            "locked": "0.4.20",
-            "transitive": [
-                "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-server-master"
+                "com.netflix.titus:titus-common"
             ]
         },
         "io.sundr:builder-annotations": {
@@ -5711,7 +5676,6 @@
                 "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard.metrics:metrics-jvm",
                 "io.kubernetes:client-java",
-                "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
                 "org.apache.cassandra:cassandra-all",
@@ -6921,7 +6885,6 @@
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
@@ -6963,7 +6926,6 @@
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
@@ -6999,8 +6961,7 @@
         "io.netty:netty-transport-native-epoll": {
             "locked": "4.1.36.Final",
             "transitive": [
-                "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
@@ -7055,15 +7016,7 @@
             "locked": "1.3.8",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop",
-                "com.netflix.titus:titus-common",
-                "io.reactivex:rxnetty"
-            ]
-        },
-        "io.reactivex:rxnetty": {
-            "locked": "0.4.20",
-            "transitive": [
-                "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-server-master"
+                "com.netflix.titus:titus-common"
             ]
         },
         "io.sundr:builder-annotations": {
@@ -7750,7 +7703,6 @@
                 "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard.metrics:metrics-jvm",
                 "io.kubernetes:client-java",
-                "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
                 "org.apache.cassandra:cassandra-all",
@@ -8897,7 +8849,6 @@
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
@@ -8939,7 +8890,6 @@
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
@@ -8975,8 +8925,7 @@
         "io.netty:netty-transport-native-epoll": {
             "locked": "4.1.36.Final",
             "transitive": [
-                "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
@@ -9031,15 +8980,7 @@
             "locked": "1.3.8",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop",
-                "com.netflix.titus:titus-common",
-                "io.reactivex:rxnetty"
-            ]
-        },
-        "io.reactivex:rxnetty": {
-            "locked": "0.4.20",
-            "transitive": [
-                "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-server-master"
+                "com.netflix.titus:titus-common"
             ]
         },
         "io.sundr:builder-annotations": {
@@ -9726,7 +9667,6 @@
                 "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard.metrics:metrics-jvm",
                 "io.kubernetes:client-java",
-                "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
                 "org.apache.cassandra:cassandra-all",
@@ -10883,7 +10823,6 @@
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
@@ -10925,7 +10864,6 @@
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
@@ -10961,8 +10899,7 @@
         "io.netty:netty-transport-native-epoll": {
             "locked": "4.1.36.Final",
             "transitive": [
-                "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
@@ -11022,15 +10959,7 @@
             "locked": "1.3.8",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop",
-                "com.netflix.titus:titus-common",
-                "io.reactivex:rxnetty"
-            ]
-        },
-        "io.reactivex:rxnetty": {
-            "locked": "0.4.20",
-            "transitive": [
-                "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-server-master"
+                "com.netflix.titus:titus-common"
             ]
         },
         "io.sundr:builder-annotations": {
@@ -11721,7 +11650,6 @@
                 "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard.metrics:metrics-jvm",
                 "io.kubernetes:client-java",
-                "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
                 "org.apache.cassandra:cassandra-all",
@@ -12877,7 +12805,6 @@
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
@@ -12919,7 +12846,6 @@
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
@@ -12955,8 +12881,7 @@
         "io.netty:netty-transport-native-epoll": {
             "locked": "4.1.36.Final",
             "transitive": [
-                "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
@@ -13016,15 +12941,7 @@
             "locked": "1.3.8",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop",
-                "com.netflix.titus:titus-common",
-                "io.reactivex:rxnetty"
-            ]
-        },
-        "io.reactivex:rxnetty": {
-            "locked": "0.4.20",
-            "transitive": [
-                "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-server-master"
+                "com.netflix.titus:titus-common"
             ]
         },
         "io.sundr:builder-annotations": {
@@ -13715,7 +13632,6 @@
                 "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard.metrics:metrics-jvm",
                 "io.kubernetes:client-java",
-                "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
                 "org.apache.cassandra:cassandra-all",
@@ -14871,7 +14787,6 @@
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
@@ -14913,7 +14828,6 @@
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
@@ -14949,8 +14863,7 @@
         "io.netty:netty-transport-native-epoll": {
             "locked": "4.1.36.Final",
             "transitive": [
-                "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
@@ -15010,15 +14923,7 @@
             "locked": "1.3.8",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop",
-                "com.netflix.titus:titus-common",
-                "io.reactivex:rxnetty"
-            ]
-        },
-        "io.reactivex:rxnetty": {
-            "locked": "0.4.20",
-            "transitive": [
-                "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-server-master"
+                "com.netflix.titus:titus-common"
             ]
         },
         "io.sundr:builder-annotations": {
@@ -15709,7 +15614,6 @@
                 "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard.metrics:metrics-jvm",
                 "io.kubernetes:client-java",
-                "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
                 "org.apache.cassandra:cassandra-all",
@@ -16866,7 +16770,6 @@
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
             ]
@@ -16908,7 +16811,6 @@
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
                 "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty"
@@ -16944,8 +16846,7 @@
         "io.netty:netty-transport-native-epoll": {
             "locked": "4.1.36.Final",
             "transitive": [
-                "io.projectreactor.netty:reactor-netty",
-                "io.reactivex:rxnetty"
+                "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
@@ -17005,15 +16906,7 @@
             "locked": "1.3.8",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop",
-                "com.netflix.titus:titus-common",
-                "io.reactivex:rxnetty"
-            ]
-        },
-        "io.reactivex:rxnetty": {
-            "locked": "0.4.20",
-            "transitive": [
-                "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-server-master"
+                "com.netflix.titus:titus-common"
             ]
         },
         "io.sundr:builder-annotations": {
@@ -17704,7 +17597,6 @@
                 "io.dropwizard.metrics:metrics-core",
                 "io.dropwizard.metrics:metrics-jvm",
                 "io.kubernetes:client-java",
-                "io.reactivex:rxnetty",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
                 "org.apache.cassandra:cassandra-all",
