@@ -21,7 +21,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Type;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import javax.servlet.http.HttpServletRequest;
@@ -38,21 +37,10 @@ import javax.ws.rs.ext.MessageBodyReader;
 import javax.ws.rs.ext.MessageBodyWriter;
 import javax.ws.rs.ext.Provider;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.deser.Deserializers;
-import com.fasterxml.jackson.databind.module.SimpleDeserializers;
-import com.google.protobuf.Message;
 import com.netflix.titus.api.json.ObjectMappers;
 import com.netflix.titus.common.util.StringExt;
-import com.netflix.titus.runtime.common.json.AssignableFromDeserializers;
-import com.netflix.titus.runtime.common.json.CompositeDeserializers;
-import com.netflix.titus.runtime.common.json.CustomDeserializerSimpleModule;
-import com.netflix.titus.runtime.common.json.ProtobufMessageDeserializer;
-import com.netflix.titus.runtime.common.json.ProtobufMessageSerializer;
-import com.netflix.titus.runtime.common.json.TrimmingStringDeserializer;
 
 @Provider
 @Produces(MediaType.APPLICATION_JSON)
@@ -68,7 +56,7 @@ public class JsonMessageReaderWriter implements MessageBodyReader<Object>, Messa
      */
     static final String FIELDS_PARAM = "fields";
 
-    private static final ObjectMapper MAPPER = createObjectMapper();
+    private static final ObjectMapper MAPPER = ObjectMappers.protobufMapper();
 
     private static final ObjectWriter COMPACT_ERROR_WRITER = MAPPER.writer().withView(ObjectMappers.PublicView.class);
 
@@ -76,30 +64,6 @@ public class JsonMessageReaderWriter implements MessageBodyReader<Object>, Messa
 
     @Context
     /* Visible for testing */ HttpServletRequest httpServletRequest;
-
-    private static ObjectMapper createObjectMapper() {
-        ObjectMapper mapper = new ObjectMapper();
-
-        // Serialization
-        mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-
-        // Deserialization
-        mapper.disable(SerializationFeature.INDENT_OUTPUT);
-
-        SimpleDeserializers simpleDeserializers = new SimpleDeserializers();
-        simpleDeserializers.addDeserializer(String.class, new TrimmingStringDeserializer());
-
-        List<Deserializers> deserializersList = Arrays.asList(
-                new AssignableFromDeserializers(Message.class, new ProtobufMessageDeserializer()),
-                simpleDeserializers
-        );
-        CompositeDeserializers compositeDeserializers = new CompositeDeserializers(deserializersList);
-        CustomDeserializerSimpleModule module = new CustomDeserializerSimpleModule(compositeDeserializers);
-        module.addSerializer(Message.class, new ProtobufMessageSerializer());
-        mapper.registerModule(module);
-
-        return mapper;
-    }
 
     @Override
     public boolean isReadable(Class<?> type, Type genericType, Annotation[] annotations, MediaType mediaType) {

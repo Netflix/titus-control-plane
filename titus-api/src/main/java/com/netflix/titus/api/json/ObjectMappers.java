@@ -17,8 +17,11 @@
 package com.netflix.titus.api.json;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -30,7 +33,9 @@ import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.deser.Deserializers;
 import com.fasterxml.jackson.databind.introspect.Annotated;
+import com.fasterxml.jackson.databind.module.SimpleDeserializers;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import com.fasterxml.jackson.databind.ser.BeanPropertyWriter;
 import com.fasterxml.jackson.databind.ser.PropertyWriter;
@@ -38,6 +43,7 @@ import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
 import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.google.common.base.Preconditions;
+import com.google.protobuf.Message;
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleStatus;
@@ -176,6 +182,7 @@ public class ObjectMappers {
     private static final ObjectMapper COMPACT = createCompactMapper();
     private static final ObjectMapper STORE = createStoreMapper();
     private static final ObjectMapper APP_SCALE_STORE = createAppScalePolicyMapper();
+    private static final ObjectMapper PROTOBUF = createProtobufMapper();
 
     /**
      * A helper marker class for use with {@link JsonView} annotation.
@@ -204,6 +211,10 @@ public class ObjectMappers {
 
     public static ObjectMapper appScalePolicyMapper() {
         return APP_SCALE_STORE;
+    }
+
+    public static ObjectMapper protobufMapper() {
+        return PROTOBUF;
     }
 
     public static String writeValueAsString(ObjectMapper objectMapper, Object object) {
@@ -417,4 +428,29 @@ public class ObjectMappers {
 
         return objectMapper;
     }
+
+    private static ObjectMapper createProtobufMapper() {
+        ObjectMapper mapper = new ObjectMapper();
+
+        // Serialization
+        mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+
+        // Deserialization
+        mapper.disable(SerializationFeature.INDENT_OUTPUT);
+
+        SimpleDeserializers simpleDeserializers = new SimpleDeserializers();
+        simpleDeserializers.addDeserializer(String.class, new TrimmingStringDeserializer());
+
+        List<Deserializers> deserializersList = Arrays.asList(
+                new AssignableFromDeserializers(Message.class, new ProtobufMessageDeserializer()),
+                simpleDeserializers
+        );
+        CompositeDeserializers compositeDeserializers = new CompositeDeserializers(deserializersList);
+        CustomDeserializerSimpleModule module = new CustomDeserializerSimpleModule(compositeDeserializers);
+        module.addSerializer(Message.class, new ProtobufMessageSerializer());
+        mapper.registerModule(module);
+
+        return mapper;
+    }
+
 }
