@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.common.json;
+package com.netflix.titus.api.json;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -35,7 +36,7 @@ import org.junit.Test;
 
 public class ProtobufMessageObjectMapperTest {
 
-    public static final String IMAGE_WRAPPER_JSON_STRING = "{\"image\":{\"name\":\"ubuntu\",\"tag\":\"latest\",\"digest\":\"\"}}";
+    private static final String IMAGE_WRAPPER_JSON_STRING = "{\"image\":{\"name\":\"ubuntu\",\"tag\":\"latest\",\"digest\":\"\"}}";
 
     @Test
     public void testMessageSerialization() throws Exception {
@@ -151,7 +152,7 @@ public class ProtobufMessageObjectMapperTest {
 
             ImageWrapper that = (ImageWrapper) o;
 
-            return image != null ? image.equals(that.image) : that.image == null;
+            return Objects.equals(image, that.image);
         }
 
         @Override
