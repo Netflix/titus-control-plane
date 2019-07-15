@@ -54,7 +54,11 @@ public abstract class AbstractReplicatorEventStream<SNAPSHOT, TRIGGER> implement
                 })
                 .doOnCancel(metrics::disconnected)
                 .doOnError(error -> {
-                    logger.warn("[{}] Connection to the event stream terminated with an error: {}", getClass().getSimpleName(), error.getMessage(), error);
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("[{}] Connection to the event stream terminated with an error: {}", getClass().getSimpleName(), error.getMessage(), error);
+                    } else {
+                        logger.warn("[{}] Connection to the event stream terminated with an error: {}", getClass().getSimpleName(), error.getMessage());
+                    }
                     metrics.disconnected(error);
                 })
                 .doOnComplete(metrics::disconnected);
