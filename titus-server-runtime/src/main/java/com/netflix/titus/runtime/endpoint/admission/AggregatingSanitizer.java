@@ -36,13 +36,13 @@ import reactor.core.scheduler.Schedulers;
 
 @Singleton
 public class AggregatingSanitizer implements AdmissionSanitizer<JobDescriptor> {
+    private final TitusValidatorConfiguration configuration;
     private final Collection<? extends AdmissionSanitizer<JobDescriptor>> sanitizers;
-    private final Duration timeout;
 
     @Inject
     public AggregatingSanitizer(TitusValidatorConfiguration configuration, Collection<? extends AdmissionSanitizer<JobDescriptor>> sanitizers) {
+        this.configuration = configuration;
         this.sanitizers = sanitizers;
-        this.timeout = Duration.ofMillis(configuration.getTimeoutMs());
     }
 
     /**
@@ -58,7 +58,7 @@ public class AggregatingSanitizer implements AdmissionSanitizer<JobDescriptor> {
         List<Mono<UnaryOperator<JobDescriptor>>> sanitizationFunctions = sanitizers.stream()
                 .map(s -> s.sanitize(entity)
                         .subscribeOn(Schedulers.parallel())
-                        .timeout(timeout, Mono.error(() -> TitusServiceException.internal(
+                        .timeout(getTimeout(), Mono.error(() -> TitusServiceException.internal(
                                 s.getClass().getSimpleName() + " timed out running job sanitization")
                         ))
                         // important: Mono.zip will be short circuited if members are empty
@@ -75,9 +75,13 @@ public class AggregatingSanitizer implements AdmissionSanitizer<JobDescriptor> {
         });
 
         return merged.switchIfEmpty(Mono.just(UnaryOperator.identity()))
-                .timeout(timeout.multipliedBy(2),
+                .timeout(getTimeout().multipliedBy(2),
                         Mono.error(() -> TitusServiceException.internal("Job sanitization timed out")));
 
+    }
+
+    private Duration getTimeout() {
+        return Duration.ofMillis(configuration.getTimeoutMs());
     }
 
     private static UnaryOperator<JobDescriptor> applyAll(Stream<UnaryOperator<JobDescriptor>> partialUpdates) {
