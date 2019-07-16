@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.connector.common.reactor;
+package com.netflix.titus.runtime.connector.common.reactor.client;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -29,6 +29,7 @@ import com.google.common.base.Preconditions;
 import com.google.protobuf.Message;
 import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.runtime.connector.GrpcRequestConfiguration;
+import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactUtil;
 import com.netflix.titus.runtime.endpoint.metadata.AnonymousCallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import io.grpc.ServiceDescriptor;

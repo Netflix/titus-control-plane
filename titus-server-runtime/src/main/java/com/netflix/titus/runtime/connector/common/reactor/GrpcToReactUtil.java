@@ -39,9 +39,9 @@ public class GrpcToReactUtil {
      * For request/response GRPC calls, we set execution deadline at both Reactor and GRPC level. As we prefer the timeout
      * be triggered by GRPC, which may give us potentially more insight, we adjust Reactor timeout value by this factor.
      */
-    static final double RX_CLIENT_TIMEOUT_FACTOR = 1.2;
+    public static final double RX_CLIENT_TIMEOUT_FACTOR = 1.2;
 
-    static Method getGrpcMethod(AbstractStub<?> grpcStub, Method method, Set<Class> handlerTypes) {
+    public static Method getGrpcMethod(AbstractStub<?> grpcStub, Method method, Set<Class> handlerTypes) {
         List<Class> transferredParameters = Arrays.stream((Class[]) method.getParameterTypes())
                 .filter(type -> !handlerTypes.contains(type))
                 .collect(Collectors.toList());
@@ -70,7 +70,7 @@ public class GrpcToReactUtil {
         return Character.toLowerCase(fullName.charAt(begin + 1)) + fullName.substring(begin + 2);
     }
 
-    static boolean isEmptyToVoidResult(Method reactMethod, Method grpcMethod) {
+    public static boolean isEmptyToVoidResult(Method reactMethod, Method grpcMethod) {
         Preconditions.checkArgument(reactMethod.getReturnType().isAssignableFrom(Mono.class) || reactMethod.getReturnType().isAssignableFrom(Flux.class));
 
         return hasTypeParameter(reactMethod.getGenericReturnType(), 0, Void.class)

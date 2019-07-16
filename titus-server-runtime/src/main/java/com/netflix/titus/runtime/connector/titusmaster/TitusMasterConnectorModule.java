@@ -49,7 +49,7 @@ import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc.SchedulerServiceStub;
 import com.netflix.titus.grpc.protogen.SupervisorServiceGrpc;
 import com.netflix.titus.runtime.connector.GrpcRequestConfiguration;
-import com.netflix.titus.runtime.connector.common.reactor.DefaultGrpcToReactorClientFactory;
+import com.netflix.titus.runtime.connector.common.reactor.client.DefaultGrpcToReactorClientFactory;
 import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorClientFactory;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import io.grpc.Channel;

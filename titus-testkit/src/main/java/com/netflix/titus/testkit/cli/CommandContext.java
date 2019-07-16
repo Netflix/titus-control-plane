@@ -26,7 +26,7 @@ import com.netflix.titus.runtime.connector.agent.AgentManagementClient;
 import com.netflix.titus.runtime.connector.agent.ReactorAgentManagementServiceStub;
 import com.netflix.titus.runtime.connector.agent.RemoteAgentManagementClient;
 import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorClientFactory;
-import com.netflix.titus.runtime.connector.common.reactor.ReactorToGrpcClientBuilder;
+import com.netflix.titus.runtime.connector.common.reactor.client.ReactorToGrpcClientBuilder;
 import com.netflix.titus.runtime.endpoint.metadata.AnonymousCallMetadataResolver;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
