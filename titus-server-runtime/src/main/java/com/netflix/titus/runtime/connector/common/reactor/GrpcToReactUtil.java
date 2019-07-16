@@ -33,7 +33,7 @@ import io.grpc.stub.StreamObserver;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-class GrpcToReactUtil {
+public class GrpcToReactUtil {
 
     /**
      * For request/response GRPC calls, we set execution deadline at both Reactor and GRPC level. As we prefer the timeout
@@ -61,7 +61,7 @@ class GrpcToReactUtil {
         }
     }
 
-    static String toMethodNameFromFullName(String fullName) {
+    public static String toMethodNameFromFullName(String fullName) {
         int begin = fullName.indexOf('/');
 
         Preconditions.checkState(begin >= 0, "Not GRPC full name: " + fullName);

@@ -19,6 +19,8 @@ package com.netflix.titus.supplementary.relocation.integration;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorServerFactoryComponent;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolveComponent;
 import com.netflix.titus.supplementary.relocation.RelocationConfiguration;
 import com.netflix.titus.supplementary.relocation.RelocationConnectorStubs;
 import com.netflix.titus.supplementary.relocation.descheduler.DeschedulerComponent;
@@ -52,6 +54,8 @@ public class TaskRelocationSandbox {
         this.container = new AnnotationConfigApplicationContext();
         container.getEnvironment().merge(config);
         container.setParent(relocationConnectorStubs.getApplicationContext());
+        container.register(CallMetadataResolveComponent.class);
+        container.register(GrpcToReactorServerFactoryComponent.class);
         container.register(RelocationConfiguration.class);
         container.register(InMemoryRelocationStoreComponent.class);
         container.register(DeschedulerComponent.class);

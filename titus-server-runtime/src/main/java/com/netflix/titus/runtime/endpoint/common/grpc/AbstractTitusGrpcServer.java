@@ -32,6 +32,7 @@ import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.ServerInterceptor;
 import io.grpc.ServerInterceptors;
+import io.grpc.ServerServiceDefinition;
 import io.grpc.ServiceDescriptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,7 +42,7 @@ public abstract class AbstractTitusGrpcServer {
     private static final Logger logger = LoggerFactory.getLogger(AbstractTitusGrpcServer.class);
 
     private final GrpcEndpointConfiguration configuration;
-    private final BindableService bindableService;
+    private final ServerServiceDefinition serviceDefinition;
 
     private final AtomicBoolean started = new AtomicBoolean();
     private Server server;
@@ -54,7 +55,13 @@ public abstract class AbstractTitusGrpcServer {
     protected AbstractTitusGrpcServer(GrpcEndpointConfiguration configuration,
                                       BindableService bindableService) {
         this.configuration = configuration;
-        this.bindableService = bindableService;
+        this.serviceDefinition = bindableService.bindService();
+    }
+
+    protected AbstractTitusGrpcServer(GrpcEndpointConfiguration configuration,
+                                      ServerServiceDefinition serviceDefinition) {
+        this.configuration = configuration;
+        this.serviceDefinition = serviceDefinition;
     }
 
     public int getPort() {
@@ -66,7 +73,7 @@ public abstract class AbstractTitusGrpcServer {
         if (!started.getAndSet(true)) {
             ServerBuilder serverBuilder = configure(ServerBuilder.forPort(configuration.getPort()));
             serverBuilder.addService(ServerInterceptors.intercept(
-                    bindableService,
+                    serviceDefinition,
                     createInterceptors(HealthGrpc.getServiceDescriptor())
             ));
             this.server = serverBuilder.build();

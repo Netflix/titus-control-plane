@@ -34,9 +34,9 @@ public class TaskRelocationGrpcComponent {
     }
 
     @Bean
-    public TaskRelocationGrpcService getTaskRelocationGrpcService(ReadOnlyJobOperations jobOperations,
-                                                                  RelocationWorkflowExecutor workflowExecutor,
-                                                                  TaskRelocationResultStore archiveStore) {
-        return new TaskRelocationGrpcService(jobOperations, workflowExecutor, archiveStore);
+    public ReactorTaskRelocationGrpcService getTaskRelocationGrpcService(ReadOnlyJobOperations jobOperations,
+                                                                         RelocationWorkflowExecutor workflowExecutor,
+                                                                         TaskRelocationResultStore archiveStore) {
+        return new ReactorTaskRelocationGrpcService(jobOperations, workflowExecutor, archiveStore);
     }
 }

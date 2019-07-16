@@ -18,6 +18,9 @@ package com.netflix.titus.common.util;
 
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.annotation.PostConstruct;
 
 import org.junit.Test;
@@ -27,8 +30,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class ReflectionExtTest {
 
+    private static final Set<String> SERVICE_METHOD_NAMES = Stream.of(MyService.class.getMethods())
+            .map(Method::getName)
+            .collect(Collectors.toSet());
+
     @Test
-    public void testFindAnnotatedMethods() throws Exception {
+    public void testFindAnnotatedMethods() {
         List<Method> annotatedMethods = ReflectionExt.findAnnotatedMethods(new MyServiceImpl(), PostConstruct.class);
         assertThat(annotatedMethods).hasSize(1);
         assertThat(annotatedMethods.get(0).getName()).isEqualTo("classAnnotated");
@@ -39,6 +46,18 @@ public class ReflectionExtTest {
         assertThat(isNumeric(Integer.class)).isTrue();
         assertThat(isNumeric(Long.class)).isTrue();
         assertThat(isNumeric(IntegerHolder.class.getDeclaredField("intValue").getType())).isTrue();
+    }
+
+    @Test
+    public void testIsObjectMethod() {
+        MyServiceImpl service = new MyServiceImpl();
+        for (Method method : service.getClass().getMethods()) {
+            if (SERVICE_METHOD_NAMES.contains(method.getName())) {
+                assertThat(ReflectionExt.isObjectMethod(method)).describedAs("Service method: %s", method).isFalse();
+            } else {
+                assertThat(ReflectionExt.isObjectMethod(method)).isTrue();
+            }
+        }
     }
 
     static class IntegerHolder {
@@ -63,6 +82,11 @@ public class ReflectionExtTest {
         }
 
         public void notAnnotated() {
+        }
+
+        @Override
+        public String toString() {
+            return "MyServiceImpl{}";
         }
     }
 }

@@ -28,6 +28,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import com.netflix.titus.common.util.tuple.Pair;
 
 import static java.lang.String.format;
 import static java.util.Arrays.asList;
@@ -49,6 +53,10 @@ public final class ReflectionExt {
     private static final ConcurrentMap<Class<?>, List<Field>> CLASS_FIELDS = new ConcurrentHashMap<>();
 
     private static final ConcurrentMap<Method, Optional<Method>> FIND_INTERFACE_METHOD_CACHE = new ConcurrentHashMap<>();
+
+    private static final List<Pair<String, Class<?>[]>> OBJECT_METHODS = Stream.of(Object.class.getMethods())
+            .map(m -> Pair.of(m.getName(), m.getParameterTypes()))
+            .collect(Collectors.toList());
 
     private ReflectionExt() {
     }
@@ -82,6 +90,22 @@ public final class ReflectionExt {
         }
         if (Integer.TYPE == type || Long.TYPE == type || Float.TYPE == type || Double.TYPE == type) {
             return true;
+        }
+        return false;
+    }
+
+    public static boolean isObjectMethod(Method method) {
+        for (Pair<String, Class<?>[]> objectMethod : OBJECT_METHODS) {
+            Class<?>[] objectMethodArgs = objectMethod.getRight();
+            if (method.getName().equals(objectMethod.getLeft()) && method.getParameterCount() == objectMethodArgs.length) {
+                boolean allMatch = true;
+                for (int i = 0; i < method.getParameterCount() && allMatch; i++) {
+                    allMatch = method.getParameterTypes()[i] == objectMethodArgs[i];
+                }
+                if (allMatch) {
+                    return true;
+                }
+            }
         }
         return false;
     }
