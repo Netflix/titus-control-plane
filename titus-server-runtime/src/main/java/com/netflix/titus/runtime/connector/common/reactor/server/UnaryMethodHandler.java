@@ -62,10 +62,10 @@ class UnaryMethodHandler<REQ, RESP> extends AbstractMethodHandler<REQ, RESP> imp
                             try {
                                 responseObserver.onCompleted();
                             } catch (Exception e) {
-                                logger.warn("Subscriber threw error in onCompleted handler. Retrying with onError", e);
+                                logger.warn("Subscriber threw error in onCompleted handler", e);
                             }
                         } catch (Exception e) {
-                            logger.warn("Subscriber threw error in onNext handler", e);
+                            logger.warn("Subscriber threw error in onNext handler. Retrying with onError", e);
                             try {
                                 responseObserver.onError(e);
                             } catch (Exception e2) {
@@ -80,7 +80,7 @@ class UnaryMethodHandler<REQ, RESP> extends AbstractMethodHandler<REQ, RESP> imp
                         try {
                             responseObserver.onNext(value);
                         } catch (Exception e) {
-                            logger.warn("Subscriber threw error in onNext handler", e);
+                            logger.warn("Subscriber threw error in onNext handler. Retrying with onError", e);
                             try {
                                 responseObserver.onError(e);
                             } catch (Exception e2) {
@@ -99,7 +99,7 @@ class UnaryMethodHandler<REQ, RESP> extends AbstractMethodHandler<REQ, RESP> imp
                         try {
                             responseObserver.onCompleted();
                         } catch (Exception e) {
-                            logger.warn("Subscriber threw error in onCompleted handler. Retrying with onError", e);
+                            logger.warn("Subscriber threw error in onCompleted handler", e);
                         }
                     }
             );

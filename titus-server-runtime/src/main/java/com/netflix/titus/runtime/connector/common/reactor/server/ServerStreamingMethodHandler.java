@@ -16,6 +16,11 @@
 
 package com.netflix.titus.runtime.connector.common.reactor.server;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import io.grpc.stub.ServerCalls;
 import io.grpc.stub.StreamObserver;
@@ -42,20 +47,39 @@ class ServerStreamingMethodHandler<REQ, RESP> extends AbstractMethodHandler<REQ,
 
     @Override
     Disposable handleResult(Publisher<RESP> result, StreamObserver<RESP> responseObserver) {
-        return Flux.from(result).subscribe(
+        return internalHandleResult(result, responseObserver);
+    }
+
+    @VisibleForTesting
+    static <RESP> Disposable internalHandleResult(Publisher<RESP> result, StreamObserver<RESP> responseObserver) {
+        AtomicBoolean cancelled = new AtomicBoolean();
+        AtomicReference<Disposable> disposableRef = new AtomicReference<>();
+
+        Disposable disposable = Flux.from(result).subscribe(
                 value -> {
+                    if(cancelled.get()) {
+                        ReactorExt.safeDispose(disposableRef.get());
+                        return;
+                    }
                     try {
                         responseObserver.onNext(value);
                     } catch (Exception e) {
-                        logger.warn("Subscriber threw error in onNext handler", e);
+                        cancelled.set(true);
+
+                        logger.warn("Subscriber threw error in onNext handler. Retrying with onError", e);
                         try {
                             responseObserver.onError(e);
                         } catch (Exception e2) {
                             logger.warn("Subscriber threw error in onError handler", e2);
                         }
+
+                        ReactorExt.safeDispose(disposableRef.get());
                     }
                 },
                 e -> {
+                    if(cancelled.get()) {
+                        return;
+                    }
                     try {
                         responseObserver.onError(e);
                     } catch (Exception e2) {
@@ -63,12 +87,22 @@ class ServerStreamingMethodHandler<REQ, RESP> extends AbstractMethodHandler<REQ,
                     }
                 },
                 () -> {
+                    if(cancelled.get()) {
+                        return;
+                    }
                     try {
                         responseObserver.onCompleted();
                     } catch (Exception e) {
-                        logger.warn("Subscriber threw error in onCompleted handler. Retrying with onError", e);
+                        logger.warn("Subscriber threw error in onCompleted handler", e);
                     }
                 }
         );
+        disposableRef.set(disposable);
+
+        if (cancelled.get()) {
+            ReactorExt.safeDispose(disposable);
+        }
+
+        return disposable;
     }
 }
