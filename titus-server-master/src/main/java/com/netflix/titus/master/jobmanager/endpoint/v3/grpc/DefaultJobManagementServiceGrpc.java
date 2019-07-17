@@ -33,6 +33,7 @@ import com.google.protobuf.Empty;
 import com.netflix.titus.api.FeatureRolloutPlans;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.jobmanager.model.CallMetadata;
+import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
@@ -61,6 +62,8 @@ import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobAttributesDeleteRequest;
 import com.netflix.titus.grpc.protogen.JobAttributesUpdate;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
+import com.netflix.titus.grpc.protogen.JobCapacityUpdateWithOptionalAttributes;
+import com.netflix.titus.grpc.protogen.JobCapacityWithOptionalAttributes;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.JobDisruptionBudget;
@@ -345,38 +348,31 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     @Override
     public void updateJobCapacity(JobCapacityUpdate request, StreamObserver<Empty> responseObserver) {
         execute(callMetadataResolver, responseObserver, callMetadata -> {
-            com.netflix.titus.api.jobmanager.model.job.Job<ServiceJobExt> job = jobOperations
-                    .getJob(request.getJobId())
-                    .map(j -> {
-                        if (!JobFunctions.isServiceJob(j)) {
-                            throw JobManagerException.notServiceJob(j.getId());
-                        }
-                        return (com.netflix.titus.api.jobmanager.model.job.Job<ServiceJobExt>) j;
-                    })
-                    .orElseThrow(() -> JobManagerException.jobNotFound(request.getJobId()));
-
+            final com.netflix.titus.api.jobmanager.model.job.Job<ServiceJobExt> serviceJobExtJob = verifyAndGetServiceJob(request.getJobId());
             com.netflix.titus.api.jobmanager.model.job.Capacity newCapacity = V3GrpcModelConverters.toCoreCapacity(request.getCapacity());
+            sanitizeAndUpdateJobCapacity(request.getJobId(), newCapacity, serviceJobExtJob.getJobDescriptor(), callMetadata, responseObserver);
+        });
+    }
 
-            Set<ValidationError> violations = CollectionsExt.merge(
-                    entitySanitizer.validate(newCapacity),
-                    validateCustomJobLimits(JobFunctions.changeServiceJobCapacity(job.getJobDescriptor(), newCapacity))
-            );
-            if (!violations.isEmpty()) {
-                safeOnError(logger, TitusServiceException.invalidArgument(violations), responseObserver);
-                return;
+    @Override
+    public void updateJobCapacityWithOptionalAttributes(JobCapacityUpdateWithOptionalAttributes request, StreamObserver<Empty> responseObserver) {
+        execute(callMetadataResolver, responseObserver, callMetadata -> {
+            final com.netflix.titus.api.jobmanager.model.job.Job<ServiceJobExt> serviceJobExtJob = verifyAndGetServiceJob(request.getJobId());
+            final Capacity currentCapacity = serviceJobExtJob.getJobDescriptor().getExtensions().getCapacity();
+            final Capacity.Builder newCapacityBuilder = Capacity.newBuilder(currentCapacity);
+
+            final JobCapacityWithOptionalAttributes jobCapacityWithOptionalAttributes = request.getJobCapacityWithOptionalAttributes();
+            if (jobCapacityWithOptionalAttributes.hasDesired()) {
+                newCapacityBuilder.withDesired(jobCapacityWithOptionalAttributes.getDesired().getValue());
             }
-
-            authorizeJobUpdate(callMetadata, request.getJobId())
-                    .concatWith(jobOperations.updateJobCapacityReactor(request.getJobId(), newCapacity, callMetadata))
-                    .subscribe(
-                            nothing -> {
-                            },
-                            e -> safeOnError(logger, e, responseObserver),
-                            () -> {
-                                responseObserver.onNext(Empty.getDefaultInstance());
-                                responseObserver.onCompleted();
-                            }
-                    );
+            if (jobCapacityWithOptionalAttributes.hasMax()) {
+                newCapacityBuilder.withMax(jobCapacityWithOptionalAttributes.getMax().getValue());
+            }
+            if (jobCapacityWithOptionalAttributes.hasMin()) {
+                newCapacityBuilder.withMin(jobCapacityWithOptionalAttributes.getMin().getValue());
+            }
+            final Capacity newCapacity = newCapacityBuilder.build();
+            sanitizeAndUpdateJobCapacity(request.getJobId(), newCapacity, serviceJobExtJob.getJobDescriptor(), callMetadata, responseObserver);
         });
     }
 
@@ -795,6 +791,45 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
         return JobChangeNotification.newBuilder()
                 .setTaskUpdate(JobChangeNotification.TaskUpdate.newBuilder().setTask(grpcTask))
                 .build();
+    }
+
+    private com.netflix.titus.api.jobmanager.model.job.Job<ServiceJobExt> verifyAndGetServiceJob(String jobId) {
+        return jobOperations
+                .getJob(jobId)
+                .map(j -> {
+                    if (!JobFunctions.isServiceJob(j)) {
+                        throw JobManagerException.notServiceJob(j.getId());
+                    }
+                    return (com.netflix.titus.api.jobmanager.model.job.Job<ServiceJobExt>) j;
+                })
+                .orElseThrow(() -> JobManagerException.jobNotFound(jobId));
+
+
+    }
+
+    private void sanitizeAndUpdateJobCapacity(String jobId, Capacity newJobCapacity,
+                      com.netflix.titus.api.jobmanager.model.job.JobDescriptor<ServiceJobExt> jobDescriptor,
+                      CallMetadata callMetadata, StreamObserver<Empty> responseObserver) {
+        Set<ValidationError> violations = CollectionsExt.merge(
+                    entitySanitizer.validate(newJobCapacity),
+                    validateCustomJobLimits(JobFunctions.changeServiceJobCapacity(jobDescriptor, newJobCapacity))
+            );
+            if (!violations.isEmpty()) {
+                safeOnError(logger, TitusServiceException.invalidArgument(violations), responseObserver);
+                return;
+            }
+
+            authorizeJobUpdate(callMetadata, jobId)
+                    .concatWith(jobOperations.updateJobCapacityReactor(jobId, newJobCapacity, callMetadata))
+                    .subscribe(
+                            nothing -> {
+                            },
+                            e -> safeOnError(logger, e, responseObserver),
+                            () -> {
+                                responseObserver.onNext(Empty.getDefaultInstance());
+                                responseObserver.onCompleted();
+                            }
+                    );
     }
 
 }
