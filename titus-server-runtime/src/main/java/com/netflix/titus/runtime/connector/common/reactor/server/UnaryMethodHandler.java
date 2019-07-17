@@ -42,7 +42,7 @@ class UnaryMethodHandler<REQ, RESP> extends AbstractMethodHandler<REQ, RESP> imp
 
     @Override
     Disposable handleResult(Publisher<RESP> result, StreamObserver<RESP> responseObserver) {
-        Mono<RESP> monoResult = (Mono<RESP>) result;
+        Mono<RESP> monoResult = Mono.from(result);
         Disposable disposable;
         if (binding.getReturnTypeParameter() == Void.class) {
             disposable = monoResult.subscribe(
@@ -51,43 +51,55 @@ class UnaryMethodHandler<REQ, RESP> extends AbstractMethodHandler<REQ, RESP> imp
                     e -> {
                         try {
                             responseObserver.onError(e);
-                        } catch (Exception ex) {
-                            logger.warn("Subscriber threw error in onError handler", ex);
+                        } catch (Exception e2) {
+                            logger.warn("Subscriber threw error in onError handler", e2);
                         }
                     },
                     () -> {
                         try {
                             // Void must be mapped to GRPC/Empty value.
                             responseObserver.onNext((RESP) Empty.getDefaultInstance());
-                            responseObserver.onCompleted();
-                        } catch (Exception ex) {
-                            logger.warn("Subscriber threw error in onCompleted handler. Retrying with onError", ex);
                             try {
-                                responseObserver.onError(ex);
-                            } catch (Exception ignore) {
+                                responseObserver.onCompleted();
+                            } catch (Exception e) {
+                                logger.warn("Subscriber threw error in onCompleted handler. Retrying with onError", e);
+                            }
+                        } catch (Exception e) {
+                            logger.warn("Subscriber threw error in onNext handler", e);
+                            try {
+                                responseObserver.onError(e);
+                            } catch (Exception e2) {
+                                logger.warn("Subscriber threw error in onError handler", e2);
                             }
                         }
                     }
             );
         } else {
             disposable = monoResult.subscribe(
-                    responseObserver::onNext,
+                    value -> {
+                        try {
+                            responseObserver.onNext(value);
+                        } catch (Exception e) {
+                            logger.warn("Subscriber threw error in onNext handler", e);
+                            try {
+                                responseObserver.onError(e);
+                            } catch (Exception e2) {
+                                logger.warn("Subscriber threw error in onError handler", e2);
+                            }
+                        }
+                    },
                     e -> {
                         try {
                             responseObserver.onError(e);
-                        } catch (Exception ex) {
-                            logger.warn("Subscriber threw error in onError handler", ex);
+                        } catch (Exception e2) {
+                            logger.warn("Subscriber threw error in onError handler", e2);
                         }
                     },
                     () -> {
                         try {
                             responseObserver.onCompleted();
-                        } catch (Exception ex) {
-                            logger.warn("Subscriber threw error in onCompleted handler. Retrying with onError", ex);
-                            try {
-                                responseObserver.onError(ex);
-                            } catch (Exception ignore) {
-                            }
+                        } catch (Exception e) {
+                            logger.warn("Subscriber threw error in onCompleted handler. Retrying with onError", e);
                         }
                     }
             );

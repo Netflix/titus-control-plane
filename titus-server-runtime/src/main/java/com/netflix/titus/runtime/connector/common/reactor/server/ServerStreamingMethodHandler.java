@@ -42,24 +42,31 @@ class ServerStreamingMethodHandler<REQ, RESP> extends AbstractMethodHandler<REQ,
 
     @Override
     Disposable handleResult(Publisher<RESP> result, StreamObserver<RESP> responseObserver) {
-        return ((Flux<RESP>) result).subscribe(
-                responseObserver::onNext,
+        return Flux.from(result).subscribe(
+                value -> {
+                    try {
+                        responseObserver.onNext(value);
+                    } catch (Exception e) {
+                        logger.warn("Subscriber threw error in onNext handler", e);
+                        try {
+                            responseObserver.onError(e);
+                        } catch (Exception e2) {
+                            logger.warn("Subscriber threw error in onError handler", e2);
+                        }
+                    }
+                },
                 e -> {
                     try {
                         responseObserver.onError(e);
-                    } catch (Exception ex) {
-                        logger.warn("Subscriber threw error in onError handler", ex);
+                    } catch (Exception e2) {
+                        logger.warn("Subscriber threw error in onError handler", e2);
                     }
                 },
                 () -> {
                     try {
                         responseObserver.onCompleted();
-                    } catch (Exception ex) {
-                        logger.warn("Subscriber threw error in onCompleted handler. Retrying with onError", ex);
-                        try {
-                            responseObserver.onError(ex);
-                        } catch (Exception ignore) {
-                        }
+                    } catch (Exception e) {
+                        logger.warn("Subscriber threw error in onCompleted handler. Retrying with onError", e);
                     }
                 }
         );
