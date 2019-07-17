@@ -64,4 +64,11 @@ public class ValidatorMetrics {
                 .withTag(VALIDATION_ERROR_TAG, reason)
         ).increment();
     }
+
+    public void incrementValidationSkipped(String reason) {
+        registry.counter(validationResultId
+                .withTag(VALIDATION_RESULT_TAG, "skipped")
+                .withTag(VALIDATION_ERROR_TAG, reason)
+        ).increment();
+    }
 }

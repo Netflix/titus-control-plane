@@ -63,7 +63,7 @@ public class JobIamValidator implements AdmissionValidator<JobDescriptor>, Admis
 
         // Skip validation if no IAM was provided because a valid default will be used.
         if (iamRoleName.isEmpty()) {
-            validatorMetrics.incrementValidationSkipped(iamRoleName, "noIamProvided");
+            validatorMetrics.incrementValidationSkipped("noIamProvided");
             return Mono.just(Collections.emptySet());
         }
 
