@@ -25,7 +25,6 @@ import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
 import com.google.protobuf.ByteString;
-import com.netflix.titus.TitusVpcApi;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.CapacityAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Container;
@@ -79,6 +78,9 @@ import com.netflix.titus.api.jobmanager.model.job.vpc.SignedIpAddressAllocation;
 import com.netflix.titus.api.model.EfsMount;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.StringExt;
+import com.netflix.titus.grpc.protogen.Address;
+import com.netflix.titus.grpc.protogen.AddressAllocation;
+import com.netflix.titus.grpc.protogen.AddressLocation;
 import com.netflix.titus.grpc.protogen.BatchJobSpec;
 import com.netflix.titus.grpc.protogen.Capacity;
 import com.netflix.titus.grpc.protogen.Constraints;
@@ -90,6 +92,7 @@ import com.netflix.titus.grpc.protogen.LogLocation;
 import com.netflix.titus.grpc.protogen.MountPerm;
 import com.netflix.titus.grpc.protogen.SecurityProfile;
 import com.netflix.titus.grpc.protogen.ServiceJobSpec;
+import com.netflix.titus.grpc.protogen.SignedAddressAllocation;
 import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
 
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_EVICTION_RESUBMIT_NUMBER;
@@ -188,7 +191,7 @@ public final class V3GrpcModelConverters {
                 .build();
     }
 
-    private static IpAddressLocation toCoreIpAddressLocation(TitusVpcApi.AddressLocation grpcAddressLocation) {
+    private static IpAddressLocation toCoreIpAddressLocation(AddressLocation grpcAddressLocation) {
         return IpAddressLocation.newBuilder()
                 .withAvailabilityZone(grpcAddressLocation.getAvailabilityZone())
                 .withRegion(grpcAddressLocation.getRegion())
@@ -196,13 +199,13 @@ public final class V3GrpcModelConverters {
                 .build();
     }
 
-    private static IpAddress toCoreIpAddress(TitusVpcApi.Address grpcAddress) {
+    private static IpAddress toCoreIpAddress(Address grpcAddress) {
         return IpAddress.newBuilder()
                 .withAddress(grpcAddress.getAddress())
                 .build();
     }
 
-    private static IpAddressAllocation toCoreIpAddressAllocation(TitusVpcApi.AddressAllocation grpcAddressAllocation) {
+    private static IpAddressAllocation toCoreIpAddressAllocation(AddressAllocation grpcAddressAllocation) {
         return IpAddressAllocation.newBuilder()
                 .withUuid(grpcAddressAllocation.getUuid())
                 .withIpAddressLocation(toCoreIpAddressLocation(grpcAddressAllocation.getAddressLocation()))
@@ -210,7 +213,7 @@ public final class V3GrpcModelConverters {
                 .build();
     }
 
-    public static SignedIpAddressAllocation toCoreSignedIpAddressAllocation(TitusVpcApi.SignedAddressAllocation grpcSignedIpAddressAllocation) {
+    public static SignedIpAddressAllocation toCoreSignedIpAddressAllocation(SignedAddressAllocation grpcSignedIpAddressAllocation) {
         return SignedIpAddressAllocation.newBuilder()
                 .withIpAddressAllocation(toCoreIpAddressAllocation(grpcSignedIpAddressAllocation.getAddressAllocation()))
                 .withIpAddressAllocationSignature(grpcSignedIpAddressAllocation.getSignedAddressAllocation().toByteArray())
@@ -615,30 +618,30 @@ public final class V3GrpcModelConverters {
         return builder.build();
     }
 
-    public static TitusVpcApi.Address toGrpcAddress(IpAddress coreIpAddress) {
-        return TitusVpcApi.Address.newBuilder()
+    public static Address toGrpcAddress(IpAddress coreIpAddress) {
+        return Address.newBuilder()
                 .setAddress(coreIpAddress.getAddress())
                 .build();
     }
 
-    public static TitusVpcApi.AddressLocation toGrpcAddressLocation(IpAddressLocation coreIpAddressLocation) {
-        return TitusVpcApi.AddressLocation.newBuilder()
+    public static AddressLocation toGrpcAddressLocation(IpAddressLocation coreIpAddressLocation) {
+        return AddressLocation.newBuilder()
                 .setAvailabilityZone(coreIpAddressLocation.getAvailabilityZone())
                 .setRegion(coreIpAddressLocation.getRegion())
                 .setSubnetId(coreIpAddressLocation.getSubnetId())
                 .build();
     }
 
-    public static TitusVpcApi.AddressAllocation toGrpcAddressAllocation(IpAddressAllocation coreIpAddressAllocation) {
-        return TitusVpcApi.AddressAllocation.newBuilder()
+    public static AddressAllocation toGrpcAddressAllocation(IpAddressAllocation coreIpAddressAllocation) {
+        return AddressAllocation.newBuilder()
                 .setUuid(coreIpAddressAllocation.getAllocationId())
                 .setAddress(toGrpcAddress(coreIpAddressAllocation.getIpAddress()))
                 .setAddressLocation(toGrpcAddressLocation(coreIpAddressAllocation.getIpAddressLocation()))
                 .build();
     }
 
-    public static TitusVpcApi.SignedAddressAllocation toGrpcSignedAddressAllocation(SignedIpAddressAllocation coreSignedIpAddressAllocation) {
-        return TitusVpcApi.SignedAddressAllocation.newBuilder()
+    public static SignedAddressAllocation toGrpcSignedAddressAllocation(SignedIpAddressAllocation coreSignedIpAddressAllocation) {
+        return SignedAddressAllocation.newBuilder()
                 .setAddressAllocation(toGrpcAddressAllocation(coreSignedIpAddressAllocation.getIpAddressAllocation()))
                 .setSignedAddressAllocation(ByteString.copyFrom(coreSignedIpAddressAllocation.getIpAddressAllocationSignature()))
                 .build();
@@ -648,7 +651,7 @@ public final class V3GrpcModelConverters {
         List<com.netflix.titus.grpc.protogen.ContainerResources.EfsMount> grpcEfsMounts = containerResources.getEfsMounts().isEmpty()
                 ? Collections.emptyList()
                 : containerResources.getEfsMounts().stream().map(V3GrpcModelConverters::toGrpcEfsMount).collect(Collectors.toList());
-        List<TitusVpcApi.SignedAddressAllocation> grpcSignedAddressAllocation = containerResources.getSignedIpAddressAllocations().isEmpty()
+        List<SignedAddressAllocation> grpcSignedAddressAllocation = containerResources.getSignedIpAddressAllocations().isEmpty()
                 ? Collections.EMPTY_LIST
                 : containerResources.getSignedIpAddressAllocations().stream().map(V3GrpcModelConverters::toGrpcSignedAddressAllocation)
                 .collect(Collectors.toList());
