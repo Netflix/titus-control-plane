@@ -68,6 +68,16 @@ public class Archaius2ObjectConfigurationResolverTest {
         assertThat(resolver.resolve(new MyObject("a")).getLimit()).isEqualTo(100);
     }
 
+    @Test
+    public void testBadPattern() {
+        configuration.setProperty("object.a.pattern", "a");
+        configuration.setProperty("object.a.limit", "200");
+        assertThat(resolver.resolve(new MyObject("a")).getLimit()).isEqualTo(200);
+
+        configuration.setProperty("object.a.pattern", "*"); // bad regexp
+        assertThat(resolver.resolve(new MyObject("a")).getLimit()).isEqualTo(200);
+    }
+
     private static class MyObject {
 
         private final String name;

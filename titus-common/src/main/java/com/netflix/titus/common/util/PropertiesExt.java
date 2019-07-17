@@ -132,7 +132,7 @@ public final class PropertiesExt {
     /**
      * Splits names into two parts, and returns set of top names.
      */
-    public static Set<String> getTopNames(Collection<String> names, int rootSegments) {
+    public static Set<String> getRootNames(Collection<String> names, int rootSegments) {
         // Split nested field names
         Set<String> topNames = new HashSet<>();
         names.forEach(n -> {

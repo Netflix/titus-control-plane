@@ -31,7 +31,6 @@ import com.google.common.collect.Lists;
 import com.netflix.archaius.api.Config;
 import com.netflix.archaius.api.ConfigListener;
 import com.netflix.titus.common.util.PropertiesExt;
-import com.netflix.titus.common.util.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,7 +43,7 @@ class Archaius2ObjectConfigurationResolver<OBJECT, CONFIG> implements ObjectConf
     private final Class<CONFIG> configType;
     private final CONFIG defaultConfig;
 
-    private volatile SortedMap<String, Pair<Pattern, CONFIG>> configMap = Collections.emptySortedMap();
+    private volatile SortedMap<String, Rule<CONFIG>> configMap = Collections.emptySortedMap();
 
     Archaius2ObjectConfigurationResolver(Config configuration,
                                          Function<OBJECT, String> selectorFieldAccessor,
@@ -75,11 +74,10 @@ class Archaius2ObjectConfigurationResolver<OBJECT, CONFIG> implements ObjectConf
             return defaultConfig;
         }
 
-
-        for (Map.Entry<String, Pair<Pattern, CONFIG>> entry : configMap.entrySet()) {
-            Pattern pattern = entry.getValue().getLeft();
-            if (pattern.matcher(selectorValue).matches()) {
-                return entry.getValue().getRight();
+        for (Map.Entry<String, Rule<CONFIG>> entry : configMap.entrySet()) {
+            Rule<CONFIG> rule = entry.getValue();
+            if (rule.getPattern().matcher(selectorValue).matches()) {
+                return rule.getConfig();
             }
         }
         return defaultConfig;
@@ -102,43 +100,69 @@ class Archaius2ObjectConfigurationResolver<OBJECT, CONFIG> implements ObjectConf
 
     @Override
     public void onError(Throwable error, Config config) {
+        logger.debug("Configuration error", error);
     }
 
     private void doUpdate() {
         List<String> keys = Lists.newArrayList(configuration.getKeys());
-        Set<String> roots = PropertiesExt.getTopNames(keys, 1);
+        Set<String> roots = PropertiesExt.getRootNames(keys, 1);
 
-        SortedMap<String, Pair<Pattern, CONFIG>> newConfigMap = new TreeMap<>();
+        SortedMap<String, Rule<CONFIG>> newConfigMap = new TreeMap<>();
         roots.forEach(root -> processSubKeys(root).ifPresent(value -> newConfigMap.put(root, value)));
 
         this.configMap = newConfigMap;
     }
 
-    private Optional<Pair<Pattern, CONFIG>> processSubKeys(String root) {
+    private Optional<Rule<CONFIG>> processSubKeys(String root) {
         String patternProperty = root + ".pattern";
-        String patternValue = configuration.getString(patternProperty, null);
-        if (patternValue == null) {
+        String patternString = configuration.getString(patternProperty, null);
+        if (patternString == null) {
             return Optional.empty();
         }
 
-        Pair<Pattern, CONFIG> previous = configMap.get(root);
+        Rule<CONFIG> previous = configMap.get(root);
 
         Pattern pattern;
-        if (previous != null && previous.getLeft().toString().equals(patternValue)) {
-            pattern = previous.getLeft();
+        if (previous != null && previous.getPatternString().equals(patternString)) {
+            pattern = previous.getPattern();
         } else {
             try {
-                pattern = Pattern.compile(patternValue);
+                pattern = Pattern.compile(patternString);
             } catch (Exception e) {
-                logger.warn("Invalid regular expression in property {}: {}", patternProperty, patternValue);
+                logger.warn("Invalid regular expression in property {}: {}", patternProperty, patternString);
                 return Optional.ofNullable(previous);
             }
         }
 
         if (previous != null) {
-            return Optional.of(Pair.of(pattern, previous.getRight()));
+            return Optional.of(new Rule<>(patternString, pattern, previous.getConfig()));
         }
 
-        return Optional.of(Pair.of(pattern, Archaius2Ext.newConfiguration(configType, root, configuration)));
+        return Optional.of(new Rule<>(patternString, pattern, Archaius2Ext.newConfiguration(configType, root, configuration)));
+    }
+
+    private static class Rule<CONFIG> {
+
+        private final String patternString;
+        private final Pattern pattern;
+        private final CONFIG config;
+
+        private Rule(String patternString, Pattern pattern, CONFIG config) {
+            this.patternString = patternString;
+            this.pattern = pattern;
+            this.config = config;
+        }
+
+        private String getPatternString() {
+            return patternString;
+        }
+
+        private Pattern getPattern() {
+            return pattern;
+        }
+
+        private CONFIG getConfig() {
+            return config;
+        }
     }
 }

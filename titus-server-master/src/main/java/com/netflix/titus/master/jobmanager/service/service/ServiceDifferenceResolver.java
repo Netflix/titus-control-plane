@@ -42,7 +42,6 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.retry.Retryers;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import com.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils;
@@ -53,6 +52,7 @@ import com.netflix.titus.master.jobmanager.service.common.action.task.BasicTaskA
 import com.netflix.titus.master.jobmanager.service.common.action.task.KillInitiatedActions;
 import com.netflix.titus.master.jobmanager.service.common.interceptor.RetryActionInterceptor;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
+import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.scheduler.SchedulingService;
 import com.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransformer;
 import com.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
@@ -137,9 +137,10 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
 
         int activeNotStartedTasks = DifferenceResolverUtils.countActiveNotStartedTasks(refJobView.getJobHolder(), engine.getRunningView());
         AtomicInteger allowedNewTasks = new AtomicInteger(Math.max(0, configuration.getActiveNotStartedTasksLimit() - activeNotStartedTasks));
+        AtomicInteger allowedTaskKills = new AtomicInteger(configuration.getConcurrentReconcilerStoreUpdateLimit());
 
         actions.addAll(applyStore(engine, refJobView, engine.getStoreView(), allowedNewTasks));
-        actions.addAll(applyRuntime(engine, refJobView, engine.getRunningView(), engine.getStoreView(), allowedNewTasks));
+        actions.addAll(applyRuntime(engine, refJobView, engine.getRunningView(), engine.getStoreView(), allowedNewTasks, allowedTaskKills));
 
         if (actions.isEmpty()) {
             actions.addAll(removeCompletedJob(engine.getReferenceView(), engine.getStoreView(), jobStore));
@@ -148,26 +149,32 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
         return actions;
     }
 
-    private List<ChangeAction> applyRuntime(ReconciliationEngine<JobManagerReconcilerEvent> engine, ServiceJobView refJobView, EntityHolder runningModel, EntityHolder storeModel, AtomicInteger allowedNewTasks) {
+    private List<ChangeAction> applyRuntime(ReconciliationEngine<JobManagerReconcilerEvent> engine,
+                                            ServiceJobView refJobView,
+                                            EntityHolder runningModel,
+                                            EntityHolder storeModel,
+                                            AtomicInteger allowedNewTasks,
+                                            AtomicInteger allowedTaskKills) {
         EntityHolder referenceModel = refJobView.getJobHolder();
         ServiceJobView runningJobView = new ServiceJobView(runningModel);
 
         if (hasJobState(referenceModel, JobState.KillInitiated)) {
             List<ChangeAction> killInitiatedActions = KillInitiatedActions.reconcilerInitiatedAllTasksKillInitiated(
                     engine, vmService, jobStore, TaskStatus.REASON_TASK_KILLED,
-                    "Killing task as its job is in KillInitiated state", configuration.getConcurrentReconcilerStoreUpdateLimit(),
+                    "Killing task as its job is in KillInitiated state", allowedTaskKills.get(),
                     titusRuntime
             );
             if (killInitiatedActions.isEmpty()) {
                 return findTaskStateTimeouts(engine, runningJobView, configuration, vmService, jobStore, titusRuntime);
             }
+            allowedTaskKills.set(allowedTaskKills.get() - killInitiatedActions.size());
             return killInitiatedActions;
         } else if (hasJobState(referenceModel, JobState.Finished)) {
             return Collections.emptyList();
         }
 
         List<ChangeAction> actions = new ArrayList<>();
-        List<ChangeAction> numberOfTaskAdjustingActions = findJobSizeInconsistencies(engine, refJobView, storeModel, allowedNewTasks);
+        List<ChangeAction> numberOfTaskAdjustingActions = findJobSizeInconsistencies(engine, refJobView, storeModel, allowedNewTasks, allowedTaskKills);
         actions.addAll(numberOfTaskAdjustingActions);
         if (numberOfTaskAdjustingActions.isEmpty()) {
             actions.addAll(findMissingRunningTasks(engine, refJobView, runningJobView));
@@ -180,7 +187,11 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
     /**
      * Check that the reference job has the required number of tasks.
      */
-    private List<ChangeAction> findJobSizeInconsistencies(ReconciliationEngine<JobManagerReconcilerEvent> engine, ServiceJobView refJobView, EntityHolder storeModel, AtomicInteger allowedNewTasks) {
+    private List<ChangeAction> findJobSizeInconsistencies(ReconciliationEngine<JobManagerReconcilerEvent> engine,
+                                                          ServiceJobView refJobView,
+                                                          EntityHolder storeModel,
+                                                          AtomicInteger allowedNewTasks,
+                                                          AtomicInteger allowedTaskKills) {
         boolean canUpdateStore = storeWriteRetryInterceptor.executionLimits(storeModel);
         List<ServiceJobTask> tasks = refJobView.getTasks();
         int missing = refJobView.getRequiredSize() - tasks.size();
@@ -194,13 +205,15 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
         } else if (missing < 0) {
             // Too many tasks (job was scaled down)
             int finishedCount = (int) tasks.stream().filter(t -> t.getStatus().getState() == TaskState.Finished).count();
-            int toRemoveCount = -missing - finishedCount;
+            int toRemoveCount = Math.min(allowedTaskKills.get(), -missing - finishedCount);
             if (toRemoveCount > 0) {
                 List<ServiceJobTask> tasksToRemove = ScaleDownEvaluator.selectTasksToTerminate(tasks, tasks.size() - toRemoveCount, titusRuntime);
-                return tasksToRemove.stream()
+                List<ChangeAction> killActions = tasksToRemove.stream()
                         .filter(t -> !isTerminating(t))
                         .map(t -> KillInitiatedActions.reconcilerInitiatedTaskKillInitiated(engine, t, vmService, jobStore, TaskStatus.REASON_SCALED_DOWN, "Terminating excessive service job task", titusRuntime))
                         .collect(Collectors.toList());
+                allowedTaskKills.set(allowedTaskKills.get() - killActions.size());
+                return killActions;
             }
         }
         return Collections.emptyList();
@@ -248,7 +261,10 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
         return missingTasks;
     }
 
-    private List<ChangeAction> applyStore(ReconciliationEngine<JobManagerReconcilerEvent> engine, ServiceJobView refJobView, EntityHolder storeJob, AtomicInteger allowedNewTasks) {
+    private List<ChangeAction> applyStore(ReconciliationEngine<JobManagerReconcilerEvent> engine,
+                                          ServiceJobView refJobView,
+                                          EntityHolder storeJob,
+                                          AtomicInteger allowedNewTasks) {
         if (!storeWriteRetryInterceptor.executionLimits(storeJob)) {
             return Collections.emptyList();
         }
