@@ -25,9 +25,6 @@ import com.netflix.fenzo.TaskTrackerState;
 import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.service.AgentManagementService;
-import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import com.netflix.titus.api.jobmanager.model.job.vpc.SignedIpAddressAllocation;
-import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.common.annotation.Experimental;
 import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
@@ -52,16 +49,13 @@ public class IpAllocationConstraint implements ConstraintEvaluator {
     private final SchedulerConfiguration configuration;
     private final TaskCache taskCache;
     private final AgentManagementService agentManagementService;
-    private final V3JobOperations v3JobOperations;
 
     public IpAllocationConstraint(SchedulerConfiguration configuration,
                                   TaskCache taskCache,
-                                  AgentManagementService agentManagementService,
-                                  V3JobOperations v3JobOperations) {
+                                  AgentManagementService agentManagementService) {
         this.configuration = configuration;
         this.taskCache = taskCache;
         this.agentManagementService = agentManagementService;
-        this.v3JobOperations = v3JobOperations;
     }
 
     @Override
@@ -92,8 +86,7 @@ public class IpAllocationConstraint implements ConstraintEvaluator {
 
         // Find the assigned IP allocation's zone ID
         String instanceZoneId = agentInstance.getAttributes().getOrDefault(configuration.getAvailabilityZoneAttributeName(), "");
-        Optional<String> ipAllocationZoneId = getZoneIdForIpAllocationId(((V3QueueableTask)taskRequest).getJob().getJobDescriptor(), ipAllocationId);
-        return ipAllocationZoneId
+        return taskCache.getZoneIdByIpAllocationId(ipAllocationId)
                 .map(ipZoneId -> {
                     if (ipZoneId.equals(instanceZoneId)) {
                         return VALID;
@@ -101,14 +94,5 @@ public class IpAllocationConstraint implements ConstraintEvaluator {
                     return IP_ALLOCATION_NOT_IN_ZONE;
                 })
                 .orElse(INVALID_IP_ALLOCATION_ZONE);
-    }
-
-    private Optional<String> getZoneIdForIpAllocationId(JobDescriptor<?> jobDescriptor, String ipAllocationId) {
-        for (SignedIpAddressAllocation signedIpAddressAllocation : jobDescriptor.getContainer().getContainerResources().getSignedIpAddressAllocations()) {
-            if (signedIpAddressAllocation.getIpAddressAllocation().getAllocationId().equals(ipAllocationId)) {
-                return Optional.of(signedIpAddressAllocation.getIpAddressAllocation().getIpAddressLocation().getAvailabilityZone());
-            }
-        }
-        return Optional.empty();
     }
 }

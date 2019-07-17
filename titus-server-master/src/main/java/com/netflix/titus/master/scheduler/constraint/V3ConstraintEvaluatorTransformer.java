@@ -27,7 +27,6 @@ import com.netflix.fenzo.ConstraintEvaluator;
 import com.netflix.fenzo.VMTaskFitnessCalculator;
 import com.netflix.fenzo.plugins.ExclusiveHostConstraint;
 import com.netflix.titus.api.agent.service.AgentManagementService;
-import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.config.MasterConfiguration;
@@ -74,19 +73,16 @@ public class V3ConstraintEvaluatorTransformer implements ConstraintEvaluatorTran
     private final SchedulerConfiguration schedulerConfiguration;
     private final TaskCache taskCache;
     private final AgentManagementService agentManagementService;
-    private final V3JobOperations v3JobOperations;
 
     @Inject
     public V3ConstraintEvaluatorTransformer(MasterConfiguration config,
                                             SchedulerConfiguration schedulerConfiguration,
                                             TaskCache taskCache,
-                                            AgentManagementService agentManagementService,
-                                            V3JobOperations v3JobOperations) {
+                                            AgentManagementService agentManagementService) {
         this.config = config;
         this.schedulerConfiguration = schedulerConfiguration;
         this.taskCache = taskCache;
         this.agentManagementService = agentManagementService;
-        this.v3JobOperations = v3JobOperations;
     }
 
     @Override
@@ -159,6 +155,6 @@ public class V3ConstraintEvaluatorTransformer implements ConstraintEvaluatorTran
 
     @Override
     public Optional<ConstraintEvaluator> ipAllocationConstraint() {
-        return Optional.of(new IpAllocationConstraint(schedulerConfiguration, taskCache, agentManagementService, v3JobOperations));
+        return Optional.of(new IpAllocationConstraint(schedulerConfiguration, taskCache, agentManagementService));
     }
 }
