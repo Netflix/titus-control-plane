@@ -130,6 +130,21 @@ public final class PropertiesExt {
     }
 
     /**
+     * Splits names into two parts, and returns set of top names.
+     */
+    public static Set<String> getRootNames(Collection<String> names, int rootSegments) {
+        // Split nested field names
+        Set<String> topNames = new HashSet<>();
+        names.forEach(n -> {
+            Pair<String, String> parts = split(n, rootSegments);
+            if (parts != null) {
+                topNames.add(parts.getLeft());
+            }
+        });
+        return topNames;
+    }
+
+    /**
      * Split property names into two parts, where the first part may include one or more segments separated with dot.
      * The second part may be null, if the name is too short.
      */

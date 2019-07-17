@@ -37,6 +37,7 @@ import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.jobmanager.store.JobStore;
 import com.netflix.titus.common.framework.reconciler.ChangeAction;
+import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import com.netflix.titus.common.runtime.TitusRuntime;
@@ -54,7 +55,7 @@ import rx.functions.Action0;
  * A collection of {@link ChangeAction}s for task termination.
  */
 public class KillInitiatedActions {
-    
+
     /**
      * Move job to {@link JobState#KillInitiated} state in reference, running and store models.
      */
@@ -172,24 +173,22 @@ public class KillInitiatedActions {
                                                                               JobStore jobStore,
                                                                               String reasonCode,
                                                                               String reason,
+                                                                              int concurrencyLimit,
                                                                               TitusRuntime titusRuntime) {
         List<ChangeAction> result = new ArrayList<>();
 
-        // Move running tasks to KillInitiated state
-        Set<String> runningTaskIds = new HashSet<>();
-        engine.getRunningView().getChildren().forEach(taskHolder -> {
-            Task task = taskHolder.getEntity();
-            runningTaskIds.add(task.getId());
+        EntityHolder runningView = engine.getRunningView();
 
-            TaskState state = task.getStatus().getState();
-            if (state != TaskState.KillInitiated && state != TaskState.Finished) {
-                result.add(reconcilerInitiatedTaskKillInitiated(engine, task, vmService, jobStore, reasonCode, reason, titusRuntime));
-            }
-        });
+        Set<String> runningTaskIds = new HashSet<>();
+        runningView.getChildren().forEach(taskHolder -> runningTaskIds.add(taskHolder.<Task>getEntity().getId()));
 
         // Immediately finish Accepted tasks, which are not yet in the running model.
-        engine.getReferenceView().getChildren().forEach(taskHolder -> {
-            Task task = taskHolder.getEntity();
+        for (EntityHolder entityHolder : engine.getReferenceView().getChildren()) {
+            if(result.size() >= concurrencyLimit) {
+                return result;
+            }
+
+            Task task = entityHolder.getEntity();
             TaskState state = task.getStatus().getState();
             if (state == TaskState.Accepted && !runningTaskIds.contains(task.getId())) {
                 result.add(BasicTaskActions.updateTaskAndWriteItToStore(
@@ -203,7 +202,20 @@ public class KillInitiatedActions {
                         JobManagerConstants.RECONCILER_CALLMETADATA.toBuilder().withCallReason(reason).build()
                 ));
             }
-        });
+        }
+
+        // Move running tasks to KillInitiated state
+        for (EntityHolder taskHolder : runningView.getChildren()) {
+            if(result.size() >= concurrencyLimit) {
+                return result;
+            }
+
+            Task task = taskHolder.getEntity();
+            TaskState state = task.getStatus().getState();
+            if (state != TaskState.KillInitiated && state != TaskState.Finished) {
+                result.add(reconcilerInitiatedTaskKillInitiated(engine, task, vmService, jobStore, reasonCode, reason, titusRuntime));
+            }
+        }
 
         return result;
     }

@@ -42,7 +42,6 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.retry.Retryers;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import com.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils;
@@ -53,6 +52,7 @@ import com.netflix.titus.master.jobmanager.service.common.action.task.BasicTaskA
 import com.netflix.titus.master.jobmanager.service.common.action.task.KillInitiatedActions;
 import com.netflix.titus.master.jobmanager.service.common.interceptor.RetryActionInterceptor;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
+import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.scheduler.SchedulingService;
 import com.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransformer;
 import com.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
@@ -155,7 +155,9 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
 
         if (DifferenceResolverUtils.hasJobState(referenceModel, JobState.KillInitiated)) {
             List<ChangeAction> killInitiatedActions = KillInitiatedActions.reconcilerInitiatedAllTasksKillInitiated(
-                    engine, vmService, jobStore, TaskStatus.REASON_TASK_KILLED, "Killing task as its job is in KillInitiated state", titusRuntime
+                    engine, vmService, jobStore, TaskStatus.REASON_TASK_KILLED,
+                    "Killing task as its job is in KillInitiated state", configuration.getConcurrentReconcilerStoreUpdateLimit(),
+                    titusRuntime
             );
             if (killInitiatedActions.isEmpty()) {
                 return DifferenceResolverUtils.findTaskStateTimeouts(engine, runningJobView, configuration, vmService, jobStore, titusRuntime);

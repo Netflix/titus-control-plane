@@ -18,8 +18,10 @@ package com.netflix.titus.master.jobmanager.service;
 
 import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
+import com.netflix.titus.api.jobmanager.model.job.JobState;
 
 /**
+ *
  */
 @Configuration(prefix = "titusMaster.jobManager")
 public interface JobManagerConfiguration {
@@ -36,6 +38,13 @@ public interface JobManagerConfiguration {
      */
     @DefaultValue("300")
     int getActiveNotStartedTasksLimit();
+
+    /**
+     * Maximum number of concurrent store updates per job within the reconciliation loop. Currently only task kill
+     * operations are accounted for when a job moves to {@link JobState#KillInitiated} state.
+     */
+    @DefaultValue("300")
+    int getConcurrentReconcilerStoreUpdateLimit();
 
     @DefaultValue("60000")
     long getTaskInLaunchedStateTimeoutMs();

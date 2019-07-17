@@ -33,6 +33,7 @@ import org.junit.Test;
 
 import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.changeBatchJobSize;
 import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.changeRetryLimit;
+import static com.netflix.titus.master.jobmanager.service.integration.scenario.JobsScenarioBuilder.CONCURRENT_STORE_UPDATE_LIMIT;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskBatchJobDescriptor;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -254,6 +255,26 @@ public class BatchJobSchedulingTest {
                 .expectNoStoreUpdate()
                 .expectNoTaskStateChangeEvent()
                 .expectNoMesosEvent()
+        );
+    }
+
+    @Test
+    public void testTaskKillConcurrencyIsLimitedWhenJobIsKilled() {
+        jobsScenarioBuilder.scheduleJob(JobFunctions.changeBatchJobSize(oneTaskBatchJobDescriptor(), 100), jobScenario -> jobScenario
+                .expectJobEvent()
+                .advance()
+                .inActiveTasks((taskIdx, resubmit) -> ScenarioTemplates.acceptTask(taskIdx, resubmit))
+                .inActiveTasks((taskIdx, resubmit) -> ScenarioTemplates.startTask(taskIdx, resubmit, TaskState.Started))
+                .advance()
+                .allTasks(tasks -> assertThat(tasks.size() > CONCURRENT_STORE_UPDATE_LIMIT).isTrue())
+                .ignoreAvailableEvents()
+                .killJob()
+                .expectJobEvent(job -> assertThat(job.getStatus().getState()).isEqualTo(JobState.KillInitiated))
+                .advance()
+                .allTasks(tasks -> {
+                    long killed = tasks.stream().filter(task -> task.getStatus().getState() == TaskState.KillInitiated).count();
+                    assertThat(killed).isEqualTo(CONCURRENT_STORE_UPDATE_LIMIT);
+                })
         );
     }
 

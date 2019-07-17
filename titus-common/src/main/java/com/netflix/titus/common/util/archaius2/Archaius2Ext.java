@@ -16,11 +16,26 @@
 
 package com.netflix.titus.common.util.archaius2;
 
+import java.util.Collections;
+import java.util.function.Function;
+
+import com.netflix.archaius.ConfigProxyFactory;
+import com.netflix.archaius.DefaultPropertyFactory;
+import com.netflix.archaius.api.Config;
 import com.netflix.archaius.api.Property;
 import com.netflix.archaius.api.PropertyRepository;
+import com.netflix.archaius.config.MapConfig;
 import reactor.core.publisher.Flux;
 
 public final class Archaius2Ext {
+
+    private static final Config EMPTY_CONFIG = new MapConfig(Collections.emptyMap());
+
+    private static final ConfigProxyFactory DEFAULT_CONFIG_PROXY_FACTORY = new ConfigProxyFactory(
+            EMPTY_CONFIG,
+            EMPTY_CONFIG.getDecoder(),
+            DefaultPropertyFactory.from(EMPTY_CONFIG)
+    );
 
     /**
      * Observe property value changes. Emits current value on subscriptions.
@@ -39,5 +54,53 @@ public final class Archaius2Ext {
      */
     public static <T> Flux<T> watch(PropertyRepository propertyRepository, String key, Class<T> type) {
         return watch(propertyRepository.get(key, type));
+    }
+
+    /**
+     * Create Archaius based configuration object initialized with default values.
+     */
+    public static <C> C newDefaultConfiguration(Class<C> configType) {
+        return DEFAULT_CONFIG_PROXY_FACTORY.newProxy(configType);
+    }
+
+    /**
+     * Create Archaius based configuration object based by the given {@link Config}.
+     */
+    public static <C> C newConfiguration(Class<C> configType, Config config) {
+        ConfigProxyFactory factory = new ConfigProxyFactory(config, config.getDecoder(), DefaultPropertyFactory.from(config));
+        return factory.newProxy(configType);
+    }
+
+    /**
+     * Create Archaius based configuration object based by the given {@link Config}.
+     */
+    public static <C> C newConfiguration(Class<C> configType, String prefix, Config config) {
+        ConfigProxyFactory factory = new ConfigProxyFactory(config, config.getDecoder(), DefaultPropertyFactory.from(config));
+        return factory.newProxy(configType, prefix);
+    }
+
+    /**
+     * Given object, return configuration associated with it. For properties:
+     * a.pattern=a.*
+     * a.intValue=123
+     * b.pattern=b.*
+     * b.intValue=345
+     * c.pattern=.*
+     * c.intValue=0
+     * <p>
+     * Evaluate patterns in the alphabetic order until first matches, and map the property subtree onto configuration
+     * interface. If nothing matches, returns the default value.
+     */
+    public static <OBJECT, CONFIG> ObjectConfigurationResolver<OBJECT, CONFIG> newObjectConfigurationResolver(
+            Config configuration,
+            Function<OBJECT, String> selectorFieldAccessor,
+            Class<CONFIG> configType,
+            CONFIG defaultConfig) {
+        return new Archaius2ObjectConfigurationResolver<>(
+                configuration,
+                selectorFieldAccessor,
+                configType,
+                defaultConfig
+        );
     }
 }

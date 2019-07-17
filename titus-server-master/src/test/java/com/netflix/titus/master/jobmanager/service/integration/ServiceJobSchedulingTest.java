@@ -37,6 +37,7 @@ import org.junit.After;
 import org.junit.Test;
 
 import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.changeServiceJobCapacity;
+import static com.netflix.titus.master.jobmanager.service.integration.scenario.JobsScenarioBuilder.CONCURRENT_STORE_UPDATE_LIMIT;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskServiceJobDescriptor;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
@@ -248,6 +249,45 @@ public class ServiceJobSchedulingTest {
                 .expectTaskStateChangeEvent(0, 0, TaskState.Finished)
                 .advance().advance()
                 .expectServiceJobEvent(job -> assertThat(job.getStatus().getState() == JobState.Finished))
+        );
+    }
+
+    @Test
+    public void testTaskKillConcurrencyIsLimitedWhenJobIsKilled() {
+        jobsScenarioBuilder.scheduleJob(JobFunctions.changeServiceJobCapacity(oneTaskServiceJobDescriptor(), 100), jobScenario -> jobScenario
+                .expectJobEvent()
+                .advance()
+                .inActiveTasks((taskIdx, resubmit) -> ScenarioTemplates.acceptTask(taskIdx, resubmit))
+                .inActiveTasks((taskIdx, resubmit) -> ScenarioTemplates.startTask(taskIdx, resubmit, TaskState.Started))
+                .advance()
+                .allTasks(tasks -> assertThat(tasks.size() > CONCURRENT_STORE_UPDATE_LIMIT).isTrue())
+                .ignoreAvailableEvents()
+                .killJob()
+                .expectJobEvent(job -> assertThat(job.getStatus().getState()).isEqualTo(JobState.KillInitiated))
+                .advance()
+                .allTasks(tasks -> {
+                    long killed = tasks.stream().filter(task -> task.getStatus().getState() == TaskState.KillInitiated).count();
+                    assertThat(killed).isEqualTo(CONCURRENT_STORE_UPDATE_LIMIT);
+                })
+        );
+    }
+
+    @Test
+    public void testTaskKillConcurrencyIsLimitedWhenJobIsScaledDown() {
+        jobsScenarioBuilder.scheduleJob(JobFunctions.changeServiceJobCapacity(oneTaskServiceJobDescriptor(), 100), jobScenario -> jobScenario
+                .expectJobEvent()
+                .advance()
+                .inActiveTasks((taskIdx, resubmit) -> ScenarioTemplates.acceptTask(taskIdx, resubmit))
+                .inActiveTasks((taskIdx, resubmit) -> ScenarioTemplates.startTask(taskIdx, resubmit, TaskState.Started))
+                .advance()
+                .allTasks(tasks -> assertThat(tasks.size() > CONCURRENT_STORE_UPDATE_LIMIT).isTrue())
+                .ignoreAvailableEvents()
+                .changeCapacity(0, 0, 0)
+                .advance()
+                .allTasks(tasks -> {
+                    long killed = tasks.stream().filter(task -> task.getStatus().getState() == TaskState.KillInitiated).count();
+                    assertThat(killed).isEqualTo(CONCURRENT_STORE_UPDATE_LIMIT);
+                })
         );
     }
 

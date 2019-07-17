@@ -17,6 +17,7 @@
 package com.netflix.titus.master.jobmanager.endpoint.v3.grpc;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -33,9 +34,13 @@ import com.netflix.titus.api.FeatureRolloutPlans;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
+import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudgetFunctions;
+import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
+import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import com.netflix.titus.api.jobmanager.model.job.sanitizer.CustomJobConfiguration;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
@@ -49,6 +54,7 @@ import com.netflix.titus.common.model.sanitizer.ValidationError;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.ProtobufExt;
+import com.netflix.titus.common.util.archaius2.ObjectConfigurationResolver;
 import com.netflix.titus.common.util.rx.ObservableExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.Job;
@@ -102,14 +108,14 @@ import rx.Observable;
 import rx.Subscription;
 
 import static com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_STRICT_SANITIZER;
-import static com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway.JOB_MINIMUM_FIELD_SET;
-import static com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway.TASK_MINIMUM_FIELD_SET;
 import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toGrpcPagination;
 import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toJobQueryCriteria;
 import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toPage;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.safeOnError;
 import static com.netflix.titus.runtime.endpoint.metadata.CallMetadataUtils.execute;
 import static com.netflix.titus.runtime.endpoint.v3.grpc.TitusPaginationUtils.checkPageIsValid;
+import static com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway.JOB_MINIMUM_FIELD_SET;
+import static com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway.TASK_MINIMUM_FIELD_SET;
 
 @Singleton
 public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.JobManagementServiceImplBase {
@@ -126,6 +132,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     private final V3JobOperations jobOperations;
     private final LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo;
     private final EntitySanitizer entitySanitizer;
+    private final ObjectConfigurationResolver<com.netflix.titus.api.jobmanager.model.job.JobDescriptor, CustomJobConfiguration> customJobConfigurationResolver;
     private final Predicate<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> disruptionBudgetEnabledPredicate;
     private final CallMetadataResolver callMetadataResolver;
     private final CellDecorator cellDecorator;
@@ -139,6 +146,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
                                            V3JobOperations jobOperations,
                                            LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo,
                                            @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer,
+                                           ObjectConfigurationResolver<com.netflix.titus.api.jobmanager.model.job.JobDescriptor, CustomJobConfiguration> customJobConfigurationResolver,
                                            @Named(FeatureRolloutPlans.DISRUPTION_BUDGET_FEATURE) Predicate<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> disruptionBudgetEnabledPredicate,
                                            CallMetadataResolver callMetadataResolver,
                                            CellInfoResolver cellInfoResolver,
@@ -150,6 +158,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
         this.jobOperations = jobOperations;
         this.logStorageInfo = logStorageInfo;
         this.entitySanitizer = entitySanitizer;
+        this.customJobConfigurationResolver = customJobConfigurationResolver;
         this.disruptionBudgetEnabledPredicate = disruptionBudgetEnabledPredicate;
         this.callMetadataResolver = callMetadataResolver;
         this.cellDecorator = new CellDecorator(cellInfoResolver::getCellName);
@@ -196,7 +205,10 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
         com.netflix.titus.api.jobmanager.model.job.JobDescriptor sanitizedCoreJobDescriptor = entitySanitizer.sanitize(coreJobDescriptor).orElse(coreJobDescriptor);
 
-        Set<ValidationError> violations = entitySanitizer.validate(sanitizedCoreJobDescriptor);
+        Set<ValidationError> violations = CollectionsExt.merge(
+                entitySanitizer.validate(sanitizedCoreJobDescriptor),
+                validateCustomJobLimits(sanitizedCoreJobDescriptor)
+        );
         if (!violations.isEmpty()) {
             safeOnError(logger, TitusServiceException.invalidArgument(violations), responseObserver);
             return Optional.empty();
@@ -333,9 +345,22 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     @Override
     public void updateJobCapacity(JobCapacityUpdate request, StreamObserver<Empty> responseObserver) {
         execute(callMetadataResolver, responseObserver, callMetadata -> {
+            com.netflix.titus.api.jobmanager.model.job.Job<ServiceJobExt> job = jobOperations
+                    .getJob(request.getJobId())
+                    .map(j -> {
+                        if (!JobFunctions.isServiceJob(j)) {
+                            throw JobManagerException.notServiceJob(j.getId());
+                        }
+                        return (com.netflix.titus.api.jobmanager.model.job.Job<ServiceJobExt>) j;
+                    })
+                    .orElseThrow(() -> JobManagerException.jobNotFound(request.getJobId()));
+
             com.netflix.titus.api.jobmanager.model.job.Capacity newCapacity = V3GrpcModelConverters.toCoreCapacity(request.getCapacity());
 
-            Set<ValidationError> violations = entitySanitizer.validate(newCapacity);
+            Set<ValidationError> violations = CollectionsExt.merge(
+                    entitySanitizer.validate(newCapacity),
+                    validateCustomJobLimits(JobFunctions.changeServiceJobCapacity(job.getJobDescriptor(), newCapacity))
+            );
             if (!violations.isEmpty()) {
                 safeOnError(logger, TitusServiceException.invalidArgument(violations), responseObserver);
                 return;
@@ -667,6 +692,26 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
             return Mono.error(new StatusRuntimeException(status));
         }
         return Mono.empty();
+    }
+
+    private Set<ValidationError> validateCustomJobLimits(com.netflix.titus.api.jobmanager.model.job.JobDescriptor jobDescriptor) {
+        CustomJobConfiguration config = customJobConfigurationResolver.resolve(jobDescriptor);
+
+        if (JobFunctions.isServiceJob(jobDescriptor)) {
+            ServiceJobExt ext = (ServiceJobExt) jobDescriptor.getExtensions();
+            if (ext.getCapacity().getMax() > config.getMaxServiceJobSize()) {
+                String message = String.format("Service job size is limited to %s, but is %s", config.getMaxServiceJobSize(), ext.getCapacity().getMax());
+                return Collections.singleton(new ValidationError("jobDescriptor.extensions.capacity.max", message));
+            }
+        } else {
+            BatchJobExt ext = (BatchJobExt) jobDescriptor.getExtensions();
+            if (ext.getSize() > config.getMaxBatchJobSize()) {
+                String message = String.format("Batch job size is limited to %s, but is %s", config.getMaxBatchJobSize(), ext.getSize());
+                return Collections.singleton(new ValidationError("jobDescriptor.extensions.size", message));
+            }
+        }
+
+        return Collections.emptySet();
     }
 
     private JobQueryResult toJobQueryResult(List<Job> jobs, Pagination runtimePagination) {
