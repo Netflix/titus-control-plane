@@ -19,12 +19,12 @@ package com.netflix.titus.api.clustermembership.model;
 public enum ClusterMemberState {
 
     /**
-     * Service instance is starting, and its operational state is not known yet.
+     * Member instance is starting, and its operational state is not known yet.
      */
     Starting,
 
     /**
-     * Service is inactive, and does not participate in the leader election process. Predefined reason codes in this state:
+     * Member is inactive, and does not participate in the leader election process. Predefined reason codes in this state:
      * <ul>
      * <li>'outOfService' - the instance is healthy, but taken of out of service by an administrator</li>
      * <li>'unhealthy' - the instance is not healthy</li>
@@ -33,7 +33,7 @@ public enum ClusterMemberState {
     Inactive,
 
     /**
-     * Service is fully activated, and if does not participate in the leader election process, is ready to
+     * Member is fully activated, and if does not participate in the leader election process, is ready to
      * take traffic.
      */
     Active
