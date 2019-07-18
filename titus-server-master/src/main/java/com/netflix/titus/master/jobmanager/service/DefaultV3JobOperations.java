@@ -448,9 +448,6 @@ public class DefaultV3JobOperations implements V3JobOperations {
 
     @Override
     public Observable<Void> moveServiceTask(String sourceJobId, String targetJobId, String taskId, CallMetadata callMetadata) {
-        if (!featureActivationConfiguration.isMoveTaskApiEnabled()) {
-            throw JobManagerException.notEnabled("Move task");
-        }
         return Observable.defer(() -> {
             Pair<ReconciliationEngine<JobManagerReconcilerEvent>, EntityHolder> fromEngineTaskPair =
                     reconciliationFramework.findEngineByChildId(taskId).orElseThrow(() -> JobManagerException.taskNotFound(taskId));
@@ -479,7 +476,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
             }
 
             JobCompatibility compatibility = JobCompatibility.of(jobFrom, jobTo);
-            if (!compatibility.isCompatible()) {
+            if (featureActivationConfiguration.isMoveTaskValidationEnabled() && !compatibility.isCompatible()) {
                 Optional<String> diffReport = ProtobufExt.diffReport(
                         V3GrpcModelConverters.toGrpcJobDescriptor(compatibility.getNormalizedDescriptorFrom()),
                         V3GrpcModelConverters.toGrpcJobDescriptor(compatibility.getNormalizedDescriptorTo())
