@@ -14,22 +14,13 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.api.clustermembership.model;
+package com.netflix.titus.api.health;
 
-public enum ClusterMemberLeadershipState {
+public enum HealthState {
 
-    /**
-     * Member is not part of the leadership process.
-     */
-    Disabled,
+    Healthy,
 
-    /**
-     * Member is healthy, and participates in the leader election process, but is not the leader yet.
-     */
-    NonLeader,
+    Unhealthy,
 
-    /**
-     * Member is a current leader.
-     */
-    Leader
+    Unknown
 }

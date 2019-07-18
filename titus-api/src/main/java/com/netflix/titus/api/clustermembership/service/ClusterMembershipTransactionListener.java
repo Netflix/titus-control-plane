@@ -14,22 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.api.clustermembership.model;
+package com.netflix.titus.api.clustermembership.service;
 
-public enum ClusterMemberLeadershipState {
-
-    /**
-     * Member is not part of the leadership process.
-     */
-    Disabled,
-
-    /**
-     * Member is healthy, and participates in the leader election process, but is not the leader yet.
-     */
-    NonLeader,
-
-    /**
-     * Member is a current leader.
-     */
-    Leader
+public interface ClusterMembershipTransactionListener {
 }

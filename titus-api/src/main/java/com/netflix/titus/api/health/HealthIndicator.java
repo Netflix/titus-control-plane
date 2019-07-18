@@ -14,22 +14,26 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.api.clustermembership.model;
+package com.netflix.titus.api.health;
 
-public enum ClusterMemberLeadershipState {
+import java.util.Map;
+
+import reactor.core.publisher.Flux;
+
+/**
+ * Health API similar to Netflix https://github.com/Netflix/runtime-health. Unlike the latter it provides
+ * synchronous health evaluator together with event stream to listen for changes.
+ */
+public interface HealthIndicator {
+
+    Map<String, HealthStatus> getComponents();
+
+    HealthStatus health();
 
     /**
-     * Member is not part of the leadership process.
+     * We do not need the event stream yet, but it is provided for the API completeness.
      */
-    Disabled,
-
-    /**
-     * Member is healthy, and participates in the leader election process, but is not the leader yet.
-     */
-    NonLeader,
-
-    /**
-     * Member is a current leader.
-     */
-    Leader
+    default Flux<HealthStatus> healthChangeEvents() {
+        throw new IllegalStateException("not implemented");
+    }
 }

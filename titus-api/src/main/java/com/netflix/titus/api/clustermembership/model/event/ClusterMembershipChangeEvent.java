@@ -18,17 +18,30 @@ package com.netflix.titus.api.clustermembership.model.event;
 
 import java.util.Objects;
 
+import com.netflix.titus.api.clustermembership.model.ClusterMember;
 import com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision;
 
-public class ClusterMemberAddedEvent {
+public class ClusterMembershipChangeEvent extends ClusterMembershipEvent {
 
-    private final ClusterMembershipRevision revision;
+    public enum ChangeType {
+        Added,
+        Updated,
+        Removed
+    }
 
-    ClusterMemberAddedEvent(ClusterMembershipRevision revision) {
+    private final ChangeType changeType;
+    private final ClusterMembershipRevision<ClusterMember> revision;
+
+    public ClusterMembershipChangeEvent(ChangeType changeType, ClusterMembershipRevision<ClusterMember> revision) {
+        this.changeType = changeType;
         this.revision = revision;
     }
 
-    public ClusterMembershipRevision getRevision() {
+    public ChangeType getChangeType() {
+        return changeType;
+    }
+
+    public ClusterMembershipRevision<ClusterMember> getRevision() {
         return revision;
     }
 
@@ -40,19 +53,21 @@ public class ClusterMemberAddedEvent {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        ClusterMemberAddedEvent that = (ClusterMemberAddedEvent) o;
-        return Objects.equals(revision, that.revision);
+        ClusterMembershipChangeEvent that = (ClusterMembershipChangeEvent) o;
+        return changeType == that.changeType &&
+                Objects.equals(revision, that.revision);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(revision);
+        return Objects.hash(changeType, revision);
     }
 
     @Override
     public String toString() {
-        return "ClusterMemberAddedEvent{" +
-                "revision=" + revision +
+        return "ClusterMembershipChangeEvent{" +
+                "changeType=" + changeType +
+                ", revision=" + revision +
                 '}';
     }
 }

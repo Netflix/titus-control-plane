@@ -14,22 +14,17 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.api.clustermembership.model;
+package com.netflix.titus.api.clustermembership.model.event;
 
-public enum ClusterMemberLeadershipState {
+public class ClusterMembershipDisconnectedEvent extends ClusterMembershipEvent {
 
-    /**
-     * Member is not part of the leadership process.
-     */
-    Disabled,
+    private final Throwable cause;
 
-    /**
-     * Member is healthy, and participates in the leader election process, but is not the leader yet.
-     */
-    NonLeader,
+    ClusterMembershipDisconnectedEvent(Throwable cause) {
+        this.cause = cause;
+    }
 
-    /**
-     * Member is a current leader.
-     */
-    Leader
+    public Throwable getCause() {
+        return cause;
+    }
 }

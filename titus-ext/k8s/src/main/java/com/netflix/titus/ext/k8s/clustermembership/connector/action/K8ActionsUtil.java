@@ -14,22 +14,13 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.api.clustermembership.model;
+package com.netflix.titus.ext.k8s.clustermembership.connector.action;
 
-public enum ClusterMemberLeadershipState {
+import io.kubernetes.client.ApiException;
 
-    /**
-     * Member is not part of the leadership process.
-     */
-    Disabled,
+public class K8ActionsUtil {
 
-    /**
-     * Member is healthy, and participates in the leader election process, but is not the leader yet.
-     */
-    NonLeader,
-
-    /**
-     * Member is a current leader.
-     */
-    Leader
+    public static boolean is4xx(Throwable error) {
+        return error instanceof ApiException && ((ApiException) error).getCode() % 100 == 4;
+    }
 }

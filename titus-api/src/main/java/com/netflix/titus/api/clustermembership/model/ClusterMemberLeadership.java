@@ -16,30 +16,20 @@
 
 package com.netflix.titus.api.clustermembership.model;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-public class ClusterMember {
+public class ClusterMemberLeadership {
 
     private final String memberId;
-    private final ClusterMemberState state;
-    private final boolean enabled;
     private final ClusterMemberLeadershipState leadershipState;
-    private final List<ClusterMemberAddress> clusterMemberAddresses;
     private final Map<String, String> labels;
 
-    public ClusterMember(String memberId,
-                         ClusterMemberState state,
-                         boolean enabled,
-                         ClusterMemberLeadershipState leadershipState,
-                         List<ClusterMemberAddress> clusterMemberAddresses,
-                         Map<String, String> labels) {
+    public ClusterMemberLeadership(String memberId,
+                                   ClusterMemberLeadershipState leadershipState,
+                                   Map<String, String> labels) {
         this.memberId = memberId;
-        this.state = state;
-        this.enabled = enabled;
         this.leadershipState = leadershipState;
-        this.clusterMemberAddresses = clusterMemberAddresses;
         this.labels = labels;
     }
 
@@ -47,20 +37,8 @@ public class ClusterMember {
         return memberId;
     }
 
-    public ClusterMemberState getState() {
-        return state;
-    }
-
-    public boolean isEnabled() {
-        return enabled;
-    }
-
     public ClusterMemberLeadershipState getLeadershipState() {
         return leadershipState;
-    }
-
-    public List<ClusterMemberAddress> getClusterMemberAddresses() {
-        return clusterMemberAddresses;
     }
 
     public Map<String, String> getLabels() {
@@ -75,34 +53,28 @@ public class ClusterMember {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        ClusterMember that = (ClusterMember) o;
-        return enabled == that.enabled &&
-                Objects.equals(memberId, that.memberId) &&
-                state == that.state &&
+        ClusterMemberLeadership that = (ClusterMemberLeadership) o;
+        return Objects.equals(memberId, that.memberId) &&
                 leadershipState == that.leadershipState &&
-                Objects.equals(clusterMemberAddresses, that.clusterMemberAddresses) &&
                 Objects.equals(labels, that.labels);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(memberId, state, enabled, leadershipState, clusterMemberAddresses, labels);
+        return Objects.hash(memberId, leadershipState, labels);
     }
 
     @Override
     public String toString() {
-        return "ClusterMember{" +
+        return "ClusterMemberLeadership{" +
                 "memberId='" + memberId + '\'' +
-                ", state=" + state +
-                ", enabled=" + enabled +
                 ", leadershipState=" + leadershipState +
-                ", clusterMemberAddresses=" + clusterMemberAddresses +
                 ", labels=" + labels +
                 '}';
     }
 
     public Builder toBuilder() {
-        return newBuilder().withMemberId(memberId).withState(state).withEnabled(true).withLeadershipState(leadershipState).withClusterMemberAddresses(clusterMemberAddresses).withLabels(labels);
+        return newBuilder().withMemberId(memberId).withLeadershipState(leadershipState).withLabels(labels);
     }
 
     public static Builder newBuilder() {
@@ -111,10 +83,7 @@ public class ClusterMember {
 
     public static final class Builder {
         private String memberId;
-        private ClusterMemberState state;
-        private boolean enabled;
         private ClusterMemberLeadershipState leadershipState;
-        private List<ClusterMemberAddress> clusterMemberAddress;
         private Map<String, String> labels;
 
         private Builder() {
@@ -125,23 +94,8 @@ public class ClusterMember {
             return this;
         }
 
-        public Builder withState(ClusterMemberState state) {
-            this.state = state;
-            return this;
-        }
-
-        public Builder withEnabled(boolean enabled) {
-            this.enabled = enabled;
-            return this;
-        }
-
         public Builder withLeadershipState(ClusterMemberLeadershipState leadershipState) {
             this.leadershipState = leadershipState;
-            return this;
-        }
-
-        public Builder withClusterMemberAddresses(List<ClusterMemberAddress> clusterMemberAddress) {
-            this.clusterMemberAddress = clusterMemberAddress;
             return this;
         }
 
@@ -150,8 +104,8 @@ public class ClusterMember {
             return this;
         }
 
-        public ClusterMember build() {
-            return new ClusterMember(memberId, state, enabled, leadershipState, clusterMemberAddress, labels);
+        public ClusterMemberLeadership build() {
+            return new ClusterMemberLeadership(memberId, leadershipState, labels);
         }
     }
 }

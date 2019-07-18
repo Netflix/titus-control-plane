@@ -17,43 +17,27 @@
 package com.netflix.titus.api.clustermembership.model.event;
 
 import java.util.List;
-import java.util.Objects;
 
+import com.netflix.titus.api.clustermembership.model.ClusterMember;
+import com.netflix.titus.api.clustermembership.model.ClusterMemberLeadership;
 import com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision;
 
 public class ClusterMembershipSnapshotEvent extends ClusterMembershipEvent {
 
-    private final List<ClusterMembershipRevision> revisions;
+    private final List<ClusterMembershipRevision<ClusterMember>> clusterMemberRevisions;
+    private final ClusterMembershipRevision<ClusterMemberLeadership> localLeadership;
 
-    ClusterMembershipSnapshotEvent(List<ClusterMembershipRevision> revisions) {
-        this.revisions = revisions;
+    ClusterMembershipSnapshotEvent(List<ClusterMembershipRevision<ClusterMember>> clusterMemberRevisions,
+                                   ClusterMembershipRevision<ClusterMemberLeadership> localLeadership) {
+        this.clusterMemberRevisions = clusterMemberRevisions;
+        this.localLeadership = localLeadership;
     }
 
-    public List<ClusterMembershipRevision> getRevisions() {
-        return revisions;
+    public List<ClusterMembershipRevision<ClusterMember>> getClusterMemberRevisions() {
+        return clusterMemberRevisions;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        ClusterMembershipSnapshotEvent that = (ClusterMembershipSnapshotEvent) o;
-        return Objects.equals(revisions, that.revisions);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(revisions);
-    }
-
-    @Override
-    public String toString() {
-        return "ClusterMembershipSnapshotEvent{" +
-                "revisions=" + revisions +
-                '}';
+    public ClusterMembershipRevision<ClusterMemberLeadership> getLocalLeadership() {
+        return localLeadership;
     }
 }

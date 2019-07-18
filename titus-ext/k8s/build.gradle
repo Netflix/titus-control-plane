@@ -14,22 +14,11 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.api.clustermembership.model;
+dependencies {
+    compile project(':titus-api')
+    compile "io.kubernetes:client-java:6.0.0-beta1-SNAPSHOT"
+    compile "io.kubernetes:client-java-extended:6.0.0-beta1-SNAPSHOT"
+    compile "org.springframework.cloud:spring-cloud-commons:${springCloudVersion}"
 
-public enum ClusterMemberLeadershipState {
-
-    /**
-     * Member is not part of the leadership process.
-     */
-    Disabled,
-
-    /**
-     * Member is healthy, and participates in the leader election process, but is not the leader yet.
-     */
-    NonLeader,
-
-    /**
-     * Member is a current leader.
-     */
-    Leader
+    testCompile project(':titus-testkit')
 }

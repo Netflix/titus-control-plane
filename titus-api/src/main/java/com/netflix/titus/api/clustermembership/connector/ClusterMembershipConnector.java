@@ -16,53 +16,81 @@
 
 package com.netflix.titus.api.clustermembership.connector;
 
-import java.util.function.UnaryOperator;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
 
 import com.netflix.titus.api.clustermembership.model.ClusterMember;
-import com.netflix.titus.api.clustermembership.model.ClusterMemberLeadershipState;
+import com.netflix.titus.api.clustermembership.model.ClusterMemberLeadership;
+import com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision;
 import com.netflix.titus.api.clustermembership.model.event.ClusterMembershipEvent;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
  * Connector to an external cluster membership orchestrator (Etcd, Zookeeper, etc).
- * <p>
- * {@link #joinLeaderElectionProcess(UnaryOperator)}, {@link #leaveLeaderElectionProcess(UnaryOperator)} and
- * {@link #updateSelf(UnaryOperator)} operations are serialized.
  */
 public interface ClusterMembershipConnector {
 
     /**
-     * Join the leader election process. This transactionally includes self {@link ClusterMember} update.
-     * If leadership state is changed to the same value as the current one, return the current {@link ClusterMember} value,
-     * and do nothing.
+     * Returns cluster member data for the local member.
      */
-    Mono<ClusterMember> joinLeaderElectionProcess(UnaryOperator<ClusterMember> selfUpdate);
+    ClusterMembershipRevision<ClusterMember> getLocalClusterMemberRevision();
 
     /**
-     * Leave the leader election process. This transactionally includes self {@link ClusterMember} update.
-     * If the current instance is an elected leader, return an error.
-     * If leadership state is changed to the same value as the current one, return the current {@link ClusterMember} value,
-     * and do nothing.
+     * Returns all known siblings of the given cluster member.
      */
-    Mono<ClusterMember> leaveLeaderElectionProcess(UnaryOperator<ClusterMember> selfUpdate);
+    Map<String, ClusterMembershipRevision<ClusterMember>> getClusterMemberSiblings();
 
     /**
-     * Store {@link ClusterMember} data associated with the given instance. If updates are executed concurrently, they
-     * are serialized, and each request is provided with the latest version of the {@link ClusterMember}.
-     * The {@link ClusterMemberLeadershipState} cannot be changed. If it is, the  update is rejected and an error is returned.
+     * Returns the leadership state of the local member.
      */
-    Mono<ClusterMember> updateSelf(UnaryOperator<ClusterMember> selfUpdate);
+    ClusterMembershipRevision<ClusterMemberLeadership> getLocalLeadershipRevision();
 
     /**
-     * Requests the member that handles this request to stop being leader. If the given member
-     * is not a leader, the request is ignored.
+     * Returns current leader or {@link Optional#empty()} if there is no leader.
      */
-    Mono<Void> stopBeingLeader();
+    Optional<ClusterMembershipRevision<ClusterMemberLeadership>> findCurrentLeader();
 
     /**
-     * Cluster membership change events. Changes originated from this instance via one of the methods above are
-     * emitted after they are received by the external system.
+     * Store {@link ClusterMember} data associated with the given instance. The result {@link Mono} completes when
+     * the request data are persisted in the external store.
+     *
+     * <h1>Event ordering</h1>
+     * Concurrent calls to this method are serialized. After the change is recorded by the connector, a corresponding
+     * event is first emitted by {@link #membershipChangeEvents()}, and only after the request is completed, and the
+     * identical revision data are emitted in response.
+     *
+     * @return cluster member revision created by this update operation
      */
-    Flux<ClusterMembershipEvent> events();
+    Mono<ClusterMembershipRevision<ClusterMember>> register(Function<ClusterMember, ClusterMembershipRevision<ClusterMember>> selfUpdate);
+
+    /**
+     * Remove the local member from the membership group. If the member is part of the leadership process the request
+     * is rejected.
+     */
+    Mono<Void> unregister();
+
+    /**
+     * Join leader election process. Only allowed for registered members.
+     */
+    Mono<Void> joinLeadershipGroup();
+
+    /**
+     * Request the local member to leave the leader election process. The method completes when the leadership abort
+     * is completed. This means that by the time it completes, another cluster member can be elected a new leader and
+     * take over the traffic. It is important this this method is only called after the local node stops taking traffic,
+     * and synchronizes all state to external stores.
+     *
+     * <h1>Event ordering</h1>
+     * Follow the same rules as {@link #register(Function)} (see above).
+     *
+     * @param onlyNonLeader if set to true, the leader election process is terminated only if the local member is not an elected leader
+     */
+    Mono<Boolean> leaveLeadershipGroup(boolean onlyNonLeader);
+
+    /**
+     * Cluster membership change events. The event stream includes all members both local and siblings.
+     */
+    Flux<ClusterMembershipEvent> membershipChangeEvents();
 }

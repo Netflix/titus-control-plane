@@ -18,24 +18,27 @@ package com.netflix.titus.api.clustermembership.model;
 
 import java.util.Objects;
 
-public class ClusterMembershipRevision {
+public class ClusterMembershipRevision<T> {
 
-    private final ClusterMember current;
+    private final T current;
     private final String code;
     private final String message;
+    private final long revision;
     private final long timestamp;
 
-    public ClusterMembershipRevision(ClusterMember current,
+    public ClusterMembershipRevision(T current,
                                      String code,
                                      String message,
+                                     long revision,
                                      long timestamp) {
         this.current = current;
         this.code = code;
         this.message = message;
+        this.revision = revision;
         this.timestamp = timestamp;
     }
 
-    public ClusterMember getCurrent() {
+    public T getCurrent() {
         return current;
     }
 
@@ -45,6 +48,10 @@ public class ClusterMembershipRevision {
 
     public String getMessage() {
         return message;
+    }
+
+    public long getRevision() {
+        return revision;
     }
 
     public long getTimestamp() {
@@ -59,16 +66,17 @@ public class ClusterMembershipRevision {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        ClusterMembershipRevision that = (ClusterMembershipRevision) o;
-        return timestamp == that.timestamp &&
-                Objects.equals(current, that.current) &&
-                Objects.equals(code, that.code) &&
-                Objects.equals(message, that.message);
+        ClusterMembershipRevision revision1 = (ClusterMembershipRevision) o;
+        return revision == revision1.revision &&
+                timestamp == revision1.timestamp &&
+                Objects.equals(current, revision1.current) &&
+                Objects.equals(code, revision1.code) &&
+                Objects.equals(message, revision1.message);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(current, code, message, timestamp);
+        return Objects.hash(current, code, message, revision, timestamp);
     }
 
     @Override
@@ -77,49 +85,56 @@ public class ClusterMembershipRevision {
                 "current=" + current +
                 ", code='" + code + '\'' +
                 ", message='" + message + '\'' +
+                ", revision=" + revision +
                 ", timestamp=" + timestamp +
                 '}';
     }
 
-    public Builder toBuilder() {
-        return newBuilder().withCurrent(current).withCode(code).withMessage(message).withTimestamp(timestamp);
+    public Builder<T> toBuilder() {
+        return ClusterMembershipRevision.<T>newBuilder().withCurrent(current).withCode(code).withMessage(message).withRevision(revision).withTimestamp(timestamp);
     }
 
-    public static Builder newBuilder() {
-        return new Builder();
+    public static <T> Builder<T> newBuilder() {
+        return new Builder<>();
     }
 
-    public static final class Builder {
-        private ClusterMember current;
+    public static final class Builder<T> {
+        private T current;
         private String code;
         private String message;
         private long timestamp;
+        private long revision;
 
         private Builder() {
         }
 
-        public Builder withCurrent(ClusterMember current) {
+        public Builder<T> withCurrent(T current) {
             this.current = current;
             return this;
         }
 
-        public Builder withCode(String code) {
+        public Builder<T> withCode(String code) {
             this.code = code;
             return this;
         }
 
-        public Builder withMessage(String message) {
+        public Builder<T> withMessage(String message) {
             this.message = message;
             return this;
         }
 
-        public Builder withTimestamp(long timestamp) {
+        public Builder<T> withTimestamp(long timestamp) {
             this.timestamp = timestamp;
             return this;
         }
 
-        public ClusterMembershipRevision build() {
-            return new ClusterMembershipRevision(current, code, message, timestamp);
+        public Builder<T> withRevision(long revision) {
+            this.revision = revision;
+            return this;
+        }
+
+        public ClusterMembershipRevision<T> build() {
+            return new ClusterMembershipRevision<>(current, code, message, revision, timestamp);
         }
     }
 }

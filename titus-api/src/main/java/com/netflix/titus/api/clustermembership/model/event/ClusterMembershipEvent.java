@@ -18,23 +18,40 @@ package com.netflix.titus.api.clustermembership.model.event;
 
 import java.util.List;
 
+import com.netflix.titus.api.clustermembership.model.ClusterMember;
+import com.netflix.titus.api.clustermembership.model.ClusterMemberLeadership;
 import com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision;
+import com.netflix.titus.api.clustermembership.model.event.ClusterMembershipChangeEvent.ChangeType;
 
 public abstract class ClusterMembershipEvent {
 
-    public static ClusterMembershipSnapshotEvent newMembershipSnapshotEvent(List<ClusterMembershipRevision> revisions) {
-        return new ClusterMembershipSnapshotEvent(revisions);
+    public static ClusterMembershipSnapshotEvent snapshotEvent(
+            List<ClusterMembershipRevision<ClusterMember>> clusterMemberRevisions,
+            ClusterMembershipRevision<ClusterMemberLeadership> localLeadership) {
+        return new ClusterMembershipSnapshotEvent(clusterMemberRevisions, localLeadership);
     }
 
-    public static ClusterMemberAddedEvent newMemberAddEvent(ClusterMembershipRevision revision) {
-        return new ClusterMemberAddedEvent(revision);
+    public static ClusterMembershipChangeEvent memberAddedEvent(ClusterMembershipRevision<ClusterMember> revision) {
+        return new ClusterMembershipChangeEvent(ChangeType.Added, revision);
     }
 
-    public static ClusterMemberRemovedEvent newMemberRemovedEvent(ClusterMembershipRevision revision) {
-        return new ClusterMemberRemovedEvent(revision);
+    public static ClusterMembershipChangeEvent memberRemovedEvent(ClusterMembershipRevision<ClusterMember> revision) {
+        return new ClusterMembershipChangeEvent(ChangeType.Removed, revision);
     }
 
-    public static ClusterMemberUpdatedEvent newMemberUpdateEvent(ClusterMembershipRevision revision) {
-        return new ClusterMemberUpdatedEvent(revision);
+    public static ClusterMembershipChangeEvent memberUpdatedEvent(ClusterMembershipRevision<ClusterMember> revision) {
+        return new ClusterMembershipChangeEvent(ChangeType.Updated, revision);
+    }
+
+    public static ClusterMembershipEvent disconnectedEvent(Throwable cause) {
+        return new ClusterMembershipDisconnectedEvent(cause);
+    }
+
+    public static LeaderElectionChangeEvent lostLeadership(ClusterMembershipRevision<ClusterMemberLeadership> leadershipRevision) {
+        return new LeaderElectionChangeEvent(LeaderElectionChangeEvent.ChangeType.LostLeadership, leadershipRevision);
+    }
+
+    public static LeaderElectionChangeEvent leaderElected(ClusterMembershipRevision<ClusterMemberLeadership> leadershipRevision) {
+        return new LeaderElectionChangeEvent(LeaderElectionChangeEvent.ChangeType.Leader, leadershipRevision);
     }
 }
