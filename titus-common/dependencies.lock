@@ -20,7 +20,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.9.9",
+            "locked": "2.9.9.1",
             "requested": "2.9.+",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8"
@@ -526,7 +526,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.9.9",
+            "locked": "2.9.9.1",
             "requested": "2.9.+",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8"
@@ -1032,7 +1032,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.9.9",
+            "locked": "2.9.9.1",
             "requested": "2.9.+",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8"
@@ -1612,7 +1612,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.9.9",
+            "locked": "2.9.9.1",
             "requested": "2.9.+",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8"
@@ -2129,7 +2129,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.9.9",
+            "locked": "2.9.9.1",
             "requested": "2.9.+",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8"
@@ -2703,7 +2703,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.9.9",
+            "locked": "2.9.9.1",
             "requested": "2.9.+",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
@@ -4751,7 +4751,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.9.9",
+            "locked": "2.9.9.1",
             "requested": "2.9.+",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
@@ -6799,7 +6799,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.9.9",
+            "locked": "2.9.9.1",
             "requested": "2.9.+",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
@@ -8848,7 +8848,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.9.9",
+            "locked": "2.9.9.1",
             "requested": "2.9.+",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",

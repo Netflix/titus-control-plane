@@ -42,7 +42,7 @@ subprojects {
     targetCompatibility = 1.8
 
     ext {
-        titusApiDefinitionsVersion = '0.0.1-rc63'
+        titusApiDefinitionsVersion = '0.0.1-rc64'
 
         awsSdkVersion = '1.11.+'
         javaxElVersion = '3.+'
