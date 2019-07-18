@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import com.netflix.titus.api.jobmanager.model.job.vpc.IpAddress;
 import com.netflix.titus.api.jobmanager.model.job.vpc.IpAddressAllocation;
 import com.netflix.titus.api.jobmanager.model.job.vpc.IpAddressLocation;
 import com.netflix.titus.api.jobmanager.model.job.vpc.SignedIpAddressAllocation;
@@ -39,9 +38,8 @@ public final class JobIpAllocationGenerator {
 
     private static DataGenerator<String> regions() { return items("us-east-1"); }
 
-    private static DataGenerator<IpAddress> ipAddresses() {
-        return PrimitiveValueGenerators.ipv4CIDRs("96.96.96.1/28").map(ip ->
-                IpAddress.newBuilder().withAddress(ip).build());
+    private static DataGenerator<String> ipAddresses() {
+        return PrimitiveValueGenerators.ipv4CIDRs("96.96.96.1/28");
     }
 
     private static DataGenerator<IpAddressLocation> ipAddressLocations() {
@@ -58,7 +56,7 @@ public final class JobIpAllocationGenerator {
     }
 
     public static DataGenerator<SignedIpAddressAllocation> jobIpAllocations(int count) {
-        List<IpAddress> ipAddressList = ipAddresses().getValues(count);
+        List<String> ipAddressList = ipAddresses().getValues(count);
         List<IpAddressLocation> ipAddressLocationList = ipAddressLocations().getValues(count);
         List<SignedIpAddressAllocation> signedIpAddressAllocationList = new ArrayList<>();
         for (int i = 0; i < count; i++) {

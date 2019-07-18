@@ -110,7 +110,6 @@ import com.netflix.titus.api.jobmanager.model.job.retry.DelayedRetryPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.ExponentialBackoffRetryPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.ImmediateRetryPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
-import com.netflix.titus.api.jobmanager.model.job.vpc.IpAddress;
 import com.netflix.titus.api.jobmanager.model.job.vpc.IpAddressAllocation;
 import com.netflix.titus.api.jobmanager.model.job.vpc.IpAddressLocation;
 import com.netflix.titus.api.jobmanager.model.job.vpc.SignedIpAddressAllocation;
@@ -131,7 +130,6 @@ import com.netflix.titus.api.jobmanager.store.mixin.ImageMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.ImmediateRetryPolicyMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.IpAddressAllocationMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.IpAddressLocationMixin;
-import com.netflix.titus.api.jobmanager.store.mixin.IpAddressMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.JobDescriptorExtMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.JobDescriptorMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.JobGroupInfoMixin;
@@ -408,7 +406,6 @@ public class ObjectMappers {
         objectMapper.addMixIn(Image.class, ImageMixin.class);
         objectMapper.addMixIn(ServiceJobProcesses.class, ServiceJobProcessesMixin.class);
 
-        objectMapper.addMixIn(IpAddress.class, IpAddressMixin.class);
         objectMapper.addMixIn(IpAddressLocation.class, IpAddressLocationMixin.class);
         objectMapper.addMixIn(IpAddressAllocation.class, IpAddressAllocationMixin.class);
         objectMapper.addMixIn(SignedIpAddressAllocation.class, SignedIpAddressAllocationMixin.class);

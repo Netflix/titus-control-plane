@@ -18,13 +18,12 @@ package com.netflix.titus.api.jobmanager.store.mixin;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.netflix.titus.api.jobmanager.model.job.vpc.IpAddress;
 import com.netflix.titus.api.jobmanager.model.job.vpc.IpAddressLocation;
 
 public abstract class IpAddressAllocationMixin {
     @JsonCreator
     public IpAddressAllocationMixin(@JsonProperty("ipAddressLocation") IpAddressLocation ipAddressLocation,
                                     @JsonProperty("allocationId") String allocationId,
-                                    @JsonProperty("ipAddress") IpAddress ipAddress) {
+                                    @JsonProperty("ipAddress") String ipAddress) {
     }
 }

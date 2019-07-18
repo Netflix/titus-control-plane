@@ -32,9 +32,10 @@ public class IpAddressAllocation {
     @Size(min = 1, message = "Emtpy value not allowed")
     private final String allocationId;
 
-    private final IpAddress ipAddress;
+    @Size(min = 1, message = "Emtpy value not allowed")
+    private final String ipAddress;
 
-    public IpAddressAllocation(IpAddressLocation ipAddressLocation, String allocationId, IpAddress ipAddress) {
+    public IpAddressAllocation(IpAddressLocation ipAddressLocation, String allocationId, String ipAddress) {
         this.ipAddressLocation = ipAddressLocation;
         this.allocationId = allocationId;
         this.ipAddress = ipAddress;
@@ -52,7 +53,7 @@ public class IpAddressAllocation {
         return allocationId;
     }
 
-    public IpAddress getIpAddress() {
+    public String getIpAddress() {
         return ipAddress;
     }
 
@@ -87,7 +88,7 @@ public class IpAddressAllocation {
     public static final class Builder {
         private IpAddressLocation ipAddressLocation;
         private String allocationId;
-        private IpAddress ipAddress;
+        private String ipAddress;
 
         private Builder() {
         }
@@ -102,7 +103,7 @@ public class IpAddressAllocation {
             return this;
         }
 
-        public Builder withIpAddress(IpAddress val) {
+        public Builder withIpAddress(String val) {
             ipAddress = val;
             return this;
         }

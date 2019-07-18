@@ -71,14 +71,12 @@ import com.netflix.titus.api.jobmanager.model.job.retry.DelayedRetryPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.ExponentialBackoffRetryPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.ImmediateRetryPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
-import com.netflix.titus.api.jobmanager.model.job.vpc.IpAddress;
 import com.netflix.titus.api.jobmanager.model.job.vpc.IpAddressAllocation;
 import com.netflix.titus.api.jobmanager.model.job.vpc.IpAddressLocation;
 import com.netflix.titus.api.jobmanager.model.job.vpc.SignedIpAddressAllocation;
 import com.netflix.titus.api.model.EfsMount;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.StringExt;
-import com.netflix.titus.grpc.protogen.Address;
 import com.netflix.titus.grpc.protogen.AddressAllocation;
 import com.netflix.titus.grpc.protogen.AddressLocation;
 import com.netflix.titus.grpc.protogen.BatchJobSpec;
@@ -199,17 +197,11 @@ public final class V3GrpcModelConverters {
                 .build();
     }
 
-    private static IpAddress toCoreIpAddress(Address grpcAddress) {
-        return IpAddress.newBuilder()
-                .withAddress(grpcAddress.getAddress())
-                .build();
-    }
-
     private static IpAddressAllocation toCoreIpAddressAllocation(AddressAllocation grpcAddressAllocation) {
         return IpAddressAllocation.newBuilder()
                 .withUuid(grpcAddressAllocation.getUuid())
                 .withIpAddressLocation(toCoreIpAddressLocation(grpcAddressAllocation.getAddressLocation()))
-                .withIpAddress(toCoreIpAddress(grpcAddressAllocation.getAddress()))
+                .withIpAddress(grpcAddressAllocation.getAddress())
                 .build();
     }
 
@@ -618,12 +610,6 @@ public final class V3GrpcModelConverters {
         return builder.build();
     }
 
-    public static Address toGrpcAddress(IpAddress coreIpAddress) {
-        return Address.newBuilder()
-                .setAddress(coreIpAddress.getAddress())
-                .build();
-    }
-
     public static AddressLocation toGrpcAddressLocation(IpAddressLocation coreIpAddressLocation) {
         return AddressLocation.newBuilder()
                 .setAvailabilityZone(coreIpAddressLocation.getAvailabilityZone())
@@ -635,7 +621,7 @@ public final class V3GrpcModelConverters {
     public static AddressAllocation toGrpcAddressAllocation(IpAddressAllocation coreIpAddressAllocation) {
         return AddressAllocation.newBuilder()
                 .setUuid(coreIpAddressAllocation.getAllocationId())
-                .setAddress(toGrpcAddress(coreIpAddressAllocation.getIpAddress()))
+                .setAddress(coreIpAddressAllocation.getIpAddress())
                 .setAddressLocation(toGrpcAddressLocation(coreIpAddressAllocation.getIpAddressLocation()))
                 .build();
     }

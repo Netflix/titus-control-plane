@@ -154,7 +154,7 @@ public class V3ConstraintEvaluatorTransformer implements ConstraintEvaluatorTran
     }
 
     @Override
-    public Optional<ConstraintEvaluator> ipAllocationConstraint() {
-        return Optional.of(new IpAllocationConstraint(schedulerConfiguration, taskCache, agentManagementService));
+    public ConstraintEvaluator ipAllocationConstraint() {
+        return new IpAllocationConstraint(schedulerConfiguration, taskCache, agentManagementService);
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,5 +32,5 @@ public interface ConstraintEvaluatorTransformer<CONSTRAINT> {
 
     Optional<VMTaskFitnessCalculator> softConstraint(CONSTRAINT constraint, Supplier<Set<String>> activeTasksGetter);
 
-    Optional<ConstraintEvaluator> ipAllocationConstraint();
+    ConstraintEvaluator ipAllocationConstraint();
 }
