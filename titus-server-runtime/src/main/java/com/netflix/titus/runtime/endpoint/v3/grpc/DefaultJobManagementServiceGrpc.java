@@ -27,6 +27,7 @@ import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobAttributesDeleteRequest;
 import com.netflix.titus.grpc.protogen.JobAttributesUpdate;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
+import com.netflix.titus.grpc.protogen.JobCapacityUpdateWithOptionalAttributes;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.JobDisruptionBudgetUpdate;
@@ -93,6 +94,11 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     @Override
     public void updateJobCapacity(JobCapacityUpdate request, StreamObserver<Empty> responseObserver) {
         streamCompletableResponse(jobServiceGateway.updateJobCapacity(request), responseObserver);
+    }
+
+    @Override
+    public void updateJobCapacityWithOptionalAttributes(JobCapacityUpdateWithOptionalAttributes request, StreamObserver<Empty> responseObserver) {
+        streamCompletableResponse(jobServiceGateway.updateJobCapacityWithOptionalAttributes(request), responseObserver);
     }
 
     @Override

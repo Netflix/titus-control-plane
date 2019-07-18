@@ -21,10 +21,15 @@ import javax.inject.Named;
 
 import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
+import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
+import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.model.sanitizer.ValidationError;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
+import com.netflix.titus.grpc.protogen.JobCapacityUpdateWithOptionalAttributes;
+import com.netflix.titus.grpc.protogen.JobCapacityWithOptionalAttributes;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import rx.Completable;
@@ -72,5 +77,36 @@ public class SanitizingJobServiceGateway extends JobServiceGatewayDelegate {
             return Completable.error(TitusServiceException.invalidArgument(violations));
         }
         return delegate.updateJobCapacity(jobCapacityUpdate);
+    }
+
+    @Override
+    public Completable updateJobCapacityWithOptionalAttributes(JobCapacityUpdateWithOptionalAttributes jobCapacityUpdateWithOptionalAttributes) {
+        final JobCapacityWithOptionalAttributes jobCapacityWithOptionalAttributes = jobCapacityUpdateWithOptionalAttributes.getJobCapacityWithOptionalAttributes();
+        return delegate.findJob(jobCapacityUpdateWithOptionalAttributes.getJobId())
+                .map(j -> {
+                    final com.netflix.titus.api.jobmanager.model.job.JobDescriptor jobDescriptor = V3GrpcModelConverters.toCoreJobDescriptor(j.getJobDescriptor());
+                    if (!JobFunctions.isServiceJob(jobDescriptor)) {
+                        throw JobManagerException.notServiceJob(j.getId());
+                    }
+                    ServiceJobExt serviceJobExt = (ServiceJobExt) jobDescriptor.getExtensions();
+                    Capacity.Builder newCapacityBuilder = Capacity.newBuilder(serviceJobExt.getCapacity());
+                    if (jobCapacityWithOptionalAttributes.hasMin()) {
+                        newCapacityBuilder.withMin(jobCapacityWithOptionalAttributes.getMin().getValue());
+                    }
+                    if (jobCapacityWithOptionalAttributes.hasMax()) {
+                        newCapacityBuilder.withMax(jobCapacityWithOptionalAttributes.getMax().getValue());
+                    }
+                    if (jobCapacityWithOptionalAttributes.hasDesired()) {
+                        newCapacityBuilder.withDesired(jobCapacityWithOptionalAttributes.getDesired().getValue());
+                    }
+                    return newCapacityBuilder.build();
+                })
+                .flatMapCompletable(newCapacity -> {
+                    Set<ValidationError> violations = entitySanitizer.validate(newCapacity);
+                    if (!violations.isEmpty()) {
+                        return Completable.error(TitusServiceException.invalidArgument(violations));
+                    }
+                    return delegate.updateJobCapacityWithOptionalAttributes(jobCapacityUpdateWithOptionalAttributes);
+                }).toCompletable();
     }
 }

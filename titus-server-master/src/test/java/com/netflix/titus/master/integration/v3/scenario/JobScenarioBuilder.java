@@ -241,7 +241,6 @@ public class JobScenarioBuilder {
         return this;
     }
 
-
     public JobScenarioBuilder updateJobCapacityDesired(int desired) {
         logger.info("[{}] Changing job {} capacity desired to {}...", discoverActiveTest(), jobId, desired);
         Stopwatch stopWatch = Stopwatch.createStarted();
@@ -263,6 +262,51 @@ public class JobScenarioBuilder {
         logger.info("[{}] Job {} scaled to new desired size in {}ms", discoverActiveTest(), jobId, stopWatch.elapsed(TimeUnit.MILLISECONDS));
         return this;
     }
+
+    public JobScenarioBuilder updateJobCapacityMin(int min) {
+        logger.info("[{}] Changing job {} capacity min to {}...", discoverActiveTest(), jobId, min);
+        Stopwatch stopWatch = Stopwatch.createStarted();
+
+        TestStreamObserver<Empty> responseObserver = new TestStreamObserver<>();
+
+        client.updateJobCapacityWithOptionalAttributes(
+                JobCapacityUpdateWithOptionalAttributes.newBuilder().setJobId(jobId)
+                    .setJobCapacityWithOptionalAttributes(JobCapacityWithOptionalAttributes.newBuilder().setMin(UInt32Value.newBuilder().setValue(min).build()).build()).build(),
+                responseObserver);
+
+        rethrow(() -> responseObserver.awaitDone(TIMEOUT_MS, TimeUnit.MILLISECONDS));
+
+        expectJobUpdateEvent(job -> {
+            ServiceJobExt ext = (ServiceJobExt) job.getJobDescriptor().getExtensions();
+            return ext.getCapacity().getMin() == min;
+        }, "Job capacity update did not complete in time");
+
+        logger.info("[{}] Job {} scaled to new min size in {}ms", discoverActiveTest(), jobId, stopWatch.elapsed(TimeUnit.MILLISECONDS));
+        return this;
+    }
+
+    public JobScenarioBuilder updateJobCapacityMax(int max) {
+        logger.info("[{}] Changing job {} capacity max to {}...", discoverActiveTest(), jobId, max);
+        Stopwatch stopWatch = Stopwatch.createStarted();
+
+        TestStreamObserver<Empty> responseObserver = new TestStreamObserver<>();
+
+        client.updateJobCapacityWithOptionalAttributes(
+                JobCapacityUpdateWithOptionalAttributes.newBuilder().setJobId(jobId)
+                    .setJobCapacityWithOptionalAttributes(JobCapacityWithOptionalAttributes.newBuilder().setMax(UInt32Value.newBuilder().setValue(max).build()).build()).build(),
+                responseObserver);
+
+        rethrow(() -> responseObserver.awaitDone(TIMEOUT_MS, TimeUnit.MILLISECONDS));
+
+        expectJobUpdateEvent(job -> {
+            ServiceJobExt ext = (ServiceJobExt) job.getJobDescriptor().getExtensions();
+            return ext.getCapacity().getMax() == max;
+        }, "Job capacity update did not complete in time");
+
+        logger.info("[{}] Job {} scaled to new max size in {}ms", discoverActiveTest(), jobId, stopWatch.elapsed(TimeUnit.MILLISECONDS));
+        return this;
+    }
+
 
     public JobScenarioBuilder updateJobStatus(boolean enabled) {
         logger.info("[{}] Changing job {} enable status to {}...", discoverActiveTest(), jobId, enabled);

@@ -23,6 +23,8 @@ import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobAttributesDeleteRequest;
 import com.netflix.titus.grpc.protogen.JobAttributesUpdate;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
+import com.netflix.titus.grpc.protogen.JobCapacityUpdateWithOptionalAttributes;
+import com.netflix.titus.grpc.protogen.JobCapacityWithOptionalAttributes;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.JobDisruptionBudgetUpdate;
@@ -56,6 +58,8 @@ public interface JobServiceGateway {
     Observable<String> createJob(JobDescriptor jobDescriptor, CallMetadata callMetadata);
 
     Completable updateJobCapacity(JobCapacityUpdate jobCapacityUpdate);
+
+    Completable updateJobCapacityWithOptionalAttributes(JobCapacityUpdateWithOptionalAttributes jobCapacityUpdateWithOptionalAttributes);
 
     Completable updateJobProcesses(JobProcessesUpdate jobProcessesUpdate);
 

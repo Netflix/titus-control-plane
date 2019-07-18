@@ -21,6 +21,8 @@ import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobAttributesDeleteRequest;
 import com.netflix.titus.grpc.protogen.JobAttributesUpdate;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
+import com.netflix.titus.grpc.protogen.JobCapacityUpdateWithOptionalAttributes;
+import com.netflix.titus.grpc.protogen.JobCapacityWithOptionalAttributes;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.JobDisruptionBudgetUpdate;
@@ -56,6 +58,11 @@ public class JobServiceGatewayDelegate implements JobServiceGateway {
     @Override
     public Completable updateJobCapacity(JobCapacityUpdate jobCapacityUpdate) {
         return delegate.updateJobCapacity(jobCapacityUpdate);
+    }
+
+    @Override
+    public Completable updateJobCapacityWithOptionalAttributes(JobCapacityUpdateWithOptionalAttributes jobCapacityUpdateWithOptionalAttributes) {
+        return delegate.updateJobCapacityWithOptionalAttributes(jobCapacityUpdateWithOptionalAttributes);
     }
 
     @Override

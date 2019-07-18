@@ -26,6 +26,8 @@ import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobAttributesDeleteRequest;
 import com.netflix.titus.grpc.protogen.JobAttributesUpdate;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
+import com.netflix.titus.grpc.protogen.JobCapacityUpdateWithOptionalAttributes;
+import com.netflix.titus.grpc.protogen.JobCapacityWithOptionalAttributes;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.JobDisruptionBudgetUpdate;
@@ -97,6 +99,14 @@ public class GrpcJobServiceGateway implements JobServiceGateway {
         return createRequestCompletable(emitter -> {
             StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
             createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeoutMs()).updateJobCapacity(jobCapacityUpdate, streamObserver);
+        }, configuration.getRequestTimeoutMs());
+    }
+
+    @Override
+    public Completable updateJobCapacityWithOptionalAttributes(JobCapacityUpdateWithOptionalAttributes jobCapacityUpdateWithOptionalAttributes) {
+        return createRequestCompletable(emitter -> {
+            StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
+            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeoutMs()).updateJobCapacityWithOptionalAttributes(jobCapacityUpdateWithOptionalAttributes, streamObserver);
         }, configuration.getRequestTimeoutMs());
     }
 
