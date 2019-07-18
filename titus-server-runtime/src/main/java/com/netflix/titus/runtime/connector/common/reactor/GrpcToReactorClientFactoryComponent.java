@@ -16,11 +16,12 @@
 
 package com.netflix.titus.runtime.connector.common.reactor;
 
-import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.titus.runtime.connector.GrpcRequestConfiguration;
 import com.netflix.titus.runtime.connector.GrpcRequestConfigurationBean;
+import com.netflix.titus.runtime.connector.common.reactor.client.DefaultGrpcToReactorClientFactory;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 
 @Configuration

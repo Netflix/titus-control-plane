@@ -23,6 +23,8 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.runtime.connector.agent.AgentManagementDataReplicationComponent;
 import com.netflix.titus.runtime.connector.agent.AgentManagerConnectorComponent;
 import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorClientFactoryComponent;
+import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorServerFactory;
+import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorServerFactoryComponent;
 import com.netflix.titus.runtime.connector.eviction.EvictionConnectorComponent;
 import com.netflix.titus.runtime.connector.eviction.EvictionDataReplicationComponent;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementDataReplicationComponent;
@@ -31,8 +33,8 @@ import com.netflix.titus.runtime.connector.titusmaster.ConfigurationLeaderResolv
 import com.netflix.titus.runtime.endpoint.common.grpc.GrpcEndpointConfiguration;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolveComponent;
 import com.netflix.titus.runtime.endpoint.rest.RestAddOnsComponent;
+import com.netflix.titus.supplementary.relocation.endpoint.grpc.ReactorTaskRelocationGrpcService;
 import com.netflix.titus.supplementary.relocation.endpoint.grpc.TaskRelocationGrpcServer;
-import com.netflix.titus.supplementary.relocation.endpoint.grpc.TaskRelocationGrpcService;
 import io.grpc.Channel;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -48,6 +50,7 @@ import static com.netflix.titus.runtime.connector.titusmaster.ConfigurationLeade
         CallMetadataResolveComponent.class,
         ConfigurationLeaderResolverComponent.class,
         GrpcToReactorClientFactoryComponent.class,
+        GrpcToReactorServerFactoryComponent.class,
 
         // Agent connector
         AgentManagerConnectorComponent.class,
@@ -85,9 +88,10 @@ public class RelocationMain {
 
     @Bean
     public TaskRelocationGrpcServer getTaskRelocationGrpcServer(GrpcEndpointConfiguration configuration,
-                                                                TaskRelocationGrpcService taskRelocationGrpcService,
+                                                                ReactorTaskRelocationGrpcService reactorTaskRelocationGrpcService,
+                                                                GrpcToReactorServerFactory reactorServerFactory,
                                                                 TitusRuntime titusRuntime) {
-        return new TaskRelocationGrpcServer(configuration, taskRelocationGrpcService, titusRuntime);
+        return new TaskRelocationGrpcServer(configuration, reactorTaskRelocationGrpcService, reactorServerFactory, titusRuntime);
     }
 
     public static void main(String[] args) {

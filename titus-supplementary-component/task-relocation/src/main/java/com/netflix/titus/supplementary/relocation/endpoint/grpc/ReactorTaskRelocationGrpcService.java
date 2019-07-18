@@ -31,36 +31,29 @@ import com.netflix.titus.grpc.protogen.TaskRelocationExecution;
 import com.netflix.titus.grpc.protogen.TaskRelocationExecutions;
 import com.netflix.titus.grpc.protogen.TaskRelocationPlans;
 import com.netflix.titus.grpc.protogen.TaskRelocationQuery;
-import com.netflix.titus.grpc.protogen.TaskRelocationServiceGrpc;
 import com.netflix.titus.runtime.relocation.endpoint.RelocationGrpcModelConverters;
 import com.netflix.titus.supplementary.relocation.store.TaskRelocationResultStore;
 import com.netflix.titus.supplementary.relocation.workflow.RelocationWorkflowExecutor;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
-import io.grpc.stub.StreamObserver;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import reactor.core.Disposable;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
-import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.attachCancellingCallback;
-import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.safeOnError;
 import static com.netflix.titus.runtime.relocation.endpoint.RelocationGrpcModelConverters.toGrpcRelocationEvent;
 import static com.netflix.titus.runtime.relocation.endpoint.RelocationGrpcModelConverters.toGrpcTaskRelocationExecutions;
 import static com.netflix.titus.supplementary.relocation.endpoint.TaskRelocationPlanPredicate.buildProtobufQueryResult;
 
 @Singleton
-public class TaskRelocationGrpcService extends TaskRelocationServiceGrpc.TaskRelocationServiceImplBase {
-
-    private static final Logger logger = LoggerFactory.getLogger(TaskRelocationGrpcService.class);
+public class ReactorTaskRelocationGrpcService {
 
     private final ReadOnlyJobOperations jobOperations;
     private final RelocationWorkflowExecutor relocationWorkflowExecutor;
     private final TaskRelocationResultStore archiveStore;
 
     @Inject
-    public TaskRelocationGrpcService(ReadOnlyJobOperations jobOperations,
-                                     RelocationWorkflowExecutor relocationWorkflowExecutor,
-                                     TaskRelocationResultStore archiveStore) {
+    public ReactorTaskRelocationGrpcService(ReadOnlyJobOperations jobOperations,
+                                            RelocationWorkflowExecutor relocationWorkflowExecutor,
+                                            TaskRelocationResultStore archiveStore) {
         this.jobOperations = jobOperations;
         this.relocationWorkflowExecutor = relocationWorkflowExecutor;
         this.archiveStore = archiveStore;
@@ -69,35 +62,28 @@ public class TaskRelocationGrpcService extends TaskRelocationServiceGrpc.TaskRel
     /**
      * TODO Pagination once the core pagination model with cursor is available.
      */
-    @Override
-    public void getCurrentTaskRelocationPlans(TaskRelocationQuery request, StreamObserver<TaskRelocationPlans> responseObserver) {
-        responseObserver.onNext(buildProtobufQueryResult(jobOperations, relocationWorkflowExecutor, request));
-        responseObserver.onCompleted();
+    public Mono<TaskRelocationPlans> getCurrentTaskRelocationPlans(TaskRelocationQuery request) {
+        return Mono.just(buildProtobufQueryResult(jobOperations, relocationWorkflowExecutor, request));
     }
 
     /**
      * TODO Implement filtering.
      */
-    @Override
-    public void getLatestTaskRelocationResults(TaskRelocationQuery request, StreamObserver<TaskRelocationExecutions> responseObserver) {
+    public Mono<TaskRelocationExecutions> getLatestTaskRelocationResults(TaskRelocationQuery request) {
         List<TaskRelocationStatus> coreResults = new ArrayList<>(relocationWorkflowExecutor.getLastEvictionResults().values());
         TaskRelocationExecutions grpcResults = toGrpcTaskRelocationExecutions(coreResults);
-
-        responseObserver.onNext(grpcResults);
-        responseObserver.onCompleted();
+        return Mono.just(grpcResults);
     }
 
-    @Override
-    public void getTaskRelocationResult(RelocationTaskId request, StreamObserver<TaskRelocationExecution> responseObserver) {
+    public Mono<TaskRelocationExecution> getTaskRelocationResult(RelocationTaskId request) {
         String taskId = request.getId();
 
         TaskRelocationStatus latest = relocationWorkflowExecutor.getLastEvictionResults().get(taskId);
 
-        Disposable disposable = archiveStore.getTaskRelocationStatusList(taskId).subscribe(
+        return archiveStore.getTaskRelocationStatusList(taskId).flatMap(
                 archived -> {
                     if (latest == null && archived.isEmpty()) {
-                        responseObserver.onError(new StatusRuntimeException(Status.NOT_FOUND));
-                        return;
+                        return Mono.error(new StatusRuntimeException(Status.NOT_FOUND));
                     }
 
                     List<TaskRelocationStatus> combined;
@@ -113,21 +99,11 @@ public class TaskRelocationGrpcService extends TaskRelocationServiceGrpc.TaskRel
                         }
                     }
 
-                    responseObserver.onNext(RelocationGrpcModelConverters.toGrpcTaskRelocationExecution(combined));
-                },
-                e -> safeOnError(logger, e, responseObserver),
-                responseObserver::onCompleted
-        );
-        attachCancellingCallback(responseObserver, disposable);
+                    return Mono.just(RelocationGrpcModelConverters.toGrpcTaskRelocationExecution(combined));
+                });
     }
 
-    @Override
-    public void observeRelocationEvents(TaskRelocationQuery request, StreamObserver<RelocationEvent> responseObserver) {
-        Disposable disposable = relocationWorkflowExecutor.events().subscribe(
-                event -> toGrpcRelocationEvent(event).ifPresent(responseObserver::onNext),
-                responseObserver::onError,
-                responseObserver::onCompleted
-        );
-        attachCancellingCallback(responseObserver, disposable);
+    public Flux<RelocationEvent> observeRelocationEvents(TaskRelocationQuery request) {
+        return relocationWorkflowExecutor.events().flatMap(event -> toGrpcRelocationEvent(event).map(Flux::just).orElse(Flux.empty()));
     }
 }

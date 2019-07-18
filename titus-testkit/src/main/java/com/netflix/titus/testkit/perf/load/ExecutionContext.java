@@ -26,7 +26,7 @@ import javax.inject.Singleton;
 import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.runtime.connector.agent.ReactorAgentManagementServiceStub;
-import com.netflix.titus.runtime.connector.common.reactor.ReactorToGrpcClientBuilder;
+import com.netflix.titus.runtime.connector.common.reactor.client.ReactorToGrpcClientBuilder;
 import com.netflix.titus.runtime.connector.eviction.EvictionServiceClient;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.simulator.SimulatedAgentServiceGrpc;
