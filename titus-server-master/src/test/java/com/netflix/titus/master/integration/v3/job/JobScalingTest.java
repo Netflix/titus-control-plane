@@ -66,6 +66,20 @@ public class JobScalingTest extends BaseIntegrationTest {
         );
     }
 
+
+    @Test
+    public void testScaleUpAndDownServiceJobWithOptionalAttributes() throws Exception {
+        jobsScenarioBuilder.schedule(newJob("testScaleUpAndDownServiceJob"), jobScenarioBuilder -> jobScenarioBuilder
+                .template(ScenarioTemplates.startTasksInNewJob())
+                .updateJobCapacity(JobModel.newCapacity().withMin(0).withDesired(2).withMax(5).build())
+                .expectAllTasksCreated()
+                .updateJobCapacityDesired(4)
+                .updateJobCapacityDesired(3)
+                .expectJobToScaleDown()
+        );
+    }
+
+
     @Test
     public void testTerminateAndShrink() throws Exception {
         jobsScenarioBuilder.schedule(newJob("testTerminateAndShrink"), jobScenarioBuilder -> jobScenarioBuilder

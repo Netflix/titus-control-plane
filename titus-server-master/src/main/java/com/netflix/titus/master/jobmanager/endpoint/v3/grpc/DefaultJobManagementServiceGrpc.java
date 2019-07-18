@@ -808,28 +808,28 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     }
 
     private void sanitizeAndUpdateJobCapacity(String jobId, Capacity newJobCapacity,
-                      com.netflix.titus.api.jobmanager.model.job.JobDescriptor<ServiceJobExt> jobDescriptor,
-                      CallMetadata callMetadata, StreamObserver<Empty> responseObserver) {
+                                              com.netflix.titus.api.jobmanager.model.job.JobDescriptor<ServiceJobExt> jobDescriptor,
+                                              CallMetadata callMetadata, StreamObserver<Empty> responseObserver) {
         Set<ValidationError> violations = CollectionsExt.merge(
-                    entitySanitizer.validate(newJobCapacity),
-                    validateCustomJobLimits(JobFunctions.changeServiceJobCapacity(jobDescriptor, newJobCapacity))
-            );
-            if (!violations.isEmpty()) {
-                safeOnError(logger, TitusServiceException.invalidArgument(violations), responseObserver);
-                return;
-            }
+                entitySanitizer.validate(newJobCapacity),
+                validateCustomJobLimits(JobFunctions.changeServiceJobCapacity(jobDescriptor, newJobCapacity))
+        );
+        if (!violations.isEmpty()) {
+            safeOnError(logger, TitusServiceException.invalidArgument(violations), responseObserver);
+            return;
+        }
 
-            authorizeJobUpdate(callMetadata, jobId)
-                    .concatWith(jobOperations.updateJobCapacityReactor(jobId, newJobCapacity, callMetadata))
-                    .subscribe(
-                            nothing -> {
-                            },
-                            e -> safeOnError(logger, e, responseObserver),
-                            () -> {
-                                responseObserver.onNext(Empty.getDefaultInstance());
-                                responseObserver.onCompleted();
-                            }
-                    );
+        authorizeJobUpdate(callMetadata, jobId)
+                .concatWith(jobOperations.updateJobCapacityReactor(jobId, newJobCapacity, callMetadata))
+                .subscribe(
+                        nothing -> {
+                        },
+                        e -> safeOnError(logger, e, responseObserver),
+                        () -> {
+                            responseObserver.onNext(Empty.getDefaultInstance());
+                            responseObserver.onCompleted();
+                        }
+                );
     }
 
 }

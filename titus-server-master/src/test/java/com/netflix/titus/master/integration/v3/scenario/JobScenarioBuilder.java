@@ -35,6 +35,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.protobuf.Empty;
+import com.google.protobuf.UInt32Value;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -46,6 +47,8 @@ import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.grpc.protogen.JobAttributesDeleteRequest;
 import com.netflix.titus.grpc.protogen.JobAttributesUpdate;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
+import com.netflix.titus.grpc.protogen.JobCapacityUpdateWithOptionalAttributes;
+import com.netflix.titus.grpc.protogen.JobCapacityWithOptionalAttributes;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobChangeNotification.NotificationCase;
 import com.netflix.titus.grpc.protogen.JobDisruptionBudgetUpdate;
@@ -235,6 +238,29 @@ public class JobScenarioBuilder {
         }, "Job capacity update did not complete in time");
 
         logger.info("[{}] Job {} scaled to new size in {}ms", discoverActiveTest(), jobId, stopWatch.elapsed(TimeUnit.MILLISECONDS));
+        return this;
+    }
+
+
+    public JobScenarioBuilder updateJobCapacityDesired(int desired) {
+        logger.info("[{}] Changing job {} capacity desired to {}...", discoverActiveTest(), jobId, desired);
+        Stopwatch stopWatch = Stopwatch.createStarted();
+
+        TestStreamObserver<Empty> responseObserver = new TestStreamObserver<>();
+
+        client.updateJobCapacityWithOptionalAttributes(
+                JobCapacityUpdateWithOptionalAttributes.newBuilder().setJobId(jobId)
+                    .setJobCapacityWithOptionalAttributes(JobCapacityWithOptionalAttributes.newBuilder().setDesired(UInt32Value.newBuilder().setValue(desired).build()).build()).build(),
+                responseObserver);
+
+        rethrow(() -> responseObserver.awaitDone(TIMEOUT_MS, TimeUnit.MILLISECONDS));
+
+        expectJobUpdateEvent(job -> {
+            ServiceJobExt ext = (ServiceJobExt) job.getJobDescriptor().getExtensions();
+            return ext.getCapacity().getDesired() == desired;
+        }, "Job capacity update did not complete in time");
+
+        logger.info("[{}] Job {} scaled to new desired size in {}ms", discoverActiveTest(), jobId, stopWatch.elapsed(TimeUnit.MILLISECONDS));
         return this;
     }
 
