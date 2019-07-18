@@ -479,7 +479,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
             }
 
             JobCompatibility compatibility = JobCompatibility.of(jobFrom, jobTo);
-            if (!compatibility.isCompatible()) {
+            if (featureActivationConfiguration.isMoveTaskValidationEnabled() && !compatibility.isCompatible()) {
                 Optional<String> diffReport = ProtobufExt.diffReport(
                         V3GrpcModelConverters.toGrpcJobDescriptor(compatibility.getNormalizedDescriptorFrom()),
                         V3GrpcModelConverters.toGrpcJobDescriptor(compatibility.getNormalizedDescriptorTo())
