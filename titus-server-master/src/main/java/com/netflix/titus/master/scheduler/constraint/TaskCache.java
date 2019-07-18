@@ -60,7 +60,7 @@ public class TaskCache {
 
     // Returns a task ID if there is a task assigned to the provided IP allocation
     public Optional<String> getTaskByIpAllocationId(String ipAllocationId) {
-        return Optional.ofNullable(currentCacheValue.get().assignedIpAllocations.getOrDefault(ipAllocationId, null));
+        return Optional.ofNullable(currentCacheValue.get().assignedIpAllocations.get(ipAllocationId));
     }
 
     // Updates the cache to reflect assignment of an IP allocation to a task
@@ -69,7 +69,7 @@ public class TaskCache {
     }
 
     public Optional<String> getZoneIdByIpAllocationId(String ipAllocationId) {
-        return Optional.ofNullable(currentCacheValue.get().ipAllocationIdToZoneId.getOrDefault(ipAllocationId, null));
+        return Optional.ofNullable(currentCacheValue.get().ipAllocationIdToZoneId.get(ipAllocationId));
     }
 
     private class TaskCacheValue {
