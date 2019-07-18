@@ -34,13 +34,6 @@ public interface FeatureActivationConfiguration {
     @DefaultValue("true")
     boolean isMergingTaskMigrationPlanInGatewayEnabled();
 
-
-    /**
-     * Feature flag disabling movetask api
-     */
-    @DefaultValue("true")
-    boolean isMoveTaskApiEnabled();
-
     /**
      * Toggle validation of compatibility between Jobs when moving tasks across them. It is useful during emergencies to
      * force tasks to be moved, but it adds risk of causing inconsistencies in Jobs with incompatible tasks. Use with
