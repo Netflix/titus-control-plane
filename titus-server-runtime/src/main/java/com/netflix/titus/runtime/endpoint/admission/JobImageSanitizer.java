@@ -95,7 +95,8 @@ public class JobImageSanitizer implements AdmissionSanitizer<JobDescriptor> {
 
     // Determines if this Exception should produce a sanitization failure
     private boolean isValidationOK(Throwable throwable, Image image) {
-        logger.error("Exception while checking image digest", throwable);
+        logger.error("Exception while checking image digest: {}", throwable.getMessage());
+        logger.debug("Full stacktrace", throwable);
 
         String imageName = image.getName();
         String imageVersion = image.getDigest().isEmpty() ? image.getTag() : image.getDigest();
