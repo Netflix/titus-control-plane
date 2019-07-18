@@ -115,7 +115,7 @@ public class JobManagementResource {
 
     @PUT
     @ApiOperation("Update an existing job's capacity. Optional attributes min / max / desired are supported.")
-    @Path("/jobs/{jobId}/capacity-attributes")
+    @Path("/jobs/{jobId}/capacityAttributes")
     public Response setCapacityWithOptionalAttributes(@PathParam("jobId") String jobId,
                                  JobCapacityWithOptionalAttributes capacity) {
         JobCapacityUpdateWithOptionalAttributes jobCapacityUpdateWithOptionalAttributes = JobCapacityUpdateWithOptionalAttributes.newBuilder()

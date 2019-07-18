@@ -27,6 +27,7 @@ import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.model.sanitizer.ValidationError;
+import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdateWithOptionalAttributes;
 import com.netflix.titus.grpc.protogen.JobCapacityWithOptionalAttributes;
@@ -84,21 +85,16 @@ public class SanitizingJobServiceGateway extends JobServiceGatewayDelegate {
         final JobCapacityWithOptionalAttributes jobCapacityWithOptionalAttributes = jobCapacityUpdateWithOptionalAttributes.getJobCapacityWithOptionalAttributes();
         return delegate.findJob(jobCapacityUpdateWithOptionalAttributes.getJobId())
                 .map(j -> {
-                    final com.netflix.titus.api.jobmanager.model.job.JobDescriptor jobDescriptor = V3GrpcModelConverters.toCoreJobDescriptor(j.getJobDescriptor());
+                    com.netflix.titus.api.jobmanager.model.job.JobDescriptor jobDescriptor = V3GrpcModelConverters.toCoreJobDescriptor(j.getJobDescriptor());
                     if (!JobFunctions.isServiceJob(jobDescriptor)) {
                         throw JobManagerException.notServiceJob(j.getId());
                     }
                     ServiceJobExt serviceJobExt = (ServiceJobExt) jobDescriptor.getExtensions();
-                    Capacity.Builder newCapacityBuilder = Capacity.newBuilder(serviceJobExt.getCapacity());
-                    if (jobCapacityWithOptionalAttributes.hasMin()) {
-                        newCapacityBuilder.withMin(jobCapacityWithOptionalAttributes.getMin().getValue());
-                    }
-                    if (jobCapacityWithOptionalAttributes.hasMax()) {
-                        newCapacityBuilder.withMax(jobCapacityWithOptionalAttributes.getMax().getValue());
-                    }
-                    if (jobCapacityWithOptionalAttributes.hasDesired()) {
-                        newCapacityBuilder.withDesired(jobCapacityWithOptionalAttributes.getDesired().getValue());
-                    }
+                    Capacity.Builder newCapacityBuilder = serviceJobExt.getCapacity().toBuilder();
+                    Evaluators.acceptIfTrue(jobCapacityWithOptionalAttributes.hasDesired(), valueAccepted -> newCapacityBuilder.withDesired(jobCapacityWithOptionalAttributes.getDesired().getValue()));
+                    Evaluators.acceptIfTrue(jobCapacityWithOptionalAttributes.hasMax(), valueAccepted -> newCapacityBuilder.withMax(jobCapacityWithOptionalAttributes.getMax().getValue()));
+                    Evaluators.acceptIfTrue(jobCapacityWithOptionalAttributes.hasMin(), valueAccepted -> newCapacityBuilder.withMin(jobCapacityWithOptionalAttributes.getMin().getValue()));
+
                     return newCapacityBuilder.build();
                 })
                 .flatMapCompletable(newCapacity -> {

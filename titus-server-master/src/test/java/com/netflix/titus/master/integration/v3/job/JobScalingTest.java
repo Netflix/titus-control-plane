@@ -73,8 +73,7 @@ public class JobScalingTest extends BaseIntegrationTest {
                 .template(ScenarioTemplates.startTasksInNewJob())
                 .updateJobCapacity(JobModel.newCapacity().withMin(0).withDesired(2).withMax(5).build())
                 .expectAllTasksCreated()
-                .updateJobCapacityDesired(4)
-                .updateJobCapacityDesired(3)
+                .updateJobCapacityDesired(4, 0, 5)
                 .expectJobToScaleDown()
         );
     }
@@ -85,7 +84,7 @@ public class JobScalingTest extends BaseIntegrationTest {
                 .template(ScenarioTemplates.startTasksInNewJob())
                 .updateJobCapacity(JobModel.newCapacity().withMin(0).withDesired(2).withMax(5).build())
                 .expectAllTasksCreated()
-                .updateJobCapacityMin(2)
+                .updateJobCapacityMin(2, 5, 2)
         );
     }
 
@@ -95,7 +94,7 @@ public class JobScalingTest extends BaseIntegrationTest {
                 .template(ScenarioTemplates.startTasksInNewJob())
                 .updateJobCapacity(JobModel.newCapacity().withMin(0).withDesired(2).withMax(5).build())
                 .expectAllTasksCreated()
-                .updateJobCapacityMax(4)
+                .updateJobCapacityMax(4, 0, 2)
         );
     }
 

@@ -241,7 +241,7 @@ public class JobScenarioBuilder {
         return this;
     }
 
-    public JobScenarioBuilder updateJobCapacityDesired(int desired) {
+    public JobScenarioBuilder updateJobCapacityDesired(int desired, int unchangedMin, int unchangedMax) {
         logger.info("[{}] Changing job {} capacity desired to {}...", discoverActiveTest(), jobId, desired);
         Stopwatch stopWatch = Stopwatch.createStarted();
 
@@ -256,14 +256,15 @@ public class JobScenarioBuilder {
 
         expectJobUpdateEvent(job -> {
             ServiceJobExt ext = (ServiceJobExt) job.getJobDescriptor().getExtensions();
-            return ext.getCapacity().getDesired() == desired;
+            Capacity capacity = ext.getCapacity();
+            return capacity.getDesired() == desired && capacity.getMin() == unchangedMin && capacity.getMax() == unchangedMax;
         }, "Job capacity update did not complete in time");
 
         logger.info("[{}] Job {} scaled to new desired size in {}ms", discoverActiveTest(), jobId, stopWatch.elapsed(TimeUnit.MILLISECONDS));
         return this;
     }
 
-    public JobScenarioBuilder updateJobCapacityMin(int min) {
+    public JobScenarioBuilder updateJobCapacityMin(int min, int unchangedMax, int unchangedDesired) {
         logger.info("[{}] Changing job {} capacity min to {}...", discoverActiveTest(), jobId, min);
         Stopwatch stopWatch = Stopwatch.createStarted();
 
@@ -278,14 +279,15 @@ public class JobScenarioBuilder {
 
         expectJobUpdateEvent(job -> {
             ServiceJobExt ext = (ServiceJobExt) job.getJobDescriptor().getExtensions();
-            return ext.getCapacity().getMin() == min;
+            Capacity capacity = ext.getCapacity();
+            return capacity.getMin() == min && capacity.getMax() == unchangedMax && capacity.getDesired() == unchangedDesired;
         }, "Job capacity update did not complete in time");
 
         logger.info("[{}] Job {} scaled to new min size in {}ms", discoverActiveTest(), jobId, stopWatch.elapsed(TimeUnit.MILLISECONDS));
         return this;
     }
 
-    public JobScenarioBuilder updateJobCapacityMax(int max) {
+    public JobScenarioBuilder updateJobCapacityMax(int max, int unchangedMin, int unchangedDesired) {
         logger.info("[{}] Changing job {} capacity max to {}...", discoverActiveTest(), jobId, max);
         Stopwatch stopWatch = Stopwatch.createStarted();
 
@@ -300,7 +302,8 @@ public class JobScenarioBuilder {
 
         expectJobUpdateEvent(job -> {
             ServiceJobExt ext = (ServiceJobExt) job.getJobDescriptor().getExtensions();
-            return ext.getCapacity().getMax() == max;
+            Capacity capacity = ext.getCapacity();
+            return capacity.getMax() == max && capacity.getMin() == unchangedMin && capacity.getDesired() == unchangedDesired;
         }, "Job capacity update did not complete in time");
 
         logger.info("[{}] Job {} scaled to new max size in {}ms", discoverActiveTest(), jobId, stopWatch.elapsed(TimeUnit.MILLISECONDS));

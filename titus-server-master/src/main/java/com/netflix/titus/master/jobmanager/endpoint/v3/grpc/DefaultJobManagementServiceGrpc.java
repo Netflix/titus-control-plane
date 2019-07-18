@@ -54,6 +54,7 @@ import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.model.sanitizer.ValidationError;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.ProtobufExt;
 import com.netflix.titus.common.util.archaius2.ObjectConfigurationResolver;
 import com.netflix.titus.common.util.rx.ObservableExt;
@@ -348,7 +349,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     @Override
     public void updateJobCapacity(JobCapacityUpdate request, StreamObserver<Empty> responseObserver) {
         execute(callMetadataResolver, responseObserver, callMetadata -> {
-            final com.netflix.titus.api.jobmanager.model.job.Job<ServiceJobExt> serviceJobExtJob = verifyAndGetServiceJob(request.getJobId());
+            com.netflix.titus.api.jobmanager.model.job.Job<ServiceJobExt> serviceJobExtJob = verifyAndGetServiceJob(request.getJobId());
             com.netflix.titus.api.jobmanager.model.job.Capacity newCapacity = V3GrpcModelConverters.toCoreCapacity(request.getCapacity());
             sanitizeAndUpdateJobCapacity(request.getJobId(), newCapacity, serviceJobExtJob.getJobDescriptor(), callMetadata, responseObserver);
         });
@@ -357,22 +358,15 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     @Override
     public void updateJobCapacityWithOptionalAttributes(JobCapacityUpdateWithOptionalAttributes request, StreamObserver<Empty> responseObserver) {
         execute(callMetadataResolver, responseObserver, callMetadata -> {
-            final com.netflix.titus.api.jobmanager.model.job.Job<ServiceJobExt> serviceJobExtJob = verifyAndGetServiceJob(request.getJobId());
-            final Capacity currentCapacity = serviceJobExtJob.getJobDescriptor().getExtensions().getCapacity();
-            final Capacity.Builder newCapacityBuilder = Capacity.newBuilder(currentCapacity);
+            com.netflix.titus.api.jobmanager.model.job.Job<ServiceJobExt> serviceJobExtJob = verifyAndGetServiceJob(request.getJobId());
+            Capacity.Builder newCapacityBuilder = serviceJobExtJob.getJobDescriptor().getExtensions().getCapacity().toBuilder();
 
             final JobCapacityWithOptionalAttributes jobCapacityWithOptionalAttributes = request.getJobCapacityWithOptionalAttributes();
-            if (jobCapacityWithOptionalAttributes.hasDesired()) {
-                newCapacityBuilder.withDesired(jobCapacityWithOptionalAttributes.getDesired().getValue());
-            }
-            if (jobCapacityWithOptionalAttributes.hasMax()) {
-                newCapacityBuilder.withMax(jobCapacityWithOptionalAttributes.getMax().getValue());
-            }
-            if (jobCapacityWithOptionalAttributes.hasMin()) {
-                newCapacityBuilder.withMin(jobCapacityWithOptionalAttributes.getMin().getValue());
-            }
-            final Capacity newCapacity = newCapacityBuilder.build();
-            sanitizeAndUpdateJobCapacity(request.getJobId(), newCapacity, serviceJobExtJob.getJobDescriptor(), callMetadata, responseObserver);
+            Evaluators.acceptIfTrue(jobCapacityWithOptionalAttributes.hasDesired(), valueAccepted -> newCapacityBuilder.withDesired(jobCapacityWithOptionalAttributes.getDesired().getValue()));
+            Evaluators.acceptIfTrue(jobCapacityWithOptionalAttributes.hasMax(), valueAccepted -> newCapacityBuilder.withMax(jobCapacityWithOptionalAttributes.getMax().getValue()));
+            Evaluators.acceptIfTrue(jobCapacityWithOptionalAttributes.hasMin(), valueAccepted -> newCapacityBuilder.withMin(jobCapacityWithOptionalAttributes.getMin().getValue()));
+
+            sanitizeAndUpdateJobCapacity(request.getJobId(), newCapacityBuilder.build(), serviceJobExtJob.getJobDescriptor(), callMetadata, responseObserver);
         });
     }
 
