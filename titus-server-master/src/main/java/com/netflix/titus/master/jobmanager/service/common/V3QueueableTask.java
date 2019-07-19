@@ -215,9 +215,7 @@ public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
         job.getJobDescriptor().getContainer().getHardConstraints().forEach((key, value) ->
                 constraintEvaluatorTransformer.hardConstraint(Pair.of(key, value), runningTasksGetter).ifPresent(result::add)
         );
-        if (null != constraintEvaluatorTransformer) {
-            result.add(constraintEvaluatorTransformer.ipAllocationConstraint());
-        }
+        result.add(constraintEvaluatorTransformer.ipAllocationConstraint());
 
         return result;
     }

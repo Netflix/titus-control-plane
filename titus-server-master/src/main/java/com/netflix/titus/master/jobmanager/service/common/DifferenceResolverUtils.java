@@ -241,11 +241,11 @@ public class DifferenceResolverUtils {
                 .collect(Collectors.toCollection(HashSet::new));
 
         // Filter out those that are assigned
-        ((List<Task>)refJobView.getTasks()).stream()
-                .map(Task.class::cast)
-                .filter(task -> !TaskState.isTerminalState(task.getStatus().getState()))
-                .map(task -> task.getTaskContext().getOrDefault(TASK_ATTRIBUTES_IP_ALLOCATION_ID, ""))
-                .forEach(unassignedIpAddressIds::remove);
+        for (Task task : (List<Task>)refJobView.getTasks()) {
+            if (!TaskState.isTerminalState(task.getStatus().getState())) {
+                unassignedIpAddressIds.remove(task.getTaskContext().getOrDefault(TASK_ATTRIBUTES_IP_ALLOCATION_ID, ""));
+            }
+        }
 
         return unassignedIpAddressIds;
     }

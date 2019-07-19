@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -93,7 +93,7 @@ public class JobsScenarioBuilder {
 
     private final List<JobScenarioBuilder<?>> jobScenarioBuilders = new ArrayList<>();
 
-    private final ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer = null;
+    private final ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer = mock(ConstraintEvaluatorTransformer.class);
 
     public JobsScenarioBuilder() {
         when(configuration.getReconcilerActiveTimeoutMs()).thenReturn(RECONCILER_ACTIVE_TIMEOUT_MS);
@@ -107,6 +107,18 @@ public class JobsScenarioBuilder {
         when(configuration.getTaskRetryerResetTimeMs()).thenReturn(TimeUnit.MINUTES.toMillis(5));
         when(configuration.getTaskKillAttempts()).thenReturn(2L);
         when(featureActivationConfiguration.isMoveTaskValidationEnabled()).thenReturn(true);
+
+        when(constraintEvaluatorTransformer.ipAllocationConstraint()).thenReturn(new SystemHardConstraint() {
+            @Override
+            public String getName() {
+                return "NoopIpConstraint";
+            }
+
+            @Override
+            public Result evaluate(TaskRequest taskRequest, VirtualMachineCurrentState targetVM, TaskTrackerState taskTrackerState) {
+                return new ConstraintEvaluator.Result(true, "");
+            }
+        });
 
         jobStore.events().subscribe(storeEvents);
 

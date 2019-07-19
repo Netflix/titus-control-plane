@@ -83,10 +83,10 @@ public class ContainerResources {
         this.memoryMB = memoryMB;
         this.diskMB = diskMB;
         this.networkMbps = networkMbps;
-        this.efsMounts = CollectionsExt.nullableImmutableCopyOf(nonNull(efsMounts));
+        this.efsMounts = CollectionsExt.nonNullImmutableCopyOf(efsMounts);
         this.allocateIP = allocateIP;
         this.shmMB = shmMB;
-        this.ipSignedAddressAllocations = CollectionsExt.nullableImmutableCopyOf(nonNull(ipSignedAddressAllocations));
+        this.ipSignedAddressAllocations = CollectionsExt.nonNullImmutableCopyOf(ipSignedAddressAllocations);
     }
     public double getCpu() {
         return cpu;

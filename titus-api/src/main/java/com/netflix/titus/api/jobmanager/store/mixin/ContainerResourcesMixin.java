@@ -19,10 +19,12 @@ package com.netflix.titus.api.jobmanager.store.mixin;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.netflix.titus.api.jobmanager.model.job.vpc.SignedIpAddressAllocation;
 import com.netflix.titus.api.model.EfsMount;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public abstract class ContainerResourcesMixin {
     @JsonCreator
     public ContainerResourcesMixin(@JsonProperty("cpu") double cpu,
