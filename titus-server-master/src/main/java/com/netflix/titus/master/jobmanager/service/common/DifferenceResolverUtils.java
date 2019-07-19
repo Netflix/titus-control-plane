@@ -253,9 +253,8 @@ public class DifferenceResolverUtils {
     // Copies specific task context entries from a previous task to a replacement task
     private static Map<String, String> getTaskContextFromPreviousTask(Task previousTask) {
         // Copy the IP allocation task context to the replacement task
-        return previousTask.getTaskContext().containsKey(TASK_ATTRIBUTES_IP_ALLOCATION_ID)
-                ? Collections.singletonMap(TASK_ATTRIBUTES_IP_ALLOCATION_ID, previousTask.getTaskContext().get(TASK_ATTRIBUTES_IP_ALLOCATION_ID))
-                : Collections.emptyMap();
+        String ipAllocationId = previousTask.getTaskContext().get(TASK_ATTRIBUTES_IP_ALLOCATION_ID);
+        return ipAllocationId != null ? Collections.singletonMap(TASK_ATTRIBUTES_IP_ALLOCATION_ID, ipAllocationId) : Collections.emptyMap();
     }
 
     // Creates task context for an initial task
