@@ -152,9 +152,4 @@ public class V3ConstraintEvaluatorTransformer implements ConstraintEvaluatorTran
         logger.error("Unknown or not supported job hard constraint: {}", name);
         return Optional.empty();
     }
-
-    @Override
-    public ConstraintEvaluator ipAllocationConstraint() {
-        return new IpAllocationConstraint(schedulerConfiguration, taskCache, agentManagementService);
-    }
 }

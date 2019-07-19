@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,16 +36,19 @@ public class DefaultSystemHardConstraint implements SystemHardConstraint {
     private final AgentManagementConstraint agentManagementConstraint;
     private final AgentLaunchGuardConstraint agentLaunchGuardConstraint;
     private final SystemSelectorConstraintEvaluator systemSelectorConstraintEvaluator;
+    private final IpAllocationConstraint ipAllocationConstraint;
 
     private CompositeSystemConstraint delegate;
 
     @Inject
     public DefaultSystemHardConstraint(AgentManagementConstraint agentManagementConstraint,
                                        AgentLaunchGuardConstraint agentLaunchGuardConstraint,
-                                       SystemSelectorConstraintEvaluator systemSelectorConstraintEvaluator) {
+                                       SystemSelectorConstraintEvaluator systemSelectorConstraintEvaluator,
+                                       IpAllocationConstraint ipAllocationConstraint) {
         this.agentManagementConstraint = agentManagementConstraint;
         this.agentLaunchGuardConstraint = agentLaunchGuardConstraint;
         this.systemSelectorConstraintEvaluator = systemSelectorConstraintEvaluator;
+        this.ipAllocationConstraint = ipAllocationConstraint;
     }
 
     @Activator
@@ -53,7 +56,8 @@ public class DefaultSystemHardConstraint implements SystemHardConstraint {
         this.delegate = new CompositeSystemConstraint(asList(
                 agentManagementConstraint,
                 agentLaunchGuardConstraint,
-                systemSelectorConstraintEvaluator
+                systemSelectorConstraintEvaluator,
+                ipAllocationConstraint
         ));
     }
 

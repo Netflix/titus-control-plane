@@ -271,7 +271,7 @@ public class TaskScenarioBuilder {
     public TaskScenarioBuilder expectZoneId(String expectedZoneId) {
         logger.info("[{}] Expecting current task to run in zone {}", discoverActiveTest(), expectedZoneId);
         Preconditions.checkArgument(
-                getTaskExecutionHolder().getAgent().getZoneId() == expectedZoneId,
+                getTaskExecutionHolder().getAgent().getZoneId().equals(expectedZoneId),
                 "Task is expected to run in zone %s, but is running on %s", expectedZoneId, getTaskExecutionHolder().getAgent().getZoneId()
         );
         return this;

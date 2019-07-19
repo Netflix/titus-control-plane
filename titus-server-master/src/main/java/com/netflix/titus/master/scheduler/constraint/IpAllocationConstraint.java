@@ -18,8 +18,9 @@ package com.netflix.titus.master.scheduler.constraint;
 
 import java.util.Map;
 import java.util.Optional;
+import javax.inject.Inject;
+import javax.inject.Singleton;
 
-import com.netflix.fenzo.ConstraintEvaluator;
 import com.netflix.fenzo.TaskRequest;
 import com.netflix.fenzo.TaskTrackerState;
 import com.netflix.fenzo.VirtualMachineCurrentState;
@@ -36,7 +37,8 @@ import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_IP
  * Experimental constraint that matches a machine that can allocate a specific IP.
  */
 @Experimental(deadline = "08/2019")
-public class IpAllocationConstraint implements ConstraintEvaluator {
+@Singleton
+public class IpAllocationConstraint implements SystemConstraint {
 
     public static final String NAME = "IpAllocationConstraint";
 
@@ -50,6 +52,7 @@ public class IpAllocationConstraint implements ConstraintEvaluator {
     private final TaskCache taskCache;
     private final AgentManagementService agentManagementService;
 
+    @Inject
     public IpAllocationConstraint(SchedulerConfiguration configuration,
                                   TaskCache taskCache,
                                   AgentManagementService agentManagementService) {
