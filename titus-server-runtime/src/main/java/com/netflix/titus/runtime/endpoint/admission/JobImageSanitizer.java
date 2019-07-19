@@ -65,7 +65,7 @@ public class JobImageSanitizer implements AdmissionSanitizer<JobDescriptor> {
                 .map(JobImageSanitizer::setImageFunction)
                 .timeout(Duration.ofMillis(configuration.getJobImageValidationTimeoutMs()))
                 .doOnSuccess(j -> validatorMetrics.incrementValidationSuccess(image.getName()))
-                .onErrorReturn(throwable -> isValidationOK(throwable, image), JobImageSanitizer::skipSanitization);
+                .onErrorReturn(throwable -> isAllowedException(throwable, image), JobImageSanitizer::skipSanitization);
     }
 
     private static UnaryOperator<JobDescriptor> setImageFunction(Image image) {
@@ -93,9 +93,12 @@ public class JobImageSanitizer implements AdmissionSanitizer<JobDescriptor> {
         return !configuration.isEnabled();
     }
 
-    // Determines if this Exception should produce a sanitization failure
-    private boolean isValidationOK(Throwable throwable, Image image) {
-        logger.error("Exception while checking image digest", throwable);
+    /**
+     * Determines if this Exception should fail open, or produce a sanitization failure
+     */
+    private boolean isAllowedException(Throwable throwable, Image image) {
+        logger.error("Exception while checking image digest: {}", throwable.getMessage());
+        logger.debug("Full stacktrace", throwable);
 
         String imageName = image.getName();
         String imageVersion = image.getDigest().isEmpty() ? image.getTag() : image.getDigest();
