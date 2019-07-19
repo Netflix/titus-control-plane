@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -239,7 +238,7 @@ public class DifferenceResolverUtils {
         Set<String> unassignedIpAddressIds = refJobView.getJob().getJobDescriptor().getContainer().getContainerResources().getSignedIpAddressAllocations()
                 .stream()
                 .map(signedIpAddressAllocation -> signedIpAddressAllocation.getIpAddressAllocation().getAllocationId())
-                .collect(Collectors.toCollection(ConcurrentSkipListSet::new));
+                .collect(Collectors.toCollection(HashSet::new));
 
         // Filter out those that are assigned
         ((List<Task>)refJobView.getTasks()).stream()
