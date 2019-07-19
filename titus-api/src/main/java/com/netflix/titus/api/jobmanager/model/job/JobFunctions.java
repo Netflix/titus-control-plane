@@ -41,6 +41,7 @@ import com.netflix.titus.api.jobmanager.model.job.retry.ImmediateRetryPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.retry.Retryer;
 import com.netflix.titus.common.util.retry.Retryers;
 import com.netflix.titus.common.util.time.Clock;
@@ -221,6 +222,14 @@ public final class JobFunctions {
 
     public static Job<ServiceJobExt> changeServiceJobCapacity(Job<ServiceJobExt> job, Capacity capacity) {
         return job.toBuilder().withJobDescriptor(changeServiceJobCapacity(job.getJobDescriptor(), capacity)).build();
+    }
+
+    public static Job<ServiceJobExt> changeServiceJobCapacity(Job<ServiceJobExt> job, CapacityAttributes capacityAttributes) {
+        Capacity.Builder newCapacityBuilder = job.getJobDescriptor().getExtensions().getCapacity().toBuilder();
+        Evaluators.acceptIfTrue(capacityAttributes.getDesired().isPresent(), valueAccepted -> newCapacityBuilder.withDesired(capacityAttributes.getDesired().get()));
+        Evaluators.acceptIfTrue(capacityAttributes.getMax().isPresent(), valueAccepted -> newCapacityBuilder.withMax(capacityAttributes.getMax().get()));
+        Evaluators.acceptIfTrue(capacityAttributes.getMin().isPresent(), valueAccepted -> newCapacityBuilder.withMin(capacityAttributes.getMin().get()));
+        return job.toBuilder().withJobDescriptor(changeServiceJobCapacity(job.getJobDescriptor(), newCapacityBuilder.build())).build();
     }
 
     public static <E extends JobDescriptorExt> JobDescriptor<E> incrementJobDescriptorSize(JobDescriptor<E> jobDescriptor, int delta) {

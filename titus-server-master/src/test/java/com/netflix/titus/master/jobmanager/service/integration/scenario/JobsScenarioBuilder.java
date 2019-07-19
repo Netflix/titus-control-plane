@@ -37,6 +37,7 @@ import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
+import com.netflix.titus.common.model.sanitizer.EntitySanitizerBuilder;
 import com.netflix.titus.common.model.sanitizer.VerifierMode;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
@@ -200,7 +201,8 @@ public class JobsScenarioBuilder {
                 ),
                 jobSubmitLimiter,
                 new ManagementSubsystemInitializer(null, null),
-                titusRuntime
+                titusRuntime,
+                EntitySanitizerBuilder.stdBuilder().build()
         );
         v3JobOperations.enterActiveMode();
 

@@ -21,13 +21,10 @@ import javax.inject.Named;
 
 import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
-import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
-import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
-import com.netflix.titus.api.jobmanager.service.JobManagerException;
+import com.netflix.titus.api.jobmanager.model.job.CapacityAttributes;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.model.sanitizer.ValidationError;
-import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdateWithOptionalAttributes;
 import com.netflix.titus.grpc.protogen.JobCapacityWithOptionalAttributes;
@@ -83,26 +80,11 @@ public class SanitizingJobServiceGateway extends JobServiceGatewayDelegate {
     @Override
     public Completable updateJobCapacityWithOptionalAttributes(JobCapacityUpdateWithOptionalAttributes jobCapacityUpdateWithOptionalAttributes) {
         final JobCapacityWithOptionalAttributes jobCapacityWithOptionalAttributes = jobCapacityUpdateWithOptionalAttributes.getJobCapacityWithOptionalAttributes();
-        return delegate.findJob(jobCapacityUpdateWithOptionalAttributes.getJobId())
-                .map(j -> {
-                    com.netflix.titus.api.jobmanager.model.job.JobDescriptor jobDescriptor = V3GrpcModelConverters.toCoreJobDescriptor(j.getJobDescriptor());
-                    if (!JobFunctions.isServiceJob(jobDescriptor)) {
-                        throw JobManagerException.notServiceJob(j.getId());
-                    }
-                    ServiceJobExt serviceJobExt = (ServiceJobExt) jobDescriptor.getExtensions();
-                    Capacity.Builder newCapacityBuilder = serviceJobExt.getCapacity().toBuilder();
-                    Evaluators.acceptIfTrue(jobCapacityWithOptionalAttributes.hasDesired(), valueAccepted -> newCapacityBuilder.withDesired(jobCapacityWithOptionalAttributes.getDesired().getValue()));
-                    Evaluators.acceptIfTrue(jobCapacityWithOptionalAttributes.hasMax(), valueAccepted -> newCapacityBuilder.withMax(jobCapacityWithOptionalAttributes.getMax().getValue()));
-                    Evaluators.acceptIfTrue(jobCapacityWithOptionalAttributes.hasMin(), valueAccepted -> newCapacityBuilder.withMin(jobCapacityWithOptionalAttributes.getMin().getValue()));
-
-                    return newCapacityBuilder.build();
-                })
-                .flatMapCompletable(newCapacity -> {
-                    Set<ValidationError> violations = entitySanitizer.validate(newCapacity);
-                    if (!violations.isEmpty()) {
-                        return Completable.error(TitusServiceException.invalidArgument(violations));
-                    }
-                    return delegate.updateJobCapacityWithOptionalAttributes(jobCapacityUpdateWithOptionalAttributes);
-                }).toCompletable();
+        CapacityAttributes capacityAttributes = V3GrpcModelConverters.toCoreCapacityAttributes(jobCapacityWithOptionalAttributes);
+        Set<ValidationError> violations = entitySanitizer.validate(capacityAttributes);
+        if (!violations.isEmpty()) {
+            return Completable.error(TitusServiceException.invalidArgument(violations));
+        }
+        return delegate.updateJobCapacityWithOptionalAttributes(jobCapacityUpdateWithOptionalAttributes);
     }
 }
