@@ -31,10 +31,10 @@ public class IpAddressAllocation {
     @Valid
     private final IpAddressLocation ipAddressLocation;
 
-    @Size(min = 1, message = "Emtpy value not allowed")
+    @Size(min = 1, message = "Empty value not allowed")
     private final String allocationId;
 
-    @Size(min = 1, message = "Emtpy value not allowed")
+    @Size(min = 1, message = "Empty value not allowed")
     private final String ipAddress;
 
     public IpAddressAllocation(IpAddressLocation ipAddressLocation, String allocationId, String ipAddress) {

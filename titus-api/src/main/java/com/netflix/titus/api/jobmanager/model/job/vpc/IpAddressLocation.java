@@ -27,13 +27,13 @@ import com.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
 @ClassFieldsNotNull
 public class IpAddressLocation {
 
-    @Size(min = 1, message = "Emtpy value not allowed")
+    @Size(min = 1, message = "Empty value not allowed")
     private final String region;
 
-    @Size(min = 1, message = "Emtpy value not allowed")
+    @Size(min = 1, message = "Empty value not allowed")
     private final String availabilityZone;
 
-    @Size(min = 1, message = "Emtpy value not allowed")
+    @Size(min = 1, message = "Empty value not allowed")
     private final String subnetId;
 
     public String getRegion() {
