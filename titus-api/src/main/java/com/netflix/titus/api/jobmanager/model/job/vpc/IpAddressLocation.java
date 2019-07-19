@@ -19,9 +19,12 @@ package com.netflix.titus.api.jobmanager.model.job.vpc;
 import java.util.Objects;
 import javax.validation.constraints.Size;
 
+import com.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
+
 /**
  * Location within a cloud provider of an IP address
  */
+@ClassFieldsNotNull
 public class IpAddressLocation {
 
     @Size(min = 1, message = "Emtpy value not allowed")
@@ -45,7 +48,7 @@ public class IpAddressLocation {
         return subnetId;
     }
 
-    private IpAddressLocation(String region, String availabilityZone, String subnetId) {
+    public IpAddressLocation(String region, String availabilityZone, String subnetId) {
         this.region = region;
         this.availabilityZone = availabilityZone;
         this.subnetId = subnetId;

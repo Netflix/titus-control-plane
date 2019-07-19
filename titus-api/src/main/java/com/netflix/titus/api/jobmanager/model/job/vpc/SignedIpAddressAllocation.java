@@ -18,12 +18,14 @@ package com.netflix.titus.api.jobmanager.model.job.vpc;
 
 import java.util.Arrays;
 import java.util.Objects;
+import javax.validation.Valid;
 
 import com.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
 
 @ClassFieldsNotNull
 public class SignedIpAddressAllocation {
 
+    @Valid
     private final IpAddressAllocation ipAddressAllocation;
 
     private final byte[] ipAddressAllocationSignature;

@@ -17,6 +17,7 @@
 package com.netflix.titus.api.jobmanager.model.job.vpc;
 
 import java.util.Objects;
+import javax.validation.Valid;
 import javax.validation.constraints.Size;
 
 import com.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
@@ -27,6 +28,7 @@ import com.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
 @ClassFieldsNotNull
 public class IpAddressAllocation {
 
+    @Valid
     private final IpAddressLocation ipAddressLocation;
 
     @Size(min = 1, message = "Emtpy value not allowed")

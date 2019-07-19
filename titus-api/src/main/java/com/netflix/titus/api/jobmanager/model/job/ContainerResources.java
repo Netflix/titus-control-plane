@@ -83,10 +83,10 @@ public class ContainerResources {
         this.memoryMB = memoryMB;
         this.diskMB = diskMB;
         this.networkMbps = networkMbps;
-        this.efsMounts = CollectionsExt.nullableImmutableCopyOf(efsMounts);
+        this.efsMounts = CollectionsExt.nullableImmutableCopyOf(nonNull(efsMounts));
         this.allocateIP = allocateIP;
         this.shmMB = shmMB;
-        this.ipSignedAddressAllocations = CollectionsExt.nullableImmutableCopyOf(ipSignedAddressAllocations);
+        this.ipSignedAddressAllocations = CollectionsExt.nullableImmutableCopyOf(nonNull(ipSignedAddressAllocations));
     }
     public double getCpu() {
         return cpu;
@@ -140,8 +140,8 @@ public class ContainerResources {
                 networkMbps == that.networkMbps &&
                 allocateIP == that.allocateIP &&
                 shmMB == that.shmMB &&
-                Objects.equals(efsMounts, that.efsMounts) &&
-                Objects.equals(ipSignedAddressAllocations, that.ipSignedAddressAllocations);
+                efsMounts.equals(that.efsMounts) &&
+                ipSignedAddressAllocations.equals(that.ipSignedAddressAllocations);
     }
 
     @Override
