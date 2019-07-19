@@ -103,13 +103,15 @@ public class TaskCache {
                         jobZoneBalancing.put(zoneId, jobZoneBalancing.getOrDefault(zoneId, 0) + 1);
                     }
 
+                    // Get an IP allocation ID that has been assigned to this task. If present,
+                    // check if the task is running and if so, mark the IP allocation as in use.
+                    // In addition, resolve the IP allocation ID's zone ID and cache that as well.
                     getIpAllocationId(task).map(ipAllocationId -> {
-                        ipAllocationIdToZoneId.put(
-                                ipAllocationId,
-                                getIpAllocationZone(ipAllocationId, jobAndTask.getLeft().getJobDescriptor()).orElse(""));
                         if (TaskState.isRunning(task.getStatus().getState())) {
                             assignedIpAllocations.put(ipAllocationId, task.getId());
                         }
+                        getIpAllocationZone(ipAllocationId, jobAndTask.getLeft().getJobDescriptor()).map(zoneIdForIpAllocation ->
+                                ipAllocationIdToZoneId.put(ipAllocationId, zoneIdForIpAllocation));
                         return null;
                     });
                 }
