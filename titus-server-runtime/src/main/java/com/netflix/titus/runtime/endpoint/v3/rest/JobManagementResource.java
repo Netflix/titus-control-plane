@@ -46,6 +46,8 @@ import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobAttributesDeleteRequest;
 import com.netflix.titus.grpc.protogen.JobAttributesUpdate;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
+import com.netflix.titus.grpc.protogen.JobCapacityUpdateWithOptionalAttributes;
+import com.netflix.titus.grpc.protogen.JobCapacityWithOptionalAttributes;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.JobDisruptionBudget;
 import com.netflix.titus.grpc.protogen.JobDisruptionBudgetUpdate;
@@ -109,6 +111,18 @@ public class JobManagementResource {
                 .setCapacity(capacity)
                 .build();
         return Responses.fromCompletable(jobServiceGateway.updateJobCapacity(jobCapacityUpdate));
+    }
+
+    @PUT
+    @ApiOperation("Update an existing job's capacity. Optional attributes min / max / desired are supported.")
+    @Path("/jobs/{jobId}/capacityAttributes")
+    public Response setCapacityWithOptionalAttributes(@PathParam("jobId") String jobId,
+                                 JobCapacityWithOptionalAttributes capacity) {
+        JobCapacityUpdateWithOptionalAttributes jobCapacityUpdateWithOptionalAttributes = JobCapacityUpdateWithOptionalAttributes.newBuilder()
+                .setJobId(jobId)
+                .setJobCapacityWithOptionalAttributes(capacity)
+                .build();
+        return Responses.fromCompletable(jobServiceGateway.updateJobCapacityWithOptionalAttributes(jobCapacityUpdateWithOptionalAttributes));
     }
 
     @PUT

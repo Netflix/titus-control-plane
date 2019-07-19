@@ -21,10 +21,13 @@ import javax.inject.Named;
 
 import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
+import com.netflix.titus.api.jobmanager.model.job.CapacityAttributes;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.model.sanitizer.ValidationError;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
+import com.netflix.titus.grpc.protogen.JobCapacityUpdateWithOptionalAttributes;
+import com.netflix.titus.grpc.protogen.JobCapacityWithOptionalAttributes;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import rx.Completable;
@@ -72,5 +75,16 @@ public class SanitizingJobServiceGateway extends JobServiceGatewayDelegate {
             return Completable.error(TitusServiceException.invalidArgument(violations));
         }
         return delegate.updateJobCapacity(jobCapacityUpdate);
+    }
+
+    @Override
+    public Completable updateJobCapacityWithOptionalAttributes(JobCapacityUpdateWithOptionalAttributes jobCapacityUpdateWithOptionalAttributes) {
+        final JobCapacityWithOptionalAttributes jobCapacityWithOptionalAttributes = jobCapacityUpdateWithOptionalAttributes.getJobCapacityWithOptionalAttributes();
+        CapacityAttributes capacityAttributes = V3GrpcModelConverters.toCoreCapacityAttributes(jobCapacityWithOptionalAttributes);
+        Set<ValidationError> violations = entitySanitizer.validate(capacityAttributes);
+        if (!violations.isEmpty()) {
+            return Completable.error(TitusServiceException.invalidArgument(violations));
+        }
+        return delegate.updateJobCapacityWithOptionalAttributes(jobCapacityUpdateWithOptionalAttributes);
     }
 }

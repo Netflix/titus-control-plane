@@ -109,7 +109,7 @@ public class Capacity {
     public static final class Builder {
         private int min = Integer.MIN_VALUE;
         private int desired;
-        private int max = Integer.MIN_VALUE;
+        private int max = Integer.MAX_VALUE;
 
         private Builder() {
         }

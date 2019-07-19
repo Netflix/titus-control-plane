@@ -16,8 +16,11 @@
 
 package com.netflix.titus.master.jobmanager.service.service.action;
 
+import java.util.Set;
+
 import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
+import com.netflix.titus.api.jobmanager.model.job.CapacityAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
@@ -26,9 +29,13 @@ import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.jobmanager.store.JobStore;
+import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
+import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
+import com.netflix.titus.common.model.sanitizer.ValidationError;
+import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
@@ -39,19 +46,47 @@ public class BasicServiceJobActions {
     /**
      * Update job capacity.
      */
-    public static TitusChangeAction updateJobCapacityAction(ReconciliationEngine<JobManagerReconcilerEvent> engine, Capacity capacity, JobStore jobStore, CallMetadata callMetadata) {
+    public static TitusChangeAction updateJobCapacityAction(ReconciliationEngine<JobManagerReconcilerEvent> engine,
+                                                            CapacityAttributes capacityAttributes,
+                                                            JobStore jobStore,
+                                                            CallMetadata callMetadata,
+                                                            EntitySanitizer entitySanitizer) {
         return TitusChangeAction.newAction("updateJobCapacityAction")
                 .id(engine.getReferenceView().getId())
                 .trigger(V3JobOperations.Trigger.API)
-                .summary("Changing job capacity to: %s", capacity)
+                .summary("Changing job capacity to: %s", capacityAttributes)
                 .changeWithModelUpdates(self -> {
                     Job<ServiceJobExt> serviceJob = engine.getReferenceView().getEntity();
+
                     if (serviceJob.getStatus().getState() != JobState.Accepted) {
                         return Observable.error(JobManagerException.jobTerminating(serviceJob));
                     }
 
-                    Job<ServiceJobExt> updatedJob = JobFunctions.changeServiceJobCapacity(serviceJob, capacity);
+                    Capacity.Builder newCapacityBuilder = serviceJob.getJobDescriptor().getExtensions().getCapacity().toBuilder();
+                    capacityAttributes.getDesired().ifPresent(newCapacityBuilder::withDesired);
+                    capacityAttributes.getMax().ifPresent(newCapacityBuilder::withMax);
+                    capacityAttributes.getMin().ifPresent(newCapacityBuilder::withMin);
 
+                    Capacity newCapacity = newCapacityBuilder.build();
+
+                    // model validation for capacity
+                    Set<ValidationError> violations = entitySanitizer.validate(newCapacity);
+                    if (!violations.isEmpty()) {
+                        return Observable.error(TitusServiceException.invalidArgument(violations));
+                    }
+
+                    // checking if service job processes allow changes to desired capacity
+                    if (isDesiredCapacityInvalid(newCapacity, serviceJob)) {
+                        return Observable.error(JobManagerException.invalidDesiredCapacity(serviceJob.getId(), newCapacity.getDesired(),
+                                serviceJob.getJobDescriptor().getExtensions().getServiceJobProcesses()));
+                    }
+
+                    if (serviceJob.getJobDescriptor().getExtensions().getCapacity().equals(newCapacity)) {
+                        return Observable.empty();
+                    }
+
+                    // ready to update job capacity
+                    Job<ServiceJobExt> updatedJob = JobFunctions.changeServiceJobCapacity(serviceJob, newCapacity);
                     TitusModelAction modelAction = TitusModelAction.newModelUpdate(self).jobUpdate(jobHolder -> jobHolder.setEntity(updatedJob).addTag(JobManagerConstants.JOB_MANAGER_ATTRIBUTE_CALLMETADATA, callMetadata));
 
                     return jobStore.updateJob(updatedJob).andThen(Observable.just(ModelActionHolder.referenceAndStore(modelAction)));
@@ -101,5 +136,13 @@ public class BasicServiceJobActions {
 
                     return jobStore.updateJob(updatedJob).andThen(Observable.just(ModelActionHolder.referenceAndStore(modelAction)));
                 });
+    }
+
+    private static boolean isDesiredCapacityInvalid(Capacity targetCapacity, Job<ServiceJobExt> serviceJob) {
+        ServiceJobProcesses serviceJobProcesses = serviceJob.getJobDescriptor().getExtensions().getServiceJobProcesses();
+        Capacity currentCapacity = serviceJob.getJobDescriptor().getExtensions().getCapacity();
+        return (serviceJobProcesses.isDisableIncreaseDesired() && targetCapacity.getDesired() > currentCapacity.getDesired()) ||
+                (serviceJobProcesses.isDisableDecreaseDesired() && targetCapacity.getDesired() < currentCapacity.getDesired());
+
     }
 }

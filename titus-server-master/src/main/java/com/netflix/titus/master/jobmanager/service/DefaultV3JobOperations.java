@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
+import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.netflix.titus.api.FeatureActivationConfiguration;
@@ -34,6 +35,7 @@ import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
+import com.netflix.titus.api.jobmanager.model.job.CapacityAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobCompatibility;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -59,6 +61,7 @@ import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import com.netflix.titus.common.framework.reconciler.ModelActionHolder.Model;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import com.netflix.titus.common.framework.reconciler.ReconciliationFramework;
+import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.ProtobufExt;
@@ -92,6 +95,7 @@ import rx.Observable;
 import rx.Subscription;
 import rx.functions.Func1;
 
+import static com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_STRICT_SANITIZER;
 import static com.netflix.titus.common.util.FunctionExt.alwaysTrue;
 
 @Singleton
@@ -110,7 +114,9 @@ public class DefaultV3JobOperations implements V3JobOperations {
     private final FeatureActivationConfiguration featureActivationConfiguration;
     private final JobReconciliationFrameworkFactory jobReconciliationFrameworkFactory;
     private final JobSubmitLimiter jobSubmitLimiter;
+    private final ManagementSubsystemInitializer managementSubsystemInitializer;
     private final TitusRuntime titusRuntime;
+    private final EntitySanitizer entitySanitizer;
 
     private ReconciliationFramework<JobManagerReconcilerEvent> reconciliationFramework;
     private Subscription transactionLoggerSubscription;
@@ -127,14 +133,17 @@ public class DefaultV3JobOperations implements V3JobOperations {
                                   JobReconciliationFrameworkFactory jobReconciliationFrameworkFactory,
                                   JobSubmitLimiter jobSubmitLimiter,
                                   ManagementSubsystemInitializer managementSubsystemInitializer,
-                                  TitusRuntime titusRuntime) {
+                                  TitusRuntime titusRuntime,
+                                  @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer) {
         this.featureActivationConfiguration = featureActivationConfiguration;
         this.store = store;
         this.vmService = vmService;
         this.jobManagerConfiguration = jobManagerConfiguration;
         this.jobReconciliationFrameworkFactory = jobReconciliationFrameworkFactory;
         this.jobSubmitLimiter = jobSubmitLimiter;
+        this.managementSubsystemInitializer = managementSubsystemInitializer;
         this.titusRuntime = titusRuntime;
+        this.entitySanitizer = entitySanitizer;
     }
 
     @Activator
@@ -217,6 +226,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
                             .doOnError(e -> logger.info("Job {} creation failure", jobId, e));
                 });
     }
+
 
     @Override
     public List<Job> getJobs() {
@@ -335,19 +345,8 @@ public class DefaultV3JobOperations implements V3JobOperations {
     }
 
     @Override
-    public Observable<Void> updateJobCapacity(String jobId, Capacity capacity, CallMetadata callMetadata) {
-        return inServiceJob(jobId).flatMap(engine -> {
-                    Job<ServiceJobExt> serviceJob = engine.getReferenceView().getEntity();
-                    if (serviceJob.getJobDescriptor().getExtensions().getCapacity().equals(capacity)) {
-                        return Observable.empty();
-                    }
-                    if (isDesiredCapacityInvalid(capacity, serviceJob)) {
-                        return Observable.error(JobManagerException.invalidDesiredCapacity(jobId, capacity.getDesired(),
-                                serviceJob.getJobDescriptor().getExtensions().getServiceJobProcesses()));
-                    }
-                    return engine.changeReferenceModel(BasicServiceJobActions.updateJobCapacityAction(engine, capacity, store, callMetadata));
-                }
-        );
+    public Observable<Void> updateJobCapacityAttributes(String jobId, CapacityAttributes capacityAttributes, CallMetadata callMetadata) {
+        return inServiceJob(jobId).flatMap(engine -> engine.changeReferenceModel(BasicServiceJobActions.updateJobCapacityAction(engine, capacityAttributes, store, callMetadata, entitySanitizer)));
     }
 
     @Override
@@ -642,13 +641,5 @@ public class DefaultV3JobOperations implements V3JobOperations {
             return TaskUpdateEvent.newTaskFromAnotherJob(job, newTask, callMetadata);
         }
         return TaskUpdateEvent.newTask(job, newTask, callMetadata);
-    }
-
-    private boolean isDesiredCapacityInvalid(Capacity targetCapacity, Job<ServiceJobExt> serviceJob) {
-        ServiceJobProcesses serviceJobProcesses = serviceJob.getJobDescriptor().getExtensions().getServiceJobProcesses();
-        Capacity currentCapacity = serviceJob.getJobDescriptor().getExtensions().getCapacity();
-        return (serviceJobProcesses.isDisableIncreaseDesired() && targetCapacity.getDesired() > currentCapacity.getDesired()) ||
-                (serviceJobProcesses.isDisableDecreaseDesired() && targetCapacity.getDesired() < currentCapacity.getDesired());
-
     }
 }

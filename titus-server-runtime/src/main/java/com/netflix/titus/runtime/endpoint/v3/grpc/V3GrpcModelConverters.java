@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
+import com.netflix.titus.api.jobmanager.model.job.CapacityAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Container;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.Image;
@@ -70,10 +71,12 @@ import com.netflix.titus.api.jobmanager.model.job.retry.ExponentialBackoffRetryP
 import com.netflix.titus.api.jobmanager.model.job.retry.ImmediateRetryPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
 import com.netflix.titus.api.model.EfsMount;
+import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.grpc.protogen.BatchJobSpec;
 import com.netflix.titus.grpc.protogen.Capacity;
 import com.netflix.titus.grpc.protogen.Constraints;
+import com.netflix.titus.grpc.protogen.JobCapacityWithOptionalAttributes;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobDescriptor.JobSpecCase;
 import com.netflix.titus.grpc.protogen.JobDisruptionBudget;
@@ -413,6 +416,22 @@ public final class V3GrpcModelConverters {
                 .withMin(capacity.getMin())
                 .withDesired(capacity.getDesired())
                 .withMax(capacity.getMax())
+                .build();
+    }
+
+    public static com.netflix.titus.api.jobmanager.model.job.CapacityAttributes toCoreCapacityAttributes(JobCapacityWithOptionalAttributes capacity) {
+        CapacityAttributes.Builder builder = JobModel.newCapacityAttributes();
+        Evaluators.acceptIfTrue(capacity.hasDesired(), valueAccepted -> builder.withDesired(capacity.getDesired().getValue()));
+        Evaluators.acceptIfTrue(capacity.hasMin(), valueAccepted -> builder.withMin(capacity.getMin().getValue()));
+        Evaluators.acceptIfTrue(capacity.hasMax(), valueAccepted -> builder.withMax(capacity.getMax().getValue()));
+        return builder.build();
+    }
+
+    public static com.netflix.titus.api.jobmanager.model.job.CapacityAttributes toCoreCapacityAttributes(Capacity capacity) {
+        return JobModel.newCapacityAttributes()
+                .withDesired(capacity.getDesired())
+                .withMax(capacity.getMax())
+                .withMin(capacity.getMin())
                 .build();
     }
 
