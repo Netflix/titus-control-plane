@@ -44,6 +44,7 @@ import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.grpc.protogen.JobAttributesDeleteRequest;
 import com.netflix.titus.grpc.protogen.JobAttributesUpdate;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
@@ -62,6 +63,8 @@ import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
 import com.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
 import com.netflix.titus.testkit.grpc.TestStreamObserver;
 import com.netflix.titus.testkit.rx.ExtTestSubscriber;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
@@ -75,6 +78,7 @@ import static com.netflix.titus.master.integration.v3.scenario.ScenarioBuilderUt
 import static com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters.toCoreJob;
 import static com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters.toGrpcCapacity;
 import static com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters.toGrpcDisruptionBudget;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  *
@@ -261,6 +265,29 @@ public class JobScenarioBuilder {
         }, "Job capacity update did not complete in time");
 
         logger.info("[{}] Job {} scaled to new desired size in {}ms", discoverActiveTest(), jobId, stopWatch.elapsed(TimeUnit.MILLISECONDS));
+        return this;
+    }
+
+    public JobScenarioBuilder updateJobCapacityDesiredInvalid(int targetDesired, int currentDesired) {
+        logger.info("[{}] Changing job {} capacity desired to {}...", discoverActiveTest(), jobId, targetDesired);
+        TestStreamObserver<Empty> responseObserver = new TestStreamObserver<>();
+        client.updateJobCapacityWithOptionalAttributes(
+                JobCapacityUpdateWithOptionalAttributes.newBuilder().setJobId(jobId)
+                        .setJobCapacityWithOptionalAttributes(JobCapacityWithOptionalAttributes.newBuilder().setDesired(UInt32Value.newBuilder().setValue(targetDesired).build()).build()).build(),
+                responseObserver);
+
+        await().timeout(TIMEOUT_MS, TimeUnit.MILLISECONDS).until(responseObserver::hasError);
+        Throwable error = responseObserver.getError();
+        assertThat(error).isNotNull();
+        assertThat(error).isInstanceOf(StatusRuntimeException.class);
+        StatusRuntimeException statusRuntimeException = (StatusRuntimeException) error;
+        assertThat(statusRuntimeException.getStatus().getCode() == Status.Code.INVALID_ARGUMENT).isTrue();
+
+        // Make sure desired count is unchanged
+        Job job = getJob();
+        JobDescriptor.JobDescriptorExt ext = job.getJobDescriptor().getExtensions();
+        int currentCapacity = ext instanceof BatchJobExt ? ((BatchJobExt) ext).getSize() : ((ServiceJobExt) ext).getCapacity().getDesired();
+        assertThat(currentCapacity).isEqualTo(currentDesired);
         return this;
     }
 

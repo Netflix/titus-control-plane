@@ -226,9 +226,9 @@ public final class JobFunctions {
 
     public static Job<ServiceJobExt> changeServiceJobCapacity(Job<ServiceJobExt> job, CapacityAttributes capacityAttributes) {
         Capacity.Builder newCapacityBuilder = job.getJobDescriptor().getExtensions().getCapacity().toBuilder();
-        Evaluators.acceptIfTrue(capacityAttributes.getDesired().isPresent(), valueAccepted -> newCapacityBuilder.withDesired(capacityAttributes.getDesired().get()));
-        Evaluators.acceptIfTrue(capacityAttributes.getMax().isPresent(), valueAccepted -> newCapacityBuilder.withMax(capacityAttributes.getMax().get()));
-        Evaluators.acceptIfTrue(capacityAttributes.getMin().isPresent(), valueAccepted -> newCapacityBuilder.withMin(capacityAttributes.getMin().get()));
+        capacityAttributes.getDesired().ifPresent(newCapacityBuilder::withDesired);
+        capacityAttributes.getMax().ifPresent(newCapacityBuilder::withMax);
+        capacityAttributes.getMin().ifPresent(newCapacityBuilder::withMin);
         return job.toBuilder().withJobDescriptor(changeServiceJobCapacity(job.getJobDescriptor(), newCapacityBuilder.build())).build();
     }
 

@@ -63,9 +63,9 @@ public class BasicServiceJobActions {
                     }
 
                     Capacity.Builder newCapacityBuilder = serviceJob.getJobDescriptor().getExtensions().getCapacity().toBuilder();
-                    Evaluators.acceptIfTrue(capacityAttributes.getDesired().isPresent(), valueAccepted -> newCapacityBuilder.withDesired(capacityAttributes.getDesired().get()));
-                    Evaluators.acceptIfTrue(capacityAttributes.getMax().isPresent(), valueAccepted -> newCapacityBuilder.withMax(capacityAttributes.getMax().get()));
-                    Evaluators.acceptIfTrue(capacityAttributes.getMin().isPresent(), valueAccepted -> newCapacityBuilder.withMin(capacityAttributes.getMin().get()));
+                    capacityAttributes.getDesired().ifPresent(newCapacityBuilder::withDesired);
+                    capacityAttributes.getMax().ifPresent(newCapacityBuilder::withMax);
+                    capacityAttributes.getMin().ifPresent(newCapacityBuilder::withMin);
 
                     Capacity newCapacity = newCapacityBuilder.build();
 

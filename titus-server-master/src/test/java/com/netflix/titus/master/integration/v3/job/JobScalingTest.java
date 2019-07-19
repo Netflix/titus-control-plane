@@ -100,6 +100,17 @@ public class JobScalingTest extends BaseIntegrationTest {
 
 
     @Test
+    public void testScaleUpAndDownServiceJobDesiredInvalid() throws Exception {
+        jobsScenarioBuilder.schedule(newJob("testScaleUpAndDownServiceJob"), jobScenarioBuilder -> jobScenarioBuilder
+                .template(ScenarioTemplates.startTasksInNewJob())
+                .updateJobCapacity(JobModel.newCapacity().withMin(0).withDesired(2).withMax(5).build())
+                .expectAllTasksCreated()
+                .updateJobCapacityDesiredInvalid(6, 2)
+        );
+    }
+
+
+    @Test
     public void testTerminateAndShrink() throws Exception {
         jobsScenarioBuilder.schedule(newJob("testTerminateAndShrink"), jobScenarioBuilder -> jobScenarioBuilder
                 .template(ScenarioTemplates.startTasksInNewJob())
