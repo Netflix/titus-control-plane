@@ -232,7 +232,9 @@ public class DifferenceResolverUtils {
         return pendingTaskIds.size();
     }
 
-    // Determines unassigned IP allocations based on the current reference view
+    /**
+     * Determines unassigned IP allocations based on the current reference view
+     */
     public static Set<String> getUnassignedIpAllocations(JobView refJobView) {
         // Get all IP allocations from the job
         Set<String> unassignedIpAddressIds = refJobView.getJob().getJobDescriptor().getContainer().getContainerResources().getSignedIpAddressAllocations()
@@ -250,14 +252,18 @@ public class DifferenceResolverUtils {
         return unassignedIpAddressIds;
     }
 
-    // Copies specific task context entries, multiple if needed, from a previous task to a replacement task
+    /**
+     * Copies specific task context entries, multiple if needed, from a previous task to a replacement task
+     */
     private static Map<String, String> getTaskContextFromPreviousTask(Task previousTask) {
         // Copy the IP allocation task context to the replacement task
         String ipAllocationId = previousTask.getTaskContext().get(TASK_ATTRIBUTES_IP_ALLOCATION_ID);
         return ipAllocationId != null ? Collections.singletonMap(TASK_ATTRIBUTES_IP_ALLOCATION_ID, ipAllocationId) : Collections.emptyMap();
     }
 
-    // Sets the task context fields, multiple if needed, for an initial task.
+    /**
+     * Sets the task context fields, multiple if needed, for an initial task.
+     */
     private static Map<String, String> getInitialTaskContext(Set<String> unassignedIpAllocations) {
         if (!unassignedIpAllocations.isEmpty()) {
             String ipAllocationId = unassignedIpAllocations.iterator().next();
@@ -267,7 +273,9 @@ public class DifferenceResolverUtils {
         return Collections.emptyMap();
     }
 
-    // Get task context for a new or replacement task
+    /**
+     * Get task context for a new or replacement task
+     */
     public static Map<String, String> getTaskContext(Optional<EntityHolder> optionalPreviousTaskEntityHolder,
                                                      Set<String> unassignedIpAllocations) {
         return optionalPreviousTaskEntityHolder

@@ -35,6 +35,6 @@ public abstract class ContainerResourcesMixin {
                                    @JsonProperty("efsMounts") List<EfsMount> efsMounts,
                                    @JsonProperty("allocateIP") boolean allocateIP,
                                    @JsonProperty("shmMB") int shmMB,
-                                   @JsonProperty("signedIpAddressAllocations")List<SignedIpAddressAllocation> signedIpAddressAllocations) {
+                                   @JsonProperty("signedIpAddressAllocations") List<SignedIpAddressAllocation> signedIpAddressAllocations) {
     }
 }

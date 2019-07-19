@@ -30,6 +30,7 @@ import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.data.generator.DataGenerator;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.master.config.MasterConfiguration;
 import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
@@ -97,7 +98,7 @@ public class DefaultV3TaskInfoFactoryTest {
         DataGenerator<BatchJobTask> tasks = JobGenerator.batchTasks(job);
         BatchJobTask task = tasks.getValue();
         V3ConstraintEvaluatorTransformer transformer = new V3ConstraintEvaluatorTransformer(masterConfiguration,
-                mock(SchedulerConfiguration.class), new TaskCache(mock(V3JobOperations.class)),
+                mock(SchedulerConfiguration.class), new TaskCache(mock(TitusRuntime.class), mock(V3JobOperations.class)),
                 mock(AgentManagementService.class));
 
         V3QueueableTask fenzoTask = new V3QueueableTask(Tier.Flex, null, job, task,

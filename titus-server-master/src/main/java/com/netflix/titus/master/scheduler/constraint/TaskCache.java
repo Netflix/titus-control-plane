@@ -33,6 +33,7 @@ import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.vpc.SignedIpAddressAllocation;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.tuple.Pair;
 
 /**
@@ -41,11 +42,13 @@ import com.netflix.titus.common.util.tuple.Pair;
 @Singleton
 public class TaskCache {
 
+    private final TitusRuntime titusRuntime;
     private final V3JobOperations v3JobOperations;
     private final AtomicReference<TaskCacheValue> currentCacheValue;
 
     @Inject
-    public TaskCache(V3JobOperations v3JobOperations) {
+    public TaskCache(TitusRuntime titusRuntime, V3JobOperations v3JobOperations) {
+        this.titusRuntime = titusRuntime;
         this.v3JobOperations = v3JobOperations;
         this.currentCacheValue = new AtomicReference<>();
     }
@@ -132,6 +135,8 @@ public class TaskCache {
                     return Optional.of(signedIpAddressAllocation.getIpAddressAllocation().getIpAddressLocation().getAvailabilityZone());
                 }
             }
+            titusRuntime.getCodeInvariants().inconsistent("Unable to find zone for IP allocation ID {} in job allocations {}",
+                    ipAllocationId, jobDescriptor.getContainer().getContainerResources().getSignedIpAddressAllocations());
             return Optional.empty();
         }
     }
