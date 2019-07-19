@@ -638,7 +638,7 @@ public final class V3GrpcModelConverters {
                 ? Collections.emptyList()
                 : containerResources.getEfsMounts().stream().map(V3GrpcModelConverters::toGrpcEfsMount).collect(Collectors.toList());
         List<SignedAddressAllocation> grpcSignedAddressAllocation = containerResources.getSignedIpAddressAllocations().isEmpty()
-                ? Collections.EMPTY_LIST
+                ? Collections.emptyList()
                 : containerResources.getSignedIpAddressAllocations().stream().map(V3GrpcModelConverters::toGrpcSignedAddressAllocation)
                 .collect(Collectors.toList());
         return com.netflix.titus.grpc.protogen.ContainerResources.newBuilder()
