@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -505,7 +505,7 @@ public class JobScenarioBuilder {
     }
 
     public JobScenarioBuilder expectSome(int count, Predicate<TaskScenarioBuilder> predicate) {
-        logger.info("[{}] Expecting {} tasks to meet fulfill the predicate requirements", discoverActiveTest(), count);
+        logger.info("[{}] Expecting {} tasks to fulfill the predicate requirements", discoverActiveTest(), count);
         await().timeout(TIMEOUT_MS, TimeUnit.MILLISECONDS).until(() -> {
             long matching = getLastTaskHolders().stream().filter(t -> predicate.test(t.getTaskScenarioBuilder())).count();
             return matching == count;

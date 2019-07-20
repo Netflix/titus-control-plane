@@ -169,6 +169,10 @@ public final class CollectionsExt {
         return original == null ? null : ImmutableList.copyOf(original);
     }
 
+    public static <T> List<T> nonNullImmutableCopyOf(List<T> original) {
+        return ImmutableList.copyOf(nonNull(original));
+    }
+
     public static <K, V> Map<K, V> nullableImmutableCopyOf(Map<K, V> original) {
         return original == null ? null : ImmutableMap.copyOf(original);
     }

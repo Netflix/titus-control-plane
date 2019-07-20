@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,9 +19,12 @@ package com.netflix.titus.api.jobmanager.store.mixin;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.netflix.titus.api.jobmanager.model.job.vpc.SignedIpAddressAllocation;
 import com.netflix.titus.api.model.EfsMount;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public abstract class ContainerResourcesMixin {
     @JsonCreator
     public ContainerResourcesMixin(@JsonProperty("cpu") double cpu,
@@ -31,6 +34,7 @@ public abstract class ContainerResourcesMixin {
                                    @JsonProperty("networkMbps") int networkMbps,
                                    @JsonProperty("efsMounts") List<EfsMount> efsMounts,
                                    @JsonProperty("allocateIP") boolean allocateIP,
-                                   @JsonProperty("shmMB") int shmMB) {
+                                   @JsonProperty("shmMB") int shmMB,
+                                   @JsonProperty("signedIpAddressAllocations") List<SignedIpAddressAllocation> signedIpAddressAllocations) {
     }
 }

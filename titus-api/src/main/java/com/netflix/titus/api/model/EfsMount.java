@@ -30,11 +30,11 @@ public class EfsMount {
     public enum MountPerm {RO, WO, RW}
 
     @NotNull(message = "'efsId' is null")
-    @Size(min = 1, message = "Emtpy value not allowed")
+    @Size(min = 1, message = "Empty value not allowed")
     private final String efsId;
 
     @NotNull(message = "'mountPoint' is null")
-    @Size(min = 1, message = "Emtpy value not allowed")
+    @Size(min = 1, message = "Empty value not allowed")
     private final String mountPoint;
 
     @NotNull(message = "'mountPerm' is null")

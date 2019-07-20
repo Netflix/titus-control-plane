@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -215,6 +215,7 @@ public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
         job.getJobDescriptor().getContainer().getHardConstraints().forEach((key, value) ->
                 constraintEvaluatorTransformer.hardConstraint(Pair.of(key, value), runningTasksGetter).ifPresent(result::add)
         );
+
         return result;
     }
 

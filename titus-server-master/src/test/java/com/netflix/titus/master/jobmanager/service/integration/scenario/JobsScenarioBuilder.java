@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -93,7 +93,7 @@ public class JobsScenarioBuilder {
 
     private final List<JobScenarioBuilder<?>> jobScenarioBuilders = new ArrayList<>();
 
-    private final ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer = null;
+    private final ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer = mock(ConstraintEvaluatorTransformer.class);
 
     public JobsScenarioBuilder() {
         when(configuration.getReconcilerActiveTimeoutMs()).thenReturn(RECONCILER_ACTIVE_TIMEOUT_MS);
