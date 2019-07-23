@@ -17,6 +17,7 @@
 dependencies {
     compile project(':titus-common')
     compile project(':titus-api')
+    compile project(':titus-server-runtime')
 
     compile "io.javaslang:javaslang:${javaslangVersion}"
     compile "com.amazonaws:aws-java-sdk-ec2:${awsSdkVersion}"
