@@ -16,6 +16,9 @@
 
 package com.netflix.titus.master.integration.v3.job;
 
+import java.util.AbstractMap;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.function.Function;
 
 import com.netflix.titus.api.jobmanager.TaskAttributes;
@@ -23,6 +26,12 @@ import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import com.netflix.titus.grpc.protogen.JobChangeNotification;
+import com.netflix.titus.grpc.protogen.JobId;
+import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
+import com.netflix.titus.grpc.protogen.Page;
+import com.netflix.titus.grpc.protogen.TaskQuery;
+import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.master.integration.BaseIntegrationTest;
 import com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates;
@@ -42,6 +51,7 @@ import org.junit.rules.RuleChain;
 import static com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCells.basicCell;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.batchJobDescriptors;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.serviceJobDescriptors;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @Category(IntegrationTest.class)
 public class JobIpAllocationsTest extends BaseIntegrationTest {
@@ -57,9 +67,12 @@ public class JobIpAllocationsTest extends BaseIntegrationTest {
     @Rule
     public final RuleChain ruleChain = RuleChain.outerRule(titusStackResource).around(instanceGroupsScenarioBuilder).around(jobsScenarioBuilder);
 
+    private static JobManagementServiceGrpc.JobManagementServiceBlockingStub client;
+
     @Before
     public void setUp() throws Exception {
         instanceGroupsScenarioBuilder.synchronizeWithCloud().template(InstanceGroupScenarioTemplates.basicCloudActivation());
+        client = titusStackResource.getMaster().getV3BlockingGrpcClient();
     }
 
     /**
@@ -143,7 +156,7 @@ public class JobIpAllocationsTest extends BaseIntegrationTest {
     /**
      * Tests a new replacement task retains the same IP allocation as the previous task.
      */
-    @Test
+    @Test(timeout = 30_000)
     public void testReplacementTaskIpAllocation() throws Exception {
         jobsScenarioBuilder.schedule(ONE_TASK_SERVICE_JOB, jobScenarioBuilder ->
                 jobScenarioBuilder
@@ -162,6 +175,67 @@ public class JobIpAllocationsTest extends BaseIntegrationTest {
                         .allTasks(taskScenarioBuilder -> taskScenarioBuilder.expectTaskContext(TaskAttributes.TASK_ATTRIBUTES_IP_ALLOCATION_ID, getIpAllocationIdFromJob(0, ONE_TASK_SERVICE_JOB)))
                         .allTasks(taskScenarioBuilder -> taskScenarioBuilder.expectZoneId(getZoneFromJobIpAllocation(0, ONE_TASK_SERVICE_JOB)))
         );
+    }
+
+    /**
+     * Tests a job waiting for an in use IP allocation has updated task context fields.
+     */
+    @Test(timeout = 30_000)
+    public void testWaitingTaskContext() throws Exception {
+        JobDescriptor<ServiceJobExt> firstIpJobDescriptor = ONE_TASK_SERVICE_JOB;
+        JobDescriptor<ServiceJobExt> secondIpJobDescriptor = firstIpJobDescriptor.but(j -> j.getJobGroupInfo().toBuilder().withSequence("v001"));
+
+        // Schedule the first task and ensure it's in the correct zone with the correct task context
+        jobsScenarioBuilder.schedule(firstIpJobDescriptor, jobScenarioBuilder ->
+                jobScenarioBuilder
+                        .template(ScenarioTemplates.startTasksInNewJob())
+                        .allTasks(taskScenarioBuilder -> taskScenarioBuilder.expectTaskContext(TaskAttributes.TASK_ATTRIBUTES_IP_ALLOCATION_ID, getIpAllocationIdFromJob(0, firstIpJobDescriptor)))
+                        .allTasks(taskScenarioBuilder -> taskScenarioBuilder.expectZoneId(getZoneFromJobIpAllocation(0, firstIpJobDescriptor))));
+        String firstJobId = jobsScenarioBuilder.takeJob(0).getJobId();
+
+        // Schedule the second task and ensure it's blocked on the first task
+        jobsScenarioBuilder.schedule(secondIpJobDescriptor, jobScenarioBuilder ->
+                jobScenarioBuilder
+                        .template(ScenarioTemplates.jobAccepted())
+                        .expectAllTasksCreated()
+                        .allTasks(taskScenarioBuilder -> taskScenarioBuilder.expectStateUpdates(TaskStatus.TaskState.Accepted)));
+        String secondJobId = jobsScenarioBuilder.takeJob(1).getJobId();
+
+        // Query the gRPC endpoint and ensure the first task does not have a waiting task context field.
+        TaskQueryResult firstTaskQueryResult = client.findTasks(TaskQuery.newBuilder()
+                .setPage(Page.newBuilder().setPageSize(100).build())
+                .putFilteringCriteria("jobIds", firstJobId)
+                .build());
+        assertThat(firstTaskQueryResult.getItemsCount()).isEqualTo(1);
+        firstTaskQueryResult.getItemsList().forEach(task -> {
+            assertThat(task.getTaskContextMap()).doesNotContainKeys(TaskAttributes.TASK_ATTRIBUTES_IN_USE_IP_ALLOCATION);
+        });
+        String firstTaskId = firstTaskQueryResult.getItems(0).getId();
+
+        // Query the gRPC endpoint and ensure the second task has a waiting task context field.
+        TaskQueryResult secondTaskQueryResult = client.findTasks(TaskQuery.newBuilder()
+                .setPage(Page.newBuilder().setPageSize(100).build())
+                .putFilteringCriteria("jobIds", secondJobId)
+                .build());
+        assertThat(secondTaskQueryResult.getItemsCount()).isEqualTo(1);
+        secondTaskQueryResult.getItemsList().forEach(task -> {
+            assertThat(task.getTaskContextMap()).contains(new AbstractMap.SimpleImmutableEntry<>(TaskAttributes.TASK_ATTRIBUTES_IN_USE_IP_ALLOCATION, firstTaskId));
+        });
+
+        // Observe the second job and ensure the streamed task has a waiting task context field.
+        boolean verified = false;
+        Iterator<JobChangeNotification> it = client.observeJob(JobId.newBuilder().setId(secondJobId).build());
+        while (it.hasNext()) {
+            JobChangeNotification jobChangeNotification = it.next();
+            if (jobChangeNotification.hasTaskUpdate()) {
+                Map<String, String> taskContext = jobChangeNotification.getTaskUpdate().getTask().getTaskContextMap();
+                assertThat(taskContext).contains(new AbstractMap.SimpleImmutableEntry<>(TaskAttributes.TASK_ATTRIBUTES_IN_USE_IP_ALLOCATION, firstTaskId));
+                verified = true;
+            } else if (jobChangeNotification.hasSnapshotEnd()) {
+                break;
+            }
+        }
+        assertThat(verified).isTrue();
     }
 
     private static Function<JobDescriptor<BatchJobExt>, JobDescriptor<BatchJobExt>> batchOfSizeAndIps(int size) {

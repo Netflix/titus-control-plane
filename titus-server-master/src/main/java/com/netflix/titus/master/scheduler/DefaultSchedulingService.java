@@ -659,7 +659,7 @@ public class DefaultSchedulingService implements SchedulingService {
     }
 
     @Override
-    public Map<TaskPlacementFailure.FailureKind, List<TaskPlacementFailure>> getLastTaskPlacementFailures() {
+    public Map<TaskPlacementFailure.FailureKind, Map<String, List<TaskPlacementFailure>>> getLastTaskPlacementFailures() {
         return taskPlacementFailureClassifier.getLastTaskPlacementFailures();
     }
 
