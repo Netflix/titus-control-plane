@@ -611,13 +611,14 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         List<V1Pod> podsStuckBeingDeleted = currentPods.stream()
                 .filter(pod -> {
                     String podName = pod.getMetadata().getName();
-                    DateTime deletionTimestamp = pod.getMetadata().getDeletionTimestamp();
-                    return clock.isPast(deletionTimestamp.getMillis() + POD_GC_DELETION_TTL) &&
+                    DateTime deletionTime = pod.getMetadata().getDeletionTimestamp();
+                    return deletionTime != null &&
+                            clock.isPast(deletionTime.getMillis() + POD_GC_DELETION_TTL) &&
                             !currentTaskIds.contains(podName);
                 })
                 .collect(Collectors.toList());
 
-        // GC orphaned pods that stuck being deleted
+        // GC orphaned pods that are stuck being deleted
         logger.debug("Attempting to GC {} orphaned pods not in Titus", podsStuckBeingDeleted.size());
         for (V1Pod pod : podsStuckBeingDeleted) {
             gcPod(pod);
