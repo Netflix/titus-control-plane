@@ -215,6 +215,11 @@ public class VirtualMachineMasterServiceMesosImpl implements VirtualMachineMaste
     }
 
     @Override
+    public void setRescindLeaseHandler(Action1<List<LeaseRescindedEvent>> rescindLeaseHandler) {
+        // do nothing
+    }
+
+    @Override
     public Observable<LeaseRescindedEvent> getLeaseRescindedObservable() {
         return vmLeaseRescindedObserver;
     }

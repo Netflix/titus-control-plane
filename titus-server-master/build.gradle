@@ -26,7 +26,7 @@ dependencies {
 
     // Misc dependencies
     compile "org.apache.mesos:mesos:${mesosVersion}"
-    compile "io.kubernetes:client-java:4.0.0"
+    compile "io.kubernetes:client-java:${kubernetesClientVersion}"
     compile "com.github.spullara.cli-parser:cli-parser:${cliParserVersion}"
     compile "com.google.inject:guice:${guiceVersion}"
     compile "io.swagger:swagger-jaxrs:${swaggerVersion}"

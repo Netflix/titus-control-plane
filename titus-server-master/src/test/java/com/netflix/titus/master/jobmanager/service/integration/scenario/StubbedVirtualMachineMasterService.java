@@ -28,10 +28,10 @@ import com.netflix.fenzo.functions.Action1;
 import com.netflix.titus.api.json.ObjectMappers;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.master.mesos.LeaseRescindedEvent;
-import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.mesos.ContainerEvent;
+import com.netflix.titus.master.mesos.LeaseRescindedEvent;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
+import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import org.apache.mesos.Protos;
 import rx.Observable;
 import rx.subjects.PublishSubject;
@@ -162,6 +162,11 @@ class StubbedVirtualMachineMasterService implements VirtualMachineMasterService 
 
     @Override
     public void setVMLeaseHandler(Action1<List<? extends VirtualMachineLease>> leaseHandler) {
+        throw new IllegalStateException("method not supported");
+    }
+
+    @Override
+    public void setRescindLeaseHandler(Action1<List<LeaseRescindedEvent>> rescindLeaseHandler) {
         throw new IllegalStateException("method not supported");
     }
 
