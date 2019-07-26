@@ -341,7 +341,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                 logger.error("Failed to list nodes with error:", e);
                 nodesClientMetrics.incrementOnError(GET, NODES, e);
             } finally {
-                nodesClientMetrics.registerLatency(GET, startTimeMs);
+                nodesClientMetrics.registerOnErrorLatency(GET, Duration.ofMillis(clock.wallTime() - startTimeMs));
             }
             if (list != null) {
                 Snapshot<V1Node> snapshot = Snapshot.newSnapshot(list.getItems(), clock.wallTime());
@@ -660,7 +660,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
             logger.error("Failed to delete node: {} with error: ", nodeName, e);
             nodesClientMetrics.incrementOnError(DELETE, NODES, e);
         } finally {
-            nodesClientMetrics.registerLatency(DELETE, startTimeMs);
+            nodesClientMetrics.registerOnErrorLatency(DELETE, Duration.ofMillis(clock.wallTime() - startTimeMs));
         }
     }
 
@@ -708,7 +708,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
             logger.error("Failed to delete pod: {} with error: ", podName, e);
             podsClientMetrics.incrementOnError(DELETE, PODS, e);
         } finally {
-            podsClientMetrics.registerLatency(DELETE, startTimeMs);
+            podsClientMetrics.registerOnErrorLatency(DELETE, Duration.ofMillis(clock.wallTime() - startTimeMs));
         }
     }
 }
