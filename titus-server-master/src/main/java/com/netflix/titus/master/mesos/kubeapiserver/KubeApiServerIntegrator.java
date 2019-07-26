@@ -152,9 +152,10 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                 podsClientMetrics.incrementOnSuccess(POST, PODS, STATUS_200);
             } catch (ApiException e) {
                 logger.error("Unable to create pod with error:", e);
+                podsClientMetrics.registerOnErrorLatency(POST, Duration.ofMillis(clock.wallTime() - startTimeMs));
                 podsClientMetrics.incrementOnError(POST, PODS, e);
             } finally {
-                podsClientMetrics.registerLatency(POST, startTimeMs);
+                podsClientMetrics.registerOnSuccessLatency(POST, Duration.ofMillis(clock.wallTime() - startTimeMs));
             }
         }
     }
@@ -248,8 +249,9 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         } catch (Exception e) {
             logger.error("Failed to kill task: {} with error: ", taskId, e);
             podsClientMetrics.incrementOnError(DELETE, PODS, e);
+            podsClientMetrics.registerOnErrorLatency(DELETE, Duration.ofMillis(clock.wallTime() - startTimeMs));
         } finally {
-            podsClientMetrics.registerLatency(DELETE, startTimeMs);
+            podsClientMetrics.registerOnSuccessLatency(DELETE, Duration.ofMillis(clock.wallTime() - startTimeMs));
         }
     }
 
@@ -277,8 +279,9 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         } catch (Exception e) {
             logger.error("Failed to list nodes with error:", e);
             nodesClientMetrics.incrementOnError(GET, NODES, e);
+            nodesClientMetrics.registerOnErrorLatency(GET, Duration.ofMillis(clock.wallTime() - startTimeMs));
         } finally {
-            nodesClientMetrics.registerLatency(GET, startTimeMs);
+            nodesClientMetrics.registerOnSuccessLatency(GET, Duration.ofMillis(clock.wallTime() - startTimeMs));
         }
         if (list != null && !list.getItems().isEmpty()) {
             final List<VMLeaseObject> leaseObjects = list.getItems().stream()
@@ -366,8 +369,9 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         } catch (Exception e) {
             logger.error("Failed to list pods with error: ", e);
             podsClientMetrics.incrementOnError(GET, PODS, e);
+            podsClientMetrics.registerOnErrorLatency(GET, Duration.ofMillis(clock.wallTime() - startTimeMs));
         } finally {
-            podsClientMetrics.registerLatency(GET, startTimeMs);
+            podsClientMetrics.registerOnSuccessLatency(GET, Duration.ofMillis(clock.wallTime() - startTimeMs));
         }
         if (list != null && !list.getItems().isEmpty()) {
             for (V1Pod pod : list.getItems()) {

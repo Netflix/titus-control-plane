@@ -16,6 +16,8 @@
 
 package com.netflix.titus.common.network.client.internal;
 
+import java.time.Duration;
+
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.common.network.client.ClientMetrics;
 import com.netflix.titus.common.util.time.Clock;
@@ -32,8 +34,20 @@ public class WebClientMetric {
         delegate = new ClientMetrics(WEB_CLIENT_METRICS, endpointName, registry, clock);
     }
 
-    public void registerLatency(HttpMethod method, long startTimeMs) {
-        delegate.registerLatency(method.name(), startTimeMs);
+    public void registerOnSuccessLatency(HttpMethod method, Duration elapsed) {
+        delegate.registerOnSuccessLatency(method.name(), elapsed);
+    }
+
+    public void registerOnSuccessLatency(HttpMethod method, String path, Duration elapsed) {
+        delegate.registerOnSuccessLatency(method.name(), path, elapsed);
+    }
+
+    public void registerOnErrorLatency(HttpMethod method, Duration elapsed) {
+        delegate.registerOnErrorLatency(method.name(), elapsed);
+    }
+
+    public void registerOnErrorLatency(HttpMethod method, String path, Duration elapsed) {
+        delegate.registerOnErrorLatency(method.name(), path, elapsed);
     }
 
     public void incrementOnSuccess(HttpClientResponse response, Connection connection) {

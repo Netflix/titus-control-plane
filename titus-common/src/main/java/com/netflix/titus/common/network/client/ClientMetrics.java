@@ -16,6 +16,7 @@
 
 package com.netflix.titus.common.network.client;
 
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 import com.netflix.spectator.api.Id;
@@ -29,6 +30,9 @@ public class ClientMetrics {
     private static final String CLIENT_ENDPOINT_TAG = "endpoint";
     private static final String CLIENT_METHOD_TAG = "method";
     private static final String CLIENT_PATH_TAG = "path";
+    private static final String CLIENT_RESPONSE_STATUS_TAG = "status";
+    private static final String CLIENT_RESPONSE_STATUS_SUCCESS = "success";
+    private static final String CLIENT_RESPONSE_STATUS_FAILURE = "failure";
 
     private final Registry registry;
     private final Clock clock;
@@ -47,10 +51,54 @@ public class ClientMetrics {
                 .withTag(CLIENT_ENDPOINT_TAG, endpointName);
     }
 
-    public void registerLatency(String methodName, long startTimeMs) {
-        registry.timer(latencyId
-                .withTag(CLIENT_METHOD_TAG, methodName))
-                .record(clock.wallTime() - startTimeMs, TimeUnit.MILLISECONDS);
+    /**
+     * Register a success latency metric based on how much time elapsed from when a request was sent.
+     */
+    public void registerOnSuccessLatency(String methodName, Duration elapsed) {
+        recordTimer(latencyId
+                        .withTag(CLIENT_METHOD_TAG, methodName)
+                        .withTag(CLIENT_RESPONSE_STATUS_TAG, CLIENT_RESPONSE_STATUS_SUCCESS),
+                elapsed
+        );
+    }
+
+    /**
+     * Register a success latency metric based on how much time elapsed from when a request was sent.
+     */
+    public void registerOnSuccessLatency(String methodName, String path, Duration elapsed) {
+        recordTimer(latencyId
+                        .withTag(CLIENT_METHOD_TAG, methodName)
+                        .withTag(CLIENT_PATH_TAG, path)
+                        .withTag(CLIENT_RESPONSE_STATUS_TAG, CLIENT_RESPONSE_STATUS_SUCCESS),
+                elapsed
+        );
+    }
+
+    /**
+     * Register an error latency metric based on how much time elapsed from when a request was sent.
+     */
+    public void registerOnErrorLatency(String methodName, Duration elapsed) {
+        recordTimer(latencyId
+                        .withTag(CLIENT_METHOD_TAG, methodName)
+                        .withTag(CLIENT_RESPONSE_STATUS_TAG, CLIENT_RESPONSE_STATUS_FAILURE),
+                elapsed
+        );
+    }
+
+    /**
+     * Register an error latency metric based on how much time elapsed from when a request was sent.
+     */
+    public void registerOnErrorLatency(String methodName, String path, Duration elapsed) {
+        recordTimer(latencyId
+                        .withTag(CLIENT_METHOD_TAG, methodName)
+                        .withTag(CLIENT_PATH_TAG, path)
+                        .withTag(CLIENT_RESPONSE_STATUS_TAG, CLIENT_RESPONSE_STATUS_FAILURE),
+                elapsed
+        );
+    }
+
+    private void recordTimer(Id id, Duration elapsed) {
+        registry.timer(id).record(elapsed.toMillis(), TimeUnit.MILLISECONDS);
     }
 
     public void incrementOnSuccess(String methodName, String path, String status) {
