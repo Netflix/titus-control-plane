@@ -208,12 +208,11 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                 logger.debug("pod: {}", v1Pod);
                 normalApi.createNamespacedPod(KUBERNETES_NAMESPACE, v1Pod, false, null, null);
                 podsClientMetrics.incrementOnSuccess(POST, PODS, STATUS_200);
+                podsClientMetrics.registerOnSuccessLatency(POST, Duration.ofMillis(clock.wallTime() - startTimeMs));
             } catch (ApiException e) {
                 logger.error("Unable to create pod with error:", e);
-                podsClientMetrics.registerOnErrorLatency(POST, Duration.ofMillis(clock.wallTime() - startTimeMs));
                 podsClientMetrics.incrementOnError(POST, PODS, e);
-            } finally {
-                podsClientMetrics.registerOnSuccessLatency(POST, Duration.ofMillis(clock.wallTime() - startTimeMs));
+                podsClientMetrics.registerOnErrorLatency(POST, Duration.ofMillis(clock.wallTime() - startTimeMs));
             }
         }
     }
@@ -293,20 +292,21 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         try {
             normalApi.deleteNamespacedPod(taskId, KUBERNETES_NAMESPACE, null, null, null, DELETE_GRACE_PERIOD_SECONDS, null, null);
             podsClientMetrics.incrementOnSuccess(DELETE, PODS, STATUS_200);
+            podsClientMetrics.registerOnSuccessLatency(DELETE, Duration.ofMillis(clock.wallTime() - startTimeMs));
         } catch (JsonSyntaxException e) {
             // this is probably successful. the generated client has the wrong response type
             podsClientMetrics.incrementOnSuccess(DELETE, PODS, STATUS_200);
+            podsClientMetrics.registerOnSuccessLatency(DELETE, Duration.ofMillis(clock.wallTime() - startTimeMs));
         } catch (ApiException e) {
             if (!e.getMessage().equalsIgnoreCase(NOT_FOUND)) {
                 logger.error("Failed to kill task: {} with error: ", taskId, e);
                 podsClientMetrics.incrementOnError(DELETE, PODS, e);
+                podsClientMetrics.registerOnErrorLatency(DELETE, Duration.ofMillis(clock.wallTime() - startTimeMs));
             }
         } catch (Exception e) {
             logger.error("Failed to kill task: {} with error: ", taskId, e);
             podsClientMetrics.incrementOnError(DELETE, PODS, e);
             podsClientMetrics.registerOnErrorLatency(DELETE, Duration.ofMillis(clock.wallTime() - startTimeMs));
-        } finally {
-            podsClientMetrics.registerOnSuccessLatency(DELETE, Duration.ofMillis(clock.wallTime() - startTimeMs));
         }
     }
 
@@ -337,11 +337,11 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
             try {
                 list = normalApi.listNode(null, null, null, null, null, null, null, null, null);
                 nodesClientMetrics.incrementOnSuccess(GET, NODES, STATUS_200);
+                nodesClientMetrics.registerOnSuccessLatency(GET, Duration.ofMillis(clock.wallTime() - startTimeMs));
             } catch (Exception e) {
                 logger.error("Failed to list nodes with error:", e);
                 nodesClientMetrics.incrementOnError(GET, NODES, e);
-            } finally {
-                nodesClientMetrics.registerLatency(GET, startTimeMs);
+                nodesClientMetrics.registerOnErrorLatency(GET, Duration.ofMillis(clock.wallTime() - startTimeMs));
             }
             if (list != null) {
                 Snapshot<V1Node> snapshot = Snapshot.newSnapshot(list.getItems(), clock.wallTime());
@@ -382,12 +382,11 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         try {
             list = normalApi.listNode(null, null, null, null, null, null, null, null, null);
             nodesClientMetrics.incrementOnSuccess(GET, NODES, STATUS_200);
+            nodesClientMetrics.registerOnSuccessLatency(GET, Duration.ofMillis(clock.wallTime() - startTimeMs));
         } catch (Exception e) {
             logger.error("Failed to list nodes with error:", e);
             nodesClientMetrics.incrementOnError(GET, NODES, e);
             nodesClientMetrics.registerOnErrorLatency(GET, Duration.ofMillis(clock.wallTime() - startTimeMs));
-        } finally {
-            nodesClientMetrics.registerOnSuccessLatency(GET, Duration.ofMillis(clock.wallTime() - startTimeMs));
         }
         if (list != null) {
             return Optional.of(new ArrayList<>(list.getItems()));
@@ -491,12 +490,11 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         try {
             list = normalApi.listNamespacedPod(KUBERNETES_NAMESPACE, null, null, null, null, null, null, null, null, null);
             podsClientMetrics.incrementOnSuccess(GET, PODS, STATUS_200);
+            podsClientMetrics.registerOnSuccessLatency(GET, Duration.ofMillis(clock.wallTime() - startTimeMs));
         } catch (Exception e) {
             logger.error("Failed to list pods with error: ", e);
             podsClientMetrics.incrementOnError(GET, PODS, e);
             podsClientMetrics.registerOnErrorLatency(GET, Duration.ofMillis(clock.wallTime() - startTimeMs));
-        } finally {
-            podsClientMetrics.registerOnSuccessLatency(GET, Duration.ofMillis(clock.wallTime() - startTimeMs));
         }
         if (list != null) {
             return Optional.of(new ArrayList<>(list.getItems()));
@@ -648,19 +646,21 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         try {
             normalApi.deleteNode(nodeName, null, null, null, 0, null, "Background");
             nodesClientMetrics.incrementOnSuccess(DELETE, NODES, STATUS_200);
+            nodesClientMetrics.registerOnSuccessLatency(DELETE, Duration.ofMillis(clock.wallTime() - startTimeMs));
         } catch (JsonSyntaxException e) {
             // this is probably successful. the generated client has the wrong response type
             nodesClientMetrics.incrementOnSuccess(DELETE, NODES, STATUS_200);
+            nodesClientMetrics.registerOnSuccessLatency(DELETE, Duration.ofMillis(clock.wallTime() - startTimeMs));
         } catch (ApiException e) {
             if (!e.getMessage().equalsIgnoreCase(NOT_FOUND)) {
                 logger.error("Failed to delete node: {} with error: ", nodeName, e);
                 nodesClientMetrics.incrementOnError(DELETE, NODES, e);
+                nodesClientMetrics.registerOnErrorLatency(DELETE, Duration.ofMillis(clock.wallTime() - startTimeMs));
             }
         } catch (Exception e) {
             logger.error("Failed to delete node: {} with error: ", nodeName, e);
             nodesClientMetrics.incrementOnError(DELETE, NODES, e);
-        } finally {
-            nodesClientMetrics.registerLatency(DELETE, startTimeMs);
+            nodesClientMetrics.registerOnErrorLatency(DELETE, Duration.ofMillis(clock.wallTime() - startTimeMs));
         }
     }
 
@@ -696,19 +696,21 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         try {
             normalApi.deleteNamespacedPod(podName, KUBERNETES_NAMESPACE, null, null, null, 0, null, "Background");
             podsClientMetrics.incrementOnSuccess(DELETE, PODS, STATUS_200);
+            podsClientMetrics.registerOnSuccessLatency(DELETE, Duration.ofMillis(clock.wallTime() - startTimeMs));
         } catch (JsonSyntaxException e) {
             // this is probably successful. the generated client has the wrong response type
             podsClientMetrics.incrementOnSuccess(DELETE, PODS, STATUS_200);
+            podsClientMetrics.registerOnSuccessLatency(DELETE, Duration.ofMillis(clock.wallTime() - startTimeMs));
         } catch (ApiException e) {
             if (!e.getMessage().equalsIgnoreCase(NOT_FOUND)) {
                 logger.error("Failed to delete pod: {} with error: ", podName, e);
                 podsClientMetrics.incrementOnError(DELETE, PODS, e);
+                podsClientMetrics.registerOnErrorLatency(DELETE, Duration.ofMillis(clock.wallTime() - startTimeMs));
             }
         } catch (Exception e) {
             logger.error("Failed to delete pod: {} with error: ", podName, e);
             podsClientMetrics.incrementOnError(DELETE, PODS, e);
-        } finally {
-            podsClientMetrics.registerLatency(DELETE, startTimeMs);
+            podsClientMetrics.registerOnErrorLatency(DELETE, Duration.ofMillis(clock.wallTime() - startTimeMs));
         }
     }
 }
