@@ -41,12 +41,13 @@ import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_IP
 public class IpAllocationConstraint implements SystemConstraint {
 
     public static final String NAME = "IpAllocationConstraint";
+    private static final String IP_ALLOCATION_ALREADY_IN_USE_REASON_PREFIX = "Assigned IP allocation used by another task:";
+
 
     private static final Result VALID = new Result(true, null);
     private static final Result MACHINE_DOES_NOT_EXIST = new Result(false, "The machine does not exist");
     private static final Result IP_ALLOCATION_NOT_IN_ZONE = new Result(false, "Assigned IP allocation not in instance's zone");
     private static final Result INVALID_IP_ALLOCATION_ZONE = new Result(false, "Invalid zone for IP allocation");
-    private static final Result IP_ALLOCATION_ALREADY_IN_USE = new Result(false, "Assigned IP allocation used by another task");
 
     private final SchedulerConfiguration configuration;
     private final TaskCache taskCache;
@@ -84,7 +85,7 @@ public class IpAllocationConstraint implements SystemConstraint {
         // Check if the task's assigned IP allocation is free
         Optional<String> existingTaskAssignedIpAllocationId = taskCache.getTaskByIpAllocationId(ipAllocationId);
         if (existingTaskAssignedIpAllocationId.isPresent()) {
-            return IP_ALLOCATION_ALREADY_IN_USE;
+            return getIpAllocationInUseResult(existingTaskAssignedIpAllocationId.get());
         }
 
         // Find the assigned IP allocation's zone ID
@@ -97,5 +98,19 @@ public class IpAllocationConstraint implements SystemConstraint {
                     return IP_ALLOCATION_NOT_IN_ZONE;
                 })
                 .orElse(INVALID_IP_ALLOCATION_ZONE);
+    }
+
+    public static boolean isInUseIpAllocationConstraintReason(String reason) {
+        return reason != null && reason.startsWith(IP_ALLOCATION_ALREADY_IN_USE_REASON_PREFIX);
+    }
+
+    public static Optional<String> getTaskIdFromIpAllocationInUseReason(String reason) {
+        return reason.startsWith(IP_ALLOCATION_ALREADY_IN_USE_REASON_PREFIX)
+                ? Optional.of(reason.substring(IP_ALLOCATION_ALREADY_IN_USE_REASON_PREFIX.length()))
+                : Optional.empty();
+    }
+
+    private static Result getIpAllocationInUseResult(String taskId) {
+        return new Result(false, String.format("%s%s", IP_ALLOCATION_ALREADY_IN_USE_REASON_PREFIX, taskId));
     }
 }

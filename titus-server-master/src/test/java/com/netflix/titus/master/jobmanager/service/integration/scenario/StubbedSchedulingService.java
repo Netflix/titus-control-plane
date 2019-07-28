@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -65,7 +65,7 @@ class StubbedSchedulingService implements SchedulingService {
     }
 
     @Override
-    public Map<TaskPlacementFailure.FailureKind, List<TaskPlacementFailure>> getLastTaskPlacementFailures() {
+    public Map<TaskPlacementFailure.FailureKind, Map<String, List<TaskPlacementFailure>>> getLastTaskPlacementFailures() {
         return Collections.emptyMap();
     }
 }

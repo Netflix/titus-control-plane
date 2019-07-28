@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -178,7 +178,7 @@ public class ClusterAgentAutoScalerTest {
         List<Task> tasks = createTasks(10, "jobId");
         when(v3JobOperations.getTasks()).thenReturn(tasks);
 
-        Map<TaskPlacementFailure.FailureKind, List<TaskPlacementFailure>> taskPlacementFailures = createTaskPlacementFailures(ImmutableMap.of(
+        Map<TaskPlacementFailure.FailureKind, Map<String, List<TaskPlacementFailure>>> taskPlacementFailures = createTaskPlacementFailures(ImmutableMap.of(
                 TaskPlacementFailure.FailureKind.AllAgentsFull, 10
         ), Tier.Flex);
         when(schedulingService.getLastTaskPlacementFailures()).thenReturn(taskPlacementFailures);
@@ -248,7 +248,7 @@ public class ClusterAgentAutoScalerTest {
         List<Task> tasks = createTasks(10, "jobId");
         when(v3JobOperations.getTasks()).thenReturn(tasks);
 
-        Map<TaskPlacementFailure.FailureKind, List<TaskPlacementFailure>> taskPlacementFailures = createTaskPlacementFailures(ImmutableMap.of(
+        Map<TaskPlacementFailure.FailureKind, Map<String, List<TaskPlacementFailure>>> taskPlacementFailures = createTaskPlacementFailures(ImmutableMap.of(
                 TaskPlacementFailure.FailureKind.AllAgentsFull, 10
         ), Tier.Flex);
         when(schedulingService.getLastTaskPlacementFailures()).thenReturn(taskPlacementFailures);
@@ -523,15 +523,15 @@ public class ClusterAgentAutoScalerTest {
         return agents;
     }
 
-    private Map<TaskPlacementFailure.FailureKind, List<TaskPlacementFailure>> createTaskPlacementFailures(Map<TaskPlacementFailure.FailureKind, Integer> count,
+    private Map<TaskPlacementFailure.FailureKind, Map<String, List<TaskPlacementFailure>>> createTaskPlacementFailures(Map<TaskPlacementFailure.FailureKind, Integer> count,
                                                                                                           Tier tier) {
-        Map<TaskPlacementFailure.FailureKind, List<TaskPlacementFailure>> failureKinds = new HashMap<>();
+        Map<TaskPlacementFailure.FailureKind, Map<String, List<TaskPlacementFailure>>> failureKinds = new HashMap<>();
         for (Map.Entry<TaskPlacementFailure.FailureKind, Integer> entry : count.entrySet()) {
             TaskPlacementFailure.FailureKind failureKind = entry.getKey();
-            List<TaskPlacementFailure> failures = failureKinds.computeIfAbsent(failureKind, k -> new ArrayList<>());
             for (int i = 0; i < entry.getValue(); i++) {
-                TaskPlacementFailure failure = new TaskPlacementFailure("task" + i, failureKind, -1, tier, Collections.emptyMap());
-                failures.add(failure);
+                Map<String, List<TaskPlacementFailure>> failuresByTaskId = failureKinds.computeIfAbsent(failureKind, k -> new HashMap<>());
+                String taskId = "task" + i;
+                failuresByTaskId.computeIfAbsent(taskId, k -> new ArrayList<>()).add(new TaskPlacementFailure(taskId, failureKind, -1, tier, Collections.emptyMap()));
             }
         }
         return failureKinds;

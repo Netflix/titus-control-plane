@@ -90,7 +90,7 @@ public class WorkerStateMonitor {
                                 } else {
                                     taskStatusBuilder
                                             .withReasonCode(reasonCode)
-                                            .withReasonMessage("Mesos task state change event: " + args.getReasonMessage());
+                                            .withReasonMessage(args.getReasonMessage());
                                 }
                                 TaskStatus taskStatus = taskStatusBuilder.build();
 

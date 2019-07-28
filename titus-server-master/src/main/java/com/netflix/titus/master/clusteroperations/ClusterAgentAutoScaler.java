@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -180,8 +180,8 @@ public class ClusterAgentAutoScaler {
             Map<String, List<AgentInstance>> instancesForActiveInstanceGroupsById = instancesForActiveInstanceGroups.entrySet().stream()
                     .collect(Collectors.toMap(e -> e.getKey().getId(), Map.Entry::getValue));
             Map<String, Long> numberOfTasksOnAgents = getNumberOfTasksOnAgents(allTasks.values());
-            Map<FailureKind, List<TaskPlacementFailure>> lastTaskPlacementFailures = schedulingService.getLastTaskPlacementFailures();
-            Map<String, TaskPlacementFailure> launchGuardFailuresByTaskId = getLaunchGuardFailuresByTaskId(lastTaskPlacementFailures);
+            Map<FailureKind, Map<String, List<TaskPlacementFailure>>> lastTaskPlacementFailures = schedulingService.getLastTaskPlacementFailures();
+            Map<String, List<TaskPlacementFailure>> launchGuardFailuresByTaskId = getLaunchGuardFailuresByTaskId(lastTaskPlacementFailures);
             Map<Tier, Set<String>> failedTaskIdsByTier = getFailedTaskIds(lastTaskPlacementFailures);
 
             long now = clock.wallTime();
@@ -390,13 +390,15 @@ public class ClusterAgentAutoScaler {
     }
 
     private Set<String> getTaskIdsForTierWithoutLaunchGuardFailures(Tier tier,
-                                                                    Map<FailureKind, List<TaskPlacementFailure>> lastTaskPlacementFailures,
-                                                                    Map<String, TaskPlacementFailure> launchGuardFailuresByTaskId) {
+                                                                    Map<FailureKind, Map<String, List<TaskPlacementFailure>>> lastTaskPlacementFailures,
+                                                                    Map<String, List<TaskPlacementFailure>> launchGuardFailuresByTaskId) {
         Set<String> taskIds = new HashSet<>();
-        for (List<TaskPlacementFailure> failures : lastTaskPlacementFailures.values()) {
-            for (TaskPlacementFailure failure : failures) {
-                if (failure.getTier() == tier && !launchGuardFailuresByTaskId.containsKey(failure.getTaskId())) {
-                    taskIds.add(failure.getTaskId());
+        for (Map<String, List<TaskPlacementFailure>> failuresByTaskId : lastTaskPlacementFailures.values()) {
+            for (List<TaskPlacementFailure> taskFailures : failuresByTaskId.values()) {
+                for (TaskPlacementFailure failure : taskFailures) {
+                    if (failure.getTier() == tier && !launchGuardFailuresByTaskId.containsKey(failure.getTaskId())) {
+                        taskIds.add(failure.getTaskId());
+                    }
                 }
             }
         }
@@ -482,12 +484,14 @@ public class ClusterAgentAutoScaler {
         return v3JobOperations.getTasks().stream().collect(Collectors.toMap(Task::getId, Function.identity()));
     }
 
-    private Map<Tier, Set<String>> getFailedTaskIds(Map<FailureKind, List<TaskPlacementFailure>> taskPlacementFailures) {
+    private Map<Tier, Set<String>> getFailedTaskIds(Map<FailureKind, Map<String, List<TaskPlacementFailure>>> taskPlacementFailures) {
         Map<Tier, Set<String>> failedTaskIdsByTier = new HashMap<>();
-        for (List<TaskPlacementFailure> failures : taskPlacementFailures.values()) {
-            for (TaskPlacementFailure failure : failures) {
-                Set<String> failedTaskIds = failedTaskIdsByTier.computeIfAbsent(failure.getTier(), k -> new HashSet<>());
-                failedTaskIds.add(failure.getTaskId());
+        for (Map<String, List<TaskPlacementFailure>> failuresByTaskId : taskPlacementFailures.values()) {
+            for (List<TaskPlacementFailure> taskFailures : failuresByTaskId.values()) {
+                for (TaskPlacementFailure failure : taskFailures) {
+                    Set<String> failedTaskIds = failedTaskIdsByTier.computeIfAbsent(failure.getTier(), k -> new HashSet<>());
+                    failedTaskIds.add(failure.getTaskId());
+                }
             }
         }
         return failedTaskIdsByTier;
@@ -507,9 +511,8 @@ public class ClusterAgentAutoScaler {
         return taskIdsPastSlo;
     }
 
-    private Map<String, TaskPlacementFailure> getLaunchGuardFailuresByTaskId(Map<FailureKind, List<TaskPlacementFailure>> lastTaskPlacementFailures) {
-        return lastTaskPlacementFailures.getOrDefault(FailureKind.LaunchGuard, Collections.emptyList()).stream()
-                .collect(Collectors.toMap(TaskPlacementFailure::getTaskId, Function.identity()));
+    private Map<String, List<TaskPlacementFailure>> getLaunchGuardFailuresByTaskId(Map<FailureKind, Map<String, List<TaskPlacementFailure>>> lastTaskPlacementFailures) {
+        return lastTaskPlacementFailures.getOrDefault(FailureKind.LaunchGuard, Collections.emptyMap());
     }
 
     private Set<String> filterOutTaskIdsForScaling(Set<String> taskIds,
