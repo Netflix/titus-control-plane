@@ -23,8 +23,8 @@ public class AWSAppAutoScalingUtilTest {
     @Test
     public void testGatewayResourceId() {
         final String gatewayResourceId = AWSAppAutoScalingUtil.buildGatewayResourceId(
-                "job1", "Titus", "us-east-1", "stack1");
-        assertThat(gatewayResourceId).isEqualTo("https://Titus.execute-api.us-east-1.amazonaws.com/stack1/scalableTargetDimensions/job1");
+                "job1", "Titus", "us-east-1", "stage1");
+        assertThat(gatewayResourceId).isEqualTo("https://Titus.execute-api.us-east-1.amazonaws.com/stage1/scalableTargetDimensions/job1");
     }
 
     @Test
