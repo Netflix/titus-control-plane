@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,9 +22,11 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 import com.netflix.fenzo.AssignmentFailure;
 import com.netflix.fenzo.ConstraintFailure;
@@ -43,6 +45,7 @@ import com.netflix.titus.common.util.limiter.tokenbucket.TokenBucket;
 import com.netflix.titus.master.scheduler.TaskPlacementFailure.FailureKind;
 import com.netflix.titus.master.scheduler.constraint.AgentLaunchGuardConstraint;
 import com.netflix.titus.master.scheduler.constraint.AgentManagementConstraint;
+import com.netflix.titus.master.scheduler.constraint.IpAllocationConstraint;
 import com.netflix.titus.master.scheduler.constraint.V3UniqueHostConstraint;
 import com.netflix.titus.master.scheduler.constraint.V3ZoneBalancedHardConstraintEvaluator;
 import org.slf4j.Logger;
@@ -61,7 +64,7 @@ class TaskPlacementFailureClassifier {
 
     private final CodeInvariants invariants;
 
-    private final AtomicReference<Map<FailureKind, List<TaskPlacementFailure>>> failuresRef = new AtomicReference<>(Collections.emptyMap());
+    private final AtomicReference<Map<FailureKind, Map<String, List<TaskPlacementFailure>>>> failuresRef = new AtomicReference<>(Collections.emptyMap());
 
     private final TokenBucket loggingTokenBucket = Limiters.createFixedIntervalTokenBucket(
             TaskPlacementFailureClassifier.class.getSimpleName(),
@@ -85,12 +88,12 @@ class TaskPlacementFailureClassifier {
         }
     }
 
-    Map<FailureKind, List<TaskPlacementFailure>> getLastTaskPlacementFailures() {
+    Map<FailureKind, Map<String, List<TaskPlacementFailure>>> getLastTaskPlacementFailures() {
         return failuresRef.get();
     }
 
     private void updateInternal(SchedulingResult schedulingResult) {
-        Map<FailureKind, List<TaskPlacementFailure>> failures = new HashMap<>();
+        Map<FailureKind, Map<String, List<TaskPlacementFailure>>> failures = new HashMap<>();
 
         for (Map.Entry<TaskRequest, List<TaskAssignmentResult>> entry : schedulingResult.getFailures().entrySet()) {
 
@@ -110,41 +113,42 @@ class TaskPlacementFailureClassifier {
 
     private void process(TaskRequest taskRequest,
                          List<TaskAssignmentResult> assignmentResults,
-                         Map<FailureKind, List<TaskPlacementFailure>> resultCollector) {
+                         Map<FailureKind, Map<String, List<TaskPlacementFailure>>> resultCollector) {
 
         if (!processNoActiveAgent(taskRequest, assignmentResults, resultCollector)
                 && !processAboveCapacityLimit(taskRequest, assignmentResults, resultCollector)
                 && !processTooLargeToFit(taskRequest, assignmentResults, resultCollector)
                 && !processLaunchGuard(taskRequest, assignmentResults, resultCollector)
-                && !processJobHardConstraints(taskRequest, assignmentResults, resultCollector)) {
-            resultCollector.computeIfAbsent(FailureKind.Unrecognized, k -> new ArrayList<>()).add(
-                    new TaskPlacementFailure(taskRequest.getId(), FailureKind.Unrecognized, -1, SchedulerUtils.getTier((QueuableTask) taskRequest), buildRawDataMap(taskRequest, assignmentResults))
-            );
+                && !processJobHardConstraints(taskRequest, assignmentResults, resultCollector)
+                && !processInUseIpAllocation(taskRequest, assignmentResults, resultCollector)) {
+            resultCollector.computeIfAbsent(FailureKind.Unrecognized, k -> new HashMap<>())
+                    .computeIfAbsent(taskRequest.getId(), k -> new ArrayList<>())
+                    .add(new TaskPlacementFailure(taskRequest.getId(), FailureKind.Unrecognized, -1, SchedulerUtils.getTier((QueuableTask) taskRequest), buildRawDataMap(taskRequest, assignmentResults)));
         }
     }
 
-    private boolean processNoActiveAgent(TaskRequest taskRequest, List<TaskAssignmentResult> assignmentResults, Map<FailureKind, List<TaskPlacementFailure>> resultCollector) {
+    private boolean processNoActiveAgent(TaskRequest taskRequest, List<TaskAssignmentResult> assignmentResults, Map<FailureKind, Map<String, List<TaskPlacementFailure>>> resultCollector) {
         for (TaskAssignmentResult assignmentResult : assignmentResults) {
             if (canScheduleOnAgent(assignmentResult)) {
                 return false;
             }
         }
-        resultCollector.computeIfAbsent(FailureKind.NoActiveAgents, k -> new ArrayList<>()).add(
-                new TaskPlacementFailure(taskRequest.getId(), FailureKind.NoActiveAgents, -1, SchedulerUtils.getTier((QueuableTask) taskRequest), buildRawDataMap(taskRequest, assignmentResults))
-        );
+        resultCollector.computeIfAbsent(FailureKind.NoActiveAgents, k -> new HashMap<>())
+                .computeIfAbsent(taskRequest.getId(), k-> new ArrayList<>())
+                .add(new TaskPlacementFailure(taskRequest.getId(), FailureKind.NoActiveAgents, -1, SchedulerUtils.getTier((QueuableTask) taskRequest), buildRawDataMap(taskRequest, assignmentResults)));
         return true;
     }
 
-    private boolean processAboveCapacityLimit(TaskRequest taskRequest, List<TaskAssignmentResult> assignmentResults, Map<FailureKind, List<TaskPlacementFailure>> resultCollector) {
+    private boolean processAboveCapacityLimit(TaskRequest taskRequest, List<TaskAssignmentResult> assignmentResults, Map<FailureKind, Map<String, List<TaskPlacementFailure>>> resultCollector) {
         for (TaskAssignmentResult assignmentResult : assignmentResults) {
             if (!CollectionsExt.isNullOrEmpty(assignmentResult.getFailures())) {
                 for (AssignmentFailure assignmentFailure : assignmentResult.getFailures()) {
                     if (assignmentFailure.getResource() == VMResource.ResAllocs) {
                         String message = assignmentFailure.getMessage();
                         if (message != null && message.contains("No guaranteed capacity left for queue")) {
-                            resultCollector.computeIfAbsent(FailureKind.AboveCapacityLimit, k -> new ArrayList<>()).add(
-                                    new TaskPlacementFailure(taskRequest.getId(), FailureKind.AboveCapacityLimit, -1, SchedulerUtils.getTier((QueuableTask) taskRequest), buildRawDataMap(taskRequest, assignmentResults))
-                            );
+                            resultCollector.computeIfAbsent(FailureKind.AboveCapacityLimit, k -> new HashMap<>())
+                                    .computeIfAbsent(taskRequest.getId(), k -> new ArrayList<>())
+                                    .add(new TaskPlacementFailure(taskRequest.getId(), FailureKind.AboveCapacityLimit, -1, SchedulerUtils.getTier((QueuableTask) taskRequest), buildRawDataMap(taskRequest, assignmentResults)));
                             return true;
                         }
                     }
@@ -154,7 +158,7 @@ class TaskPlacementFailureClassifier {
         return false;
     }
 
-    private boolean processTooLargeToFit(TaskRequest taskRequest, List<TaskAssignmentResult> assignmentResults, Map<FailureKind, List<TaskPlacementFailure>> resultCollector) {
+    private boolean processTooLargeToFit(TaskRequest taskRequest, List<TaskAssignmentResult> assignmentResults, Map<FailureKind, Map<String, List<TaskPlacementFailure>>> resultCollector) {
         int count = 0;
         for (TaskAssignmentResult assignmentResult : assignmentResults) {
             if (canScheduleOnAgent(assignmentResult)) {
@@ -169,14 +173,14 @@ class TaskPlacementFailureClassifier {
                 count++;
             }
         }
-        resultCollector.computeIfAbsent(FailureKind.TooLargeToFit, k -> new ArrayList<>()).add(
-                new TaskPlacementFailure(taskRequest.getId(), FailureKind.TooLargeToFit, count, SchedulerUtils.getTier((QueuableTask) taskRequest), buildRawDataMap(taskRequest, assignmentResults))
-        );
+        resultCollector.computeIfAbsent(FailureKind.TooLargeToFit, k -> new HashMap<>())
+                .computeIfAbsent(taskRequest.getId(), k -> new ArrayList<>())
+                .add(new TaskPlacementFailure(taskRequest.getId(), FailureKind.TooLargeToFit, count, SchedulerUtils.getTier((QueuableTask) taskRequest), buildRawDataMap(taskRequest, assignmentResults)));
 
         return true;
     }
 
-    private boolean processLaunchGuard(TaskRequest taskRequest, List<TaskAssignmentResult> assignmentResults, Map<FailureKind, List<TaskPlacementFailure>> resultCollector) {
+    private boolean processLaunchGuard(TaskRequest taskRequest, List<TaskAssignmentResult> assignmentResults, Map<FailureKind, Map<String, List<TaskPlacementFailure>>> resultCollector) {
         int count = 0;
         for (TaskAssignmentResult assignmentResult : assignmentResults) {
             if (isLaunchGuard(assignmentResult)) {
@@ -187,14 +191,14 @@ class TaskPlacementFailureClassifier {
             return false;
         }
 
-        resultCollector.computeIfAbsent(FailureKind.LaunchGuard, k -> new ArrayList<>()).add(
-                new TaskPlacementFailure(taskRequest.getId(), FailureKind.LaunchGuard, count, SchedulerUtils.getTier((QueuableTask) taskRequest), buildRawDataMap(taskRequest, assignmentResults))
-        );
+        resultCollector.computeIfAbsent(FailureKind.LaunchGuard, k -> new HashMap<>())
+                .computeIfAbsent(taskRequest.getId(), k -> new ArrayList<>())
+                .add(new TaskPlacementFailure(taskRequest.getId(), FailureKind.LaunchGuard, count, SchedulerUtils.getTier((QueuableTask) taskRequest), buildRawDataMap(taskRequest, assignmentResults)));
 
         return true;
     }
 
-    private boolean processJobHardConstraints(TaskRequest taskRequest, List<TaskAssignmentResult> assignmentResults, Map<FailureKind, List<TaskPlacementFailure>> resultCollector) {
+    private boolean processJobHardConstraints(TaskRequest taskRequest, List<TaskAssignmentResult> assignmentResults, Map<FailureKind, Map<String, List<TaskPlacementFailure>>> resultCollector) {
         int count = 0;
         Set<String> hardConstraints = new HashSet<>();
         for (TaskAssignmentResult assignmentResult : assignmentResults) {
@@ -206,9 +210,35 @@ class TaskPlacementFailureClassifier {
             return false;
         }
 
-        resultCollector.computeIfAbsent(FailureKind.JobHardConstraint, k -> new ArrayList<>()).add(
-                new JobHardConstraintPlacementFailure(taskRequest.getId(), count, hardConstraints, SchedulerUtils.getTier((QueuableTask) taskRequest), buildRawDataMap(taskRequest, assignmentResults))
-        );
+        resultCollector.computeIfAbsent(FailureKind.JobHardConstraint, k -> new HashMap<>())
+                .computeIfAbsent(taskRequest.getId(), k -> new ArrayList<>())
+                .add(new JobHardConstraintPlacementFailure(taskRequest.getId(), count, hardConstraints, SchedulerUtils.getTier((QueuableTask) taskRequest), buildRawDataMap(taskRequest, assignmentResults)));
+
+        return true;
+    }
+
+    private boolean processInUseIpAllocation(TaskRequest taskRequest, List<TaskAssignmentResult> assignmentResults, Map<FailureKind, Map<String, List<TaskPlacementFailure>>> resultCollector) {
+        int count = 0;
+        Optional<String> inUseTaskIdCollector = Optional.empty();
+        for (TaskAssignmentResult assignmentResult : assignmentResults) {
+            if (isInUseIpAllocation(assignmentResult)) {
+                count++;
+                if (!inUseTaskIdCollector.isPresent()) {
+                    inUseTaskIdCollector = IpAllocationConstraint.getTaskIdFromIpAllocationInUseReason(assignmentResult.getConstraintFailure().getReason());
+                }
+            }
+        }
+        if (count == 0) {
+            return false;
+        }
+
+        // We expect to have collected a task ID above
+        if (!inUseTaskIdCollector.isPresent()) {
+            invariants.inconsistent("In use IP allocation placement failure with empty in use task ID: failed taskId=%s", taskRequest.getId());
+        }
+        resultCollector.computeIfAbsent(FailureKind.WaitingForInUseIpAllocation, k -> new HashMap<>())
+                .computeIfAbsent(taskRequest.getId(), k -> new ArrayList<>())
+                .add(new InUseIpAllocationConstraintFailure(taskRequest.getId(), inUseTaskIdCollector, count, SchedulerUtils.getTier((QueuableTask) taskRequest), buildRawDataMap(taskRequest, assignmentResults)));
 
         return true;
     }
@@ -266,21 +296,29 @@ class TaskPlacementFailureClassifier {
         return false;
     }
 
+    private boolean isInUseIpAllocation(TaskAssignmentResult assignmentResult) {
+        ConstraintFailure constraintFailure = assignmentResult.getConstraintFailure();
+        if (constraintFailure == null || StringExt.isEmpty(constraintFailure.getReason())) {
+            return false;
+        }
+        return IpAllocationConstraint.isInUseIpAllocationConstraintReason(constraintFailure.getReason());
+    }
+
     private void writeToLog() {
         if (!loggingTokenBucket.tryTake()) {
             return;
         }
 
-        Map<FailureKind, List<TaskPlacementFailure>> failures = failuresRef.get();
+        Map<FailureKind, Map<String, List<TaskPlacementFailure>>> failures = failuresRef.get();
         if (failures.isEmpty()) {
             logger.info("Scheduling failure state dump: no failures");
             return;
         }
 
-        logger.info("Scheduling failure state dump({}):", failures.values().stream().mapToInt(List::size).sum());
-        for (Map.Entry<FailureKind, List<TaskPlacementFailure>> entry : failures.entrySet()) {
+        logger.info("Scheduling failure state dump({}):", failures.values().stream().mapToInt(taskPlacementFailureMap -> taskPlacementFailureMap.values().size()).sum());
+        for (Map.Entry<FailureKind, Map<String, List<TaskPlacementFailure>>> entry : failures.entrySet()) {
             FailureKind failureKind = entry.getKey();
-            List<TaskPlacementFailure> kindFailures = entry.getValue();
+            List<TaskPlacementFailure> kindFailures = entry.getValue().values().stream().flatMap(List::stream).collect(Collectors.toList());
 
             logger.info("    {}({}):", failureKind, kindFailures.size());
             int loggedRecordCount = Math.min(kindFailures.size(), 20);
