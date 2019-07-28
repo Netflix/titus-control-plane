@@ -81,6 +81,7 @@ public class DefaultApiGatewayCallbackService implements ApiGatewayCallbackServi
         JobCapacityWithOptionalAttributes jobCapacityWithOptionalAttributes = JobCapacityWithOptionalAttributes.newBuilder()
                 .setDesired(UInt32Value.newBuilder().setValue(scalingPayload.getDesiredCapacity()).build()).build();
         JobCapacityUpdateWithOptionalAttributes jobCapacityRequest = JobCapacityUpdateWithOptionalAttributes.newBuilder()
+                .setJobId(jobId)
                 .setJobCapacityWithOptionalAttributes(jobCapacityWithOptionalAttributes).build();
         return jobServiceGateway.updateJobCapacityWithOptionalAttributes(jobCapacityRequest)
                 .andThen(getJobInstances(jobId));

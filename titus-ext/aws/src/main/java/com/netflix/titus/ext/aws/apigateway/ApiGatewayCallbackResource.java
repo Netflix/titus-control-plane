@@ -50,6 +50,7 @@ public class ApiGatewayCallbackResource {
     @GET
     @Produces({MediaType.APPLICATION_JSON})
     public ScalingPayload getInstances(@PathParam("scalableTargetDimensionId") String jobId) {
+        logger.debug("getInstances for {}", jobId);
         return Responses.fromSingleValueObservable(awsGatewayCallbackService.getJobInstances(jobId));
     }
 
@@ -58,6 +59,7 @@ public class ApiGatewayCallbackResource {
     @Produces({MediaType.APPLICATION_JSON})
     @Consumes({MediaType.APPLICATION_JSON})
     public ScalingPayload setInstances(@PathParam("scalableTargetDimensionId") String jobId, ScalingPayload scalingPayload) {
+        logger.debug("setInstances for {} -> {}", jobId, scalingPayload.getDesiredCapacity());
         return Responses.fromSingleValueObservable(awsGatewayCallbackService.setJobInstances(jobId, scalingPayload));
     }
 }
