@@ -13,9 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.netflix.titus.ext.aws.apigateway;
+package com.netflix.titus.ext.aws.appscale;
 
-public class ScalingPayload {
+public class ScalableTargetResourceInfo {
     private int actualCapacity;
     private int desiredCapacity;
     private String dimensionName;
@@ -23,6 +23,22 @@ public class ScalingPayload {
     private String scalableTargetDimensionId;
     private String scalingStatus;
     private String version;
+
+    public ScalableTargetResourceInfo() {}
+
+    private ScalableTargetResourceInfo(int actualCapacity, int desiredCapacity,
+                                       String dimensionName,
+                                       String resourceName,
+                                       String scalableTargetDimensionId,
+                                       String scalingStatus, String version) {
+        this.actualCapacity = actualCapacity;
+        this.desiredCapacity = desiredCapacity;
+        this.dimensionName = dimensionName;
+        this.resourceName = resourceName;
+        this.scalableTargetDimensionId = scalableTargetDimensionId;
+        this.scalingStatus = scalingStatus;
+        this.version = version;
+    }
 
     public int getActualCapacity() {
         return actualCapacity;
@@ -82,7 +98,7 @@ public class ScalingPayload {
 
     @Override
     public String toString() {
-        return "ScalingPayload{" +
+        return "ScalableTargetResourceInfo{" +
                 "actualCapacity=" + actualCapacity +
                 ", desiredCapacity=" + desiredCapacity +
                 ", dimensionName='" + dimensionName + '\'' +
@@ -92,6 +108,62 @@ public class ScalingPayload {
                 ", version='" + version + '\'' +
                 '}';
     }
+
+    public static Builder newBuilder() {
+        return new Builder();
+    }
+
+    public static class Builder {
+        private int actualCapacity;
+        private int desiredCapacity;
+        private String dimensionName;
+        private String resourceName;
+        private String scalableTargetDimensionId;
+        private String scalingStatus;
+        private String version;
+
+        public Builder actualCapacity(int actualCapacity) {
+            this.actualCapacity = actualCapacity;
+            return this;
+        }
+
+        public Builder desiredCapacity(int desiredCapacity) {
+            this.desiredCapacity = desiredCapacity;
+            return this;
+        }
+
+        public Builder dimensionName(String dimensionName) {
+            this.dimensionName = dimensionName;
+            return this;
+        }
+
+        public Builder resourceName(String resourceName) {
+            this.resourceName = resourceName;
+            return this;
+        }
+
+        public Builder scalableTargetDimensionId(String scalableTargetDimensionId) {
+            this.scalableTargetDimensionId = scalableTargetDimensionId;
+            return this;
+        }
+
+        public Builder scalingStatus(String scalingStatus) {
+            this.scalingStatus = scalingStatus;
+            return this;
+        }
+
+        public Builder version(String version) {
+            this.version = version;
+            return this;
+        }
+
+        public ScalableTargetResourceInfo build() {
+            return new ScalableTargetResourceInfo(actualCapacity, desiredCapacity, dimensionName, resourceName, scalableTargetDimensionId, scalingStatus, version);
+        }
+
+    }
+
+
 }
 
 

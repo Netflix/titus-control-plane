@@ -13,12 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.netflix.titus.ext.aws.apigateway;
+package com.netflix.titus.ext.aws.appscale;
 
 import rx.Observable;
 
-public interface ApiGatewayCallbackService {
-    Observable<ScalingPayload> getJobInstances(String jobId);
+public interface AppAutoScalingCallbackService {
+    Observable<ScalableTargetResourceInfo> getScalableTargetResourceInfo(String jobId);
 
-    Observable<ScalingPayload> setJobInstances(String jobId, ScalingPayload scalingPayload);
+    Observable<ScalableTargetResourceInfo> setScalableTargetResourceInfo(String jobId, ScalableTargetResourceInfo scalableTargetResourceInfo);
 }

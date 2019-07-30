@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.netflix.titus.ext.aws.apigateway;
+package com.netflix.titus.ext.aws.appscale;
 
 
 import javax.inject.Inject;
@@ -23,7 +23,9 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
 import com.netflix.titus.runtime.endpoint.common.rest.Responses;
 import io.swagger.annotations.Api;
@@ -37,29 +39,30 @@ import org.slf4j.LoggerFactory;
 @Api(tags = "Auto scaling")
 @Path("/v1/scalableTargetDimensions")
 @Singleton
-public class ApiGatewayCallbackResource {
-    private static final Logger logger = LoggerFactory.getLogger(ApiGatewayCallbackResource.class);
-    private ApiGatewayCallbackService awsGatewayCallbackService;
+public class AppAutoScalingCallbackResource {
+    private static final Logger logger = LoggerFactory.getLogger(AppAutoScalingCallbackResource.class);
+    private final AppAutoScalingCallbackService awsGatewayCallbackService;
 
     @Inject
-    public ApiGatewayCallbackResource(ApiGatewayCallbackService awsGatewayCallbackService) {
+    public AppAutoScalingCallbackResource(AppAutoScalingCallbackService awsGatewayCallbackService) {
         this.awsGatewayCallbackService = awsGatewayCallbackService;
     }
 
     @Path("{scalableTargetDimensionId}")
     @GET
     @Produces({MediaType.APPLICATION_JSON})
-    public ScalingPayload getInstances(@PathParam("scalableTargetDimensionId") String jobId) {
-        logger.debug("getInstances for {}", jobId);
-        return Responses.fromSingleValueObservable(awsGatewayCallbackService.getJobInstances(jobId));
+    public ScalableTargetResourceInfo getScalableTargetResourceInfo(@PathParam("scalableTargetDimensionId") String jobId) {
+        return Responses.fromSingleValueObservable(awsGatewayCallbackService.getScalableTargetResourceInfo(jobId));
     }
 
     @Path("{scalableTargetDimensionId}")
     @PATCH
     @Produces({MediaType.APPLICATION_JSON})
     @Consumes({MediaType.APPLICATION_JSON})
-    public ScalingPayload setInstances(@PathParam("scalableTargetDimensionId") String jobId, ScalingPayload scalingPayload) {
-        logger.debug("setInstances for {} -> {}", jobId, scalingPayload.getDesiredCapacity());
-        return Responses.fromSingleValueObservable(awsGatewayCallbackService.setJobInstances(jobId, scalingPayload));
+    public ScalableTargetResourceInfo setScalableTargetResourceInfo(@PathParam("scalableTargetDimensionId") String jobId, ScalableTargetResourceInfo scalableTargetResourceInfo) {
+        if (scalableTargetResourceInfo.getDesiredCapacity() < 0) {
+            throw new WebApplicationException(Response.Status.BAD_REQUEST);
+        }
+        return Responses.fromSingleValueObservable(awsGatewayCallbackService.setScalableTargetResourceInfo(jobId, scalableTargetResourceInfo));
     }
 }

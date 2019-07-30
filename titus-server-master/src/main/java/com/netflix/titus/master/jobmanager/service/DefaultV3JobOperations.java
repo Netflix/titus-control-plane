@@ -346,6 +346,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
 
     @Override
     public Observable<Void> updateJobCapacityAttributes(String jobId, CapacityAttributes capacityAttributes, CallMetadata callMetadata) {
+        logger.info("UpdateJobCapacityAttributes for job {} - {}", jobId, capacityAttributes);
         return inServiceJob(jobId).flatMap(engine -> engine.changeReferenceModel(BasicServiceJobActions.updateJobCapacityAction(engine, capacityAttributes, store, callMetadata, entitySanitizer)));
     }
 

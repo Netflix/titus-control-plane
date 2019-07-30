@@ -13,12 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.netflix.titus.ext.aws.apigateway;
+package com.netflix.titus.ext.aws.appscale;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -38,18 +37,24 @@ import org.slf4j.LoggerFactory;
 import rx.Observable;
 
 @Singleton
-public class DefaultApiGatewayCallbackService implements ApiGatewayCallbackService {
-    private static final Logger logger = LoggerFactory.getLogger(DefaultApiGatewayCallbackService.class);
-    private JobServiceGateway jobServiceGateway;
+public class DefaultAppAutoScalingCallbackService implements AppAutoScalingCallbackService {
+    private static final Logger logger = LoggerFactory.getLogger(DefaultAppAutoScalingCallbackService.class);
+    private final JobServiceGateway jobServiceGateway;
     private static final String DIMENSION_NAME = "custom-resource:ResourceType:Property";
 
+    public enum ScalingStatus {
+        Pending,
+        InProgress,
+        Successful
+    }
+
     @Inject
-    public DefaultApiGatewayCallbackService(JobServiceGateway jobServiceGateway) {
+    public DefaultAppAutoScalingCallbackService(JobServiceGateway jobServiceGateway) {
         this.jobServiceGateway = jobServiceGateway;
     }
 
     @Override
-    public Observable<ScalingPayload> getJobInstances(String jobId) {
+    public Observable<ScalableTargetResourceInfo> getScalableTargetResourceInfo(String jobId) {
         TaskQuery taskQuery = TaskQuery.newBuilder()
                 .putFilteringCriteria("jobIds", jobId)
                 .putFilteringCriteria("taskStates", "Started")
@@ -60,34 +65,44 @@ public class DefaultApiGatewayCallbackService implements ApiGatewayCallbackServi
                 .flatMap(numStartedTasks -> jobServiceGateway.findJob(jobId).map(job -> Pair.of(job, numStartedTasks)))
                 .flatMap(jobTasksPair -> {
                     Job job = jobTasksPair.getLeft();
+                    Integer numRunningTasks = jobTasksPair.getRight();
                     if (!job.getJobDescriptor().hasService()) {
                         return Observable.error(JobManagerException.notServiceJob(jobId));
                     }
                     ServiceJobSpec jobSpec = job.getJobDescriptor().getService();
-
-                    ScalingPayload scalingPayload = new ScalingPayload();
-                    scalingPayload.setActualCapacity(jobTasksPair.getRight());
-                    scalingPayload.setDesiredCapacity(jobSpec.getCapacity().getDesired());
-                    scalingPayload.setDimensionName(DIMENSION_NAME);
-                    scalingPayload.setResourceName(jobId);
-                    scalingPayload.setScalableTargetDimensionId(jobId);
-                    scalingPayload.setVersion(getAcceptedTimestamp(job));
-                    return Observable.just(scalingPayload);
+                    ScalableTargetResourceInfo.Builder scalableTargetResourceInfoBuilder = ScalableTargetResourceInfo.newBuilder()
+                            .actualCapacity(jobTasksPair.getRight())
+                            .desiredCapacity(jobSpec.getCapacity().getDesired())
+                            .dimensionName(DIMENSION_NAME)
+                            .resourceName(jobId)
+                            .scalableTargetDimensionId(jobId)
+                            .version(buildVersion(job));
+                    if (jobSpec.getCapacity().getDesired() != numRunningTasks) {
+                        scalableTargetResourceInfoBuilder.scalingStatus(ScalingStatus.InProgress.name());
+                    } else {
+                        scalableTargetResourceInfoBuilder.scalingStatus(ScalingStatus.Successful.name());
+                    }
+                    return Observable.just(scalableTargetResourceInfoBuilder.build());
                 });
     }
 
     @Override
-    public Observable<ScalingPayload> setJobInstances(String jobId, ScalingPayload scalingPayload) {
+    public Observable<ScalableTargetResourceInfo> setScalableTargetResourceInfo(String jobId, ScalableTargetResourceInfo scalableTargetResourceInfo) {
+        logger.info("(BEFORE setting job instances) for jobId {} :: {}", jobId, scalableTargetResourceInfo);
         JobCapacityWithOptionalAttributes jobCapacityWithOptionalAttributes = JobCapacityWithOptionalAttributes.newBuilder()
-                .setDesired(UInt32Value.newBuilder().setValue(scalingPayload.getDesiredCapacity()).build()).build();
+                .setDesired(UInt32Value.newBuilder().setValue(scalableTargetResourceInfo.getDesiredCapacity()).build()).build();
         JobCapacityUpdateWithOptionalAttributes jobCapacityRequest = JobCapacityUpdateWithOptionalAttributes.newBuilder()
                 .setJobId(jobId)
                 .setJobCapacityWithOptionalAttributes(jobCapacityWithOptionalAttributes).build();
         return jobServiceGateway.updateJobCapacityWithOptionalAttributes(jobCapacityRequest)
-                .andThen(getJobInstances(jobId));
+                .andThen(getScalableTargetResourceInfo(jobId).map(scalableTargetResourceInfoReturned -> {
+                    scalableTargetResourceInfoReturned.setScalingStatus(ScalingStatus.Pending.name());
+                    logger.info("(set job instances) Returning value Instances for jobId {} :: {}", jobId, scalableTargetResourceInfo);
+                    return scalableTargetResourceInfoReturned;
+                }));
     }
 
-    private String getAcceptedTimestamp(Job job) {
+    private String buildVersion(Job job) {
         List<JobStatus> jobStatusList = new ArrayList<>(job.getStatusHistoryList());
         jobStatusList.add(job.getStatus());
 
