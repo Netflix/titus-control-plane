@@ -31,7 +31,6 @@ import javax.inject.Singleton;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
-import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobAssertions;
@@ -42,14 +41,12 @@ import com.netflix.titus.api.model.Pagination;
 import com.netflix.titus.api.model.PaginationUtil;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
-import com.netflix.titus.common.model.sanitizer.ValidationError;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.Job;
-import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
 import com.netflix.titus.grpc.protogen.Page;
@@ -75,13 +72,11 @@ import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.publisher.Mono;
 import rx.Observable;
 
 import static com.netflix.titus.api.FeatureRolloutPlans.ENVIRONMENT_VARIABLE_NAMES_STRICT_VALIDATION_FEATURE;
 import static com.netflix.titus.api.FeatureRolloutPlans.SECURITY_GROUPS_REQUIRED_FEATURE;
 import static com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_STRICT_SANITIZER;
-import static com.netflix.titus.common.util.rx.ReactorExt.toObservable;
 import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toGrpcPagination;
 import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toPage;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createRequestObservable;
@@ -128,13 +123,10 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
                                     AdmissionSanitizer<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> sanitizer,
                                     TitusRuntime titusRuntime) {
         super(new SanitizingJobServiceGateway(
-                new GrpcJobServiceGateway(
-                        client,
-                        callMetadataResolver,
-                        tunablesConfiguration
-                ),
-                new ExtendedJobSanitizer(jobManagerConfiguration, jobAssertions, entitySanitizer, securityGroupsRequiredPredicate, environmentVariableNamesStrictValidationPredicate, titusRuntime)
-        ));
+                new GrpcJobServiceGateway(client, callMetadataResolver, tunablesConfiguration),
+                new ExtendedJobSanitizer(jobManagerConfiguration, jobAssertions, entitySanitizer,
+                        securityGroupsRequiredPredicate, environmentVariableNamesStrictValidationPredicate, titusRuntime),
+                validator, sanitizer));
         this.tunablesConfiguration = tunablesConfiguration;
         this.gatewayConfiguration = gatewayConfiguration;
         this.client = client;
@@ -146,35 +138,6 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
         this.validator = validator;
         this.sanitizer = sanitizer;
         this.clock = titusRuntime.getClock();
-    }
-
-    @Override
-    public Observable<String> createJob(JobDescriptor jobDescriptor, CallMetadata callMetadata) {
-        com.netflix.titus.api.jobmanager.model.job.JobDescriptor coreJobDescriptor;
-        try {
-            coreJobDescriptor = JobFunctions.filterOutSanitizationAttributes(V3GrpcModelConverters.toCoreJobDescriptor(jobDescriptor));
-        } catch (Exception e) {
-            return Observable.error(TitusServiceException.invalidArgument(e));
-        }
-
-        Observable<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> sanitizedCoreJobDescriptorObs =
-                toObservable(sanitizer.sanitizeAndApply(coreJobDescriptor)
-                        .switchIfEmpty(Mono.just(coreJobDescriptor)))
-                        .onErrorResumeNext(throwable -> Observable.error(TitusServiceException.invalidArgument(throwable)))
-                        .flatMap(sanitizedCoreJobDescriptor -> toObservable(validator.validate(sanitizedCoreJobDescriptor))
-                                .flatMap(errors -> {
-                                    // Only emit an error on HARD validation errors
-                                    errors = errors.stream().filter(ValidationError::isHard).collect(Collectors.toSet());
-
-                                    if (!errors.isEmpty()) {
-                                        return Observable.error(TitusServiceException.invalidJob(errors));
-                                    } else {
-                                        return Observable.just(sanitizedCoreJobDescriptor);
-                                    }
-                                })
-                        );
-
-        return sanitizedCoreJobDescriptorObs.flatMap(scjd -> super.createJob(V3GrpcModelConverters.toGrpcJobDescriptor(scjd), callMetadata));
     }
 
     @Override
