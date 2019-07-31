@@ -774,19 +774,19 @@
             ]
         },
         "io.kubernetes:client-java": {
-            "locked": "4.0.0",
+            "locked": "5.0.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
         },
         "io.kubernetes:client-java-api": {
-            "locked": "4.0.0",
+            "locked": "5.0.0",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
         },
         "io.kubernetes:client-java-proto": {
-            "locked": "4.0.0",
+            "locked": "5.0.0",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -934,7 +934,7 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.9.RELEASE",
+            "locked": "0.8.10.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -962,25 +962,25 @@
             ]
         },
         "io.sundr:builder-annotations": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.kubernetes:client-java-api"
             ]
         },
         "io.sundr:resourcecify-annotations": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-codegen": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-core": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
@@ -1171,7 +1171,7 @@
             ]
         },
         "org.bouncycastle:bcpkix-jdk15on": {
-            "locked": "1.59",
+            "locked": "1.61",
             "transitive": [
                 "io.kubernetes:client-java",
                 "org.bouncycastle:bcmail-jdk15on",
@@ -1179,7 +1179,7 @@
             ]
         },
         "org.bouncycastle:bcprov-ext-jdk15on": {
-            "locked": "1.59",
+            "locked": "1.61",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -2322,19 +2322,19 @@
             ]
         },
         "io.kubernetes:client-java": {
-            "locked": "4.0.0",
+            "locked": "5.0.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
         },
         "io.kubernetes:client-java-api": {
-            "locked": "4.0.0",
+            "locked": "5.0.0",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
         },
         "io.kubernetes:client-java-proto": {
-            "locked": "4.0.0",
+            "locked": "5.0.0",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -2482,7 +2482,7 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.9.RELEASE",
+            "locked": "0.8.10.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -2510,25 +2510,25 @@
             ]
         },
         "io.sundr:builder-annotations": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.kubernetes:client-java-api"
             ]
         },
         "io.sundr:resourcecify-annotations": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-codegen": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-core": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
@@ -2719,7 +2719,7 @@
             ]
         },
         "org.bouncycastle:bcpkix-jdk15on": {
-            "locked": "1.59",
+            "locked": "1.61",
             "transitive": [
                 "io.kubernetes:client-java",
                 "org.bouncycastle:bcmail-jdk15on",
@@ -2727,7 +2727,7 @@
             ]
         },
         "org.bouncycastle:bcprov-ext-jdk15on": {
-            "locked": "1.59",
+            "locked": "1.61",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -3870,19 +3870,19 @@
             ]
         },
         "io.kubernetes:client-java": {
-            "locked": "4.0.0",
+            "locked": "5.0.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
         },
         "io.kubernetes:client-java-api": {
-            "locked": "4.0.0",
+            "locked": "5.0.0",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
         },
         "io.kubernetes:client-java-proto": {
-            "locked": "4.0.0",
+            "locked": "5.0.0",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -4030,7 +4030,7 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.9.RELEASE",
+            "locked": "0.8.10.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -4058,25 +4058,25 @@
             ]
         },
         "io.sundr:builder-annotations": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.kubernetes:client-java-api"
             ]
         },
         "io.sundr:resourcecify-annotations": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-codegen": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-core": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
@@ -4267,7 +4267,7 @@
             ]
         },
         "org.bouncycastle:bcpkix-jdk15on": {
-            "locked": "1.59",
+            "locked": "1.61",
             "transitive": [
                 "io.kubernetes:client-java",
                 "org.bouncycastle:bcmail-jdk15on",
@@ -4275,7 +4275,7 @@
             ]
         },
         "org.bouncycastle:bcprov-ext-jdk15on": {
-            "locked": "1.59",
+            "locked": "1.61",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -5482,19 +5482,19 @@
             ]
         },
         "io.kubernetes:client-java": {
-            "locked": "4.0.0",
+            "locked": "5.0.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
         },
         "io.kubernetes:client-java-api": {
-            "locked": "4.0.0",
+            "locked": "5.0.0",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
         },
         "io.kubernetes:client-java-proto": {
-            "locked": "4.0.0",
+            "locked": "5.0.0",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -5642,7 +5642,7 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.9.RELEASE",
+            "locked": "0.8.10.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -5670,25 +5670,25 @@
             ]
         },
         "io.sundr:builder-annotations": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.kubernetes:client-java-api"
             ]
         },
         "io.sundr:resourcecify-annotations": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-codegen": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-core": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
@@ -5879,7 +5879,7 @@
             ]
         },
         "org.bouncycastle:bcpkix-jdk15on": {
-            "locked": "1.59",
+            "locked": "1.61",
             "transitive": [
                 "io.kubernetes:client-java",
                 "org.bouncycastle:bcmail-jdk15on",
@@ -5887,7 +5887,7 @@
             ]
         },
         "org.bouncycastle:bcprov-ext-jdk15on": {
-            "locked": "1.59",
+            "locked": "1.61",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -7031,19 +7031,19 @@
             ]
         },
         "io.kubernetes:client-java": {
-            "locked": "4.0.0",
+            "locked": "5.0.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
         },
         "io.kubernetes:client-java-api": {
-            "locked": "4.0.0",
+            "locked": "5.0.0",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
         },
         "io.kubernetes:client-java-proto": {
-            "locked": "4.0.0",
+            "locked": "5.0.0",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -7191,7 +7191,7 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.9.RELEASE",
+            "locked": "0.8.10.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -7219,25 +7219,25 @@
             ]
         },
         "io.sundr:builder-annotations": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.kubernetes:client-java-api"
             ]
         },
         "io.sundr:resourcecify-annotations": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-codegen": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-core": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
@@ -7428,7 +7428,7 @@
             ]
         },
         "org.bouncycastle:bcpkix-jdk15on": {
-            "locked": "1.59",
+            "locked": "1.61",
             "transitive": [
                 "io.kubernetes:client-java",
                 "org.bouncycastle:bcmail-jdk15on",
@@ -7436,7 +7436,7 @@
             ]
         },
         "org.bouncycastle:bcprov-ext-jdk15on": {
-            "locked": "1.59",
+            "locked": "1.61",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -8803,19 +8803,19 @@
             ]
         },
         "io.kubernetes:client-java": {
-            "locked": "4.0.0",
+            "locked": "5.0.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
         },
         "io.kubernetes:client-java-api": {
-            "locked": "4.0.0",
+            "locked": "5.0.0",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
         },
         "io.kubernetes:client-java-proto": {
-            "locked": "4.0.0",
+            "locked": "5.0.0",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -8965,7 +8965,7 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.9.RELEASE",
+            "locked": "0.8.10.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-reactor-netty"
@@ -9000,25 +9000,25 @@
             ]
         },
         "io.sundr:builder-annotations": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.kubernetes:client-java-api"
             ]
         },
         "io.sundr:resourcecify-annotations": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-codegen": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-core": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
@@ -9350,7 +9350,7 @@
             ]
         },
         "org.bouncycastle:bcpkix-jdk15on": {
-            "locked": "1.59",
+            "locked": "1.61",
             "transitive": [
                 "io.kubernetes:client-java",
                 "org.bouncycastle:bcmail-jdk15on",
@@ -9358,7 +9358,7 @@
             ]
         },
         "org.bouncycastle:bcprov-ext-jdk15on": {
-            "locked": "1.59",
+            "locked": "1.61",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -10972,19 +10972,19 @@
             ]
         },
         "io.kubernetes:client-java": {
-            "locked": "4.0.0",
+            "locked": "5.0.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
         },
         "io.kubernetes:client-java-api": {
-            "locked": "4.0.0",
+            "locked": "5.0.0",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
         },
         "io.kubernetes:client-java-proto": {
-            "locked": "4.0.0",
+            "locked": "5.0.0",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -11134,7 +11134,7 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.9.RELEASE",
+            "locked": "0.8.10.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-reactor-netty"
@@ -11169,25 +11169,25 @@
             ]
         },
         "io.sundr:builder-annotations": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.kubernetes:client-java-api"
             ]
         },
         "io.sundr:resourcecify-annotations": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-codegen": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-core": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
@@ -11519,7 +11519,7 @@
             ]
         },
         "org.bouncycastle:bcpkix-jdk15on": {
-            "locked": "1.59",
+            "locked": "1.61",
             "transitive": [
                 "io.kubernetes:client-java",
                 "org.bouncycastle:bcmail-jdk15on",
@@ -11527,7 +11527,7 @@
             ]
         },
         "org.bouncycastle:bcprov-ext-jdk15on": {
-            "locked": "1.59",
+            "locked": "1.61",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -13141,19 +13141,19 @@
             ]
         },
         "io.kubernetes:client-java": {
-            "locked": "4.0.0",
+            "locked": "5.0.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
         },
         "io.kubernetes:client-java-api": {
-            "locked": "4.0.0",
+            "locked": "5.0.0",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
         },
         "io.kubernetes:client-java-proto": {
-            "locked": "4.0.0",
+            "locked": "5.0.0",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -13303,7 +13303,7 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.9.RELEASE",
+            "locked": "0.8.10.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-reactor-netty"
@@ -13338,25 +13338,25 @@
             ]
         },
         "io.sundr:builder-annotations": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.kubernetes:client-java-api"
             ]
         },
         "io.sundr:resourcecify-annotations": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-codegen": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-core": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
@@ -13688,7 +13688,7 @@
             ]
         },
         "org.bouncycastle:bcpkix-jdk15on": {
-            "locked": "1.59",
+            "locked": "1.61",
             "transitive": [
                 "io.kubernetes:client-java",
                 "org.bouncycastle:bcmail-jdk15on",
@@ -13696,7 +13696,7 @@
             ]
         },
         "org.bouncycastle:bcprov-ext-jdk15on": {
-            "locked": "1.59",
+            "locked": "1.61",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -15311,19 +15311,19 @@
             ]
         },
         "io.kubernetes:client-java": {
-            "locked": "4.0.0",
+            "locked": "5.0.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
         },
         "io.kubernetes:client-java-api": {
-            "locked": "4.0.0",
+            "locked": "5.0.0",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
         },
         "io.kubernetes:client-java-proto": {
-            "locked": "4.0.0",
+            "locked": "5.0.0",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -15473,7 +15473,7 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.9.RELEASE",
+            "locked": "0.8.10.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-reactor-netty"
@@ -15508,25 +15508,25 @@
             ]
         },
         "io.sundr:builder-annotations": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.kubernetes:client-java-api"
             ]
         },
         "io.sundr:resourcecify-annotations": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-codegen": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-core": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
@@ -15858,7 +15858,7 @@
             ]
         },
         "org.bouncycastle:bcpkix-jdk15on": {
-            "locked": "1.59",
+            "locked": "1.61",
             "transitive": [
                 "io.kubernetes:client-java",
                 "org.bouncycastle:bcmail-jdk15on",
@@ -15866,7 +15866,7 @@
             ]
         },
         "org.bouncycastle:bcprov-ext-jdk15on": {
-            "locked": "1.59",
+            "locked": "1.61",
             "transitive": [
                 "io.kubernetes:client-java"
             ]

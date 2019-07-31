@@ -548,7 +548,7 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.9.RELEASE",
+            "locked": "0.8.10.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -1492,7 +1492,7 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.9.RELEASE",
+            "locked": "0.8.10.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -2436,7 +2436,7 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.9.RELEASE",
+            "locked": "0.8.10.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -3444,7 +3444,7 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.9.RELEASE",
+            "locked": "0.8.10.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -4389,7 +4389,7 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.9.RELEASE",
+            "locked": "0.8.10.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -5344,7 +5344,7 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.9.RELEASE",
+            "locked": "0.8.10.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -6338,7 +6338,7 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.9.RELEASE",
+            "locked": "0.8.10.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -7332,7 +7332,7 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.9.RELEASE",
+            "locked": "0.8.10.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -8327,7 +8327,7 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.9.RELEASE",
+            "locked": "0.8.10.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
