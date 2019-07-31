@@ -122,6 +122,8 @@ subprojects {
         exclude group: 'com.netflix.governator', module: 'governator-annotations'
         resolutionStrategy {
             force 'org.bouncycastle:bcprov-jdk15on:1.50'
+            // remove this pin once we fix the jackson version issues
+            force 'com.fasterxml.jackson.core:jackson-databind:2.9.9.1'
         }
 
         // We need to exclude logback as it clashes with other logging engines.
