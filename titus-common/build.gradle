@@ -15,7 +15,7 @@ dependencies {
     compile "com.netflix.archaius:archaius2-core:${archaius2Version}"
     compile "org.xerial.snappy:snappy-java:${snappyVersion}"
     compile "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}"
-    compile "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:${jacksonDataTypeVersion}"
+    compile "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:${jacksonVersion}"
     compile "com.google.protobuf:protobuf-java:${protobufVersion}"
     compile "com.netflix.governator:governator-core:${governatorVersion}"
     compile "com.squareup.okhttp3:okhttp:${okHttpVersion}"

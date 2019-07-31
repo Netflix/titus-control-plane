@@ -63,8 +63,7 @@ subprojects {
         eurekaVersion = '1.+'
         numerusVersion = '1.1'
         snappyVersion = '1.1.+'
-        jacksonVersion = '2.9.9.1'
-        jacksonDataTypeVersion = '2.+'
+        jacksonVersion = '2.+'
         slf4jVersion = '1.7.0'
         cliParserVersion = '1.1.1'
         curatorVersion = '2.13.+'
@@ -123,6 +122,7 @@ subprojects {
         exclude group: 'com.netflix.governator', module: 'governator-annotations'
         resolutionStrategy {
             force 'org.bouncycastle:bcprov-jdk15on:1.50'
+            force 'com.fasterxml.jackson.core:jackson-databind:2.9.9.1'
         }
 
         // We need to exclude logback as it clashes with other logging engines.
