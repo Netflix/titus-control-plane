@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -54,6 +54,11 @@ public class TaskPlacementFailure {
          * Task not launched due to job hard constraint. It has lower priority than the previous failure kinds.
          */
         JobHardConstraint,
+
+        /**
+         * Task not launched due to assigned IP allocation in use by another running task.
+         */
+        WaitingForInUseIpAllocation,
 
         Unrecognized,
     }
