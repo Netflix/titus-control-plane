@@ -608,26 +608,21 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         }
         logger.debug("Finished orphaned pod GC without valid nodes");
 
-        Set<String> currentPodNames = currentPods.stream().map(p -> p.getMetadata().getName()).collect(Collectors.toSet());
-        Set<String> currentTaskIds = currentTasks.keySet();
-        List<V1Pod> podsStuckBeingDeleted = currentPods.stream()
+        List<V1Pod> pendingPodsWithDeletionTimestamp = currentPods.stream()
                 .filter(pod -> {
-                    String podName = pod.getMetadata().getName();
-                    DateTime deletionTime = pod.getMetadata().getDeletionTimestamp();
-                    return deletionTime != null &&
-                            clock.isPast(deletionTime.getMillis() + POD_GC_DELETION_TTL) &&
-                            !currentTaskIds.contains(podName);
+                    DateTime deletionTimestamp = pod.getMetadata().getDeletionTimestamp();
+                    return pod.getStatus().getPhase().equalsIgnoreCase(PENDING) && deletionTimestamp != null;
                 })
                 .collect(Collectors.toList());
 
-        // GC orphaned pods that are stuck being deleted
-        logger.debug("Attempting to GC {} orphaned pods not in Titus", podsStuckBeingDeleted.size());
-        for (V1Pod pod : podsStuckBeingDeleted) {
+        // GC pods in accepted with a deletion timestamp
+        logger.debug("Attempting to GC {} accepted pods with deletion timestamp", pendingPodsWithDeletionTimestamp.size());
+        for (V1Pod pod : pendingPodsWithDeletionTimestamp) {
             gcPod(pod);
         }
-        logger.debug("Finished orphaned pod GC not in Titus");
+        logger.debug("Finished accepted pods with deletion timestamp GC");
 
-
+        Set<String> currentPodNames = currentPods.stream().map(p -> p.getMetadata().getName()).collect(Collectors.toSet());
         List<Task> tasksNotInApiServer = currentTasks.values().stream()
                 .filter(t -> TaskState.isRunning(t.getStatus().getState()) && !currentPodNames.contains(t.getId()))
                 .collect(Collectors.toList());
