@@ -379,7 +379,9 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     public void updateJobCapacityWithOptionalAttributes(JobCapacityUpdateWithOptionalAttributes request, StreamObserver<Empty> responseObserver) {
         execute(callMetadataResolver, responseObserver, callMetadata -> {
             verifyServiceJob(request.getJobId());
+            logger.info("updateJobCapacityWithOptionalAttributes with {}", request);
             CapacityAttributes capacityAttributes = V3GrpcModelConverters.toCoreCapacityAttributes(request.getJobCapacityWithOptionalAttributes());
+            logger.info("updateJobCapacityWithOptionalAttributes to {}", capacityAttributes);
 
             authorizeJobUpdate(callMetadata, request.getJobId())
                     .concatWith(jobOperations.updateJobCapacityAttributesReactor(request.getJobId(), capacityAttributes, callMetadata))

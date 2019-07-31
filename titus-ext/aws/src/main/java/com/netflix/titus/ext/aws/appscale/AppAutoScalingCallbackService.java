@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,22 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package com.netflix.titus.ext.aws.appscale;
 
-import com.netflix.archaius.api.annotations.PropertyName;
+import rx.Observable;
 
-public interface AWSAppScalingConfig {
-    @PropertyName(name = "region")
-    String getRegion();
+public interface AppAutoScalingCallbackService {
+    Observable<ScalableTargetResourceInfo> getScalableTargetResourceInfo(String jobId);
 
-    @PropertyName(name = "netflix.stack")
-    String getStack();
-
-    @PropertyName(name = "aws.gateway.api.prefix")
-    String getAWSGatewayEndpointPrefix();
-
-    @PropertyName(name = "aws.gateway.api.stage")
-    String getAWSGatewayEndpointTargetStage();
+    Observable<ScalableTargetResourceInfo> setScalableTargetResourceInfo(String jobId, ScalableTargetResourceInfo scalableTargetResourceInfo);
 }
-

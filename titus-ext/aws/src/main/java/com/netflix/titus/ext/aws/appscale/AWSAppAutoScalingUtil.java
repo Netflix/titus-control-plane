@@ -19,9 +19,10 @@ import com.amazonaws.services.applicationautoscaling.model.ScalableTarget;
 import com.netflix.titus.api.appscale.model.AutoScalableTarget;
 
 public class AWSAppAutoScalingUtil {
-    public static String buildGatewayResourceId(String jobId, String awsGatewayEndpointPrefix, String region, String stack) {
+    public static String buildGatewayResourceId(String jobId, String awsGatewayEndpointPrefix, String region,
+                                                String targetStage) {
         return String.format("https://%s.execute-api.%s.amazonaws.com/%s/scalableTargetDimensions/%s",
-                awsGatewayEndpointPrefix, region, stack, jobId);
+                awsGatewayEndpointPrefix, region, targetStage, jobId);
     }
 
     public static String buildScalingPolicyName(String policyRefId, String jobId) {
