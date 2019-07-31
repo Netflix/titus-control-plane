@@ -115,7 +115,8 @@ public class BasicTaskActions {
                                 if (referenceTask.getStatus().getState() == TaskState.Finished) {
                                     Pair<Tier, String> tierAssignment = JobManagerUtil.getTierAssignment((Job) engine.getReferenceView().getEntity(), capacityGroupService);
                                     QAttributes qAttributes = new V3QAttributes(tierAssignment.getLeft().ordinal(), tierAssignment.getRight());
-                                    String hostName = referenceTask.getTaskContext().getOrDefault(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST, "hostUnknown");
+                                    // host name should be null if it doesn't exist for fenzo to not try to unassign it
+                                    String hostName = referenceTask.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST);
                                     schedulingService.removeTask(referenceTask.getId(), qAttributes, hostName);
                                 }
                                 TitusModelAction modelUpdateAction = TitusModelAction.newModelUpdate(self)

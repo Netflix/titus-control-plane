@@ -186,7 +186,7 @@ public class TaskScenarioBuilder {
 
     public TaskScenarioBuilder moveTask(String targetJobId) {
         String taskId = getTask().getId();
-        logger.info("[{}] Moving task to another job...", discoverActiveTest(), taskId, jobScenarioBuilder.getJobId(), targetJobId);
+        logger.info("[{}] Moving Task {} to another job {}", discoverActiveTest(), taskId, targetJobId);
         Stopwatch stopWatch = Stopwatch.createStarted();
 
         TestStreamObserver<Empty> responseObserver = new TestStreamObserver<>();

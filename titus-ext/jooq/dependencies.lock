@@ -25,7 +25,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.9.9.2",
+            "locked": "2.9.9.1",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.github.fge:jackson-coreutils",
@@ -744,7 +744,7 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.9.RELEASE",
+            "locked": "0.8.10.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -1279,7 +1279,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.9.9.2",
+            "locked": "2.9.9.1",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.github.fge:jackson-coreutils",
@@ -1998,7 +1998,7 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.9.RELEASE",
+            "locked": "0.8.10.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -2533,7 +2533,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.9.9.2",
+            "locked": "2.9.9.1",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.github.fge:jackson-coreutils",
@@ -3252,7 +3252,7 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.9.RELEASE",
+            "locked": "0.8.10.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -3939,7 +3939,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.9.9.2",
+            "locked": "2.9.9.1",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.github.fge:jackson-coreutils",
@@ -4658,7 +4658,7 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.9.RELEASE",
+            "locked": "0.8.10.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -5194,7 +5194,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.9.9.2",
+            "locked": "2.9.9.1",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.github.fge:jackson-coreutils",
@@ -5913,7 +5913,7 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.9.RELEASE",
+            "locked": "0.8.10.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -6501,7 +6501,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.9.9.2",
+            "locked": "2.9.9.1",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
@@ -7500,7 +7500,7 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.9.RELEASE",
+            "locked": "0.8.10.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-reactor-netty"
@@ -8572,7 +8572,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.9.9.2",
+            "locked": "2.9.9.1",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
@@ -9571,7 +9571,7 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.9.RELEASE",
+            "locked": "0.8.10.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-reactor-netty"
@@ -10643,7 +10643,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.9.9.2",
+            "locked": "2.9.9.1",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
@@ -11642,7 +11642,7 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.9.RELEASE",
+            "locked": "0.8.10.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-reactor-netty"
@@ -12715,7 +12715,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.9.9.2",
+            "locked": "2.9.9.1",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
@@ -13714,7 +13714,7 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.9.RELEASE",
+            "locked": "0.8.10.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-reactor-netty"
