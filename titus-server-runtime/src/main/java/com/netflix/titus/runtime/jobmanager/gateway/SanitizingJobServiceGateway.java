@@ -88,8 +88,7 @@ public class SanitizingJobServiceGateway extends JobServiceGatewayDelegate {
                             }
                         })
                 )
-                .flatMap(jd -> delegate.createJob(V3GrpcModelConverters.toGrpcJobDescriptor(sanitizedCoreJobDescriptor),
-                        callMetadata));
+                .flatMap(jd -> delegate.createJob(V3GrpcModelConverters.toGrpcJobDescriptor(jd), callMetadata));
     }
 
     @Override
