@@ -156,7 +156,8 @@ class TaskPlacementRecorder {
             ).onErrorResumeNext(error -> {
                 Throwable recordTaskError = (Throwable) error; // Type inference issue
                 if (JobManagerException.hasErrorCode(recordTaskError, JobManagerException.ErrorCode.UnexpectedTaskState)) {
-                    logger.info("Not launching task: {} and removing from fenzo as it is no longer in Accepted state (probably killed)", v3Task.getId());
+                    logger.info("Not launching task: {} with state: {} and removing from fenzo as it is no longer in Accepted state (probably killed)",
+                            v3Task.getId(), v3Task.getStatus().getState());
                     removeTask(assignmentResult, fenzoTask);
                 } else {
                     if (error instanceof TimeoutException) {
