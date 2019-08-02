@@ -219,6 +219,30 @@ public enum AwsInstanceType {
             .networkMbs(25_000)
             .storageGB(480)
             .build()
+    ),
+    P3_2XLarge(AwsInstanceDescriptor.newBuilder("p3.2xlarge")
+            .cpu(8)
+            .gpu(1)
+            .memoryGB(61)
+            .networkMbs(2_000)
+            .storageGB(125)
+            .build()
+    ),
+    P3_8XLarge(AwsInstanceDescriptor.newBuilder("p3.8xlarge")
+            .cpu(32)
+            .gpu(4)
+            .memoryGB(244)
+            .networkMbs(10_000)
+            .storageGB(500)
+            .build()
+    ),
+    P3_16XLarge(AwsInstanceDescriptor.newBuilder("p3.16xlarge")
+            .cpu(64)
+            .gpu(8)
+            .memoryGB(488)
+            .networkMbs(25_000)
+            .storageGB(500)
+            .build()
     );
 
     public static final String M4_LARGE_ID = "m4.large";
@@ -243,6 +267,10 @@ public enum AwsInstanceType {
     public static final String P2_XLARGE_ID = "p2.xlarge";
     public static final String P2_2XLARGE_ID = "p2.2xlarge";
     public static final String P2_8XLARGE_ID = "p2.8xlarge";
+
+    public static final String P3_2XLARGE_ID = "p3.2xlarge";
+    public static final String P3_8XLARGE_ID = "p3.8xlarge";
+    public static final String P3_16XLARGE_ID = "p3.16xlarge";
 
     private static final Map<String, AwsInstanceType> INSTANCES_BY_MODEL = createInstanceByModelMap();
 
