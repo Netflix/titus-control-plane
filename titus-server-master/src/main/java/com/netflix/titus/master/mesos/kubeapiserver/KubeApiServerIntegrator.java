@@ -523,11 +523,11 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
             TitusExecutorDetails titusExecutorDetails = new TitusExecutorDetails(
                     Collections.emptyMap(),
                     new TitusExecutorDetails.NetworkConfiguration(
-                            true,
+                            Boolean.valueOf(pod.getMetadata().getAnnotations().getOrDefault("IsRoutableIp", "true")),
                             status.getPodIP(),
-                            "UnknownEniIpAddress",
-                            "unknownEniId",
-                            "unknownResourceId"
+                            pod.getMetadata().getAnnotations().getOrDefault("EniIpAddress", "UnknownEniIpAddress"),
+                            pod.getMetadata().getAnnotations().getOrDefault("EniId", "UnknownEniId"),
+                            pod.getMetadata().getAnnotations().getOrDefault("ResourceId", "UnknownResourceId")
                     )
             );
             publishContainerEvent(podName, StartInitiated, REASON_NORMAL, reason, Optional.of(titusExecutorDetails));
