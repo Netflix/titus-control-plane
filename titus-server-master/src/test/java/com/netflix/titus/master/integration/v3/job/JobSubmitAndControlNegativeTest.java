@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,15 +16,9 @@
 
 package com.netflix.titus.master.integration.v3.job;
 
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Optional;
-import java.util.Set;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
-import com.google.rpc.BadRequest;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.common.util.Evaluators;
@@ -44,7 +38,6 @@ import com.netflix.titus.grpc.protogen.ServiceJobSpec;
 import com.netflix.titus.master.integration.BaseIntegrationTest;
 import com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates;
 import com.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
-import com.netflix.titus.testkit.grpc.GrpcClientErrorUtils;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import com.netflix.titus.testkit.junit.master.TitusStackResource;
 import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
@@ -56,6 +49,7 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
+import static com.netflix.titus.master.integration.v3.job.JobTestUtils.submitBadJob;
 import static com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters.toGrpcJobDescriptor;
 import static com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCells.basicCell;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.batchJobDescriptors;
@@ -94,6 +88,7 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
     @Test
     public void testJobWithNoOwner() throws Exception {
         submitBadJob(
+                client,
                 BATCH_JOB_DESCR_BUILDER.setOwner(Owner.getDefaultInstance()).build(),
                 "owner.teamEmail"
         );
@@ -101,8 +96,8 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
 
     @Test
     public void testJobWithNoApplicationName() throws Exception {
-        submitBadJob(BATCH_JOB_DESCR_BUILDER.setApplicationName("").build(), "applicationName");
-        submitBadJob(BATCH_JOB_DESCR_BUILDER.setApplicationName("   ").build(), "applicationName");
+        submitBadJob(client, BATCH_JOB_DESCR_BUILDER.setApplicationName("").build(), "applicationName");
+        submitBadJob(client, BATCH_JOB_DESCR_BUILDER.setApplicationName("   ").build(), "applicationName");
     }
 
     @Test
@@ -111,6 +106,7 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
                 .setGpu(-1)
                 .build();
         submitBadJob(
+                client,
                 BATCH_JOB_DESCR_BUILDER.setContainer(BATCH_JOB_DESCR_BUILDER.getContainer().toBuilder().setResources(badContainer)).build(),
                 "container.containerResources.gpu"
         );
@@ -129,6 +125,7 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
                 .setNetworkMbps(10_000_000)
                 .build();
         submitBadJob(
+                client,
                 BATCH_JOB_DESCR_BUILDER.setContainer(BATCH_JOB_DESCR_BUILDER.getContainer().toBuilder().setResources(badContainer)).build(),
                 "container.containerResources.cpu",
                 "container.containerResources.gpu",
@@ -144,6 +141,7 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
                 .addEfsMounts(ContainerResources.EfsMount.getDefaultInstance())
                 .build();
         submitBadJob(
+                client,
                 BATCH_JOB_DESCR_BUILDER.setContainer(BATCH_JOB_DESCR_BUILDER.getContainer().toBuilder().setResources(badEfs)).build(),
                 "container.containerResources.efsMounts[0].efsId",
                 "container.containerResources.efsMounts[0].mountPoint"
@@ -157,6 +155,7 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
                 .setIamRole("A   B")
                 .build();
         submitBadJob(
+                client,
                 BATCH_JOB_DESCR_BUILDER.setContainer(BATCH_JOB_DESCR_BUILDER.getContainer().toBuilder().setSecurityProfile(securityProfile)).build(),
                 "container.securityProfile.securityGroups", "container.securityProfile.iamRole"
         );
@@ -165,6 +164,7 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
     @Test
     public void testJobWithoutImage() throws Exception {
         submitBadJob(
+                client,
                 BATCH_JOB_DESCR_BUILDER.setContainer(BATCH_JOB_DESCR_BUILDER.getContainer().toBuilder().setImage(Image.getDefaultInstance())).build(),
                 "container.image.name",
                 "container.image.noValidImageDigestOrTag"
@@ -180,6 +180,7 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
     public void testJobWithInvalidNameAndTag() throws Exception {
         Image badImage = Image.newBuilder().setName("????????").setTag("############").build();
         submitBadJob(
+                client,
                 BATCH_JOB_DESCR_BUILDER.setContainer(BATCH_JOB_DESCR_BUILDER.getContainer().toBuilder().setImage(badImage)).build(),
                 "container.image.name",
                 "container.image.noValidImageDigestOrTag"
@@ -189,6 +190,7 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
     @Test
     public void testInvalidSoftAndHardConstraints() throws Exception {
         submitBadJob(
+                client,
                 BATCH_JOB_DESCR_BUILDER.setContainer(BATCH_JOB_DESCR_BUILDER.getContainer().toBuilder()
                         .setSoftConstraints(Constraints.newBuilder().putConstraints("badSoftConstraint", "").build())
                         .setHardConstraints(Constraints.newBuilder().putConstraints("badHardConstraint", "").build())
@@ -201,6 +203,7 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
     @Test
     public void testOverlappingSoftAndHardConstraints() throws Exception {
         submitBadJob(
+                client,
                 BATCH_JOB_DESCR_BUILDER.setContainer(BATCH_JOB_DESCR_BUILDER.getContainer().toBuilder()
                         .setSoftConstraints(Constraints.newBuilder().putConstraints("UniqueHost", "true").build())
                         .setHardConstraints(Constraints.newBuilder().putConstraints("UniqueHost", "true").build())
@@ -212,6 +215,7 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
     @Test
     public void testBatchJobWithInvalidSize() throws Exception {
         submitBadJob(
+                client,
                 BATCH_JOB_DESCR_BUILDER.setBatch(BATCH_JOB_SPEC_BUILDER.setSize(-5)).build(),
                 "extensions.size"
         );
@@ -220,6 +224,7 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
     @Test
     public void testTooLargeBatchJob() throws Exception {
         submitBadJob(
+                client,
                 BATCH_JOB_DESCR_BUILDER.setBatch(BATCH_JOB_SPEC_BUILDER.setSize(5000)).build(),
                 "extensions.size"
         );
@@ -228,6 +233,7 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
     @Test
     public void testBatchJobWithTooLowRuntimeLimit() throws Exception {
         submitBadJob(
+                client,
                 BATCH_JOB_DESCR_BUILDER.setBatch(BATCH_JOB_SPEC_BUILDER.setRuntimeLimitSec(5)).build(),
                 "extensions.runtimeLimitMs"
         );
@@ -236,6 +242,7 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
     @Test
     public void testTooLargeBatchJobRuntimeLimit() throws Exception {
         submitBadJob(
+                client,
                 BATCH_JOB_DESCR_BUILDER.setBatch(BATCH_JOB_SPEC_BUILDER.setRuntimeLimitSec(2 * JobConfiguration.MAX_RUNTIME_LIMIT_SEC)).build(),
                 "extensions.runtimeLimitMs"
         );
@@ -245,6 +252,7 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
     public void testServiceJobInvalidCapacity() throws Exception {
         Capacity badCapacity = Capacity.newBuilder().setMin(-2).setDesired(-3).setMax(-4).build();
         submitBadJob(
+                client,
                 SERVICE_JOB_DESCR_BUILDER.setService(SERVICE_JOB_SPEC_BUILDER.setCapacity(badCapacity).build()).build(),
                 "extensions.capacity",
                 "extensions.capacity.desired",
@@ -257,6 +265,7 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
     public void testTooLargeServiceJob() throws Exception {
         Capacity badCapacity = Capacity.newBuilder().setMin(1).setDesired(100).setMax(10_001).build();
         submitBadJob(
+                client,
                 SERVICE_JOB_DESCR_BUILDER.setService(SERVICE_JOB_SPEC_BUILDER.setCapacity(badCapacity)).build(),
                 "extensions.capacity"
         );
@@ -268,6 +277,7 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
                 RetryPolicy.Immediate.newBuilder().setRetries(-1)
         ).build();
         submitBadJob(
+                client,
                 BATCH_JOB_DESCR_BUILDER.setBatch(BATCH_JOB_SPEC_BUILDER.setRetryPolicy(badRetryPolicy)).build(),
                 "extensions.retryPolicy.retries"
         );
@@ -279,6 +289,7 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
                 RetryPolicy.Delayed.newBuilder().setRetries(-1).setDelayMs(-1)
         ).build();
         submitBadJob(
+                client,
                 BATCH_JOB_DESCR_BUILDER.setBatch(BATCH_JOB_SPEC_BUILDER.setRetryPolicy(badRetryPolicy)).build(),
                 "extensions.retryPolicy.retries",
                 "extensions.retryPolicy.delayMs"
@@ -291,6 +302,7 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
                 RetryPolicy.ExponentialBackOff.newBuilder().setRetries(-1).setInitialDelayMs(-1).setMaxDelayIntervalMs(-1)
         ).build();
         submitBadJob(
+                client,
                 BATCH_JOB_DESCR_BUILDER.setBatch(BATCH_JOB_SPEC_BUILDER.setRetryPolicy(badRetryPolicy)).build(),
                 "extensions.retryPolicy.retries",
                 "extensions.retryPolicy.initialDelayMs",
@@ -313,30 +325,6 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
             fail("Expected test to fail");
         } catch (StatusRuntimeException e) {
             assertThat(e.getMessage()).containsPattern(Pattern.compile("job with group sequence.*exists"));
-        }
-    }
-
-    private void submitBadJob(JobDescriptor badJobDescriptor, String... expectedFields) {
-        Set<String> expectedFieldSet = new HashSet<>();
-        Collections.addAll(expectedFieldSet, expectedFields);
-
-        try {
-            client.createJob(badJobDescriptor).getId();
-            fail("Expected test to fail");
-        } catch (StatusRuntimeException e) {
-            System.out.println("Received StatusRuntimeException: " + e.getMessage());
-
-            Optional<BadRequest> badRequestOpt = GrpcClientErrorUtils.getDetail(e, BadRequest.class);
-
-            // Print validation messages for visual inspection
-            badRequestOpt.ifPresent(System.out::println);
-
-            Set<String> badFields = badRequestOpt.map(badRequest ->
-                    badRequest.getFieldViolationsList().stream().map(BadRequest.FieldViolation::getField).collect(Collectors.toSet())
-            ).orElse(Collections.emptySet());
-
-            assertThat(badFields).containsAll(expectedFieldSet);
-            assertThat(badFields.size()).isEqualTo(expectedFieldSet.size());
         }
     }
 }

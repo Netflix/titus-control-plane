@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,7 +38,10 @@ import com.netflix.titus.common.util.CollectionsExt;
 /**
  */
 @ClassFieldsNotNull
-@ClassInvariant(expr = "@asserts.notExceedsComputeResources(capacityGroup, container)", mode = VerifierMode.Strict)
+@ClassInvariant.List({
+        @ClassInvariant(expr = "@asserts.notExceedsComputeResources(capacityGroup, container)", mode = VerifierMode.Strict),
+        @ClassInvariant(expr = "@asserts.notExceedsIpAllocations(container, extensions)", mode = VerifierMode.Strict)
+})
 public class JobDescriptor<E extends JobDescriptor.JobDescriptorExt> {
 
     private static final DisruptionBudget DEFAULT_DISRUPTION_BUDGET = DisruptionBudget.newBuilder()

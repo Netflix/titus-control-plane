@@ -44,7 +44,6 @@ import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
-import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.grpc.protogen.JobAttributesDeleteRequest;
 import com.netflix.titus.grpc.protogen.JobAttributesUpdate;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
@@ -288,6 +287,24 @@ public class JobScenarioBuilder {
         JobDescriptor.JobDescriptorExt ext = job.getJobDescriptor().getExtensions();
         int currentCapacity = ext instanceof BatchJobExt ? ((BatchJobExt) ext).getSize() : ((ServiceJobExt) ext).getCapacity().getDesired();
         assertThat(currentCapacity).isEqualTo(currentDesired);
+        return this;
+    }
+
+    public JobScenarioBuilder updateJobCapacityMaxInvalid(int targetMax) {
+        logger.info("[{}] Changing job {} capacity max to {}...", discoverActiveTest(), jobId, targetMax);
+        TestStreamObserver<Empty> responseObserver = new TestStreamObserver<>();
+        client.updateJobCapacityWithOptionalAttributes(
+                JobCapacityUpdateWithOptionalAttributes.newBuilder().setJobId(jobId)
+                        .setJobCapacityWithOptionalAttributes(JobCapacityWithOptionalAttributes.newBuilder().setMax(UInt32Value.newBuilder().setValue(targetMax).build()).build()).build(),
+                responseObserver);
+
+        await().timeout(TIMEOUT_MS, TimeUnit.MILLISECONDS).until(responseObserver::hasError);
+        Throwable error = responseObserver.getError();
+        assertThat(error).isNotNull();
+        assertThat(error).isInstanceOf(StatusRuntimeException.class);
+        StatusRuntimeException statusRuntimeException = (StatusRuntimeException) error;
+        assertThat(statusRuntimeException.getStatus().getCode() == Status.Code.INVALID_ARGUMENT).isTrue();
+
         return this;
     }
 
