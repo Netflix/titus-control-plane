@@ -22,10 +22,10 @@ import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.SelfManagedDi
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.model.job.migration.SelfManagedMigrationPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.ExponentialBackoffRetryPolicy;
-import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 import org.junit.Test;
 
+import static com.netflix.titus.common.util.CollectionsExt.copyAndAdd;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class JobCompatibilityTest {
@@ -103,16 +103,28 @@ public class JobCompatibilityTest {
     }
 
     @Test
+    public void testEnvIsIgnored() {
+        JobDescriptor<ServiceJobExt> reference = JobDescriptorGenerator.oneTaskServiceJobDescriptor();
+        JobDescriptor<ServiceJobExt> other = reference.toBuilder()
+                .withContainer(reference.getContainer().but(container ->
+                        container.toBuilder().withEnv(copyAndAdd(container.getEnv(), "SOME", "OVERRIDE"))
+                ))
+                .build();
+        JobCompatibility compatibility = JobCompatibility.of(reference, other);
+        assertThat(compatibility.isCompatible()).isTrue();
+    }
+
+    @Test
     public void testJobAttributesAreIgnored() {
         JobDescriptor<ServiceJobExt> reference = JobDescriptorGenerator.oneTaskServiceJobDescriptor();
         JobDescriptor<ServiceJobExt> other = reference.toBuilder()
-                .withAttributes(CollectionsExt.copyAndAdd(reference.getAttributes(), "spinnaker.useApplicationDefaultSecurityGroup", "true"))
+                .withAttributes(copyAndAdd(reference.getAttributes(), "spinnaker.useApplicationDefaultSecurityGroup", "true"))
                 .build();
         JobCompatibility compatibility1 = JobCompatibility.of(reference, other);
         assertThat(compatibility1.isCompatible()).isTrue();
 
         JobDescriptor<ServiceJobExt> incompatible = reference.toBuilder()
-                .withAttributes(CollectionsExt.copyAndAdd(reference.getAttributes(), "titus.value", "important"))
+                .withAttributes(copyAndAdd(reference.getAttributes(), "titus.value", "important"))
                 .build();
         JobCompatibility compatibility2 = JobCompatibility.of(reference, incompatible);
         assertThat(compatibility2.isCompatible()).isTrue();
@@ -123,10 +135,8 @@ public class JobCompatibilityTest {
         JobDescriptor<ServiceJobExt> reference = JobDescriptorGenerator.oneTaskServiceJobDescriptor();
         JobDescriptor<ServiceJobExt> other = reference.toBuilder()
                 .withContainer(reference.getContainer().but(container ->
-                        container.toBuilder()
-                                .withAttributes(CollectionsExt.copyAndAdd(container.getAttributes(),
-                                        "some.app.attribute", "some value"))
-                                .build()
+                        container.toBuilder().withAttributes(copyAndAdd(container.getAttributes(),
+                                "some.app.attribute", "some value"))
                 ))
                 .build();
         JobCompatibility compatibility1 = JobCompatibility.of(reference, other);
@@ -134,10 +144,8 @@ public class JobCompatibilityTest {
 
         JobDescriptor<ServiceJobExt> incompatible = reference.toBuilder()
                 .withContainer(reference.getContainer().but(container ->
-                        container.toBuilder()
-                                .withAttributes(CollectionsExt.copyAndAdd(container.getAttributes(),
-                                        "titusParameter.cpu.burstEnabled", "true"))
-                                .build()
+                        container.toBuilder().withAttributes(copyAndAdd(container.getAttributes(),
+                                "titusParameter.cpu.burstEnabled", "true"))
                 ))
                 .build();
         JobCompatibility compatibility2 = JobCompatibility.of(reference, incompatible);
@@ -151,7 +159,7 @@ public class JobCompatibilityTest {
                 .withContainer(reference.getContainer().but(container ->
                         container.toBuilder()
                                 .withSecurityProfile(container.getSecurityProfile().toBuilder()
-                                        .withAttributes(CollectionsExt.copyAndAdd(
+                                        .withAttributes(copyAndAdd(
                                                 container.getSecurityProfile().getAttributes(),
                                                 "NETFLIX_APP_METADATA_SIG", "some signature")
                                         ).build())
@@ -165,7 +173,7 @@ public class JobCompatibilityTest {
                 .withContainer(reference.getContainer().but(container ->
                         container.toBuilder()
                                 .withSecurityProfile(container.getSecurityProfile().toBuilder()
-                                        .withAttributes(CollectionsExt.copyAndAdd(
+                                        .withAttributes(copyAndAdd(
                                                 container.getSecurityProfile().getAttributes(),
                                                 "titus.secure.attribute", "false")
                                         ).build())
@@ -184,7 +192,7 @@ public class JobCompatibilityTest {
         JobDescriptor<ServiceJobExt> base = JobDescriptorGenerator.oneTaskServiceJobDescriptor();
         JobDescriptor<ServiceJobExt> from = base.toBuilder()
                 .withContainer(base.getContainer().but(c -> c.getSecurityProfile().toBuilder().withIamRole("simpleName")))
-                .withAttributes(CollectionsExt.copyAndAdd(base.getAttributes(), JobAttributes.JOB_ATTRIBUTES_SANITIZATION_SKIPPED_IAM, "true"))
+                .withAttributes(copyAndAdd(base.getAttributes(), JobAttributes.JOB_ATTRIBUTES_SANITIZATION_SKIPPED_IAM, "true"))
                 .build();
         JobDescriptor<ServiceJobExt> to = base.toBuilder()
                 .withContainer(base.getContainer().but(c -> c.getSecurityProfile().toBuilder().withIamRole("arn:aws:fullyQualified/12345/simpleName")))
@@ -196,7 +204,7 @@ public class JobCompatibilityTest {
                 .build();
         JobDescriptor<ServiceJobExt> to2 = base.toBuilder()
                 .withContainer(base.getContainer().but(c -> c.getImage().toBuilder().withDigest("").build()))
-                .withAttributes(CollectionsExt.copyAndAdd(base.getAttributes(), JobAttributes.JOB_ATTRIBUTES_SANITIZATION_SKIPPED_IMAGE, "true"))
+                .withAttributes(copyAndAdd(base.getAttributes(), JobAttributes.JOB_ATTRIBUTES_SANITIZATION_SKIPPED_IMAGE, "true"))
                 .build();
         assertThat(JobCompatibility.of(from2, to2).isCompatible()).isTrue();
     }
