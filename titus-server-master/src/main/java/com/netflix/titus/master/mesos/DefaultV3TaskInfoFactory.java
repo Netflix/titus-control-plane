@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,6 +29,7 @@ import com.google.common.base.Strings;
 import com.google.common.primitives.Ints;
 import com.netflix.fenzo.PreferentialNamedConsumableResourceSet;
 import com.netflix.fenzo.TaskRequest;
+import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Container;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
@@ -38,12 +39,14 @@ import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobGroupInfo;
 import com.netflix.titus.api.jobmanager.model.job.SecurityProfile;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.jobmanager.model.job.vpc.SignedIpAddressAllocation;
 import com.netflix.titus.api.model.EfsMount;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.master.config.MasterConfiguration;
 import com.netflix.titus.master.model.job.TitusQueuableTask;
+import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import io.titanframework.messages.TitanProtos.ContainerInfo;
 import io.titanframework.messages.TitanProtos.ContainerInfo.EfsConfigInfo;
 import org.apache.mesos.Protos;
@@ -213,6 +216,9 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
         // Configure shared memory size
         containerInfoBuilder.setShmSizeMB(containerResources.getShmMB());
 
+        // Configure IP address allocation
+        setSignedAddressAllocation(containerInfoBuilder, task, containerResources);
+
         return containerInfoBuilder;
     }
 
@@ -239,6 +245,18 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
                 .addAllEntrypoint(container.getEntryPoint())
                 .addAllCommand(container.getCommand())
         );
+    }
+
+    private void setSignedAddressAllocation(ContainerInfo.Builder containerInfoBuilder, Task task, ContainerResources containerResources) {
+        if (task.getTaskContext().containsKey(TaskAttributes.TASK_ATTRIBUTES_IP_ALLOCATION_ID)) {
+            String addressAllocationId = task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_IP_ALLOCATION_ID);
+            for (SignedIpAddressAllocation signedIpAddressAllocation : containerResources.getSignedIpAddressAllocations()) {
+                if (signedIpAddressAllocation.getIpAddressAllocation().getAllocationId().equals(addressAllocationId)) {
+                    containerInfoBuilder.setSignedAddressAllocation(V3GrpcModelConverters.toGrpcSignedAddressAllocation(signedIpAddressAllocation));
+                    break;
+                }
+            }
+        }
     }
 
     private Protos.TaskInfo.Builder newTaskInfoBuilder(Protos.TaskID taskId,
