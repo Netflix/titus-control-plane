@@ -22,7 +22,6 @@ import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.SelfManagedDi
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.model.job.migration.SelfManagedMigrationPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.ExponentialBackoffRetryPolicy;
-import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 import org.junit.Test;
 
@@ -111,8 +110,8 @@ public class JobCompatibilityTest {
                         container.toBuilder().withEnv(copyAndAdd(container.getEnv(), "SOME", "OVERRIDE"))
                 ))
                 .build();
-        JobCompatibility compatibility1 = JobCompatibility.of(reference, other);
-        assertThat(compatibility1.isCompatible()).isTrue();
+        JobCompatibility compatibility = JobCompatibility.of(reference, other);
+        assertThat(compatibility.isCompatible()).isTrue();
     }
 
     @Test
