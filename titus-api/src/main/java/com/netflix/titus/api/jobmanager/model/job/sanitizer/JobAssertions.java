@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,9 +30,13 @@ import com.google.common.base.Strings;
 import com.netflix.titus.api.jobmanager.model.job.Container;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.Image;
+import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
+import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.StringExt;
+import org.apache.commons.codec.binary.Base64;
 
 import static com.netflix.titus.common.util.StringExt.isAsciiDigit;
 import static com.netflix.titus.common.util.StringExt.isAsciiLetter;
@@ -90,6 +94,10 @@ public class JobAssertions {
         int totalSize = entryPoint.stream().mapToInt(e -> StringExt.isEmpty(e) ? 0 : e.getBytes(UTF_8).length).sum();
 
         return totalSize <= MAX_ENTRY_POINT_SIZE_SIZE_BYTES;
+    }
+
+    public boolean isBase64(byte[] bytes) {
+        return Base64.isBase64(bytes);
     }
 
     public Map<String, String> validateEnvironmentVariableNames(Map<String, String> environment) {
@@ -195,6 +203,23 @@ public class JobAssertions {
         check(resources::getNetworkMbps, maxContainerSize::getNetworkMbs).ifPresent(v -> violations.put("container.containerResources.networkMbps", v));
 
         return violations;
+    }
+
+    public Map<String, String> notExceedsIpAllocations(Container container, JobDescriptor.JobDescriptorExt extension) {
+        // As class-level constraints are evaluated after field-level constraints we have to check for null value here.
+        if (container == null) {
+            return Collections.emptyMap();
+        }
+
+        int numIpAllocations = container.getContainerResources().getSignedIpAddressAllocations().size();
+        int numInstances = extension instanceof ServiceJobExt
+                ? ((ServiceJobExt) extension).getCapacity().getMax()
+                : ((BatchJobExt) extension).getSize();
+        if (numIpAllocations > 0 &&
+                numInstances > numIpAllocations) {
+            return Collections.singletonMap("container.containerResources.signedIpAllocations", "Above number of max task instances " + numInstances);
+        }
+        return Collections.emptyMap();
     }
 
     private <N extends Number> Optional<String> check(Supplier<N> jobResource, Supplier<N> maxAllowed) {

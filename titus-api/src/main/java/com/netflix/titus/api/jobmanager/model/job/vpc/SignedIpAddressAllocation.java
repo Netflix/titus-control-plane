@@ -21,6 +21,7 @@ import java.util.Objects;
 import javax.validation.Valid;
 
 import com.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
+import com.netflix.titus.common.model.sanitizer.FieldInvariant;
 
 @ClassFieldsNotNull
 public class SignedIpAddressAllocation {
@@ -28,6 +29,10 @@ public class SignedIpAddressAllocation {
     @Valid
     private final IpAddressAllocation ipAddressAllocation;
 
+    @FieldInvariant(
+            value = "@asserts.isBase64(value)",
+            message = "IP Address Signature is NOT base64 encoded"
+    )
     private final byte[] ipAddressAllocationSignature;
 
     public SignedIpAddressAllocation(IpAddressAllocation ipAddressAllocation, byte[] ipAddressAllocationSignature) {
@@ -71,10 +76,19 @@ public class SignedIpAddressAllocation {
                 '}';
     }
 
+    public Builder toBuilder() {
+        return newBuilder(this);
+    }
+
     public static Builder newBuilder() {
         return new Builder();
     }
 
+    public static Builder newBuilder(SignedIpAddressAllocation signedIpAddressAllocation) {
+        return new Builder()
+                .withIpAddressAllocation(signedIpAddressAllocation.getIpAddressAllocation())
+                .withIpAddressAllocationSignature(signedIpAddressAllocation.ipAddressAllocationSignature);
+    }
 
     public static final class Builder {
         private IpAddressAllocation ipAddressAllocation;

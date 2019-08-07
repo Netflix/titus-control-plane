@@ -358,8 +358,8 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     @Override
     public void updateJobCapacity(JobCapacityUpdate request, StreamObserver<Empty> responseObserver) {
         execute(callMetadataResolver, responseObserver, callMetadata -> {
-            verifyServiceJob(request.getJobId());
             CapacityAttributes capacityAttributes = V3GrpcModelConverters.toCoreCapacityAttributes(request.getCapacity());
+            verifyServiceJob(request.getJobId(), capacityAttributes);
 
             authorizeJobUpdate(callMetadata, request.getJobId())
                     .concatWith(jobOperations.updateJobCapacityAttributesReactor(request.getJobId(), capacityAttributes, callMetadata))
@@ -378,9 +378,8 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     @Override
     public void updateJobCapacityWithOptionalAttributes(JobCapacityUpdateWithOptionalAttributes request, StreamObserver<Empty> responseObserver) {
         execute(callMetadataResolver, responseObserver, callMetadata -> {
-            verifyServiceJob(request.getJobId());
-            logger.info("updateJobCapacityWithOptionalAttributes with {}", request);
             CapacityAttributes capacityAttributes = V3GrpcModelConverters.toCoreCapacityAttributes(request.getJobCapacityWithOptionalAttributes());
+            verifyServiceJob(request.getJobId(), capacityAttributes);
             logger.info("updateJobCapacityWithOptionalAttributes to {}", capacityAttributes);
 
             authorizeJobUpdate(callMetadata, request.getJobId())
@@ -816,18 +815,22 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
                 .build();
     }
 
-    private com.netflix.titus.api.jobmanager.model.job.Job<ServiceJobExt> verifyServiceJob(String jobId) {
+    private com.netflix.titus.api.jobmanager.model.job.Job<ServiceJobExt> verifyServiceJob(String jobId, CapacityAttributes capacityAttributes) {
         return jobOperations
                 .getJob(jobId)
                 .map(j -> {
                     if (!JobFunctions.isServiceJob(j)) {
                         throw JobManagerException.notServiceJob(j.getId());
+                    } else if (j.getJobDescriptor().getContainer().getContainerResources().getSignedIpAddressAllocations().size() > 0 &&
+                            capacityAttributes.getMax().orElse(0) > j.getJobDescriptor().getContainer().getContainerResources().getSignedIpAddressAllocations().size()) {
+                        throw JobManagerException.invalidMaxCapacity(
+                                j.getId(),
+                                capacityAttributes.getMax().orElse(0),
+                                j.getJobDescriptor().getContainer().getContainerResources().getSignedIpAddressAllocations().size());
                     }
                     return (com.netflix.titus.api.jobmanager.model.job.Job<ServiceJobExt>) j;
                 })
                 .orElseThrow(() -> JobManagerException.jobNotFound(jobId));
-
-
     }
 
     /**

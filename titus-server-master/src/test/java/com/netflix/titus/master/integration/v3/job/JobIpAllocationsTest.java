@@ -17,6 +17,7 @@
 package com.netflix.titus.master.integration.v3.job;
 
 import java.util.AbstractMap;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.function.Function;
@@ -48,6 +49,8 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
+import static com.netflix.titus.master.integration.v3.job.JobTestUtils.submitBadJob;
+import static com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters.toGrpcJobDescriptor;
 import static com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCells.basicCell;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.batchJobDescriptors;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.serviceJobDescriptors;
@@ -236,6 +239,67 @@ public class JobIpAllocationsTest extends BaseIntegrationTest {
             }
         }
         assertThat(verified).isTrue();
+    }
+
+    /**
+     * Tests a job without a Base64 encoded signature is rejected.
+     */
+    @Test(timeout = 30_000)
+    public void testBase64Validation() throws Exception {
+        String invalidSignature = "!";
+        byte[] invalidSignatureBytes = invalidSignature.getBytes();
+        JobDescriptor<ServiceJobExt> invalidJobDescriptor = ONE_TASK_SERVICE_JOB
+                .but(j -> j.getContainer()
+                        .but(c -> c.getContainerResources().toBuilder().withSignedIpAddressAllocations(Collections.singletonList(
+                                c.getContainerResources().getSignedIpAddressAllocations().get(0).toBuilder().withIpAddressAllocationSignature(invalidSignatureBytes).build()
+                        )))
+                );
+        submitBadJob(client,
+                toGrpcJobDescriptor(invalidJobDescriptor),
+                "container.containerResources.ipSignedAddressAllocations[0].ipAddressAllocationSignature");
+    }
+
+    /**
+     * Tests a service job with max greater than IP allocations cannot be created.
+     */
+    @Test(timeout = 30_000)
+    public void testServiceJobInstanceValidation() throws Exception {
+        JobDescriptor<ServiceJobExt> invalidJobDescriptor = ONE_TASK_SERVICE_JOB
+                .but(j -> j.getExtensions().toBuilder().withCapacity(
+                        j.getExtensions().getCapacity().toBuilder().withMax(2).build()).build());
+
+        submitBadJob(client,
+                toGrpcJobDescriptor(invalidJobDescriptor),
+                "container.containerResources.signedIpAllocations");
+    }
+
+    /**
+     * Tests a batch job with size greater than IP allocations cannot be created.
+     */
+    @Test(timeout = 30_000)
+    public void testBatchJobInstanceValidation() throws Exception {
+        JobDescriptor<BatchJobExt> invalidJobDescriptor = ONE_TASK_BATCH_JOB
+                .but(j -> j.getExtensions().toBuilder().withSize(2).build());
+
+        submitBadJob(client,
+                toGrpcJobDescriptor(invalidJobDescriptor),
+                "container.containerResources.signedIpAllocations");
+    }
+
+    /**
+     * Tests a service job update with max greater than IP allocations cannot be applied.
+     */
+    @Test(timeout = 30_000)
+    public void testServiceJobUpdateValidation() throws Exception {
+        jobsScenarioBuilder.schedule(ONE_TASK_SERVICE_JOB, jobScenarioBuilder ->
+                // Schedule job with 1 IP allocation
+                jobScenarioBuilder
+                        .template(ScenarioTemplates.startTasksInNewJob())
+                        .allTasks(taskScenarioBuilder -> taskScenarioBuilder.expectTaskContext(TaskAttributes.TASK_ATTRIBUTES_IP_ALLOCATION_ID, getIpAllocationIdFromJob(0, ONE_TASK_SERVICE_JOB)))
+                        .allTasks(taskScenarioBuilder -> taskScenarioBuilder.expectZoneId(getZoneFromJobIpAllocation(0, ONE_TASK_SERVICE_JOB)))
+                        // Try and update max capacity to 2 and make sure it is rejected.
+                        .updateJobCapacityMaxInvalid(2)
+        );
     }
 
     private static Function<JobDescriptor<BatchJobExt>, JobDescriptor<BatchJobExt>> batchOfSizeAndIps(int size) {
