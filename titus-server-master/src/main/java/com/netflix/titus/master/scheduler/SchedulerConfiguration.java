@@ -64,14 +64,6 @@ public interface SchedulerConfiguration {
     boolean isFenzoNetworkInterfaceAllocationEnabled();
 
     /**
-     * Option used by component {@link TitusNetworkInterfaceFitnessEvaluator}.
-     *
-     * @return whether or not to use an optimizing algorithm for network interface allocation.
-     */
-    @DefaultValue("false")
-    boolean isOptimizingNetworkInterfaceAllocationEnabled();
-
-    /**
      * An option to enable spreading for service jobs in the critical tier.
      *
      * @return whether or not to prefer spreading for service jobs in the critical tier.

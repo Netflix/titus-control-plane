@@ -43,8 +43,6 @@ import com.netflix.titus.master.scheduler.constraint.SystemSoftConstraint;
 
 import static com.netflix.titus.common.util.CollectionsExt.isNullOrEmpty;
 
-/**
- */
 public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
 
     private static final String DEFAULT_GRP_NAME = "defaultGrp";
