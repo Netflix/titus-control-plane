@@ -48,6 +48,7 @@ import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AG
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_REGION;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_ZONE;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP;
+import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_IP_ALLOCATION_ID;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_ID;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_INDEX;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_TIER;
@@ -99,6 +100,7 @@ public class TaskDocument {
     private double disk;
     private int gpu;
     private int shm;
+    private String ipAddressAllocationId;
     private Map<String, String> env;
     private int retries;
     private boolean restartOnSuccess;
@@ -193,6 +195,10 @@ public class TaskDocument {
 
     public int getShm() {
         return shm;
+    }
+
+    public String getIpAddressAllocationId() {
+        return ipAddressAllocationId;
     }
 
     public int getGpu() {
@@ -472,6 +478,11 @@ public class TaskDocument {
         final String instanceId = taskContext.get(TASK_ATTRIBUTES_AGENT_ID);
         if (instanceId != null) {
             taskDocument.hostInstanceId = instanceId;
+        }
+
+        final String ipAddressAllocationId = taskContext.get(TASK_ATTRIBUTES_IP_ALLOCATION_ID);
+        if (ipAddressAllocationId != null) {
+            taskDocument.ipAddressAllocationId = ipAddressAllocationId;
         }
 
         extractNetworkConfigurationData(taskContext, taskDocument);
