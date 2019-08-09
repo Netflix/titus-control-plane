@@ -154,7 +154,7 @@ public class TestStreamObserver<T> extends ServerCallStreamObserver<T> {
     }
 
     public void awaitDone(long timeout, TimeUnit timeUnit) throws InterruptedException {
-        if(!terminatedLatch.await(timeout, timeUnit)) {
+        if (!terminatedLatch.await(timeout, timeUnit)) {
             throw new IllegalStateException("GRPC request not completed in time");
         }
         if (hasError()) {
@@ -211,9 +211,9 @@ public class TestStreamObserver<T> extends ServerCallStreamObserver<T> {
 
             Optional<BadRequest> badRequest = GrpcClientErrorUtils.getDetail(e, BadRequest.class);
             if (badRequest.isPresent()) {
-                return new RuntimeException(errorMessage + ". Invalid field values: " + badRequest);
+                return new RuntimeException(errorMessage + ". Invalid field values: " + badRequest, error);
             }
-            return new RuntimeException(errorMessage);
+            return new RuntimeException(errorMessage, error);
         }
         return new RuntimeException(error.getMessage(), error);
     }
