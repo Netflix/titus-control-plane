@@ -17,6 +17,7 @@
 package com.netflix.titus.supplementary.relocation.integration;
 
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
@@ -95,18 +96,23 @@ public class TaskRelocationIntegrationTest {
     }
 
     @Test(timeout = 60_000)
-    public void testEvents() {
+    public void testEvents() throws InterruptedException {
 
         TestStreamObserver<RelocationEvent> events = new TestStreamObserver<>();
         client.observeRelocationEvents(TaskRelocationQuery.getDefaultInstance(), events);
-        RelocationEvent firstEvent = events.takeNext();
+        RelocationEvent firstEvent = events.takeNext(30, TimeUnit.SECONDS);
+        assertThat(firstEvent).isNotNull();
         assertThat(firstEvent.getEventCase()).isEqualTo(EventCase.SNAPSHOTEND);
 
         Task task = createAndPlaceOneTaskJob(TestDataFactory.REMOVABLE_INSTANCE_GROUP);
         relocationConnectorStubs.setQuota(task.getJobId(), 1);
 
-        assertThat(events.takeNext().getEventCase()).isEqualTo(EventCase.TASKRELOCATIONPLANUPDATEEVENT);
-        assertThat(events.takeNext().getEventCase()).isEqualTo(EventCase.TASKRELOCATIONPLANREMOVEEVENT);
+        RelocationEvent secondEvent = events.takeNext(30, TimeUnit.SECONDS);
+        assertThat(secondEvent).isNotNull();
+        assertThat(secondEvent.getEventCase()).isEqualTo(EventCase.TASKRELOCATIONPLANUPDATEEVENT);
+        RelocationEvent thirdEvent = events.takeNext(30, TimeUnit.SECONDS);
+        assertThat(thirdEvent).isNotNull();
+        assertThat(thirdEvent.getEventCase()).isEqualTo(EventCase.TASKRELOCATIONPLANREMOVEEVENT);
     }
 
     private Task createAndPlaceOneTaskJob(String instanceGroup) {
