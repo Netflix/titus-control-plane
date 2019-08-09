@@ -43,7 +43,6 @@ import com.netflix.titus.supplementary.relocation.TestDataFactory;
 import com.netflix.titus.testkit.grpc.TestStreamObserver;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import io.grpc.Status;
-import io.grpc.StatusRuntimeException;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -132,7 +131,7 @@ public class TaskRelocationIntegrationTest {
             client.getCurrentTaskRelocationPlans(TaskRelocationQuery.getDefaultInstance(), events);
             plans = events.getLast();
         } catch (Exception e) {
-            if (e instanceof StatusRuntimeException && e.getMessage().contains("Relocation workflow not ready yet")) {
+            if (e.getMessage().contains("Relocation workflow not ready yet")) {
                 return Optional.empty();
             }
             throw new RuntimeException(e);
