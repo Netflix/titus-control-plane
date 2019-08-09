@@ -345,6 +345,7 @@ public class ObjectMappers {
 
     private static ObjectMapper createAppScalePolicyMapper() {
         ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         objectMapper.registerModule(new Jdk8Module());
         objectMapper.addMixIn(AlarmConfiguration.class, AlarmConfigurationMixIn.class);
         objectMapper.addMixIn(StepAdjustment.class, StepAdjustmentMixIn.class);
@@ -361,7 +362,7 @@ public class ObjectMappers {
 
     private static ObjectMapper createStoreMapper() {
         ObjectMapper objectMapper = new ObjectMapper();
-
+        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         objectMapper.registerModule(new Jdk8Module());
 
         // Common
