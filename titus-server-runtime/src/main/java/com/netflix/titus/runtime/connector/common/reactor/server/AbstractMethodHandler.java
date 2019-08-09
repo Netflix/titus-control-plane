@@ -16,6 +16,8 @@
 
 package com.netflix.titus.runtime.connector.common.reactor.server;
 
+import java.lang.reflect.InvocationTargetException;
+
 import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
@@ -70,6 +72,9 @@ abstract class AbstractMethodHandler<REQ, RESP> {
         Publisher<RESP> result;
         try {
             result = (Publisher<RESP>) binding.getReactorMethod().invoke(reactorService, args);
+        } catch (InvocationTargetException e) {
+            responseObserver.onError(e.getCause());
+            return;
         } catch (Exception e) {
             responseObserver.onError(e);
             return;
