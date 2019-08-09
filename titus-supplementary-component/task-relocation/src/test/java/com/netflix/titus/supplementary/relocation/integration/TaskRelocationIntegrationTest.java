@@ -149,11 +149,9 @@ public class TaskRelocationIntegrationTest {
             client.getTaskRelocationResult(RelocationTaskId.newBuilder().setId(taskId).build(), events);
             return Optional.of(events.getLast().getTaskRelocationPlan());
         } catch (Exception e) {
-            if (e instanceof StatusRuntimeException) {
-                StatusRuntimeException se = (StatusRuntimeException) e;
-                if (se.getStatus().getCode() == Status.Code.NOT_FOUND) {
-                    return Optional.empty();
-                }
+            Status status = Status.fromThrowable(e);
+            if (status.getCode() == Status.Code.NOT_FOUND) {
+                return Optional.empty();
             }
             throw new RuntimeException(e);
         }
@@ -165,11 +163,9 @@ public class TaskRelocationIntegrationTest {
             client.getTaskRelocationResult(RelocationTaskId.newBuilder().setId(taskId).build(), events);
             return Optional.of(last(events.getLast().getRelocationAttemptsList()));
         } catch (Exception e) {
-            if (e instanceof StatusRuntimeException) {
-                StatusRuntimeException se = (StatusRuntimeException) e;
-                if (se.getStatus().getCode() == Status.Code.NOT_FOUND) {
-                    return Optional.empty();
-                }
+            Status status = Status.fromThrowable(e);
+            if (status.getCode() == Status.Code.NOT_FOUND) {
+                return Optional.empty();
             }
             throw new RuntimeException(e);
         }
