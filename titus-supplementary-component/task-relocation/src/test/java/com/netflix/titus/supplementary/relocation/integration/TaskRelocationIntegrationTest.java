@@ -16,8 +16,8 @@
 
 package com.netflix.titus.supplementary.relocation.integration;
 
-import java.util.Iterator;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
@@ -37,10 +37,10 @@ import com.netflix.titus.grpc.protogen.TaskRelocationPlan;
 import com.netflix.titus.grpc.protogen.TaskRelocationPlans;
 import com.netflix.titus.grpc.protogen.TaskRelocationQuery;
 import com.netflix.titus.grpc.protogen.TaskRelocationServiceGrpc;
-import com.netflix.titus.grpc.protogen.TaskRelocationServiceGrpc.TaskRelocationServiceBlockingStub;
 import com.netflix.titus.grpc.protogen.TaskRelocationStatus;
 import com.netflix.titus.supplementary.relocation.RelocationConnectorStubs;
 import com.netflix.titus.supplementary.relocation.TestDataFactory;
+import com.netflix.titus.testkit.grpc.TestStreamObserver;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
@@ -69,12 +69,12 @@ public class TaskRelocationIntegrationTest {
 
     private TaskRelocationSandbox sandbox;
 
-    private TaskRelocationServiceBlockingStub client;
+    private TaskRelocationServiceGrpc.TaskRelocationServiceStub client;
 
     @Before
     public void setUp() {
         this.sandbox = serverResource.getTaskRelocationSandbox();
-        this.client = TaskRelocationServiceGrpc.newBlockingStub(sandbox.getGrpcChannel());
+        this.client = TaskRelocationServiceGrpc.newStub(sandbox.getGrpcChannel());
     }
 
     @Test(timeout = 60_000)
@@ -96,16 +96,23 @@ public class TaskRelocationIntegrationTest {
     }
 
     @Test(timeout = 60_000)
-    public void testEvents() {
-        Iterator<RelocationEvent> events = client.observeRelocationEvents(TaskRelocationQuery.getDefaultInstance());
-        RelocationEvent firstEvent = events.next();
+    public void testEvents() throws InterruptedException {
+
+        TestStreamObserver<RelocationEvent> events = new TestStreamObserver<>();
+        client.observeRelocationEvents(TaskRelocationQuery.getDefaultInstance(), events);
+        RelocationEvent firstEvent = events.takeNext(30, TimeUnit.SECONDS);
+        assertThat(firstEvent).isNotNull();
         assertThat(firstEvent.getEventCase()).isEqualTo(EventCase.SNAPSHOTEND);
 
         Task task = createAndPlaceOneTaskJob(TestDataFactory.REMOVABLE_INSTANCE_GROUP);
         relocationConnectorStubs.setQuota(task.getJobId(), 1);
 
-        assertThat(events.next().getEventCase()).isEqualTo(EventCase.TASKRELOCATIONPLANUPDATEEVENT);
-        assertThat(events.next().getEventCase()).isEqualTo(EventCase.TASKRELOCATIONPLANREMOVEEVENT);
+        RelocationEvent secondEvent = events.takeNext(30, TimeUnit.SECONDS);
+        assertThat(secondEvent).isNotNull();
+        assertThat(secondEvent.getEventCase()).isEqualTo(EventCase.TASKRELOCATIONPLANUPDATEEVENT);
+        RelocationEvent thirdEvent = events.takeNext(30, TimeUnit.SECONDS);
+        assertThat(thirdEvent).isNotNull();
+        assertThat(thirdEvent.getEventCase()).isEqualTo(EventCase.TASKRELOCATIONPLANREMOVEEVENT);
     }
 
     private Task createAndPlaceOneTaskJob(String instanceGroup) {
@@ -121,12 +128,14 @@ public class TaskRelocationIntegrationTest {
     private Optional<TaskRelocationPlan> findRelocationPlan(String taskId) {
         TaskRelocationPlans plans;
         try {
-            plans = client.getCurrentTaskRelocationPlans(TaskRelocationQuery.getDefaultInstance());
-        } catch (StatusRuntimeException e) {
-            if (e.getMessage().contains("Relocation workflow not ready yet")) {
+            TestStreamObserver<TaskRelocationPlans> events = new TestStreamObserver<>();
+            client.getCurrentTaskRelocationPlans(TaskRelocationQuery.getDefaultInstance(), events);
+            plans = events.getLast();
+        } catch (Exception e) {
+            if (e instanceof StatusRuntimeException && e.getMessage().contains("Relocation workflow not ready yet")) {
                 return Optional.empty();
             }
-            throw e;
+            throw new RuntimeException(e);
         }
 
         Optional<TaskRelocationPlan> taskPlan = plans.getPlansList().stream().filter(p -> p.getTaskId().equals(taskId)).findFirst();
@@ -136,25 +145,29 @@ public class TaskRelocationIntegrationTest {
 
         // Check if already processed
         try {
-            TaskRelocationExecution status = client.getTaskRelocationResult(RelocationTaskId.newBuilder().setId(taskId).build());
-            return Optional.of(status.getTaskRelocationPlan());
-        } catch (StatusRuntimeException e) {
-            if (e.getStatus().getCode() == Status.Code.NOT_FOUND) {
+            TestStreamObserver<TaskRelocationExecution> events = new TestStreamObserver<>();
+            client.getTaskRelocationResult(RelocationTaskId.newBuilder().setId(taskId).build(), events);
+            return Optional.of(events.getLast().getTaskRelocationPlan());
+        } catch (Exception e) {
+            Status status = Status.fromThrowable(e);
+            if (status.getCode() == Status.Code.NOT_FOUND) {
                 return Optional.empty();
             }
-            throw e;
+            throw new RuntimeException(e);
         }
     }
 
     private Optional<TaskRelocationStatus> findRelocationStatus(String taskId) {
         try {
-            TaskRelocationExecution status = client.getTaskRelocationResult(RelocationTaskId.newBuilder().setId(taskId).build());
-            return Optional.of(last(status.getRelocationAttemptsList()));
-        } catch (StatusRuntimeException e) {
-            if (e.getStatus().getCode() == Status.Code.NOT_FOUND) {
+            TestStreamObserver<TaskRelocationExecution> events = new TestStreamObserver<>();
+            client.getTaskRelocationResult(RelocationTaskId.newBuilder().setId(taskId).build(), events);
+            return Optional.of(last(events.getLast().getRelocationAttemptsList()));
+        } catch (Exception e) {
+            Status status = Status.fromThrowable(e);
+            if (status.getCode() == Status.Code.NOT_FOUND) {
                 return Optional.empty();
             }
-            throw e;
+            throw new RuntimeException(e);
         }
     }
 
