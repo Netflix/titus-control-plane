@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Build sources by running:
-# mvn jar source:jar
+# mvn clean package source:jar
 
 K_CLIENT_HOME=${K_CLIENT_HOME:-"${HOME}/projects/opensource/kubernetes-java-client"}
 

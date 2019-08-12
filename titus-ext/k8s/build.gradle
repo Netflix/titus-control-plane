@@ -21,7 +21,6 @@ repositories {
 }
 dependencies {
     compile project(':titus-api')
-    compile "io.kubernetes:client-java:6.0.0-beta1-SNAPSHOT"
     compile "org.springframework.cloud:spring-cloud-commons:${springCloudVersion}"
 
     // FIXME Use officially released artifact when available
