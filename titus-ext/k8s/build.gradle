@@ -14,11 +14,21 @@
  * limitations under the License.
  */
 
+repositories {
+    flatDir {
+        dirs 'libs'
+    }
+}
 dependencies {
     compile project(':titus-api')
     compile "io.kubernetes:client-java:6.0.0-beta1-SNAPSHOT"
-    compile "io.kubernetes:client-java-extended:6.0.0-beta1-SNAPSHOT"
     compile "org.springframework.cloud:spring-cloud-commons:${springCloudVersion}"
+
+    // FIXME Use officially released artifact when available
+    compile ":client-java:6.0.0-netflixbeta"
+    compile ":client-java-api:6.0.0-netflixbeta"
+    compile ":client-java-extended:6.0.0-netflixbeta"
+    compile ":client-java-proto:6.0.0-netflixbeta"
 
     testCompile project(':titus-testkit')
 }

@@ -182,7 +182,7 @@ class DefaultK8MembershipExecutor implements K8MembershipExecutor {
     public static void main(String[] args) throws Exception {
         ApiClient client = ClientBuilder
                 .standard()
-                .setBasePath("http://100.65.82.159:7001")
+                .setBasePath(String.format("http://%s:7001", System.getenv("K8S_APISERVER")))
                 .build();
         client.getHttpClient().setReadTimeout(0, TimeUnit.SECONDS); // infinite timeout
         DefaultK8MembershipExecutor executor = new DefaultK8MembershipExecutor(client, "default");
@@ -202,7 +202,7 @@ class DefaultK8MembershipExecutor implements K8MembershipExecutor {
                 ))
                 .withLabels(Collections.singletonMap("resourceVersion", "1400519"))
                 .build();
-        ClusterMembershipRevision revision = ClusterMembershipRevision.newBuilder()
+        ClusterMembershipRevision<ClusterMember> revision = ClusterMembershipRevision.<ClusterMember>newBuilder()
                 .withCode("initial")
                 .withMessage("Test")
                 .withTimestamp(System.currentTimeMillis())
