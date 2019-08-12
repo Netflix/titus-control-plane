@@ -37,6 +37,8 @@ public interface VirtualMachineMasterService {
 
     void setVMLeaseHandler(Action1<List<? extends VirtualMachineLease>> leaseHandler);
 
+    void setRescindLeaseHandler(Action1<List<LeaseRescindedEvent>> rescindLeaseHandler);
+
     Observable<LeaseRescindedEvent> getLeaseRescindedObservable();
 
     Observable<ContainerEvent> getTaskStatusObservable();

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,6 +35,7 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.protobuf.Empty;
+import com.google.protobuf.UInt32Value;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -46,6 +47,8 @@ import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.grpc.protogen.JobAttributesDeleteRequest;
 import com.netflix.titus.grpc.protogen.JobAttributesUpdate;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
+import com.netflix.titus.grpc.protogen.JobCapacityUpdateWithOptionalAttributes;
+import com.netflix.titus.grpc.protogen.JobCapacityWithOptionalAttributes;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobChangeNotification.NotificationCase;
 import com.netflix.titus.grpc.protogen.JobDisruptionBudgetUpdate;
@@ -59,6 +62,8 @@ import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
 import com.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
 import com.netflix.titus.testkit.grpc.TestStreamObserver;
 import com.netflix.titus.testkit.rx.ExtTestSubscriber;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
@@ -72,6 +77,7 @@ import static com.netflix.titus.master.integration.v3.scenario.ScenarioBuilderUt
 import static com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters.toCoreJob;
 import static com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters.toGrpcCapacity;
 import static com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters.toGrpcDisruptionBudget;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  *
@@ -237,6 +243,117 @@ public class JobScenarioBuilder {
         logger.info("[{}] Job {} scaled to new size in {}ms", discoverActiveTest(), jobId, stopWatch.elapsed(TimeUnit.MILLISECONDS));
         return this;
     }
+
+    public JobScenarioBuilder updateJobCapacityDesired(int desired, int unchangedMin, int unchangedMax) {
+        logger.info("[{}] Changing job {} capacity desired to {}...", discoverActiveTest(), jobId, desired);
+        Stopwatch stopWatch = Stopwatch.createStarted();
+
+        TestStreamObserver<Empty> responseObserver = new TestStreamObserver<>();
+
+        client.updateJobCapacityWithOptionalAttributes(
+                JobCapacityUpdateWithOptionalAttributes.newBuilder().setJobId(jobId)
+                    .setJobCapacityWithOptionalAttributes(JobCapacityWithOptionalAttributes.newBuilder().setDesired(UInt32Value.newBuilder().setValue(desired).build()).build()).build(),
+                responseObserver);
+
+        rethrow(() -> responseObserver.awaitDone(TIMEOUT_MS, TimeUnit.MILLISECONDS));
+
+        expectJobUpdateEvent(job -> {
+            ServiceJobExt ext = (ServiceJobExt) job.getJobDescriptor().getExtensions();
+            Capacity capacity = ext.getCapacity();
+            return capacity.getDesired() == desired && capacity.getMin() == unchangedMin && capacity.getMax() == unchangedMax;
+        }, "Job capacity update did not complete in time");
+
+        logger.info("[{}] Job {} scaled to new desired size in {}ms", discoverActiveTest(), jobId, stopWatch.elapsed(TimeUnit.MILLISECONDS));
+        return this;
+    }
+
+    public JobScenarioBuilder updateJobCapacityDesiredInvalid(int targetDesired, int currentDesired) {
+        logger.info("[{}] Changing job {} capacity desired to {}...", discoverActiveTest(), jobId, targetDesired);
+        TestStreamObserver<Empty> responseObserver = new TestStreamObserver<>();
+        client.updateJobCapacityWithOptionalAttributes(
+                JobCapacityUpdateWithOptionalAttributes.newBuilder().setJobId(jobId)
+                        .setJobCapacityWithOptionalAttributes(JobCapacityWithOptionalAttributes.newBuilder().setDesired(UInt32Value.newBuilder().setValue(targetDesired).build()).build()).build(),
+                responseObserver);
+
+        await().timeout(TIMEOUT_MS, TimeUnit.MILLISECONDS).until(responseObserver::hasError);
+        Throwable error = responseObserver.getError();
+        assertThat(error).isNotNull();
+        assertThat(error).isInstanceOf(StatusRuntimeException.class);
+        StatusRuntimeException statusRuntimeException = (StatusRuntimeException) error;
+        assertThat(statusRuntimeException.getStatus().getCode() == Status.Code.INVALID_ARGUMENT).isTrue();
+
+        // Make sure desired count is unchanged
+        Job job = getJob();
+        JobDescriptor.JobDescriptorExt ext = job.getJobDescriptor().getExtensions();
+        int currentCapacity = ext instanceof BatchJobExt ? ((BatchJobExt) ext).getSize() : ((ServiceJobExt) ext).getCapacity().getDesired();
+        assertThat(currentCapacity).isEqualTo(currentDesired);
+        return this;
+    }
+
+    public JobScenarioBuilder updateJobCapacityMaxInvalid(int targetMax) {
+        logger.info("[{}] Changing job {} capacity max to {}...", discoverActiveTest(), jobId, targetMax);
+        TestStreamObserver<Empty> responseObserver = new TestStreamObserver<>();
+        client.updateJobCapacityWithOptionalAttributes(
+                JobCapacityUpdateWithOptionalAttributes.newBuilder().setJobId(jobId)
+                        .setJobCapacityWithOptionalAttributes(JobCapacityWithOptionalAttributes.newBuilder().setMax(UInt32Value.newBuilder().setValue(targetMax).build()).build()).build(),
+                responseObserver);
+
+        await().timeout(TIMEOUT_MS, TimeUnit.MILLISECONDS).until(responseObserver::hasError);
+        Throwable error = responseObserver.getError();
+        assertThat(error).isNotNull();
+        assertThat(error).isInstanceOf(StatusRuntimeException.class);
+        StatusRuntimeException statusRuntimeException = (StatusRuntimeException) error;
+        assertThat(statusRuntimeException.getStatus().getCode() == Status.Code.INVALID_ARGUMENT).isTrue();
+
+        return this;
+    }
+
+    public JobScenarioBuilder updateJobCapacityMin(int min, int unchangedMax, int unchangedDesired) {
+        logger.info("[{}] Changing job {} capacity min to {}...", discoverActiveTest(), jobId, min);
+        Stopwatch stopWatch = Stopwatch.createStarted();
+
+        TestStreamObserver<Empty> responseObserver = new TestStreamObserver<>();
+
+        client.updateJobCapacityWithOptionalAttributes(
+                JobCapacityUpdateWithOptionalAttributes.newBuilder().setJobId(jobId)
+                    .setJobCapacityWithOptionalAttributes(JobCapacityWithOptionalAttributes.newBuilder().setMin(UInt32Value.newBuilder().setValue(min).build()).build()).build(),
+                responseObserver);
+
+        rethrow(() -> responseObserver.awaitDone(TIMEOUT_MS, TimeUnit.MILLISECONDS));
+
+        expectJobUpdateEvent(job -> {
+            ServiceJobExt ext = (ServiceJobExt) job.getJobDescriptor().getExtensions();
+            Capacity capacity = ext.getCapacity();
+            return capacity.getMin() == min && capacity.getMax() == unchangedMax && capacity.getDesired() == unchangedDesired;
+        }, "Job capacity update did not complete in time");
+
+        logger.info("[{}] Job {} scaled to new min size in {}ms", discoverActiveTest(), jobId, stopWatch.elapsed(TimeUnit.MILLISECONDS));
+        return this;
+    }
+
+    public JobScenarioBuilder updateJobCapacityMax(int max, int unchangedMin, int unchangedDesired) {
+        logger.info("[{}] Changing job {} capacity max to {}...", discoverActiveTest(), jobId, max);
+        Stopwatch stopWatch = Stopwatch.createStarted();
+
+        TestStreamObserver<Empty> responseObserver = new TestStreamObserver<>();
+
+        client.updateJobCapacityWithOptionalAttributes(
+                JobCapacityUpdateWithOptionalAttributes.newBuilder().setJobId(jobId)
+                    .setJobCapacityWithOptionalAttributes(JobCapacityWithOptionalAttributes.newBuilder().setMax(UInt32Value.newBuilder().setValue(max).build()).build()).build(),
+                responseObserver);
+
+        rethrow(() -> responseObserver.awaitDone(TIMEOUT_MS, TimeUnit.MILLISECONDS));
+
+        expectJobUpdateEvent(job -> {
+            ServiceJobExt ext = (ServiceJobExt) job.getJobDescriptor().getExtensions();
+            Capacity capacity = ext.getCapacity();
+            return capacity.getMax() == max && capacity.getMin() == unchangedMin && capacity.getDesired() == unchangedDesired;
+        }, "Job capacity update did not complete in time");
+
+        logger.info("[{}] Job {} scaled to new max size in {}ms", discoverActiveTest(), jobId, stopWatch.elapsed(TimeUnit.MILLISECONDS));
+        return this;
+    }
+
 
     public JobScenarioBuilder updateJobStatus(boolean enabled) {
         logger.info("[{}] Changing job {} enable status to {}...", discoverActiveTest(), jobId, enabled);
@@ -405,7 +522,7 @@ public class JobScenarioBuilder {
     }
 
     public JobScenarioBuilder expectSome(int count, Predicate<TaskScenarioBuilder> predicate) {
-        logger.info("[{}] Expecting {} tasks to meet fulfill the predicate requirements", discoverActiveTest(), count);
+        logger.info("[{}] Expecting {} tasks to fulfill the predicate requirements", discoverActiveTest(), count);
         await().timeout(TIMEOUT_MS, TimeUnit.MILLISECONDS).until(() -> {
             long matching = getLastTaskHolders().stream().filter(t -> predicate.test(t.getTaskScenarioBuilder())).count();
             return matching == count;

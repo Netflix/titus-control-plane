@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -116,6 +116,9 @@ import com.netflix.titus.api.jobmanager.model.job.retry.DelayedRetryPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.ExponentialBackoffRetryPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.ImmediateRetryPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
+import com.netflix.titus.api.jobmanager.model.job.vpc.IpAddressAllocation;
+import com.netflix.titus.api.jobmanager.model.job.vpc.IpAddressLocation;
+import com.netflix.titus.api.jobmanager.model.job.vpc.SignedIpAddressAllocation;
 import com.netflix.titus.api.jobmanager.store.mixin.AvailabilityPercentageLimitDisruptionBudgetPolicyMixIn;
 import com.netflix.titus.api.jobmanager.store.mixin.BatchJobExtMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.BatchJobTaskMixin;
@@ -131,6 +134,8 @@ import com.netflix.titus.api.jobmanager.store.mixin.ExponentialBackoffRetryPolic
 import com.netflix.titus.api.jobmanager.store.mixin.HourlyTimeWindowMixIn;
 import com.netflix.titus.api.jobmanager.store.mixin.ImageMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.ImmediateRetryPolicyMixin;
+import com.netflix.titus.api.jobmanager.store.mixin.IpAddressAllocationMixin;
+import com.netflix.titus.api.jobmanager.store.mixin.IpAddressLocationMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.JobDescriptorExtMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.JobDescriptorMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.JobGroupInfoMixin;
@@ -150,6 +155,7 @@ import com.netflix.titus.api.jobmanager.store.mixin.SelfManagedMigrationPolicyMi
 import com.netflix.titus.api.jobmanager.store.mixin.ServiceJobExtMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.ServiceJobProcessesMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.ServiceJobTaskMixin;
+import com.netflix.titus.api.jobmanager.store.mixin.SignedIpAddressAllocationMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.SystemDefaultMigrationPolicyMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.TaskInstancesMixin;
 import com.netflix.titus.api.jobmanager.store.mixin.TaskMixin;
@@ -345,6 +351,7 @@ public class ObjectMappers {
 
     private static ObjectMapper createAppScalePolicyMapper() {
         ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         objectMapper.registerModule(new Jdk8Module());
         objectMapper.addMixIn(AlarmConfiguration.class, AlarmConfigurationMixIn.class);
         objectMapper.addMixIn(StepAdjustment.class, StepAdjustmentMixIn.class);
@@ -361,7 +368,7 @@ public class ObjectMappers {
 
     private static ObjectMapper createStoreMapper() {
         ObjectMapper objectMapper = new ObjectMapper();
-
+        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
         objectMapper.registerModule(new Jdk8Module());
 
         // Common
@@ -405,6 +412,10 @@ public class ObjectMappers {
         objectMapper.addMixIn(Container.class, ContainerMixin.class);
         objectMapper.addMixIn(Image.class, ImageMixin.class);
         objectMapper.addMixIn(ServiceJobProcesses.class, ServiceJobProcessesMixin.class);
+
+        objectMapper.addMixIn(IpAddressLocation.class, IpAddressLocationMixin.class);
+        objectMapper.addMixIn(IpAddressAllocation.class, IpAddressAllocationMixin.class);
+        objectMapper.addMixIn(SignedIpAddressAllocation.class, SignedIpAddressAllocationMixin.class);
 
         objectMapper.addMixIn(DisruptionBudget.class, DisruptionBudgetMixIn.class);
 

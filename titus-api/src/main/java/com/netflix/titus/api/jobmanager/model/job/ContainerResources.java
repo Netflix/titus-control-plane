@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,13 +22,12 @@ import javax.validation.Valid;
 import javax.validation.constraints.Min;
 
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.EfsMountsSanitizer;
+import com.netflix.titus.api.jobmanager.model.job.vpc.SignedIpAddressAllocation;
 import com.netflix.titus.api.model.EfsMount;
 import com.netflix.titus.common.model.sanitizer.ClassInvariant;
 import com.netflix.titus.common.model.sanitizer.FieldInvariant;
 import com.netflix.titus.common.model.sanitizer.FieldSanitizer;
 import com.netflix.titus.common.util.CollectionsExt;
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 import static com.netflix.titus.common.util.CollectionsExt.nonNull;
 
@@ -67,6 +66,9 @@ public class ContainerResources {
     @Min(value = 0, message = "'shmMB'(#{#root}) must be >= 0")
     private final int shmMB;
 
+    @Valid
+    private final List<SignedIpAddressAllocation> ipSignedAddressAllocations;
+
     public ContainerResources(double cpu,
                               int gpu,
                               int memoryMB,
@@ -74,15 +76,17 @@ public class ContainerResources {
                               int networkMbps,
                               List<EfsMount> efsMounts,
                               boolean allocateIP,
-                              int shmMB) {
+                              int shmMB,
+                              List<SignedIpAddressAllocation> ipSignedAddressAllocations) {
         this.cpu = cpu;
         this.gpu = gpu;
         this.memoryMB = memoryMB;
         this.diskMB = diskMB;
         this.networkMbps = networkMbps;
-        this.efsMounts = CollectionsExt.nullableImmutableCopyOf(efsMounts);
+        this.efsMounts = CollectionsExt.nonNullImmutableCopyOf(efsMounts);
         this.allocateIP = allocateIP;
         this.shmMB = shmMB;
+        this.ipSignedAddressAllocations = CollectionsExt.nonNullImmutableCopyOf(ipSignedAddressAllocations);
     }
     public double getCpu() {
         return cpu;
@@ -116,6 +120,10 @@ public class ContainerResources {
         return shmMB;
     }
 
+    public List<SignedIpAddressAllocation> getSignedIpAddressAllocations() {
+        return ipSignedAddressAllocations;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -132,12 +140,13 @@ public class ContainerResources {
                 networkMbps == that.networkMbps &&
                 allocateIP == that.allocateIP &&
                 shmMB == that.shmMB &&
-                Objects.equals(efsMounts, that.efsMounts);
+                efsMounts.equals(that.efsMounts) &&
+                ipSignedAddressAllocations.equals(that.ipSignedAddressAllocations);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(cpu, gpu, memoryMB, diskMB, networkMbps, efsMounts, allocateIP, shmMB);
+        return Objects.hash(cpu, gpu, memoryMB, diskMB, networkMbps, efsMounts, allocateIP, shmMB, ipSignedAddressAllocations);
     }
 
     @Override
@@ -151,6 +160,7 @@ public class ContainerResources {
                 ", efsMounts=" + efsMounts +
                 ", allocateIP=" + allocateIP +
                 ", shmMB=" + shmMB +
+                ", ipSignedAddressAllocations=" + ipSignedAddressAllocations +
                 '}';
     }
 
@@ -171,7 +181,8 @@ public class ContainerResources {
                 .withNetworkMbps(containerResources.getNetworkMbps())
                 .withAllocateIP(containerResources.isAllocateIP())
                 .withEfsMounts(containerResources.getEfsMounts())
-                .withShmMB(containerResources.getShmMB());
+                .withShmMB(containerResources.getShmMB())
+                .withSignedIpAddressAllocations(containerResources.getSignedIpAddressAllocations());
     }
 
     public static final class Builder {
@@ -183,6 +194,7 @@ public class ContainerResources {
         private List<EfsMount> efsMounts;
         private boolean allocateIP;
         private int shmMB;
+        private List<SignedIpAddressAllocation> signedIpAddressAllocations;
 
         private Builder() {
         }
@@ -227,6 +239,11 @@ public class ContainerResources {
             return this;
         }
 
+        public Builder withSignedIpAddressAllocations(List<SignedIpAddressAllocation> signedIpAddressAllocations) {
+            this.signedIpAddressAllocations = signedIpAddressAllocations;
+            return this;
+        }
+
         public Builder but() {
             return newBuilder()
                     .withCpu(cpu)
@@ -235,11 +252,21 @@ public class ContainerResources {
                     .withDiskMB(diskMB)
                     .withNetworkMbps(networkMbps)
                     .withEfsMounts(efsMounts)
-                    .withShmMB(shmMB);
+                    .withShmMB(shmMB)
+                    .withSignedIpAddressAllocations(signedIpAddressAllocations);
         }
 
         public ContainerResources build() {
-            ContainerResources containerResources = new ContainerResources(cpu, gpu, memoryMB, diskMB, networkMbps, nonNull(efsMounts), allocateIP, shmMB);
+            ContainerResources containerResources = new ContainerResources(
+                    cpu,
+                    gpu,
+                    memoryMB,
+                    diskMB,
+                    networkMbps,
+                    nonNull(efsMounts),
+                    allocateIP,
+                    shmMB,
+                    nonNull(signedIpAddressAllocations));
             return containerResources;
         }
     }

@@ -39,6 +39,17 @@ public final class JobModel {
         return Capacity.newBuilder();
     }
 
+    public static CapacityAttributes.Builder newCapacityAttributes() {
+        return CapacityAttributes.newBuilder();
+    }
+
+    public static CapacityAttributes.Builder newCapacityAttributes(Capacity capacity) {
+        return CapacityAttributes.newBuilder()
+                .withMin(capacity.getMin())
+                .withMax(capacity.getMax())
+                .withDesired(capacity.getDesired());
+    }
+
     public static ServiceJobProcesses.Builder newServiceJobProcesses() {
         return ServiceJobProcesses.newBuilder();
     }

@@ -96,6 +96,7 @@ public class JobCompatibility {
                                 .withAttributes(onlyTitusSecurityAttributes)
                                 .withIamRole(ignoreIam ? "" : container.getSecurityProfile().getIamRole())
                                 .build())
+                        .withEnv(Collections.emptyMap())
                         .build())
                 .withExtensions(ServiceJobExt.newBuilder()
                         .withRetryPolicy(ImmediateRetryPolicy.newBuilder().withRetries(0).build())

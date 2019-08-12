@@ -27,6 +27,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.netflix.titus.common.network.client.TitusWebClientAddOns;
+import com.netflix.titus.common.network.client.WebClientExt;
 import com.netflix.titus.common.network.client.internal.WebClientMetric;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.guice.ProxyType;
@@ -59,12 +60,14 @@ public class DefaultDockerRegistryClient implements RegistryClient {
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue))
     );
 
+    private final TitusRuntime titusRuntime;
     private final TitusRegistryClientConfiguration titusRegistryClientConfiguration;
     private final WebClient restClient;
     private final WebClientMetric webClientMetrics;
 
     @Inject
     DefaultDockerRegistryClient(TitusRegistryClientConfiguration configuration, TitusRuntime titusRuntime) {
+        this.titusRuntime = titusRuntime;
         this.titusRegistryClientConfiguration = configuration;
         this.webClientMetrics = new WebClientMetric(DefaultDockerRegistryClient.class.getSimpleName(), titusRuntime.getRegistry(), titusRuntime.getClock());
 
@@ -80,7 +83,6 @@ public class DefaultDockerRegistryClient implements RegistryClient {
      * encountered, an onError value is emitted.
      */
     public Mono<String> getImageDigest(String repository, String reference) {
-        long startTime = System.currentTimeMillis();
         return restClient.get().uri(buildRegistryUri(repository, reference))
                 .headers(consumer -> headers.forEach(consumer::add))
                 .exchange()
@@ -106,7 +108,7 @@ public class DefaultDockerRegistryClient implements RegistryClient {
                     return Mono.just(dockerDigestHeaderValue.get(0));
                 })
                 .timeout(Duration.ofMillis(titusRegistryClientConfiguration.getRegistryTimeoutMs()))
-                .doAfterSuccessOrError((digest, throwable) -> webClientMetrics.registerLatency(HttpMethod.GET, startTime))
+                .compose(WebClientExt.latencyMonoOperator(titusRuntime.getClock(), webClientMetrics, HttpMethod.GET))
                 .retryWhen(TitusWebClientAddOns.retryer(
                         Duration.ofMillis(titusRegistryClientConfiguration.getRegistryRetryDelayMs()),
                         titusRegistryClientConfiguration.getRegistryRetryCount(),

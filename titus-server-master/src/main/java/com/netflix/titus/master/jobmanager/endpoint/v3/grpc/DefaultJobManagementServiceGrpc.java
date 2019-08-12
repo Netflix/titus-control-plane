@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,7 +32,9 @@ import javax.inject.Singleton;
 import com.google.protobuf.Empty;
 import com.netflix.titus.api.FeatureRolloutPlans;
 import com.netflix.titus.api.agent.service.AgentManagementService;
+import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.CallMetadata;
+import com.netflix.titus.api.jobmanager.model.job.CapacityAttributes;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
@@ -61,6 +63,7 @@ import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobAttributesDeleteRequest;
 import com.netflix.titus.grpc.protogen.JobAttributesUpdate;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
+import com.netflix.titus.grpc.protogen.JobCapacityUpdateWithOptionalAttributes;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.JobDisruptionBudget;
@@ -86,6 +89,9 @@ import com.netflix.titus.master.endpoint.common.CellDecorator;
 import com.netflix.titus.master.endpoint.grpc.GrpcMasterEndpointConfiguration;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import com.netflix.titus.master.model.ResourceDimensions;
+import com.netflix.titus.master.scheduler.InUseIpAllocationConstraintFailure;
+import com.netflix.titus.master.scheduler.SchedulingService;
+import com.netflix.titus.master.scheduler.TaskPlacementFailure;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import com.netflix.titus.runtime.endpoint.JobQueryCriteria;
 import com.netflix.titus.runtime.endpoint.authorization.AuthorizationService;
@@ -138,6 +144,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     private final CellDecorator cellDecorator;
     private final AuthorizationService authorizationService;
     private final TitusRuntime titusRuntime;
+    private final SchedulingService schedulingService;
 
     @Inject
     public DefaultJobManagementServiceGrpc(GrpcMasterEndpointConfiguration configuration,
@@ -151,7 +158,8 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
                                            CallMetadataResolver callMetadataResolver,
                                            CellInfoResolver cellInfoResolver,
                                            AuthorizationService authorizationService,
-                                           TitusRuntime titusRuntime) {
+                                           TitusRuntime titusRuntime,
+                                           SchedulingService schedulingService) {
         this.configuration = configuration;
         this.agentManagementService = agentManagementService;
         this.capacityGroupService = capacityGroupService;
@@ -164,6 +172,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
         this.cellDecorator = new CellDecorator(cellInfoResolver::getCellName);
         this.authorizationService = authorizationService;
         this.titusRuntime = titusRuntime;
+        this.schedulingService = schedulingService;
     }
 
     @Override
@@ -303,7 +312,10 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
                     JobManagerCursors::newCoreCursorFrom
             );
 
-            List<Task> grpcTasks = queryResult.getLeft().stream().map(t -> V3GrpcModelConverters.toGrpcTask(t, logStorageInfo)).collect(Collectors.toList());
+            List<Task> grpcTasks = queryResult.getLeft().stream()
+                    .map(t -> V3GrpcModelConverters.toGrpcTask(t, logStorageInfo))
+                    .map(this::addTaskContextToTask)
+                    .collect(Collectors.toList());
 
             TaskQueryResult grpcQueryResult;
             if (taskQuery.getFieldsList().isEmpty()) {
@@ -332,6 +344,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
                         return Observable.just(V3GrpcModelConverters.toGrpcTask(task, logStorageInfo));
                     })
                     .orElseGet(() -> Observable.error(JobManagerException.taskNotFound(id)))
+                    .map(this::addTaskContextToTask)
                     .subscribe(
                             responseObserver::onNext,
                             e -> safeOnError(logger, e, responseObserver),
@@ -345,29 +358,32 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     @Override
     public void updateJobCapacity(JobCapacityUpdate request, StreamObserver<Empty> responseObserver) {
         execute(callMetadataResolver, responseObserver, callMetadata -> {
-            com.netflix.titus.api.jobmanager.model.job.Job<ServiceJobExt> job = jobOperations
-                    .getJob(request.getJobId())
-                    .map(j -> {
-                        if (!JobFunctions.isServiceJob(j)) {
-                            throw JobManagerException.notServiceJob(j.getId());
-                        }
-                        return (com.netflix.titus.api.jobmanager.model.job.Job<ServiceJobExt>) j;
-                    })
-                    .orElseThrow(() -> JobManagerException.jobNotFound(request.getJobId()));
-
-            com.netflix.titus.api.jobmanager.model.job.Capacity newCapacity = V3GrpcModelConverters.toCoreCapacity(request.getCapacity());
-
-            Set<ValidationError> violations = CollectionsExt.merge(
-                    entitySanitizer.validate(newCapacity),
-                    validateCustomJobLimits(JobFunctions.changeServiceJobCapacity(job.getJobDescriptor(), newCapacity))
-            );
-            if (!violations.isEmpty()) {
-                safeOnError(logger, TitusServiceException.invalidArgument(violations), responseObserver);
-                return;
-            }
+            CapacityAttributes capacityAttributes = V3GrpcModelConverters.toCoreCapacityAttributes(request.getCapacity());
+            verifyServiceJob(request.getJobId(), capacityAttributes);
 
             authorizeJobUpdate(callMetadata, request.getJobId())
-                    .concatWith(jobOperations.updateJobCapacityReactor(request.getJobId(), newCapacity, callMetadata))
+                    .concatWith(jobOperations.updateJobCapacityAttributesReactor(request.getJobId(), capacityAttributes, callMetadata))
+                    .subscribe(
+                            nothing -> {
+                            },
+                            e -> safeOnError(logger, e, responseObserver),
+                            () -> {
+                                responseObserver.onNext(Empty.getDefaultInstance());
+                                responseObserver.onCompleted();
+                            }
+                    );
+        });
+    }
+
+    @Override
+    public void updateJobCapacityWithOptionalAttributes(JobCapacityUpdateWithOptionalAttributes request, StreamObserver<Empty> responseObserver) {
+        execute(callMetadataResolver, responseObserver, callMetadata -> {
+            CapacityAttributes capacityAttributes = V3GrpcModelConverters.toCoreCapacityAttributes(request.getJobCapacityWithOptionalAttributes());
+            verifyServiceJob(request.getJobId(), capacityAttributes);
+            logger.info("updateJobCapacityWithOptionalAttributes to {}", capacityAttributes);
+
+            authorizeJobUpdate(callMetadata, request.getJobId())
+                    .concatWith(jobOperations.updateJobCapacityAttributesReactor(request.getJobId(), capacityAttributes, callMetadata))
                     .subscribe(
                             nothing -> {
                             },
@@ -609,6 +625,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
                     snapshot.add(SNAPSHOT_END_MARKER);
                     return snapshot;
                 }))
+                .map(this::addTaskContextToJobChangeNotification)
                 .doOnError(e -> logger.error("Unexpected error in jobs event stream", e));
 
         Subscription subscription = eventStream.subscribe(
@@ -635,6 +652,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
                     snapshot.add(SNAPSHOT_END_MARKER);
                     return snapshot;
                 }))
+                .map(this::addTaskContextToJobChangeNotification)
                 .doOnError(e -> {
                     if (!JobManagerException.isExpected(e)) {
                         logger.error("Unexpected error in job {} event stream", jobId, e);
@@ -797,4 +815,60 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
                 .build();
     }
 
+    private com.netflix.titus.api.jobmanager.model.job.Job<ServiceJobExt> verifyServiceJob(String jobId, CapacityAttributes capacityAttributes) {
+        return jobOperations
+                .getJob(jobId)
+                .map(j -> {
+                    if (!JobFunctions.isServiceJob(j)) {
+                        throw JobManagerException.notServiceJob(j.getId());
+                    } else if (j.getJobDescriptor().getContainer().getContainerResources().getSignedIpAddressAllocations().size() > 0 &&
+                            capacityAttributes.getMax().orElse(0) > j.getJobDescriptor().getContainer().getContainerResources().getSignedIpAddressAllocations().size()) {
+                        throw JobManagerException.invalidMaxCapacity(
+                                j.getId(),
+                                capacityAttributes.getMax().orElse(0),
+                                j.getJobDescriptor().getContainer().getContainerResources().getSignedIpAddressAllocations().size());
+                    }
+                    return (com.netflix.titus.api.jobmanager.model.job.Job<ServiceJobExt>) j;
+                })
+                .orElseThrow(() -> JobManagerException.jobNotFound(jobId));
+    }
+
+    /**
+     * Adds dynamic Task Context to a task that is being returned in a task lookup.
+     */
+    private Task addTaskContextToTask(Task task) {
+        List<TaskPlacementFailure> taskIpAllocationFailures = schedulingService.getLastTaskPlacementFailures()
+                // Get all in use IP allocation failures
+                .getOrDefault(TaskPlacementFailure.FailureKind.WaitingForInUseIpAllocation, Collections.emptyMap())
+                // Get all in use IP allocation failures for this specific task
+                .getOrDefault(task.getId(), Collections.emptyList());
+        for (TaskPlacementFailure inUseIpAllocationFailure : taskIpAllocationFailures) {
+            // Return the first instance of an in use IP allocation failure.
+            if (inUseIpAllocationFailure instanceof InUseIpAllocationConstraintFailure) {
+                return task.toBuilder()
+                        .putTaskContext(TaskAttributes.TASK_ATTRIBUTES_IN_USE_IP_ALLOCATION, ((InUseIpAllocationConstraintFailure) inUseIpAllocationFailure).getInUseTaskId())
+                        .build();
+            } else {
+                // We expect each in use IP allocation failure to be of type InUseIpAllocationConstraintFailure
+                titusRuntime.getCodeInvariants().inconsistent("Found in use IP allocation placement failure not of type {}, instead {}",
+                        InUseIpAllocationConstraintFailure.class.getSimpleName(),
+                        inUseIpAllocationFailure.getClass().getSimpleName());
+            }
+        }
+        return task;
+    }
+
+    /**
+     * Add dynamic task context if this change refers to a Task Update.
+     */
+    private JobChangeNotification addTaskContextToJobChangeNotification(JobChangeNotification jobChangeNotification) {
+        if (jobChangeNotification.hasTaskUpdate()) {
+            return jobChangeNotification.toBuilder()
+                    .setTaskUpdate(jobChangeNotification.getTaskUpdate().toBuilder()
+                            .setTask(addTaskContextToTask(jobChangeNotification.getTaskUpdate().getTask()))
+                            .build()
+                    ).build();
+        }
+        return jobChangeNotification;
+    }
 }

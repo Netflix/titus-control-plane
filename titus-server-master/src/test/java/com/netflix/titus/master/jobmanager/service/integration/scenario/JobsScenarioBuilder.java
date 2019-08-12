@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,6 +37,7 @@ import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
+import com.netflix.titus.common.model.sanitizer.EntitySanitizerBuilder;
 import com.netflix.titus.common.model.sanitizer.VerifierMode;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
@@ -92,7 +93,7 @@ public class JobsScenarioBuilder {
 
     private final List<JobScenarioBuilder<?>> jobScenarioBuilders = new ArrayList<>();
 
-    private final ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer = null;
+    private final ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer = mock(ConstraintEvaluatorTransformer.class);
 
     public JobsScenarioBuilder() {
         when(configuration.getReconcilerActiveTimeoutMs()).thenReturn(RECONCILER_ACTIVE_TIMEOUT_MS);
@@ -105,7 +106,7 @@ public class JobsScenarioBuilder {
         when(configuration.getTaskInKillInitiatedStateTimeoutMs()).thenReturn(KILL_INITIATED_TIMEOUT_MS);
         when(configuration.getTaskRetryerResetTimeMs()).thenReturn(TimeUnit.MINUTES.toMillis(5));
         when(configuration.getTaskKillAttempts()).thenReturn(2L);
-        when(featureActivationConfiguration.isMoveTaskApiEnabled()).thenReturn(true);
+        when(featureActivationConfiguration.isMoveTaskValidationEnabled()).thenReturn(true);
 
         jobStore.events().subscribe(storeEvents);
 
@@ -200,7 +201,8 @@ public class JobsScenarioBuilder {
                 ),
                 jobSubmitLimiter,
                 new ManagementSubsystemInitializer(null, null),
-                titusRuntime
+                titusRuntime,
+                EntitySanitizerBuilder.stdBuilder().build()
         );
         v3JobOperations.enterActiveMode();
 

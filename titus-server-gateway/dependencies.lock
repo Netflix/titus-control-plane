@@ -25,7 +25,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.9.9",
+            "locked": "2.9.9.1",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.github.fge:jackson-coreutils",
@@ -520,8 +520,9 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.9",
+            "locked": "1.13",
             "transitive": [
+                "com.netflix.titus:titus-common",
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:util-codec_2.11"
             ]
@@ -738,13 +739,13 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.9.RELEASE",
+            "locked": "0.8.10.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.2.10.RELEASE",
+            "locked": "3.2.11.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
@@ -1118,13 +1119,13 @@
             ]
         },
         "org.springframework:spring-aop": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-beans": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
                 "org.springframework:spring-context",
@@ -1133,13 +1134,13 @@
             ]
         },
         "org.springframework:spring-context": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "org.springframework:spring-core": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
@@ -1150,26 +1151,26 @@
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-jcl": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
             ]
         },
         "org.springframework:spring-web": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework:spring-webflux"
             ]
         },
         "org.springframework:spring-webflux": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -1225,7 +1226,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.9.9",
+            "locked": "2.9.9.1",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.github.fge:jackson-coreutils",
@@ -1720,8 +1721,9 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.9",
+            "locked": "1.13",
             "transitive": [
+                "com.netflix.titus:titus-common",
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:util-codec_2.11"
             ]
@@ -1938,13 +1940,13 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.9.RELEASE",
+            "locked": "0.8.10.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.2.10.RELEASE",
+            "locked": "3.2.11.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
@@ -2318,13 +2320,13 @@
             ]
         },
         "org.springframework:spring-aop": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-beans": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
                 "org.springframework:spring-context",
@@ -2333,13 +2335,13 @@
             ]
         },
         "org.springframework:spring-context": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "org.springframework:spring-core": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
@@ -2350,26 +2352,26 @@
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-jcl": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
             ]
         },
         "org.springframework:spring-web": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework:spring-webflux"
             ]
         },
         "org.springframework:spring-webflux": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -2425,7 +2427,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.9.9",
+            "locked": "2.9.9.1",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.github.fge:jackson-coreutils",
@@ -2920,8 +2922,9 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.9",
+            "locked": "1.13",
             "transitive": [
+                "com.netflix.titus:titus-common",
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:util-codec_2.11"
             ]
@@ -3138,13 +3141,13 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.9.RELEASE",
+            "locked": "0.8.10.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.2.10.RELEASE",
+            "locked": "3.2.11.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
@@ -3519,13 +3522,13 @@
             ]
         },
         "org.springframework:spring-aop": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-beans": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
                 "org.springframework:spring-context",
@@ -3534,13 +3537,13 @@
             ]
         },
         "org.springframework:spring-context": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "org.springframework:spring-core": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
@@ -3551,26 +3554,26 @@
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-jcl": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
             ]
         },
         "org.springframework:spring-web": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework:spring-webflux"
             ]
         },
         "org.springframework:spring-webflux": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -3689,7 +3692,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.9.9",
+            "locked": "2.9.9.1",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.github.fge:jackson-coreutils",
@@ -4184,8 +4187,9 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.9",
+            "locked": "1.13",
             "transitive": [
+                "com.netflix.titus:titus-common",
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:util-codec_2.11"
             ]
@@ -4402,13 +4406,13 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.9.RELEASE",
+            "locked": "0.8.10.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.2.10.RELEASE",
+            "locked": "3.2.11.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
@@ -4783,13 +4787,13 @@
             ]
         },
         "org.springframework:spring-aop": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-beans": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
                 "org.springframework:spring-context",
@@ -4798,13 +4802,13 @@
             ]
         },
         "org.springframework:spring-context": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "org.springframework:spring-core": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
@@ -4815,26 +4819,26 @@
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-jcl": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
             ]
         },
         "org.springframework:spring-web": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework:spring-webflux"
             ]
         },
         "org.springframework:spring-webflux": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -4890,7 +4894,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.9.9",
+            "locked": "2.9.9.1",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.github.fge:jackson-coreutils",
@@ -5385,8 +5389,9 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.9",
+            "locked": "1.13",
             "transitive": [
+                "com.netflix.titus:titus-common",
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:util-codec_2.11"
             ]
@@ -5603,13 +5608,13 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.9.RELEASE",
+            "locked": "0.8.10.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.2.10.RELEASE",
+            "locked": "3.2.11.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
@@ -5984,13 +5989,13 @@
             ]
         },
         "org.springframework:spring-aop": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-beans": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
                 "org.springframework:spring-context",
@@ -5999,13 +6004,13 @@
             ]
         },
         "org.springframework:spring-context": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "org.springframework:spring-core": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
@@ -6016,26 +6021,26 @@
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-jcl": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
             ]
         },
         "org.springframework:spring-web": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework:spring-webflux"
             ]
         },
         "org.springframework:spring-webflux": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -6143,7 +6148,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.9.9",
+            "locked": "2.9.9.1",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
@@ -6896,8 +6901,9 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.11",
+            "locked": "1.13",
             "transitive": [
+                "com.netflix.titus:titus-common",
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:util-codec_2.11",
                 "io.kubernetes:client-java",
@@ -6996,19 +7002,19 @@
             ]
         },
         "io.kubernetes:client-java": {
-            "locked": "4.0.0",
+            "locked": "5.0.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
         },
         "io.kubernetes:client-java-api": {
-            "locked": "4.0.0",
+            "locked": "5.0.0",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
         },
         "io.kubernetes:client-java-proto": {
-            "locked": "4.0.0",
+            "locked": "5.0.0",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -7158,14 +7164,14 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.9.RELEASE",
+            "locked": "0.8.10.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-reactor-netty"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.2.10.RELEASE",
+            "locked": "3.2.11.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-testkit",
@@ -7193,25 +7199,25 @@
             ]
         },
         "io.sundr:builder-annotations": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.kubernetes:client-java-api"
             ]
         },
         "io.sundr:resourcecify-annotations": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-codegen": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-core": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
@@ -7525,7 +7531,7 @@
             ]
         },
         "org.bouncycastle:bcpkix-jdk15on": {
-            "locked": "1.59",
+            "locked": "1.61",
             "transitive": [
                 "io.kubernetes:client-java",
                 "org.bouncycastle:bcmail-jdk15on",
@@ -7533,7 +7539,7 @@
             ]
         },
         "org.bouncycastle:bcprov-ext-jdk15on": {
-            "locked": "1.59",
+            "locked": "1.61",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -7992,14 +7998,14 @@
             ]
         },
         "org.springframework:spring-aop": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
         },
         "org.springframework:spring-beans": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
                 "org.springframework:spring-context",
@@ -8009,7 +8015,7 @@
             ]
         },
         "org.springframework:spring-context": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot",
@@ -8017,7 +8023,7 @@
             ]
         },
         "org.springframework:spring-core": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot",
                 "org.springframework.boot:spring-boot-starter",
@@ -8031,7 +8037,7 @@
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework:spring-context",
@@ -8039,13 +8045,13 @@
             ]
         },
         "org.springframework:spring-jcl": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
             ]
         },
         "org.springframework:spring-web": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-web",
@@ -8055,7 +8061,7 @@
             ]
         },
         "org.springframework:spring-webflux": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-webflux"
@@ -8194,7 +8200,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.9.9",
+            "locked": "2.9.9.1",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
@@ -8947,8 +8953,9 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.11",
+            "locked": "1.13",
             "transitive": [
+                "com.netflix.titus:titus-common",
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:util-codec_2.11",
                 "io.kubernetes:client-java",
@@ -9047,19 +9054,19 @@
             ]
         },
         "io.kubernetes:client-java": {
-            "locked": "4.0.0",
+            "locked": "5.0.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
         },
         "io.kubernetes:client-java-api": {
-            "locked": "4.0.0",
+            "locked": "5.0.0",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
         },
         "io.kubernetes:client-java-proto": {
-            "locked": "4.0.0",
+            "locked": "5.0.0",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -9209,14 +9216,14 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.9.RELEASE",
+            "locked": "0.8.10.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-reactor-netty"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.2.10.RELEASE",
+            "locked": "3.2.11.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-testkit",
@@ -9244,25 +9251,25 @@
             ]
         },
         "io.sundr:builder-annotations": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.kubernetes:client-java-api"
             ]
         },
         "io.sundr:resourcecify-annotations": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-codegen": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-core": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
@@ -9576,7 +9583,7 @@
             ]
         },
         "org.bouncycastle:bcpkix-jdk15on": {
-            "locked": "1.59",
+            "locked": "1.61",
             "transitive": [
                 "io.kubernetes:client-java",
                 "org.bouncycastle:bcmail-jdk15on",
@@ -9584,7 +9591,7 @@
             ]
         },
         "org.bouncycastle:bcprov-ext-jdk15on": {
-            "locked": "1.59",
+            "locked": "1.61",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -10043,14 +10050,14 @@
             ]
         },
         "org.springframework:spring-aop": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
         },
         "org.springframework:spring-beans": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
                 "org.springframework:spring-context",
@@ -10060,7 +10067,7 @@
             ]
         },
         "org.springframework:spring-context": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot",
@@ -10068,7 +10075,7 @@
             ]
         },
         "org.springframework:spring-core": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot",
                 "org.springframework.boot:spring-boot-starter",
@@ -10082,7 +10089,7 @@
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework:spring-context",
@@ -10090,13 +10097,13 @@
             ]
         },
         "org.springframework:spring-jcl": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
             ]
         },
         "org.springframework:spring-web": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-web",
@@ -10106,7 +10113,7 @@
             ]
         },
         "org.springframework:spring-webflux": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-webflux"
@@ -10245,7 +10252,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.9.9",
+            "locked": "2.9.9.1",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
@@ -10998,8 +11005,9 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.11",
+            "locked": "1.13",
             "transitive": [
+                "com.netflix.titus:titus-common",
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:util-codec_2.11",
                 "io.kubernetes:client-java",
@@ -11098,19 +11106,19 @@
             ]
         },
         "io.kubernetes:client-java": {
-            "locked": "4.0.0",
+            "locked": "5.0.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
         },
         "io.kubernetes:client-java-api": {
-            "locked": "4.0.0",
+            "locked": "5.0.0",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
         },
         "io.kubernetes:client-java-proto": {
-            "locked": "4.0.0",
+            "locked": "5.0.0",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -11260,14 +11268,14 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.9.RELEASE",
+            "locked": "0.8.10.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-reactor-netty"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.2.10.RELEASE",
+            "locked": "3.2.11.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-testkit",
@@ -11295,25 +11303,25 @@
             ]
         },
         "io.sundr:builder-annotations": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.kubernetes:client-java-api"
             ]
         },
         "io.sundr:resourcecify-annotations": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-codegen": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-core": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
@@ -11627,7 +11635,7 @@
             ]
         },
         "org.bouncycastle:bcpkix-jdk15on": {
-            "locked": "1.59",
+            "locked": "1.61",
             "transitive": [
                 "io.kubernetes:client-java",
                 "org.bouncycastle:bcmail-jdk15on",
@@ -11635,7 +11643,7 @@
             ]
         },
         "org.bouncycastle:bcprov-ext-jdk15on": {
-            "locked": "1.59",
+            "locked": "1.61",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -12095,14 +12103,14 @@
             ]
         },
         "org.springframework:spring-aop": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
         },
         "org.springframework:spring-beans": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
                 "org.springframework:spring-context",
@@ -12112,7 +12120,7 @@
             ]
         },
         "org.springframework:spring-context": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot",
@@ -12120,7 +12128,7 @@
             ]
         },
         "org.springframework:spring-core": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot",
                 "org.springframework.boot:spring-boot-starter",
@@ -12134,7 +12142,7 @@
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework:spring-context",
@@ -12142,13 +12150,13 @@
             ]
         },
         "org.springframework:spring-jcl": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
             ]
         },
         "org.springframework:spring-web": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-web",
@@ -12158,7 +12166,7 @@
             ]
         },
         "org.springframework:spring-webflux": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-webflux"
@@ -12297,7 +12305,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.9.9",
+            "locked": "2.9.9.1",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
@@ -13050,8 +13058,9 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.11",
+            "locked": "1.13",
             "transitive": [
+                "com.netflix.titus:titus-common",
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:util-codec_2.11",
                 "io.kubernetes:client-java",
@@ -13150,19 +13159,19 @@
             ]
         },
         "io.kubernetes:client-java": {
-            "locked": "4.0.0",
+            "locked": "5.0.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
         },
         "io.kubernetes:client-java-api": {
-            "locked": "4.0.0",
+            "locked": "5.0.0",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
         },
         "io.kubernetes:client-java-proto": {
-            "locked": "4.0.0",
+            "locked": "5.0.0",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -13312,14 +13321,14 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.9.RELEASE",
+            "locked": "0.8.10.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-reactor-netty"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.2.10.RELEASE",
+            "locked": "3.2.11.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-testkit",
@@ -13347,25 +13356,25 @@
             ]
         },
         "io.sundr:builder-annotations": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.kubernetes:client-java-api"
             ]
         },
         "io.sundr:resourcecify-annotations": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-codegen": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-core": {
-            "locked": "0.9.2",
+            "locked": "0.18.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
@@ -13679,7 +13688,7 @@
             ]
         },
         "org.bouncycastle:bcpkix-jdk15on": {
-            "locked": "1.59",
+            "locked": "1.61",
             "transitive": [
                 "io.kubernetes:client-java",
                 "org.bouncycastle:bcmail-jdk15on",
@@ -13687,7 +13696,7 @@
             ]
         },
         "org.bouncycastle:bcprov-ext-jdk15on": {
-            "locked": "1.59",
+            "locked": "1.61",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -14147,14 +14156,14 @@
             ]
         },
         "org.springframework:spring-aop": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
         },
         "org.springframework:spring-beans": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
                 "org.springframework:spring-context",
@@ -14164,7 +14173,7 @@
             ]
         },
         "org.springframework:spring-context": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot",
@@ -14172,7 +14181,7 @@
             ]
         },
         "org.springframework:spring-core": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot",
                 "org.springframework.boot:spring-boot-starter",
@@ -14186,7 +14195,7 @@
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework:spring-context",
@@ -14194,13 +14203,13 @@
             ]
         },
         "org.springframework:spring-jcl": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
             ]
         },
         "org.springframework:spring-web": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-web",
@@ -14210,7 +14219,7 @@
             ]
         },
         "org.springframework:spring-webflux": {
-            "locked": "5.1.8.RELEASE",
+            "locked": "5.1.9.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-webflux"

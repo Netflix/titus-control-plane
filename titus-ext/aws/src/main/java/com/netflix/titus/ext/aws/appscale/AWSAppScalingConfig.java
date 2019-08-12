@@ -27,5 +27,8 @@ public interface AWSAppScalingConfig {
 
     @PropertyName(name = "aws.gateway.api.prefix")
     String getAWSGatewayEndpointPrefix();
+
+    @PropertyName(name = "aws.gateway.api.stage")
+    String getAWSGatewayEndpointTargetStage();
 }
 

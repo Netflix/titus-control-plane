@@ -36,6 +36,7 @@ import com.google.common.base.Preconditions;
 import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
+import com.netflix.titus.api.jobmanager.model.job.CapacityAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
@@ -57,6 +58,7 @@ import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import com.netflix.titus.master.jobmanager.service.integration.scenario.StubbedJobStore.StoreEvent;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
+import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import com.netflix.titus.testkit.rx.ExtTestSubscriber;
 import com.netflix.titus.testkit.rx.TitusRxSubscriber;
 import rx.Subscriber;
@@ -200,10 +202,9 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
 
     public JobScenarioBuilder<E> changeCapacity(Capacity newCapacity) {
         ExtTestSubscriber<Void> subscriber = new ExtTestSubscriber<>();
-        jobOperations.updateJobCapacity(jobId, newCapacity, callMetadata).subscribe(subscriber);
-
+        CapacityAttributes capacityAttributes = JobModel.newCapacityAttributes(newCapacity).build();
+        jobOperations.updateJobCapacityAttributes(jobId, capacityAttributes, callMetadata).subscribe(subscriber);
         autoAdvanceUntilSuccessful(() -> checkOperationSubscriberAndThrowExceptionIfError(subscriber));
-
         return this;
     }
 

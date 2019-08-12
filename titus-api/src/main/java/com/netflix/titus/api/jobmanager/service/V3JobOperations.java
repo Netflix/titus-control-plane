@@ -23,6 +23,7 @@ import java.util.function.Function;
 
 import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
+import com.netflix.titus.api.jobmanager.model.job.CapacityAttributes;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import com.netflix.titus.api.jobmanager.model.job.Task;
@@ -55,12 +56,12 @@ public interface V3JobOperations extends ReadOnlyJobOperations {
     }
 
     /**
-     * @deprecated Use {@link #updateJobCapacityReactor(String, Capacity, CallMetadata)}
+     * @deprecated Use {@link #updateJobCapacityAttributesReactor(String, CapacityAttributes, CallMetadata)}
      */
-    Observable<Void> updateJobCapacity(String jobId, Capacity capacity, CallMetadata callMetadata);
+    Observable<Void> updateJobCapacityAttributes(String jobId, CapacityAttributes capacityAttributes, CallMetadata callMetadata);
 
-    default Mono<Void> updateJobCapacityReactor(String jobId, Capacity capacity, CallMetadata callMetadata) {
-        return ReactorExt.toMono(updateJobCapacity(jobId, capacity, callMetadata));
+    default Mono<Void> updateJobCapacityAttributesReactor(String jobId, CapacityAttributes capacityAttributes, CallMetadata callMetadata) {
+        return ReactorExt.toMono(updateJobCapacityAttributes(jobId, capacityAttributes, callMetadata));
     }
 
     /**

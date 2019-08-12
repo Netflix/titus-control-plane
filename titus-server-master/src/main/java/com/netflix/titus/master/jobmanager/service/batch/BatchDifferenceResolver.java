@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -64,6 +65,8 @@ import rx.Scheduler;
 import rx.schedulers.Schedulers;
 
 import static com.netflix.titus.master.jobmanager.service.batch.action.CreateOrReplaceBatchTaskActions.createOrReplaceTaskAction;
+import static com.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils.getTaskContext;
+import static com.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils.getUnassignedIpAllocations;
 
 @Singleton
 public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceResolver<JobManagerReconcilerEvent> {
@@ -182,13 +185,14 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
      */
     private List<ChangeAction> findJobSizeInconsistencies(BatchJobView refJobView, EntityHolder storeModel, AtomicInteger allowedNewTasks) {
         boolean canUpdateStore = storeWriteRetryInterceptor.executionLimits(storeModel);
+        Set<String> unassignedIpAllocations = getUnassignedIpAllocations(refJobView);
         if (canUpdateStore && refJobView.getTasks().size() < refJobView.getRequiredSize()) {
             List<ChangeAction> missingTasks = new ArrayList<>();
             for (int i = 0; i < refJobView.getRequiredSize() && allowedNewTasks.get() > 0; i++) {
                 if (!refJobView.getIndexes().contains(i)) {
                     allowedNewTasks.decrementAndGet();
                     logger.info("Adding missing task: jobId={}, index={}, requiredSize={}, currentSize={}", refJobView.getJob().getId(), i, refJobView.getRequiredSize(), refJobView.getTasks().size());
-                    createNewTaskAction(refJobView, i).ifPresent(missingTasks::add);
+                    createNewTaskAction(refJobView, i, Optional.empty(), unassignedIpAllocations).ifPresent(missingTasks::add);
                 }
             }
             return missingTasks;
@@ -196,7 +200,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
         return Collections.emptyList();
     }
 
-    private Optional<TitusChangeAction> createNewTaskAction(BatchJobView refJobView, int taskIndex) {
+    private Optional<TitusChangeAction> createNewTaskAction(BatchJobView refJobView, int taskIndex, Optional<EntityHolder> previousTask, Set<String> unassignedIpAllocations) {
         // Safety check
         long numberOfNotFinishedTasks = refJobView.getJobHolder().getChildren().stream()
                 .filter(holder -> TaskState.isRunning(((Task) holder.getEntity()).getStatus().getState()))
@@ -209,8 +213,9 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
             return Optional.empty();
         }
 
+        Map<String, String> taskContext = getTaskContext(previousTask, unassignedIpAllocations);
         TitusChangeAction storeAction = storeWriteRetryInterceptor.apply(
-                createOrReplaceTaskAction(configuration, jobStore, refJobView.getJobHolder(), taskIndex, clock)
+                createOrReplaceTaskAction(configuration, jobStore, refJobView.getJobHolder(), taskIndex, clock, taskContext)
         );
         return Optional.of(storeAction);
     }
@@ -263,7 +268,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
                 BatchJobTask storeTask = storeHolder.get().getEntity();
                 if (shouldRetry && TaskRetryers.shouldRetryNow(referenceTask, clock)) {
                     logger.info("Retrying task: oldTaskId={}, index={}", referenceTask.getId(), storeTask.getIndex());
-                    createNewTaskAction(refJobView, storeTask.getIndex()).ifPresent(actions::add);
+                    createNewTaskAction(refJobView, storeTask.getIndex(), Optional.of(referenceTask), Collections.emptySet()).ifPresent(actions::add);
                 }
             } else {
                 Task task = referenceTask.getEntity();

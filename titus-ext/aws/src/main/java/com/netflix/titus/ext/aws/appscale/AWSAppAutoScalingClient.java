@@ -98,7 +98,7 @@ public class AWSAppAutoScalingClient implements AppAutoScalingClient {
         registerScalableTargetRequest.setResourceId(AWSAppAutoScalingUtil.buildGatewayResourceId(jobId,
                 awsAppScalingConfig.getAWSGatewayEndpointPrefix(),
                 awsAppScalingConfig.getRegion(),
-                awsAppScalingConfig.getStack()));
+                awsAppScalingConfig.getAWSGatewayEndpointTargetStage()));
         registerScalableTargetRequest.setServiceNamespace(SERVICE_NAMESPACE);
         registerScalableTargetRequest.setScalableDimension(SCALABLE_DIMENSION);
         logger.info("RegisterScalableTargetRequest {}", registerScalableTargetRequest);
@@ -131,7 +131,7 @@ public class AWSAppAutoScalingClient implements AppAutoScalingClient {
                 AWSAppAutoScalingUtil.buildGatewayResourceId(jobId,
                         awsAppScalingConfig.getAWSGatewayEndpointPrefix(),
                         awsAppScalingConfig.getRegion(),
-                        awsAppScalingConfig.getStack())));
+                        awsAppScalingConfig.getAWSGatewayEndpointTargetStage())));
 
         return RetryWrapper.wrapWithExponentialRetry(String.format("getScalableTargetsForJob for job %s", jobId),
                 Observable.create(emitter -> awsAppAutoScalingClientAsync.describeScalableTargetsAsync(describeScalableTargetsRequest,
@@ -166,7 +166,7 @@ public class AWSAppAutoScalingClient implements AppAutoScalingClient {
                 AWSAppAutoScalingUtil.buildGatewayResourceId(jobId,
                         awsAppScalingConfig.getAWSGatewayEndpointPrefix(),
                         awsAppScalingConfig.getRegion(),
-                        awsAppScalingConfig.getStack()));
+                        awsAppScalingConfig.getAWSGatewayEndpointTargetStage()));
         putScalingPolicyRequest.setServiceNamespace(SERVICE_NAMESPACE);
         putScalingPolicyRequest.setScalableDimension(SCALABLE_DIMENSION);
 
@@ -275,7 +275,7 @@ public class AWSAppAutoScalingClient implements AppAutoScalingClient {
                 AWSAppAutoScalingUtil.buildGatewayResourceId(jobId,
                         awsAppScalingConfig.getAWSGatewayEndpointPrefix(),
                         awsAppScalingConfig.getRegion(),
-                        awsAppScalingConfig.getStack()));
+                        awsAppScalingConfig.getAWSGatewayEndpointTargetStage()));
         deRegisterRequest.setServiceNamespace(SERVICE_NAMESPACE);
         deRegisterRequest.setScalableDimension(SCALABLE_DIMENSION);
 
@@ -310,7 +310,7 @@ public class AWSAppAutoScalingClient implements AppAutoScalingClient {
                 AWSAppAutoScalingUtil.buildGatewayResourceId(jobId,
                         awsAppScalingConfig.getAWSGatewayEndpointPrefix(),
                         awsAppScalingConfig.getRegion(),
-                        awsAppScalingConfig.getStack()));
+                        awsAppScalingConfig.getAWSGatewayEndpointTargetStage()));
         deleteScalingPolicyRequest.setServiceNamespace(SERVICE_NAMESPACE);
         deleteScalingPolicyRequest.setScalableDimension(SCALABLE_DIMENSION);
         deleteScalingPolicyRequest.setPolicyName(buildScalingPolicyName(policyRefId, jobId));

@@ -127,7 +127,8 @@ class TaskPlacementRecorder {
 
         Optional<Pair<Job<?>, Task>> v3JobAndTask = v3JobOperations.findTaskById(fenzoTask.getId());
         if (!v3JobAndTask.isPresent()) {
-            removeUnknownTask(assignmentResult, fenzoTask);
+            logger.warn("Rejecting assignment and removing task after not finding jobMgr for task: {}", fenzoTask.getId());
+            removeTask(assignmentResult, fenzoTask);
             return Observable.empty();
         }
 
@@ -155,8 +156,9 @@ class TaskPlacementRecorder {
             ).onErrorResumeNext(error -> {
                 Throwable recordTaskError = (Throwable) error; // Type inference issue
                 if (JobManagerException.hasErrorCode(recordTaskError, JobManagerException.ErrorCode.UnexpectedTaskState)) {
-                    // TODO More checking here. If it is actually running, we should kill it
-                    logger.info("Not launching task, as it is no longer in Accepted state (probably killed): {}", v3Task.getId());
+                    logger.info("Not launching task: {} with state: {} and removing from fenzo as it is no longer in Accepted state (probably killed)",
+                            v3Task.getId(), v3Task.getStatus().getState());
+                    removeTask(assignmentResult, fenzoTask);
                 } else {
                     if (error instanceof TimeoutException) {
                         logger.error("Timed out during writing task {} (job {}) status update to the store", fenzoTask.getId(), v3Job.getId());
@@ -197,10 +199,8 @@ class TaskPlacementRecorder {
         );
     }
 
-    private void removeUnknownTask(TaskAssignmentResult assignmentResult, TitusQueuableTask task) {
+    private void removeTask(TaskAssignmentResult assignmentResult, TitusQueuableTask task) {
         try {
-            // job must have been terminated, remove task from Fenzo
-            logger.warn("Rejecting assignment and removing task after not finding jobMgr for task: {}", task.getId());
             schedulingService.removeTask(task.getId(), task.getQAttributes(), assignmentResult.getHostname());
         } catch (Exception e) {
             logger.warn("Unexpected error when removing task from the Fenzo queue", e);

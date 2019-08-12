@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -67,7 +67,7 @@ public interface SchedulingService {
     Observable<SchedulingResultEvent> observeSchedulingResults(String taskId);
 
     /**
-     * Returns the last known task placement failures grouped by a failure kind.
+     * Returns the last known task placement failures grouped by a failure kind and task id.
      */
-    Map<FailureKind, List<TaskPlacementFailure>> getLastTaskPlacementFailures();
+    Map<FailureKind, Map<String, List<TaskPlacementFailure>>> getLastTaskPlacementFailures();
 }

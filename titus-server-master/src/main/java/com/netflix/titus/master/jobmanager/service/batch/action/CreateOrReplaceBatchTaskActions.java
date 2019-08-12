@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package com.netflix.titus.master.jobmanager.service.batch.action;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
@@ -26,6 +27,7 @@ import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
+import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
 import com.netflix.titus.api.jobmanager.store.JobStore;
 import com.netflix.titus.common.framework.reconciler.EntityHolder;
@@ -33,7 +35,6 @@ import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import com.netflix.titus.common.util.retry.Retryer;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
-import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.master.jobmanager.service.common.action.TaskRetryers;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
@@ -44,20 +45,25 @@ import rx.Observable;
  */
 public class CreateOrReplaceBatchTaskActions {
 
-    public static TitusChangeAction createOrReplaceTaskAction(JobManagerConfiguration configuration, JobStore jobStore, EntityHolder jobHolder, int index, Clock clock) {
+    public static TitusChangeAction createOrReplaceTaskAction(JobManagerConfiguration configuration,
+                                                              JobStore jobStore,
+                                                              EntityHolder jobHolder,
+                                                              int index,
+                                                              Clock clock,
+                                                              Map<String, String> taskContext) {
         return jobHolder.getChildren().stream()
                 .filter(taskHolder -> {
                     BatchJobTask task = taskHolder.getEntity();
                     return task.getIndex() == index;
                 })
                 .findFirst()
-                .map(taskHolder -> createResubmittedTaskChangeAction(jobHolder, taskHolder, configuration, jobStore, clock))
-                .orElseGet(() -> createOriginalTaskChangeAction(jobHolder.getEntity(), index, jobStore, clock));
+                .map(taskHolder -> createResubmittedTaskChangeAction(jobHolder, taskHolder, configuration, jobStore, clock, taskContext))
+                .orElseGet(() -> createOriginalTaskChangeAction(jobHolder.getEntity(), index, jobStore, clock, taskContext));
     }
 
-    private static TitusChangeAction createOriginalTaskChangeAction(Job<BatchJobExt> job, int index, JobStore jobStore, Clock clock) {
+    private static TitusChangeAction createOriginalTaskChangeAction(Job<BatchJobExt> job, int index, JobStore jobStore, Clock clock, Map<String, String> taskContext) {
         Retryer newRetryer = JobFunctions.retryer(job);
-        BatchJobTask newTask = createNewBatchTask(job, index, clock.wallTime());
+        BatchJobTask newTask = createNewBatchTask(job, index, clock.wallTime(), taskContext);
 
         return TitusChangeAction.newAction("createOrReplaceTask")
                 .id(newTask.getId())
@@ -68,13 +74,18 @@ public class CreateOrReplaceBatchTaskActions {
                 .changeWithModelUpdates(self -> jobStore.storeTask(newTask).andThen(Observable.just(createNewTaskModelAction(self, newTask, newRetryer))));
     }
 
-    private static TitusChangeAction createResubmittedTaskChangeAction(EntityHolder jobHolder, EntityHolder taskHolder, JobManagerConfiguration configuration, JobStore jobStore, Clock clock) {
+    private static TitusChangeAction createResubmittedTaskChangeAction(EntityHolder jobHolder,
+                                                                       EntityHolder taskHolder,
+                                                                       JobManagerConfiguration configuration,
+                                                                       JobStore jobStore,
+                                                                       Clock clock,
+                                                                       Map<String, String> taskContext) {
         BatchJobTask oldTask = taskHolder.getEntity();
         long timeInStartedState = JobFunctions.getTimeInState(oldTask, TaskState.Started, clock).orElse(0L);
         Retryer nextTaskRetryer = timeInStartedState >= configuration.getTaskRetryerResetTimeMs()
                 ? JobFunctions.retryer(jobHolder.getEntity())
                 : TaskRetryers.getNextTaskRetryer(jobHolder.getEntity(), taskHolder);
-        BatchJobTask newTask = createBatchTaskReplacement(oldTask, clock);
+        BatchJobTask newTask = createBatchTaskReplacement(oldTask, clock, taskContext);
 
         String summary = String.format(
                 "Replacing task at index %d (resubmit=%d) in DB store: old=%s, new=%s",
@@ -118,7 +129,7 @@ public class CreateOrReplaceBatchTaskActions {
         return actions;
     }
 
-    private static BatchJobTask createNewBatchTask(Job<?> job, int index, long timestamp) {
+    private static BatchJobTask createNewBatchTask(Job<?> job, int index, long timestamp, Map<String, String> taskContext) {
         String taskId = UUID.randomUUID().toString();
         return BatchJobTask.newBuilder()
                 .withId(taskId)
@@ -127,10 +138,11 @@ public class CreateOrReplaceBatchTaskActions {
                 .withStatus(TaskStatus.newBuilder().withState(TaskState.Accepted).withTimestamp(timestamp).build())
                 .withOriginalId(taskId)
                 .withCellInfo(job)
+                .addAllToTaskContext(taskContext)
                 .build();
     }
 
-    private static BatchJobTask createBatchTaskReplacement(BatchJobTask oldTask, Clock clock) {
+    private static BatchJobTask createBatchTaskReplacement(BatchJobTask oldTask, Clock clock, Map<String, String> taskContext) {
         String taskId = UUID.randomUUID().toString();
         return BatchJobTask.newBuilder()
                 .withId(taskId)
@@ -143,6 +155,7 @@ public class CreateOrReplaceBatchTaskActions {
                 .withResubmitNumber(oldTask.getResubmitNumber() + 1)
                 .withSystemResubmitNumber(TaskStatus.isSystemError(oldTask.getStatus()) ? oldTask.getSystemResubmitNumber() + 1 : oldTask.getSystemResubmitNumber())
                 .withEvictionResubmitNumber(TaskStatus.isEvicted(oldTask) ? oldTask.getEvictionResubmitNumber() + 1 : oldTask.getEvictionResubmitNumber())
+                .addAllToTaskContext(taskContext)
                 .build();
     }
 }

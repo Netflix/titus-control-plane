@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,6 +47,7 @@ public class JobManagerException extends RuntimeException {
         TaskTerminating,
         InvalidContainerResources,
         InvalidDesiredCapacity,
+        InvalidMaxCapacity,
         BelowMinCapacity,
         AboveMaxCapacity,
         SameJobIds,
@@ -90,6 +91,7 @@ public class JobManagerException extends RuntimeException {
             case TaskTerminating:
             case InvalidContainerResources:
             case InvalidDesiredCapacity:
+            case InvalidMaxCapacity:
             case BelowMinCapacity:
             case AboveMaxCapacity:
             case SameJobIds:
@@ -179,6 +181,14 @@ public class JobManagerException extends RuntimeException {
                 ErrorCode.InvalidDesiredCapacity,
                 format("Job %s can not be updated to desired capacity of %s, disableIncreaseDesired %s, disableDecreaseDesired %s",
                         jobId, targetDesired, serviceJobProcesses.isDisableIncreaseDesired(), serviceJobProcesses.isDisableDecreaseDesired())
+        );
+    }
+
+    public static JobManagerException invalidMaxCapacity(String jobId, int targetMax, int ipAllocations) {
+        return new JobManagerException(
+                ErrorCode.InvalidMaxCapacity,
+                format("Job %s can not be updated to max capacity of %d due to only %d IP allocations",
+                        jobId, targetMax, ipAllocations)
         );
     }
 

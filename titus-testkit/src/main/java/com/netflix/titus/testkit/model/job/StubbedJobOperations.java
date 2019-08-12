@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 
 import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
+import com.netflix.titus.api.jobmanager.model.job.CapacityAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
@@ -148,8 +149,8 @@ class StubbedJobOperations implements V3JobOperations {
     }
 
     @Override
-    public Observable<Void> updateJobCapacity(String jobId, Capacity capacity, CallMetadata callMetadata) {
-        return updateServiceJob(jobId, job -> changeServiceJobCapacity(job, capacity));
+    public Observable<Void> updateJobCapacityAttributes(String jobId, CapacityAttributes capacityAttributes, CallMetadata callMetadata) {
+        return updateServiceJob(jobId, job -> changeServiceJobCapacity(job, capacityAttributes));
     }
 
     @Override

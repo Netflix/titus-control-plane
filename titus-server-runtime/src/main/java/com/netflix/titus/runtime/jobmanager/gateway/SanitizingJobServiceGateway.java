@@ -17,51 +17,78 @@
 package com.netflix.titus.runtime.jobmanager.gateway;
 
 import java.util.Set;
-import javax.inject.Named;
+import java.util.stream.Collectors;
 
 import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
+import com.netflix.titus.api.jobmanager.model.job.CapacityAttributes;
+import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.model.sanitizer.ValidationError;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
+import com.netflix.titus.grpc.protogen.JobCapacityUpdateWithOptionalAttributes;
+import com.netflix.titus.grpc.protogen.JobCapacityWithOptionalAttributes;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
+import com.netflix.titus.runtime.endpoint.admission.AdmissionSanitizer;
+import com.netflix.titus.runtime.endpoint.admission.AdmissionValidator;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
+import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
 
-import static com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_STRICT_SANITIZER;
+import static com.netflix.titus.common.util.rx.ReactorExt.toObservable;
 
 public class SanitizingJobServiceGateway extends JobServiceGatewayDelegate {
 
     private final JobServiceGateway delegate;
     private final EntitySanitizer entitySanitizer;
+    private final AdmissionValidator<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> admissionValidator;
+    private final AdmissionSanitizer<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> admissionSanitizer;
 
     public SanitizingJobServiceGateway(JobServiceGateway delegate,
-                                       @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer) {
+                                       EntitySanitizer entitySanitizer,
+                                       AdmissionValidator<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> validator,
+                                       AdmissionSanitizer<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> sanitizer) {
         super(delegate);
         this.delegate = delegate;
         this.entitySanitizer = entitySanitizer;
+        this.admissionValidator = validator;
+        this.admissionSanitizer = sanitizer;
     }
 
     @Override
     public Observable<String> createJob(JobDescriptor jobDescriptor, CallMetadata callMetadata) {
         com.netflix.titus.api.jobmanager.model.job.JobDescriptor coreJobDescriptor;
         try {
-            coreJobDescriptor = V3GrpcModelConverters.toCoreJobDescriptor(jobDescriptor);
+            coreJobDescriptor = JobFunctions.filterOutSanitizationAttributes(V3GrpcModelConverters.toCoreJobDescriptor(jobDescriptor));
         } catch (Exception e) {
             return Observable.error(TitusServiceException.invalidArgument(e));
         }
-        com.netflix.titus.api.jobmanager.model.job.JobDescriptor sanitizedCoreJobDescriptor = entitySanitizer.sanitize(coreJobDescriptor).orElse(coreJobDescriptor);
 
+        // basic entity validations based on class/field constraints
+        com.netflix.titus.api.jobmanager.model.job.JobDescriptor sanitizedCoreJobDescriptor = entitySanitizer.sanitize(coreJobDescriptor).orElse(coreJobDescriptor);
         Set<ValidationError> violations = entitySanitizer.validate(sanitizedCoreJobDescriptor);
         if (!violations.isEmpty()) {
             return Observable.error(TitusServiceException.invalidArgument(violations));
         }
 
-        JobDescriptor effectiveJobDescriptor = V3GrpcModelConverters.toGrpcJobDescriptor(sanitizedCoreJobDescriptor);
-
-        return delegate.createJob(effectiveJobDescriptor, callMetadata);
+        // validations that need external data
+        return toObservable(admissionSanitizer.sanitizeAndApply(sanitizedCoreJobDescriptor)
+                .switchIfEmpty(Mono.just(sanitizedCoreJobDescriptor)))
+                .onErrorResumeNext(throwable -> Observable.error(TitusServiceException.invalidArgument(throwable)))
+                .flatMap(jd -> toObservable(admissionValidator.validate(jd))
+                        .flatMap(errors -> {
+                            // Only emit an error on HARD validation errors
+                            errors = errors.stream().filter(ValidationError::isHard).collect(Collectors.toSet());
+                            if (!errors.isEmpty()) {
+                                return Observable.error(TitusServiceException.invalidJob(errors));
+                            } else {
+                                return Observable.just(jd);
+                            }
+                        })
+                )
+                .flatMap(jd -> delegate.createJob(V3GrpcModelConverters.toGrpcJobDescriptor(jd), callMetadata));
     }
 
     @Override
@@ -72,5 +99,16 @@ public class SanitizingJobServiceGateway extends JobServiceGatewayDelegate {
             return Completable.error(TitusServiceException.invalidArgument(violations));
         }
         return delegate.updateJobCapacity(jobCapacityUpdate);
+    }
+
+    @Override
+    public Completable updateJobCapacityWithOptionalAttributes(JobCapacityUpdateWithOptionalAttributes jobCapacityUpdateWithOptionalAttributes) {
+        final JobCapacityWithOptionalAttributes jobCapacityWithOptionalAttributes = jobCapacityUpdateWithOptionalAttributes.getJobCapacityWithOptionalAttributes();
+        CapacityAttributes capacityAttributes = V3GrpcModelConverters.toCoreCapacityAttributes(jobCapacityWithOptionalAttributes);
+        Set<ValidationError> violations = entitySanitizer.validate(capacityAttributes);
+        if (!violations.isEmpty()) {
+            return Completable.error(TitusServiceException.invalidArgument(violations));
+        }
+        return delegate.updateJobCapacityWithOptionalAttributes(jobCapacityUpdateWithOptionalAttributes);
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -79,11 +79,13 @@ import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.config.MasterConfiguration;
 import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import com.netflix.titus.master.mesos.LeaseRescindedEvent;
+import com.netflix.titus.master.mesos.MesosConfiguration;
 import com.netflix.titus.master.mesos.TaskInfoFactory;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.model.job.TitusQueuableTask;
 import com.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
 import com.netflix.titus.master.scheduler.constraint.TaskCache;
+import com.netflix.titus.master.scheduler.constraint.TaskCacheEventListener;
 import com.netflix.titus.master.scheduler.fitness.AgentManagementFitnessCalculator;
 import com.netflix.titus.master.scheduler.fitness.TitusFitnessCalculator;
 import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCache;
@@ -119,6 +121,7 @@ public class DefaultSchedulingService implements SchedulingService {
     private final V3JobOperations v3JobOperations;
     private final VMOperations vmOps;
     private final Optional<FitInjection> fitInjection;
+    private final MesosConfiguration mesosConfiguration;
     private TaskScheduler taskScheduler;
     private final TaskSchedulingService schedulingService;
     private TaskQueue taskQueue;
@@ -194,14 +197,15 @@ public class DefaultSchedulingService implements SchedulingService {
                                     TaskMigrator taskMigrator,
                                     TitusRuntime titusRuntime,
                                     AgentResourceCache agentResourceCache,
-                                    Config config) {
+                                    Config config,
+                                    MesosConfiguration mesosConfiguration) {
         this(v3JobOperations, agentManagementService, v3TaskInfoFactory, vmOps,
                 virtualMachineService, masterConfiguration, schedulerConfiguration,
                 systemHardConstraint, taskCache,
                 Schedulers.computation(),
                 tierSlaUpdater, registry,
                 preferentialNamedConsumableResourceEvaluator, agentManagementFitnessCalculator,
-                taskMigrator, titusRuntime, agentResourceCache, config
+                taskMigrator, titusRuntime, agentResourceCache, config, mesosConfiguration
         );
     }
 
@@ -222,7 +226,8 @@ public class DefaultSchedulingService implements SchedulingService {
                                     TaskMigrator taskMigrator,
                                     TitusRuntime titusRuntime,
                                     AgentResourceCache agentResourceCache,
-                                    Config config) {
+                                    Config config,
+                                    MesosConfiguration mesosConfiguration) {
         this.v3JobOperations = v3JobOperations;
         this.agentManagementService = agentManagementService;
         this.vmOps = vmOps;
@@ -236,6 +241,7 @@ public class DefaultSchedulingService implements SchedulingService {
         this.titusRuntime = titusRuntime;
         this.agentResourceCache = agentResourceCache;
         this.systemHardConstraint = systemHardConstraint;
+        this.mesosConfiguration = mesosConfiguration;
         agentResourceCacheUpdater = new AgentResourceCacheUpdater(titusRuntime, agentResourceCache, v3JobOperations);
 
         FitFramework fit = titusRuntime.getFitFramework();
@@ -256,12 +262,25 @@ public class DefaultSchedulingService implements SchedulingService {
                 .withFitnessGoodEnoughFunction(TitusFitnessCalculator.fitnessGoodEnoughFunction)
                 .withPreferentialNamedConsumableResourceEvaluator(preferentialNamedConsumableResourceEvaluator)
                 .withMaxConcurrent(schedulerConfiguration.getSchedulerMaxConcurrent())
-                .withTaskBatchSizeSupplier(schedulerConfiguration::getTaskBatchSize);
+                .withTaskBatchSizeSupplier(schedulerConfiguration::getTaskBatchSize)
+                .withSchedulingEventListener(new TaskCacheEventListener(taskCache));
 
         taskScheduler = setupTaskScheduler(virtualMachineService.getLeaseRescindedObservable(), schedulerBuilder);
         taskQueue = TaskQueues.createTieredQueue(2);
         schedulingService = setupTaskSchedulingService(taskScheduler);
         virtualMachineService.setVMLeaseHandler(schedulingService::addLeases);
+        virtualMachineService.setRescindLeaseHandler(leaseRescindedEvents -> {
+            for (LeaseRescindedEvent event : leaseRescindedEvents) {
+                switch (event.getType()) {
+                    case All:
+                        taskScheduler.expireAllLeases();
+                        break;
+                    case LeaseId:
+                        taskScheduler.expireLease(event.getValue());
+                        break;
+                }
+            }
+        });
         this.taskCache = taskCache;
 
         this.taskPlacementRecorder = new TaskPlacementRecorder(config, masterConfiguration, schedulingService, v3JobOperations, v3TaskInfoFactory, titusRuntime);
@@ -352,7 +371,9 @@ public class DefaultSchedulingService implements SchedulingService {
     private TaskScheduler setupTaskScheduler(Observable<LeaseRescindedEvent> vmLeaseRescindedObservable,
                                              TaskScheduler.Builder schedulerBuilder) {
         int minMinIdle = 4;
-        final TaskScheduler scheduler = schedulerBuilder.withMaxOffersToReject(Math.max(1, minMinIdle)).build();
+        final TaskScheduler scheduler = schedulerBuilder.withMaxOffersToReject(Math.max(1, minMinIdle))
+                .withSingleOfferPerVM(mesosConfiguration.isKubeApiServerIntegrationEnabled())
+                .build();
         vmLeaseRescindedObservable
                 .doOnNext(event -> {
                     switch (event.getType()) {
@@ -361,9 +382,6 @@ public class DefaultSchedulingService implements SchedulingService {
                             break;
                         case LeaseId:
                             scheduler.expireLease(event.getValue());
-                            break;
-                        case Hostname:
-                            scheduler.expireAllLeases(event.getValue());
                             break;
                     }
                 })
@@ -657,7 +675,7 @@ public class DefaultSchedulingService implements SchedulingService {
     }
 
     @Override
-    public Map<TaskPlacementFailure.FailureKind, List<TaskPlacementFailure>> getLastTaskPlacementFailures() {
+    public Map<TaskPlacementFailure.FailureKind, Map<String, List<TaskPlacementFailure>>> getLastTaskPlacementFailures() {
         return taskPlacementFailureClassifier.getLastTaskPlacementFailures();
     }
 

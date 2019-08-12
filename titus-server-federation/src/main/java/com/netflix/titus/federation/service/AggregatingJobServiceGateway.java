@@ -44,6 +44,7 @@ import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobAttributesDeleteRequest;
 import com.netflix.titus.grpc.protogen.JobAttributesUpdate;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
+import com.netflix.titus.grpc.protogen.JobCapacityUpdateWithOptionalAttributes;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobChangeNotification.JobUpdate;
 import com.netflix.titus.grpc.protogen.JobChangeNotification.TaskUpdate;
@@ -153,6 +154,16 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
         Observable<Empty> result = jobManagementServiceHelper.findJobInAllCells(request.getJobId())
                 .flatMap(response -> singleCellCall(response.getCell(),
                         (client, streamObserver) -> wrap(context, client).updateJobCapacity(request, streamObserver))
+                );
+        return result.toCompletable();
+    }
+
+    @Override
+    public Completable updateJobCapacityWithOptionalAttributes(JobCapacityUpdateWithOptionalAttributes request) {
+        Optional<CallMetadata> context = callMetadataResolver.resolve();
+        Observable<Empty> result = jobManagementServiceHelper.findJobInAllCells(request.getJobId())
+                .flatMap(response -> singleCellCall(response.getCell(),
+                        (client, streamObserver) -> wrap(context, client).updateJobCapacityWithOptionalAttributes(request, streamObserver))
                 );
         return result.toCompletable();
     }
