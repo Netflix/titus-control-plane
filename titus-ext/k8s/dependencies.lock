@@ -219,10 +219,15 @@
                 "com.netflix.titus:titus-common"
             ]
         },
+        "com.squareup.okhttp:okhttp": {
+            "locked": "2.7.5",
+            "requested": "2.7.5"
+        },
         "com.squareup.okio:okio": {
             "locked": "1.13.0",
             "transitive": [
-                "com.squareup.okhttp3:okhttp"
+                "com.squareup.okhttp3:okhttp",
+                "com.squareup.okhttp:okhttp"
             ]
         },
         "commons-codec:commons-codec": {
@@ -840,10 +845,15 @@
                 "com.netflix.titus:titus-common"
             ]
         },
+        "com.squareup.okhttp:okhttp": {
+            "locked": "2.7.5",
+            "requested": "2.7.5"
+        },
         "com.squareup.okio:okio": {
             "locked": "1.13.0",
             "transitive": [
-                "com.squareup.okhttp3:okhttp"
+                "com.squareup.okhttp3:okhttp",
+                "com.squareup.okhttp:okhttp"
             ]
         },
         "commons-codec:commons-codec": {
@@ -1461,10 +1471,15 @@
                 "com.netflix.titus:titus-common"
             ]
         },
+        "com.squareup.okhttp:okhttp": {
+            "locked": "2.7.5",
+            "requested": "2.7.5"
+        },
         "com.squareup.okio:okio": {
             "locked": "1.13.0",
             "transitive": [
-                "com.squareup.okhttp3:okhttp"
+                "com.squareup.okhttp3:okhttp",
+                "com.squareup.okhttp:okhttp"
             ]
         },
         "commons-codec:commons-codec": {
@@ -2146,10 +2161,15 @@
                 "com.netflix.titus:titus-common"
             ]
         },
+        "com.squareup.okhttp:okhttp": {
+            "locked": "2.7.5",
+            "requested": "2.7.5"
+        },
         "com.squareup.okio:okio": {
             "locked": "1.13.0",
             "transitive": [
-                "com.squareup.okhttp3:okhttp"
+                "com.squareup.okhttp3:okhttp",
+                "com.squareup.okhttp:okhttp"
             ]
         },
         "commons-codec:commons-codec": {
@@ -2768,10 +2788,15 @@
                 "com.netflix.titus:titus-common"
             ]
         },
+        "com.squareup.okhttp:okhttp": {
+            "locked": "2.7.5",
+            "requested": "2.7.5"
+        },
         "com.squareup.okio:okio": {
             "locked": "1.13.0",
             "transitive": [
-                "com.squareup.okhttp3:okhttp"
+                "com.squareup.okhttp3:okhttp",
+                "com.squareup.okhttp:okhttp"
             ]
         },
         "commons-codec:commons-codec": {
@@ -3812,6 +3837,7 @@
         },
         "com.squareup.okhttp:okhttp": {
             "locked": "2.7.5",
+            "requested": "2.7.5",
             "transitive": [
                 "com.squareup.okhttp:logging-interceptor",
                 "com.squareup.okhttp:okhttp-ws",
@@ -5863,6 +5889,7 @@
         },
         "com.squareup.okhttp:okhttp": {
             "locked": "2.7.5",
+            "requested": "2.7.5",
             "transitive": [
                 "com.squareup.okhttp:logging-interceptor",
                 "com.squareup.okhttp:okhttp-ws",
@@ -7914,6 +7941,7 @@
         },
         "com.squareup.okhttp:okhttp": {
             "locked": "2.7.5",
+            "requested": "2.7.5",
             "transitive": [
                 "com.squareup.okhttp:logging-interceptor",
                 "com.squareup.okhttp:okhttp-ws",
@@ -9966,6 +9994,7 @@
         },
         "com.squareup.okhttp:okhttp": {
             "locked": "2.7.5",
+            "requested": "2.7.5",
             "transitive": [
                 "com.squareup.okhttp:logging-interceptor",
                 "com.squareup.okhttp:okhttp-ws",

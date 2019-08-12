@@ -24,6 +24,7 @@ dependencies {
     compile "org.springframework.cloud:spring-cloud-commons:${springCloudVersion}"
 
     // FIXME Use officially released artifact when available
+    compile "com.squareup.okhttp:okhttp:2.7.5"
     compile ":client-java:6.0.0-netflixbeta"
     compile ":client-java-api:6.0.0-netflixbeta"
     compile ":client-java-extended:6.0.0-netflixbeta"
