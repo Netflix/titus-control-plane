@@ -30,6 +30,7 @@ import com.netflix.titus.common.annotation.Experimental;
 import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 import com.netflix.titus.master.scheduler.SchedulerUtils;
+import com.netflix.titus.master.scheduler.resourcecache.TaskCache;
 
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_IP_ALLOCATION_ID;
 

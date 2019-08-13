@@ -45,6 +45,8 @@ public final class TaskAttributes {
     public static final String TASK_ATTRIBUTES_TIER = "task.tier";
     public static final String TASK_ATTRIBUTES_IP_ALLOCATION_ID = "task.ipAllocationId";
     public static final String TASK_ATTRIBUTES_IN_USE_IP_ALLOCATION = "task.ipAllocationAlreadyInUseByTask";
+    public static final String TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION = "task.opportunisticCpuAllocation";
+    public static final String TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT = "task.opportunisticCpuCount";
 
     /**
      * Task moved from one job to another.

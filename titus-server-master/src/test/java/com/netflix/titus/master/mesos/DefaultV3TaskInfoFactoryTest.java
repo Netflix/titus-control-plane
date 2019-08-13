@@ -36,7 +36,7 @@ import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 import com.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
 import com.netflix.titus.master.scheduler.constraint.SystemSoftConstraint;
-import com.netflix.titus.master.scheduler.constraint.TaskCache;
+import com.netflix.titus.master.scheduler.resourcecache.TaskCache;
 import com.netflix.titus.master.scheduler.constraint.V3ConstraintEvaluatorTransformer;
 import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 import com.netflix.titus.testkit.model.job.JobGenerator;

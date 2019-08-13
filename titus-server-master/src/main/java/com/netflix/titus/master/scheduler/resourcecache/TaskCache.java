@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.scheduler.constraint;
+package com.netflix.titus.master.scheduler.resourcecache;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -34,6 +35,9 @@ import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.vpc.SignedIpAddressAllocation;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.common.util.StringExt;
+import com.netflix.titus.common.util.code.CodeInvariants;
 import com.netflix.titus.common.util.tuple.Pair;
 
 /**
@@ -75,21 +79,35 @@ public class TaskCache {
         return Optional.ofNullable(currentCacheValue.get().ipAllocationIdToZoneId.get(ipAllocationId));
     }
 
+    public void addOpportunisticCpuAllocation(OpportunisticCpuAllocation allocation) {
+        CollectionsExt.multiMapAddValue(currentCacheValue.get().assignedOpportunisticCpus, allocation.getAgentId(), allocation);
+    }
+
+    public int getOpportunisticCpusAllocated(String agentId) {
+        return currentCacheValue.get().assignedOpportunisticCpus.getOrDefault(agentId, Collections.emptyList()).stream()
+                .mapToInt(OpportunisticCpuAllocation::getCpuCount)
+                .sum();
+    }
+
     private class TaskCacheValue {
 
         private final Map<String, Map<String, Integer>> zoneBalanceCountersByJobId;
 
         // This map contains currently assigned IP allocations, Map<IP Allocation ID, Task ID>
-        private final Map<String, String> assignedIpAllocations;
+        private final ConcurrentMap<String, String> assignedIpAllocations;
 
         // Maps an IP allocation ID to the zone it exists in, Map<IP Allocation ID, Zone ID>
         private final Map<String, String> ipAllocationIdToZoneId;
+
+        // agentId -> all tasks that were allocated with
+        private final ConcurrentMap<String, List<OpportunisticCpuAllocation>> assignedOpportunisticCpus;
 
         private TaskCacheValue() {
             List<Pair<Job, List<Task>>> jobsAndTasks = v3JobOperations.getJobsAndTasks();
             this.assignedIpAllocations = new ConcurrentHashMap<>();
             this.zoneBalanceCountersByJobId = new HashMap<>();
             this.ipAllocationIdToZoneId = new HashMap<>();
+            this.assignedOpportunisticCpus = new ConcurrentHashMap<>();
             buildTaskCacheInfo(jobsAndTasks);
         }
 
@@ -116,17 +134,15 @@ public class TaskCache {
                         getIpAllocationZone(ipAllocationId, jobAndTask.getLeft().getJobDescriptor()).ifPresent(zoneIdForIpAllocation ->
                                 ipAllocationIdToZoneId.put(ipAllocationId, zoneIdForIpAllocation));
                     });
+
+                    getOpportunisticCpuAllocation(task).ifPresent(allocation -> {
+                        if (TaskState.isRunning(task.getStatus().getState())) {
+                            CollectionsExt.multiMapAddValue(assignedOpportunisticCpus, allocation.getAgentId(), allocation);
+                        }
+                    });
                 }
                 zoneBalanceCountersByJobId.put(jobAndTask.getLeft().getId(), jobZoneBalancing);
             }
-        }
-
-        private String getZoneId(Task task) {
-            return task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_ZONE);
-        }
-
-        private Optional<String> getIpAllocationId(Task task) {
-            return Optional.ofNullable(task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_IP_ALLOCATION_ID));
         }
 
         private Optional<String> getIpAllocationZone(String ipAllocationId, JobDescriptor<?> jobDescriptor) {
@@ -135,9 +151,52 @@ public class TaskCache {
                     return Optional.of(signedIpAddressAllocation.getIpAddressAllocation().getIpAddressLocation().getAvailabilityZone());
                 }
             }
-            titusRuntime.getCodeInvariants().inconsistent("Unable to find zone for IP allocation ID {} in job allocations {}",
+            codeInvariants().inconsistent("Unable to find zone for IP allocation ID {} in job allocations {}",
                     ipAllocationId, jobDescriptor.getContainer().getContainerResources().getSignedIpAddressAllocations());
             return Optional.empty();
         }
+
+        private Optional<OpportunisticCpuAllocation> getOpportunisticCpuAllocation(Task task) {
+            Optional<String> allocationIdOpt = getOpportunisticCpuAllocationId(task);
+            Optional<OpportunisticCpuAllocation> allocationOpt = allocationIdOpt
+                    .map(allocationId -> OpportunisticCpuAllocation.newBuilder().withAllocationId(allocationId))
+                    .flatMap(builder -> getOpportunisticCpuCount(task)
+                            .flatMap(StringExt::parseInt)
+                            .map(builder::withCpuCount)
+                    )
+                    .flatMap(builder -> getAgentId(task).map(builder::withAgentId))
+                    .map(builder -> builder.withTaskId(task.getId()).build());
+
+            if (allocationIdOpt.isPresent() && !allocationOpt.isPresent()) {
+                codeInvariants().inconsistent("Task %s is allocated opportunistic CPU, but is missing extra required information",
+                        task.getId());
+            }
+            return allocationOpt;
+        }
     }
+
+    private CodeInvariants codeInvariants() {
+        return titusRuntime.getCodeInvariants();
+    }
+
+    private static Optional<String> getAgentId(Task task) {
+        return Optional.ofNullable(task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_ID));
+    }
+
+    private static Optional<String> getOpportunisticCpuCount(Task task) {
+        return Optional.ofNullable(task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT));
+    }
+
+    private static Optional<String> getOpportunisticCpuAllocationId(Task task) {
+        return Optional.ofNullable(task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION));
+    }
+
+    private static String getZoneId(Task task) {
+        return task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_ZONE);
+    }
+
+    private static Optional<String> getIpAllocationId(Task task) {
+        return Optional.ofNullable(task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_IP_ALLOCATION_ID));
+    }
+
 }

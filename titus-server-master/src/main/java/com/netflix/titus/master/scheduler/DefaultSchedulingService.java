@@ -84,7 +84,7 @@ import com.netflix.titus.master.mesos.TaskInfoFactory;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.model.job.TitusQueuableTask;
 import com.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
-import com.netflix.titus.master.scheduler.constraint.TaskCache;
+import com.netflix.titus.master.scheduler.resourcecache.TaskCache;
 import com.netflix.titus.master.scheduler.constraint.TaskCacheEventListener;
 import com.netflix.titus.master.scheduler.fitness.AgentManagementFitnessCalculator;
 import com.netflix.titus.master.scheduler.fitness.TitusFitnessCalculator;
@@ -178,8 +178,6 @@ public class DefaultSchedulingService implements SchedulingService {
     private final AtomicReference<Map<String, List<TaskAssignmentResult>>> lastSchedulingResult = new AtomicReference<>();
     private final BehaviorSubject<Map<String, List<TaskAssignmentResult>>> schedulingResultSubject = BehaviorSubject.create();
 
-    private final TaskCache taskCache;
-
     @Inject
     public DefaultSchedulingService(V3JobOperations v3JobOperations,
                                     AgentManagementService agentManagementService,
@@ -263,7 +261,7 @@ public class DefaultSchedulingService implements SchedulingService {
                 .withPreferentialNamedConsumableResourceEvaluator(preferentialNamedConsumableResourceEvaluator)
                 .withMaxConcurrent(schedulerConfiguration.getSchedulerMaxConcurrent())
                 .withTaskBatchSizeSupplier(schedulerConfiguration::getTaskBatchSize)
-                .withSchedulingEventListener(new TaskCacheEventListener(taskCache));
+                .withSchedulingEventListener(new TaskCacheEventListener(taskCache, opportunisticCpuCache, titusRuntime));
 
         taskScheduler = setupTaskScheduler(virtualMachineService.getLeaseRescindedObservable(), schedulerBuilder);
         taskQueue = TaskQueues.createTieredQueue(2);
@@ -281,7 +279,6 @@ public class DefaultSchedulingService implements SchedulingService {
                 }
             }
         });
-        this.taskCache = taskCache;
 
         this.taskPlacementRecorder = new TaskPlacementRecorder(config, masterConfiguration, schedulingService, v3JobOperations, v3TaskInfoFactory, titusRuntime);
         this.taskPlacementFailureClassifier = new TaskPlacementFailureClassifier(titusRuntime);
@@ -413,7 +410,6 @@ public class DefaultSchedulingService implements SchedulingService {
 
     private void preSchedulingHook() {
         systemHardConstraint.prepare();
-        taskCache.prepare();
     }
 
     private void checkIfExitOnSchedError(String s) {
@@ -517,6 +513,7 @@ public class DefaultSchedulingService implements SchedulingService {
         }
     }
 
+    //TODO(fabio): dead code, delete this
     private void processTaskSchedulingFailureCallbacks(SchedulingResult schedulingResult) {
         List<Map<String, Action1<List<TaskAssignmentResult>>>> failActions = new ArrayList<>();
         taskFailuresActions.drainTo(failActions);

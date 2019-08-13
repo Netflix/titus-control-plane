@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
 import com.netflix.fenzo.ConstraintEvaluator;
@@ -34,7 +35,6 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TwoLevelResource;
 import com.netflix.titus.api.model.Tier;
-import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.model.job.TitusQueuableTask;
 import com.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransformer;
@@ -51,7 +51,9 @@ public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
     private final Job job;
     private final Task task;
 
+    private final boolean opportunisticCpus;
     private final double cpus;
+    private final AtomicInteger opportunisticCpuCount;
     private final double memoryMb;
     private final double networkMbps;
     private final double diskMb;
@@ -69,6 +71,7 @@ public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
                            String capacityGroup,
                            Job job,
                            Task task,
+                           boolean opportunisticCpus,
                            Supplier<Set<String>> activeTasksGetter,
                            ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
                            SystemSoftConstraint systemSoftConstraint,
@@ -77,7 +80,10 @@ public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
         this.task = task;
 
         ContainerResources containerResources = job.getJobDescriptor().getContainer().getContainerResources();
+        this.opportunisticCpus = opportunisticCpus;
         this.cpus = containerResources.getCpu();
+        this.opportunisticCpuCount = opportunisticCpus ? new AtomicInteger(initialOpportunisticCpuCount(cpus))
+                : new AtomicInteger(0);
         this.memoryMb = containerResources.getMemoryMB();
         this.networkMbps = containerResources.getNetworkMbps();
         this.diskMb = containerResources.getDiskMB();
@@ -132,7 +138,7 @@ public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
 
     @Override
     public double getCPUs() {
-        return cpus;
+        return cpus - opportunisticCpuCount.get();
     }
 
     @Override
@@ -188,6 +194,31 @@ public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
         return assignedResources;
     }
 
+    /**
+     * Decrease the amount of requested opportunistic CPUs on a scheduling failure, up to no opportunistic, then cycle
+     * back to all requested CPUs being opportunistic.
+     * <p>
+     * This allows scheduling with the maximum amount of opportunistic CPUs at a given moment, and falling back to less
+     * opportunistic CPUs when not enough are available.
+     */
+    @Override
+    public void opportunisticSchedulingFailed() {
+        if (!opportunisticCpus) {
+            return; // noop
+        }
+        opportunisticCpuCount.updateAndGet(current -> current > 0 ? current - 1 : initialOpportunisticCpuCount(cpus));
+    }
+
+    @Override
+    public boolean isCpuOpportunistic() {
+        return opportunisticCpus;
+    }
+
+    @Override
+    public int getOpportunisticCpus() {
+        return opportunisticCpuCount.get();
+    }
+
     private Map<String, Double> buildScalarResources(Job job) {
         return Collections.singletonMap(Container.RESOURCE_GPU, (double) job.getJobDescriptor().getContainer().getContainerResources().getGpu());
     }
@@ -221,7 +252,7 @@ public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
         Container container = job.getJobDescriptor().getContainer();
         List<String> securityGroups = container.getSecurityProfile().getSecurityGroups();
 
-        if (!CollectionsExt.isNullOrEmpty(securityGroups)) {
+        if (!isNullOrEmpty(securityGroups)) {
             NamedResourceSetRequest resourceSetRequest = new NamedResourceSetRequest(
                     SecurityGroupsResName,
                     getConcatenatedSecurityGroups(securityGroups),
@@ -235,4 +266,9 @@ public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
     private static String getConcatenatedSecurityGroups(List<String> securityGroups) {
         return String.join(":", securityGroups);
     }
+
+    private static int initialOpportunisticCpuCount(double cpusRequested) {
+        return (int) Math.floor(cpusRequested);
+    }
+
 }

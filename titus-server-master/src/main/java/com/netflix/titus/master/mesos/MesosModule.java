@@ -29,6 +29,8 @@ import com.netflix.titus.common.framework.scheduler.internal.DefaultLocalSchedul
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeApiServerIntegrator;
 import com.netflix.titus.master.mesos.resolver.DefaultMesosMasterResolver;
+import com.netflix.titus.master.scheduler.opportunistic.NoOpportunisticCpus;
+import com.netflix.titus.master.scheduler.opportunistic.OpportunisticCpuAvailabilityProvider;
 import reactor.core.scheduler.Schedulers;
 
 public class MesosModule extends AbstractModule {
@@ -68,5 +70,16 @@ public class MesosModule extends AbstractModule {
             return injector.getInstance(KubeApiServerIntegrator.class);
         }
         return injector.getInstance(VirtualMachineMasterServiceMesosImpl.class);
+    }
+
+    @Provides
+    @Singleton
+    public OpportunisticCpuAvailabilityProvider getOpportunisticCpusAvailabilityProvider(MesosConfiguration configuration,
+                                                                                         Injector injector) {
+        // TODO(fabio): pull available opportunistic on the k8s path
+//        if (configuration.isKubeApiServerIntegrationEnabled()) {
+//            return injector.getInstance(KubeApiServerIntegrator.class);
+//        }
+        return injector.getInstance(NoOpportunisticCpus.class);
     }
 }

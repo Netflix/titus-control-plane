@@ -219,7 +219,7 @@ class TaskPlacementRecorder {
         }
     }
 
-    private class AgentAssignment {
+    private static class AgentAssignment {
         private final String hostname;
         private final Map<String, String> attributeMap;
         private final VMAssignmentResult assignmentResult;
