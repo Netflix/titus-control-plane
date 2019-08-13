@@ -16,10 +16,14 @@
 
 package com.netflix.titus.common.framework.simplereconciler.internal;
 
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import javax.annotation.Nullable;
 
+import com.netflix.titus.common.util.rx.ReactorExt;
+import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoSink;
 
@@ -31,6 +35,7 @@ final class ChangeActionHolder<DATA> {
     private final MonoSink<DATA> subscriberSink;
 
     private AtomicBoolean cancelledRef = new AtomicBoolean();
+    private final Queue<Disposable> cancelCallbacks = new ConcurrentLinkedQueue<>();
 
     ChangeActionHolder(Mono<Function<DATA, DATA>> action,
                        String transactionId,
@@ -42,10 +47,16 @@ final class ChangeActionHolder<DATA> {
         this.subscriberSink = subscriberSink;
 
         if (subscriberSink != null) {
-            subscriberSink.onCancel(() -> cancelledRef.set(true));
+            subscriberSink.onCancel(() -> {
+                cancelledRef.set(true);
+
+                Disposable next;
+                while ((next = cancelCallbacks.poll()) != null) {
+                    ReactorExt.safeDispose(next);
+                }
+            });
         }
     }
-
 
     Mono<Function<DATA, DATA>> getAction() {
         return action;
@@ -66,5 +77,12 @@ final class ChangeActionHolder<DATA> {
     @Nullable
     MonoSink<DATA> getSubscriberSink() {
         return subscriberSink;
+    }
+
+    void addCancelCallback(Disposable cancelCallback) {
+        cancelCallbacks.add(cancelCallback);
+        if (cancelledRef.get()) {
+            ReactorExt.safeDispose(cancelCallback);
+        }
     }
 }

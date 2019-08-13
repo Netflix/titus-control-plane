@@ -23,28 +23,37 @@ import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.patterns.PolledMeter;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.time.Clock;
 
 class SimpleReconciliationEngineMetrics {
 
     private static final String ROOT_NAME = "titus.simpleReconciliation.engine.";
     private static final String EVALUATIONS = ROOT_NAME + "evaluations";
     private static final String EXTERNAL_ACTIONS_QUEUE_SIZE = ROOT_NAME + "externalActionQueueSize";
+    private static final String SINCE_LAST_EVALUATION = ROOT_NAME + "sinceLastEvaluation";
 
     private final Id evaluationId;
 
     private final AtomicLong externalActionsQueueSizeRef = new AtomicLong();
+    private final AtomicLong lastEvaluationTimestamp = new AtomicLong();
 
     private final Registry registry;
+    private final Clock clock;
 
     SimpleReconciliationEngineMetrics(TitusRuntime titusRuntime) {
         this.registry = titusRuntime.getRegistry();
+        this.clock = titusRuntime.getClock();
+
         this.evaluationId = registry.createId(EVALUATIONS);
+        Clock clockFinal = clock;
+        PolledMeter.using(registry).withName(SINCE_LAST_EVALUATION).monitorValue(lastEvaluationTimestamp, v -> clockFinal.wallTime() - v.get());
 
         PolledMeter.using(registry).withName(EXTERNAL_ACTIONS_QUEUE_SIZE).monitorValue(externalActionsQueueSizeRef);
     }
 
     void evaluated(long executionTimeNs) {
         registry.timer(evaluationId).record(executionTimeNs, TimeUnit.NANOSECONDS);
+        lastEvaluationTimestamp.set(clock.wallTime());
     }
 
     void evaluated(long executionTimeNs, Exception error) {
