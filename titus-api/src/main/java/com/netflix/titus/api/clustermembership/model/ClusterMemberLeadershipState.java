@@ -19,17 +19,17 @@ package com.netflix.titus.api.clustermembership.model;
 public enum ClusterMemberLeadershipState {
 
     /**
+     * Member is not part of the leadership process.
+     */
+    Disabled,
+
+    /**
      * Member is healthy, and participates in the leader election process, but is not the leader yet.
      */
     NonLeader,
 
     /**
-     * Member became a leader, and is activating all components. It does not accept client requests yet.
+     * Member is a current leader.
      */
-    LeaderActivating,
-
-    /**
-     * Member is a fully activated leader.
-     */
-    LeaderActivated
+    Leader
 }

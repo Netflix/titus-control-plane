@@ -17,4 +17,54 @@
 package com.netflix.titus.api.clustermembership.connector;
 
 public class ClusterMembershipConnectorException extends RuntimeException {
+
+    public enum ErrorCode {
+        BadData,
+        DeserializationError,
+        NoChange,
+        SerializationError,
+    }
+
+    private final ErrorCode errorCode;
+
+    private ClusterMembershipConnectorException(ErrorCode errorCode, String message, Throwable cause) {
+        super(message, cause);
+        this.errorCode = errorCode;
+    }
+
+    public ErrorCode getErrorCode() {
+        return errorCode;
+    }
+
+    public static ClusterMembershipConnectorException noChange() {
+        return new ClusterMembershipConnectorException(
+                ErrorCode.NoChange,
+                "Data update produced identical record to the stored one",
+                null
+        );
+    }
+
+    public static <T> ClusterMembershipConnectorException serializationError(T entity, Exception e) {
+        return new ClusterMembershipConnectorException(
+                ErrorCode.SerializationError,
+                "Cannot serialize entity: " + entity,
+                e
+        );
+    }
+
+    public static <T> ClusterMembershipConnectorException deserializationError(String encodedEntity, Exception e) {
+        return new ClusterMembershipConnectorException(
+                ErrorCode.DeserializationError,
+                "Cannot deserialize entity: " + encodedEntity,
+                e
+        );
+    }
+
+    public static ClusterMembershipConnectorException badMemberData(Throwable cause) {
+        return new ClusterMembershipConnectorException(
+                ErrorCode.BadData,
+                "Invalid member data",
+                cause
+        );
+    }
 }

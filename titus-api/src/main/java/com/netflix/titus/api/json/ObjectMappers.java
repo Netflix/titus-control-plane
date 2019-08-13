@@ -70,6 +70,12 @@ import com.netflix.titus.api.appscale.store.mixin.PredefinedMetricSpecificationM
 import com.netflix.titus.api.appscale.store.mixin.StepAdjustmentMixIn;
 import com.netflix.titus.api.appscale.store.mixin.StepScalingPolicyConfigurationMixIn;
 import com.netflix.titus.api.appscale.store.mixin.TargetTrackingPolicyMixin;
+import com.netflix.titus.api.clustermembership.connector.mixin.ClusterMemberAddressMixIn;
+import com.netflix.titus.api.clustermembership.connector.mixin.ClusterMemberMixIn;
+import com.netflix.titus.api.clustermembership.connector.mixin.ClusterMembershipRevisionMixIn;
+import com.netflix.titus.api.clustermembership.model.ClusterMember;
+import com.netflix.titus.api.clustermembership.model.ClusterMemberAddress;
+import com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Container;
@@ -436,6 +442,11 @@ public class ObjectMappers {
         objectMapper.addMixIn(Operator.class, OperatorMixin.class);
         objectMapper.addMixIn(Should.class, ShouldMixin.class);
         objectMapper.addMixIn(SystemSelector.class, SystemSelectorMixin.class);
+
+        // Cluster membership
+        objectMapper.addMixIn(ClusterMemberAddress.class, ClusterMemberAddressMixIn.class);
+        objectMapper.addMixIn(ClusterMember.class, ClusterMemberMixIn.class);
+        objectMapper.addMixIn(ClusterMembershipRevision.class, ClusterMembershipRevisionMixIn.class);
 
         return objectMapper;
     }

@@ -16,11 +16,13 @@
 
 package com.netflix.titus.api.clustermembership.service;
 
-import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-import java.util.function.UnaryOperator;
+import java.util.function.Function;
 
 import com.netflix.titus.api.clustermembership.model.ClusterMember;
+import com.netflix.titus.api.clustermembership.model.ClusterMemberLeadership;
+import com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision;
 import com.netflix.titus.api.clustermembership.model.event.ClusterMembershipEvent;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -28,19 +30,29 @@ import reactor.core.publisher.Mono;
 public interface ClusterMembershipService {
 
     /**
-     * Get all known cluster members.
+     * Returns cluster member data for the local member.
      */
-    List<ClusterMember> getMembers();
+    ClusterMembershipRevision<ClusterMember> getLocalClusterMember();
 
     /**
-     * Get member with the given id.
+     * Returns all known siblings of the given cluster member.
      */
-    Optional<ClusterMember> findMember(String memberId);
+    Map<String, ClusterMembershipRevision<ClusterMember>> getClusterMemberSiblings();
+
+    /**
+     * Returns the leadership state of the local member.
+     */
+    ClusterMembershipRevision<ClusterMemberLeadership> getLocalLeadership();
+
+    /**
+     * Find leader.
+     */
+    Optional<ClusterMembershipRevision<ClusterMemberLeadership>> findLeader();
 
     /**
      * Updates {@link ClusterMember} data associated with the given instance.
      */
-    Mono<ClusterMember> updateSelf(UnaryOperator<ClusterMember> member);
+    Mono<ClusterMembershipRevision<ClusterMember>> updateSelf(Function<ClusterMember, ClusterMembershipRevision<ClusterMember>> memberUpdate);
 
     /**
      * Requests the member that handles this request to stop being leader. If the given member

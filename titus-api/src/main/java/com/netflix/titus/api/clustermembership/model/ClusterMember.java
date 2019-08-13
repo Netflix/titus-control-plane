@@ -26,24 +26,21 @@ public class ClusterMember {
     private final ClusterMemberState state;
     private final boolean enabled;
     private final ClusterMemberLeadershipState leadershipState;
-    private final List<ClusterMemberAddress> clusterMemberAddress;
+    private final List<ClusterMemberAddress> clusterMemberAddresses;
     private final Map<String, String> labels;
-    private final List<ClusterMembershipRevision> revisions;
 
     public ClusterMember(String memberId,
                          ClusterMemberState state,
                          boolean enabled,
                          ClusterMemberLeadershipState leadershipState,
-                         List<ClusterMemberAddress> clusterMemberAddress,
-                         Map<String, String> labels,
-                         List<ClusterMembershipRevision> revisions) {
+                         List<ClusterMemberAddress> clusterMemberAddresses,
+                         Map<String, String> labels) {
         this.memberId = memberId;
         this.state = state;
         this.enabled = enabled;
         this.leadershipState = leadershipState;
-        this.clusterMemberAddress = clusterMemberAddress;
+        this.clusterMemberAddresses = clusterMemberAddresses;
         this.labels = labels;
-        this.revisions = revisions;
     }
 
     public String getMemberId() {
@@ -62,16 +59,12 @@ public class ClusterMember {
         return leadershipState;
     }
 
-    public List<ClusterMemberAddress> getClusterMemberAddress() {
-        return clusterMemberAddress;
+    public List<ClusterMemberAddress> getClusterMemberAddresses() {
+        return clusterMemberAddresses;
     }
 
     public Map<String, String> getLabels() {
         return labels;
-    }
-
-    public List<ClusterMembershipRevision> getRevisions() {
-        return revisions;
     }
 
     @Override
@@ -87,14 +80,13 @@ public class ClusterMember {
                 Objects.equals(memberId, that.memberId) &&
                 state == that.state &&
                 leadershipState == that.leadershipState &&
-                Objects.equals(clusterMemberAddress, that.clusterMemberAddress) &&
-                Objects.equals(labels, that.labels) &&
-                Objects.equals(revisions, that.revisions);
+                Objects.equals(clusterMemberAddresses, that.clusterMemberAddresses) &&
+                Objects.equals(labels, that.labels);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(memberId, state, enabled, leadershipState, clusterMemberAddress, labels, revisions);
+        return Objects.hash(memberId, state, enabled, leadershipState, clusterMemberAddresses, labels);
     }
 
     @Override
@@ -104,14 +96,13 @@ public class ClusterMember {
                 ", state=" + state +
                 ", enabled=" + enabled +
                 ", leadershipState=" + leadershipState +
-                ", clusterMemberAddress=" + clusterMemberAddress +
+                ", clusterMemberAddresses=" + clusterMemberAddresses +
                 ", labels=" + labels +
-                ", revisions=" + revisions +
                 '}';
     }
 
     public Builder toBuilder() {
-        return newBuilder().withMemberId(memberId).withState(state).withEnabled(true).withLeadershipState(leadershipState).withClusterMemberAddress(clusterMemberAddress).withLabels(labels).withRevisions(revisions);
+        return newBuilder().withMemberId(memberId).withState(state).withEnabled(true).withLeadershipState(leadershipState).withClusterMemberAddresses(clusterMemberAddresses).withLabels(labels);
     }
 
     public static Builder newBuilder() {
@@ -125,7 +116,6 @@ public class ClusterMember {
         private ClusterMemberLeadershipState leadershipState;
         private List<ClusterMemberAddress> clusterMemberAddress;
         private Map<String, String> labels;
-        private List<ClusterMembershipRevision> revisions;
 
         private Builder() {
         }
@@ -150,7 +140,7 @@ public class ClusterMember {
             return this;
         }
 
-        public Builder withClusterMemberAddress(List<ClusterMemberAddress> clusterMemberAddress) {
+        public Builder withClusterMemberAddresses(List<ClusterMemberAddress> clusterMemberAddress) {
             this.clusterMemberAddress = clusterMemberAddress;
             return this;
         }
@@ -160,13 +150,8 @@ public class ClusterMember {
             return this;
         }
 
-        public Builder withRevisions(List<ClusterMembershipRevision> revisions) {
-            this.revisions = revisions;
-            return this;
-        }
-
         public ClusterMember build() {
-            return new ClusterMember(memberId, state, enabled, leadershipState, clusterMemberAddress, labels, revisions);
+            return new ClusterMember(memberId, state, enabled, leadershipState, clusterMemberAddress, labels);
         }
     }
 }

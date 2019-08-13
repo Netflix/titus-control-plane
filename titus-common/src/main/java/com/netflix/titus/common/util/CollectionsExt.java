@@ -145,6 +145,10 @@ public final class CollectionsExt {
     }
 
     public static <T> List<T> copyAndAdd(List<T> original, T newItem) {
+        return copyAndAddToList(original, newItem);
+    }
+
+    public static <T> List<T> copyAndAddToList(Collection<T> original, T newItem) {
         List<T> newList = new ArrayList<>(original);
         newList.add(newItem);
         return newList;
