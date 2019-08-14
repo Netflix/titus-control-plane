@@ -79,6 +79,9 @@ final class ChangeActionHolder<DATA> {
         return subscriberSink;
     }
 
+    /**
+     * All callbacks should obey the {@link Disposable#dispose()} idempotence contract.
+     */
     void addCancelCallback(Disposable cancelCallback) {
         cancelCallbacks.add(cancelCallback);
         if (cancelledRef.get()) {
