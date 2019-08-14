@@ -16,12 +16,7 @@
 
 package com.netflix.titus.ext.k8s.clustermembership.connector;
 
-import java.util.Collections;
-import java.util.concurrent.TimeUnit;
-
 import com.netflix.titus.api.clustermembership.model.ClusterMember;
-import com.netflix.titus.api.clustermembership.model.ClusterMemberAddress;
-import com.netflix.titus.api.clustermembership.model.ClusterMemberState;
 import com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision;
 import com.netflix.titus.api.clustermembership.model.event.ClusterMembershipEvent;
 import com.netflix.titus.common.util.CollectionsExt;
@@ -31,8 +26,6 @@ import io.kubernetes.client.ApiClient;
 import io.kubernetes.client.apis.CustomObjectsApi;
 import io.kubernetes.client.models.V1DeleteOptionsBuilder;
 import io.kubernetes.client.models.V1ObjectMeta;
-import io.kubernetes.client.util.ClientBuilder;
-import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -177,57 +170,5 @@ class DefaultK8MembershipExecutor implements K8MembershipExecutor {
                         .build()
                 )
                 .build();
-    }
-
-    public static void main(String[] args) throws Exception {
-        ApiClient client = ClientBuilder
-                .standard()
-                .setBasePath(String.format("http://%s:7001", System.getenv("K8S_APISERVER")))
-                .build();
-        client.getHttpClient().setReadTimeout(0, TimeUnit.SECONDS); // infinite timeout
-        DefaultK8MembershipExecutor executor = new DefaultK8MembershipExecutor(client, "default");
-
-        ClusterMember member = ClusterMember.newBuilder()
-                .withMemberId("member1")
-                .withState(ClusterMemberState.Active)
-                .withEnabled(true)
-                .withClusterMemberAddresses(Collections.singletonList(
-                        ClusterMemberAddress.newBuilder()
-                                .withIpAddress("10.20.30.40")
-                                .withPortNumber(8081)
-                                .withProtocol("https")
-                                .withSecure(true)
-                                .withDescription("REST endpoint")
-                                .build()
-                ))
-                .withLabels(Collections.singletonMap("resourceVersion", "1400519"))
-                .build();
-        ClusterMembershipRevision<ClusterMember> revision = ClusterMembershipRevision.<ClusterMember>newBuilder()
-                .withCode("initial")
-                .withMessage("Test")
-                .withTimestamp(System.currentTimeMillis())
-                .withCurrent(member)
-                .build();
-
-        Disposable watcherDisposable = executor.watchMembershipEvents().subscribe(
-                System.out::println,
-                Throwable::printStackTrace,
-                () -> System.out.println("Watcher closed")
-        );
-
-        ClusterMembershipRevision<ClusterMember> result;
-        try {
-            result = executor.getMemberById("member1").block();
-//            result = executor.createLocal(revision).block();
-            result = executor.updateLocal(result.toBuilder().withTimestamp(System.currentTimeMillis()).build()).block();
-//            System.out.println(result);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        System.out.println("SLEEP");
-        Thread.sleep(60_000);
-
-        System.exit(-1);
     }
 }

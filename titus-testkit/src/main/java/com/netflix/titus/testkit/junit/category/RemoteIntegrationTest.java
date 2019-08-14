@@ -14,17 +14,10 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.ext.k8s.clustermembership.connector.action;
+package com.netflix.titus.testkit.junit.category;
 
-import io.kubernetes.client.ApiException;
-
-public class K8ActionsUtil {
-
-    public static boolean is4xx(Throwable error) {
-        Throwable cause = error;
-        while (cause != null && !(cause instanceof ApiException)) {
-            cause = cause.getCause();
-        }
-        return cause != null && ((ApiException) cause).getCode() % 100 == 4;
-    }
+/**
+ * Integration tests that require external services, and cannot be run in isolation.
+ */
+public @interface RemoteIntegrationTest {
 }

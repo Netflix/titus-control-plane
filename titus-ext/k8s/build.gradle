@@ -19,6 +19,11 @@ repositories {
         dirs 'libs'
     }
 }
+
+configurations.all {
+    exclude group: "io.kubernetes"
+}
+
 dependencies {
     compile project(':titus-api')
     compile "org.springframework.cloud:spring-cloud-commons:${springCloudVersion}"
