@@ -48,7 +48,6 @@ public class DefaultSimpleReconciliationEngine<DATA> implements SimpleReconcilia
     private final long quickCycleMs;
     private final long longCycleMs;
     private volatile long lastLongCycleTimestamp;
-    private volatile long lastExecutionTimeMs;
 
     private final BlockingQueue<ChangeActionHolder<DATA>> referenceChangeActions = new LinkedBlockingQueue<>();
     private final SimpleReconciliationEngineMetrics metrics;
@@ -83,7 +82,6 @@ public class DefaultSimpleReconciliationEngine<DATA> implements SimpleReconcilia
         doSchedule(0);
     }
 
-    // TODO Safely drain pending actions
     @Override
     public void close() {
         this.runnable = false;
@@ -97,8 +95,18 @@ public class DefaultSimpleReconciliationEngine<DATA> implements SimpleReconcilia
     @Override
     public Mono<DATA> apply(Mono<Function<DATA, DATA>> action) {
         return Mono.create(sink -> {
+            if (!runnable) {
+                sink.error(new IllegalStateException("Reconciler closed"));
+                return;
+            }
             String transactionId = "" + nextTransactionId.getAndIncrement();
             referenceChangeActions.add(new ChangeActionHolder<>(action, transactionId, clock.wallTime(), sink));
+
+            // Check again, as it may not be cleaned up by the worker process if the shutdown was in progress.
+            if (!runnable) {
+                sink.error(new IllegalStateException("Reconciler closed"));
+            }
+
             metrics.updateExternalActionQueueSize(referenceChangeActions.size());
         });
     }
@@ -109,11 +117,14 @@ public class DefaultSimpleReconciliationEngine<DATA> implements SimpleReconcilia
     }
 
     private void doSchedule(long delayMs) {
-        if (!runnable) {
-            return;
-        }
         worker.schedule(() -> {
+            if (!runnable) {
+                cancelPendingActions();
+                return;
+            }
+
             long startTimeMs = clock.wallTime();
+            long startTimeNs = clock.nanoTime();
             try {
                 boolean fullCycle = (startTimeMs - lastLongCycleTimestamp) >= longCycleMs;
                 if (fullCycle) {
@@ -123,10 +134,11 @@ public class DefaultSimpleReconciliationEngine<DATA> implements SimpleReconcilia
                 doLoop(fullCycle);
                 doSchedule(quickCycleMs);
             } catch (Exception e) {
+                metrics.evaluated(clock.nanoTime() - startTimeNs, e);
                 logger.warn("Unexpected error in the reconciliation loop", e);
                 doSchedule(longCycleMs);
             } finally {
-                lastExecutionTimeMs = clock.wallTime();
+                metrics.evaluated(clock.nanoTime() - startTimeNs);
             }
         }, delayMs, TimeUnit.MILLISECONDS);
     }
@@ -154,29 +166,37 @@ public class DefaultSimpleReconciliationEngine<DATA> implements SimpleReconcilia
         // Trigger actions on engines.
         if (fullReconciliationCycle || completedNow) {
             try {
-                triggerActions();
+                // Start next reference change action, if present and exit.
+                if (startNextExternalChangeAction()) {
+                    return;
+                }
+
+                // Run reconciler
+                startReconcileAction(reconcilerActionsProvider.apply(current));
             } catch (Exception e) {
                 logger.warn("[{}] Unexpected error from reconciliation engine 'triggerActions' method", name, e);
+                titusRuntime.getCodeInvariants().unexpectedError("Unexpected error in ReconciliationEngine", e);
             }
         }
     }
 
-    private void triggerActions() {
-        long startTimeNs = clock.nanoTime();
-        try {
-            // Start next reference change action, if present and exit.
-            if (startNextExternalChangeAction()) {
-                return;
-            }
-
-            // Run reconciler
-            startReconcileAction(reconcilerActionsProvider.apply(current));
-        } catch (Exception e) {
-            metrics.evaluated(clock.nanoTime() - startTimeNs, e);
-            titusRuntime.getCodeInvariants().unexpectedError("Unexpected error in ReconciliationEngine", e);
-        } finally {
-            metrics.evaluated(clock.nanoTime() - startTimeNs);
+    private void cancelPendingActions() {
+        if (pendingTransaction.getState() == Transaction.State.Running) {
+            pendingTransaction.close();
         }
+        ChangeActionHolder<DATA> action;
+        while ((action = referenceChangeActions.poll()) != null) {
+            if (action.getSubscriberSink() != null && !action.isCancelled()) {
+                try {
+                    action.getSubscriberSink().error(new IllegalStateException("Reconciliation engine closed"));
+                } catch (Exception ignore) {
+                }
+            }
+        }
+
+        eventProcessor.onError(new IllegalStateException("Reconciliation engine closed"));
+
+        ReactorExt.safeDispose(worker);
     }
 
     private boolean startNextExternalChangeAction() {

@@ -54,17 +54,27 @@ class SingleTransaction<DATA> implements Transaction<DATA> {
                         error -> {
                             errorRef.set(error);
                             stateRef.set(State.ResultReady);
+                            if (actionHolder.getSubscriberSink() == null) {
+                                logger.warn("Reconciliation action failure", error);
+                            }
                         },
-                        () -> {
-                            stateRef.set(State.ResultReady);
-                        }
+                        () -> stateRef.set(State.ResultReady)
                 );
+        actionHolder.addCancelCallback(subscription);
         this.actionHolder = actionHolder;
     }
 
     @Override
     public void close() {
         ReactorExt.safeDispose(subscription);
+        if(actionHolder.getSubscriberSink() != null) {
+            try {
+                actionHolder.getSubscriberSink().error(new IllegalStateException("Reconciliation engine closed"));
+            } catch (Exception ignore) {
+            }
+        } else {
+            logger.warn("Cancelling transaction {}. Reconciliation engine closed", actionHolder.getTransactionId());
+        }
     }
 
     @Override
@@ -88,6 +98,9 @@ class SingleTransaction<DATA> implements Transaction<DATA> {
             return Either.ofValue(result);
         } catch (Exception e) {
             errorRef.set(e);
+            if (actionHolder.getSubscriberSink() == null) {
+                logger.warn("Reconciliation data update failure", e);
+            }
             return Either.ofError(e);
         }
     }
