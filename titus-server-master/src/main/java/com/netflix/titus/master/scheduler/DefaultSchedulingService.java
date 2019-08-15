@@ -84,12 +84,13 @@ import com.netflix.titus.master.mesos.TaskInfoFactory;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.model.job.TitusQueuableTask;
 import com.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
-import com.netflix.titus.master.scheduler.resourcecache.TaskCache;
 import com.netflix.titus.master.scheduler.constraint.TaskCacheEventListener;
 import com.netflix.titus.master.scheduler.fitness.AgentManagementFitnessCalculator;
 import com.netflix.titus.master.scheduler.fitness.TitusFitnessCalculator;
 import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCache;
 import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheUpdater;
+import com.netflix.titus.master.scheduler.resourcecache.OpportunisticCpuCache;
+import com.netflix.titus.master.scheduler.resourcecache.TaskCache;
 import com.netflix.titus.master.taskmigration.TaskMigrator;
 import org.apache.mesos.Protos;
 import org.slf4j.Logger;
@@ -188,6 +189,7 @@ public class DefaultSchedulingService implements SchedulingService {
                                     SchedulerConfiguration schedulerConfiguration,
                                     SystemHardConstraint systemHardConstraint,
                                     TaskCache taskCache,
+                                    OpportunisticCpuCache opportunisticCpuCache,
                                     TierSlaUpdater tierSlaUpdater,
                                     Registry registry,
                                     PreferentialNamedConsumableResourceEvaluator preferentialNamedConsumableResourceEvaluator,
@@ -197,14 +199,11 @@ public class DefaultSchedulingService implements SchedulingService {
                                     AgentResourceCache agentResourceCache,
                                     Config config,
                                     MesosConfiguration mesosConfiguration) {
-        this(v3JobOperations, agentManagementService, v3TaskInfoFactory, vmOps,
-                virtualMachineService, masterConfiguration, schedulerConfiguration,
-                systemHardConstraint, taskCache,
-                Schedulers.computation(),
-                tierSlaUpdater, registry,
-                preferentialNamedConsumableResourceEvaluator, agentManagementFitnessCalculator,
-                taskMigrator, titusRuntime, agentResourceCache, config, mesosConfiguration
-        );
+        this(v3JobOperations, agentManagementService, v3TaskInfoFactory, vmOps, virtualMachineService,
+                masterConfiguration, schedulerConfiguration, systemHardConstraint, taskCache, opportunisticCpuCache,
+                Schedulers.computation(), tierSlaUpdater, registry, preferentialNamedConsumableResourceEvaluator,
+                agentManagementFitnessCalculator, taskMigrator, titusRuntime, agentResourceCache, config,
+                mesosConfiguration);
     }
 
     public DefaultSchedulingService(V3JobOperations v3JobOperations,
@@ -216,6 +215,7 @@ public class DefaultSchedulingService implements SchedulingService {
                                     SchedulerConfiguration schedulerConfiguration,
                                     SystemHardConstraint systemHardConstraint,
                                     TaskCache taskCache,
+                                    OpportunisticCpuCache opportunisticCpuCache,
                                     Scheduler threadScheduler,
                                     TierSlaUpdater tierSlaUpdater,
                                     Registry registry,

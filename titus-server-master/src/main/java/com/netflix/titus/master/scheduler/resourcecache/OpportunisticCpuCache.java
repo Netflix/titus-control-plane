@@ -43,11 +43,10 @@ public class OpportunisticCpuCache {
         snapshot = provider.getOpportunisticCpus();
     }
 
-    public Optional<String> findOpportunisticCpuAllocationId(String agentId) {
+    public Optional<OpportunisticCpuAvailability> findAvailableOpportunisticCpus(String agentId) {
         return Optional.ofNullable(snapshot.get(agentId))
                 .flatMap(availability -> availability.isExpired(titusRuntime.getClock()) ?
-                        Optional.empty() : Optional.of(availability))
-                .map(OpportunisticCpuAvailability::getAllocationId);
+                        Optional.empty() : Optional.of(availability));
     }
 
 }

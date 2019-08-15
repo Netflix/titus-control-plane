@@ -16,11 +16,13 @@
 
 package com.netflix.titus.master.jobmanager.service.common;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
@@ -51,7 +53,7 @@ public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
     private final Job job;
     private final Task task;
 
-    private final boolean opportunisticCpus;
+    private final Optional<Duration> runtimePrediction;
     private final double cpus;
     private final AtomicInteger opportunisticCpuCount;
     private final double memoryMb;
@@ -61,8 +63,8 @@ public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
 
     private final V3QAttributes qAttributes;
 
-    private List<ConstraintEvaluator> hardConstraints;
-    private List<VMTaskFitnessCalculator> softConstraints;
+    private final List<ConstraintEvaluator> hardConstraints;
+    private final List<VMTaskFitnessCalculator> softConstraints;
     private final Map<String, NamedResourceSetRequest> namedResources = new HashMap<>();
 
     private volatile AssignedResources assignedResources;
@@ -71,7 +73,7 @@ public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
                            String capacityGroup,
                            Job job,
                            Task task,
-                           boolean opportunisticCpus,
+                           Optional<Duration> runtimePrediction,
                            Supplier<Set<String>> activeTasksGetter,
                            ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
                            SystemSoftConstraint systemSoftConstraint,
@@ -80,10 +82,11 @@ public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
         this.task = task;
 
         ContainerResources containerResources = job.getJobDescriptor().getContainer().getContainerResources();
-        this.opportunisticCpus = opportunisticCpus;
+        this.runtimePrediction = runtimePrediction;
         this.cpus = containerResources.getCpu();
-        this.opportunisticCpuCount = opportunisticCpus ? new AtomicInteger(initialOpportunisticCpuCount(cpus))
-                : new AtomicInteger(0);
+        this.opportunisticCpuCount = runtimePrediction.isPresent() ?
+                new AtomicInteger(initialOpportunisticCpuCount(cpus)) :
+                new AtomicInteger(0);
         this.memoryMb = containerResources.getMemoryMB();
         this.networkMbps = containerResources.getNetworkMbps();
         this.diskMb = containerResources.getDiskMB();
@@ -203,20 +206,34 @@ public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
      */
     @Override
     public void opportunisticSchedulingFailed() {
-        if (!opportunisticCpus) {
-            return; // noop
+        if (!runtimePrediction.isPresent()) {
+            return; // noop, opportunisticCpuCount is always 0
         }
         opportunisticCpuCount.updateAndGet(current -> current > 0 ? current - 1 : initialOpportunisticCpuCount(cpus));
     }
 
+    /**
+     * Minimum requirements for opportunistic CPU scheduling:
+     * <ul>
+     *     <li>Must have a runtime prediction.</li>
+     *     <li>Must explicitly request an amount of opportunistic cpu.</li>
+     * </ul>
+     */
     @Override
     public boolean isCpuOpportunistic() {
-        return opportunisticCpus;
+        return runtimePrediction.isPresent() && getOpportunisticCpus() > 0;
     }
 
     @Override
     public int getOpportunisticCpus() {
         return opportunisticCpuCount.get();
+    }
+
+    /**
+     * Always present when {@link V3QueueableTask#isCpuOpportunistic()} returns <tt>true</tt>.
+     */
+    public Optional<Duration> getRuntimePrediction() {
+        return runtimePrediction;
     }
 
     private Map<String, Double> buildScalarResources(Job job) {

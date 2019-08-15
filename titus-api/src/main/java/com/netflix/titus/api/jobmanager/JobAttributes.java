@@ -25,6 +25,7 @@ public final class JobAttributes {
     public static final String TITUS_ATTRIBUTE_PREFIX = "titus.";
     public static final String TITUS_PARAMETER_ATTRIBUTE_PREFIX = "titusParameter.";
     public static final String JOB_ATTRIBUTE_SANITIZATION_PREFIX = TITUS_ATTRIBUTE_PREFIX + "sanitization.";
+    public static final String PREDICTION_ATTRIBUTE_PREFIX = TITUS_ATTRIBUTE_PREFIX + "runtimePrediction.";
 
     // Job Descriptor Attributes
 
@@ -52,6 +53,11 @@ public final class JobAttributes {
      * Set to true when sanitization for container images (digest) fails open
      */
     public static final String JOB_ATTRIBUTES_SANITIZATION_SKIPPED_IMAGE = JOB_ATTRIBUTE_SANITIZATION_PREFIX + "skipped.image";
+
+    /**
+     * Predicted runtime for a particular job in seconds, used in opportunistic CPU scheduling
+     */
+    public static final String JOB_ATTRIBUTES_RUNTIME_PREDICTION_VALUE = PREDICTION_ATTRIBUTE_PREFIX + "value";
 
     /**
      * (Experimental) allow jobs to request being placed into a particular cell (affinity)

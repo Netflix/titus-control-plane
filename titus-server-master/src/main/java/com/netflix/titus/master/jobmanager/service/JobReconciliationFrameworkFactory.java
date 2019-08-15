@@ -280,6 +280,7 @@ public class JobReconciliationFrameworkFactory {
                         tierAssignment.getRight(),
                         job,
                         task,
+                        JobManagerUtil.getJobRuntimePrediction(job),
                         () -> JobManagerUtil.filterActiveTaskIds(engine),
                         constraintEvaluatorTransformer,
                         systemSoftConstraint,
@@ -309,6 +310,8 @@ public class JobReconciliationFrameworkFactory {
                     tierAssignment.getRight(),
                     job,
                     task,
+                    // TODO(fabio): initialize with previously known number of opportunistic CPUs
+                    JobManagerUtil.getJobRuntimePrediction(job),
                     () -> JobManagerUtil.filterActiveTaskIds(engine),
                     constraintEvaluatorTransformer,
                     systemSoftConstraint,

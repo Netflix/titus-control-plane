@@ -101,7 +101,7 @@ public class DefaultV3TaskInfoFactoryTest {
                 mock(SchedulerConfiguration.class), new TaskCache(mock(TitusRuntime.class), mock(V3JobOperations.class)),
                 mock(AgentManagementService.class));
 
-        V3QueueableTask fenzoTask = new V3QueueableTask(Tier.Flex, null, job, task,
+        V3QueueableTask fenzoTask = new V3QueueableTask(Tier.Flex, null, job, task, Optional.empty(),
                 () -> Collections.singleton(task.getId()),
                 transformer, mock(SystemSoftConstraint.class),
                 mock(SystemHardConstraint.class)

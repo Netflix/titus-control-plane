@@ -24,6 +24,7 @@ import com.netflix.fenzo.TaskAssignmentResult;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.code.CodeInvariants;
 import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
+import com.netflix.titus.master.scheduler.opportunistic.OpportunisticCpuAvailability;
 import com.netflix.titus.master.scheduler.resourcecache.OpportunisticCpuAllocation;
 import com.netflix.titus.master.scheduler.resourcecache.OpportunisticCpuCache;
 import com.netflix.titus.master.scheduler.resourcecache.TaskCache;
@@ -66,7 +67,8 @@ public class TaskCacheEventListener implements SchedulingEventListener {
                 codeInvariants().inconsistent("No machine ID for hostname %s", hostname);
                 agentId = hostname;
             }
-            Optional<String> allocationId = opportunisticCpuCache.findOpportunisticCpuAllocationId(agentId);
+            Optional<String> allocationId = opportunisticCpuCache.findAvailableOpportunisticCpus(agentId)
+                    .map(OpportunisticCpuAvailability::getAllocationId);
             if (!allocationId.isPresent()) {
                 codeInvariants().inconsistent("Task assigned to opportunistic CPUs on machine %s that can not be found", agentId);
             }

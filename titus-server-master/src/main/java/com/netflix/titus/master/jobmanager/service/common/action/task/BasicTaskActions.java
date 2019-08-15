@@ -30,6 +30,7 @@ import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
+import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
@@ -41,7 +42,6 @@ import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.DateTimeExt;
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import com.netflix.titus.master.jobmanager.service.common.V3QAttributes;
@@ -216,6 +216,7 @@ public class BasicTaskActions {
                             tierAssignment.getRight(),
                             job,
                             task,
+                            JobManagerUtil.getJobRuntimePrediction(job),
                             activeTasksGetter,
                             constraintEvaluatorTransformer,
                             systemSoftConstraint,
