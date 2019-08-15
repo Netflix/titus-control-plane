@@ -112,6 +112,20 @@ public enum AwsInstanceType {
     ),
 
     /*
+     * M5 family
+     */
+
+    M5_Metal(AwsInstanceDescriptor.newBuilder("m5.metal")
+            .cpu(96)
+            .memoryGB(384)
+            .storageGB(1_024)
+            .networkMbs(25_000)
+            .ebsOnly()
+            .ebsBandwidthMbs(14_000)
+            .build()
+    ),
+
+    /*
      * R3 family
      */
 
@@ -172,6 +186,19 @@ public enum AwsInstanceType {
     ),
 
     /*
+     * R5 family
+     */
+    R5_Metal(AwsInstanceDescriptor.newBuilder("r5.metal")
+            .cpu(96)
+            .memoryGB(768)
+            .storageGB(3_000)
+            .networkMbs(25_000)
+            .ebsOnly()
+            .ebsBandwidthMbs(14_000)
+            .build()
+    ),
+
+    /*
      * G2 family
      */
 
@@ -220,6 +247,12 @@ public enum AwsInstanceType {
             .storageGB(480)
             .build()
     ),
+
+    /*
+     * P3 family
+     */
+
+
     P3_2XLarge(AwsInstanceDescriptor.newBuilder("p3.2xlarge")
             .cpu(8)
             .gpu(1)
@@ -271,6 +304,7 @@ public enum AwsInstanceType {
     public static final String P3_2XLARGE_ID = "p3.2xlarge";
     public static final String P3_8XLARGE_ID = "p3.8xlarge";
     public static final String P3_16XLARGE_ID = "p3.16xlarge";
+
 
     private static final Map<String, AwsInstanceType> INSTANCES_BY_MODEL = createInstanceByModelMap();
 
