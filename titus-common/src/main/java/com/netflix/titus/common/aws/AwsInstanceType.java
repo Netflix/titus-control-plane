@@ -305,7 +305,6 @@ public enum AwsInstanceType {
     public static final String P3_8XLARGE_ID = "p3.8xlarge";
     public static final String P3_16XLARGE_ID = "p3.16xlarge";
 
-
     private static final Map<String, AwsInstanceType> INSTANCES_BY_MODEL = createInstanceByModelMap();
 
     private final AwsInstanceDescriptor descriptor;
