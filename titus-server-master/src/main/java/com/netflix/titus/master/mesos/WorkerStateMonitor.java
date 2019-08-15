@@ -44,7 +44,7 @@ public class WorkerStateMonitor {
     private static final Logger logger = LoggerFactory.getLogger(WorkerStateMonitor.class);
 
     private final VirtualMachineMasterService vmService;
-    private AtomicBoolean shutdownFlag = new AtomicBoolean();
+    private final AtomicBoolean shutdownFlag = new AtomicBoolean();
 
     private static CallMetadata MESOS_CALL_METADATA = CallMetadata.newBuilder().withCallerId("Mesos").build();
 

@@ -28,6 +28,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -40,6 +42,7 @@ import com.google.inject.Injector;
 import com.netflix.fenzo.VirtualMachineLease;
 import com.netflix.fenzo.functions.Action1;
 import com.netflix.fenzo.plugins.VMLeaseObject;
+import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
@@ -49,6 +52,7 @@ import com.netflix.titus.common.framework.scheduler.model.ScheduleDescriptor;
 import com.netflix.titus.common.network.client.ClientMetrics;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExecutorsExt;
+import com.netflix.titus.common.util.RegExpExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.master.mesos.ContainerEvent;
@@ -93,17 +97,18 @@ import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TASK_
 /**
  * Responsible for integrating Kubernetes API Server concepts into Titus's Mesos based approaches.
  */
-@Experimental(detail = "This is a basic integration with the kubernetes api server", deadline = "8/1/2019")
+@Experimental(detail = "This is a basic integration with the kubernetes api server", deadline = "9/1/2019")
 @Singleton
 public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     private static final Logger logger = LoggerFactory.getLogger(KubeApiServerIntegrator.class);
+
     private static final String ATTRIBUTE_PREFIX = "com.netflix.titus.agent.attribute/";
     private static final String KUBERNETES_NAMESPACE = "default";
     private static final String CLIENT_METRICS_PREFIX = "titusMaster.mesos.kubeApiServerIntegration";
     private static final long POD_TERMINATION_GRACE_PERIOD_SECONDS = 600L;
     private static final int DELETE_GRACE_PERIOD_SECONDS = 300;
-    private static final int POD_GC_DELETION_TTL = 60_000;
     private static final int NODE_GC_TTL_MS = 60_000;
+    private static final int ORPHANED_POD_TIMEOUT_MS = 60_000;
 
     private static final String POST = "POST";
     private static final String GET = "GET";
@@ -125,6 +130,12 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     private final LocalScheduler scheduler;
     private final Clock clock;
     private final Injector injector;
+
+    private final Function<String, Matcher> invalidRequestMessageMatcherFactory;
+    private final Function<String, Matcher> crashedMessageMatcherFactory;
+    private final Function<String, Matcher> transientSystemErrorMessageMatcherFactory;
+    private final Function<String, Matcher> localSystemErrorMessageMatcherFactory;
+    private final Function<String, Matcher> unknownSystemErrorMessageMatcherFactory;
 
     private volatile Snapshot<V1Node> lastSnapshot = Snapshot.emptySnapshot();
 
@@ -165,6 +176,12 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         watchClient = Config.fromUrl(mesosConfiguration.getKubeApiServerUrl());
         watchClient.getHttpClient().setReadTimeout(1_800_000, TimeUnit.MILLISECONDS);
         watchApi = new CoreV1Api(watchClient);
+
+        invalidRequestMessageMatcherFactory = RegExpExt.dynamicMatcher(mesosConfiguration::getInvalidRequestMessagePattern, "invalidRequestMessagePattern", Pattern.DOTALL, logger);
+        crashedMessageMatcherFactory = RegExpExt.dynamicMatcher(mesosConfiguration::getCrashedMessagePattern, "crashedMessagePattern", Pattern.DOTALL, logger);
+        transientSystemErrorMessageMatcherFactory = RegExpExt.dynamicMatcher(mesosConfiguration::getTransientSystemErrorMessagePattern, "transientSystemErrorMessagePattern", Pattern.DOTALL, logger);
+        localSystemErrorMessageMatcherFactory = RegExpExt.dynamicMatcher(mesosConfiguration::getLocalSystemErrorMessagePattern, "localSystemErrorMessagePattern", Pattern.DOTALL, logger);
+        unknownSystemErrorMessageMatcherFactory = RegExpExt.dynamicMatcher(mesosConfiguration::getUnknownSystemErrorMessagePattern, "unknownSystemErrorMessagePattern", Pattern.DOTALL, logger);
     }
 
     @Override
@@ -205,7 +222,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
             long startTimeMs = clock.wallTime();
             try {
                 V1Pod v1Pod = taskInfoToPod(request);
-                logger.debug("pod: {}", v1Pod);
+                logger.info("creating pod: {}", v1Pod);
                 normalApi.createNamespacedPod(KUBERNETES_NAMESPACE, v1Pod, false, null, null);
                 podsClientMetrics.incrementOnSuccess(POST, PODS, STATUS_200);
                 podsClientMetrics.registerOnSuccessLatency(POST, Duration.ofMillis(clock.wallTime() - startTimeMs));
@@ -290,6 +307,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     public void killTask(String taskId) {
         long startTimeMs = clock.wallTime();
         try {
+            logger.info("deleting pod: {}", taskId);
             normalApi.deleteNamespacedPod(taskId, KUBERNETES_NAMESPACE, null, null, null, DELETE_GRACE_PERIOD_SECONDS, null, null);
             podsClientMetrics.incrementOnSuccess(DELETE, PODS, STATUS_200);
             podsClientMetrics.registerOnSuccessLatency(DELETE, Duration.ofMillis(clock.wallTime() - startTimeMs));
@@ -352,6 +370,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                         .map(n -> n.getMetadata().getName())
                         .collect(Collectors.toList());
                 if (!leaseIdsToRemove.isEmpty() && rescindLeaseHandler != null) {
+                    logger.info("Rescinding leaseIds: {}", leaseIdsToRemove);
                     List<LeaseRescindedEvent> leaseRescindedEvents = leaseIdsToRemove.stream()
                             .map(LeaseRescindedEvent::leaseIdEvent)
                             .collect(Collectors.toList());
@@ -365,6 +384,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                         .collect(Collectors.toList());
 
                 if (!leasesToAdd.isEmpty() && leaseHandler != null) {
+                    logger.debug("Adding leases: {}", leasesToAdd);
                     leaseHandler.call(leasesToAdd);
                 }
 
@@ -408,7 +428,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
             V1NodeStatus status = node.getStatus();
             String nodeName = metadata.getName();
             boolean hasTrueReadyCondition = status.getConditions().stream()
-                    .anyMatch(c -> c.getType().equalsIgnoreCase(READY) && Boolean.valueOf(c.getStatus()));
+                    .anyMatch(c -> c.getType().equalsIgnoreCase(READY) && Boolean.parseBoolean(c.getStatus()));
             if (hasTrueReadyCondition) {
                 return Protos.Offer.newBuilder()
                         .setId(Protos.OfferID.newBuilder().setValue(nodeName).build())
@@ -463,14 +483,14 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
 
     private void getPodUpdates() {
         try {
-            logger.debug("Creating list namespaced pod watch");
+            logger.info("Creating list namespaced pod watch");
             Watch<V1Pod> watch = Watch.createWatch(watchClient, watchApi.listNamespacedPodCall(
                     KUBERNETES_NAMESPACE, null, null, null, null,
                     null, null, null, null, true, null, null),
                     new TypeToken<Watch.Response<V1Pod>>() {
                     }.getType());
             for (Watch.Response<V1Pod> item : watch) {
-                logger.debug("Received pod update with type: {}, object: {}", item.type, item.object);
+                logger.info("Received pod update with type: {}, object: {}", item.type, item.object);
                 V1Pod pod = item.object;
                 try {
                     podUpdated(pod);
@@ -481,7 +501,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         } catch (Exception e) {
             logger.error("Error with pod watch: ", e);
         }
-        logger.debug("Finished list namespaced pod watch");
+        logger.info("Finished list namespaced pod watch");
     }
 
     private Optional<List<V1Pod>> listPods() {
@@ -508,7 +528,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
 
         V1PodStatus status = pod.getStatus();
         String phase = status.getPhase();
-        String reason = status.getReason();
+        String reasonMessage = status.getMessage();
 
         if (previousPod != null && previousPod.getStatus().getPhase().equalsIgnoreCase(phase)) {
             // ignore updates when the phases are the same
@@ -518,29 +538,44 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         lastPodUpdate.put(podName, pod);
 
         if (phase.equalsIgnoreCase(PENDING)) {
-            publishContainerEvent(podName, Launched, REASON_NORMAL, reason, Optional.empty());
+            publishContainerEvent(podName, Launched, REASON_NORMAL, reasonMessage, Optional.empty());
         } else if (phase.equalsIgnoreCase(RUNNING) && pod.getMetadata().getDeletionTimestamp() == null) {
             TitusExecutorDetails titusExecutorDetails = new TitusExecutorDetails(
                     Collections.emptyMap(),
                     new TitusExecutorDetails.NetworkConfiguration(
-                            Boolean.valueOf(pod.getMetadata().getAnnotations().getOrDefault("IsRoutableIp", "true")),
+                            Boolean.parseBoolean(pod.getMetadata().getAnnotations().getOrDefault("IsRoutableIp", "true")),
                             status.getPodIP(),
                             pod.getMetadata().getAnnotations().getOrDefault("EniIpAddress", "UnknownEniIpAddress"),
                             pod.getMetadata().getAnnotations().getOrDefault("EniId", "UnknownEniId"),
                             pod.getMetadata().getAnnotations().getOrDefault("ResourceId", "UnknownResourceId")
                     )
             );
-            publishContainerEvent(podName, StartInitiated, REASON_NORMAL, reason, Optional.of(titusExecutorDetails));
-            publishContainerEvent(podName, Started, REASON_NORMAL, reason, Optional.empty());
+            publishContainerEvent(podName, StartInitiated, REASON_NORMAL, reasonMessage, Optional.of(titusExecutorDetails));
+            publishContainerEvent(podName, Started, REASON_NORMAL, reasonMessage, Optional.empty());
         } else if (phase.equalsIgnoreCase(SUCCEEDED)) {
-            publishContainerEvent(podName, Finished, REASON_NORMAL, reason, Optional.empty());
+            publishContainerEvent(podName, Finished, REASON_NORMAL, reasonMessage, Optional.empty());
         } else if (phase.equalsIgnoreCase(FAILED)) {
-            publishContainerEvent(podName, Finished, REASON_FAILED, reason, Optional.empty());
+            publishContainerEvent(podName, Finished, REASON_FAILED, reasonMessage, Optional.empty());
         }
     }
 
     private void publishContainerEvent(String taskId, TaskState taskState, String reasonCode, String reasonMessage,
                                        Optional<TitusExecutorDetails> executorDetails) {
+
+        if (taskState == com.netflix.titus.api.jobmanager.model.job.TaskState.Finished && !StringExt.isEmpty(reasonMessage)) {
+            if (invalidRequestMessageMatcherFactory.apply(reasonMessage).matches()) {
+                reasonCode = com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_INVALID_REQUEST;
+            } else if (crashedMessageMatcherFactory.apply(reasonMessage).matches()) {
+                reasonCode = com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_CRASHED;
+            } else if (transientSystemErrorMessageMatcherFactory.apply(reasonMessage).matches()) {
+                reasonCode = com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TRANSIENT_SYSTEM_ERROR;
+            } else if (localSystemErrorMessageMatcherFactory.apply(reasonMessage).matches()) {
+                reasonCode = com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_LOCAL_SYSTEM_ERROR;
+            } else if (unknownSystemErrorMessageMatcherFactory.apply(reasonMessage).matches()) {
+                reasonCode = com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_UNKNOWN_SYSTEM_ERROR;
+            }
+        }
+
         V3ContainerEvent event = new V3ContainerEvent(
                 taskId,
                 taskState,
@@ -564,11 +599,11 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                 .collect(Collectors.toList());
 
         // GC nodes that have timed out due to not publishing a heartbeat
-        logger.debug("Attempting to GC {} nodes", nodesToGc.size());
+        logger.info("Attempting to GC nodes: {}", nodesToGc);
         for (V1Node node : nodesToGc) {
             gcNode(node);
         }
-        logger.debug("Finished node GC");
+        logger.info("Finished node GC");
 
         Map<String, Task> currentTasks = v3JobOperations.getTasks().stream().collect(Collectors.toMap(Task::getId, Function.identity()));
         Optional<List<V1Pod>> podsOpt = listPods();
@@ -587,11 +622,11 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                 .collect(Collectors.toList());
 
         // GC pods that have been persisted in Titus and are in a terminal state
-        logger.debug("Attempting to GC {} terminal pods", terminalPodsToGc.size());
+        logger.info("Attempting to GC terminal pods: {}", terminalPodsToGc);
         for (V1Pod pod : terminalPodsToGc) {
             gcPod(pod);
         }
-        logger.debug("Finished terminal pod GC");
+        logger.info("Finished terminal pod GC");
 
         Set<String> currentNodesNames = currentNodes.stream().map(n -> n.getMetadata().getName()).collect(Collectors.toSet());
         List<V1Pod> orphanedPodsToGc = currentPods.stream()
@@ -602,11 +637,11 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                 .collect(Collectors.toList());
 
         // GC orphaned pods on nodes that are no longer available
-        logger.debug("Attempting to GC {} orphaned pods without valid nodes", orphanedPodsToGc.size());
+        logger.info("Attempting to GC orphaned pods: {} without valid nodes", orphanedPodsToGc);
         for (V1Pod pod : orphanedPodsToGc) {
             gcPod(pod);
         }
-        logger.debug("Finished orphaned pod GC without valid nodes");
+        logger.info("Finished orphaned pod GC without valid nodes");
 
         List<V1Pod> pendingPodsWithDeletionTimestamp = currentPods.stream()
                 .filter(pod -> {
@@ -616,23 +651,23 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                 .collect(Collectors.toList());
 
         // GC pods in accepted with a deletion timestamp
-        logger.debug("Attempting to GC {} accepted pods with deletion timestamp", pendingPodsWithDeletionTimestamp.size());
+        logger.info("Attempting to GC accepted pods: {} with deletion timestamp", pendingPodsWithDeletionTimestamp);
         for (V1Pod pod : pendingPodsWithDeletionTimestamp) {
             gcPod(pod);
         }
-        logger.debug("Finished accepted pods with deletion timestamp GC");
+        logger.info("Finished accepted pods with deletion timestamp GC");
 
         Set<String> currentPodNames = currentPods.stream().map(p -> p.getMetadata().getName()).collect(Collectors.toSet());
         List<Task> tasksNotInApiServer = currentTasks.values().stream()
-                .filter(t -> TaskState.isRunning(t.getStatus().getState()) && !currentPodNames.contains(t.getId()))
+                .filter(t -> shouldTaskBeInApiServer(t) && !currentPodNames.contains(t.getId()))
                 .collect(Collectors.toList());
 
         // Transition orphaned tasks to Finished that don't exist in Kubernetes
-        logger.debug("Attempting to transition {} orphaned tasks", tasksNotInApiServer.size());
+        logger.info("Attempting to transition orphaned tasks: {}", tasksNotInApiServer);
         for (Task task : tasksNotInApiServer) {
             publishContainerEvent(task.getId(), Finished, REASON_TASK_LOST, "Inconsistency between control plane and machine", Optional.empty());
         }
-        logger.debug("Finished orphaned tasks transitions");
+        logger.info("Finished orphaned tasks transitions");
     }
 
     private void gcNode(V1Node node) {
@@ -661,7 +696,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
 
     private boolean isNodeReadyForGc(V1Node node) {
         Optional<V1NodeCondition> stoppedConditionOpt = node.getStatus().getConditions().stream()
-                .filter(c -> c.getType().equalsIgnoreCase(STOPPED) && Boolean.valueOf(c.getStatus()))
+                .filter(c -> c.getType().equalsIgnoreCase(STOPPED) && Boolean.parseBoolean(c.getStatus()))
                 .findAny();
         if (stoppedConditionOpt.isPresent()) {
             return true;
@@ -707,5 +742,15 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
             podsClientMetrics.incrementOnError(DELETE, PODS, e);
             podsClientMetrics.registerOnErrorLatency(DELETE, Duration.ofMillis(clock.wallTime() - startTimeMs));
         }
+    }
+
+
+    private boolean shouldTaskBeInApiServer(Task task) {
+        if (!TaskState.isRunning(task.getStatus().getState())) {
+            return false;
+        }
+        return JobFunctions.findTaskStatus(task, Launched)
+                .map(s -> clock.isPast(s.getTimestamp() + ORPHANED_POD_TIMEOUT_MS))
+                .orElse(false);
     }
 }
