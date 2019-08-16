@@ -25,10 +25,7 @@ dependencies {
 
     // FIXME Use officially released artifact when available
     compile "com.squareup.okhttp:okhttp:2.7.5"
-    compile ":client-java:6.0.0-netflixbeta"
-    compile ":client-java-api:6.0.0-netflixbeta"
-    compile ":client-java-extended:6.0.0-netflixbeta"
-    compile ":client-java-proto:6.0.0-netflixbeta"
+    compile "com.netflix.kubernetes:kubernetes-client-java:6.0.+"
 
     testCompile project(':titus-testkit')
 }
