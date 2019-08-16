@@ -20,24 +20,22 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.netflix.titus.api.clustermembership.model.ClusterMemberLeadership;
 import com.netflix.titus.api.clustermembership.model.ClusterMemberLeadershipState;
 import com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision;
 import com.netflix.titus.api.clustermembership.model.event.ClusterMembershipEvent;
 import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.DateTimeExt;
 import io.kubernetes.client.ApiClient;
 import io.kubernetes.client.extended.leaderelection.LeaderElectionConfig;
 import io.kubernetes.client.extended.leaderelection.LeaderElectionRecord;
 import io.kubernetes.client.extended.leaderelection.LeaderElector;
 import io.kubernetes.client.extended.leaderelection.resourcelock.EndpointsLock;
-import io.kubernetes.client.util.ClientBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -93,6 +91,12 @@ class DefaultK8LeaderElectionExecutor implements K8LeaderElectionExecutor {
         return handler != null && !handler.isDone();
     }
 
+    @VisibleForTesting
+    boolean isLeader() {
+        LeaderElectionHandler handler = leaderElectionHandlerRef.get();
+        return handler != null && handler.isLeader();
+    }
+
     @Override
     public boolean joinLeaderElectionProcess() {
         synchronized (leaderElectionHandlerRef) {
@@ -136,15 +140,16 @@ class DefaultK8LeaderElectionExecutor implements K8LeaderElectionExecutor {
         return lockWatcher.mergeWith(handlerProcessor.flatMap(LeaderElectionHandler::events));
     }
 
-    private ClusterMembershipRevision<ClusterMemberLeadership> createCurrentLeaderRevision(String memberId,
-                                                                                           boolean failOnGetError) {
+    private ClusterMembershipRevision<ClusterMemberLeadership> createCurrentLeaderRevision(String memberId, boolean local) {
         LeaderElectionRecord record = null;
         String effectiveMemberId;
         try {
             record = readOnlyEndpointsLock.get();
             effectiveMemberId = record.getHolderIdentity();
         } catch (Exception e) {
-            if (failOnGetError) {
+            // For non local we have to data so we should throw an exception. For local node in a leader position, we build partial
+            // object as we need to show something.
+            if (!local) {
                 throw new IllegalStateException(e);
             }
             effectiveMemberId = memberId;
@@ -198,8 +203,14 @@ class DefaultK8LeaderElectionExecutor implements K8LeaderElectionExecutor {
                 public void run() {
                     try {
                         leaderElector.run(
-                                () -> processLeaderElectedCallback(),
-                                () -> processLostLeadershipCallback()
+                                () -> {
+                                    logger.info("Local member elected a leader");
+                                    processLeaderElectedCallback();
+                                },
+                                () -> {
+                                    logger.info("Local member lost leadership");
+                                    processLostLeadershipCallback();
+                                }
                         );
                         if (leaderFlag.getAndSet(false)) {
                             processLostLeadershipCallback();
@@ -251,34 +262,5 @@ class DefaultK8LeaderElectionExecutor implements K8LeaderElectionExecutor {
             leadershipStateProcessor.onNext(ClusterMembershipEvent.lostLeadership(revision));
             leadershipStateProcessor.onComplete();
         }
-    }
-
-    public static void main(String[] args) throws Exception {
-        ApiClient client = ClientBuilder
-                .standard()
-                .setBasePath("http://100.65.82.159:7001")
-                .build();
-        client.getHttpClient().setReadTimeout(0, TimeUnit.SECONDS); // infinite timeout
-
-        DefaultK8LeaderElectionExecutor executor = new DefaultK8LeaderElectionExecutor(
-                client, "default", "titusrelocation-devtbakcell001", Duration.ofSeconds(10), "member1",
-                TitusRuntimes.internal()
-        );
-
-        executor.watchLeaderElectionProcessUpdates().subscribe(
-                event -> System.out.println("    Watcher: " + event),
-                Throwable::printStackTrace,
-                () -> System.out.println("    Watcher DONE")
-        );
-
-        for (int i = 0; i < 100; i++) {
-            while (!executor.joinLeaderElectionProcess()) {
-                System.out.println("...not ready yet");
-                Thread.sleep(1000);
-            }
-            executor.leaveLeaderElectionProcess();
-        }
-
-        Thread.sleep(60_000);
     }
 }

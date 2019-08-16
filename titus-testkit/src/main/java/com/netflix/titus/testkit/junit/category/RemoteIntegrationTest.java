@@ -14,23 +14,10 @@
  * limitations under the License.
  */
 
-repositories {
-    flatDir {
-        dirs 'libs'
-    }
-}
+package com.netflix.titus.testkit.junit.category;
 
-configurations.all {
-    exclude group: "io.kubernetes"
-}
-
-dependencies {
-    compile project(':titus-api')
-    compile "org.springframework.cloud:spring-cloud-commons:${springCloudVersion}"
-
-    // FIXME Use officially released artifact when available
-    compile "com.squareup.okhttp:okhttp:2.7.5"
-    compile "com.netflix.kubernetes:kubernetes-client-java:6.0.+"
-
-    testCompile project(':titus-testkit')
+/**
+ * Integration tests that require external services, and cannot be run in isolation.
+ */
+public @interface RemoteIntegrationTest {
 }

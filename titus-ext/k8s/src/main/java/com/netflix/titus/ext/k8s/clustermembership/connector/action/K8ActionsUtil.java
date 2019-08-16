@@ -21,6 +21,10 @@ import io.kubernetes.client.ApiException;
 public class K8ActionsUtil {
 
     public static boolean is4xx(Throwable error) {
-        return error instanceof ApiException && ((ApiException) error).getCode() % 100 == 4;
+        Throwable cause = error;
+        while (cause != null && !(cause instanceof ApiException)) {
+            cause = cause.getCause();
+        }
+        return cause != null && ((ApiException) cause).getCode() % 100 == 4;
     }
 }
