@@ -30,17 +30,17 @@ import reactor.core.publisher.Mono;
 
 class K8ClusterMembershipStateReconciler implements Function<K8ClusterState, List<Mono<Function<K8ClusterState, K8ClusterState>>>> {
 
-    private static final long RE_REGISTRATION_INTERVAL_MS = 30_000;
+    private final K8ConnectorConfiguration configuration;
 
     private final Clock clock;
     private final TitusRuntime titusRuntime;
     private final K8Context context;
 
-    K8ClusterMembershipStateReconciler(K8Context context,
-                                       TitusRuntime titusRuntime) {
+    K8ClusterMembershipStateReconciler(K8Context context, K8ConnectorConfiguration configuration) {
         this.context = context;
+        this.configuration = configuration;
+        this.titusRuntime = context.getTitusRuntime();
         this.clock = titusRuntime.getClock();
-        this.titusRuntime = titusRuntime;
     }
 
     @Override
@@ -61,7 +61,7 @@ class K8ClusterMembershipStateReconciler implements Function<K8ClusterState, Lis
 
         // Refresh registration data so it does not look stale to other cluster members
 
-        if (k8ClusterState.getLocalMemberRevision().getTimestamp() + RE_REGISTRATION_INTERVAL_MS < clock.wallTime()) {
+        if (k8ClusterState.isRegistered() && k8ClusterState.getLocalMemberRevision().getTimestamp() + configuration.getReRegistrationIntervalMs() < clock.wallTime()) {
             return Collections.singletonList(K8RegistrationActions.register(context, k8ClusterState, clusterMember ->
                     ClusterMembershipRevision.<ClusterMember>newBuilder()
                             .withCurrent(clusterMember)

@@ -66,7 +66,7 @@ public class DefaultK8LeaderElectionExecutorTest {
 
         LeaderElectionChangeEvent leaderSelectedEvent = member1.takeNextEvent();
         assertThat(leaderSelectedEvent.getLeadershipRevision().getCurrent().getMemberId()).isEqualTo(member1.getMemberId());
-        assertThat(leaderSelectedEvent.getChangeType()).isEqualTo(LeaderElectionChangeEvent.ChangeType.Leader);
+        assertThat(leaderSelectedEvent.getChangeType()).isEqualTo(LeaderElectionChangeEvent.ChangeType.LeaderElected);
 
         // Join second member
         MemberHolder member2 = new MemberHolder();
@@ -76,7 +76,7 @@ public class DefaultK8LeaderElectionExecutorTest {
         member1.getExecutor().leaveLeaderElectionProcess();
         await().until(() -> {
             LeaderElectionChangeEvent event = member1.takeNextEvent();
-            return event != null && event.getChangeType() == LeaderElectionChangeEvent.ChangeType.LostLeadership;
+            return event != null && event.getChangeType() == LeaderElectionChangeEvent.ChangeType.LeaderLost;
         });
 
         // Check that second member takes over leadership

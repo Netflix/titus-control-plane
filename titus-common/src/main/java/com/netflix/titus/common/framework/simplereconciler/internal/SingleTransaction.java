@@ -112,6 +112,7 @@ class SingleTransaction<DATA> implements Transaction<DATA> {
 
         MonoSink<DATA> sink = actionHolder.getSubscriberSink();
         if (sink == null) {
+            stateRef.set(State.SubscriberNotified);
             return;
         }
 

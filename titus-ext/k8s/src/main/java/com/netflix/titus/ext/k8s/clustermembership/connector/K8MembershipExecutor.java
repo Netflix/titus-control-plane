@@ -26,9 +26,9 @@ public interface K8MembershipExecutor {
 
     Mono<ClusterMembershipRevision<ClusterMember>> getMemberById(String memberId);
 
-    Mono<ClusterMembershipRevision<ClusterMember>> createLocal(ClusterMembershipRevision<ClusterMember> localMemberData);
+    Mono<ClusterMembershipRevision<ClusterMember>> createLocal(ClusterMembershipRevision<ClusterMember> localMemberRevision);
 
-    Mono<ClusterMembershipRevision<ClusterMember>> updateLocal(ClusterMembershipRevision<ClusterMember> localMemberData);
+    Mono<ClusterMembershipRevision<ClusterMember>> updateLocal(ClusterMembershipRevision<ClusterMember> localMemberRevision);
 
     Mono<Void> removeLocal(String memberId);
 

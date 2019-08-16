@@ -17,39 +17,15 @@
 package com.netflix.titus.testkit.model.clustermembership;
 
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 
 import com.netflix.titus.api.clustermembership.model.ClusterMember;
 import com.netflix.titus.api.clustermembership.model.ClusterMemberAddress;
 import com.netflix.titus.api.clustermembership.model.ClusterMemberLeadershipState;
 import com.netflix.titus.api.clustermembership.model.ClusterMemberState;
 import com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision;
+import com.netflix.titus.common.util.CollectionsExt;
 
 public final class ClusterMemberGenerator {
-
-    public static Map<String, ClusterMembershipRevision<ClusterMember>> newCluster(String memberIdPrefix, int size) {
-        ClusterMember reference = activeClusterMember();
-        Map<String, ClusterMembershipRevision<ClusterMember>> result = new HashMap<>();
-        for (int i = 0; i < size; i++) {
-            ClusterMember member = reference.toBuilder()
-                    .withMemberId(memberIdPrefix + i)
-                    .withLeadershipState(i == 0 ? ClusterMemberLeadershipState.Leader : ClusterMemberLeadershipState.NonLeader)
-                    .build();
-            ClusterMembershipRevision<ClusterMember> revision = ClusterMembershipRevision.<ClusterMember>newBuilder()
-                    .withCurrent(member)
-                    .withCode("initial")
-                    .withMessage("Test")
-                    .withTimestamp(System.currentTimeMillis())
-                    .build();
-            result.put(member.getMemberId(), revision);
-        }
-        return result;
-    }
-
-    public static ClusterMember activeClusterMember() {
-        return activeClusterMember("member1");
-    }
 
     public static ClusterMember activeClusterMember(String memberId) {
         return ClusterMember.newBuilder()
@@ -70,12 +46,45 @@ public final class ClusterMemberGenerator {
                 .build();
     }
 
-    public static ClusterMembershipRevision<ClusterMember> clusterMemberRevision(ClusterMember clusterMember) {
+    public static ClusterMembershipRevision<ClusterMember> clusterMemberRegistrationRevision(ClusterMember current) {
+        long now = System.currentTimeMillis();
         return ClusterMembershipRevision.<ClusterMember>newBuilder()
-                .withCurrent(clusterMember)
-                .withCode("initial")
-                .withMessage("Test")
-                .withTimestamp(System.currentTimeMillis())
+                .withCurrent(current.toBuilder()
+                        .withLabels(CollectionsExt.copyAndAdd(current.getLabels(), "changedAt", "" + now))
+                        .build()
+                )
+                .withCode("registered")
+                .withMessage("Registering")
+                .withTimestamp(now)
+                .build();
+    }
+
+    public static ClusterMembershipRevision<ClusterMember> clusterMemberUnregistrationRevision(ClusterMember current) {
+        long now = System.currentTimeMillis();
+        return ClusterMembershipRevision.<ClusterMember>newBuilder()
+                .withCurrent(current.toBuilder()
+                        .withLabels(CollectionsExt.copyAndAdd(current.getLabels(), "changedAt", "" + now))
+                        .build()
+                )
+                .withCode("unregistered")
+                .withMessage("Unregistering")
+                .withTimestamp(now)
+                .build();
+    }
+
+    public static ClusterMembershipRevision<ClusterMember> clusterMemberUpdateRevision(ClusterMembershipRevision<ClusterMember> currentRevision) {
+        long now = System.currentTimeMillis();
+        ClusterMember current = currentRevision.getCurrent();
+
+        return ClusterMembershipRevision.<ClusterMember>newBuilder()
+                .withCurrent(current.toBuilder()
+                        .withLabels(CollectionsExt.copyAndAdd(current.getLabels(), "changedAt", "" + now))
+                        .build()
+                )
+                .withCode("updated")
+                .withMessage("Random update to generate next revision number")
+                .withRevision(currentRevision.getRevision() + 1)
+                .withTimestamp(now)
                 .build();
     }
 }

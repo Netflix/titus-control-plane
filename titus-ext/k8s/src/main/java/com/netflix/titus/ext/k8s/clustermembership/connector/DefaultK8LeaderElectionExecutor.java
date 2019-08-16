@@ -147,7 +147,7 @@ class DefaultK8LeaderElectionExecutor implements K8LeaderElectionExecutor {
             record = readOnlyEndpointsLock.get();
             effectiveMemberId = record.getHolderIdentity();
         } catch (Exception e) {
-            // For non local we have to data so we should throw an exception. For local node in a leader position, we build partial
+            // For non local we have no data so we should throw an exception. For local node in a leader position, we build partial
             // object as we need to show something.
             if (!local) {
                 throw new IllegalStateException(e);
@@ -259,7 +259,7 @@ class DefaultK8LeaderElectionExecutor implements K8LeaderElectionExecutor {
                     .withCurrent(leadershipBuilder.build())
                     .build();
 
-            leadershipStateProcessor.onNext(ClusterMembershipEvent.lostLeadership(revision));
+            leadershipStateProcessor.onNext(ClusterMembershipEvent.leaderLost(revision));
             leadershipStateProcessor.onComplete();
         }
     }

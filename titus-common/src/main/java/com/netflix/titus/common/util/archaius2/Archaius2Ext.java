@@ -17,6 +17,8 @@
 package com.netflix.titus.common.util.archaius2;
 
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Function;
 
 import com.netflix.archaius.ConfigProxyFactory;
@@ -57,10 +59,20 @@ public final class Archaius2Ext {
     }
 
     /**
-     * Create Archaius based configuration object initialized with default values.
+     * Create Archaius based configuration object initialized with default values. Defaults can be overridden
+     * by providing key/value pairs as parameters.
      */
-    public static <C> C newDefaultConfiguration(Class<C> configType) {
-        return DEFAULT_CONFIG_PROXY_FACTORY.newProxy(configType);
+    public static <C> C newConfiguration(Class<C> configType, String... keyValuePairs) {
+        if(keyValuePairs.length == 0) {
+            return DEFAULT_CONFIG_PROXY_FACTORY.newProxy(configType);
+        }
+        Map<String, String> props = new HashMap<>();
+        int len = keyValuePairs.length / 2;
+        for(int i = 0; i < len; i++) {
+            props.put(keyValuePairs[i * 2], keyValuePairs[i * 2 + 1]);
+        }
+        Config config = new MapConfig(props);
+        return newConfiguration(configType, config);
     }
 
     /**

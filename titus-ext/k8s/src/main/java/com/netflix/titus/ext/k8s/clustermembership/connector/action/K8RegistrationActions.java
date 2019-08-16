@@ -32,7 +32,7 @@ public class K8RegistrationActions {
                                                                           Function<ClusterMember, ClusterMembershipRevision<ClusterMember>> selfUpdate) {
 
         ClusterMember localMember = k8ClusterState.getLocalMemberRevision().getCurrent();
-        ClusterMembershipRevision<ClusterMember> newRevision = selfUpdate.apply(localMember);
+        ClusterMembershipRevision<ClusterMember> newRevision = setRegistrationStatus(selfUpdate.apply(localMember), true);
 
         K8MembershipExecutor membershipExecutor = context.getK8MembershipExecutor();
 
@@ -50,13 +50,24 @@ public class K8RegistrationActions {
         return monoAction.map(update -> currentState -> currentState.setLocalClusterMemberRevision(update));
     }
 
-    public static Mono<Function<K8ClusterState, K8ClusterState>> unregister(K8Context context, K8ClusterState k8ClusterState) {
+    public static Mono<Function<K8ClusterState, K8ClusterState>> unregister(K8Context context,
+                                                                            K8ClusterState k8ClusterState,
+                                                                            Function<ClusterMember, ClusterMembershipRevision<ClusterMember>> selfUpdate) {
         if (!k8ClusterState.isRegistered()) {
             return Mono.just(Function.identity());
         }
 
-        return context.getK8MembershipExecutor()
-                .removeLocal(k8ClusterState.getLocalMemberRevision().getCurrent().getMemberId())
-                .thenReturn(K8ClusterState::setUnregistered);
+        ClusterMember localMember = k8ClusterState.getLocalMemberRevision().getCurrent();
+        ClusterMembershipRevision<ClusterMember> newRevision = setRegistrationStatus(selfUpdate.apply(localMember), false);
+
+        Mono monoAction = context.getK8MembershipExecutor().removeLocal(k8ClusterState.getLocalMemberRevision().getCurrent().getMemberId());
+        return ((Mono<Function<K8ClusterState, K8ClusterState>>) monoAction)
+                .thenReturn(currentState -> currentState.setLocalClusterMemberRevision(newRevision));
+    }
+
+    private static ClusterMembershipRevision<ClusterMember> setRegistrationStatus(ClusterMembershipRevision<ClusterMember> revision, boolean registered) {
+        return revision.toBuilder()
+                .withCurrent(revision.getCurrent().toBuilder().withRegistered(registered).build())
+                .build();
     }
 }

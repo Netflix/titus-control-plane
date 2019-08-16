@@ -39,7 +39,6 @@ public class K8ClusterState {
     private final ClusterMembershipRevision<ClusterMember> localMemberRevision;
     private final ClusterMembershipRevision<ClusterMemberLeadership> localMemberLeadershipRevision;
 
-    private final boolean registered;
     private final boolean inLeaderElectionProcess;
     private final boolean localLeader;
 
@@ -71,7 +70,6 @@ public class K8ClusterState {
                 .withMessage("Initial")
                 .withTimestamp(clock.wallTime())
                 .build();
-        this.registered = false;
         this.inLeaderElectionProcess = false;
         this.localLeader = false;
         this.clusterMemberSiblings = Collections.emptyMap();
@@ -81,7 +79,6 @@ public class K8ClusterState {
 
     private K8ClusterState(ClusterMembershipRevision<ClusterMember> localMemberRevision,
                            ClusterMembershipRevision<ClusterMemberLeadership> localMemberLeadershipRevision,
-                           boolean registered,
                            boolean inLeaderElectionProcess,
                            boolean localLeader,
                            Map<String, ClusterMembershipRevision<ClusterMember>> clusterMemberSiblings,
@@ -90,7 +87,6 @@ public class K8ClusterState {
         this.localMemberId = localMemberLeadershipRevision.getCurrent().getMemberId();
         this.localMemberRevision = localMemberRevision;
         this.localMemberLeadershipRevision = localMemberLeadershipRevision;
-        this.registered = registered;
         this.inLeaderElectionProcess = inLeaderElectionProcess;
         this.localLeader = localLeader;
         this.clusterMemberSiblings = clusterMemberSiblings;
@@ -100,7 +96,7 @@ public class K8ClusterState {
     }
 
     public boolean isRegistered() {
-        return registered;
+        return localMemberRevision.getCurrent().isRegistered();
     }
 
     public boolean isInLeaderElectionProcess() {
@@ -148,38 +144,38 @@ public class K8ClusterState {
                 .build();
     }
 
-    /**
-     * TODO We do not model registration state now, as we do the leader election.
-     */
-    public K8ClusterState setUnregistered() {
-        return toBuilder()
-                .withRegistered(false)
-                .build();
-    }
-
     public K8ClusterState setJoinedLeaderElection() {
-        return toBuilder()
-                .withLocalMemberLeadershipRevision(ClusterMembershipRevision.<ClusterMemberLeadership>newBuilder()
-                        .withCurrent(ClusterMemberLeadership.newBuilder()
-                                .withMemberId(localMemberRevision.getCurrent().getMemberId())
-                                .withLeadershipState(ClusterMemberLeadershipState.NonLeader)
-                                .build()
-                        )
+        ClusterMembershipRevision<ClusterMemberLeadership> revision = ClusterMembershipRevision.<ClusterMemberLeadership>newBuilder()
+                .withCurrent(ClusterMemberLeadership.newBuilder()
+                        .withMemberId(localMemberRevision.getCurrent().getMemberId())
+                        .withLeadershipState(ClusterMemberLeadershipState.NonLeader)
                         .build()
                 )
+                .build();
+        return toBuilder()
+                .withInLeaderElectionProcess(true)
+                .withLocalMemberLeadershipRevision(revision)
+                .withEvent(LeaderElectionChangeEvent.localJoinedElection(revision))
                 .build();
     }
 
     public K8ClusterState setLeaveLeaderElection() {
-        return toBuilder()
-                .withLocalMemberLeadershipRevision(ClusterMembershipRevision.<ClusterMemberLeadership>newBuilder()
-                        .withCurrent(ClusterMemberLeadership.newBuilder()
-                                .withMemberId(localMemberId)
-                                .withLeadershipState(ClusterMemberLeadershipState.Disabled)
-                                .build()
-                        )
+        ClusterMembershipRevision<ClusterMemberLeadership> revision = ClusterMembershipRevision.<ClusterMemberLeadership>newBuilder()
+                .withCurrent(ClusterMemberLeadership.newBuilder()
+                        .withMemberId(localMemberId)
+                        .withLeadershipState(ClusterMemberLeadershipState.Disabled)
                         .build()
                 )
+                .build();
+
+        LeaderElectionChangeEvent event = localLeader
+                ? LeaderElectionChangeEvent.leaderLost(revision)
+                : LeaderElectionChangeEvent.localLeftElection(revision);
+
+        return toBuilder()
+                .withInLeaderElectionProcess(false)
+                .withLocalMemberLeadershipRevision(revision)
+                .withEvent(event)
                 .build();
     }
 
@@ -216,18 +212,24 @@ public class K8ClusterState {
         boolean local = localMemberId.equals(eventMemberId);
 
         switch (event.getChangeType()) {
-            case Leader:
-                return toBuilder()
+            case LeaderElected:
+                Builder electedBuilder = toBuilder()
                         .withLocalLeader(local)
-                        .withLocalMemberLeadershipRevision(event.getLeadershipRevision())
-                        .withEvent(event)
-                        .build();
-            case LostLeadership:
-                return toBuilder()
+                        .withCurrentLeader(event.getLeadershipRevision())
+                        .withEvent(event);
+                if (local) {
+                    electedBuilder.withLocalMemberLeadershipRevision(event.getLeadershipRevision());
+                }
+                return electedBuilder.build();
+            case LeaderLost:
+                Builder lostBuilder = toBuilder()
                         .withLocalLeader(false)
-                        .withLocalMemberLeadershipRevision(event.getLeadershipRevision())
-                        .withEvent(event)
-                        .build();
+                        .withCurrentLeader(null)
+                        .withEvent(event);
+                if (local) {
+                    lostBuilder.withLocalMemberLeadershipRevision(event.getLeadershipRevision());
+                }
+                return lostBuilder.build();
         }
         return this;
     }
@@ -236,7 +238,6 @@ public class K8ClusterState {
         return new Builder()
                 .withLocalMemberRevision(localMemberRevision)
                 .withLocalMemberLeadershipRevision(localMemberLeadershipRevision)
-                .withRegistered(registered)
                 .withInLeaderElectionProcess(inLeaderElectionProcess)
                 .withLocalLeader(localLeader)
                 .withClusterMemberSiblings(clusterMemberSiblings)
@@ -248,7 +249,6 @@ public class K8ClusterState {
 
         private ClusterMembershipRevision<ClusterMember> localMemberRevision;
         private ClusterMembershipRevision<ClusterMemberLeadership> localMemberLeadershipRevision;
-        private boolean registered;
         private boolean inLeaderElectionProcess;
         private boolean localLeader;
         private Map<String, ClusterMembershipRevision<ClusterMember>> clusterMemberSiblings;
@@ -267,11 +267,6 @@ public class K8ClusterState {
 
         Builder withLocalMemberLeadershipRevision(ClusterMembershipRevision<ClusterMemberLeadership> localMemberLeadershipRevision) {
             this.localMemberLeadershipRevision = localMemberLeadershipRevision;
-            return this;
-        }
-
-        Builder withRegistered(boolean registered) {
-            this.registered = registered;
             return this;
         }
 
@@ -309,7 +304,6 @@ public class K8ClusterState {
             return new K8ClusterState(
                     localMemberRevision,
                     localMemberLeadershipRevision,
-                    registered,
                     inLeaderElectionProcess,
                     localLeader,
                     clusterMemberSiblings,
