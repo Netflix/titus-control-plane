@@ -1,17 +1,5 @@
 {
     "compile": {
-        ":client-java": {
-            "locked": "6.0.0-netflixbeta"
-        },
-        ":client-java-api": {
-            "locked": "6.0.0-netflixbeta"
-        },
-        ":client-java-extended": {
-            "locked": "6.0.0-netflixbeta"
-        },
-        ":client-java-proto": {
-            "locked": "6.0.0-netflixbeta"
-        },
         "aopalliance:aopalliance": {
             "locked": "1.0",
             "transitive": [
@@ -191,6 +179,10 @@
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
+        },
+        "com.netflix.kubernetes:kubernetes-client-java": {
+            "locked": "6.0.0-beta.2",
+            "requested": "6.0.+"
         },
         "com.netflix.numerus:numerus": {
             "locked": "1.1",
@@ -471,22 +463,6 @@
             "transitive": [
                 "org.slf4j:slf4j-log4j12"
             ]
-        },
-        "null:client-java": {
-            "project": true,
-            "requested": "6.0.0-netflixbeta"
-        },
-        "null:client-java-api": {
-            "project": true,
-            "requested": "6.0.0-netflixbeta"
-        },
-        "null:client-java-extended": {
-            "project": true,
-            "requested": "6.0.0-netflixbeta"
-        },
-        "null:client-java-proto": {
-            "project": true,
-            "requested": "6.0.0-netflixbeta"
         },
         "org.apache.commons:commons-lang3": {
             "locked": "3.3.2",
@@ -626,18 +602,6 @@
         }
     },
     "compileClasspath": {
-        ":client-java": {
-            "locked": "6.0.0-netflixbeta"
-        },
-        ":client-java-api": {
-            "locked": "6.0.0-netflixbeta"
-        },
-        ":client-java-extended": {
-            "locked": "6.0.0-netflixbeta"
-        },
-        ":client-java-proto": {
-            "locked": "6.0.0-netflixbeta"
-        },
         "aopalliance:aopalliance": {
             "locked": "1.0",
             "transitive": [
@@ -817,6 +781,10 @@
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
+        },
+        "com.netflix.kubernetes:kubernetes-client-java": {
+            "locked": "6.0.0-beta.2",
+            "requested": "6.0.+"
         },
         "com.netflix.numerus:numerus": {
             "locked": "1.1",
@@ -1097,22 +1065,6 @@
             "transitive": [
                 "org.slf4j:slf4j-log4j12"
             ]
-        },
-        "null:client-java": {
-            "project": true,
-            "requested": "6.0.0-netflixbeta"
-        },
-        "null:client-java-api": {
-            "project": true,
-            "requested": "6.0.0-netflixbeta"
-        },
-        "null:client-java-extended": {
-            "project": true,
-            "requested": "6.0.0-netflixbeta"
-        },
-        "null:client-java-proto": {
-            "project": true,
-            "requested": "6.0.0-netflixbeta"
         },
         "org.apache.commons:commons-lang3": {
             "locked": "3.3.2",
@@ -1252,18 +1204,6 @@
         }
     },
     "default": {
-        ":client-java": {
-            "locked": "6.0.0-netflixbeta"
-        },
-        ":client-java-api": {
-            "locked": "6.0.0-netflixbeta"
-        },
-        ":client-java-extended": {
-            "locked": "6.0.0-netflixbeta"
-        },
-        ":client-java-proto": {
-            "locked": "6.0.0-netflixbeta"
-        },
         "aopalliance:aopalliance": {
             "locked": "1.0",
             "transitive": [
@@ -1443,6 +1383,10 @@
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
+        },
+        "com.netflix.kubernetes:kubernetes-client-java": {
+            "locked": "6.0.0-beta.2",
+            "requested": "6.0.+"
         },
         "com.netflix.numerus:numerus": {
             "locked": "1.1",
@@ -1723,22 +1667,6 @@
             "transitive": [
                 "org.slf4j:slf4j-log4j12"
             ]
-        },
-        "null:client-java": {
-            "project": true,
-            "requested": "6.0.0-netflixbeta"
-        },
-        "null:client-java-api": {
-            "project": true,
-            "requested": "6.0.0-netflixbeta"
-        },
-        "null:client-java-extended": {
-            "project": true,
-            "requested": "6.0.0-netflixbeta"
-        },
-        "null:client-java-proto": {
-            "project": true,
-            "requested": "6.0.0-netflixbeta"
         },
         "org.apache.commons:commons-lang3": {
             "locked": "3.3.2",
@@ -1942,18 +1870,6 @@
         }
     },
     "runtime": {
-        ":client-java": {
-            "locked": "6.0.0-netflixbeta"
-        },
-        ":client-java-api": {
-            "locked": "6.0.0-netflixbeta"
-        },
-        ":client-java-extended": {
-            "locked": "6.0.0-netflixbeta"
-        },
-        ":client-java-proto": {
-            "locked": "6.0.0-netflixbeta"
-        },
         "aopalliance:aopalliance": {
             "locked": "1.0",
             "transitive": [
@@ -2133,6 +2049,10 @@
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
+        },
+        "com.netflix.kubernetes:kubernetes-client-java": {
+            "locked": "6.0.0-beta.2",
+            "requested": "6.0.+"
         },
         "com.netflix.numerus:numerus": {
             "locked": "1.1",
@@ -2413,22 +2333,6 @@
             "transitive": [
                 "org.slf4j:slf4j-log4j12"
             ]
-        },
-        "null:client-java": {
-            "project": true,
-            "requested": "6.0.0-netflixbeta"
-        },
-        "null:client-java-api": {
-            "project": true,
-            "requested": "6.0.0-netflixbeta"
-        },
-        "null:client-java-extended": {
-            "project": true,
-            "requested": "6.0.0-netflixbeta"
-        },
-        "null:client-java-proto": {
-            "project": true,
-            "requested": "6.0.0-netflixbeta"
         },
         "org.apache.commons:commons-lang3": {
             "locked": "3.3.2",
@@ -2569,18 +2473,6 @@
         }
     },
     "runtimeClasspath": {
-        ":client-java": {
-            "locked": "6.0.0-netflixbeta"
-        },
-        ":client-java-api": {
-            "locked": "6.0.0-netflixbeta"
-        },
-        ":client-java-extended": {
-            "locked": "6.0.0-netflixbeta"
-        },
-        ":client-java-proto": {
-            "locked": "6.0.0-netflixbeta"
-        },
         "aopalliance:aopalliance": {
             "locked": "1.0",
             "transitive": [
@@ -2760,6 +2652,10 @@
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
+        },
+        "com.netflix.kubernetes:kubernetes-client-java": {
+            "locked": "6.0.0-beta.2",
+            "requested": "6.0.+"
         },
         "com.netflix.numerus:numerus": {
             "locked": "1.1",
@@ -3041,22 +2937,6 @@
                 "org.slf4j:slf4j-log4j12"
             ]
         },
-        "null:client-java": {
-            "project": true,
-            "requested": "6.0.0-netflixbeta"
-        },
-        "null:client-java-api": {
-            "project": true,
-            "requested": "6.0.0-netflixbeta"
-        },
-        "null:client-java-extended": {
-            "project": true,
-            "requested": "6.0.0-netflixbeta"
-        },
-        "null:client-java-proto": {
-            "project": true,
-            "requested": "6.0.0-netflixbeta"
-        },
         "org.apache.commons:commons-lang3": {
             "locked": "3.3.2",
             "transitive": [
@@ -3196,18 +3076,6 @@
         }
     },
     "testCompile": {
-        ":client-java": {
-            "locked": "6.0.0-netflixbeta"
-        },
-        ":client-java-api": {
-            "locked": "6.0.0-netflixbeta"
-        },
-        ":client-java-extended": {
-            "locked": "6.0.0-netflixbeta"
-        },
-        ":client-java-proto": {
-            "locked": "6.0.0-netflixbeta"
-        },
         "aopalliance:aopalliance": {
             "locked": "1.0",
             "transitive": [
@@ -3722,6 +3590,10 @@
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime"
             ]
+        },
+        "com.netflix.kubernetes:kubernetes-client-java": {
+            "locked": "6.0.0-beta.2",
+            "requested": "6.0.+"
         },
         "com.netflix.numerus:numerus": {
             "locked": "1.1",
@@ -4502,22 +4374,6 @@
             "transitive": [
                 "com.github.fge:json-schema-validator"
             ]
-        },
-        "null:client-java": {
-            "project": true,
-            "requested": "6.0.0-netflixbeta"
-        },
-        "null:client-java-api": {
-            "project": true,
-            "requested": "6.0.0-netflixbeta"
-        },
-        "null:client-java-extended": {
-            "project": true,
-            "requested": "6.0.0-netflixbeta"
-        },
-        "null:client-java-proto": {
-            "project": true,
-            "requested": "6.0.0-netflixbeta"
         },
         "org.antlr:ST4": {
             "locked": "4.0.8",
@@ -5248,18 +5104,6 @@
         }
     },
     "testCompileClasspath": {
-        ":client-java": {
-            "locked": "6.0.0-netflixbeta"
-        },
-        ":client-java-api": {
-            "locked": "6.0.0-netflixbeta"
-        },
-        ":client-java-extended": {
-            "locked": "6.0.0-netflixbeta"
-        },
-        ":client-java-proto": {
-            "locked": "6.0.0-netflixbeta"
-        },
         "aopalliance:aopalliance": {
             "locked": "1.0",
             "transitive": [
@@ -5774,6 +5618,10 @@
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime"
             ]
+        },
+        "com.netflix.kubernetes:kubernetes-client-java": {
+            "locked": "6.0.0-beta.2",
+            "requested": "6.0.+"
         },
         "com.netflix.numerus:numerus": {
             "locked": "1.1",
@@ -6554,22 +6402,6 @@
             "transitive": [
                 "com.github.fge:json-schema-validator"
             ]
-        },
-        "null:client-java": {
-            "project": true,
-            "requested": "6.0.0-netflixbeta"
-        },
-        "null:client-java-api": {
-            "project": true,
-            "requested": "6.0.0-netflixbeta"
-        },
-        "null:client-java-extended": {
-            "project": true,
-            "requested": "6.0.0-netflixbeta"
-        },
-        "null:client-java-proto": {
-            "project": true,
-            "requested": "6.0.0-netflixbeta"
         },
         "org.antlr:ST4": {
             "locked": "4.0.8",
@@ -7300,18 +7132,6 @@
         }
     },
     "testRuntime": {
-        ":client-java": {
-            "locked": "6.0.0-netflixbeta"
-        },
-        ":client-java-api": {
-            "locked": "6.0.0-netflixbeta"
-        },
-        ":client-java-extended": {
-            "locked": "6.0.0-netflixbeta"
-        },
-        ":client-java-proto": {
-            "locked": "6.0.0-netflixbeta"
-        },
         "aopalliance:aopalliance": {
             "locked": "1.0",
             "transitive": [
@@ -7826,6 +7646,10 @@
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime"
             ]
+        },
+        "com.netflix.kubernetes:kubernetes-client-java": {
+            "locked": "6.0.0-beta.2",
+            "requested": "6.0.+"
         },
         "com.netflix.numerus:numerus": {
             "locked": "1.1",
@@ -8606,22 +8430,6 @@
             "transitive": [
                 "com.github.fge:json-schema-validator"
             ]
-        },
-        "null:client-java": {
-            "project": true,
-            "requested": "6.0.0-netflixbeta"
-        },
-        "null:client-java-api": {
-            "project": true,
-            "requested": "6.0.0-netflixbeta"
-        },
-        "null:client-java-extended": {
-            "project": true,
-            "requested": "6.0.0-netflixbeta"
-        },
-        "null:client-java-proto": {
-            "project": true,
-            "requested": "6.0.0-netflixbeta"
         },
         "org.antlr:ST4": {
             "locked": "4.0.8",
@@ -9353,18 +9161,6 @@
         }
     },
     "testRuntimeClasspath": {
-        ":client-java": {
-            "locked": "6.0.0-netflixbeta"
-        },
-        ":client-java-api": {
-            "locked": "6.0.0-netflixbeta"
-        },
-        ":client-java-extended": {
-            "locked": "6.0.0-netflixbeta"
-        },
-        ":client-java-proto": {
-            "locked": "6.0.0-netflixbeta"
-        },
         "aopalliance:aopalliance": {
             "locked": "1.0",
             "transitive": [
@@ -9879,6 +9675,10 @@
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime"
             ]
+        },
+        "com.netflix.kubernetes:kubernetes-client-java": {
+            "locked": "6.0.0-beta.2",
+            "requested": "6.0.+"
         },
         "com.netflix.numerus:numerus": {
             "locked": "1.1",
@@ -10659,22 +10459,6 @@
             "transitive": [
                 "com.github.fge:json-schema-validator"
             ]
-        },
-        "null:client-java": {
-            "project": true,
-            "requested": "6.0.0-netflixbeta"
-        },
-        "null:client-java-api": {
-            "project": true,
-            "requested": "6.0.0-netflixbeta"
-        },
-        "null:client-java-extended": {
-            "project": true,
-            "requested": "6.0.0-netflixbeta"
-        },
-        "null:client-java-proto": {
-            "project": true,
-            "requested": "6.0.0-netflixbeta"
         },
         "org.antlr:ST4": {
             "locked": "4.0.8",
