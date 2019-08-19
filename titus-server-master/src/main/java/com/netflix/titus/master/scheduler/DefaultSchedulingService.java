@@ -20,15 +20,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -50,7 +47,6 @@ import com.netflix.fenzo.TaskScheduler;
 import com.netflix.fenzo.TaskSchedulingService;
 import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.fenzo.VirtualMachineLease;
-import com.netflix.fenzo.functions.Action1;
 import com.netflix.fenzo.queues.QAttributes;
 import com.netflix.fenzo.queues.QueuableTask;
 import com.netflix.fenzo.queues.TaskQueue;
@@ -169,7 +165,6 @@ public class DefaultSchedulingService implements SchedulingService {
     private final TitusRuntime titusRuntime;
     private final AgentResourceCache agentResourceCache;
     private final AgentResourceCacheUpdater agentResourceCacheUpdater;
-    private final BlockingQueue<Map<String, Action1<List<TaskAssignmentResult>>>> taskFailuresActions = new LinkedBlockingQueue<>(5);
     private final TierSlaUpdater tierSlaUpdater;
     private final Registry registry;
     private final TaskMigrator taskMigrator;
@@ -513,30 +508,9 @@ public class DefaultSchedulingService implements SchedulingService {
         }
     }
 
-    //TODO(fabio): dead code, delete this
     private void processTaskSchedulingFailureCallbacks(SchedulingResult schedulingResult) {
-        List<Map<String, Action1<List<TaskAssignmentResult>>>> failActions = new ArrayList<>();
-        taskFailuresActions.drainTo(failActions);
-
-        if (failActions.isEmpty()) {
-            return;
-        }
-
-        for (Map.Entry<TaskRequest, List<TaskAssignmentResult>> entry : schedulingResult.getFailures().entrySet()) {
-            final TitusQueuableTask task = (TitusQueuableTask) entry.getKey();
-            final Iterator<Map<String, Action1<List<TaskAssignmentResult>>>> iterator = failActions.iterator();
-            while (iterator.hasNext()) { // iterate over all of them, there could be multiple requests with the same taskId
-                final Map<String, Action1<List<TaskAssignmentResult>>> next = iterator.next();
-                final String reqId = next.keySet().iterator().next();
-                final Action1<List<TaskAssignmentResult>> a = next.values().iterator().next();
-                if (task.getId().equals(reqId)) {
-                    a.call(entry.getValue());
-                    iterator.remove();
-                }
-            }
-        }
-        if (!failActions.isEmpty()) { // If no such tasks for the registered actions, call them with null result
-            failActions.forEach(action -> action.values().iterator().next().call(null));
+        for (TaskRequest failed : schedulingResult.getFailures().keySet()) {
+            ((TitusQueuableTask) failed).opportunisticSchedulingFailed();
         }
     }
 
