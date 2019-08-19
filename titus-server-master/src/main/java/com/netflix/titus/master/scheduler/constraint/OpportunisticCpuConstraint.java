@@ -28,7 +28,10 @@ import com.netflix.fenzo.TaskTrackerState;
 import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.titus.common.annotation.Experimental;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
+import com.netflix.titus.master.scheduler.SchedulerConfiguration;
+import com.netflix.titus.master.scheduler.SchedulerUtils;
 import com.netflix.titus.master.scheduler.opportunistic.OpportunisticCpuAvailability;
 import com.netflix.titus.master.scheduler.resourcecache.OpportunisticCpuCache;
 import com.netflix.titus.master.scheduler.resourcecache.TaskCache;
@@ -44,12 +47,14 @@ public class OpportunisticCpuConstraint implements SystemConstraint {
     private static final Result NO_RUNTIME_PREDICTION = new Result(false, "Task requested opportunistic CPUs without a runtime prediction");
     private static final Result NOT_ENOUGH_OPPORTUNISTIC_CPUS = new Result(false, "The machine does not have enough opportunistic CPUs available");
 
+    private final SchedulerConfiguration configuration;
     private final TaskCache taskCache;
     private final OpportunisticCpuCache opportunisticCpuCache;
     private final TitusRuntime titusRuntime;
 
     @Inject
-    public OpportunisticCpuConstraint(TaskCache taskCache, OpportunisticCpuCache opportunisticCpuCache, TitusRuntime titusRuntime) {
+    public OpportunisticCpuConstraint(SchedulerConfiguration configuration, TaskCache taskCache, OpportunisticCpuCache opportunisticCpuCache, TitusRuntime titusRuntime) {
+        this.configuration = configuration;
         this.taskCache = taskCache;
         this.opportunisticCpuCache = opportunisticCpuCache;
         this.titusRuntime = titusRuntime;
@@ -76,7 +81,12 @@ public class OpportunisticCpuConstraint implements SystemConstraint {
             return NO_RUNTIME_PREDICTION;
         }
 
-        String agentId = targetVM.getCurrAvailableResources().getVMID();
+        String agentId = SchedulerUtils.getAttributeValueOrEmptyString(targetVM, configuration.getInstanceAttributeName());
+        if (StringExt.isEmpty(agentId)) {
+            titusRuntime.getCodeInvariants().inconsistent("No machine id attribute filled by Fenzo");
+            return NO_OPPORTUNISTIC_CPUS;
+        }
+
         Optional<OpportunisticCpuAvailability> availabilityOpt = opportunisticCpuCache.findAvailableOpportunisticCpus(agentId);
         if (!availabilityOpt.isPresent()) {
             return NO_OPPORTUNISTIC_CPUS;

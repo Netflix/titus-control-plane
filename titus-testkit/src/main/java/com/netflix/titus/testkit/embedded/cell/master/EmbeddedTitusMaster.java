@@ -17,8 +17,11 @@
 package com.netflix.titus.testkit.embedded.cell.master;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -50,6 +53,9 @@ import com.netflix.titus.api.json.ObjectMappers;
 import com.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerJobValidator;
 import com.netflix.titus.api.loadbalancer.model.sanitizer.NoOpLoadBalancerJobValidator;
 import com.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
+import com.netflix.titus.api.supervisor.service.LeaderActivator;
+import com.netflix.titus.api.supervisor.service.MasterDescription;
+import com.netflix.titus.api.supervisor.service.MasterMonitor;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.archaius2.Archaius2ConfigurationLogger;
@@ -71,15 +77,14 @@ import com.netflix.titus.grpc.protogen.SupervisorServiceGrpc.SupervisorServiceBl
 import com.netflix.titus.master.TitusMaster;
 import com.netflix.titus.master.TitusMasterModule;
 import com.netflix.titus.master.TitusRuntimeModule;
-import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.agent.store.InMemoryAgentStore;
 import com.netflix.titus.master.endpoint.grpc.TitusMasterGrpcServer;
 import com.netflix.titus.master.eviction.service.quota.system.ArchaiusSystemDisruptionBudgetResolver;
 import com.netflix.titus.master.eviction.service.quota.system.SystemDisruptionBudgetDescriptor;
 import com.netflix.titus.master.mesos.MesosSchedulerDriverFactory;
-import com.netflix.titus.api.supervisor.service.LeaderActivator;
-import com.netflix.titus.api.supervisor.service.MasterDescription;
-import com.netflix.titus.api.supervisor.service.MasterMonitor;
+import com.netflix.titus.master.mesos.VirtualMachineMasterService;
+import com.netflix.titus.master.scheduler.opportunistic.OpportunisticCpuAvailability;
+import com.netflix.titus.master.scheduler.opportunistic.OpportunisticCpuAvailabilityProvider;
 import com.netflix.titus.master.supervisor.service.leader.LocalMasterMonitor;
 import com.netflix.titus.runtime.endpoint.common.rest.EmbeddedJettyModule;
 import com.netflix.titus.runtime.store.v3.memory.InMemoryJobStore;
@@ -134,6 +139,7 @@ public class EmbeddedTitusMaster {
     private final List<AuditLogEvent> auditLogs = new CopyOnWriteArrayList<>();
 
     private ManagedChannel grpcChannel;
+    private final ConcurrentMap<String, OpportunisticCpuAvailability> opportunisticCpuAvailability = new ConcurrentHashMap<>();
 
     private EmbeddedTitusMaster(Builder builder) {
         this.config = new DefaultSettableConfig();
@@ -188,6 +194,7 @@ public class EmbeddedTitusMaster {
         Stopwatch timer = Stopwatch.createStarted();
         logger.info("Starting Titus Master");
 
+        opportunisticCpuAvailability.clear();
         injector = InjectorBuilder.fromModules(
                 Modules.override(new TitusRuntimeModule()).with(new AbstractModule() {
                     @Override
@@ -214,6 +221,7 @@ public class EmbeddedTitusMaster {
                                       bind(LoadBalancerStore.class).to(InMemoryLoadBalancerStore.class);
                                       bind(LoadBalancerConnector.class).to(NoOpLoadBalancerConnector.class);
                                       bind(LoadBalancerJobValidator.class).to(NoOpLoadBalancerJobValidator.class);
+                                      bind(OpportunisticCpuAvailabilityProvider.class).toInstance(() -> new HashMap<>(opportunisticCpuAvailability));
                                   }
 
                                   @Provides
@@ -425,6 +433,10 @@ public class EmbeddedTitusMaster {
         }
 
         return builder;
+    }
+
+    public void addOpportunisticCpu(String machineId, OpportunisticCpuAvailability availability) {
+        opportunisticCpuAvailability.put(machineId, availability);
     }
 
     public static class Builder {

@@ -41,7 +41,6 @@ import com.netflix.titus.api.jobmanager.model.job.retry.ImmediateRetryPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.common.util.CollectionsExt;
-import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.retry.Retryer;
 import com.netflix.titus.common.util.retry.Retryers;
 import com.netflix.titus.common.util.time.Clock;
