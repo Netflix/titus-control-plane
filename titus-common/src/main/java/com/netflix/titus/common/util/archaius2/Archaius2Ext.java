@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
+import com.google.common.base.Preconditions;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.archaius.DefaultPropertyFactory;
 import com.netflix.archaius.api.Config;
@@ -66,6 +67,9 @@ public final class Archaius2Ext {
         if(keyValuePairs.length == 0) {
             return DEFAULT_CONFIG_PROXY_FACTORY.newProxy(configType);
         }
+
+        Preconditions.checkArgument(keyValuePairs.length % 2 == 0, "Expected even number of arguments");
+
         Map<String, String> props = new HashMap<>();
         int len = keyValuePairs.length / 2;
         for(int i = 0; i < len; i++) {

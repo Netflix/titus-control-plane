@@ -61,7 +61,7 @@ class K8ClusterMembershipStateReconciler implements Function<K8ClusterState, Lis
 
         // Refresh registration data so it does not look stale to other cluster members
 
-        if (k8ClusterState.isRegistered() && k8ClusterState.getLocalMemberRevision().getTimestamp() + configuration.getReRegistrationIntervalMs() < clock.wallTime()) {
+        if (k8ClusterState.isRegistered() && clock.isPast(k8ClusterState.getLocalMemberRevision().getTimestamp() + configuration.getReRegistrationIntervalMs())) {
             return Collections.singletonList(K8RegistrationActions.register(context, k8ClusterState, clusterMember ->
                     ClusterMembershipRevision.<ClusterMember>newBuilder()
                             .withCurrent(clusterMember)

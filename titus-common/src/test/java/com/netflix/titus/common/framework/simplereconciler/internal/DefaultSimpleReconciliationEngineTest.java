@@ -213,6 +213,6 @@ public class DefaultSimpleReconciliationEngineTest {
         this.changesSubscriber = new TitusRxSubscriber<>();
         reconciliationEngine.changes().subscribe(changesSubscriber);
 
-        assertThat(changesSubscriber.takeNext()).isEqualTo("initial");
+        assertThat(changesSubscriber.takeNext()).isEqualTo(INITIAL);
     }
 }
