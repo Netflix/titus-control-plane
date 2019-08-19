@@ -27,7 +27,6 @@ import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.ext.k8s.clustermembership.connector.action.K8ActionsUtil;
 import com.netflix.titus.testkit.junit.category.RemoteIntegrationTest;
-import com.netflix.titus.testkit.model.clustermembership.ClusterMemberGenerator;
 import com.netflix.titus.testkit.rx.TitusRxSubscriber;
 import org.junit.After;
 import org.junit.Before;
@@ -37,6 +36,7 @@ import org.junit.experimental.categories.Category;
 
 import static com.netflix.titus.ext.k8s.clustermembership.connector.K8SExternalResource.K8S_TIMEOUT;
 import static com.netflix.titus.testkit.model.clustermembership.ClusterMemberGenerator.activeClusterMember;
+import static com.netflix.titus.testkit.model.clustermembership.ClusterMemberGenerator.clusterMemberRegistrationRevision;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
@@ -139,8 +139,6 @@ public class DefaultK8MembershipExecutorTest {
     }
 
     private ClusterMembershipRevision<ClusterMember> newMemberRevision() {
-        String memberId = newMemberId();
-        ClusterMember member = activeClusterMember(memberId).toBuilder().withLeadershipState(null).build();
-        return ClusterMemberGenerator.clusterMemberRegistrationRevision(member);
+        return clusterMemberRegistrationRevision(activeClusterMember(newMemberId()));
     }
 }

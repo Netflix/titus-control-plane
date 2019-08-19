@@ -17,4 +17,36 @@
 package com.netflix.titus.api.clustermembership.service;
 
 public class ClusterMembershipServiceException extends RuntimeException {
+
+    public enum ErrorCode {
+        Internal,
+        BadSelfUpdate
+    }
+
+    private final ErrorCode errorCode;
+
+    private ClusterMembershipServiceException(ErrorCode errorCode, String message, Throwable cause) {
+        super(message, cause);
+        this.errorCode = errorCode;
+    }
+
+    public ErrorCode getErrorCode() {
+        return errorCode;
+    }
+
+    public static ClusterMembershipServiceException internalError(Throwable cause) {
+        return new ClusterMembershipServiceException(
+                ErrorCode.Internal,
+                "Unexpected internal error: " + cause.getMessage(),
+                cause
+        );
+    }
+
+    public static ClusterMembershipServiceException selfUpdateError(Throwable cause) {
+        return new ClusterMembershipServiceException(
+                ErrorCode.BadSelfUpdate,
+                "Error during updating local membership data: " + cause.getMessage(),
+                cause
+        );
+    }
 }

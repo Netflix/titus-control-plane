@@ -26,10 +26,11 @@ import javax.inject.Singleton;
 import com.netflix.titus.api.clustermembership.connector.ClusterMembershipConnector;
 import com.netflix.titus.api.clustermembership.model.ClusterMember;
 import com.netflix.titus.api.clustermembership.model.ClusterMemberLeadership;
+import com.netflix.titus.api.clustermembership.model.ClusterMemberLeadershipState;
 import com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision;
 import com.netflix.titus.api.clustermembership.model.event.ClusterMembershipEvent;
-import com.netflix.titus.api.clustermembership.model.event.ClusterMembershipSnapshotEvent;
 import com.netflix.titus.api.clustermembership.service.ClusterMembershipService;
+import com.netflix.titus.api.clustermembership.service.ClusterMembershipServiceException;
 import com.netflix.titus.api.health.HealthIndicator;
 import com.netflix.titus.api.health.HealthState;
 import com.netflix.titus.api.health.HealthStatus;
@@ -38,12 +39,18 @@ import com.netflix.titus.common.framework.scheduler.ScheduleReference;
 import com.netflix.titus.common.framework.scheduler.model.ScheduleDescriptor;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.retry.Retryers;
+import com.netflix.titus.common.util.rx.ReactorExt;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 @Singleton
 public class DefaultClusterMembershipService implements ClusterMembershipService {
+
+    private static final Logger logger = LoggerFactory.getLogger(DefaultClusterMembershipService.class);
 
     private static final Duration HEALTH_CHECK_INITIAL = Duration.ofMillis(1000);
     private static final Duration HEALTH_CHECK_TIMEOUT = Duration.ofMillis(2000);
@@ -57,70 +64,121 @@ public class DefaultClusterMembershipService implements ClusterMembershipService
             .withRetryerSupplier(Retryers::never)
             .build();
 
+    private final ClusterMembershipServiceConfiguration configuration;
     private final ClusterMembershipConnector connector;
     private final HealthIndicator healthIndicator;
 
     private final ScheduleReference healthScheduleRef;
 
+    private final Disposable transactionLogDisposable;
+
     @Inject
-    public DefaultClusterMembershipService(ClusterMembershipConnector connector,
+    public DefaultClusterMembershipService(ClusterMembershipServiceConfiguration configuration,
+                                           ClusterMembershipConnector connector,
                                            HealthIndicator healthIndicator,
                                            TitusRuntime titusRuntime) {
+        this.configuration = configuration;
         this.connector = connector;
         this.healthIndicator = healthIndicator;
 
         this.healthScheduleRef = titusRuntime.getLocalScheduler().scheduleMono(
-                HEALTH_CHECK_SCHEDULE_DESCRIPTOR,
+                HEALTH_CHECK_SCHEDULE_DESCRIPTOR.toBuilder()
+                        .withInterval(Duration.ofMillis(configuration.getHealthCheckEvaluationIntervalMs()))
+                        .withTimeout(Duration.ofMillis(configuration.getHealthCheckEvaluationTimeoutMs()))
+                        .build(),
                 this::evaluateHealth,
                 Schedulers.parallel()
         );
+
+        this.transactionLogDisposable = ClusterMembershipTransactionLogger.logEvents(connector.membershipChangeEvents());
     }
 
     public void shutdown() {
         healthScheduleRef.cancel();
+        ReactorExt.safeDispose(transactionLogDisposable);
     }
 
     @Override
     public ClusterMembershipRevision<ClusterMember> getLocalClusterMember() {
-        return connector.getLocalClusterMemberRevision();
+        try {
+            return connector.getLocalClusterMemberRevision();
+        } catch (Exception e) {
+            throw ClusterMembershipServiceException.internalError(e);
+        }
     }
 
     @Override
     public Map<String, ClusterMembershipRevision<ClusterMember>> getClusterMemberSiblings() {
-        return connector.getClusterMemberSiblings();
+        try {
+            return connector.getClusterMemberSiblings();
+        } catch (Exception e) {
+            throw ClusterMembershipServiceException.internalError(e);
+        }
     }
 
     @Override
     public ClusterMembershipRevision<ClusterMemberLeadership> getLocalLeadership() {
-        return connector.getLocalLeadershipRevision();
+        try {
+            return connector.getLocalLeadershipRevision();
+        } catch (Exception e) {
+            throw ClusterMembershipServiceException.internalError(e);
+        }
     }
 
     @Override
     public Optional<ClusterMembershipRevision<ClusterMemberLeadership>> findLeader() {
-        return connector.findCurrentLeader();
+        try {
+            return connector.findCurrentLeader();
+        } catch (Exception e) {
+            throw ClusterMembershipServiceException.internalError(e);
+        }
     }
 
     @Override
     public Mono<ClusterMembershipRevision<ClusterMember>> updateSelf(Function<ClusterMember, ClusterMembershipRevision<ClusterMember>> memberUpdate) {
-        return connector.register(memberUpdate);
+        return connector.register(memberUpdate).onErrorMap(ClusterMembershipServiceException::selfUpdateError);
     }
 
     @Override
     public Mono<Void> stopBeingLeader() {
-        return connector.leaveLeadershipGroup(false).ignoreElement().cast(Void.class);
+        return connector.leaveLeadershipGroup(false)
+                .ignoreElement()
+                .cast(Void.class)
+                .onErrorMap(ClusterMembershipServiceException::internalError);
     }
 
     @Override
-    public Flux<ClusterMembershipEvent> events(boolean snapshot) {
-        return connector.membershipChangeEvents().filter(event -> !(event instanceof ClusterMembershipSnapshotEvent));
+    public Flux<ClusterMembershipEvent> events() {
+        return connector.membershipChangeEvents();
     }
 
     private Mono<Void> evaluateHealth(ExecutionContext context) {
         return Mono.defer(() -> {
+            ClusterMemberLeadershipState state = connector.getLocalLeadershipRevision().getCurrent().getLeadershipState();
+
+            if (!configuration.isLeaderElectionEnabled()) {
+                if (state == ClusterMemberLeadershipState.NonLeader) {
+                    logger.info("Local member excluded from the leader election. Leaving the leader election process");
+                    return connector.leaveLeadershipGroup(true)
+                            .ignoreElement()
+                            .cast(Void.class);
+                }
+                return Mono.empty();
+            }
             HealthStatus health = healthIndicator.health();
-            return health.getHealthState() == HealthState.Healthy
-                    ? connector.joinLeadershipGroup()
-                    : connector.leaveLeadershipGroup(true).ignoreElement().cast(Void.class);
+            if (health.getHealthState() == HealthState.Healthy) {
+                if (state == ClusterMemberLeadershipState.Disabled) {
+                    logger.info("Re-enabling local member which is in the disabled state");
+                    return connector.joinLeadershipGroup();
+                }
+                return Mono.empty();
+            }
+
+            if (state != ClusterMemberLeadershipState.Disabled && state != ClusterMemberLeadershipState.Leader) {
+                logger.info("Disabling local member as it is unhealthy: {}", health);
+                return connector.leaveLeadershipGroup(true).ignoreElement().cast(Void.class);
+            }
+            return Mono.empty();
         });
     }
 }

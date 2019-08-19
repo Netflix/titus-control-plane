@@ -26,7 +26,6 @@ public class ClusterMember {
     private final ClusterMemberState state;
     private final boolean enabled;
     private final boolean registered;
-    private final ClusterMemberLeadershipState leadershipState;
     private final List<ClusterMemberAddress> clusterMemberAddresses;
     private final Map<String, String> labels;
 
@@ -34,14 +33,12 @@ public class ClusterMember {
                          ClusterMemberState state,
                          boolean enabled,
                          boolean registered,
-                         ClusterMemberLeadershipState leadershipState,
                          List<ClusterMemberAddress> clusterMemberAddresses,
                          Map<String, String> labels) {
         this.memberId = memberId;
         this.state = state;
         this.enabled = enabled;
         this.registered = registered;
-        this.leadershipState = leadershipState;
         this.clusterMemberAddresses = clusterMemberAddresses;
         this.labels = labels;
     }
@@ -60,10 +57,6 @@ public class ClusterMember {
 
     public boolean isRegistered() {
         return registered;
-    }
-
-    public ClusterMemberLeadershipState getLeadershipState() {
-        return leadershipState;
     }
 
     public List<ClusterMemberAddress> getClusterMemberAddresses() {
@@ -87,14 +80,13 @@ public class ClusterMember {
                 registered == that.registered &&
                 Objects.equals(memberId, that.memberId) &&
                 state == that.state &&
-                leadershipState == that.leadershipState &&
                 Objects.equals(clusterMemberAddresses, that.clusterMemberAddresses) &&
                 Objects.equals(labels, that.labels);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(memberId, state, enabled, registered, leadershipState, clusterMemberAddresses, labels);
+        return Objects.hash(memberId, state, enabled, registered, clusterMemberAddresses, labels);
     }
 
     @Override
@@ -104,7 +96,6 @@ public class ClusterMember {
                 ", state=" + state +
                 ", enabled=" + enabled +
                 ", registered=" + registered +
-                ", leadershipState=" + leadershipState +
                 ", clusterMemberAddresses=" + clusterMemberAddresses +
                 ", labels=" + labels +
                 '}';
@@ -116,7 +107,6 @@ public class ClusterMember {
                 .withState(state)
                 .withEnabled(enabled)
                 .withRegistered(registered)
-                .withLeadershipState(leadershipState)
                 .withClusterMemberAddresses(clusterMemberAddresses)
                 .withLabels(labels);
     }
@@ -130,7 +120,6 @@ public class ClusterMember {
         private ClusterMemberState state;
         private boolean enabled;
         private boolean registered;
-        private ClusterMemberLeadershipState leadershipState;
         private List<ClusterMemberAddress> clusterMemberAddress;
         private Map<String, String> labels;
 
@@ -157,11 +146,6 @@ public class ClusterMember {
             return this;
         }
 
-        public Builder withLeadershipState(ClusterMemberLeadershipState leadershipState) {
-            this.leadershipState = leadershipState;
-            return this;
-        }
-
         public Builder withClusterMemberAddresses(List<ClusterMemberAddress> clusterMemberAddress) {
             this.clusterMemberAddress = clusterMemberAddress;
             return this;
@@ -173,7 +157,7 @@ public class ClusterMember {
         }
 
         public ClusterMember build() {
-            return new ClusterMember(memberId, state, enabled, registered, leadershipState, clusterMemberAddress, labels);
+            return new ClusterMember(memberId, state, enabled, registered, clusterMemberAddress, labels);
         }
     }
 }
