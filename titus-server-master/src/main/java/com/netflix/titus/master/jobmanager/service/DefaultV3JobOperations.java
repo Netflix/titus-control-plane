@@ -328,7 +328,6 @@ public class DefaultV3JobOperations implements V3JobOperations {
                 .changeWithModelUpdates(self ->
                         JobEntityHolders.expectTask(engine, taskId, titusRuntime)
                                 .map(task -> {
-
                                     Task newTask;
                                     try {
                                         newTask = changeFunction.apply(task);

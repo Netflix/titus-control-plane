@@ -148,9 +148,14 @@ public final class JobManagerUtil {
                                                                          PreferentialNamedConsumableResourceSet.ConsumeResult consumeResult,
                                                                          Optional<String> executorUriOverrideOpt,
                                                                          Map<String, String> attributesMap,
+                                                                         Map<String, String> opportunisticResourcesContext,
                                                                          String tier) {
         return oldTask -> {
-            Map<String, String> taskContext = new HashMap<>();
+            if (oldTask.getStatus().getState() != TaskState.Accepted) {
+                throw JobManagerException.unexpectedTaskState(oldTask, TaskState.Accepted);
+            }
+
+            Map<String, String> taskContext = new HashMap<>(opportunisticResourcesContext);
             taskContext.put(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST, lease.hostname());
             executorUriOverrideOpt.ifPresent(v -> taskContext.put(TASK_ATTRIBUTES_EXECUTOR_URI_OVERRIDE, v));
             taskContext.put(TaskAttributes.TASK_ATTRIBUTES_TIER, tier);
@@ -180,9 +185,6 @@ public final class JobManagerUtil {
                     .withIndex(consumeResult.getIndex())
                     .build();
 
-            if (oldTask.getStatus().getState() != TaskState.Accepted) {
-                throw JobManagerException.unexpectedTaskState(oldTask, TaskState.Accepted);
-            }
             return JobFunctions.addAllocatedResourcesToTask(oldTask, taskStatus, twoLevelResource, taskContext);
         };
     }

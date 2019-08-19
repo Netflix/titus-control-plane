@@ -70,16 +70,16 @@ public class OpportunisticCpuConstraint implements SystemConstraint {
         }
 
         // TODO(fabio): tests
-        String agentId = targetVM.getCurrAvailableResources().getVMID();
-        Optional<OpportunisticCpuAvailability> availabilityOpt = opportunisticCpuCache.findAvailableOpportunisticCpus(agentId);
-        if (!availabilityOpt.isPresent()) {
-            return NO_OPPORTUNISTIC_CPUS;
-        }
-
         Optional<Duration> runtimePrediction = request.getRuntimePrediction();
         if (!runtimePrediction.isPresent()) {
             titusRuntime.getCodeInvariants().inconsistent("Task requested opportunistic CPUs without a runtime prediction");
             return NO_RUNTIME_PREDICTION;
+        }
+
+        String agentId = targetVM.getCurrAvailableResources().getVMID();
+        Optional<OpportunisticCpuAvailability> availabilityOpt = opportunisticCpuCache.findAvailableOpportunisticCpus(agentId);
+        if (!availabilityOpt.isPresent()) {
+            return NO_OPPORTUNISTIC_CPUS;
         }
 
         Duration taskRuntime = runtimePrediction.get();

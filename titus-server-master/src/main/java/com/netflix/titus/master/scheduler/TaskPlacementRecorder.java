@@ -17,6 +17,7 @@
 package com.netflix.titus.master.scheduler;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +36,7 @@ import com.netflix.fenzo.TaskAssignmentResult;
 import com.netflix.fenzo.TaskSchedulingService;
 import com.netflix.fenzo.VMAssignmentResult;
 import com.netflix.fenzo.VirtualMachineLease;
+import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
@@ -43,13 +45,15 @@ import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.ExceptionExt;
-import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.config.MasterConfiguration;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import com.netflix.titus.master.mesos.TaskInfoFactory;
 import com.netflix.titus.master.model.job.TitusQueuableTask;
+import com.netflix.titus.master.scheduler.opportunistic.OpportunisticCpuAvailability;
+import com.netflix.titus.master.scheduler.resourcecache.OpportunisticCpuCache;
 import org.apache.mesos.Protos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,7 +72,8 @@ class TaskPlacementRecorder {
     private final TaskSchedulingService schedulingService;
     private final V3JobOperations v3JobOperations;
     private final TaskInfoFactory<Protos.TaskInfo> v3TaskInfoFactory;
-    private final Clock clock;
+    private final OpportunisticCpuCache opportunisticCpuCache;
+    private final TitusRuntime titusRuntime;
 
     @Inject
     TaskPlacementRecorder(Config config,
@@ -76,13 +81,15 @@ class TaskPlacementRecorder {
                           TaskSchedulingService schedulingService,
                           V3JobOperations v3JobOperations,
                           TaskInfoFactory<Protos.TaskInfo> v3TaskInfoFactory,
+                          OpportunisticCpuCache opportunisticCpuCache,
                           TitusRuntime titusRuntime) {
         this.config = config;
         this.masterConfiguration = masterConfiguration;
         this.schedulingService = schedulingService;
         this.v3JobOperations = v3JobOperations;
         this.v3TaskInfoFactory = v3TaskInfoFactory;
-        this.clock = titusRuntime.getClock();
+        this.opportunisticCpuCache = opportunisticCpuCache;
+        this.titusRuntime = titusRuntime;
     }
 
     List<Pair<List<VirtualMachineLease>, List<Protos.TaskInfo>>> record(SchedulingResult schedulingResult) {
@@ -90,7 +97,7 @@ class TaskPlacementRecorder {
                 .map(entry -> new AgentAssignment(entry.getKey(), entry.getValue()))
                 .collect(Collectors.toList());
 
-        long startTime = clock.wallTime();
+        long startTime = wallTime();
         try {
             Map<AgentAssignment, List<Protos.TaskInfo>> v3Result = processV3Assignments(assignments);
 
@@ -102,9 +109,13 @@ class TaskPlacementRecorder {
         } finally {
             int taskCount = schedulingResult.getResultMap().values().stream().mapToInt(a -> a.getTasksAssigned().size()).sum();
             if (taskCount > 0) {
-                logger.info("Task placement recording: tasks={}, executionTimeMs={}", taskCount, clock.wallTime() - startTime);
+                logger.info("Task placement recording: tasks={}, executionTimeMs={}", taskCount, wallTime() - startTime);
             }
         }
+    }
+
+    private long wallTime() {
+        return titusRuntime.getClock().wallTime();
     }
 
     private Map<AgentAssignment, List<Protos.TaskInfo>> processV3Assignments(List<AgentAssignment> assignments) {
@@ -140,11 +151,13 @@ class TaskPlacementRecorder {
 
             Map<String, String> attributesMap = assignment.getAttributesMap();
             Optional<String> executorUriOverrideOpt = JobManagerUtil.getExecutorUriOverride(config, attributesMap);
+
             return v3JobOperations.recordTaskPlacement(
                     fenzoTask.getId(),
                     oldTask -> JobManagerUtil.newTaskLaunchConfigurationUpdater(
                             masterConfiguration.getHostZoneAttributeName(), lease, consumeResult,
-                            executorUriOverrideOpt, attributesMap, getTierName(fenzoTask)
+                            executorUriOverrideOpt, attributesMap, buildOpportunisticResourcesContext(lease, fenzoTask),
+                            getTierName(fenzoTask)
                     ).apply(oldTask),
                     JobManagerConstants.SCHEDULER_CALLMETADATA.toBuilder().withCallReason("Record task placement").build()
             ).toObservable().cast(Protos.TaskInfo.class).concatWith(Observable.fromCallable(() ->
@@ -205,6 +218,23 @@ class TaskPlacementRecorder {
         } catch (Exception e) {
             logger.warn("Unexpected error when removing task from the Fenzo queue", e);
         }
+    }
+
+    private Map<String, String> buildOpportunisticResourcesContext(VirtualMachineLease lease, TitusQueuableTask fenzoTask) {
+        int count = fenzoTask.getOpportunisticCpus();
+        if (count < 1) {
+            return Collections.emptyMap();
+        }
+        Optional<OpportunisticCpuAvailability> availability = opportunisticCpuCache.findAvailableOpportunisticCpus(lease.getVMID());
+        if (!availability.isPresent()) {
+            titusRuntime.getCodeInvariants().inconsistent("Task %s was scheduled on opportunistic CPUs that are not available",
+                    fenzoTask.getId());
+            return Collections.emptyMap();
+        }
+        return CollectionsExt.asMap(
+                TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION, availability.get().getAllocationId(),
+                TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT, count + ""
+        );
     }
 
     private String getTierName(TitusQueuableTask task) {
