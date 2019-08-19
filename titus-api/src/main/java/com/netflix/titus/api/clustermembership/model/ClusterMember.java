@@ -25,6 +25,7 @@ public class ClusterMember {
     private final String memberId;
     private final ClusterMemberState state;
     private final boolean enabled;
+    private final boolean registered;
     private final ClusterMemberLeadershipState leadershipState;
     private final List<ClusterMemberAddress> clusterMemberAddresses;
     private final Map<String, String> labels;
@@ -32,12 +33,14 @@ public class ClusterMember {
     public ClusterMember(String memberId,
                          ClusterMemberState state,
                          boolean enabled,
+                         boolean registered,
                          ClusterMemberLeadershipState leadershipState,
                          List<ClusterMemberAddress> clusterMemberAddresses,
                          Map<String, String> labels) {
         this.memberId = memberId;
         this.state = state;
         this.enabled = enabled;
+        this.registered = registered;
         this.leadershipState = leadershipState;
         this.clusterMemberAddresses = clusterMemberAddresses;
         this.labels = labels;
@@ -53,6 +56,10 @@ public class ClusterMember {
 
     public boolean isEnabled() {
         return enabled;
+    }
+
+    public boolean isRegistered() {
+        return registered;
     }
 
     public ClusterMemberLeadershipState getLeadershipState() {
@@ -77,6 +84,7 @@ public class ClusterMember {
         }
         ClusterMember that = (ClusterMember) o;
         return enabled == that.enabled &&
+                registered == that.registered &&
                 Objects.equals(memberId, that.memberId) &&
                 state == that.state &&
                 leadershipState == that.leadershipState &&
@@ -86,7 +94,7 @@ public class ClusterMember {
 
     @Override
     public int hashCode() {
-        return Objects.hash(memberId, state, enabled, leadershipState, clusterMemberAddresses, labels);
+        return Objects.hash(memberId, state, enabled, registered, leadershipState, clusterMemberAddresses, labels);
     }
 
     @Override
@@ -95,6 +103,7 @@ public class ClusterMember {
                 "memberId='" + memberId + '\'' +
                 ", state=" + state +
                 ", enabled=" + enabled +
+                ", registered=" + registered +
                 ", leadershipState=" + leadershipState +
                 ", clusterMemberAddresses=" + clusterMemberAddresses +
                 ", labels=" + labels +
@@ -102,7 +111,14 @@ public class ClusterMember {
     }
 
     public Builder toBuilder() {
-        return newBuilder().withMemberId(memberId).withState(state).withEnabled(true).withLeadershipState(leadershipState).withClusterMemberAddresses(clusterMemberAddresses).withLabels(labels);
+        return newBuilder()
+                .withMemberId(memberId)
+                .withState(state)
+                .withEnabled(enabled)
+                .withRegistered(registered)
+                .withLeadershipState(leadershipState)
+                .withClusterMemberAddresses(clusterMemberAddresses)
+                .withLabels(labels);
     }
 
     public static Builder newBuilder() {
@@ -113,6 +129,7 @@ public class ClusterMember {
         private String memberId;
         private ClusterMemberState state;
         private boolean enabled;
+        private boolean registered;
         private ClusterMemberLeadershipState leadershipState;
         private List<ClusterMemberAddress> clusterMemberAddress;
         private Map<String, String> labels;
@@ -135,6 +152,11 @@ public class ClusterMember {
             return this;
         }
 
+        public Builder withRegistered(boolean registered) {
+            this.registered = registered;
+            return this;
+        }
+
         public Builder withLeadershipState(ClusterMemberLeadershipState leadershipState) {
             this.leadershipState = leadershipState;
             return this;
@@ -151,7 +173,7 @@ public class ClusterMember {
         }
 
         public ClusterMember build() {
-            return new ClusterMember(memberId, state, enabled, leadershipState, clusterMemberAddress, labels);
+            return new ClusterMember(memberId, state, enabled, registered, leadershipState, clusterMemberAddress, labels);
         }
     }
 }

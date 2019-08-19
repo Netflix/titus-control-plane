@@ -28,7 +28,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 /**
- * Connector to an external cluster membership orchestrator (Etcd, Zookeeper, etc).
+ * Connector to an external cluster membership orchestrator (Etcd, Zookeeper, Kubernetes, etc).
  */
 public interface ClusterMembershipConnector {
 
@@ -69,7 +69,7 @@ public interface ClusterMembershipConnector {
      * Remove the local member from the membership group. If the member is part of the leadership process the request
      * is rejected.
      */
-    Mono<Void> unregister();
+    Mono<ClusterMembershipRevision<ClusterMember>> unregister(Function<ClusterMember, ClusterMembershipRevision<ClusterMember>> selfUpdate);
 
     /**
      * Join leader election process. Only allowed for registered members.

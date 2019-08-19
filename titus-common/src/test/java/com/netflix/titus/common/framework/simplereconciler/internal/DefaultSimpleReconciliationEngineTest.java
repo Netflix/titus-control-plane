@@ -44,6 +44,9 @@ public class DefaultSimpleReconciliationEngineTest {
 
     private static final Duration TIMEOUT = Duration.ofSeconds(30);
 
+    private static final String INITIAL = "initial";
+    private static final String RECONCILED = "Reconciled";
+
     private final TitusRuntime titusRuntime = TitusRuntimes.internal();
 
     private DefaultSimpleReconciliationEngine<String> reconciliationEngine;
@@ -61,8 +64,8 @@ public class DefaultSimpleReconciliationEngineTest {
     public void testExternalAction() {
         newReconciler(current -> Collections.emptyList());
 
-        assertThat(reconciliationEngine.apply(Mono.just(c -> "initial")).block()).isEqualTo("initial");
-        assertThat(changesSubscriber.takeNext()).isEqualTo("initial");
+        assertThat(reconciliationEngine.apply(Mono.just(c -> "update")).block()).isEqualTo("update");
+        assertThat(changesSubscriber.takeNext()).isEqualTo("update");
         assertThat(changesSubscriber.takeNext()).isNull();
     }
 
@@ -122,21 +125,21 @@ public class DefaultSimpleReconciliationEngineTest {
 
     @Test(timeout = 30_000)
     public void testReconcilerAction() throws InterruptedException {
-        newReconciler(current -> !current.isEmpty()
-                ? Collections.emptyList()
-                : Collections.singletonList(Mono.just(v -> "Reconciled"))
+        newReconciler(current -> current.equals(INITIAL)
+                ? Collections.singletonList(Mono.just(v -> RECONCILED))
+                : Collections.emptyList()
         );
-        assertThat(changesSubscriber.takeNext(TIMEOUT)).isEqualTo("Reconciled");
+        assertThat(changesSubscriber.takeNext(TIMEOUT)).isEqualTo(RECONCILED);
     }
 
     @Test(timeout = 30_000)
     public void testReconcilerActionMonoError() throws InterruptedException {
         AtomicBoolean failedRef = new AtomicBoolean();
         newReconciler(current -> Collections.singletonList(failedRef.getAndSet(true)
-                ? Mono.just(v -> "Reconciled") :
+                ? Mono.just(v -> RECONCILED) :
                 Mono.error(new RuntimeException("simulated error"))
         ));
-        assertThat(changesSubscriber.takeNext(TIMEOUT)).isEqualTo("Reconciled");
+        assertThat(changesSubscriber.takeNext(TIMEOUT)).isEqualTo(RECONCILED);
     }
 
     @Test(timeout = 30_000)
@@ -144,11 +147,11 @@ public class DefaultSimpleReconciliationEngineTest {
         AtomicBoolean failedRef = new AtomicBoolean();
         newReconciler(current -> Collections.singletonList(Mono.just(v -> {
             if (failedRef.getAndSet(true)) {
-                return "Reconciled";
+                return RECONCILED;
             }
             throw new RuntimeException("simulated error");
         })));
-        assertThat(changesSubscriber.takeNext(TIMEOUT)).isEqualTo("Reconciled");
+        assertThat(changesSubscriber.takeNext(TIMEOUT)).isEqualTo(RECONCILED);
     }
 
     @Test(timeout = 30_000)
@@ -200,7 +203,7 @@ public class DefaultSimpleReconciliationEngineTest {
     private void newReconciler(Function<String, List<Mono<Function<String, String>>>> reconcilerActionsProvider) {
         this.reconciliationEngine = new DefaultSimpleReconciliationEngine<>(
                 "junit",
-                "",
+                INITIAL,
                 QUICK_CYCLE,
                 LONG_CYCLE,
                 reconcilerActionsProvider,
@@ -210,5 +213,7 @@ public class DefaultSimpleReconciliationEngineTest {
 
         this.changesSubscriber = new TitusRxSubscriber<>();
         reconciliationEngine.changes().subscribe(changesSubscriber);
+
+        assertThat(changesSubscriber.takeNext()).isIn(INITIAL, RECONCILED);
     }
 }

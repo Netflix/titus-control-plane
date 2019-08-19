@@ -45,8 +45,13 @@ public class Archaius2ExtTest {
     }
 
     @Test
-    public void testDefaultConfiguration() {
-        assertThat(Archaius2Ext.newDefaultConfiguration(MyConfig.class).getString()).isEqualTo("hello");
+    public void testConfiguration() {
+        assertThat(Archaius2Ext.newConfiguration(MyConfig.class).getString()).isEqualTo("hello");
+    }
+
+    @Test
+    public void testConfigurationWithOverrides() {
+        assertThat(Archaius2Ext.newConfiguration(MyConfig.class, "string", "overridden").getString()).isEqualTo("overridden");
     }
 
     @Test

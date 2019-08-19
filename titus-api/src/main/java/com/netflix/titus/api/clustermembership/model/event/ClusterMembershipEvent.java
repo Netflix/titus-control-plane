@@ -47,11 +47,19 @@ public abstract class ClusterMembershipEvent {
         return new ClusterMembershipDisconnectedEvent(cause);
     }
 
-    public static LeaderElectionChangeEvent lostLeadership(ClusterMembershipRevision<ClusterMemberLeadership> leadershipRevision) {
-        return new LeaderElectionChangeEvent(LeaderElectionChangeEvent.ChangeType.LostLeadership, leadershipRevision);
+    public static LeaderElectionChangeEvent localJoinedElection(ClusterMembershipRevision<ClusterMemberLeadership> leadershipRevision) {
+        return new LeaderElectionChangeEvent(LeaderElectionChangeEvent.ChangeType.LocalJoined, leadershipRevision);
+    }
+
+    public static LeaderElectionChangeEvent localLeftElection(ClusterMembershipRevision<ClusterMemberLeadership> leadershipRevision) {
+        return new LeaderElectionChangeEvent(LeaderElectionChangeEvent.ChangeType.LocalLeft, leadershipRevision);
+    }
+
+    public static LeaderElectionChangeEvent leaderLost(ClusterMembershipRevision<ClusterMemberLeadership> leadershipRevision) {
+        return new LeaderElectionChangeEvent(LeaderElectionChangeEvent.ChangeType.LeaderLost, leadershipRevision);
     }
 
     public static LeaderElectionChangeEvent leaderElected(ClusterMembershipRevision<ClusterMemberLeadership> leadershipRevision) {
-        return new LeaderElectionChangeEvent(LeaderElectionChangeEvent.ChangeType.Leader, leadershipRevision);
+        return new LeaderElectionChangeEvent(LeaderElectionChangeEvent.ChangeType.LeaderElected, leadershipRevision);
     }
 }

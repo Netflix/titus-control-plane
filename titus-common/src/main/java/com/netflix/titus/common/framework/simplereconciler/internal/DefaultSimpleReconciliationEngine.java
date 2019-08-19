@@ -34,6 +34,7 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.ReplayProcessor;
 import reactor.core.scheduler.Scheduler;
 
 public class DefaultSimpleReconciliationEngine<DATA> implements SimpleReconciliationEngine<DATA> {
@@ -59,7 +60,7 @@ public class DefaultSimpleReconciliationEngine<DATA> implements SimpleReconcilia
     private final AtomicLong nextTransactionId = new AtomicLong();
     private volatile Transaction<DATA> pendingTransaction = EmptyTransaction.empty();
 
-    private final DirectProcessor<DATA> eventProcessor = DirectProcessor.create();
+    private final ReplayProcessor<DATA> eventProcessor = ReplayProcessor.create(1);
     private final Flux<DATA> eventStream = eventProcessor.compose(ReactorExt.badSubscriberHandler(logger));
 
     public DefaultSimpleReconciliationEngine(String name,
@@ -79,6 +80,7 @@ public class DefaultSimpleReconciliationEngine<DATA> implements SimpleReconcilia
         this.clock = titusRuntime.getClock();
         this.titusRuntime = titusRuntime;
 
+        eventProcessor.onNext(initial);
         doSchedule(0);
     }
 

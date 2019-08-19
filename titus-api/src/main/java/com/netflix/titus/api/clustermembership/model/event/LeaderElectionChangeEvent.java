@@ -24,8 +24,25 @@ import com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision;
 public class LeaderElectionChangeEvent extends ClusterMembershipEvent {
 
     public enum ChangeType {
-        Leader,
-        LostLeadership
+        /**
+         * Local member joined the leader election process.
+         */
+        LocalJoined,
+
+        /**
+         * Local member left the leader election process.
+         */
+        LocalLeft,
+
+        /**
+         * A new member is elected (local or sibling).
+         */
+        LeaderElected,
+
+        /**
+         * Current leader (local or sibling) lost the leadership.
+         */
+        LeaderLost
     }
 
     private final ChangeType changeType;

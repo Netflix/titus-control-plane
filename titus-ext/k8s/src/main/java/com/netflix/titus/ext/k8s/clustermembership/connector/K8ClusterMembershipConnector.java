@@ -50,11 +50,6 @@ public class K8ClusterMembershipConnector implements ClusterMembershipConnector 
 
     private static final Logger logger = LoggerFactory.getLogger(K8ClusterMembershipConnector.class);
 
-    private static final Duration QUICK_CYCLE = Duration.ofMillis(10);
-    private static final Duration LONG_CYCLE = Duration.ofMillis(100);
-
-    private static final Duration RECONNECT_INTERVAL = Duration.ofMillis(500);
-
     private final Scheduler scheduler;
 
     private final SimpleReconciliationEngine<K8ClusterState> reconciler;
@@ -62,26 +57,33 @@ public class K8ClusterMembershipConnector implements ClusterMembershipConnector 
 
     private final Disposable membershipSubscription;
     private final Disposable leaderElectionSubscription;
+    private final Disposable reconcilerEventsSubscription;
 
     public K8ClusterMembershipConnector(ClusterMember initial,
                                         K8MembershipExecutor k8MembershipExecutor,
                                         K8LeaderElectionExecutor k8LeaderElectionExecutor,
+                                        K8ConnectorConfiguration configuration,
                                         TitusRuntime titusRuntime) {
         this.scheduler = Schedulers.newSingle("ClusterMembershipReconciler");
 
         this.context = new K8Context(k8MembershipExecutor, k8LeaderElectionExecutor, titusRuntime);
         this.reconciler = SimpleReconciliationEngine.<K8ClusterState>newBuilder("LeaderElection")
                 .withInitial(new K8ClusterState(initial, titusRuntime.getClock()))
-                .withReconcilerActionsProvider(new K8ClusterMembershipStateReconciler(context, titusRuntime))
-                .withQuickCycle(QUICK_CYCLE)
-                .withLongCycle(LONG_CYCLE)
+                .withReconcilerActionsProvider(new K8ClusterMembershipStateReconciler(context, configuration))
+                .withQuickCycle(Duration.ofMillis(configuration.getReconcilerQuickCycleMs()))
+                .withLongCycle(Duration.ofMillis(configuration.getReconcilerLongCycleMs()))
                 .withScheduler(scheduler)
                 .withTitusRuntime(titusRuntime)
                 .build();
 
+        Duration reconnectInterval = Duration.ofMillis(configuration.getK8ReconnectIntervalMs());
         this.membershipSubscription = k8MembershipExecutor.watchMembershipEvents()
-                .onErrorResume(e -> Flux.just(ClusterMembershipEvent.disconnectedEvent(e))
-                        .concatWith(Flux.interval(RECONNECT_INTERVAL).take(1).flatMap(tick -> k8MembershipExecutor.watchMembershipEvents()))
+                .onErrorResume(e -> {
+                            logger.info("Reconnecting membership event stream from K8S terminated with an error: {}", e.getMessage());
+                            logger.debug("Stack trace", e);
+                            return Flux.just(ClusterMembershipEvent.disconnectedEvent(e))
+                                    .concatWith(Flux.interval(reconnectInterval).take(1).flatMap(tick -> k8MembershipExecutor.watchMembershipEvents()));
+                        }
                 )
                 .subscribe(
                         event -> {
@@ -97,8 +99,12 @@ public class K8ClusterMembershipConnector implements ClusterMembershipConnector 
                         () -> logger.info("Membership K8S event stream closed")
                 );
         this.leaderElectionSubscription = k8LeaderElectionExecutor.watchLeaderElectionProcessUpdates()
-                .onErrorResume(e -> Flux.just(ClusterMembershipEvent.disconnectedEvent(e))
-                        .concatWith(Flux.interval(RECONNECT_INTERVAL).take(1).flatMap(tick -> k8LeaderElectionExecutor.watchLeaderElectionProcessUpdates()))
+                .onErrorResume(e -> {
+                            logger.info("Reconnecting leadership event stream from K8S terminated with an error: {}", e.getMessage());
+                            logger.debug("Stack trace", e);
+                            return Flux.just(ClusterMembershipEvent.disconnectedEvent(e))
+                                    .concatWith(Flux.interval(reconnectInterval).take(1).flatMap(tick -> k8LeaderElectionExecutor.watchLeaderElectionProcessUpdates()));
+                        }
                 )
                 .subscribe(
                         event -> {
@@ -113,12 +119,18 @@ public class K8ClusterMembershipConnector implements ClusterMembershipConnector 
                         e -> logger.error("Unexpected error in the K8S membership event stream", e),
                         () -> logger.info("Membership K8S event stream closed")
                 );
+
+        this.reconcilerEventsSubscription = this.reconciler.changes().subscribe(
+                next -> logger.info("Reconciler update: {}", next.getDeltaEvents()),
+                e -> logger.warn("Reconciler event stream terminated with an error", e),
+                () -> logger.warn("Reconciler event stream completed")
+        );
     }
 
     @PreDestroy
     public void shutdown() {
         IOExt.closeSilently(reconciler);
-        ReactorExt.safeDispose(scheduler, membershipSubscription, leaderElectionSubscription);
+        ReactorExt.safeDispose(scheduler, membershipSubscription, leaderElectionSubscription, reconcilerEventsSubscription);
     }
 
     @Override
@@ -143,12 +155,16 @@ public class K8ClusterMembershipConnector implements ClusterMembershipConnector 
 
     @Override
     public Mono<ClusterMembershipRevision<ClusterMember>> register(Function<ClusterMember, ClusterMembershipRevision<ClusterMember>> selfUpdate) {
-        return reconciler.apply(Mono.defer(() -> K8RegistrationActions.register(context, reconciler.getCurrent(), selfUpdate))).map(K8ClusterState::getLocalMemberRevision);
+        return reconciler.apply(Mono.defer(() ->
+                K8RegistrationActions.register(context, reconciler.getCurrent(), selfUpdate))
+        ).map(K8ClusterState::getLocalMemberRevision);
     }
 
     @Override
-    public Mono<Void> unregister() {
-        return reconciler.apply(Mono.defer(() -> K8RegistrationActions.unregister(context, reconciler.getCurrent()))).ignoreElement().cast(Void.class);
+    public Mono<ClusterMembershipRevision<ClusterMember>> unregister(Function<ClusterMember, ClusterMembershipRevision<ClusterMember>> selfUpdate) {
+        return reconciler.apply(Mono.defer(() ->
+                K8RegistrationActions.unregister(context, reconciler.getCurrent(), selfUpdate))
+        ).map(K8ClusterState::getLocalMemberRevision);
     }
 
     @Override
