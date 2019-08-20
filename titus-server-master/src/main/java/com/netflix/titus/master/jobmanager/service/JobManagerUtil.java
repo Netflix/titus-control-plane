@@ -224,6 +224,9 @@ public final class JobManagerUtil {
     }
 
     public static Optional<Duration> getJobRuntimePrediction(Job job) {
+        if (!JobFunctions.isBatchJob(job)) {
+            return Optional.empty();
+        }
         return Optional.ofNullable(((Job<?>) job).getJobDescriptor().getAttributes().get(JobAttributes.JOB_ATTRIBUTES_RUNTIME_PREDICTION_VALUE))
                 .flatMap(StringExt::parseLong)
                 .map(Duration::ofSeconds);
