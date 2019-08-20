@@ -74,7 +74,6 @@ public class OpportunisticCpuConstraint implements SystemConstraint {
             return VALID;
         }
 
-        // TODO(fabio): tests
         Optional<Duration> runtimePrediction = request.getRuntimePrediction();
         if (!runtimePrediction.isPresent()) {
             titusRuntime.getCodeInvariants().inconsistent("Task requested opportunistic CPUs without a runtime prediction");

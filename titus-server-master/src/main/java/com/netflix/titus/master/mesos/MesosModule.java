@@ -77,9 +77,9 @@ public class MesosModule extends AbstractModule {
     public OpportunisticCpuAvailabilityProvider getOpportunisticCpusAvailabilityProvider(MesosConfiguration configuration,
                                                                                          Injector injector) {
         // TODO(fabio): pull available opportunistic on the k8s path
-//        if (configuration.isKubeApiServerIntegrationEnabled()) {
-//            return injector.getInstance(KubeApiServerIntegrator.class);
-//        }
+        //if (configuration.isKubeApiServerIntegrationEnabled()) {
+        //    return injector.getInstance(KubeApiServerIntegrator.class);
+        //}
         return injector.getInstance(NoOpportunisticCpus.class);
     }
 }

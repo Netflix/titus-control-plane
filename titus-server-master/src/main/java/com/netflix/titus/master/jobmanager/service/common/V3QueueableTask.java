@@ -34,6 +34,7 @@ import com.netflix.fenzo.queues.QAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Container;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TwoLevelResource;
 import com.netflix.titus.api.model.Tier;
@@ -78,15 +79,30 @@ public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
                            ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
                            SystemSoftConstraint systemSoftConstraint,
                            SystemHardConstraint systemHardConstraint) {
+
+        this(tier, capacityGroup, job, task, runtimePrediction,
+                runtimePrediction.isPresent() ? initialOpportunisticCpuCount(job.getJobDescriptor()) : 0,
+                activeTasksGetter, constraintEvaluatorTransformer, systemSoftConstraint, systemHardConstraint);
+
+    }
+
+    public V3QueueableTask(Tier tier,
+                           String capacityGroup,
+                           Job job,
+                           Task task,
+                           Optional<Duration> runtimePrediction,
+                           int opportunisticCpus,
+                           Supplier<Set<String>> activeTasksGetter,
+                           ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
+                           SystemSoftConstraint systemSoftConstraint,
+                           SystemHardConstraint systemHardConstraint) {
         this.job = job;
         this.task = task;
 
         ContainerResources containerResources = job.getJobDescriptor().getContainer().getContainerResources();
         this.runtimePrediction = runtimePrediction;
         this.cpus = containerResources.getCpu();
-        this.opportunisticCpuCount = runtimePrediction.isPresent() ?
-                new AtomicInteger(initialOpportunisticCpuCount(cpus)) :
-                new AtomicInteger(0);
+        this.opportunisticCpuCount = new AtomicInteger(opportunisticCpus);
         this.memoryMb = containerResources.getMemoryMB();
         this.networkMbps = containerResources.getNetworkMbps();
         this.diskMb = containerResources.getDiskMB();
@@ -282,6 +298,10 @@ public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
 
     private static String getConcatenatedSecurityGroups(List<String> securityGroups) {
         return String.join(":", securityGroups);
+    }
+
+    private static int initialOpportunisticCpuCount(JobDescriptor jobDescriptor) {
+        return initialOpportunisticCpuCount(jobDescriptor.getContainer().getContainerResources().getCpu());
     }
 
     private static int initialOpportunisticCpuCount(double cpusRequested) {
