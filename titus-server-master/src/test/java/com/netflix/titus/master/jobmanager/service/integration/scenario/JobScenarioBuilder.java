@@ -56,13 +56,12 @@ import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
 import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.ExceptionExt;
+import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import com.netflix.titus.master.jobmanager.service.integration.scenario.StubbedJobStore.StoreEvent;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
-import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import com.netflix.titus.testkit.rx.ExtTestSubscriber;
 import com.netflix.titus.testkit.rx.TitusRxSubscriber;
 import rx.Subscriber;
@@ -653,8 +652,14 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
 
     private Map<String, String> buildOpportunisticResourcesContext(Task task) {
         HashMap<String, String> context = new HashMap<>();
-        task.getTaskContext().computeIfPresent(TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION, context::put);
-        task.getTaskContext().computeIfPresent(TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT, context::put);
+        String allocationId = task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION);
+        if (StringExt.isNotEmpty(allocationId)) {
+            context.put(TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION, allocationId);
+        }
+        String count = task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT);
+        if (StringExt.isNotEmpty(count)) {
+            context.put(TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT, count);
+        }
         return context;
     }
 
