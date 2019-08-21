@@ -23,22 +23,22 @@ import java.util.Objects;
 public class ClusterMember {
 
     private final String memberId;
-    private final ClusterMemberState state;
     private final boolean enabled;
     private final boolean registered;
+    private final boolean active;
     private final List<ClusterMemberAddress> clusterMemberAddresses;
     private final Map<String, String> labels;
 
     public ClusterMember(String memberId,
-                         ClusterMemberState state,
                          boolean enabled,
                          boolean registered,
+                         boolean active,
                          List<ClusterMemberAddress> clusterMemberAddresses,
                          Map<String, String> labels) {
         this.memberId = memberId;
-        this.state = state;
         this.enabled = enabled;
         this.registered = registered;
+        this.active = active;
         this.clusterMemberAddresses = clusterMemberAddresses;
         this.labels = labels;
     }
@@ -47,16 +47,16 @@ public class ClusterMember {
         return memberId;
     }
 
-    public ClusterMemberState getState() {
-        return state;
-    }
-
     public boolean isEnabled() {
         return enabled;
     }
 
     public boolean isRegistered() {
         return registered;
+    }
+
+    public boolean isActive() {
+        return active;
     }
 
     public List<ClusterMemberAddress> getClusterMemberAddresses() {
@@ -78,24 +78,24 @@ public class ClusterMember {
         ClusterMember that = (ClusterMember) o;
         return enabled == that.enabled &&
                 registered == that.registered &&
+                active == that.active &&
                 Objects.equals(memberId, that.memberId) &&
-                state == that.state &&
                 Objects.equals(clusterMemberAddresses, that.clusterMemberAddresses) &&
                 Objects.equals(labels, that.labels);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(memberId, state, enabled, registered, clusterMemberAddresses, labels);
+        return Objects.hash(memberId, enabled, registered, active, clusterMemberAddresses, labels);
     }
 
     @Override
     public String toString() {
         return "ClusterMember{" +
                 "memberId='" + memberId + '\'' +
-                ", state=" + state +
                 ", enabled=" + enabled +
                 ", registered=" + registered +
+                ", active=" + active +
                 ", clusterMemberAddresses=" + clusterMemberAddresses +
                 ", labels=" + labels +
                 '}';
@@ -104,9 +104,9 @@ public class ClusterMember {
     public Builder toBuilder() {
         return newBuilder()
                 .withMemberId(memberId)
-                .withState(state)
                 .withEnabled(enabled)
                 .withRegistered(registered)
+                .withActive(active)
                 .withClusterMemberAddresses(clusterMemberAddresses)
                 .withLabels(labels);
     }
@@ -117,9 +117,9 @@ public class ClusterMember {
 
     public static final class Builder {
         private String memberId;
-        private ClusterMemberState state;
         private boolean enabled;
         private boolean registered;
+        private boolean active;
         private List<ClusterMemberAddress> clusterMemberAddress;
         private Map<String, String> labels;
 
@@ -131,11 +131,6 @@ public class ClusterMember {
             return this;
         }
 
-        public Builder withState(ClusterMemberState state) {
-            this.state = state;
-            return this;
-        }
-
         public Builder withEnabled(boolean enabled) {
             this.enabled = enabled;
             return this;
@@ -143,6 +138,11 @@ public class ClusterMember {
 
         public Builder withRegistered(boolean registered) {
             this.registered = registered;
+            return this;
+        }
+
+        public Builder withActive(boolean active) {
+            this.active = active;
             return this;
         }
 
@@ -157,7 +157,7 @@ public class ClusterMember {
         }
 
         public ClusterMember build() {
-            return new ClusterMember(memberId, state, enabled, registered, clusterMemberAddress, labels);
+            return new ClusterMember(memberId, enabled, registered, active, clusterMemberAddress, labels);
         }
     }
 }

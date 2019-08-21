@@ -33,7 +33,7 @@ public class ClusterMembershipTransactionLoggerTest {
     public void testMemberChangeEventLogging() {
         ClusterMembershipRevision<ClusterMember> revision = clusterMemberRegistrationRevision(activeClusterMember("local"));
         String value = ClusterMembershipTransactionLogger.doFormat(ClusterMembershipEvent.memberAddedEvent(revision));
-        assertThat(value).isEqualTo("memberId=local memberState=Active   registered=false enabled=true memberRevision=0        leadershipState=n/a        leadershipRevision=n/a");
+        assertThat(value).isEqualTo("eventType=[membership] memberId=local active=true  registered=true  enabled=true memberRevision=0        leadershipState=n/a        leadershipRevision=n/a");
     }
 
     @Test
@@ -46,6 +46,6 @@ public class ClusterMembershipTransactionLoggerTest {
                 )
                 .build();
         String value = ClusterMembershipTransactionLogger.doFormat(ClusterMembershipEvent.leaderElected(revision));
-        assertThat(value).isEqualTo("memberId=local memberState=n/a      registered=n/a   enabled=n/a  memberRevision=n/a      leadershipState=Leader     leadershipRevision=0");
+        assertThat(value).isEqualTo("eventType=[leadership] memberId=local active=n/a   registered=n/a   enabled=n/a  memberRevision=n/a      leadershipState=Leader     leadershipRevision=0");
     }
 }

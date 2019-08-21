@@ -71,8 +71,9 @@ class ClusterMembershipTransactionLogger {
     private static String doFormat(ClusterMembershipChangeEvent event) {
         ClusterMember member = event.getRevision().getCurrent();
         return doFormat(
+                "membership",
                 member.getMemberId(),
-                member.getState().name(),
+                member.isActive() + "",
                 member.isRegistered() + "",
                 member.isEnabled() + "",
                 event.getRevision().getRevision() + "",
@@ -85,6 +86,7 @@ class ClusterMembershipTransactionLogger {
     private static String doFormat(LeaderElectionChangeEvent event) {
         ClusterMemberLeadership member = event.getLeadershipRevision().getCurrent();
         return doFormat(
+                "leadership",
                 member.getMemberId(),
                 "n/a",
                 "n/a",
@@ -95,17 +97,19 @@ class ClusterMembershipTransactionLogger {
         );
     }
 
-    private static String doFormat(String memberId,
-                                   String memberState,
+    private static String doFormat(String eventType,
+                                   String memberId,
+                                   String memberActive,
                                    String memberRegistered,
                                    String memberEnabled,
                                    String memberRevision,
                                    String leadershipState,
                                    String leadershipRevision) {
         return String.format(
-                "memberId=%s memberState=%-8s registered=%-5s enabled=%-4s memberRevision=%-8s leadershipState=%-10s leadershipRevision=%s",
+                "eventType=[%6s] memberId=%s active=%-5s registered=%-5s enabled=%-4s memberRevision=%-8s leadershipState=%-10s leadershipRevision=%s",
+                eventType,
                 memberId,
-                memberState,
+                memberActive,
                 memberRegistered,
                 memberEnabled,
                 memberRevision,

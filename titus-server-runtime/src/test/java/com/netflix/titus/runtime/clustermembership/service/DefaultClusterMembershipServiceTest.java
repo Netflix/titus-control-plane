@@ -19,6 +19,7 @@ package com.netflix.titus.runtime.clustermembership.service;
 import java.time.Duration;
 
 import com.netflix.titus.api.clustermembership.model.ClusterMemberLeadershipState;
+import com.netflix.titus.api.clustermembership.model.event.ClusterMembershipChangeEvent;
 import com.netflix.titus.api.clustermembership.model.event.ClusterMembershipEvent;
 import com.netflix.titus.api.clustermembership.model.event.ClusterMembershipSnapshotEvent;
 import com.netflix.titus.api.clustermembership.model.event.LeaderElectionChangeEvent;
@@ -39,6 +40,9 @@ import static org.mockito.Mockito.when;
 public class DefaultClusterMembershipServiceTest {
 
     private static final Duration TIMEOUT = Duration.ofSeconds(30);
+
+    private static final boolean ACTIVE = true;
+    private static final boolean INACTIVE = false;
 
     private static final HealthStatus HEALTHY = HealthStatus.newBuilder().withHealthState(HealthState.Healthy).build();
     private static final HealthStatus UNHEALTHY = HealthStatus.newBuilder().withHealthState(HealthState.Unhealthy).build();
@@ -78,15 +82,15 @@ public class DefaultClusterMembershipServiceTest {
     @Test(timeout = 30_000)
     public void testLeaderElectionWithHealthcheck() throws InterruptedException {
         // Starts Disabled but healthy, so leadership state should change to NoLeader.
-        expectLocalLeadershipTransition(ClusterMemberLeadershipState.NonLeader);
+        expectLocalLeadershipTransition(ClusterMemberLeadershipState.NonLeader, ACTIVE);
 
         // Now make it unhealthy
         when(healthIndicator.health()).thenReturn(UNHEALTHY);
-        expectLocalLeadershipTransition(ClusterMemberLeadershipState.Disabled);
+        expectLocalLeadershipTransition(ClusterMemberLeadershipState.Disabled, INACTIVE);
 
         // Now make healthy again
         when(healthIndicator.health()).thenReturn(HEALTHY);
-        expectLocalLeadershipTransition(ClusterMemberLeadershipState.NonLeader);
+        expectLocalLeadershipTransition(ClusterMemberLeadershipState.NonLeader, ACTIVE);
 
         // Become leader
         connector.becomeLeader();
@@ -96,17 +100,24 @@ public class DefaultClusterMembershipServiceTest {
     @Test(timeout = 30_000)
     public void testLeaderElectionWithConfigurationOverrides() throws InterruptedException {
         // Starts Disabled but healthy, so leadership state should change to NoLeader.
-        expectLocalLeadershipTransition(ClusterMemberLeadershipState.NonLeader);
+        expectLocalLeadershipTransition(ClusterMemberLeadershipState.NonLeader, ACTIVE);
 
         // Now disable via configuration
         when(configuration.isLeaderElectionEnabled()).thenReturn(false);
-        expectLocalLeadershipTransition(ClusterMemberLeadershipState.Disabled);
+        expectLocalLeadershipTransition(ClusterMemberLeadershipState.Disabled, INACTIVE);
     }
 
     private void expectLocalLeadershipTransition(ClusterMemberLeadershipState state) throws InterruptedException {
-        LeaderElectionChangeEvent event = (LeaderElectionChangeEvent) eventSubscriber.takeNext(TIMEOUT);
-        assertThat(event).isNotNull();
-        assertThat(event.getLeadershipRevision().getCurrent().getLeadershipState()).isEqualTo(state);
+        LeaderElectionChangeEvent leadershipEvent = (LeaderElectionChangeEvent) eventSubscriber.takeNext(TIMEOUT);
+        assertThat(leadershipEvent).isNotNull();
+        assertThat(leadershipEvent.getLeadershipRevision().getCurrent().getLeadershipState()).isEqualTo(state);
         assertThat(service.getLocalLeadership().getCurrent().getLeadershipState()).isEqualTo(state);
+    }
+
+    private void expectLocalLeadershipTransition(ClusterMemberLeadershipState state, boolean active) throws InterruptedException {
+        expectLocalLeadershipTransition(state);
+        ClusterMembershipChangeEvent membershipChangeEvent = (ClusterMembershipChangeEvent) eventSubscriber.takeNext(TIMEOUT);
+        assertThat(membershipChangeEvent).isNotNull();
+        assertThat(membershipChangeEvent.getRevision().getCurrent().isActive()).isEqualTo(active);
     }
 }

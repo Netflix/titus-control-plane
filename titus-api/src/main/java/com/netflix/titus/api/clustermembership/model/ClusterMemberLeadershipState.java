@@ -31,5 +31,10 @@ public enum ClusterMemberLeadershipState {
     /**
      * Member is a current leader.
      */
-    Leader
+    Leader,
+
+    /**
+     * Leadership state of a member is unknown.
+     */
+    Unknown
 }

@@ -40,6 +40,7 @@ import com.netflix.titus.common.framework.scheduler.model.ScheduleDescriptor;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.retry.Retryers;
 import com.netflix.titus.common.util.rx.ReactorExt;
+import com.netflix.titus.common.util.time.Clock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
@@ -67,6 +68,7 @@ public class DefaultClusterMembershipService implements ClusterMembershipService
     private final ClusterMembershipServiceConfiguration configuration;
     private final ClusterMembershipConnector connector;
     private final HealthIndicator healthIndicator;
+    private final Clock clock;
 
     private final ScheduleReference healthScheduleRef;
 
@@ -80,6 +82,7 @@ public class DefaultClusterMembershipService implements ClusterMembershipService
         this.configuration = configuration;
         this.connector = connector;
         this.healthIndicator = healthIndicator;
+        this.clock = titusRuntime.getClock();
 
         this.healthScheduleRef = titusRuntime.getLocalScheduler().scheduleMono(
                 HEALTH_CHECK_SCHEDULE_DESCRIPTOR.toBuilder()
@@ -155,30 +158,69 @@ public class DefaultClusterMembershipService implements ClusterMembershipService
     private Mono<Void> evaluateHealth(ExecutionContext context) {
         return Mono.defer(() -> {
             ClusterMemberLeadershipState state = connector.getLocalLeadershipRevision().getCurrent().getLeadershipState();
+            ClusterMember localMember = connector.getLocalClusterMemberRevision().getCurrent();
 
-            if (!configuration.isLeaderElectionEnabled()) {
+            // Explicitly disabled
+            if (!configuration.isLeaderElectionEnabled() || !localMember.isEnabled()) {
                 if (state == ClusterMemberLeadershipState.NonLeader) {
                     logger.info("Local member excluded from the leader election. Leaving the leader election process");
-                    return connector.leaveLeadershipGroup(true)
-                            .ignoreElement()
-                            .cast(Void.class);
+                    return connector.leaveLeadershipGroup(true).flatMap(success ->
+                            success
+                                    ? connector.register(current -> toInactive(current, "Marked by a user as disabled")).ignoreElement().cast(Void.class)
+                                    : Mono.empty()
+                    );
+                }
+                if (state == ClusterMemberLeadershipState.Disabled && localMember.isActive()) {
+                    return connector.register(current -> toInactive(current, "Marked by a user as disabled")).ignoreElement().cast(Void.class);
                 }
                 return Mono.empty();
             }
+
+            // Re-enable if healthy
             HealthStatus health = healthIndicator.health();
             if (health.getHealthState() == HealthState.Healthy) {
                 if (state == ClusterMemberLeadershipState.Disabled) {
                     logger.info("Re-enabling local member which is in the disabled state");
-                    return connector.joinLeadershipGroup();
+                    return connector.joinLeadershipGroup()
+                            .then(connector.register(this::toActive).ignoreElement().cast(Void.class));
+                }
+                if (!localMember.isActive()) {
+                    return connector.register(this::toActive).ignoreElement().cast(Void.class);
                 }
                 return Mono.empty();
             }
 
+            // Disable if unhealthy (and not the leader)
             if (state != ClusterMemberLeadershipState.Disabled && state != ClusterMemberLeadershipState.Leader) {
                 logger.info("Disabling local member as it is unhealthy: {}", health);
-                return connector.leaveLeadershipGroup(true).ignoreElement().cast(Void.class);
+                return connector.leaveLeadershipGroup(true).flatMap(success ->
+                        success
+                                ? connector.register(current -> toInactive(current, "Unhealthy: " + health)).ignoreElement().cast(Void.class)
+                                : Mono.empty()
+                );
+            }
+            if (state == ClusterMemberLeadershipState.Disabled && localMember.isActive()) {
+                return connector.register(current -> toInactive(current, "Unhealthy: " + health)).ignoreElement().cast(Void.class);
             }
             return Mono.empty();
         });
+    }
+
+    private ClusterMembershipRevision<ClusterMember> toActive(ClusterMember current) {
+        return ClusterMembershipRevision.<ClusterMember>newBuilder()
+                .withCurrent(current.toBuilder().withActive(true).build())
+                .withCode("activated")
+                .withMessage("Activated")
+                .withTimestamp(clock.wallTime())
+                .build();
+    }
+
+    private ClusterMembershipRevision<ClusterMember> toInactive(ClusterMember current, String cause) {
+        return ClusterMembershipRevision.<ClusterMember>newBuilder()
+                .withCurrent(current.toBuilder().withActive(false).build())
+                .withCode("deactivated")
+                .withMessage(cause)
+                .withTimestamp(clock.wallTime())
+                .build();
     }
 }

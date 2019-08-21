@@ -27,19 +27,30 @@ import com.netflix.titus.api.clustermembership.model.ClusterMemberLeadership;
 import com.netflix.titus.api.clustermembership.model.ClusterMemberLeadershipState;
 import com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision;
 import com.netflix.titus.api.clustermembership.model.event.ClusterMembershipEvent;
+import com.netflix.titus.testkit.model.clustermembership.ClusterMemberGenerator;
 import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 class ClusterMembershipConnectorStub implements ClusterMembershipConnector {
 
+    private static final String LOCAL_MEMBER_ID = "localMember";
+
+    private volatile ClusterMembershipRevision<ClusterMember> localMemberRevision;
     private volatile ClusterMembershipRevision<ClusterMemberLeadership> localLeadershipRevision;
 
     private final DirectProcessor<ClusterMembershipEvent> eventProcessor = DirectProcessor.create();
 
     ClusterMembershipConnectorStub() {
+        this.localMemberRevision = ClusterMembershipRevision.<ClusterMember>newBuilder()
+                .withCurrent(ClusterMemberGenerator.activeClusterMember(LOCAL_MEMBER_ID).toBuilder()
+                        .withRegistered(true)
+                        .build()
+                )
+                .build();
         this.localLeadershipRevision = ClusterMembershipRevision.<ClusterMemberLeadership>newBuilder()
                 .withCurrent(ClusterMemberLeadership.newBuilder()
+                        .withMemberId(LOCAL_MEMBER_ID)
                         .withLeadershipState(ClusterMemberLeadershipState.Disabled)
                         .build()
                 )
@@ -48,7 +59,7 @@ class ClusterMembershipConnectorStub implements ClusterMembershipConnector {
 
     @Override
     public ClusterMembershipRevision<ClusterMember> getLocalClusterMemberRevision() {
-        throw new IllegalStateException("not implemented yet");
+        return localMemberRevision;
     }
 
     @Override
@@ -70,7 +81,11 @@ class ClusterMembershipConnectorStub implements ClusterMembershipConnector {
 
     @Override
     public Mono<ClusterMembershipRevision<ClusterMember>> register(Function<ClusterMember, ClusterMembershipRevision<ClusterMember>> selfUpdate) {
-        throw new IllegalStateException("not implemented yet");
+        return Mono.fromCallable(() -> {
+            this.localMemberRevision = selfUpdate.apply(localMemberRevision.getCurrent());
+            eventProcessor.onNext(ClusterMembershipEvent.memberUpdatedEvent(localMemberRevision));
+            return localMemberRevision;
+        });
     }
 
     @Override
@@ -109,7 +124,7 @@ class ClusterMembershipConnectorStub implements ClusterMembershipConnector {
     @Override
     public Flux<ClusterMembershipEvent> membershipChangeEvents() {
         return Flux.defer(() -> Flux.<ClusterMembershipEvent>
-                just(ClusterMembershipEvent.snapshotEvent(Collections.emptyList(), localLeadershipRevision))
+                just(ClusterMembershipEvent.snapshotEvent(Collections.emptyList(), localLeadershipRevision, Optional.empty()))
                 .concatWith(eventProcessor)
         );
     }

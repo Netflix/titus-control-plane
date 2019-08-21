@@ -20,7 +20,6 @@ import java.util.Collections;
 
 import com.netflix.titus.api.clustermembership.model.ClusterMember;
 import com.netflix.titus.api.clustermembership.model.ClusterMemberAddress;
-import com.netflix.titus.api.clustermembership.model.ClusterMemberState;
 import com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision;
 import com.netflix.titus.common.util.CollectionsExt;
 
@@ -29,8 +28,9 @@ public final class ClusterMemberGenerator {
     public static ClusterMember activeClusterMember(String memberId) {
         return ClusterMember.newBuilder()
                 .withMemberId(memberId)
-                .withState(ClusterMemberState.Active)
                 .withEnabled(true)
+                .withActive(true)
+                .withRegistered(true)
                 .withClusterMemberAddresses(Collections.singletonList(
                         ClusterMemberAddress.newBuilder()
                                 .withIpAddress("10.0.0.1")

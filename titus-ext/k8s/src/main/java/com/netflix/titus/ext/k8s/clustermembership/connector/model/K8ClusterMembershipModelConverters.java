@@ -21,7 +21,6 @@ import java.util.stream.Collectors;
 
 import com.netflix.titus.api.clustermembership.model.ClusterMember;
 import com.netflix.titus.api.clustermembership.model.ClusterMemberAddress;
-import com.netflix.titus.api.clustermembership.model.ClusterMemberState;
 import com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision;
 import io.kubernetes.client.models.V1ObjectMeta;
 
@@ -70,8 +69,8 @@ public class K8ClusterMembershipModelConverters {
     public static K8ClusterMember toK8ClusterMember(ClusterMember clusterMember) {
         return new K8ClusterMember()
                 .memberId(clusterMember.getMemberId())
-                .state(clusterMember.getState().name())
                 .enabled(clusterMember.isEnabled())
+                .active(clusterMember.isActive())
                 .labels(clusterMember.getLabels())
                 .clusterMemberAddress(toK8ClusterMemberAddresses(clusterMember.getClusterMemberAddresses()));
     }
@@ -80,7 +79,7 @@ public class K8ClusterMembershipModelConverters {
         return ClusterMember.newBuilder()
                 .withMemberId(k8ClusterMember.getMemberId())
                 .withEnabled(k8ClusterMember.isEnabled())
-                .withState(ClusterMemberState.valueOf(k8ClusterMember.getState()))
+                .withActive(k8ClusterMember.isActive())
                 .withClusterMemberAddresses(toClusterMemberAddresses(k8ClusterMember.getClusterMemberAddress()))
                 .withLabels(k8ClusterMember.getLabels())
                 .build();

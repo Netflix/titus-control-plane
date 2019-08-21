@@ -17,6 +17,7 @@
 package com.netflix.titus.api.clustermembership.model.event;
 
 import java.util.List;
+import java.util.Optional;
 
 import com.netflix.titus.api.clustermembership.model.ClusterMember;
 import com.netflix.titus.api.clustermembership.model.ClusterMemberLeadership;
@@ -26,11 +27,14 @@ public class ClusterMembershipSnapshotEvent extends ClusterMembershipEvent {
 
     private final List<ClusterMembershipRevision<ClusterMember>> clusterMemberRevisions;
     private final ClusterMembershipRevision<ClusterMemberLeadership> localLeadership;
+    private final Optional<ClusterMembershipRevision<ClusterMemberLeadership>> leader;
 
     ClusterMembershipSnapshotEvent(List<ClusterMembershipRevision<ClusterMember>> clusterMemberRevisions,
-                                   ClusterMembershipRevision<ClusterMemberLeadership> localLeadership) {
+                                   ClusterMembershipRevision<ClusterMemberLeadership> localLeadership,
+                                   Optional<ClusterMembershipRevision<ClusterMemberLeadership>> leader) {
         this.clusterMemberRevisions = clusterMemberRevisions;
         this.localLeadership = localLeadership;
+        this.leader = leader;
     }
 
     public List<ClusterMembershipRevision<ClusterMember>> getClusterMemberRevisions() {
@@ -39,5 +43,9 @@ public class ClusterMembershipSnapshotEvent extends ClusterMembershipEvent {
 
     public ClusterMembershipRevision<ClusterMemberLeadership> getLocalLeadership() {
         return localLeadership;
+    }
+
+    public Optional<ClusterMembershipRevision<ClusterMemberLeadership>> getLeader() {
+        return leader;
     }
 }
