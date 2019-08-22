@@ -42,9 +42,10 @@ public class OpportunisticCpuConstraint implements SystemConstraint {
     public static final String NAME = OpportunisticCpuConstraint.class.getSimpleName();
 
     private static final Result VALID = new Result(true, null);
+    private static final Result NO_RUNTIME_PREDICTION = new Result(false, "Task requested opportunistic CPUs without a runtime prediction");
+    private static final Result NO_MACHINE_ID = new Result(false, "No machine id attribute filled by Fenzo");
     private static final Result NO_OPPORTUNISTIC_CPUS = new Result(false, "The machine does not have opportunistic CPUs available");
     private static final Result AVAILABILITY_NOT_LONG_ENOUGH = new Result(false, "CPU availability on the machine will not last for long enough");
-    private static final Result NO_RUNTIME_PREDICTION = new Result(false, "Task requested opportunistic CPUs without a runtime prediction");
     private static final Result NOT_ENOUGH_OPPORTUNISTIC_CPUS = new Result(false, "The machine does not have enough opportunistic CPUs available");
 
     private final SchedulerConfiguration configuration;
@@ -76,14 +77,12 @@ public class OpportunisticCpuConstraint implements SystemConstraint {
 
         Optional<Duration> runtimePrediction = request.getRuntimePrediction();
         if (!runtimePrediction.isPresent()) {
-            titusRuntime.getCodeInvariants().inconsistent("Task requested opportunistic CPUs without a runtime prediction");
             return NO_RUNTIME_PREDICTION;
         }
 
         String agentId = SchedulerUtils.getAttributeValueOrEmptyString(targetVM, configuration.getInstanceAttributeName());
         if (StringExt.isEmpty(agentId)) {
-            titusRuntime.getCodeInvariants().inconsistent("No machine id attribute filled by Fenzo");
-            return NO_OPPORTUNISTIC_CPUS;
+            return NO_MACHINE_ID;
         }
 
         Optional<OpportunisticCpuAvailability> availabilityOpt = opportunisticCpuCache.findAvailableOpportunisticCpus(agentId);
