@@ -280,7 +280,7 @@ public class JobReconciliationFrameworkFactory {
                         tierAssignment.getRight(),
                         job,
                         task,
-                        JobManagerUtil.getJobRuntimePrediction(job),
+                        JobFunctions.getJobRuntimePrediction(job),
                         () -> JobManagerUtil.filterActiveTaskIds(engine),
                         constraintEvaluatorTransformer,
                         systemSoftConstraint,
@@ -305,16 +305,13 @@ public class JobReconciliationFrameworkFactory {
         try {
             Pair<Tier, String> tierAssignment = JobManagerUtil.getTierAssignment(job, capacityGroupService);
             String host = task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST);
-            int opportunisticCpus = Integer.parseInt(task.getTaskContext().getOrDefault(
-                    TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT, "0"
-            ));
             schedulingService.addRunningTask(new V3QueueableTask(
                     tierAssignment.getLeft(),
                     tierAssignment.getRight(),
                     job,
                     task,
-                    JobManagerUtil.getJobRuntimePrediction(job),
-                    opportunisticCpus,
+                    JobFunctions.getJobRuntimePrediction(job),
+                    JobFunctions.getOpportunisticCpuCount(task).orElse(0),
                     () -> JobManagerUtil.filterActiveTaskIds(engine),
                     constraintEvaluatorTransformer,
                     systemSoftConstraint,

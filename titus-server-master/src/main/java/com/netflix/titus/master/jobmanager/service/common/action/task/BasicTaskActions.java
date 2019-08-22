@@ -28,6 +28,7 @@ import com.netflix.fenzo.queues.QAttributes;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
@@ -216,7 +217,7 @@ public class BasicTaskActions {
                             tierAssignment.getRight(),
                             job,
                             task,
-                            JobManagerUtil.getJobRuntimePrediction(job),
+                            JobFunctions.getJobRuntimePrediction(job),
                             activeTasksGetter,
                             constraintEvaluatorTransformer,
                             systemSoftConstraint,

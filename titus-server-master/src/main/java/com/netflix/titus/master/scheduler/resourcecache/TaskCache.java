@@ -30,13 +30,13 @@ import javax.inject.Singleton;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.vpc.SignedIpAddressAllocation;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
-import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.code.CodeInvariants;
 import com.netflix.titus.common.util.tuple.Pair;
 
@@ -160,10 +160,7 @@ public class TaskCache {
             Optional<String> allocationIdOpt = getOpportunisticCpuAllocationId(task);
             Optional<OpportunisticCpuAllocation> allocationOpt = allocationIdOpt
                     .map(allocationId -> OpportunisticCpuAllocation.newBuilder().withAllocationId(allocationId))
-                    .flatMap(builder -> getOpportunisticCpuCount(task)
-                            .flatMap(StringExt::parseInt)
-                            .map(builder::withCpuCount)
-                    )
+                    .flatMap(builder -> JobFunctions.getOpportunisticCpuCount(task).map(builder::withCpuCount))
                     .flatMap(builder -> getAgentId(task).map(builder::withAgentId))
                     .map(builder -> builder.withTaskId(task.getId()).build());
 
@@ -181,10 +178,6 @@ public class TaskCache {
 
     private static Optional<String> getAgentId(Task task) {
         return Optional.ofNullable(task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_ID));
-    }
-
-    private static Optional<String> getOpportunisticCpuCount(Task task) {
-        return Optional.ofNullable(task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT));
     }
 
     private static Optional<String> getOpportunisticCpuAllocationId(Task task) {

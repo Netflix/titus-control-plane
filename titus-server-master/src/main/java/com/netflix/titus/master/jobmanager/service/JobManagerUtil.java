@@ -17,7 +17,6 @@
 package com.netflix.titus.master.jobmanager.service;
 
 import java.io.IOException;
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -31,7 +30,6 @@ import com.google.common.base.Strings;
 import com.netflix.archaius.api.Config;
 import com.netflix.fenzo.PreferentialNamedConsumableResourceSet;
 import com.netflix.fenzo.VirtualMachineLease;
-import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -221,15 +219,6 @@ public final class JobManagerUtil {
         }
 
         return Optional.empty();
-    }
-
-    public static Optional<Duration> getJobRuntimePrediction(Job job) {
-        if (!JobFunctions.isBatchJob(job)) {
-            return Optional.empty();
-        }
-        return Optional.ofNullable(((Job<?>) job).getJobDescriptor().getAttributes().get(JobAttributes.JOB_ATTRIBUTES_RUNTIME_PREDICTION_VALUE))
-                .flatMap(StringExt::parseLong)
-                .map(Duration::ofSeconds);
     }
 
     private static Optional<String> addAttributeToContext(Map<String, Protos.Attribute> attributes, String name) {
