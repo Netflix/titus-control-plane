@@ -57,7 +57,7 @@ public final class JobAttributes {
     /**
      * Predicted runtime for a particular job in seconds, used in opportunistic CPU scheduling
      */
-    public static final String JOB_ATTRIBUTES_RUNTIME_PREDICTION_VALUE = PREDICTION_ATTRIBUTE_PREFIX + "value";
+    public static final String JOB_ATTRIBUTES_RUNTIME_PREDICTION_SEC = PREDICTION_ATTRIBUTE_PREFIX + "predictedRuntimeSec";
 
     /**
      * (Experimental) allow jobs to request being placed into a particular cell (affinity)

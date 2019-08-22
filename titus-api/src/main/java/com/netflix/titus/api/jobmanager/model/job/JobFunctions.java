@@ -502,7 +502,7 @@ public final class JobFunctions {
         if (!isBatchJob(job)) {
             return Optional.empty();
         }
-        return Optional.ofNullable(((Job<?>) job).getJobDescriptor().getAttributes().get(JobAttributes.JOB_ATTRIBUTES_RUNTIME_PREDICTION_VALUE))
+        return Optional.ofNullable(((Job<?>) job).getJobDescriptor().getAttributes().get(JobAttributes.JOB_ATTRIBUTES_RUNTIME_PREDICTION_SEC))
                 .flatMap(StringExt::parseLong)
                 .map(Duration::ofSeconds);
     }

@@ -47,7 +47,7 @@ import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTask
 @Category(IntegrationTest.class)
 public class OpportunisticCpuSchedulingTest extends BaseIntegrationTest {
     private static final JobDescriptor<BatchJobExt> BATCH_JOB_WITH_RUNTIME_PREDICTION = JobFunctions.appendJobDescriptorAttribute(
-            oneTaskBatchJobDescriptor(), JobAttributes.JOB_ATTRIBUTES_RUNTIME_PREDICTION_VALUE, "12" /* seconds */
+            oneTaskBatchJobDescriptor(), JobAttributes.JOB_ATTRIBUTES_RUNTIME_PREDICTION_SEC, "12" /* seconds */
     );
 
     private final TitusStackResource titusStackResource = new TitusStackResource(twoPartitionsPerTierCell(2));
