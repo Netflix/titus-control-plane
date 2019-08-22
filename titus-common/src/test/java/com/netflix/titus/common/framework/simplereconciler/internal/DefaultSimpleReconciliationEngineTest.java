@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 import com.netflix.titus.common.runtime.TitusRuntime;
@@ -125,11 +126,10 @@ public class DefaultSimpleReconciliationEngineTest {
 
     @Test(timeout = 30_000)
     public void testReconcilerAction() throws InterruptedException {
-        newReconciler(current -> current.equals(INITIAL)
-                ? Collections.singletonList(Mono.just(v -> RECONCILED))
-                : Collections.emptyList()
-        );
-        assertThat(changesSubscriber.takeNext(TIMEOUT)).isEqualTo(RECONCILED);
+        AtomicInteger idx = new AtomicInteger();
+        newReconciler(current -> Collections.singletonList(Mono.just(v -> RECONCILED + idx.getAndIncrement())));
+        String expected = RECONCILED + (idx.get() + 1);
+        assertThat(changesSubscriber.takeUntil(expected::equals, TIMEOUT)).isNotNull();
     }
 
     @Test(timeout = 30_000)
@@ -214,6 +214,9 @@ public class DefaultSimpleReconciliationEngineTest {
         this.changesSubscriber = new TitusRxSubscriber<>();
         reconciliationEngine.changes().subscribe(changesSubscriber);
 
-        assertThat(changesSubscriber.takeNext()).isIn(INITIAL, RECONCILED);
+        String event = changesSubscriber.takeNext();
+        if (!event.equals(INITIAL) && !event.startsWith(RECONCILED)) {
+            fail("Unexpected event: " + event);
+        }
     }
 }
