@@ -45,7 +45,15 @@ public final class TaskAttributes {
     public static final String TASK_ATTRIBUTES_TIER = "task.tier";
     public static final String TASK_ATTRIBUTES_IP_ALLOCATION_ID = "task.ipAllocationId";
     public static final String TASK_ATTRIBUTES_IN_USE_IP_ALLOCATION = "task.ipAllocationAlreadyInUseByTask";
+
+    /**
+     * Id of the opportunistic allocation used for this task
+     */
     public static final String TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION = "task.opportunisticCpuAllocation";
+
+    /**
+     * How many CPUs were allocated opportunistically
+     */
     public static final String TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT = "task.opportunisticCpuCount";
 
     /**
