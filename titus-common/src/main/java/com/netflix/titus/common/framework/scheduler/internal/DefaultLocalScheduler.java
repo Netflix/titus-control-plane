@@ -260,7 +260,7 @@ public class DefaultLocalScheduler implements LocalScheduler {
                 public void cancel() {
                     // Run the cancel request via event loop so it is properly serialized with other concurrent updates.
                     DefaultLocalScheduler.this.cancel(scheduleId).subscribe(
-                            next -> logger.debug("Action cancelled ba a user: {}", executor.getAction().getExecutionId()),
+                            next -> logger.debug("Action cancelled by a user: {}", executor.getAction().getExecutionId()),
                             e -> logger.debug("User triggered action cancellation failed with an error: executionId={}", executor.getAction().getExecutionId(), e)
                     );
                 }
