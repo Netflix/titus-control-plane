@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
+import com.google.common.base.Preconditions;
 import com.netflix.fenzo.ConstraintEvaluator;
 import com.netflix.fenzo.PreferentialNamedConsumableResourceSet;
 import com.netflix.fenzo.VMTaskFitnessCalculator;
@@ -225,7 +226,7 @@ public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
         if (!runtimePrediction.isPresent()) {
             return; // noop, opportunisticCpuCount is always 0
         }
-        opportunisticCpuCount.updateAndGet(current -> current > 0 ? current - 1 : initialOpportunisticCpuCount(cpus));
+        opportunisticCpuCount.updateAndGet(current -> current >= 1 ? current - 1 : initialOpportunisticCpuCount(cpus));
     }
 
     /**
@@ -304,8 +305,17 @@ public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
         return initialOpportunisticCpuCount(jobDescriptor.getContainer().getContainerResources().getCpu());
     }
 
+    /**
+     * Start by allocating all requested CPUs as opportunistic. In case the number of CPUs asked is fractional, we still
+     * allocate only the integer part as opportunistic, and leave the fractional as regular CPUs. E.g.:
+     * <tt>requestedCpus = 3.7 => [opportunisticCpus = 3, regularCpus = 0.7]</tt>.
+     *
+     * Care must be taken with floating point arithmetic to avoid the situation where <tt>requestedCpus</tt> should be
+     * e.g. <tt>3</tt>, but ends up being <tt>2.99999...</tt>
+     */
     private static int initialOpportunisticCpuCount(double cpusRequested) {
-        return (int) Math.floor(cpusRequested);
+        Preconditions.checkArgument(cpusRequested < Integer.MAX_VALUE, "too many CPUs would cause overflow");
+        return (int) cpusRequested;
     }
 
 }
