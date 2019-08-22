@@ -235,10 +235,13 @@ public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
         if (!runtimePrediction.isPresent()) {
             return; // noop, opportunisticCpuCount is always 0
         }
-        if (!opportunisticEnabledSupplier.get()) {
-            opportunisticCpuEnabled = false;
-            logger.info("Task {} opportunistic scheduling failed, disabling for next iterations", task.getId());
-            return; // disabled for the next iteration loop
+        boolean isStillEnabled = opportunisticEnabledSupplier.get();
+        if (opportunisticCpuEnabled != isStillEnabled) {
+            opportunisticCpuEnabled = isStillEnabled;
+            logger.info("Task {} opportunistic scheduling failed, for next iterations enabled={}", task.getId(), isStillEnabled);
+        }
+        if (!isStillEnabled) {
+            return;
         }
         int newCount = opportunisticCpuCount.updateAndGet(current -> current >= 1 ? current - 1 : initialOpportunisticCpuCount(cpus));
         logger.info("Task {} opportunistic scheduling failed, reduced requested opportunistic cpus to {}",
