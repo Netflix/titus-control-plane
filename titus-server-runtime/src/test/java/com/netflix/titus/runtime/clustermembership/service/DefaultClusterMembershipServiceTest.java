@@ -60,7 +60,7 @@ public class DefaultClusterMembershipServiceTest {
     private DefaultClusterMembershipService service;
 
     @Before
-    public void setUp() {
+    public void setUp() throws InterruptedException {
         when(configuration.getHealthCheckEvaluationIntervalMs()).thenReturn(1L);
         when(configuration.getHealthCheckEvaluationTimeoutMs()).thenReturn(1_000L);
         when(configuration.isLeaderElectionEnabled()).thenReturn(true);
@@ -69,7 +69,13 @@ public class DefaultClusterMembershipServiceTest {
         service = new DefaultClusterMembershipService(configuration, connector, healthIndicator, titusRuntime);
 
         service.events().subscribe(eventSubscriber);
-        assertThat(eventSubscriber.takeNext()).isInstanceOf(ClusterMembershipSnapshotEvent.class);
+
+        // Get to the stable state in the event stream
+        ClusterMembershipSnapshotEvent snapshotEvent = (ClusterMembershipSnapshotEvent) eventSubscriber.takeNext();
+        if (snapshotEvent.getLocalLeadership().getCurrent().getLeadershipState() != ClusterMemberLeadershipState.NonLeader) {
+            // Starts Disabled but healthy, so leadership state should change to NoLeader.
+            expectLocalLeadershipTransition(ClusterMemberLeadershipState.NonLeader, ACTIVE);
+        }
     }
 
     @After
@@ -81,9 +87,6 @@ public class DefaultClusterMembershipServiceTest {
 
     @Test(timeout = 30_000)
     public void testLeaderElectionWithHealthcheck() throws InterruptedException {
-        // Starts Disabled but healthy, so leadership state should change to NoLeader.
-        expectLocalLeadershipTransition(ClusterMemberLeadershipState.NonLeader, ACTIVE);
-
         // Now make it unhealthy
         when(healthIndicator.health()).thenReturn(UNHEALTHY);
         expectLocalLeadershipTransition(ClusterMemberLeadershipState.Disabled, INACTIVE);
@@ -99,10 +102,7 @@ public class DefaultClusterMembershipServiceTest {
 
     @Test(timeout = 30_000)
     public void testLeaderElectionWithConfigurationOverrides() throws InterruptedException {
-        // Starts Disabled but healthy, so leadership state should change to NoLeader.
-        expectLocalLeadershipTransition(ClusterMemberLeadershipState.NonLeader, ACTIVE);
-
-        // Now disable via configuration
+        // Disable via configuration
         when(configuration.isLeaderElectionEnabled()).thenReturn(false);
         expectLocalLeadershipTransition(ClusterMemberLeadershipState.Disabled, INACTIVE);
     }
