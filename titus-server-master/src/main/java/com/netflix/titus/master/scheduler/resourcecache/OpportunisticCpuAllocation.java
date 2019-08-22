@@ -72,8 +72,8 @@ public class OpportunisticCpuAllocation {
                 allocationId.equals(that.allocationId);
     }
 
-    public static OpportunisticCpuAllocationBuilder newBuilder() {
-        return new OpportunisticCpuAllocationBuilder();
+    public static Builder newBuilder() {
+        return new Builder();
     }
 
     @Override
@@ -81,31 +81,31 @@ public class OpportunisticCpuAllocation {
         return Objects.hash(taskId, agentId, allocationId, cpuCount);
     }
 
-    public static final class OpportunisticCpuAllocationBuilder {
+    public static final class Builder {
         private String taskId;
         private String agentId;
         private String allocationId;
         private int cpuCount;
 
-        private OpportunisticCpuAllocationBuilder() {
+        private Builder() {
         }
 
-        public OpportunisticCpuAllocationBuilder withTaskId(String taskId) {
+        public Builder withTaskId(String taskId) {
             this.taskId = taskId;
             return this;
         }
 
-        public OpportunisticCpuAllocationBuilder withAgentId(String agentId) {
+        public Builder withAgentId(String agentId) {
             this.agentId = agentId;
             return this;
         }
 
-        public OpportunisticCpuAllocationBuilder withAllocationId(String allocationId) {
+        public Builder withAllocationId(String allocationId) {
             this.allocationId = allocationId;
             return this;
         }
 
-        public OpportunisticCpuAllocationBuilder withCpuCount(int cpuCount) {
+        public Builder withCpuCount(int cpuCount) {
             this.cpuCount = cpuCount;
             return this;
         }

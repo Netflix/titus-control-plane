@@ -99,7 +99,7 @@ public class InstanceGroupsScenarioBuilder extends ExternalResource {
         titusOperations.getSimulatedCloud().getAgentInstanceGroups().forEach(g ->
                 instanceGroupScenarioBuilders.put(
                         g.getName(),
-                        new InstanceGroupScenarioBuilder(titusOperations, g, this, toInstanceGroupEventStream(g.getName()))
+                        new InstanceGroupScenarioBuilder(titusStackResource, titusOperations, g, this, toInstanceGroupEventStream(g.getName()))
                 )
         );
 
@@ -126,7 +126,8 @@ public class InstanceGroupsScenarioBuilder extends ExternalResource {
                 .build();
         titusMaster.addAgentCluster(agentCluster);
 
-        InstanceGroupScenarioBuilder instanceGroupScenarioBuilder = new InstanceGroupScenarioBuilder(titusOperations, agentCluster, this, toInstanceGroupEventStream(name));
+        InstanceGroupScenarioBuilder instanceGroupScenarioBuilder = new InstanceGroupScenarioBuilder(
+                titusStackResource, titusOperations, agentCluster, this, toInstanceGroupEventStream(name));
         instanceGroupScenarioBuilders.put(name, instanceGroupScenarioBuilder);
         return this;
     }
