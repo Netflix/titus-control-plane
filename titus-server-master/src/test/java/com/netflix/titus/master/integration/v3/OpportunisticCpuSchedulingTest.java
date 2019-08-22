@@ -86,6 +86,31 @@ public class OpportunisticCpuSchedulingTest extends BaseIntegrationTest {
     }
 
     @Test(timeout = TEST_TIMEOUT_MS)
+    public void availabilityNotLongEnough() throws Exception {
+        String allocationId = UUID.randomUUID().toString();
+        Instant expiresAt = Instant.now().plus(Duration.ofSeconds(10));
+        OpportunisticCpuAvailability availability = new OpportunisticCpuAvailability(allocationId, expiresAt, 4);
+        instanceGroupsScenarioBuilder.apply("flex2",
+                group -> group.any(instance -> instance.addOpportunisticCpus(availability))
+        );
+
+        // job runtime is 12s, but opportunistic cpus are available for 10s
+        JobDescriptor<BatchJobExt> jobDescriptor = BATCH_JOB_WITH_RUNTIME_PREDICTION.but(j ->
+                j.getContainer().but(c -> c.getContainerResources().toBuilder().withCpu(4))
+        );
+
+        jobsScenarioBuilder.schedule(jobDescriptor, jobScenarioBuilder -> jobScenarioBuilder
+                .template(ScenarioTemplates.launchJob())
+                .allTasks(taskScenarioBuilder -> taskScenarioBuilder
+                        .expectTaskOnAgent()
+                        .assertTask(task -> !task.getTaskContext().containsKey(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION) &&
+                                        !task.getTaskContext().containsKey(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT),
+                                "Not scheduled on opportunistic CPUs")
+                )
+        );
+    }
+
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void allOpportunisticCpusAvailable() throws Exception {
         String allocationId = UUID.randomUUID().toString();
         Instant expiresAt = Instant.now().plus(Duration.ofHours(6));
