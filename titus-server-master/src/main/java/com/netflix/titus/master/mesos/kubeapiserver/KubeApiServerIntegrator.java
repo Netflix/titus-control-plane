@@ -34,8 +34,7 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
+import com.google.common.base.Strings;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import com.google.inject.Injector;
@@ -92,6 +91,7 @@ import static com.netflix.titus.api.jobmanager.model.job.TaskState.StartInitiate
 import static com.netflix.titus.api.jobmanager.model.job.TaskState.Started;
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_FAILED;
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_NORMAL;
+import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TASK_KILLED;
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TASK_LOST;
 
 /**
@@ -125,6 +125,8 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     private static final String READY = "Ready";
     private static final String STOPPED = "Stopped";
 
+    private static final String TASK_STARTING = "TASK_STARTING";
+
     private final TitusRuntime titusRuntime;
     private final MesosConfiguration mesosConfiguration;
     private final LocalScheduler scheduler;
@@ -138,10 +140,6 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     private final Function<String, Matcher> unknownSystemErrorMessageMatcherFactory;
 
     private volatile Snapshot<V1Node> lastSnapshot = Snapshot.emptySnapshot();
-
-    private final Cache<String, V1Pod> lastPodUpdate = CacheBuilder.newBuilder()
-            .expireAfterWrite(10, TimeUnit.MINUTES)
-            .build();
 
     private com.netflix.fenzo.functions.Action1<List<? extends VirtualMachineLease>> leaseHandler;
     private Action1<List<LeaseRescindedEvent>> rescindLeaseHandler;
@@ -316,7 +314,10 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
             podsClientMetrics.incrementOnSuccess(DELETE, PODS, STATUS_200);
             podsClientMetrics.registerOnSuccessLatency(DELETE, Duration.ofMillis(clock.wallTime() - startTimeMs));
         } catch (ApiException e) {
-            if (!e.getMessage().equalsIgnoreCase(NOT_FOUND)) {
+            if (e.getMessage().equalsIgnoreCase(NOT_FOUND)) {
+                // move task to terminal state if it is not found in the api server
+                publishContainerEvent(taskId, Finished, REASON_TASK_KILLED, "", Optional.empty());
+            } else {
                 logger.error("Failed to kill task: {} with error: ", taskId, e);
                 podsClientMetrics.incrementOnError(DELETE, PODS, e);
                 podsClientMetrics.registerOnErrorLatency(DELETE, Duration.ofMillis(clock.wallTime() - startTimeMs));
@@ -523,39 +524,32 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     }
 
     private void podUpdated(V1Pod pod) {
-        String podName = pod.getMetadata().getName();
-        V1Pod previousPod = lastPodUpdate.getIfPresent(podName);
+
+        V1ObjectMeta metadata = pod.getMetadata();
+        String podName = metadata.getName();
 
         V1PodStatus status = pod.getStatus();
         String phase = status.getPhase();
+        String reason = status.getReason();
         String reasonMessage = status.getMessage();
+        boolean hasDeletionTimestamp = metadata.getDeletionTimestamp() != null;
 
-        if (previousPod != null && previousPod.getStatus().getPhase().equalsIgnoreCase(phase)) {
-            // ignore updates when the phases are the same
-            return;
-        }
-
-        lastPodUpdate.put(podName, pod);
+        Optional<TitusExecutorDetails> executorDetails = getTitusExecutorDetails(pod);
 
         if (phase.equalsIgnoreCase(PENDING)) {
-            publishContainerEvent(podName, Launched, REASON_NORMAL, reasonMessage, Optional.empty());
-        } else if (phase.equalsIgnoreCase(RUNNING) && pod.getMetadata().getDeletionTimestamp() == null) {
-            TitusExecutorDetails titusExecutorDetails = new TitusExecutorDetails(
-                    Collections.emptyMap(),
-                    new TitusExecutorDetails.NetworkConfiguration(
-                            Boolean.parseBoolean(pod.getMetadata().getAnnotations().getOrDefault("IsRoutableIp", "true")),
-                            status.getPodIP(),
-                            pod.getMetadata().getAnnotations().getOrDefault("EniIpAddress", "UnknownEniIpAddress"),
-                            pod.getMetadata().getAnnotations().getOrDefault("EniId", "UnknownEniId"),
-                            pod.getMetadata().getAnnotations().getOrDefault("ResourceId", "UnknownResourceId")
-                    )
-            );
-            publishContainerEvent(podName, StartInitiated, REASON_NORMAL, reasonMessage, Optional.of(titusExecutorDetails));
-            publishContainerEvent(podName, Started, REASON_NORMAL, reasonMessage, Optional.empty());
+            // inspect pod status reason to differentiate between Launched and StartInitiated (this is not standard k8s)
+            if (reason != null && reason.equalsIgnoreCase(TASK_STARTING)) {
+                publishContainerEvent(podName, StartInitiated, REASON_NORMAL, reasonMessage, executorDetails);
+            } else {
+                publishContainerEvent(podName, Launched, REASON_NORMAL, reasonMessage, executorDetails);
+            }
+        } else if (phase.equalsIgnoreCase(RUNNING) && !hasDeletionTimestamp) {
+            publishContainerEvent(podName, Started, REASON_NORMAL, reasonMessage, executorDetails);
         } else if (phase.equalsIgnoreCase(SUCCEEDED)) {
-            publishContainerEvent(podName, Finished, REASON_NORMAL, reasonMessage, Optional.empty());
+            String reasonCode = hasDeletionTimestamp ? REASON_TASK_KILLED : REASON_NORMAL;
+            publishContainerEvent(podName, Finished, reasonCode, reasonMessage, executorDetails);
         } else if (phase.equalsIgnoreCase(FAILED)) {
-            publishContainerEvent(podName, Finished, REASON_FAILED, reasonMessage, Optional.empty());
+            publishContainerEvent(podName, Finished, REASON_FAILED, reasonMessage, executorDetails);
         }
     }
 
@@ -589,6 +583,10 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     }
 
     private void reconcileNodesAndPods() {
+        if (!mesosConfiguration.isReconcilerEnabled()) {
+            return;
+        }
+
         Optional<List<V1Node>> nodesOpt = listNodes();
         if (!nodesOpt.isPresent()) {
             return;
@@ -654,6 +652,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         logger.info("Attempting to GC accepted pods: {} with deletion timestamp", pendingPodsWithDeletionTimestamp);
         for (V1Pod pod : pendingPodsWithDeletionTimestamp) {
             gcPod(pod);
+            publishContainerEvent(pod.getMetadata().getName(), Finished, REASON_TASK_KILLED, "", Optional.empty());
         }
         logger.info("Finished accepted pods with deletion timestamp GC");
 
@@ -744,7 +743,6 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         }
     }
 
-
     private boolean shouldTaskBeInApiServer(Task task) {
         if (!TaskState.isRunning(task.getStatus().getState())) {
             return false;
@@ -752,5 +750,23 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         return JobFunctions.findTaskStatus(task, Launched)
                 .map(s -> clock.isPast(s.getTimestamp() + ORPHANED_POD_TIMEOUT_MS))
                 .orElse(false);
+    }
+
+    private Optional<TitusExecutorDetails> getTitusExecutorDetails(V1Pod pod) {
+        Map<String, String> annotations = pod.getMetadata().getAnnotations();
+        if (!Strings.isNullOrEmpty(annotations.get("IpAddress"))) {
+            TitusExecutorDetails titusExecutorDetails = new TitusExecutorDetails(
+                    Collections.emptyMap(),
+                    new TitusExecutorDetails.NetworkConfiguration(
+                            Boolean.parseBoolean(annotations.getOrDefault("IsRoutableIp", "true")),
+                            annotations.getOrDefault("IpAddress", "UnknownIpAddress"),
+                            annotations.getOrDefault("EniIpAddress", "UnknownEniIpAddress"),
+                            annotations.getOrDefault("EniId", "UnknownEniId"),
+                            annotations.getOrDefault("ResourceId", "UnknownResourceId")
+                    )
+            );
+            return Optional.of(titusExecutorDetails);
+        }
+        return Optional.empty();
     }
 }
