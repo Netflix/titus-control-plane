@@ -222,7 +222,7 @@ class TaskPlacementRecorder {
 
     private Map<String, String> buildOpportunisticResourcesContext(VirtualMachineLease lease, TitusQueuableTask fenzoTask) {
         int count = fenzoTask.getOpportunisticCpus();
-        if (count < 1) {
+        if (!fenzoTask.isCpuOpportunistic() || count <= 0) {
             return Collections.emptyMap();
         }
         Optional<OpportunisticCpuAvailability> availability = opportunisticCpuCache.findAvailableOpportunisticCpus(lease.getVMID());

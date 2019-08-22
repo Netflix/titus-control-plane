@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.netflix.titus.api.FeatureActivationConfiguration;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
@@ -77,6 +78,7 @@ import static com.netflix.titus.master.jobmanager.service.service.action.CreateO
 public class ServiceDifferenceResolver implements ReconciliationEngine.DifferenceResolver<JobManagerReconcilerEvent> {
 
     private final JobManagerConfiguration configuration;
+    private final FeatureActivationConfiguration featureConfiguration;
     private final ApplicationSlaManagementService capacityGroupService;
     private final SchedulingService schedulingService;
     private final VirtualMachineMasterService vmService;
@@ -93,6 +95,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
     @Inject
     public ServiceDifferenceResolver(
             JobManagerConfiguration configuration,
+            FeatureActivationConfiguration featureConfiguration,
             ApplicationSlaManagementService capacityGroupService,
             SchedulingService schedulingService,
             VirtualMachineMasterService vmService,
@@ -101,12 +104,14 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
             SystemSoftConstraint systemSoftConstraint,
             SystemHardConstraint systemHardConstraint,
             TitusRuntime titusRuntime) {
-        this(configuration, capacityGroupService, schedulingService, vmService, jobStore, constraintEvaluatorTransformer,
-                systemSoftConstraint, systemHardConstraint, titusRuntime, Schedulers.computation());
+        this(configuration, featureConfiguration, capacityGroupService, schedulingService, vmService, jobStore,
+                constraintEvaluatorTransformer, systemSoftConstraint, systemHardConstraint, titusRuntime,
+                Schedulers.computation());
     }
 
     public ServiceDifferenceResolver(
             JobManagerConfiguration configuration,
+            FeatureActivationConfiguration featureConfiguration,
             ApplicationSlaManagementService capacityGroupService,
             SchedulingService schedulingService,
             VirtualMachineMasterService vmService,
@@ -117,6 +122,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
             TitusRuntime titusRuntime,
             Scheduler scheduler) {
         this.configuration = configuration;
+        this.featureConfiguration = featureConfiguration;
         this.capacityGroupService = capacityGroupService;
         this.schedulingService = schedulingService;
         this.vmService = vmService;
@@ -256,6 +262,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
                         schedulingService,
                         refJobView.getJob(),
                         refTask,
+                        featureConfiguration::isOpportunisticResourcesSchedulingEnabled,
                         () -> JobManagerUtil.filterActiveTaskIds(engine),
                         constraintEvaluatorTransformer,
                         systemSoftConstraint,

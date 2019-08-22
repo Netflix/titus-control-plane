@@ -36,8 +36,8 @@ import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 import com.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
 import com.netflix.titus.master.scheduler.constraint.SystemSoftConstraint;
-import com.netflix.titus.master.scheduler.resourcecache.TaskCache;
 import com.netflix.titus.master.scheduler.constraint.V3ConstraintEvaluatorTransformer;
+import com.netflix.titus.master.scheduler.resourcecache.TaskCache;
 import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import io.titanframework.messages.TitanProtos;
@@ -102,6 +102,7 @@ public class DefaultV3TaskInfoFactoryTest {
                 mock(AgentManagementService.class));
 
         V3QueueableTask fenzoTask = new V3QueueableTask(Tier.Flex, null, job, task, Optional.empty(),
+                () -> true,
                 () -> Collections.singleton(task.getId()),
                 transformer, mock(SystemSoftConstraint.class),
                 mock(SystemHardConstraint.class)

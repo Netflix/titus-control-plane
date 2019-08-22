@@ -44,10 +44,13 @@ import com.netflix.titus.master.model.job.TitusQueuableTask;
 import com.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransformer;
 import com.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
 import com.netflix.titus.master.scheduler.constraint.SystemSoftConstraint;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.netflix.titus.common.util.CollectionsExt.isNullOrEmpty;
 
 public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
+    private static final Logger logger = LoggerFactory.getLogger(V3QueueableTask.class);
 
     private static final String DEFAULT_GRP_NAME = "defaultGrp";
     private static final String SecurityGroupsResName = "ENIs";
@@ -56,8 +59,10 @@ public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
     private final Task task;
 
     private final Optional<Duration> runtimePrediction;
-    private final double cpus;
+    private final Supplier<Boolean> opportunisticEnabledSupplier;
+    private volatile boolean opportunisticCpuEnabled;
     private final AtomicInteger opportunisticCpuCount;
+    private final double cpus;
     private final double memoryMb;
     private final double networkMbps;
     private final double diskMb;
@@ -76,12 +81,13 @@ public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
                            Job job,
                            Task task,
                            Optional<Duration> runtimePrediction,
+                           Supplier<Boolean> opportunisticSchedulingEnabled,
                            Supplier<Set<String>> activeTasksGetter,
                            ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
                            SystemSoftConstraint systemSoftConstraint,
                            SystemHardConstraint systemHardConstraint) {
 
-        this(tier, capacityGroup, job, task, runtimePrediction,
+        this(tier, capacityGroup, job, task, runtimePrediction, opportunisticSchedulingEnabled,
                 runtimePrediction.isPresent() ? initialOpportunisticCpuCount(job.getJobDescriptor()) : 0,
                 activeTasksGetter, constraintEvaluatorTransformer, systemSoftConstraint, systemHardConstraint);
 
@@ -92,7 +98,8 @@ public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
                            Job job,
                            Task task,
                            Optional<Duration> runtimePrediction,
-                           int opportunisticCpus,
+                           Supplier<Boolean> opportunisticSchedulingEnabled,
+                           int initialOpportunisticCpus,
                            Supplier<Set<String>> activeTasksGetter,
                            ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
                            SystemSoftConstraint systemSoftConstraint,
@@ -102,8 +109,10 @@ public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
 
         ContainerResources containerResources = job.getJobDescriptor().getContainer().getContainerResources();
         this.runtimePrediction = runtimePrediction;
+        this.opportunisticEnabledSupplier = opportunisticSchedulingEnabled;
+        this.opportunisticCpuEnabled = opportunisticSchedulingEnabled.get();
         this.cpus = containerResources.getCpu();
-        this.opportunisticCpuCount = new AtomicInteger(opportunisticCpus);
+        this.opportunisticCpuCount = new AtomicInteger(initialOpportunisticCpus);
         this.memoryMb = containerResources.getMemoryMB();
         this.networkMbps = containerResources.getNetworkMbps();
         this.diskMb = containerResources.getDiskMB();
@@ -158,7 +167,7 @@ public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
 
     @Override
     public double getCPUs() {
-        return cpus - opportunisticCpuCount.get();
+        return opportunisticCpuEnabled ? cpus - opportunisticCpuCount.get() : cpus;
     }
 
     @Override
@@ -226,19 +235,27 @@ public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
         if (!runtimePrediction.isPresent()) {
             return; // noop, opportunisticCpuCount is always 0
         }
-        opportunisticCpuCount.updateAndGet(current -> current >= 1 ? current - 1 : initialOpportunisticCpuCount(cpus));
+        if (!opportunisticEnabledSupplier.get()) {
+            opportunisticCpuEnabled = false;
+            logger.info("Task {} opportunistic scheduling failed, disabling for next iterations", task.getId());
+            return; // disabled for the next iteration loop
+        }
+        int newCount = opportunisticCpuCount.updateAndGet(current -> current >= 1 ? current - 1 : initialOpportunisticCpuCount(cpus));
+        logger.info("Task {} opportunistic scheduling failed, reduced requested opportunistic cpus to {}",
+                task.getId(), newCount);
     }
 
     /**
      * Minimum requirements for opportunistic CPU scheduling:
      * <ul>
-     *     <li>Must have a runtime prediction.</li>
-     *     <li>Must explicitly request an amount of opportunistic cpu.</li>
+     *     <li>Opportunistic scheduling must be enabled system-wide.</li>
+     *     <li>Task must have a runtime prediction.</li>
+     *     <li>Task must explicitly request an amount of opportunistic cpu.</li>
      * </ul>
      */
     @Override
     public boolean isCpuOpportunistic() {
-        return runtimePrediction.isPresent() && getOpportunisticCpus() > 0;
+        return opportunisticCpuEnabled && runtimePrediction.isPresent() && getOpportunisticCpus() > 0;
     }
 
     @Override
@@ -309,7 +326,7 @@ public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
      * Start by allocating all requested CPUs as opportunistic. In case the number of CPUs asked is fractional, we still
      * allocate only the integer part as opportunistic, and leave the fractional as regular CPUs. E.g.:
      * <tt>requestedCpus = 3.7 => [opportunisticCpus = 3, regularCpus = 0.7]</tt>.
-     *
+     * <p>
      * Care must be taken with floating point arithmetic to avoid the situation where <tt>requestedCpus</tt> should be
      * e.g. <tt>3</tt>, but ends up being <tt>2.99999...</tt>
      */

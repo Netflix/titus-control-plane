@@ -212,7 +212,7 @@ public class InstanceGroupsScenarioBuilder extends ExternalResource {
         return instanceGroupScenarioBuilders.values().stream().allMatch(InstanceGroupScenarioBuilder::isSynchronizedWithCloud);
     }
 
-    private void reportCloudAndMasterState() {
+    public void reportCloudAndMasterState() {
         diagnosticReporter.reportAgentsInTheCloud();
         diagnosticReporter.reportAllAgentsWithAssignments();
     }

@@ -44,6 +44,9 @@ public interface TitusQueuableTask<JOB, TASK> extends QueuableTask {
      * The current amount of opportunistic CPUs requested by a task. Note that this may change after a task is notified
      * that a scheduling iteration was not able to allocate the requested amount of opportunistic CPUs.
      *
+     * {@link TitusQueuableTask#isCpuOpportunistic()} must be always checked in an scheduling iteration before this
+     * this value can be used.
+     *
      * @see TitusQueuableTask#opportunisticSchedulingFailed()
      */
     int getOpportunisticCpus();

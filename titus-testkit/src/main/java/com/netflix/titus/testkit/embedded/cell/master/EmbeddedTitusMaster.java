@@ -304,6 +304,10 @@ public class EmbeddedTitusMaster {
         simulatedCloud.addInstanceGroup(agentCluster);
     }
 
+    public void updateProperty(String key, String value) {
+        this.config.setProperty(key, value);
+    }
+
     public SimulatedCloud getSimulatedCloud() {
         return simulatedCloud;
     }

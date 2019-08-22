@@ -60,7 +60,7 @@ public class TaskCacheEventListener implements SchedulingEventListener {
         }
 
         int opportunisticCpus = request.getOpportunisticCpus();
-        if (opportunisticCpus > 0) {
+        if (request.isCpuOpportunistic() && opportunisticCpus > 0) {
             String agentId = taskAssignmentResult.getVMId();
             if (agentId == null) {
                 String hostname = taskAssignmentResult.getHostname();

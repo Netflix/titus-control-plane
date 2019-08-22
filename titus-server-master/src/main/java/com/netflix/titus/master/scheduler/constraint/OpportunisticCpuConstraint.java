@@ -26,6 +26,7 @@ import com.google.common.base.Preconditions;
 import com.netflix.fenzo.TaskRequest;
 import com.netflix.fenzo.TaskTrackerState;
 import com.netflix.fenzo.VirtualMachineCurrentState;
+import com.netflix.titus.api.FeatureActivationConfiguration;
 import com.netflix.titus.common.annotation.Experimental;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.StringExt;
@@ -49,13 +50,19 @@ public class OpportunisticCpuConstraint implements SystemConstraint {
     private static final Result NOT_ENOUGH_OPPORTUNISTIC_CPUS = new Result(false, "The machine does not have enough opportunistic CPUs available");
 
     private final SchedulerConfiguration configuration;
+    private final FeatureActivationConfiguration featureConfiguration;
     private final TaskCache taskCache;
     private final OpportunisticCpuCache opportunisticCpuCache;
     private final TitusRuntime titusRuntime;
 
     @Inject
-    public OpportunisticCpuConstraint(SchedulerConfiguration configuration, TaskCache taskCache, OpportunisticCpuCache opportunisticCpuCache, TitusRuntime titusRuntime) {
+    public OpportunisticCpuConstraint(SchedulerConfiguration configuration,
+                                      FeatureActivationConfiguration featureConfiguration,
+                                      TaskCache taskCache,
+                                      OpportunisticCpuCache opportunisticCpuCache,
+                                      TitusRuntime titusRuntime) {
         this.configuration = configuration;
+        this.featureConfiguration = featureConfiguration;
         this.taskCache = taskCache;
         this.opportunisticCpuCache = opportunisticCpuCache;
         this.titusRuntime = titusRuntime;

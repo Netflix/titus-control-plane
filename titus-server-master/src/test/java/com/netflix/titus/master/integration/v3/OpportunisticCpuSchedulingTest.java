@@ -130,7 +130,9 @@ public class OpportunisticCpuSchedulingTest extends BaseIntegrationTest {
                         .expectTaskContext(TASK_ATTRIBUTES_AGENT_ASG, "flex2")
                         .expectTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION, allocationId)
                         .expectTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT, "4")
-                ))
+                )
+                .template(ScenarioTemplates.startLaunchedTasks())) // free up launch guard
+
                 // opportunistic CPUs have been claimed, next task can't use it
                 .schedule(jobDescriptor, jobScenarioBuilder -> jobScenarioBuilder
                         .template(ScenarioTemplates.launchJob())
@@ -200,5 +202,60 @@ public class OpportunisticCpuSchedulingTest extends BaseIntegrationTest {
                         .expectTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT, "2")
                 )
         );
+    }
+
+    @Test(timeout = TEST_TIMEOUT_MS)
+    public void opportunisticSchedulingCanBeDisabled() throws Exception {
+        String allocationId = UUID.randomUUID().toString();
+        Instant expiresAt = Instant.now().plus(Duration.ofHours(6));
+        OpportunisticCpuAvailability availability = new OpportunisticCpuAvailability(allocationId, expiresAt, 4);
+        instanceGroupsScenarioBuilder.apply("flex2",
+                group -> group.any(instance -> instance.addOpportunisticCpus(availability))
+        );
+
+        JobDescriptor<BatchJobExt> jobDescriptor = BATCH_JOB_WITH_RUNTIME_PREDICTION.but(j ->
+                j.getContainer().but(c -> c.getContainerResources().toBuilder()
+                        .withCpu(2)
+                        .withMemoryMB(1)
+                        .withDiskMB(1)
+                        .withNetworkMbps(1)
+                        .withGpu(0)
+                )
+        );
+        jobsScenarioBuilder.schedule(jobDescriptor, jobScenarioBuilder -> jobScenarioBuilder
+                .template(ScenarioTemplates.launchJob())
+                .allTasks(taskScenarioBuilder -> taskScenarioBuilder
+                        .expectTaskOnAgent()
+                        .expectTaskContext(TASK_ATTRIBUTES_AGENT_ASG, "flex2")
+                        .expectTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION, allocationId)
+                        .expectTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT, "2")
+                )
+                .template(ScenarioTemplates.startLaunchedTasks()) // free up launch guard
+        );
+
+        titusStackResource.getMaster().updateProperty("titus.feature.opportunisticResourcesSchedulingEnabled", "false");
+        jobsScenarioBuilder.schedule(jobDescriptor, jobScenarioBuilder -> jobScenarioBuilder
+                .template(ScenarioTemplates.launchJob())
+                .allTasks(taskScenarioBuilder -> taskScenarioBuilder
+                        .expectTaskOnAgent()
+                        .assertTask(task -> !task.getTaskContext().containsKey(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION) &&
+                                        !task.getTaskContext().containsKey(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT),
+                                "Not scheduled on opportunistic CPUs")
+                )
+                .template(ScenarioTemplates.startLaunchedTasks()) // free up launch guard
+        );
+
+        titusStackResource.getMaster().updateProperty("titus.feature.opportunisticResourcesSchedulingEnabled", "true");
+        jobsScenarioBuilder.schedule(jobDescriptor, jobScenarioBuilder -> jobScenarioBuilder
+                .template(ScenarioTemplates.launchJob())
+                .allTasks(taskScenarioBuilder -> taskScenarioBuilder
+                        .expectTaskOnAgent()
+                        .expectTaskContext(TASK_ATTRIBUTES_AGENT_ASG, "flex2")
+                        .expectTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION, allocationId)
+                        .expectTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT, "2")
+                )
+                .template(ScenarioTemplates.startLaunchedTasks()) // free up launch guard
+        );
+
     }
 }
