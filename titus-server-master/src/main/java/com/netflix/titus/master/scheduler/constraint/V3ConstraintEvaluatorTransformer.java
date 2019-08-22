@@ -31,6 +31,7 @@ import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.config.MasterConfiguration;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
+import com.netflix.titus.master.scheduler.resourcecache.TaskCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

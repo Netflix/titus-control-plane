@@ -28,8 +28,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Network interface fitness evaluator. Two strategies are applied depending on the dynamic configuration
- * setting ({@link SchedulerConfiguration#isOptimizingNetworkInterfaceAllocationEnabled()}):
+ * Network interface fitness evaluator. Two strategies are applied depending on the dynamic configuration setting
+ * {@link SchedulerConfiguration#isFenzoNetworkInterfaceAllocationEnabled()}:
  *
  * @see DefaultPreferentialNamedConsumableResourceEvaluator
  * @see SimpleNetworkInterfaceFitnessEvaluator
@@ -48,7 +48,6 @@ public class TitusNetworkInterfaceFitnessEvaluator implements PreferentialNamedC
                                                  AgentResourceCache cache,
                                                  TitusRuntime titusRuntime) {
         this.configuration = configuration;
-
         this.simpleFitnessEvaluator = new SimpleNetworkInterfaceFitnessEvaluator(cache, configuration, titusRuntime.getClock());
     }
 

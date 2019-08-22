@@ -37,6 +37,7 @@ public class DefaultSystemHardConstraint implements SystemHardConstraint {
     private final AgentLaunchGuardConstraint agentLaunchGuardConstraint;
     private final SystemSelectorConstraintEvaluator systemSelectorConstraintEvaluator;
     private final IpAllocationConstraint ipAllocationConstraint;
+    private final OpportunisticCpuConstraint opportunisticCpuConstraint;
 
     private CompositeSystemConstraint delegate;
 
@@ -44,11 +45,13 @@ public class DefaultSystemHardConstraint implements SystemHardConstraint {
     public DefaultSystemHardConstraint(AgentManagementConstraint agentManagementConstraint,
                                        AgentLaunchGuardConstraint agentLaunchGuardConstraint,
                                        SystemSelectorConstraintEvaluator systemSelectorConstraintEvaluator,
-                                       IpAllocationConstraint ipAllocationConstraint) {
+                                       IpAllocationConstraint ipAllocationConstraint,
+                                       OpportunisticCpuConstraint opportunisticCpuConstraint) {
         this.agentManagementConstraint = agentManagementConstraint;
         this.agentLaunchGuardConstraint = agentLaunchGuardConstraint;
         this.systemSelectorConstraintEvaluator = systemSelectorConstraintEvaluator;
         this.ipAllocationConstraint = ipAllocationConstraint;
+        this.opportunisticCpuConstraint = opportunisticCpuConstraint;
     }
 
     @Activator
@@ -57,7 +60,8 @@ public class DefaultSystemHardConstraint implements SystemHardConstraint {
                 agentManagementConstraint,
                 agentLaunchGuardConstraint,
                 systemSelectorConstraintEvaluator,
-                ipAllocationConstraint
+                ipAllocationConstraint,
+                opportunisticCpuConstraint
         ));
     }
 

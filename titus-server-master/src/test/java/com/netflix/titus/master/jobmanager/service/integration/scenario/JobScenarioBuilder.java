@@ -18,8 +18,10 @@ package com.netflix.titus.master.jobmanager.service.integration.scenario;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
@@ -33,6 +35,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
+import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
@@ -54,11 +57,11 @@ import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExceptionExt;
+import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import com.netflix.titus.master.jobmanager.service.integration.scenario.StubbedJobStore.StoreEvent;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
-import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import com.netflix.titus.testkit.rx.ExtTestSubscriber;
 import com.netflix.titus.testkit.rx.TitusRxSubscriber;
 import rx.Subscriber;
@@ -460,6 +463,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
                 vmService.buildConsumeResult(task.getId()),
                 Optional.empty(),
                 vmService.buildAttributesMap(task.getId()),
+                buildOpportunisticResourcesContext(task),
                 "Flex"
         );
 
@@ -484,6 +488,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
                 vmService.buildConsumeResult(task.getId()),
                 Optional.empty(),
                 vmService.buildAttributesMap(task.getId()),
+                buildOpportunisticResourcesContext(task),
                 "Flex"
         );
 
@@ -643,6 +648,19 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
             int task2Index = jobStore.getIndexAndResubmit(task2.getId()).get().getLeft();
             return Integer.compare(task1Index, task2Index);
         }).collect(Collectors.toList());
+    }
+
+    private Map<String, String> buildOpportunisticResourcesContext(Task task) {
+        HashMap<String, String> context = new HashMap<>();
+        String allocationId = task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION);
+        if (StringExt.isNotEmpty(allocationId)) {
+            context.put(TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION, allocationId);
+        }
+        String count = task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT);
+        if (StringExt.isNotEmpty(count)) {
+            context.put(TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT, count);
+        }
+        return context;
     }
 
     static class EventHolder<EVENT> extends Subscriber<EVENT> {

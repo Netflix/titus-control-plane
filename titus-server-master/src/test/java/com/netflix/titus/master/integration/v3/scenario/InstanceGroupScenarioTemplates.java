@@ -16,6 +16,7 @@
 
 package com.netflix.titus.master.integration.v3.scenario;
 
+import java.time.Instant;
 import java.util.function.Consumer;
 
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;

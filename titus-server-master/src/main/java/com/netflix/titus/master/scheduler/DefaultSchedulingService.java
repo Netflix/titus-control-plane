@@ -20,15 +20,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -50,7 +47,6 @@ import com.netflix.fenzo.TaskScheduler;
 import com.netflix.fenzo.TaskSchedulingService;
 import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.fenzo.VirtualMachineLease;
-import com.netflix.fenzo.functions.Action1;
 import com.netflix.fenzo.queues.QAttributes;
 import com.netflix.fenzo.queues.QueuableTask;
 import com.netflix.fenzo.queues.TaskQueue;
@@ -84,12 +80,13 @@ import com.netflix.titus.master.mesos.TaskInfoFactory;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.model.job.TitusQueuableTask;
 import com.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
-import com.netflix.titus.master.scheduler.constraint.TaskCache;
 import com.netflix.titus.master.scheduler.constraint.TaskCacheEventListener;
 import com.netflix.titus.master.scheduler.fitness.AgentManagementFitnessCalculator;
 import com.netflix.titus.master.scheduler.fitness.TitusFitnessCalculator;
 import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCache;
 import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheUpdater;
+import com.netflix.titus.master.scheduler.resourcecache.OpportunisticCpuCache;
+import com.netflix.titus.master.scheduler.resourcecache.TaskCache;
 import com.netflix.titus.master.taskmigration.TaskMigrator;
 import org.apache.mesos.Protos;
 import org.slf4j.Logger;
@@ -168,7 +165,6 @@ public class DefaultSchedulingService implements SchedulingService {
     private final TitusRuntime titusRuntime;
     private final AgentResourceCache agentResourceCache;
     private final AgentResourceCacheUpdater agentResourceCacheUpdater;
-    private final BlockingQueue<Map<String, Action1<List<TaskAssignmentResult>>>> taskFailuresActions = new LinkedBlockingQueue<>(5);
     private final TierSlaUpdater tierSlaUpdater;
     private final Registry registry;
     private final TaskMigrator taskMigrator;
@@ -177,8 +173,6 @@ public class DefaultSchedulingService implements SchedulingService {
 
     private final AtomicReference<Map<String, List<TaskAssignmentResult>>> lastSchedulingResult = new AtomicReference<>();
     private final BehaviorSubject<Map<String, List<TaskAssignmentResult>>> schedulingResultSubject = BehaviorSubject.create();
-
-    private final TaskCache taskCache;
 
     @Inject
     public DefaultSchedulingService(V3JobOperations v3JobOperations,
@@ -190,6 +184,7 @@ public class DefaultSchedulingService implements SchedulingService {
                                     SchedulerConfiguration schedulerConfiguration,
                                     SystemHardConstraint systemHardConstraint,
                                     TaskCache taskCache,
+                                    OpportunisticCpuCache opportunisticCpuCache,
                                     TierSlaUpdater tierSlaUpdater,
                                     Registry registry,
                                     PreferentialNamedConsumableResourceEvaluator preferentialNamedConsumableResourceEvaluator,
@@ -199,14 +194,11 @@ public class DefaultSchedulingService implements SchedulingService {
                                     AgentResourceCache agentResourceCache,
                                     Config config,
                                     MesosConfiguration mesosConfiguration) {
-        this(v3JobOperations, agentManagementService, v3TaskInfoFactory, vmOps,
-                virtualMachineService, masterConfiguration, schedulerConfiguration,
-                systemHardConstraint, taskCache,
-                Schedulers.computation(),
-                tierSlaUpdater, registry,
-                preferentialNamedConsumableResourceEvaluator, agentManagementFitnessCalculator,
-                taskMigrator, titusRuntime, agentResourceCache, config, mesosConfiguration
-        );
+        this(v3JobOperations, agentManagementService, v3TaskInfoFactory, vmOps, virtualMachineService,
+                masterConfiguration, schedulerConfiguration, systemHardConstraint, taskCache, opportunisticCpuCache,
+                Schedulers.computation(), tierSlaUpdater, registry, preferentialNamedConsumableResourceEvaluator,
+                agentManagementFitnessCalculator, taskMigrator, titusRuntime, agentResourceCache, config,
+                mesosConfiguration);
     }
 
     public DefaultSchedulingService(V3JobOperations v3JobOperations,
@@ -218,6 +210,7 @@ public class DefaultSchedulingService implements SchedulingService {
                                     SchedulerConfiguration schedulerConfiguration,
                                     SystemHardConstraint systemHardConstraint,
                                     TaskCache taskCache,
+                                    OpportunisticCpuCache opportunisticCpuCache,
                                     Scheduler threadScheduler,
                                     TierSlaUpdater tierSlaUpdater,
                                     Registry registry,
@@ -263,7 +256,7 @@ public class DefaultSchedulingService implements SchedulingService {
                 .withPreferentialNamedConsumableResourceEvaluator(preferentialNamedConsumableResourceEvaluator)
                 .withMaxConcurrent(schedulerConfiguration.getSchedulerMaxConcurrent())
                 .withTaskBatchSizeSupplier(schedulerConfiguration::getTaskBatchSize)
-                .withSchedulingEventListener(new TaskCacheEventListener(taskCache));
+                .withSchedulingEventListener(new TaskCacheEventListener(taskCache, opportunisticCpuCache, titusRuntime));
 
         taskScheduler = setupTaskScheduler(virtualMachineService.getLeaseRescindedObservable(), schedulerBuilder);
         taskQueue = TaskQueues.createTieredQueue(2);
@@ -281,9 +274,8 @@ public class DefaultSchedulingService implements SchedulingService {
                 }
             }
         });
-        this.taskCache = taskCache;
 
-        this.taskPlacementRecorder = new TaskPlacementRecorder(config, masterConfiguration, schedulingService, v3JobOperations, v3TaskInfoFactory, titusRuntime);
+        this.taskPlacementRecorder = new TaskPlacementRecorder(config, masterConfiguration, schedulingService, v3JobOperations, v3TaskInfoFactory, opportunisticCpuCache, titusRuntime);
         this.taskPlacementFailureClassifier = new TaskPlacementFailureClassifier(titusRuntime);
 
         totalTasksPerIterationGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "totalTasksPerIteration");
@@ -413,7 +405,6 @@ public class DefaultSchedulingService implements SchedulingService {
 
     private void preSchedulingHook() {
         systemHardConstraint.prepare();
-        taskCache.prepare();
     }
 
     private void checkIfExitOnSchedError(String s) {
@@ -518,28 +509,8 @@ public class DefaultSchedulingService implements SchedulingService {
     }
 
     private void processTaskSchedulingFailureCallbacks(SchedulingResult schedulingResult) {
-        List<Map<String, Action1<List<TaskAssignmentResult>>>> failActions = new ArrayList<>();
-        taskFailuresActions.drainTo(failActions);
-
-        if (failActions.isEmpty()) {
-            return;
-        }
-
-        for (Map.Entry<TaskRequest, List<TaskAssignmentResult>> entry : schedulingResult.getFailures().entrySet()) {
-            final TitusQueuableTask task = (TitusQueuableTask) entry.getKey();
-            final Iterator<Map<String, Action1<List<TaskAssignmentResult>>>> iterator = failActions.iterator();
-            while (iterator.hasNext()) { // iterate over all of them, there could be multiple requests with the same taskId
-                final Map<String, Action1<List<TaskAssignmentResult>>> next = iterator.next();
-                final String reqId = next.keySet().iterator().next();
-                final Action1<List<TaskAssignmentResult>> a = next.values().iterator().next();
-                if (task.getId().equals(reqId)) {
-                    a.call(entry.getValue());
-                    iterator.remove();
-                }
-            }
-        }
-        if (!failActions.isEmpty()) { // If no such tasks for the registered actions, call them with null result
-            failActions.forEach(action -> action.values().iterator().next().call(null));
+        for (TaskRequest failed : schedulingResult.getFailures().keySet()) {
+            ((TitusQueuableTask) failed).opportunisticSchedulingFailed();
         }
     }
 

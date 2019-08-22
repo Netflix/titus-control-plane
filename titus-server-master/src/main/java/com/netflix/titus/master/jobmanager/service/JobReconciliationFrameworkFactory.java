@@ -34,6 +34,7 @@ import com.netflix.spectator.api.BasicTag;
 import com.netflix.spectator.api.Gauge;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.Tag;
+import com.netflix.titus.api.FeatureActivationConfiguration;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -93,6 +94,7 @@ public class JobReconciliationFrameworkFactory {
     public static final String INCONSISTENT_DATA_FAILURE_ID = V3JobOperations.COMPONENT + ".inconsistentData";
 
     static final String ROOT_METRIC_NAME = MetricConstants.METRIC_ROOT + "jobManager.bootstrap.";
+    private final FeatureActivationConfiguration featureConfiguration;
 
     private enum TaskFenzoCheck {AddedToFenzo, EffectivelyFinished, FenzoAddError, Inconsistent}
 
@@ -129,6 +131,7 @@ public class JobReconciliationFrameworkFactory {
 
     @Inject
     public JobReconciliationFrameworkFactory(JobManagerConfiguration jobManagerConfiguration,
+                                             FeatureActivationConfiguration featureConfiguration,
                                              @Named(BATCH_RESOLVER) DifferenceResolver<JobManagerReconcilerEvent> batchDifferenceResolver,
                                              @Named(SERVICE_RESOLVER) DifferenceResolver<JobManagerReconcilerEvent> serviceDifferenceResolver,
                                              JobStore store,
@@ -140,12 +143,14 @@ public class JobReconciliationFrameworkFactory {
                                              @Named(JOB_PERMISSIVE_SANITIZER) EntitySanitizer permissiveEntitySanitizer,
                                              @Named(JOB_STRICT_SANITIZER) EntitySanitizer strictEntitySanitizer,
                                              TitusRuntime titusRuntime) {
-        this(jobManagerConfiguration, batchDifferenceResolver, serviceDifferenceResolver, store, schedulingService, capacityGroupService,
-                systemSoftConstraint, systemHardConstraint, constraintEvaluatorTransformer, permissiveEntitySanitizer, strictEntitySanitizer,
-                titusRuntime, Optional.empty());
+        this(jobManagerConfiguration, featureConfiguration, batchDifferenceResolver, serviceDifferenceResolver, store,
+                schedulingService, capacityGroupService, systemSoftConstraint, systemHardConstraint,
+                constraintEvaluatorTransformer, permissiveEntitySanitizer, strictEntitySanitizer, titusRuntime,
+                Optional.empty());
     }
 
     public JobReconciliationFrameworkFactory(JobManagerConfiguration jobManagerConfiguration,
+                                             FeatureActivationConfiguration featureConfiguration,
                                              DifferenceResolver<JobManagerReconcilerEvent> batchDifferenceResolver,
                                              DifferenceResolver<JobManagerReconcilerEvent> serviceDifferenceResolver,
                                              JobStore store,
@@ -159,6 +164,7 @@ public class JobReconciliationFrameworkFactory {
                                              TitusRuntime titusRuntime,
                                              Optional<Scheduler> optionalScheduler) {
         this.jobManagerConfiguration = jobManagerConfiguration;
+        this.featureConfiguration = featureConfiguration;
         this.store = store;
         this.schedulingService = schedulingService;
         this.capacityGroupService = capacityGroupService;
@@ -280,6 +286,8 @@ public class JobReconciliationFrameworkFactory {
                         tierAssignment.getRight(),
                         job,
                         task,
+                        JobFunctions.getJobRuntimePrediction(job),
+                        featureConfiguration::isOpportunisticResourcesSchedulingEnabled,
                         () -> JobManagerUtil.filterActiveTaskIds(engine),
                         constraintEvaluatorTransformer,
                         systemSoftConstraint,
@@ -309,6 +317,9 @@ public class JobReconciliationFrameworkFactory {
                     tierAssignment.getRight(),
                     job,
                     task,
+                    JobFunctions.getJobRuntimePrediction(job),
+                    featureConfiguration::isOpportunisticResourcesSchedulingEnabled,
+                    JobFunctions.getOpportunisticCpuCount(task).orElse(0),
                     () -> JobManagerUtil.filterActiveTaskIds(engine),
                     constraintEvaluatorTransformer,
                     systemSoftConstraint,
