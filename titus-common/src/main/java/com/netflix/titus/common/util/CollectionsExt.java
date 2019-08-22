@@ -243,6 +243,13 @@ public final class CollectionsExt {
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
+    /**
+     * Helper for adding items to <tt>MultiMaps</tt> represented as <tt>Map&lt;K, List&lt;V&gt;&gt;</tt> types.
+     */
+    public static <K, V> List<V> multiMapAddValue(Map<K, List<V>> multiMap, K key, V value) {
+        return multiMap.compute(key, (ignored, old) -> old == null ? Collections.singletonList(value) : copyAndAdd(old, value));
+    }
+
     @SafeVarargs
     public static <T> List<T> merge(List<T>... lists) {
         if (isNullOrEmpty(lists)) {

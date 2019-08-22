@@ -32,4 +32,28 @@ public interface TitusQueuableTask<JOB, TASK> extends QueuableTask {
      * Titus task instance associated with the given Fenzo task.
      */
     TASK getTask();
+
+    /**
+     * Is opportunistic usage of CPUs enabled for this task?
+     *
+     * @return true when opportunistic scheduling of CPUs is enabled for a particular task
+     */
+    boolean isCpuOpportunistic();
+
+    /**
+     * The current amount of opportunistic CPUs requested by a task. Note that this may change after a task is notified
+     * that a scheduling iteration was not able to allocate the requested amount of opportunistic CPUs.
+     *
+     * {@link TitusQueuableTask#isCpuOpportunistic()} must be always checked in an scheduling iteration before this
+     * this value can be used.
+     *
+     * @see TitusQueuableTask#opportunisticSchedulingFailed()
+     */
+    int getOpportunisticCpus();
+
+    /**
+     * Notify that an iteration loop using opportunistic resources failed. Implementations can use the notification to
+     * adjust opportunistic resource asks for the next scheduling iteration.
+     */
+    void opportunisticSchedulingFailed();
 }

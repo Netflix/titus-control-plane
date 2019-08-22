@@ -16,6 +16,7 @@
 
 package com.netflix.titus.api.jobmanager.model.job;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -41,7 +42,7 @@ import com.netflix.titus.api.jobmanager.model.job.retry.ImmediateRetryPolicy;
 import com.netflix.titus.api.jobmanager.model.job.retry.RetryPolicy;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.common.util.CollectionsExt;
-import com.netflix.titus.common.util.Evaluators;
+import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.retry.Retryer;
 import com.netflix.titus.common.util.retry.Retryers;
 import com.netflix.titus.common.util.time.Clock;
@@ -490,5 +491,19 @@ public final class JobFunctions {
             after = task.getStatus();
         }
         return Optional.ofNullable(after);
+    }
+
+    public static Optional<Integer> getOpportunisticCpuCount(Task task) {
+        return Optional.ofNullable(task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT))
+                .flatMap(StringExt::parseInt);
+    }
+
+    public static Optional<Duration> getJobRuntimePrediction(Job job) {
+        if (!isBatchJob(job)) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(((Job<?>) job).getJobDescriptor().getAttributes().get(JobAttributes.JOB_ATTRIBUTES_RUNTIME_PREDICTION_SEC))
+                .flatMap(StringExt::parseLong)
+                .map(Duration::ofSeconds);
     }
 }

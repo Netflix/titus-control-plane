@@ -479,4 +479,20 @@ public final class StringExt {
         }
         return Character.toLowerCase(text.charAt(0)) + text.substring(1);
     }
+
+    public static Optional<Integer> parseInt(String s) {
+        try {
+            return Optional.of(Integer.parseInt(s));
+        } catch (NumberFormatException e) {
+            return Optional.empty();
+        }
+    }
+
+    public static Optional<Long> parseLong(String s) {
+        try {
+            return Optional.of(Long.parseLong(s));
+        } catch (NumberFormatException e) {
+            return Optional.empty();
+        }
+    }
 }

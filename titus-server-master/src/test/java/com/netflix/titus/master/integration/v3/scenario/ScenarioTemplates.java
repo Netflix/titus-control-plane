@@ -86,9 +86,21 @@ public class ScenarioTemplates {
                 .allTasks(taskScenarioBuilder -> taskScenarioBuilder.expectStateUpdates(TaskState.StartInitiated, TaskState.Started));
     }
 
+    public static Function<JobScenarioBuilder, JobScenarioBuilder> startLaunchedTasks() {
+        return jobScenarioBuilder -> jobScenarioBuilder
+                .allTasks(taskScenarioBuilder -> taskScenarioBuilder.transitionTo(TaskState.StartInitiated, TaskState.Started))
+                .allTasks(taskScenarioBuilder -> taskScenarioBuilder.expectStateUpdates(TaskState.StartInitiated, TaskState.Started));
+    }
+
     public static Function<TaskScenarioBuilder, TaskScenarioBuilder> startTask() {
         return taskScenarioBuilder -> taskScenarioBuilder
                 .expectStateUpdateSkipOther(TaskState.Launched)
+                .transitionTo(TaskState.StartInitiated, TaskState.Started)
+                .expectStateUpdates(TaskState.StartInitiated, TaskState.Started);
+    }
+
+    public static Function<TaskScenarioBuilder, TaskScenarioBuilder> startLaunchedTask() {
+        return taskScenarioBuilder -> taskScenarioBuilder
                 .transitionTo(TaskState.StartInitiated, TaskState.Started)
                 .expectStateUpdates(TaskState.StartInitiated, TaskState.Started);
     }

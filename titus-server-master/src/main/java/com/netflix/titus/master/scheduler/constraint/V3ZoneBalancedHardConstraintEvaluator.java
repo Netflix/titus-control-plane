@@ -24,6 +24,7 @@ import com.netflix.fenzo.TaskTrackerState;
 import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import com.netflix.titus.master.scheduler.SchedulerUtils;
+import com.netflix.titus.master.scheduler.resourcecache.TaskCache;
 
 public class V3ZoneBalancedHardConstraintEvaluator implements ConstraintEvaluator {
 
