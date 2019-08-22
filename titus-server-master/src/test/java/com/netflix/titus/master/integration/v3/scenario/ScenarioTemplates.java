@@ -99,6 +99,12 @@ public class ScenarioTemplates {
                 .expectStateUpdates(TaskState.StartInitiated, TaskState.Started);
     }
 
+    public static Function<TaskScenarioBuilder, TaskScenarioBuilder> startLaunchedTask() {
+        return taskScenarioBuilder -> taskScenarioBuilder
+                .transitionTo(TaskState.StartInitiated, TaskState.Started)
+                .expectStateUpdates(TaskState.StartInitiated, TaskState.Started);
+    }
+
     public static Function<JobScenarioBuilder, JobScenarioBuilder> killJob() {
         return jobScenarioBuilder -> jobScenarioBuilder
                 .killJob()

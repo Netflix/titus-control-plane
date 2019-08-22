@@ -81,6 +81,7 @@ public class OpportunisticCpuSchedulingTest extends BaseIntegrationTest {
                         .assertTask(task -> !task.getTaskContext().containsKey(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION) &&
                                         !task.getTaskContext().containsKey(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT),
                                 "Not scheduled on opportunistic CPUs")
+                        .template(ScenarioTemplates.startLaunchedTask())
                 )
         );
     }
@@ -106,11 +107,12 @@ public class OpportunisticCpuSchedulingTest extends BaseIntegrationTest {
                         .assertTask(task -> !task.getTaskContext().containsKey(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION) &&
                                         !task.getTaskContext().containsKey(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT),
                                 "Not scheduled on opportunistic CPUs")
+                        .template(ScenarioTemplates.startLaunchedTask())
                 )
         );
     }
 
-    @Test(timeout = TEST_TIMEOUT_MS)
+    @Test(timeout = LONG_TEST_TIMEOUT_MS)
     public void allOpportunisticCpusAvailable() throws Exception {
         String allocationId = UUID.randomUUID().toString();
         Instant expiresAt = Instant.now().plus(Duration.ofHours(6));
@@ -120,7 +122,7 @@ public class OpportunisticCpuSchedulingTest extends BaseIntegrationTest {
         );
 
         JobDescriptor<BatchJobExt> jobDescriptor = BATCH_JOB_WITH_RUNTIME_PREDICTION.but(j ->
-                j.getContainer().but(c -> c.getContainerResources().toBuilder().withCpu(4))
+                j.getContainer().but(c -> c.getContainerResources().toBuilder().withCpu(2))
         );
 
         jobsScenarioBuilder.schedule(jobDescriptor, jobScenarioBuilder -> jobScenarioBuilder
@@ -129,20 +131,34 @@ public class OpportunisticCpuSchedulingTest extends BaseIntegrationTest {
                         .expectTaskOnAgent()
                         .expectTaskContext(TASK_ATTRIBUTES_AGENT_ASG, "flex2")
                         .expectTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION, allocationId)
-                        .expectTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT, "4")
-                )
-                .template(ScenarioTemplates.startLaunchedTasks())) // free up launch guard
+                        .expectTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT, "2")
+                        // free up launch guard
+                        .template(ScenarioTemplates.startLaunchedTask())
+                ));
 
-                // opportunistic CPUs have been claimed, next task can't use it
-                .schedule(jobDescriptor, jobScenarioBuilder -> jobScenarioBuilder
-                        .template(ScenarioTemplates.launchJob())
-                        .allTasks(taskScenarioBuilder -> taskScenarioBuilder
-                                .expectTaskOnAgent()
-                                .assertTask(task -> !task.getTaskContext().containsKey(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION) &&
-                                                !task.getTaskContext().containsKey(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT),
-                                        "Not scheduled on opportunistic CPUs")
-                        )
-                );
+        jobsScenarioBuilder.schedule(jobDescriptor, jobScenarioBuilder -> jobScenarioBuilder
+                .template(ScenarioTemplates.launchJob())
+                .allTasks(taskScenarioBuilder -> taskScenarioBuilder
+                        .expectTaskOnAgent()
+                        .expectTaskContext(TASK_ATTRIBUTES_AGENT_ASG, "flex2")
+                        .expectTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION, allocationId)
+                        .expectTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT, "2")
+                        // free up launch guard
+                        .template(ScenarioTemplates.startLaunchedTask())
+                ));
+
+        // all opportunistic CPUs have been claimed, next task can't use it
+        jobsScenarioBuilder.schedule(jobDescriptor, jobScenarioBuilder -> jobScenarioBuilder
+                .template(ScenarioTemplates.launchJob())
+                .allTasks(taskScenarioBuilder -> taskScenarioBuilder
+                        .expectTaskOnAgent()
+                        .assertTask(task -> !task.getTaskContext().containsKey(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION) &&
+                                        !task.getTaskContext().containsKey(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT),
+                                "Not scheduled on opportunistic CPUs")
+                        // free up launch guard
+                        .template(ScenarioTemplates.startLaunchedTask())
+                )
+        );
 
         // free up opportunistic CPUs, window is still valid
         jobsScenarioBuilder.takeJob(0).template(ScenarioTemplates.killJob());
@@ -154,7 +170,9 @@ public class OpportunisticCpuSchedulingTest extends BaseIntegrationTest {
                         .expectTaskOnAgent()
                         .expectTaskContext(TASK_ATTRIBUTES_AGENT_ASG, "flex2")
                         .expectTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION, allocationId)
-                        .expectTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT, "4")
+                        .expectTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT, "2")
+                        // free up launch guard
+                        .template(ScenarioTemplates.startLaunchedTask())
                 ));
     }
 
@@ -177,6 +195,7 @@ public class OpportunisticCpuSchedulingTest extends BaseIntegrationTest {
                         .assertTask(task -> !task.getTaskContext().containsKey(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION) &&
                                         !task.getTaskContext().containsKey(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT),
                                 "Not scheduled on opportunistic CPUs")
+                        .template(ScenarioTemplates.startLaunchedTask())
                 )
         );
     }
@@ -200,6 +219,7 @@ public class OpportunisticCpuSchedulingTest extends BaseIntegrationTest {
                         .expectTaskContext(TASK_ATTRIBUTES_AGENT_ASG, "flex2")
                         .expectTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION, allocationId)
                         .expectTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT, "2")
+                        .template(ScenarioTemplates.startLaunchedTask())
                 )
         );
     }
@@ -229,9 +249,9 @@ public class OpportunisticCpuSchedulingTest extends BaseIntegrationTest {
                         .expectTaskContext(TASK_ATTRIBUTES_AGENT_ASG, "flex2")
                         .expectTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION, allocationId)
                         .expectTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT, "2")
-                )
-                .template(ScenarioTemplates.startLaunchedTasks()) // free up launch guard
-        );
+                        // free up launch guard
+                        .template(ScenarioTemplates.startLaunchedTask())
+                ));
 
         titusStackResource.getMaster().updateProperty("titus.feature.opportunisticResourcesSchedulingEnabled", "false");
         jobsScenarioBuilder.schedule(jobDescriptor, jobScenarioBuilder -> jobScenarioBuilder
@@ -241,9 +261,9 @@ public class OpportunisticCpuSchedulingTest extends BaseIntegrationTest {
                         .assertTask(task -> !task.getTaskContext().containsKey(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION) &&
                                         !task.getTaskContext().containsKey(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT),
                                 "Not scheduled on opportunistic CPUs")
-                )
-                .template(ScenarioTemplates.startLaunchedTasks()) // free up launch guard
-        );
+                        // free up launch guard
+                        .template(ScenarioTemplates.startLaunchedTask())
+                ));
 
         titusStackResource.getMaster().updateProperty("titus.feature.opportunisticResourcesSchedulingEnabled", "true");
         jobsScenarioBuilder.schedule(jobDescriptor, jobScenarioBuilder -> jobScenarioBuilder
@@ -253,9 +273,8 @@ public class OpportunisticCpuSchedulingTest extends BaseIntegrationTest {
                         .expectTaskContext(TASK_ATTRIBUTES_AGENT_ASG, "flex2")
                         .expectTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION, allocationId)
                         .expectTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT, "2")
-                )
-                .template(ScenarioTemplates.startLaunchedTasks()) // free up launch guard
-        );
-
+                        // free up launch guard
+                        .template(ScenarioTemplates.startLaunchedTask())
+                ));
     }
 }
