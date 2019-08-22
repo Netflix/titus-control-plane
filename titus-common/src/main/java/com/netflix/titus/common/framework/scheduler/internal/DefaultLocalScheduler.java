@@ -258,7 +258,11 @@ public class DefaultLocalScheduler implements LocalScheduler {
 
                 @Override
                 public void cancel() {
-                    cancelInternal();
+                    // Run the cancel request via event loop so it is properly serialized with other concurrent updates.
+                    DefaultLocalScheduler.this.cancel(scheduleId).subscribe(
+                            next -> logger.debug("Action cancelled by a user: {}", executor.getAction().getExecutionId()),
+                            e -> logger.debug("User triggered action cancellation failed with an error: executionId={}", executor.getAction().getExecutionId(), e)
+                    );
                 }
             };
         }
@@ -271,6 +275,9 @@ public class DefaultLocalScheduler implements LocalScheduler {
             return reference;
         }
 
+        /**
+         * Must be called from the within an event loop.
+         */
         private void cancelInternal() {
             if (closed) {
                 return;
@@ -285,6 +292,9 @@ public class DefaultLocalScheduler implements LocalScheduler {
             }
         }
 
+        /**
+         * Must be called from the within an event loop.
+         */
         private void handleExecution() {
             if (!executor.handleExecution()) {
                 return;

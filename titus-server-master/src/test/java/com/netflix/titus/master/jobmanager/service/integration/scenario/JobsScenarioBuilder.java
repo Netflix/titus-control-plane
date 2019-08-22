@@ -107,6 +107,7 @@ public class JobsScenarioBuilder {
         when(configuration.getTaskRetryerResetTimeMs()).thenReturn(TimeUnit.MINUTES.toMillis(5));
         when(configuration.getTaskKillAttempts()).thenReturn(2L);
         when(featureActivationConfiguration.isMoveTaskValidationEnabled()).thenReturn(true);
+        when(featureActivationConfiguration.isOpportunisticResourcesSchedulingEnabled()).thenReturn(true);
 
         jobStore.events().subscribe(storeEvents);
 
@@ -139,6 +140,7 @@ public class JobsScenarioBuilder {
 
         BatchDifferenceResolver batchDifferenceResolver = new BatchDifferenceResolver(
                 configuration,
+                featureActivationConfiguration,
                 capacityGroupService,
                 schedulingService,
                 vmService,
@@ -151,6 +153,7 @@ public class JobsScenarioBuilder {
         );
         ServiceDifferenceResolver serviceDifferenceResolver = new ServiceDifferenceResolver(
                 configuration,
+                featureActivationConfiguration,
                 capacityGroupService,
                 schedulingService,
                 vmService,
@@ -186,6 +189,7 @@ public class JobsScenarioBuilder {
                 vmService,
                 new JobReconciliationFrameworkFactory(
                         configuration,
+                        featureActivationConfiguration,
                         batchDifferenceResolver,
                         serviceDifferenceResolver,
                         jobStore,

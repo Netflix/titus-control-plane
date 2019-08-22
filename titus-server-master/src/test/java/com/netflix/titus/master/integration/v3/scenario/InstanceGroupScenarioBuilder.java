@@ -16,9 +16,12 @@
 
 package com.netflix.titus.master.integration.v3.scenario;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
@@ -33,6 +36,7 @@ import com.netflix.titus.grpc.protogen.InstanceGroupLifecycleStateUpdate;
 import com.netflix.titus.grpc.protogen.TierUpdate;
 import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
 import com.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgentCluster;
+import com.netflix.titus.testkit.junit.master.TitusStackResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
@@ -48,6 +52,7 @@ public class InstanceGroupScenarioBuilder {
 
     private static final Logger logger = LoggerFactory.getLogger(InstanceGroupScenarioBuilder.class);
 
+    private final TitusStackResource titusStackResource;
     private final SimulatedTitusAgentCluster simulatedCluster;
     private final InstanceGroupsScenarioBuilder parent;
 
@@ -59,10 +64,11 @@ public class InstanceGroupScenarioBuilder {
     private volatile AgentInstanceGroup instanceGroup;
     private final ConcurrentMap<String, AgentInstance> instances = new ConcurrentHashMap<>();
 
-    public InstanceGroupScenarioBuilder(EmbeddedTitusOperations titusOperations,
+    InstanceGroupScenarioBuilder(TitusStackResource titusStackResource, EmbeddedTitusOperations titusOperations,
                                         SimulatedTitusAgentCluster simulatedAgentCluster,
                                         InstanceGroupsScenarioBuilder parent,
                                         Observable<AgentChangeEvent> events) {
+        this.titusStackResource = titusStackResource;
         this.simulatedCluster = simulatedAgentCluster;
         this.client = titusOperations.getV3BlockingGrpcAgentClient();
         this.parent = parent;
@@ -76,6 +82,15 @@ public class InstanceGroupScenarioBuilder {
 
     public void shutdown() {
         eventSubscription.unsubscribe();
+    }
+
+    public InstanceGroupScenarioBuilder any(Consumer<InstanceScenarioBuilder> transformer) {
+        checkIsKnown();
+        ArrayList<AgentInstance> instancesList = new ArrayList<>(instances.values());
+        Preconditions.checkElementIndex(0, instancesList.size(), "At least one agent instance available");
+        Collections.shuffle(instancesList);
+        transformer.accept(new InstanceScenarioBuilder(titusStackResource, instancesList.get(0)));
+        return this;
     }
 
     public InstanceGroupScenarioBuilder tier(Tier tier) {
