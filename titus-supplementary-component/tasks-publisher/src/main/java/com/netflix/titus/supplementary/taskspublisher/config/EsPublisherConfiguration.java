@@ -42,7 +42,7 @@ public class EsPublisherConfiguration {
     @Value("${titus.es.taskDocumentEsIndexName}")
     private String taskDocumentEsIndexName;
 
-    @Value("${titus.es.enabled}")
+    @Value("${titus.es.publish.enabled}")
     private boolean enabled;
 
     public String getTaskDocumentEsIndexDateSuffixPattern() {
