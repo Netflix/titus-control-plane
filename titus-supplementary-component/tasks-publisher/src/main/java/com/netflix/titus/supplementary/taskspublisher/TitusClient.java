@@ -15,15 +15,56 @@
  */
 package com.netflix.titus.supplementary.taskspublisher;
 
+import com.google.common.base.Preconditions;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.Task;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public interface TitusClient {
-    Mono<Task> getTask(String taskId);
-
-    Flux<Task> getTaskUpdates();
 
     Mono<Job> getJobById(String jobId);
+
+    Mono<Task> getTask(String taskId);
+
+    Flux<JobOrTaskUpdate> getJobAndTaskUpdates();
+
+    class JobOrTaskUpdate {
+
+        private final Job job;
+        private final Task task;
+
+        private JobOrTaskUpdate(Job job, Task task) {
+            this.job = job;
+            this.task = task;
+        }
+
+        public Job getJob() {
+            Preconditions.checkState(job != null, "Task container");
+            return job;
+        }
+
+        public Task getTask() {
+            Preconditions.checkState(task != null, "Job container");
+            return task;
+        }
+
+        public boolean hasJob() {
+            return job != null;
+        }
+
+        public boolean hasTask() {
+            return task != null;
+        }
+
+        public static JobOrTaskUpdate jobUpdate(Job job) {
+            Preconditions.checkNotNull(job, "Null job");
+            return new JobOrTaskUpdate(job, null);
+        }
+
+        public static JobOrTaskUpdate taskUpdate(Task task) {
+            Preconditions.checkNotNull(task, "Null task");
+            return new JobOrTaskUpdate(null, task);
+        }
+    }
 }

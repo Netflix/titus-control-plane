@@ -64,7 +64,6 @@ public class TitusClientImpl implements TitusClient {
 
     private final AsyncLoadingCache<String, Job> jobs;
 
-
     public TitusClientImpl(JobManagementServiceStub jobManagementService,
                            JobManagementServiceFutureStub jobManagementServiceFutureStub,
                            Registry registry) {
@@ -100,7 +99,7 @@ public class TitusClientImpl implements TitusClient {
     }
 
     @Override
-    public Flux<Task> getTaskUpdates() {
+    public Flux<JobOrTaskUpdate> getJobAndTaskUpdates() {
         return Flux.create(sink -> attachCallerId(jobManagementService, CLIENT_ID)
                 .observeJobs(ObserveJobsQuery.newBuilder().build(), new StreamObserver<JobChangeNotification>() {
                     @Override
@@ -110,12 +109,13 @@ public class TitusClientImpl implements TitusClient {
                                 final Job job = jobChangeNotification.getJobUpdate().getJob();
                                 jobs.put(job.getId(), CompletableFuture.completedFuture(job));
                                 logger.debug("<{}> JobUpdate {}", Thread.currentThread().getName(), jobChangeNotification.getJobUpdate().getJob().getId());
+                                sink.next(JobOrTaskUpdate.jobUpdate(job));
                                 numJobUpdates.incrementAndGet();
                                 break;
                             case TASKUPDATE:
                                 logger.debug("<{}> TaskUpdate {}", Thread.currentThread().getName(), jobChangeNotification.getTaskUpdate().getTask().getId());
                                 final Task task = jobChangeNotification.getTaskUpdate().getTask();
-                                sink.next(task);
+                                sink.next(JobOrTaskUpdate.taskUpdate(task));
                                 numTaskUpdates.incrementAndGet();
                                 break;
                             case SNAPSHOTEND:
