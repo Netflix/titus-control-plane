@@ -24,15 +24,13 @@ import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import com.netflix.titus.supplementary.taskspublisher.es.ElasticSearchUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import reactor.core.publisher.ConnectableFlux;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
-
 public class TaskEventsGenerator {
-    private static final Logger logger = LoggerFactory.getLogger(TaskEventsGenerator.class);
+
     private final Map<String, String> taskDocumentBaseContext;
     private TitusClient titusClient;
     private ConnectableFlux<TaskDocument> taskEvents;
@@ -48,10 +46,10 @@ public class TaskEventsGenerator {
         return taskEvents;
     }
 
-
     private void buildEventStream() {
-        taskEvents = titusClient.getTaskUpdates()
+        taskEvents = titusClient.getJobAndTaskUpdates()
                 .publishOn(Schedulers.elastic())
+                .flatMap(jobOrTaskUpdate -> jobOrTaskUpdate.hasTask() ? Flux.just(jobOrTaskUpdate.getTask()) : Flux.empty())
                 .map(task -> {
                     final Mono<Job> jobById = titusClient.getJobById(task.getJobId());
                     return Pair.of(task, jobById);
@@ -70,7 +68,6 @@ public class TaskEventsGenerator {
                 .publish();
     }
 
-
     private Map<String, String> buildTaskContext(Task task) {
         String stack = "";
         if (task.getTaskContextMap().containsKey(JobAttributes.JOB_ATTRIBUTES_CELL)) {
@@ -80,6 +77,4 @@ public class TaskEventsGenerator {
         taskContext.put("stack", stack);
         return taskContext;
     }
-
-
 }

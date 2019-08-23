@@ -49,6 +49,9 @@ public class EsClientHttp implements EsClient {
     @Override
     public Mono<EsIndexResp> indexTaskDocument(TaskDocument taskDocument) {
         logger.debug("Indexing TASK {} in thread {}", taskDocument.getId(), Thread.currentThread().getName());
+        if(!esPublisherConfiguration.isEnabled()) {
+            return Mono.empty();
+        }
         return tasksClient.put()
                 .uri(String.format("/%s/%s/%s", buildEsIndexNameCurrent(), ES_RECORD_TYPE, taskDocument.getId()))
                 .contentType(MediaType.APPLICATION_JSON)
@@ -59,6 +62,9 @@ public class EsClientHttp implements EsClient {
 
     @Override
     public Mono<BulkEsIndexResp> bulkIndexTaskDocument(List<TaskDocument> taskDocuments) {
+        if(!esPublisherConfiguration.isEnabled()) {
+            return Mono.empty();
+        }
         return tasksClient.post()
                 .uri("/_bulk")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -66,7 +72,6 @@ public class EsClientHttp implements EsClient {
                 .retrieve()
                 .bodyToMono(BulkEsIndexResp.class);
     }
-
 
     @Override
     public Mono<EsRespSrc<TaskDocument>> findTaskById(String taskId) {

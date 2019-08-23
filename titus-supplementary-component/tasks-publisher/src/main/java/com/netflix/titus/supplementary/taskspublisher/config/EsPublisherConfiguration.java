@@ -42,6 +42,9 @@ public class EsPublisherConfiguration {
     @Value("${titus.es.taskDocumentEsIndexName}")
     private String taskDocumentEsIndexName;
 
+    @Value("${titus.es.enabled}")
+    private boolean enabled;
+
     public String getTaskDocumentEsIndexDateSuffixPattern() {
         return taskDocumentEsIndexDateSuffixPattern;
     }
@@ -68,5 +71,9 @@ public class EsPublisherConfiguration {
 
     public int getEsPort() {
         return esPort;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
     }
 }

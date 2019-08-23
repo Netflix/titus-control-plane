@@ -137,7 +137,7 @@ public class TitusClientImplTest {
     public void getTaskUpdates() {
         final CountDownLatch latch = new CountDownLatch(1);
         final AtomicInteger tasksCount = new AtomicInteger(0);
-        titusClient.getTaskUpdates().subscribe(task -> {
+        titusClient.getJobAndTaskUpdates().subscribe(task -> {
             if (tasksCount.incrementAndGet() == 5) {
                 latch.countDown();
             }
