@@ -28,11 +28,10 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.time.Clocks;
 import com.netflix.titus.common.util.time.TestClock;
-import com.netflix.titus.testkit.rx.ReactorTestExt;
-import com.netflix.titus.testkit.rx.internal.DirectedProcessor;
 import org.junit.Before;
 import org.junit.Test;
 import reactor.core.publisher.EmitterProcessor;
+import reactor.core.publisher.Flux;
 
 import static com.jayway.awaitility.Awaitility.await;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -45,7 +44,7 @@ public class SystemQuotaControllerTest {
 
     private final TitusRuntime titusRuntime = TitusRuntimes.test(clock);
 
-    private final DirectedProcessor<SystemDisruptionBudget> budgetEmitter = ReactorTestExt.newDirectedProcessor(() -> EmitterProcessor.create(1));
+    private volatile EmitterProcessor<SystemDisruptionBudget> budgetEmitter = EmitterProcessor.create(1);
 
     private final SystemDisruptionBudgetResolver budgetResolver = mock(SystemDisruptionBudgetResolver.class);
 
@@ -53,7 +52,12 @@ public class SystemQuotaControllerTest {
 
     @Before
     public void setUp() throws Exception {
-        when(budgetResolver.resolve()).thenReturn(budgetEmitter);
+        when(budgetResolver.resolve()).thenReturn(Flux.defer(() -> {
+            if (!isBudgetEmitterOpen()) {
+                budgetEmitter = EmitterProcessor.create(1);
+            }
+            return budgetEmitter;
+        }));
     }
 
     @Test
@@ -108,11 +112,16 @@ public class SystemQuotaControllerTest {
 
         // Emit error
         budgetEmitter.onError(new RuntimeException("Simulated error"));
+        await().until(this::isBudgetEmitterOpen); // Wait until is re-subscribed
         budgetEmitter.onNext(SystemDisruptionBudget.newBasicSystemDisruptionBudget(5, 5));
         await().until(() -> quotaController.getQuota(Reference.system()).getQuota() == 5);
     }
 
     private SystemQuotaController newSystemQuotaController() {
         return new SystemQuotaController(budgetResolver, Duration.ofMillis(1), titusRuntime);
+    }
+
+    private boolean isBudgetEmitterOpen() {
+        return !(budgetEmitter.isTerminated() || budgetEmitter.isCancelled() || budgetEmitter.isDisposed());
     }
 }
