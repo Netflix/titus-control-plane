@@ -36,6 +36,7 @@ import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.JobGroupInfo;
 import com.netflix.titus.api.jobmanager.model.job.SecurityProfile;
 import com.netflix.titus.api.jobmanager.model.job.Task;
@@ -68,6 +69,8 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
     private static final String PASSTHROUGH_ATTRIBUTES_PREFIX = "titusParameter.agent.";
     private static final String OWNER_EMAIL_ATTRIBUTE = "titus.agent.ownerEmail";
     private static final String JOB_TYPE_ATTRIBUTE = "titus.agent.jobType";
+    private static final String OPPORTUNISTIC_CPU_COUNT_ATTRIBUTE = "titus.agent.opportunisticCpus";
+    private static final String OPPORTUNISTIC_CPU_ALLOCATION_ATTRIBUTE = "titus.agent.opportunisticCpuAllocation";
     private static final String EXECUTOR_PER_TASK_LABEL = "executorpertask";
     private static final String LEGACY_EXECUTOR_NAME = "docker-executor";
     private static final String EXECUTOR_PER_TASK_EXECUTOR_NAME = "docker-per-task-executor";
@@ -102,7 +105,7 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
         String taskId = task.getId();
         Protos.TaskID protoTaskId = Protos.TaskID.newBuilder().setValue(taskId).build();
         Protos.ExecutorInfo executorInfo = newExecutorInfo(task, attributesMap, executorUriOverrideOpt);
-        Protos.TaskInfo.Builder taskInfoBuilder = newTaskInfoBuilder(protoTaskId, executorInfo, slaveID, fenzoTask);
+        Protos.TaskInfo.Builder taskInfoBuilder = newTaskInfoBuilder(protoTaskId, executorInfo, slaveID, fenzoTask, job, task);
         ContainerInfo.Builder containerInfoBuilder = newContainerInfoBuilder(job, task, fenzoTask);
         taskInfoBuilder.setData(containerInfoBuilder.build().toByteString());
         return taskInfoBuilder.build();
@@ -162,11 +165,14 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
             }
         });
 
-        // Add owner email
         containerInfoBuilder.putPassthroughAttributes(OWNER_EMAIL_ATTRIBUTE, jobDescriptor.getOwner().getTeamEmail());
-
-        // Add job type
         containerInfoBuilder.putPassthroughAttributes(JOB_TYPE_ATTRIBUTE, getJobType(jobDescriptor).name());
+        JobFunctions.getOpportunisticCpuCount(task).ifPresent(opportunisticCpus -> containerInfoBuilder
+                .putPassthroughAttributes(OPPORTUNISTIC_CPU_COUNT_ATTRIBUTE, Integer.toString(opportunisticCpus))
+                .putPassthroughAttributes(OPPORTUNISTIC_CPU_ALLOCATION_ATTRIBUTE, task.getTaskContext().getOrDefault(
+                        TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION, "UNKNOWN")
+                )
+        );
 
         // Configure Environment Variables
         container.getEnv().forEach((k, v) -> {
@@ -262,8 +268,14 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
     private Protos.TaskInfo.Builder newTaskInfoBuilder(Protos.TaskID taskId,
                                                        Protos.ExecutorInfo executorInfo,
                                                        Protos.SlaveID slaveID,
-                                                       TitusQueuableTask<Job, Task> fenzoTask) {
+                                                       TitusQueuableTask<Job, Task> fenzoTask,
+                                                       Job<?> job,
+                                                       Task task
+    ) {
 
+        // use requested CPUs rather than what Fenzo assigned, since some CPUs could have been scheduled
+        // opportunistically (oversubscribed)
+        double requestedCpus = job.getJobDescriptor().getContainer().getContainerResources().getCpu();
         Protos.TaskInfo.Builder builder = Protos.TaskInfo.newBuilder()
                 .setTaskId(taskId)
                 .setName(taskId.getValue())
@@ -272,7 +284,7 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
                 .addResources(Protos.Resource.newBuilder()
                         .setName("cpus")
                         .setType(Protos.Value.Type.SCALAR)
-                        .setScalar(Protos.Value.Scalar.newBuilder().setValue(fenzoTask.getCPUs()).build()))
+                        .setScalar(Protos.Value.Scalar.newBuilder().setValue(requestedCpus).build()))
                 .addResources(Protos.Resource.newBuilder()
                         .setName("mem")
                         .setType(Protos.Value.Type.SCALAR)
@@ -286,6 +298,20 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
                         .setType(Protos.Value.Type.SCALAR)
                         .setScalar(Protos.Value.Scalar.newBuilder().setValue(fenzoTask.getNetworkMbps())));
 
+        JobFunctions.getOpportunisticCpuCount(task).ifPresent(opportunisticCpus -> builder
+                .addResources(Protos.Resource.newBuilder()
+                        .setName("opportunisticCpus")
+                        .setType(Protos.Value.Type.SCALAR)
+                        .setScalar(Protos.Value.Scalar.newBuilder().setValue(opportunisticCpus).build())
+                )
+                .addResources(Protos.Resource.newBuilder()
+                        .setName("opportunisticCpuAllocation")
+                        .setType(Protos.Value.Type.SET)
+                        .setSet(Protos.Value.Set.newBuilder().addItem(task.getTaskContext().getOrDefault(
+                                TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION, "UNKNOWN"
+                        )))
+                )
+        );
         // set scalars other than cpus, mem, disk
         final Map<String, Double> scalars = fenzoTask.getScalarRequests();
         if (scalars != null && !scalars.isEmpty()) {
