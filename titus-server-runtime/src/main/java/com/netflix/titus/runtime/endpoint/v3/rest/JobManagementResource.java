@@ -65,9 +65,9 @@ import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskMoveRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
-import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway;
 import com.netflix.titus.runtime.endpoint.common.rest.Responses;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
+import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 
@@ -117,7 +117,7 @@ public class JobManagementResource {
     @ApiOperation("Update an existing job's capacity. Optional attributes min / max / desired are supported.")
     @Path("/jobs/{jobId}/capacityAttributes")
     public Response setCapacityWithOptionalAttributes(@PathParam("jobId") String jobId,
-                                 JobCapacityWithOptionalAttributes capacity) {
+                                                      JobCapacityWithOptionalAttributes capacity) {
         JobCapacityUpdateWithOptionalAttributes jobCapacityUpdateWithOptionalAttributes = JobCapacityUpdateWithOptionalAttributes.newBuilder()
                 .setJobId(jobId)
                 .setJobCapacityWithOptionalAttributes(capacity)
@@ -262,9 +262,14 @@ public class JobManagementResource {
     @Path("/tasks/{taskId}")
     public Response killTask(
             @PathParam("taskId") String taskId,
-            @DefaultValue("false") @QueryParam("shrink") boolean shrink
+            @DefaultValue("false") @QueryParam("shrink") boolean shrink,
+            @DefaultValue("false") @QueryParam("preventMinSizeUpdate") boolean preventMinSizeUpdate
     ) {
-        TaskKillRequest taskKillRequest = TaskKillRequest.newBuilder().setTaskId(taskId).setShrink(shrink).build();
+        TaskKillRequest taskKillRequest = TaskKillRequest.newBuilder()
+                .setTaskId(taskId)
+                .setShrink(shrink)
+                .setPreventMinSizeUpdate(preventMinSizeUpdate)
+                .build();
         return Responses.fromCompletable(jobServiceGateway.killTask(taskKillRequest));
     }
 

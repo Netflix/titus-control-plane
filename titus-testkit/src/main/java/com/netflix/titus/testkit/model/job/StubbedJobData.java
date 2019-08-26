@@ -160,8 +160,8 @@ class StubbedJobData {
         return getJobHolderByTaskId(task.getId()).moveTaskToState(task, V3JobOperations.Trigger.API, newState);
     }
 
-    void killTask(String taskId, boolean shrink, V3JobOperations.Trigger trigger) {
-        getJobHolderByTaskId(taskId).killTask(taskId, shrink, trigger);
+    void killTask(String taskId, boolean shrink, boolean preventMinSizeUpdate, V3JobOperations.Trigger trigger) {
+        getJobHolderByTaskId(taskId).killTask(taskId, shrink, preventMinSizeUpdate, trigger);
     }
 
     void removeTask(Task task, boolean requireFinishedState) {
@@ -394,7 +394,7 @@ class StubbedJobData {
             return updatedTask;
         }
 
-        void killTask(String taskId, boolean shrink, V3JobOperations.Trigger trigger) {
+        void killTask(String taskId, boolean shrink, boolean preventMinSizeUpdate, V3JobOperations.Trigger trigger) {
             Task killedTask = tasksById.get(taskId);
             TaskState taskState = killedTask.getStatus().getState();
             switch (taskState) {
@@ -416,17 +416,20 @@ class StubbedJobData {
             observeJobsSubject.onNext(TaskUpdateEvent.taskChange(job, tasksById.get(taskId), killedTask, callMetadata));
 
             if (shrink) {
+                if (!JobFunctions.isServiceJob(job)) {
+                    throw JobManagerException.notServiceJob(job.getId());
+                }
+                Job<ServiceJobExt> serviceJob = (Job<ServiceJobExt>) job;
+                Capacity capacity = serviceJob.getJobDescriptor().getExtensions().getCapacity();
+                if (preventMinSizeUpdate && capacity.getDesired() <= capacity.getMin()) {
+                    throw JobManagerException.terminateAndShrinkNotAllowed(serviceJob, killedTask);
+                }
+
                 tasksById.remove(taskId);
                 changeJob(job -> {
-                    Job<?> updatedJob;
                     int desired = JobFunctions.getJobDesiredSize(job);
-                    if (JobFunctions.isServiceJob(job)) {
-                        Capacity capacity = ((ServiceJobExt) job.getJobDescriptor().getExtensions()).getCapacity();
-                        Capacity newCapacity = capacity.toBuilder().withDesired(desired).build();
-                        updatedJob = JobFunctions.changeServiceJobCapacity((Job) job, newCapacity);
-                    } else {
-                        updatedJob = JobFunctions.changeBatchJobSize((Job) job, desired);
-                    }
+                    Capacity newCapacity = capacity.toBuilder().withDesired(desired).build();
+                    Job<ServiceJobExt> updatedJob = JobFunctions.changeServiceJobCapacity(serviceJob, newCapacity);
                     return updatedJob;
                 });
             } else {

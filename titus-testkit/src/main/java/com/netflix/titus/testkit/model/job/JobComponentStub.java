@@ -175,8 +175,8 @@ public class JobComponentStub {
         return stubbedJobData.moveTaskToState(task, newState);
     }
 
-    public void killTask(Task task, boolean shrink, V3JobOperations.Trigger trigger) {
-        stubbedJobData.killTask(task.getId(), shrink, trigger);
+    public void killTask(Task task, boolean shrink, boolean preventMinSizeUpdate, V3JobOperations.Trigger trigger) {
+        stubbedJobData.killTask(task.getId(), shrink, preventMinSizeUpdate, trigger);
     }
 
     public void changeContainerHealth(String taskId, ContainerHealthState healthState) {

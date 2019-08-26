@@ -191,7 +191,7 @@ class TaskPlacementRecorder {
 
     private void killBrokenV3Task(TitusQueuableTask task, String reason) {
         String fullReason = String.format("Killing broken task %s (%s)", task.getId(), reason);
-        v3JobOperations.killTask(task.getId(), false, Trigger.Scheduler,
+        v3JobOperations.killTask(task.getId(), false, false, Trigger.Scheduler,
                 JobManagerConstants.SCHEDULER_CALLMETADATA.toBuilder().withCallReason(fullReason).build()).subscribe(
                 next -> {
                 },

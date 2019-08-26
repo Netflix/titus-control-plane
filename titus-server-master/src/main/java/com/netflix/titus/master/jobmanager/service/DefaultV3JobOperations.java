@@ -417,7 +417,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
     }
 
     @Override
-    public Mono<Void> killTask(String taskId, boolean shrink, Trigger trigger, CallMetadata callMetadata) {
+    public Mono<Void> killTask(String taskId, boolean shrink, boolean preventMinSizeUpdate, Trigger trigger, CallMetadata callMetadata) {
         Observable<Void> action = reconciliationFramework.findEngineByChildId(taskId)
                 .map(engineChildPair -> {
                     Task task = engineChildPair.getRight().getEntity();
@@ -437,7 +437,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
                     String reason = String.format("%s %s(shrink=%s)", Evaluators.getOrDefault(CallMetadataUtils.getFirstCallerId(callMetadata), "<no_caller>"),
                             Evaluators.getOrDefault(callMetadata.getCallReason(), "<no_reason>"), shrink);
                     ChangeAction killAction = KillInitiatedActions.userInitiateTaskKillAction(
-                            engineChildPair.getLeft(), vmService, store, task.getId(), shrink, reasonCode, reason, titusRuntime, callMetadata
+                            engineChildPair.getLeft(), vmService, store, task.getId(), shrink, preventMinSizeUpdate, reasonCode, reason, titusRuntime, callMetadata
                     );
                     return engineChildPair.getLeft().changeReferenceModel(killAction);
                 })
