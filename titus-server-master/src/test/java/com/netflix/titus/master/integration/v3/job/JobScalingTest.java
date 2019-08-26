@@ -141,6 +141,7 @@ public class JobScalingTest extends BaseIntegrationTest {
         } catch (Exception e) {
             StatusRuntimeException cause = (StatusRuntimeException) e.getCause();
             assertThat(cause.getStatus().getCode()).isEqualTo(Status.Code.FAILED_PRECONDITION);
+            assertThat(cause.getMessage()).contains("Terminate and shrink would make desired job size go below the configured minimum");
         }
     }
 
