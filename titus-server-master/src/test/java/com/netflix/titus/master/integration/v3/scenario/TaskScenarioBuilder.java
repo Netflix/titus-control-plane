@@ -122,25 +122,32 @@ public class TaskScenarioBuilder {
     }
 
     public TaskScenarioBuilder killTask() {
-        String taskId = getTask().getId();
-        logger.info("[{}] Killing task {} of job {}...", discoverActiveTest(), taskId, jobScenarioBuilder.getJobId());
-        Stopwatch stopWatch = Stopwatch.createStarted();
-
-        TestStreamObserver<Empty> responseObserver = new TestStreamObserver<>();
-        jobClient.killTask(TaskKillRequest.newBuilder().setTaskId(taskId).build(), responseObserver);
-        rethrow(() -> responseObserver.awaitDone(TIMEOUT_MS, TimeUnit.MILLISECONDS));
-
-        logger.info("[{}] Task {} killed in {}[ms]", discoverActiveTest(), taskId, stopWatch.elapsed(TimeUnit.MILLISECONDS));
-        return this;
+        return internalKill(false, false);
     }
 
     public TaskScenarioBuilder killTaskAndShrink() {
+        return internalKill(true, false);
+    }
+
+    public TaskScenarioBuilder killTaskAndShrinkWithMinCheck() {
+        return internalKill(true, true);
+    }
+
+    private TaskScenarioBuilder internalKill(boolean shrink, boolean preventMinSizeUpdate) {
         String taskId = getTask().getId();
-        logger.info("[{}] Killing task {} of job and shrinking the job {}...", discoverActiveTest(), taskId, jobScenarioBuilder.getJobId());
+        logger.info("[{}] Killing task: jobId={}, taskId={}, shrink={}, xx={}...", discoverActiveTest(),
+                jobScenarioBuilder.getJobId(), taskId, shrink, preventMinSizeUpdate);
         Stopwatch stopWatch = Stopwatch.createStarted();
 
         TestStreamObserver<Empty> responseObserver = new TestStreamObserver<>();
-        jobClient.killTask(TaskKillRequest.newBuilder().setTaskId(taskId).setShrink(true).build(), responseObserver);
+        jobClient.killTask(
+                TaskKillRequest.newBuilder()
+                        .setTaskId(taskId)
+                        .setShrink(shrink)
+                        .setPreventMinSizeUpdate(preventMinSizeUpdate)
+                        .build(),
+                responseObserver
+        );
         rethrow(() -> responseObserver.awaitDone(TIMEOUT_MS, TimeUnit.MILLISECONDS));
 
         logger.info("[{}] Task {} killed in {}[ms]", discoverActiveTest(), taskId, stopWatch.elapsed(TimeUnit.MILLISECONDS));

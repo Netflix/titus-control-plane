@@ -541,7 +541,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     public void killTask(TaskKillRequest request, StreamObserver<Empty> responseObserver) {
         execute(callMetadataResolver, responseObserver, callMetadata -> {
             authorizeTaskUpdate(callMetadata, request.getTaskId())
-                    .concatWith(jobOperations.killTask(request.getTaskId(), request.getShrink(), Trigger.API, callMetadata))
+                    .concatWith(jobOperations.killTask(request.getTaskId(), request.getShrink(), request.getPreventMinSizeUpdate(), Trigger.API, callMetadata))
                     .subscribe(
                             nothing -> {
                             },

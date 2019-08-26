@@ -98,7 +98,7 @@ public interface V3JobOperations extends ReadOnlyJobOperations {
         return ReactorExt.toMono(killJob(jobId, reason, callMetadata));
     }
 
-    Mono<Void> killTask(String taskId, boolean shrink, Trigger trigger, CallMetadata callMetadata);
+    Mono<Void> killTask(String taskId, boolean shrink, boolean preventMinSizeUpdate, Trigger trigger, CallMetadata callMetadata);
 
     /**
      * Move a task from one service job to another.

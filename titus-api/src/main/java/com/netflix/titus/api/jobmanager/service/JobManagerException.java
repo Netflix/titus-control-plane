@@ -50,6 +50,7 @@ public class JobManagerException extends RuntimeException {
         InvalidMaxCapacity,
         BelowMinCapacity,
         AboveMaxCapacity,
+        TerminateAndShrinkNotAllowed,
         SameJobIds,
         TaskJobMismatch,
         NotEnabled,
@@ -94,6 +95,7 @@ public class JobManagerException extends RuntimeException {
             case InvalidMaxCapacity:
             case BelowMinCapacity:
             case AboveMaxCapacity:
+            case TerminateAndShrinkNotAllowed:
             case SameJobIds:
             case TaskJobMismatch:
             case NotEnabled:
@@ -208,6 +210,16 @@ public class JobManagerException extends RuntimeException {
                 ErrorCode.AboveMaxCapacity,
                 format("Cannot increment job %s desired size by %s, as it violates the maximum job size constraint: min=%s, desired=%d, max=%d",
                         job.getId(), increment, capacity.getMin(), capacity.getDesired(), capacity.getMax()
+                )
+        );
+    }
+
+    public static JobManagerException terminateAndShrinkNotAllowed(Job<ServiceJobExt> job, Task task) {
+        Capacity capacity = job.getJobDescriptor().getExtensions().getCapacity();
+        return new JobManagerException(
+                ErrorCode.TerminateAndShrinkNotAllowed,
+                format("Terminate and shrink would make desired job size go below the configured minimum, which is not allowed for this request: jobId=%s, taskId=%s, min=%s, desired=%d, max=%d",
+                        job.getId(), task.getId(), capacity.getMin(), capacity.getDesired(), capacity.getMax()
                 )
         );
     }
