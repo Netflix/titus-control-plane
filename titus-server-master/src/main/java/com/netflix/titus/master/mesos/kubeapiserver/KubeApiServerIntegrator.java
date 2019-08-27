@@ -501,8 +501,9 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
             }
         } catch (Exception e) {
             logger.error("Error with pod watch: ", e);
+        } finally {
+            logger.info("Finished list namespaced pod watch");
         }
-        logger.info("Finished list namespaced pod watch");
     }
 
     private Optional<List<V1Pod>> listPods() {
