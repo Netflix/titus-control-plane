@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.mesos.kubeapiserver;
+package com.netflix.titus.master.mesos.kubeapiserver.model.v1;
 
 import java.util.Objects;
 

@@ -32,6 +32,8 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.code.CodeInvariants;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.master.mesos.MesosConfiguration;
+import com.netflix.titus.master.mesos.kubeapiserver.model.v1.V1OpportunisticResource;
+import com.netflix.titus.master.mesos.kubeapiserver.model.v1.V1OpportunisticResourceList;
 import com.netflix.titus.master.scheduler.opportunistic.OpportunisticCpuAvailability;
 import com.netflix.titus.master.scheduler.opportunistic.OpportunisticCpuAvailabilityProvider;
 import com.squareup.okhttp.Call;
