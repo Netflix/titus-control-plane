@@ -101,17 +101,19 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
                                        Map<String, String> attributesMap,
                                        Protos.SlaveID slaveID,
                                        PreferentialNamedConsumableResourceSet.ConsumeResult consumeResult,
-                                       Optional<String> executorUriOverrideOpt) {
+                                       Optional<String> executorUriOverrideOpt,
+                                       Map<String, String> passthroughAttributes) {
         String taskId = task.getId();
         Protos.TaskID protoTaskId = Protos.TaskID.newBuilder().setValue(taskId).build();
         Protos.ExecutorInfo executorInfo = newExecutorInfo(task, attributesMap, executorUriOverrideOpt);
         Protos.TaskInfo.Builder taskInfoBuilder = newTaskInfoBuilder(protoTaskId, executorInfo, slaveID, fenzoTask, job, task);
-        ContainerInfo.Builder containerInfoBuilder = newContainerInfoBuilder(job, task, fenzoTask);
+        ContainerInfo.Builder containerInfoBuilder = newContainerInfoBuilder(job, task, fenzoTask, passthroughAttributes);
         taskInfoBuilder.setData(containerInfoBuilder.build().toByteString());
         return taskInfoBuilder.build();
     }
 
-    private ContainerInfo.Builder newContainerInfoBuilder(Job job, Task task, TitusQueuableTask<Job, Task> fenzoTask) {
+    private ContainerInfo.Builder newContainerInfoBuilder(Job job, Task task, TitusQueuableTask<Job, Task> fenzoTask,
+                                                          Map<String, String> passthroughAttributes) {
         JobDescriptor jobDescriptor = job.getJobDescriptor();
         ContainerInfo.Builder containerInfoBuilder = ContainerInfo.newBuilder();
         Container container = jobDescriptor.getContainer();
@@ -165,14 +167,9 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
             }
         });
 
+        containerInfoBuilder.putAllPassthroughAttributes(passthroughAttributes);
         containerInfoBuilder.putPassthroughAttributes(OWNER_EMAIL_ATTRIBUTE, jobDescriptor.getOwner().getTeamEmail());
         containerInfoBuilder.putPassthroughAttributes(JOB_TYPE_ATTRIBUTE, getJobType(jobDescriptor).name());
-        JobFunctions.getOpportunisticCpuCount(task).ifPresent(opportunisticCpus -> containerInfoBuilder
-                .putPassthroughAttributes(OPPORTUNISTIC_CPU_COUNT_ATTRIBUTE, Integer.toString(opportunisticCpus))
-                .putPassthroughAttributes(OPPORTUNISTIC_CPU_ALLOCATION_ATTRIBUTE, task.getTaskContext().getOrDefault(
-                        TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION, "UNKNOWN")
-                )
-        );
 
         // Configure Environment Variables
         container.getEnv().forEach((k, v) -> {

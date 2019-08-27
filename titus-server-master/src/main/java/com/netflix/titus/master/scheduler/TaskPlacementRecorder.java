@@ -151,19 +151,19 @@ class TaskPlacementRecorder {
 
             Map<String, String> attributesMap = assignment.getAttributesMap();
             Optional<String> executorUriOverrideOpt = JobManagerUtil.getExecutorUriOverride(config, attributesMap);
+            Map<String, String> opportunisticResourcesContext = buildOpportunisticResourcesContext(assignmentResult);
 
             return v3JobOperations.recordTaskPlacement(
                     fenzoTask.getId(),
                     oldTask -> JobManagerUtil.newTaskLaunchConfigurationUpdater(
                             masterConfiguration.getHostZoneAttributeName(), lease, consumeResult,
-                            executorUriOverrideOpt, attributesMap, buildOpportunisticResourcesContext(assignmentResult),
-                            getTierName(fenzoTask)
+                            executorUriOverrideOpt, attributesMap, opportunisticResourcesContext, getTierName(fenzoTask)
                     ).apply(oldTask),
                     JobManagerConstants.SCHEDULER_CALLMETADATA.toBuilder().withCallReason("Record task placement").build()
             ).toObservable().cast(Protos.TaskInfo.class).concatWith(Observable.fromCallable(() ->
-                    v3TaskInfoFactory.newTaskInfo(
-                            fenzoTask, v3Job, v3Task, lease.hostname(), attributesMap, lease.getOffer().getSlaveId(),
-                            consumeResult, executorUriOverrideOpt)
+                    v3TaskInfoFactory.newTaskInfo(fenzoTask, v3Job, v3Task, lease.hostname(), attributesMap,
+                            lease.getOffer().getSlaveId(), consumeResult, executorUriOverrideOpt,
+                            opportunisticResourcesContext)
             )).timeout(
                     STORE_UPDATE_TIMEOUT_MS, TimeUnit.MILLISECONDS
             ).onErrorResumeNext(error -> {
