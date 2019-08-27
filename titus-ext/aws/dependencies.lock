@@ -7,7 +7,7 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-applicationautoscaling": {
-            "locked": "1.11.618",
+            "locked": "1.11.619",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
@@ -34,7 +34,7 @@
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.618",
+            "locked": "1.11.619",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-iam": {
@@ -1286,7 +1286,7 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-applicationautoscaling": {
-            "locked": "1.11.618",
+            "locked": "1.11.619",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
@@ -1313,7 +1313,7 @@
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.618",
+            "locked": "1.11.619",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-iam": {
@@ -2565,7 +2565,7 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-applicationautoscaling": {
-            "locked": "1.11.618",
+            "locked": "1.11.619",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
@@ -2592,7 +2592,7 @@
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.618",
+            "locked": "1.11.619",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-iam": {
@@ -3908,7 +3908,7 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-applicationautoscaling": {
-            "locked": "1.11.618",
+            "locked": "1.11.619",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
@@ -3935,7 +3935,7 @@
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.618",
+            "locked": "1.11.619",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-iam": {
@@ -5188,7 +5188,7 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-applicationautoscaling": {
-            "locked": "1.11.618",
+            "locked": "1.11.619",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
@@ -5215,7 +5215,7 @@
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.618",
+            "locked": "1.11.619",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-iam": {
@@ -6486,7 +6486,7 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-applicationautoscaling": {
-            "locked": "1.11.618",
+            "locked": "1.11.619",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
@@ -6513,7 +6513,7 @@
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.618",
+            "locked": "1.11.619",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-iam": {
@@ -6976,7 +6976,7 @@
             ]
         },
         "com.netflix.fenzo:fenzo-core": {
-            "locked": "1.1.0-rc.5",
+            "locked": "1.1.0-rc.6",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -8591,7 +8591,7 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-applicationautoscaling": {
-            "locked": "1.11.618",
+            "locked": "1.11.619",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
@@ -8618,7 +8618,7 @@
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.618",
+            "locked": "1.11.619",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-iam": {
@@ -9081,7 +9081,7 @@
             ]
         },
         "com.netflix.fenzo:fenzo-core": {
-            "locked": "1.1.0-rc.5",
+            "locked": "1.1.0-rc.6",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -10696,7 +10696,7 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-applicationautoscaling": {
-            "locked": "1.11.618",
+            "locked": "1.11.619",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
@@ -10723,7 +10723,7 @@
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.618",
+            "locked": "1.11.619",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-iam": {
@@ -11186,7 +11186,7 @@
             ]
         },
         "com.netflix.fenzo:fenzo-core": {
-            "locked": "1.1.0-rc.5",
+            "locked": "1.1.0-rc.6",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -12802,7 +12802,7 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-applicationautoscaling": {
-            "locked": "1.11.618",
+            "locked": "1.11.619",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
@@ -12829,7 +12829,7 @@
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.618",
+            "locked": "1.11.619",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-iam": {
@@ -13292,7 +13292,7 @@
             ]
         },
         "com.netflix.fenzo:fenzo-core": {
-            "locked": "1.1.0-rc.5",
+            "locked": "1.1.0-rc.6",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]

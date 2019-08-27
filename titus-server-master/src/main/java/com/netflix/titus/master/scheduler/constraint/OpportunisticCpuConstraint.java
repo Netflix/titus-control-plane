@@ -87,7 +87,7 @@ public class OpportunisticCpuConstraint implements SystemConstraint {
             return NO_RUNTIME_PREDICTION;
         }
 
-        String agentId = SchedulerUtils.getAttributeValueOrEmptyString(targetVM, configuration.getInstanceAttributeName());
+        String agentId = targetVM.getVMId();
         if (StringExt.isEmpty(agentId)) {
             return NO_MACHINE_ID;
         }

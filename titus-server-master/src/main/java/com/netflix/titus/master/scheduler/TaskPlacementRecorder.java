@@ -151,19 +151,19 @@ class TaskPlacementRecorder {
 
             Map<String, String> attributesMap = assignment.getAttributesMap();
             Optional<String> executorUriOverrideOpt = JobManagerUtil.getExecutorUriOverride(config, attributesMap);
+            Map<String, String> opportunisticResourcesContext = buildOpportunisticResourcesContext(assignmentResult);
 
             return v3JobOperations.recordTaskPlacement(
                     fenzoTask.getId(),
                     oldTask -> JobManagerUtil.newTaskLaunchConfigurationUpdater(
                             masterConfiguration.getHostZoneAttributeName(), lease, consumeResult,
-                            executorUriOverrideOpt, attributesMap, buildOpportunisticResourcesContext(lease, fenzoTask),
-                            getTierName(fenzoTask)
+                            executorUriOverrideOpt, attributesMap, opportunisticResourcesContext, getTierName(fenzoTask)
                     ).apply(oldTask),
                     JobManagerConstants.SCHEDULER_CALLMETADATA.toBuilder().withCallReason("Record task placement").build()
             ).toObservable().cast(Protos.TaskInfo.class).concatWith(Observable.fromCallable(() ->
-                    v3TaskInfoFactory.newTaskInfo(
-                            fenzoTask, v3Job, v3Task, lease.hostname(), attributesMap, lease.getOffer().getSlaveId(),
-                            consumeResult, executorUriOverrideOpt)
+                    v3TaskInfoFactory.newTaskInfo(fenzoTask, v3Job, v3Task, lease.hostname(), attributesMap,
+                            lease.getOffer().getSlaveId(), consumeResult, executorUriOverrideOpt,
+                            opportunisticResourcesContext)
             )).timeout(
                     STORE_UPDATE_TIMEOUT_MS, TimeUnit.MILLISECONDS
             ).onErrorResumeNext(error -> {
@@ -220,12 +220,13 @@ class TaskPlacementRecorder {
         }
     }
 
-    private Map<String, String> buildOpportunisticResourcesContext(VirtualMachineLease lease, TitusQueuableTask fenzoTask) {
+    private Map<String, String> buildOpportunisticResourcesContext(TaskAssignmentResult assignmentResult) {
+        TitusQueuableTask fenzoTask = (TitusQueuableTask) assignmentResult.getRequest();
         int count = fenzoTask.getOpportunisticCpus();
         if (!fenzoTask.isCpuOpportunistic() || count <= 0) {
             return Collections.emptyMap();
         }
-        Optional<OpportunisticCpuAvailability> availability = opportunisticCpuCache.findAvailableOpportunisticCpus(lease.getVMID());
+        Optional<OpportunisticCpuAvailability> availability = opportunisticCpuCache.findAvailableOpportunisticCpus(assignmentResult.getVMId());
         if (!availability.isPresent()) {
             titusRuntime.getCodeInvariants().inconsistent("Task %s was scheduled on opportunistic CPUs that are not available",
                     fenzoTask.getId());

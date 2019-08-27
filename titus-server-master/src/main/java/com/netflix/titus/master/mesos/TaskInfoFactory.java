@@ -33,5 +33,6 @@ public interface TaskInfoFactory<T> {
                   Map<String, String> attributesMap,
                   Protos.SlaveID slaveID,
                   PreferentialNamedConsumableResourceSet.ConsumeResult consumeResult,
-                  Optional<String> executorUriOverrideOpt);
+                  Optional<String> executorUriOverrideOpt,
+                  Map<String, String> passthroughAttributes);
 }

@@ -6322,7 +6322,7 @@
             ]
         },
         "com.netflix.fenzo:fenzo-core": {
-            "locked": "1.1.0-rc.5",
+            "locked": "1.1.0-rc.6",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -8348,7 +8348,7 @@
             ]
         },
         "com.netflix.fenzo:fenzo-core": {
-            "locked": "1.1.0-rc.5",
+            "locked": "1.1.0-rc.6",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -10374,7 +10374,7 @@
             ]
         },
         "com.netflix.fenzo:fenzo-core": {
-            "locked": "1.1.0-rc.5",
+            "locked": "1.1.0-rc.6",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -12401,7 +12401,7 @@
             ]
         },
         "com.netflix.fenzo:fenzo-core": {
-            "locked": "1.1.0-rc.5",
+            "locked": "1.1.0-rc.6",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
