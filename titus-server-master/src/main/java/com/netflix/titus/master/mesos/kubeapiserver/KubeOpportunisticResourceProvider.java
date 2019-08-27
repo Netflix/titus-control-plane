@@ -88,6 +88,8 @@ public class KubeOpportunisticResourceProvider implements OpportunisticCpuAvaila
                 V1OpportunisticResourceList.class,
                 configuration.getKubeOpportunisticRefreshIntervalMs()
         );
+
+        // TODO(fabio): metrics on available opportunistic resources
         informer.addEventHandler(new ResourceEventHandler<V1OpportunisticResource>() {
             @Override
             public void onAdd(V1OpportunisticResource resource) {
@@ -112,8 +114,6 @@ public class KubeOpportunisticResourceProvider implements OpportunisticCpuAvaila
                 }
             }
         });
-
-        // TODO(fabio): metrics on available opportunistic resources
     }
 
     @Activator
@@ -156,6 +156,22 @@ public class KubeOpportunisticResourceProvider implements OpportunisticCpuAvaila
     private static final Comparator<OpportunisticCpuAvailability> EXPIRES_AT_COMPARATOR = Comparator
             .comparing(OpportunisticCpuAvailability::getExpiresAt);
 
+    /**
+     * Assumptions:
+     * <ul>
+     *     <li>Each opportunistic resource (entity) is associated with a particular agent Node, and their validity
+     *     window (start to end timestamps) never overlap.</li>
+     *     <li>The current active opportunistic resource (window) is always the latest to expire.</li>
+     *     <li>There are no resources that will only be available in the future, i.e.: <tt>start <= now.</tt></li>
+     *     <li>Tasks can only be assigned to opportunistic CPUs if their availability window hasn't yet expired.</li>
+     *     <li>Opportunistic resource entities express their availability as timestamps. We ignore clock skew issues
+     *     here and will handle them elsewhere. We also assume a small risk of a few tasks being allocated to expired
+     *     windows, or windows expiring too soon when timestamps from these resources are skewed in relation to the
+     *     master (active leader) clock.</li>
+     * </ul>
+     *
+     * @return the active opportunistic resources availability for each agent node
+     */
     @Override
     public Map<String, OpportunisticCpuAvailability> getOpportunisticCpus() {
         return informer.getIndexer().list().stream().collect(Collectors.toMap(
