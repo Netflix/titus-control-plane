@@ -29,6 +29,7 @@ import com.google.common.base.Strings;
 import com.google.common.primitives.Ints;
 import com.netflix.fenzo.PreferentialNamedConsumableResourceSet;
 import com.netflix.fenzo.TaskRequest;
+import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Container;
@@ -69,6 +70,7 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
     private static final String PASSTHROUGH_ATTRIBUTES_PREFIX = "titusParameter.agent.";
     private static final String OWNER_EMAIL_ATTRIBUTE = "titus.agent.ownerEmail";
     private static final String JOB_TYPE_ATTRIBUTE = "titus.agent.jobType";
+    private static final String RUNTIME_PREDICTION_ATTRIBUTE = "titus.agent.runtimePredictionSec";
     private static final String OPPORTUNISTIC_CPU_COUNT_ATTRIBUTE = "titus.agent.opportunisticCpus";
     private static final String OPPORTUNISTIC_CPU_ALLOCATION_ATTRIBUTE = "titus.agent.opportunisticCpuAllocation";
     private static final String EXECUTOR_PER_TASK_LABEL = "executorpertask";
@@ -115,6 +117,7 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
     private ContainerInfo.Builder newContainerInfoBuilder(Job job, Task task, TitusQueuableTask<Job, Task> fenzoTask,
                                                           Map<String, String> passthroughAttributes) {
         JobDescriptor jobDescriptor = job.getJobDescriptor();
+        Map<String, String> jobAttributes = ((JobDescriptor<?>) jobDescriptor).getAttributes();
         ContainerInfo.Builder containerInfoBuilder = ContainerInfo.newBuilder();
         Container container = jobDescriptor.getContainer();
         Map<String, String> containerAttributes = container.getAttributes();
@@ -170,6 +173,11 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
         containerInfoBuilder.putAllPassthroughAttributes(passthroughAttributes);
         containerInfoBuilder.putPassthroughAttributes(OWNER_EMAIL_ATTRIBUTE, jobDescriptor.getOwner().getTeamEmail());
         containerInfoBuilder.putPassthroughAttributes(JOB_TYPE_ATTRIBUTE, getJobType(jobDescriptor).name());
+        if (jobAttributes.containsKey(JobAttributes.JOB_ATTRIBUTES_RUNTIME_PREDICTION_SEC)) {
+            containerInfoBuilder.putPassthroughAttributes(RUNTIME_PREDICTION_ATTRIBUTE,
+                    jobAttributes.get(JobAttributes.JOB_ATTRIBUTES_RUNTIME_PREDICTION_SEC));
+
+        }
 
         // Configure Environment Variables
         container.getEnv().forEach((k, v) -> {
