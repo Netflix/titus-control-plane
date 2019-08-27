@@ -208,7 +208,11 @@ public final class V3GrpcModelConverters {
     public static SignedIpAddressAllocation toCoreSignedIpAddressAllocation(SignedAddressAllocation grpcSignedIpAddressAllocation) {
         return SignedIpAddressAllocation.newBuilder()
                 .withIpAddressAllocation(toCoreIpAddressAllocation(grpcSignedIpAddressAllocation.getAddressAllocation()))
-                .withIpAddressAllocationSignature(grpcSignedIpAddressAllocation.getSignedAddressAllocation().toByteArray())
+                .withAuthoritativePublicKey(grpcSignedIpAddressAllocation.getAuthoritativePublicKey().toByteArray())
+                .withHostPublicKey(grpcSignedIpAddressAllocation.getHostPublicKey().toByteArray())
+                .withHostPublicKeySignature(grpcSignedIpAddressAllocation.getHostPublicKeySignature().toByteArray())
+                .withMessage(grpcSignedIpAddressAllocation.getMessage().toByteArray())
+                .withMessageSignature(grpcSignedIpAddressAllocation.getMessageSignature().toByteArray())
                 .build();
     }
 
@@ -629,7 +633,11 @@ public final class V3GrpcModelConverters {
     public static SignedAddressAllocation toGrpcSignedAddressAllocation(SignedIpAddressAllocation coreSignedIpAddressAllocation) {
         return SignedAddressAllocation.newBuilder()
                 .setAddressAllocation(toGrpcAddressAllocation(coreSignedIpAddressAllocation.getIpAddressAllocation()))
-                .setSignedAddressAllocation(ByteString.copyFrom(coreSignedIpAddressAllocation.getIpAddressAllocationSignature()))
+                .setAuthoritativePublicKey(ByteString.copyFrom(coreSignedIpAddressAllocation.getAuthoritativePublicKey()))
+                .setHostPublicKey(ByteString.copyFrom(coreSignedIpAddressAllocation.getHostPublicKey()))
+                .setHostPublicKeySignature(ByteString.copyFrom(coreSignedIpAddressAllocation.getHostPublicKeySignature()))
+                .setMessage(ByteString.copyFrom(coreSignedIpAddressAllocation.getMessage()))
+                .setMessageSignature(ByteString.copyFrom(coreSignedIpAddressAllocation.getMessageSignature()))
                 .build();
     }
 

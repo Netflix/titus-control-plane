@@ -61,13 +61,17 @@ public final class JobIpAllocationGenerator {
         List<SignedIpAddressAllocation> signedIpAddressAllocationList = new ArrayList<>();
         for (int i = 0; i < count; i++) {
             signedIpAddressAllocationList.add(SignedIpAddressAllocation.newBuilder()
-                    .withIpAddressAllocationSignature(new byte[0])
                     .withIpAddressAllocation(IpAddressAllocation.newBuilder()
                             .withUuid(UUID.randomUUID().toString())
                             .withIpAddress(ipAddressList.get(i))
                             .withIpAddressLocation(ipAddressLocationList.get(i))
                             .build()
                     )
+                    .withAuthoritativePublicKey(new byte[0])
+                    .withHostPublicKey(new byte[0])
+                    .withHostPublicKeySignature(new byte[0])
+                    .withMessage(new byte[0])
+                    .withMessageSignature(new byte[0])
                     .build());
         }
         return DataGenerator.items(signedIpAddressAllocationList);
