@@ -82,6 +82,7 @@ public class KubeOpportunisticResourceProvider implements OpportunisticCpuAvaila
             thread.setDaemon(true);
             return thread;
         }));
+        // TODO(fabio): enhance the kube client to support custom JSON deserialization options
         informer = informerFactory.sharedIndexInformerFor(
                 listCallFactory(),
                 V1OpportunisticResource.class,

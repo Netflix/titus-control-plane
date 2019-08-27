@@ -393,6 +393,9 @@ public class SimulatedTitusAgent {
                     }
                     availableNetworkMbs -= taskNetwork;
                     break;
+                case "opportunisticCpus":
+                    // noop
+                    break;
                 default:
                     throw new IllegalArgumentException("Unrecognized resource type " + resource.getName());
             }
