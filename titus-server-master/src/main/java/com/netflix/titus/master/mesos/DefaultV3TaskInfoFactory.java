@@ -303,20 +303,14 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
                         .setType(Protos.Value.Type.SCALAR)
                         .setScalar(Protos.Value.Scalar.newBuilder().setValue(fenzoTask.getNetworkMbps())));
 
-        JobFunctions.getOpportunisticCpuCount(task).ifPresent(opportunisticCpus -> builder
-                .addResources(Protos.Resource.newBuilder()
-                        .setName("opportunisticCpus")
-                        .setType(Protos.Value.Type.SCALAR)
-                        .setScalar(Protos.Value.Scalar.newBuilder().setValue(opportunisticCpus).build())
-                )
-                .addResources(Protos.Resource.newBuilder()
-                        .setName("opportunisticCpuAllocation")
-                        .setType(Protos.Value.Type.SET)
-                        .setSet(Protos.Value.Set.newBuilder().addItem(task.getTaskContext().getOrDefault(
-                                TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION, "UNKNOWN"
-                        )))
-                )
-        );
+        if (fenzoTask.isCpuOpportunistic() && fenzoTask.getOpportunisticCpus() > 0) {
+            builder.addResources(Protos.Resource.newBuilder()
+                    .setName("opportunisticCpus")
+                    .setType(Protos.Value.Type.SCALAR)
+                    .setScalar(Protos.Value.Scalar.newBuilder().setValue(fenzoTask.getOpportunisticCpus()).build())
+            );
+        }
+
         // set scalars other than cpus, mem, disk
         final Map<String, Double> scalars = fenzoTask.getScalarRequests();
         if (scalars != null && !scalars.isEmpty()) {
