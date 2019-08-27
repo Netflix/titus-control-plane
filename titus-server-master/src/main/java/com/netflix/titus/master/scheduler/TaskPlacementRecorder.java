@@ -156,7 +156,7 @@ class TaskPlacementRecorder {
                     fenzoTask.getId(),
                     oldTask -> JobManagerUtil.newTaskLaunchConfigurationUpdater(
                             masterConfiguration.getHostZoneAttributeName(), lease, consumeResult,
-                            executorUriOverrideOpt, attributesMap, buildOpportunisticResourcesContext(lease, fenzoTask),
+                            executorUriOverrideOpt, attributesMap, buildOpportunisticResourcesContext(assignmentResult),
                             getTierName(fenzoTask)
                     ).apply(oldTask),
                     JobManagerConstants.SCHEDULER_CALLMETADATA.toBuilder().withCallReason("Record task placement").build()
@@ -220,12 +220,13 @@ class TaskPlacementRecorder {
         }
     }
 
-    private Map<String, String> buildOpportunisticResourcesContext(VirtualMachineLease lease, TitusQueuableTask fenzoTask) {
+    private Map<String, String> buildOpportunisticResourcesContext(TaskAssignmentResult assignmentResult) {
+        TitusQueuableTask fenzoTask = (TitusQueuableTask) assignmentResult.getRequest();
         int count = fenzoTask.getOpportunisticCpus();
         if (!fenzoTask.isCpuOpportunistic() || count <= 0) {
             return Collections.emptyMap();
         }
-        Optional<OpportunisticCpuAvailability> availability = opportunisticCpuCache.findAvailableOpportunisticCpus(lease.getVMID());
+        Optional<OpportunisticCpuAvailability> availability = opportunisticCpuCache.findAvailableOpportunisticCpus(assignmentResult.getVMId());
         if (!availability.isPresent()) {
             titusRuntime.getCodeInvariants().inconsistent("Task %s was scheduled on opportunistic CPUs that are not available",
                     fenzoTask.getId());

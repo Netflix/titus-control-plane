@@ -29,7 +29,7 @@ import io.kubernetes.client.models.V1ObjectMeta;
  */
 // TODO(fabio): autogenerate from the CRD swagger definition
 public class V1OpportunisticResource {
-    private static final String LABEL_INSTANCE_ID = "node_id";
+    private static final String LABEL_INSTANCE_ID = "node_name";
     private static final String UNKNOWN_INSTANCE_ID = "unknown";
 
     @SerializedName("apiVersion")
