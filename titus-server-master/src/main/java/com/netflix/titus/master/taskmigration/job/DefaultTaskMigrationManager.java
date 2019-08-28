@@ -126,6 +126,7 @@ public class DefaultTaskMigrationManager implements TaskMigrationManager {
                             v3JobOperations.killTask(
                                     task.getId(),
                                     false,
+                                    false,
                                     V3JobOperations.Trigger.TaskMigration,
                                     JobManagerConstants.TASK_MIGRATOR_CALLMETADATA.toBuilder().withCallReason(reason).build()
                             ).block(KILL_TIMEOUT_DURATION);

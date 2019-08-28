@@ -16,8 +16,10 @@
 
 package com.netflix.titus.master.mesos;
 
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
 
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -60,6 +62,38 @@ public class DefaultV3TaskInfoFactoryTest {
     }
 
     @Test
+    public void additionalPassthroughAttributes() throws InvalidProtocolBufferException {
+        DefaultV3TaskInfoFactory factory = new DefaultV3TaskInfoFactory(masterConfiguration, mock(MesosConfiguration.class));
+        JobDescriptor<BatchJobExt> jobDescriptor = JobDescriptorGenerator.oneTaskBatchJobDescriptor();
+        Protos.TaskInfo taskInfo = buildTaskInfo(factory, jobDescriptor, Collections.singletonMap("extra", "attribute"), Optional.empty());
+        TitanProtos.ContainerInfo containerInfo = TitanProtos.ContainerInfo.parseFrom(taskInfo.getData());
+        assertThat(containerInfo.getPassthroughAttributesMap()).containsEntry("extra", "attribute");
+    }
+
+    @Test
+    public void useRequestedCpusInsteadOfAssigned() {
+        DefaultV3TaskInfoFactory factory = new DefaultV3TaskInfoFactory(masterConfiguration, mock(MesosConfiguration.class));
+        JobDescriptor<BatchJobExt> jobDescriptor = JobDescriptorGenerator.oneTaskBatchJobDescriptor();
+        double requestedCpus = jobDescriptor.getContainer().getContainerResources().getCpu();
+
+        // opportunistic task with a runtime prediction
+        Protos.TaskInfo taskInfo = buildTaskInfo(factory, jobDescriptor, Collections.emptyMap(),
+                Optional.of(Duration.ofMinutes(1)));
+        assertThat(taskInfo.getResourcesList()).anySatisfy(resource -> {
+            assertThat(resource.getName()).isEqualTo("opportunisticCpus");
+            assertThat(resource.getScalar().getValue()).isGreaterThan(0);
+        });
+        // CPUs must always be what was requested, regardless if some of them were allocated opportunistically
+        assertThat(taskInfo.getResourcesList()).contains(
+                Protos.Resource.newBuilder()
+                        .setName("cpus")
+                        .setType(Protos.Value.Type.SCALAR)
+                        .setScalar(Protos.Value.Scalar.newBuilder().setValue(requestedCpus).build())
+                        .build()
+        );
+    }
+
+    @Test
     public void jobsWithNoCommandSendFlatEntrypointStringToAgents() throws InvalidProtocolBufferException {
         DefaultV3TaskInfoFactory factory = new DefaultV3TaskInfoFactory(masterConfiguration, mock(MesosConfiguration.class));
         JobDescriptor<BatchJobExt> jobDescriptor = JobDescriptorGenerator.oneTaskBatchJobDescriptor();
@@ -93,6 +127,11 @@ public class DefaultV3TaskInfoFactoryTest {
     }
 
     private Protos.TaskInfo buildTaskInfo(DefaultV3TaskInfoFactory factory, JobDescriptor<BatchJobExt> jobDescriptor) {
+        return buildTaskInfo(factory, jobDescriptor, Collections.emptyMap(), Optional.empty());
+    }
+
+    private Protos.TaskInfo buildTaskInfo(DefaultV3TaskInfoFactory factory, JobDescriptor<BatchJobExt> jobDescriptor,
+                                          Map<String, String> passthroughAttributes, Optional<Duration> runtimePrediction) {
         DataGenerator<Job<BatchJobExt>> jobs = JobGenerator.batchJobs(jobDescriptor);
         Job<BatchJobExt> job = jobs.getValue();
         DataGenerator<BatchJobTask> tasks = JobGenerator.batchTasks(job);
@@ -101,7 +140,7 @@ public class DefaultV3TaskInfoFactoryTest {
                 mock(SchedulerConfiguration.class), new TaskCache(mock(TitusRuntime.class), mock(V3JobOperations.class)),
                 mock(AgentManagementService.class));
 
-        V3QueueableTask fenzoTask = new V3QueueableTask(Tier.Flex, null, job, task, Optional.empty(),
+        V3QueueableTask fenzoTask = new V3QueueableTask(Tier.Flex, null, job, task, runtimePrediction,
                 () -> true,
                 () -> Collections.singleton(task.getId()),
                 transformer, mock(SystemSoftConstraint.class),
@@ -113,6 +152,7 @@ public class DefaultV3TaskInfoFactoryTest {
         PreferentialNamedConsumableResourceSet.ConsumeResult consumeResult = new PreferentialNamedConsumableResourceSet.ConsumeResult(
                 0, "someAgent", "someResource", 1.0
         );
-        return factory.newTaskInfo(fenzoTask, job, task, "someHost", Collections.emptyMap(), agentId, consumeResult, Optional.empty());
+        return factory.newTaskInfo(fenzoTask, job, task, "someHost", Collections.emptyMap(), agentId,
+                consumeResult, Optional.empty(), passthroughAttributes);
     }
 }

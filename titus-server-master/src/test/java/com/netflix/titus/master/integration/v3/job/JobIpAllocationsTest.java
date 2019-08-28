@@ -251,12 +251,12 @@ public class JobIpAllocationsTest extends BaseIntegrationTest {
         JobDescriptor<ServiceJobExt> invalidJobDescriptor = ONE_TASK_SERVICE_JOB
                 .but(j -> j.getContainer()
                         .but(c -> c.getContainerResources().toBuilder().withSignedIpAddressAllocations(Collections.singletonList(
-                                c.getContainerResources().getSignedIpAddressAllocations().get(0).toBuilder().withIpAddressAllocationSignature(invalidSignatureBytes).build()
+                                c.getContainerResources().getSignedIpAddressAllocations().get(0).toBuilder().withHostPublicKeySignature(invalidSignatureBytes).build()
                         )))
                 );
         submitBadJob(client,
                 toGrpcJobDescriptor(invalidJobDescriptor),
-                "container.containerResources.ipSignedAddressAllocations[0].ipAddressAllocationSignature");
+                "container.containerResources.ipSignedAddressAllocations[0].hostPublicKeySignature");
     }
 
     /**

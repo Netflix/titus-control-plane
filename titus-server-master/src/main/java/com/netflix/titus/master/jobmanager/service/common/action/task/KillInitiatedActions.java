@@ -34,6 +34,8 @@ import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
+import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.jobmanager.store.JobStore;
 import com.netflix.titus.common.framework.reconciler.ChangeAction;
@@ -41,12 +43,11 @@ import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
-import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.jobmanager.service.common.action.JobEntityHolders;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
+import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import rx.Completable;
 import rx.Observable;
 import rx.functions.Action0;
@@ -90,6 +91,7 @@ public class KillInitiatedActions {
                                                           JobStore jobStore,
                                                           String taskId,
                                                           boolean shrink,
+                                                          boolean preventMinSizeUpdate,
                                                           String reasonCode,
                                                           String reason,
                                                           TitusRuntime titusRuntime,
@@ -104,6 +106,15 @@ public class KillInitiatedActions {
                             if (taskState == TaskState.KillInitiated || taskState == TaskState.Finished) {
                                 return Observable.just(Collections.<ModelActionHolder>emptyList());
                             }
+
+                            if (shrink) {
+                                Job<ServiceJobExt> job = engine.getReferenceView().getEntity();
+                                Capacity capacity = job.getJobDescriptor().getExtensions().getCapacity();
+                                if (preventMinSizeUpdate && capacity.getDesired() <= capacity.getMin()) {
+                                    return Observable.<List<ModelActionHolder>>error(JobManagerException.terminateAndShrinkNotAllowed(job, task));
+                                }
+                            }
+
                             Task taskWithKillInitiated = JobFunctions.changeTaskStatus(task, TaskState.KillInitiated, reasonCode, reason);
 
                             Action0 killAction = () -> vmService.killTask(taskId);
@@ -184,7 +195,7 @@ public class KillInitiatedActions {
 
         // Immediately finish Accepted tasks, which are not yet in the running model.
         for (EntityHolder entityHolder : engine.getReferenceView().getChildren()) {
-            if(result.size() >= concurrencyLimit) {
+            if (result.size() >= concurrencyLimit) {
                 return result;
             }
 
@@ -206,7 +217,7 @@ public class KillInitiatedActions {
 
         // Move running tasks to KillInitiated state
         for (EntityHolder taskHolder : runningView.getChildren()) {
-            if(result.size() >= concurrencyLimit) {
+            if (result.size() >= concurrencyLimit) {
                 return result;
             }
 

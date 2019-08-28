@@ -23,6 +23,10 @@ import com.netflix.titus.api.jobmanager.model.job.vpc.IpAddressAllocation;
 public abstract class SignedIpAddressAllocationMixin {
     @JsonCreator
     public SignedIpAddressAllocationMixin(@JsonProperty("ipAddressAllocation") IpAddressAllocation ipAddressAllocation,
-                                          @JsonProperty("ipAddressAllocationSignature") byte[] ipAddressAllocationSignature) {
+                                          @JsonProperty("authoritativePublicKey") byte[] authoritativePublicKey,
+                                          @JsonProperty("hostPublicKey") byte[] hostPublicKey,
+                                          @JsonProperty("hostPublicKeySignature") byte[] hostPublicKeySignature,
+                                          @JsonProperty("message") byte[] message,
+                                          @JsonProperty("messageSignature") byte[] messageSignature) {
     }
 }

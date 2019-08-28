@@ -16,6 +16,7 @@
 
 package com.netflix.titus.master.integration.v3.job;
 
+import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobGroupInfo;
@@ -27,8 +28,11 @@ import com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTem
 import com.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import com.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
 import com.netflix.titus.master.integration.v3.scenario.ScenarioTemplates;
+import com.netflix.titus.master.integration.v3.scenario.TaskScenarioBuilder;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import com.netflix.titus.testkit.junit.master.TitusStackResource;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -37,6 +41,7 @@ import org.junit.rules.RuleChain;
 
 import static com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCells.basicCell;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskServiceJobDescriptor;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @Category(IntegrationTest.class)
 public class JobScalingTest extends BaseIntegrationTest {
@@ -65,7 +70,6 @@ public class JobScalingTest extends BaseIntegrationTest {
                 .expectJobToScaleDown()
         );
     }
-
 
     @Test
     public void testScaleUpAndDownServiceJobDesired() throws Exception {
@@ -98,7 +102,6 @@ public class JobScalingTest extends BaseIntegrationTest {
         );
     }
 
-
     @Test
     public void testScaleUpAndDownServiceJobDesiredInvalid() throws Exception {
         jobsScenarioBuilder.schedule(newJob("testScaleUpAndDownServiceJob"), jobScenarioBuilder -> jobScenarioBuilder
@@ -109,21 +112,38 @@ public class JobScalingTest extends BaseIntegrationTest {
         );
     }
 
-
     @Test
     public void testTerminateAndShrink() throws Exception {
         jobsScenarioBuilder.schedule(newJob("testTerminateAndShrink"), jobScenarioBuilder -> jobScenarioBuilder
                 .template(ScenarioTemplates.startTasksInNewJob())
-                .updateJobCapacity(JobModel.newCapacity().withMin(0).withDesired(2).withMax(5).build())
+                .updateJobCapacity(JobModel.newCapacity().withMin(2).withDesired(2).withMax(5).build())
                 .expectAllTasksCreated()
                 .inTask(0, taskScenarioBuilder -> taskScenarioBuilder
                         .killTaskAndShrink()
                         .expectStateUpdateSkipOther(TaskStatus.TaskState.Finished)
                 )
-                .expectJobUpdateEvent(job -> hasSize(job, 1), "Expected job to scale down to one instance")
+                .expectJobUpdateEvent(job -> {
+                    Capacity capacity = ((Job<ServiceJobExt>) (Job<?>) job).getJobDescriptor().getExtensions().getCapacity();
+                    return capacity.getMin() == 1 && capacity.getDesired() == 1;
+                }, "Expected job to scale down to one instance")
         );
     }
 
+    @Test
+    public void testTerminateAndShrinkNotAllowedIfDesiredToLowAndCheckEnabled() {
+        try {
+            jobsScenarioBuilder.schedule(newJob("testTerminateAndShrinkNotAllowed"), jobScenarioBuilder -> jobScenarioBuilder
+                    .template(ScenarioTemplates.startTasksInNewJob())
+                    .updateJobCapacity(JobModel.newCapacity().withMin(2).withDesired(2).withMax(5).build())
+                    .expectAllTasksCreated()
+                    .inTask(0, TaskScenarioBuilder::killTaskAndShrinkWithMinCheck)
+            );
+        } catch (Exception e) {
+            StatusRuntimeException cause = (StatusRuntimeException) e.getCause();
+            assertThat(cause.getStatus().getCode()).isEqualTo(Status.Code.FAILED_PRECONDITION);
+            assertThat(cause.getMessage()).contains("Terminate and shrink would make desired job size go below the configured minimum");
+        }
+    }
 
     private JobDescriptor<ServiceJobExt> newJob(String detail) {
         return oneTaskServiceJobDescriptor().toBuilder()
@@ -132,9 +152,4 @@ public class JobScalingTest extends BaseIntegrationTest {
                 .build();
     }
 
-    private static boolean hasSize(Job<?> job, int expected) {
-        Job<ServiceJobExt> serviceJob = (Job<ServiceJobExt>) job;
-        int actual = serviceJob.getJobDescriptor().getExtensions().getCapacity().getDesired();
-        return actual == expected;
-    }
 }

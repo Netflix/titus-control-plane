@@ -103,7 +103,7 @@ class TaskTerminationExecutor {
             ConsumptionResult consumptionResult = quotasManager.tryConsumeQuota(job, task);
 
             return consumptionResult.isApproved()
-                    ? jobOperations.killTask(taskId, false, Trigger.Eviction, CallMetadata.newBuilder().withCallerId(callerId).withCallReason(reason).build()).timeout(TASK_TERMINATE_TIMEOUT)
+                    ? jobOperations.killTask(taskId, false, false, Trigger.Eviction, CallMetadata.newBuilder().withCallerId(callerId).withCallReason(reason).build()).timeout(TASK_TERMINATE_TIMEOUT)
                     : Mono.error(EvictionException.noAvailableJobQuota(job, consumptionResult.getRejectionReason().get()));
         });
     }

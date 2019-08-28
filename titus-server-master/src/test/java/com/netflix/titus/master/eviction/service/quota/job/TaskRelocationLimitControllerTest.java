@@ -66,7 +66,7 @@ public class TaskRelocationLimitControllerTest {
         assertThat(quotaController.getQuota(taskReference).getQuota()).isEqualTo(1);
 
         jobComponentStub.moveTaskToState(task, TaskState.Started);
-        jobComponentStub.killTask(task, false, V3JobOperations.Trigger.Eviction);
+        jobComponentStub.killTask(task, false, false, V3JobOperations.Trigger.Eviction);
         Task replacement1 = jobComponentStub.getJobOperations().getTasks().stream().filter(t -> t.getOriginalId().equals(task.getId())).findFirst().get();
 
         assertThat(quotaController.consume(replacement1.getId()).isApproved()).isTrue();
@@ -74,7 +74,7 @@ public class TaskRelocationLimitControllerTest {
         assertThat(quotaController.getQuota(taskReference).getQuota()).isEqualTo(0);
 
         jobComponentStub.moveTaskToState(replacement1, TaskState.Started);
-        jobComponentStub.killTask(replacement1, false, V3JobOperations.Trigger.Eviction);
+        jobComponentStub.killTask(replacement1, false, false, V3JobOperations.Trigger.Eviction);
         Task replacement2 = jobComponentStub.getJobOperations().getTasks().stream().filter(t -> t.getOriginalId().equals(task.getId())).findFirst().get();
 
         assertThat(quotaController.consume(replacement2.getId()).isApproved()).isFalse();
@@ -92,7 +92,7 @@ public class TaskRelocationLimitControllerTest {
         assertThat(firstController.consume(task.getId()).isApproved()).isTrue();
 
         jobComponentStub.moveTaskToState(task, TaskState.Started);
-        jobComponentStub.killTask(task, false, V3JobOperations.Trigger.Eviction);
+        jobComponentStub.killTask(task, false, false, V3JobOperations.Trigger.Eviction);
         Task replacement1 = jobComponentStub.getJobOperations().getTasks().stream().filter(t -> t.getOriginalId().equals(task.getId())).findFirst().get();
 
         assertThat(firstController.consume(replacement1.getId()).isApproved()).isFalse();
@@ -109,7 +109,7 @@ public class TaskRelocationLimitControllerTest {
         assertThat(updatedController.consume(replacement1.getId()).isApproved()).isTrue();
 
         jobComponentStub.moveTaskToState(replacement1, TaskState.Started);
-        jobComponentStub.killTask(replacement1, false, V3JobOperations.Trigger.Eviction);
+        jobComponentStub.killTask(replacement1, false, false, V3JobOperations.Trigger.Eviction);
         Task replacement2 = jobComponentStub.getJobOperations().getTasks().stream().filter(t -> t.getOriginalId().equals(task.getId())).findFirst().get();
 
         assertThat(updatedController.consume(replacement2.getId()).isApproved()).isFalse();

@@ -104,4 +104,10 @@ public interface MesosConfiguration {
      */
     @DefaultValue("localhost:8080")
     String getKubeApiServerUrl();
+
+    /**
+     * @return how often to trigger a full reconciliation of available opportunistic resources
+     */
+    @DefaultValue("600000" /* 10 min */)
+    long getKubeOpportunisticRefreshIntervalMs();
 }

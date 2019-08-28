@@ -29,6 +29,7 @@ import com.google.common.base.Strings;
 import com.google.common.primitives.Ints;
 import com.netflix.fenzo.PreferentialNamedConsumableResourceSet;
 import com.netflix.fenzo.TaskRequest;
+import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Container;
@@ -36,6 +37,7 @@ import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.JobGroupInfo;
 import com.netflix.titus.api.jobmanager.model.job.SecurityProfile;
 import com.netflix.titus.api.jobmanager.model.job.Task;
@@ -68,6 +70,9 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
     private static final String PASSTHROUGH_ATTRIBUTES_PREFIX = "titusParameter.agent.";
     private static final String OWNER_EMAIL_ATTRIBUTE = "titus.agent.ownerEmail";
     private static final String JOB_TYPE_ATTRIBUTE = "titus.agent.jobType";
+    private static final String RUNTIME_PREDICTION_ATTRIBUTE = "titus.agent.runtimePredictionSec";
+    private static final String OPPORTUNISTIC_CPU_COUNT_ATTRIBUTE = "titus.agent.opportunisticCpus";
+    private static final String OPPORTUNISTIC_CPU_ALLOCATION_ATTRIBUTE = "titus.agent.opportunisticCpuAllocation";
     private static final String EXECUTOR_PER_TASK_LABEL = "executorpertask";
     private static final String LEGACY_EXECUTOR_NAME = "docker-executor";
     private static final String EXECUTOR_PER_TASK_EXECUTOR_NAME = "docker-per-task-executor";
@@ -98,18 +103,21 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
                                        Map<String, String> attributesMap,
                                        Protos.SlaveID slaveID,
                                        PreferentialNamedConsumableResourceSet.ConsumeResult consumeResult,
-                                       Optional<String> executorUriOverrideOpt) {
+                                       Optional<String> executorUriOverrideOpt,
+                                       Map<String, String> passthroughAttributes) {
         String taskId = task.getId();
         Protos.TaskID protoTaskId = Protos.TaskID.newBuilder().setValue(taskId).build();
         Protos.ExecutorInfo executorInfo = newExecutorInfo(task, attributesMap, executorUriOverrideOpt);
-        Protos.TaskInfo.Builder taskInfoBuilder = newTaskInfoBuilder(protoTaskId, executorInfo, slaveID, fenzoTask);
-        ContainerInfo.Builder containerInfoBuilder = newContainerInfoBuilder(job, task, fenzoTask);
+        Protos.TaskInfo.Builder taskInfoBuilder = newTaskInfoBuilder(protoTaskId, executorInfo, slaveID, fenzoTask, job, task);
+        ContainerInfo.Builder containerInfoBuilder = newContainerInfoBuilder(job, task, fenzoTask, passthroughAttributes);
         taskInfoBuilder.setData(containerInfoBuilder.build().toByteString());
         return taskInfoBuilder.build();
     }
 
-    private ContainerInfo.Builder newContainerInfoBuilder(Job job, Task task, TitusQueuableTask<Job, Task> fenzoTask) {
+    private ContainerInfo.Builder newContainerInfoBuilder(Job job, Task task, TitusQueuableTask<Job, Task> fenzoTask,
+                                                          Map<String, String> passthroughAttributes) {
         JobDescriptor jobDescriptor = job.getJobDescriptor();
+        Map<String, String> jobAttributes = ((JobDescriptor<?>) jobDescriptor).getAttributes();
         ContainerInfo.Builder containerInfoBuilder = ContainerInfo.newBuilder();
         Container container = jobDescriptor.getContainer();
         Map<String, String> containerAttributes = container.getAttributes();
@@ -162,11 +170,14 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
             }
         });
 
-        // Add owner email
+        containerInfoBuilder.putAllPassthroughAttributes(passthroughAttributes);
         containerInfoBuilder.putPassthroughAttributes(OWNER_EMAIL_ATTRIBUTE, jobDescriptor.getOwner().getTeamEmail());
-
-        // Add job type
         containerInfoBuilder.putPassthroughAttributes(JOB_TYPE_ATTRIBUTE, getJobType(jobDescriptor).name());
+        if (jobAttributes.containsKey(JobAttributes.JOB_ATTRIBUTES_RUNTIME_PREDICTION_SEC)) {
+            containerInfoBuilder.putPassthroughAttributes(RUNTIME_PREDICTION_ATTRIBUTE,
+                    jobAttributes.get(JobAttributes.JOB_ATTRIBUTES_RUNTIME_PREDICTION_SEC));
+
+        }
 
         // Configure Environment Variables
         container.getEnv().forEach((k, v) -> {
@@ -262,8 +273,14 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
     private Protos.TaskInfo.Builder newTaskInfoBuilder(Protos.TaskID taskId,
                                                        Protos.ExecutorInfo executorInfo,
                                                        Protos.SlaveID slaveID,
-                                                       TitusQueuableTask<Job, Task> fenzoTask) {
+                                                       TitusQueuableTask<Job, Task> fenzoTask,
+                                                       Job<?> job,
+                                                       Task task
+    ) {
 
+        // use requested CPUs rather than what Fenzo assigned, since some CPUs could have been scheduled
+        // opportunistically (oversubscribed)
+        double requestedCpus = job.getJobDescriptor().getContainer().getContainerResources().getCpu();
         Protos.TaskInfo.Builder builder = Protos.TaskInfo.newBuilder()
                 .setTaskId(taskId)
                 .setName(taskId.getValue())
@@ -272,7 +289,7 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
                 .addResources(Protos.Resource.newBuilder()
                         .setName("cpus")
                         .setType(Protos.Value.Type.SCALAR)
-                        .setScalar(Protos.Value.Scalar.newBuilder().setValue(fenzoTask.getCPUs()).build()))
+                        .setScalar(Protos.Value.Scalar.newBuilder().setValue(requestedCpus).build()))
                 .addResources(Protos.Resource.newBuilder()
                         .setName("mem")
                         .setType(Protos.Value.Type.SCALAR)
@@ -285,6 +302,14 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
                         .setName("network")
                         .setType(Protos.Value.Type.SCALAR)
                         .setScalar(Protos.Value.Scalar.newBuilder().setValue(fenzoTask.getNetworkMbps())));
+
+        if (fenzoTask.isCpuOpportunistic() && fenzoTask.getOpportunisticCpus() > 0) {
+            builder.addResources(Protos.Resource.newBuilder()
+                    .setName("opportunisticCpus")
+                    .setType(Protos.Value.Type.SCALAR)
+                    .setScalar(Protos.Value.Scalar.newBuilder().setValue(fenzoTask.getOpportunisticCpus()).build())
+            );
+        }
 
         // set scalars other than cpus, mem, disk
         final Map<String, Double> scalars = fenzoTask.getScalarRequests();

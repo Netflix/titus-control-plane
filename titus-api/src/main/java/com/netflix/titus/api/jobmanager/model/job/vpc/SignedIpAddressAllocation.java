@@ -31,21 +31,70 @@ public class SignedIpAddressAllocation {
 
     @FieldInvariant(
             value = "@asserts.isBase64(value)",
-            message = "IP Address Signature is NOT base64 encoded"
+            message = "Must be base64 encoded"
     )
-    private final byte[] ipAddressAllocationSignature;
+    private final byte[] authoritativePublicKey;
 
-    public SignedIpAddressAllocation(IpAddressAllocation ipAddressAllocation, byte[] ipAddressAllocationSignature) {
+    @FieldInvariant(
+            value = "@asserts.isBase64(value)",
+            message = "Must be base64 encoded"
+    )
+    private final byte[] hostPublicKey;
+
+    @FieldInvariant(
+            value = "@asserts.isBase64(value)",
+            message = "Must be base64 encoded"
+    )
+    private final byte[] hostPublicKeySignature;
+
+    @FieldInvariant(
+            value = "@asserts.isBase64(value)",
+            message = "Must be base64 encoded"
+    )
+    private final byte[] message;
+
+    @FieldInvariant(
+            value = "@asserts.isBase64(value)",
+            message = "Must be base64 encoded"
+    )
+    private final byte[] messageSignature;
+
+    public SignedIpAddressAllocation(IpAddressAllocation ipAddressAllocation,
+                                     byte[] authoritativePublicKey,
+                                     byte[] hostPublicKey,
+                                     byte[] hostPublicKeySignature,
+                                     byte[] message,
+                                     byte[] messageSignature) {
         this.ipAddressAllocation = ipAddressAllocation;
-        this.ipAddressAllocationSignature = ipAddressAllocationSignature;
+        this.authoritativePublicKey = authoritativePublicKey;
+        this.hostPublicKey = hostPublicKey;
+        this.hostPublicKeySignature = hostPublicKeySignature;
+        this.message = message;
+        this.messageSignature = messageSignature;
     }
 
     public IpAddressAllocation getIpAddressAllocation() {
         return ipAddressAllocation;
     }
 
-    public byte[] getIpAddressAllocationSignature() {
-        return ipAddressAllocationSignature;
+    public byte[] getAuthoritativePublicKey() {
+        return authoritativePublicKey;
+    }
+
+    public byte[] getHostPublicKey() {
+        return hostPublicKey;
+    }
+
+    public byte[] getHostPublicKeySignature() {
+        return hostPublicKeySignature;
+    }
+
+    public byte[] getMessage() {
+        return message;
+    }
+
+    public byte[] getMessageSignature() {
+        return messageSignature;
     }
 
     @Override
@@ -57,14 +106,22 @@ public class SignedIpAddressAllocation {
             return false;
         }
         SignedIpAddressAllocation that = (SignedIpAddressAllocation) o;
-        return Objects.equals(ipAddressAllocation, that.ipAddressAllocation) &&
-                Arrays.equals(ipAddressAllocationSignature, that.ipAddressAllocationSignature);
+        return ipAddressAllocation.equals(that.ipAddressAllocation) &&
+                Arrays.equals(authoritativePublicKey, that.authoritativePublicKey) &&
+                Arrays.equals(hostPublicKey, that.hostPublicKey) &&
+                Arrays.equals(hostPublicKeySignature, that.hostPublicKeySignature) &&
+                Arrays.equals(message, that.message) &&
+                Arrays.equals(messageSignature, that.messageSignature);
     }
 
     @Override
     public int hashCode() {
         int result = Objects.hash(ipAddressAllocation);
-        result = 31 * result + Arrays.hashCode(ipAddressAllocationSignature);
+        result = 31 * result + Arrays.hashCode(authoritativePublicKey);
+        result = 31 * result + Arrays.hashCode(hostPublicKey);
+        result = 31 * result + Arrays.hashCode(hostPublicKeySignature);
+        result = 31 * result + Arrays.hashCode(message);
+        result = 31 * result + Arrays.hashCode(messageSignature);
         return result;
     }
 
@@ -72,7 +129,11 @@ public class SignedIpAddressAllocation {
     public String toString() {
         return "SignedIpAddressAllocation{" +
                 "ipAddressAllocation=" + ipAddressAllocation +
-                ", ipAddressAllocationSignature=" + Arrays.toString(ipAddressAllocationSignature) +
+                ", authoritativePublicKey=" + Arrays.toString(authoritativePublicKey) +
+                ", hostPublicKey=" + Arrays.toString(hostPublicKey) +
+                ", hostPublicKeySignature=" + Arrays.toString(hostPublicKeySignature) +
+                ", message=" + Arrays.toString(message) +
+                ", messageSignature=" + Arrays.toString(messageSignature) +
                 '}';
     }
 
@@ -84,15 +145,24 @@ public class SignedIpAddressAllocation {
         return new Builder();
     }
 
-    public static Builder newBuilder(SignedIpAddressAllocation signedIpAddressAllocation) {
-        return new Builder()
-                .withIpAddressAllocation(signedIpAddressAllocation.getIpAddressAllocation())
-                .withIpAddressAllocationSignature(signedIpAddressAllocation.ipAddressAllocationSignature);
+    public static Builder newBuilder(SignedIpAddressAllocation copy) {
+        Builder builder = new Builder();
+        builder.ipAddressAllocation = copy.getIpAddressAllocation();
+        builder.authoritativePublicKey = copy.getAuthoritativePublicKey();
+        builder.hostPublicKey = copy.getHostPublicKey();
+        builder.hostPublicKeySignature = copy.getHostPublicKeySignature();
+        builder.message = copy.getMessage();
+        builder.messageSignature = copy.getMessageSignature();
+        return builder;
     }
 
     public static final class Builder {
         private IpAddressAllocation ipAddressAllocation;
-        private byte[] ipAddressAllocationSignature;
+        private byte[] authoritativePublicKey;
+        private byte[] hostPublicKey;
+        private byte[] hostPublicKeySignature;
+        private byte[] message;
+        private byte[] messageSignature;
 
         private Builder() {
         }
@@ -102,19 +172,39 @@ public class SignedIpAddressAllocation {
             return this;
         }
 
-        public Builder withIpAddressAllocationSignature(byte[] val) {
-            ipAddressAllocationSignature = val;
+        public Builder withAuthoritativePublicKey(byte[] val) {
+            authoritativePublicKey = val;
             return this;
         }
 
-        public Builder but() {
-            return newBuilder()
-                    .withIpAddressAllocation(ipAddressAllocation)
-                    .withIpAddressAllocationSignature(ipAddressAllocationSignature);
+        public Builder withHostPublicKey(byte[] val) {
+            hostPublicKey = val;
+            return this;
+        }
+
+        public Builder withHostPublicKeySignature(byte[] val) {
+            hostPublicKeySignature = val;
+            return this;
+        }
+
+        public Builder withMessage(byte[] val) {
+            message = val;
+            return this;
+        }
+
+        public Builder withMessageSignature(byte[] val) {
+            messageSignature = val;
+            return this;
         }
 
         public SignedIpAddressAllocation build() {
-            return new SignedIpAddressAllocation(ipAddressAllocation, ipAddressAllocationSignature);
+            return new SignedIpAddressAllocation(
+                    ipAddressAllocation,
+                    authoritativePublicKey,
+                    hostPublicKey,
+                    hostPublicKeySignature,
+                    message,
+                    messageSignature);
         }
     }
 }

@@ -103,6 +103,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     private static final Logger logger = LoggerFactory.getLogger(KubeApiServerIntegrator.class);
 
     private static final String ATTRIBUTE_PREFIX = "com.netflix.titus.agent.attribute/";
+    private static final String NODE_ID_ATTRIBUTE = ATTRIBUTE_PREFIX + "id";
     private static final String KUBERNETES_NAMESPACE = "default";
     private static final String CLIENT_METRICS_PREFIX = "titusMaster.mesos.kubeApiServerIntegration";
     private static final long POD_TERMINATION_GRACE_PERIOD_SECONDS = 600L;
@@ -428,14 +429,17 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
             V1ObjectMeta metadata = node.getMetadata();
             V1NodeStatus status = node.getStatus();
             String nodeName = metadata.getName();
+            String nodeId = metadata.getAnnotations().getOrDefault(NODE_ID_ATTRIBUTE, nodeName);
             boolean hasTrueReadyCondition = status.getConditions().stream()
                     .anyMatch(c -> c.getType().equalsIgnoreCase(READY) && Boolean.parseBoolean(c.getStatus()));
             if (hasTrueReadyCondition) {
                 return Protos.Offer.newBuilder()
-                        .setId(Protos.OfferID.newBuilder().setValue(nodeName).build())
+                        .setId(Protos.OfferID.newBuilder().setValue(nodeId).build())
+                        // TODO(fabio): change to nodeId since host IPs are ephemeral and can be reused,
+                        //   but the virtual-kubelet is needs to be changed in lockstep
+                        .setSlaveId(Protos.SlaveID.newBuilder().setValue(nodeName).build())
                         .setHostname(nodeName)
                         .setFrameworkId(Protos.FrameworkID.newBuilder().setValue("TitusFramework").build())
-                        .setSlaveId(Protos.SlaveID.newBuilder().setValue(nodeName).build())
                         .addAllResources(nodeToResources(node))
                         .addAllAttributes(nodeToAttributes(node))
                         .build();
@@ -501,8 +505,9 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
             }
         } catch (Exception e) {
             logger.error("Error with pod watch: ", e);
+        } finally {
+            logger.info("Finished list namespaced pod watch");
         }
-        logger.info("Finished list namespaced pod watch");
     }
 
     private Optional<List<V1Pod>> listPods() {
