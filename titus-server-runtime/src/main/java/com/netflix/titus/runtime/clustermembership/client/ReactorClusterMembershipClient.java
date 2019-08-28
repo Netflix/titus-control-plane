@@ -26,6 +26,10 @@ import com.netflix.titus.grpc.protogen.UpdateMemberLabelsRequest;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+/**
+ * Cluster membership Spring-Reactor client interface. To be used with
+ * {@link com.netflix.titus.runtime.connector.common.reactor.client.ReactorToGrpcClientBuilder}.
+ */
 public interface ReactorClusterMembershipClient {
 
     Mono<ClusterMembershipRevisions> getMembers();

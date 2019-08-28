@@ -47,7 +47,7 @@ public class K8ClusterMember {
     }
 
     public boolean isActive() {
-        return enabled;
+        return active;
     }
 
     public List<K8ClusterMemberAddress> getClusterMemberAddress() {

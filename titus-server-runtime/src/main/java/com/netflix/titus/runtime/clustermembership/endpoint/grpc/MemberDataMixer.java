@@ -34,7 +34,7 @@ import static com.netflix.titus.runtime.clustermembership.endpoint.grpc.ClusterM
 
 /**
  * At the connector and service level we keep membership data and the leader election process separate. However
- * when exposing the data outside, we want to merge this into single data model. This class deals with the complexity
+ * when exposing the data outside, we want to merge this into a single data model. This class deals with the complexity
  * of doing that.
  */
 class MemberDataMixer {
