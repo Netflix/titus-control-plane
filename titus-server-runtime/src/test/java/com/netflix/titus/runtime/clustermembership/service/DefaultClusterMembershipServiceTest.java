@@ -39,7 +39,7 @@ import static org.mockito.Mockito.when;
 
 public class DefaultClusterMembershipServiceTest {
 
-    private static final Duration TIMEOUT = Duration.ofSeconds(30);
+    private static final Duration TIMEOUT = Duration.ofSeconds(5);
 
     private static final boolean ACTIVE = true;
     private static final boolean INACTIVE = false;

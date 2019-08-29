@@ -131,7 +131,7 @@ class ClusterMembershipConnectorStub implements ClusterMembershipConnector {
 
     void becomeLeader() {
         this.localLeadershipRevision = newLocalLeadershipState(ClusterMemberLeadershipState.Leader);
-        eventProcessor.onNext(ClusterMembershipEvent.localLeftElection(localLeadershipRevision));
+        eventProcessor.onNext(ClusterMembershipEvent.localJoinedElection(localLeadershipRevision));
     }
 
     private ClusterMembershipRevision<ClusterMemberLeadership> newLocalLeadershipState(ClusterMemberLeadershipState state) {
