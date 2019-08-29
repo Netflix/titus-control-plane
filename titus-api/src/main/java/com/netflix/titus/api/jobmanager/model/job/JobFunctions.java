@@ -182,6 +182,15 @@ public final class JobFunctions {
         ).build();
     }
 
+    public static <E extends JobDescriptorExt> JobDescriptor<E> appendJobDescriptorAttributes(JobDescriptor<E> jobDescriptor,
+                                                                                              Map<String, ?> attributes) {
+        Map<String, String> asStrings = attributes.entrySet().stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().toString()));
+        return jobDescriptor.toBuilder()
+                .withAttributes(CollectionsExt.copyAndAdd(jobDescriptor.getAttributes(), asStrings))
+                .build();
+    }
+
     public static <E extends JobDescriptorExt> JobDescriptor<E> appendJobDescriptorAttribute(JobDescriptor<E> jobDescriptor,
                                                                                              String attributeName,
                                                                                              Object attributeValue) {

@@ -169,6 +169,12 @@ public final class CollectionsExt {
         return result;
     }
 
+    public static <K, V> Map<K, V> copyAndAdd(Map<K, V> original, Map<K, V> additions) {
+        Map<K, V> result = new HashMap<>(original);
+        result.putAll(additions);
+        return result;
+    }
+
     public static <T> List<T> nullableImmutableCopyOf(List<T> original) {
         return original == null ? null : ImmutableList.copyOf(original);
     }

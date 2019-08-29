@@ -101,8 +101,6 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
     private final LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo;
     private final TaskRelocationDataInjector taskRelocationDataInjector;
     private final NeedsMigrationQueryHandler needsMigrationQueryHandler;
-    private final AdmissionValidator<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> validator;
-    private final AdmissionSanitizer<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> sanitizer;
     private final Clock clock;
 
     @Inject
@@ -135,8 +133,6 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
         this.logStorageInfo = logStorageInfo;
         this.taskRelocationDataInjector = taskRelocationDataInjector;
         this.needsMigrationQueryHandler = needsMigrationQueryHandler;
-        this.validator = validator;
-        this.sanitizer = sanitizer;
         this.clock = titusRuntime.getClock();
     }
 
