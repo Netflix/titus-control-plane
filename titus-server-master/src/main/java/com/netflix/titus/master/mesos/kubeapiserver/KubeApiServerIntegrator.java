@@ -222,7 +222,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
             try {
                 V1Pod v1Pod = taskInfoToPod(request);
                 logger.info("creating pod: {}", v1Pod);
-                normalApi.createNamespacedPod(KUBERNETES_NAMESPACE, v1Pod, false, null, null);
+                normalApi.createNamespacedPod(KUBERNETES_NAMESPACE, v1Pod, null, null, null);
                 podsClientMetrics.incrementOnSuccess(POST, PODS, STATUS_200);
                 podsClientMetrics.registerOnSuccessLatency(POST, Duration.ofMillis(clock.wallTime() - startTimeMs));
             } catch (ApiException e) {
@@ -355,7 +355,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
             long startTimeMs = clock.wallTime();
             V1NodeList list = null;
             try {
-                list = normalApi.listNode(null, null, null, null, null, null, null, null, null);
+                list = normalApi.listNode(null, null, null, null, null, null, null, null);
                 nodesClientMetrics.incrementOnSuccess(GET, NODES, STATUS_200);
                 nodesClientMetrics.registerOnSuccessLatency(GET, Duration.ofMillis(clock.wallTime() - startTimeMs));
             } catch (Exception e) {
@@ -402,7 +402,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         long startTimeMs = clock.wallTime();
         V1NodeList list = null;
         try {
-            list = normalApi.listNode(null, null, null, null, null, null, null, null, null);
+            list = normalApi.listNode(null, null, null, null, null, null, null, null);
             nodesClientMetrics.incrementOnSuccess(GET, NODES, STATUS_200);
             nodesClientMetrics.registerOnSuccessLatency(GET, Duration.ofMillis(clock.wallTime() - startTimeMs));
         } catch (Exception e) {
@@ -491,7 +491,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
             logger.info("Creating list namespaced pod watch");
             Watch<V1Pod> watch = Watch.createWatch(watchClient, watchApi.listNamespacedPodCall(
                     KUBERNETES_NAMESPACE, null, null, null, null,
-                    null, null, null, null, true, null, null),
+                    null, null, null, true, null, null),
                     new TypeToken<Watch.Response<V1Pod>>() {
                     }.getType());
             for (Watch.Response<V1Pod> item : watch) {
@@ -514,7 +514,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         long startTimeMs = clock.wallTime();
         V1PodList list = null;
         try {
-            list = normalApi.listNamespacedPod(KUBERNETES_NAMESPACE, null, null, null, null, null, null, null, null, null);
+            list = normalApi.listNamespacedPod(KUBERNETES_NAMESPACE, null, null, null, null, null, null, null, null);
             podsClientMetrics.incrementOnSuccess(GET, PODS, STATUS_200);
             podsClientMetrics.registerOnSuccessLatency(GET, Duration.ofMillis(clock.wallTime() - startTimeMs));
         } catch (Exception e) {

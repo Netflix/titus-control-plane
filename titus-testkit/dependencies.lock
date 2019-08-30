@@ -876,19 +876,19 @@
             ]
         },
         "io.kubernetes:client-java": {
-            "locked": "5.0.0",
+            "locked": "6.0.1",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
         },
         "io.kubernetes:client-java-api": {
-            "locked": "5.0.0",
+            "locked": "6.0.1",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
         },
         "io.kubernetes:client-java-proto": {
-            "locked": "5.0.0",
+            "locked": "6.0.1",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -1092,7 +1092,7 @@
             ]
         },
         "io.swagger:swagger-annotations": {
-            "locked": "1.5.12",
+            "locked": "1.5.22",
             "transitive": [
                 "io.kubernetes:client-java-api",
                 "io.swagger:swagger-models"
@@ -2840,19 +2840,19 @@
             ]
         },
         "io.kubernetes:client-java": {
-            "locked": "5.0.0",
+            "locked": "6.0.1",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
         },
         "io.kubernetes:client-java-api": {
-            "locked": "5.0.0",
+            "locked": "6.0.1",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
         },
         "io.kubernetes:client-java-proto": {
-            "locked": "5.0.0",
+            "locked": "6.0.1",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -3056,7 +3056,7 @@
             ]
         },
         "io.swagger:swagger-annotations": {
-            "locked": "1.5.12",
+            "locked": "1.5.22",
             "transitive": [
                 "io.kubernetes:client-java-api",
                 "io.swagger:swagger-models"
@@ -4804,19 +4804,19 @@
             ]
         },
         "io.kubernetes:client-java": {
-            "locked": "5.0.0",
+            "locked": "6.0.1",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
         },
         "io.kubernetes:client-java-api": {
-            "locked": "5.0.0",
+            "locked": "6.0.1",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
         },
         "io.kubernetes:client-java-proto": {
-            "locked": "5.0.0",
+            "locked": "6.0.1",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -5020,7 +5020,7 @@
             ]
         },
         "io.swagger:swagger-annotations": {
-            "locked": "1.5.12",
+            "locked": "1.5.22",
             "transitive": [
                 "io.kubernetes:client-java-api",
                 "io.swagger:swagger-models"
@@ -6832,19 +6832,19 @@
             ]
         },
         "io.kubernetes:client-java": {
-            "locked": "5.0.0",
+            "locked": "6.0.1",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
         },
         "io.kubernetes:client-java-api": {
-            "locked": "5.0.0",
+            "locked": "6.0.1",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
         },
         "io.kubernetes:client-java-proto": {
-            "locked": "5.0.0",
+            "locked": "6.0.1",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -7048,7 +7048,7 @@
             ]
         },
         "io.swagger:swagger-annotations": {
-            "locked": "1.5.12",
+            "locked": "1.5.22",
             "transitive": [
                 "io.kubernetes:client-java-api",
                 "io.swagger:swagger-models"
@@ -8797,19 +8797,19 @@
             ]
         },
         "io.kubernetes:client-java": {
-            "locked": "5.0.0",
+            "locked": "6.0.1",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
         },
         "io.kubernetes:client-java-api": {
-            "locked": "5.0.0",
+            "locked": "6.0.1",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
         },
         "io.kubernetes:client-java-proto": {
-            "locked": "5.0.0",
+            "locked": "6.0.1",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -9013,7 +9013,7 @@
             ]
         },
         "io.swagger:swagger-annotations": {
-            "locked": "1.5.12",
+            "locked": "1.5.22",
             "transitive": [
                 "io.kubernetes:client-java-api",
                 "io.swagger:swagger-models"
@@ -10772,19 +10772,19 @@
             ]
         },
         "io.kubernetes:client-java": {
-            "locked": "5.0.0",
+            "locked": "6.0.1",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
         },
         "io.kubernetes:client-java-api": {
-            "locked": "5.0.0",
+            "locked": "6.0.1",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
         },
         "io.kubernetes:client-java-proto": {
-            "locked": "5.0.0",
+            "locked": "6.0.1",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -10993,7 +10993,7 @@
             ]
         },
         "io.swagger:swagger-annotations": {
-            "locked": "1.5.12",
+            "locked": "1.5.22",
             "transitive": [
                 "io.kubernetes:client-java-api",
                 "io.swagger:swagger-models"
@@ -12755,19 +12755,19 @@
             ]
         },
         "io.kubernetes:client-java": {
-            "locked": "5.0.0",
+            "locked": "6.0.1",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
         },
         "io.kubernetes:client-java-api": {
-            "locked": "5.0.0",
+            "locked": "6.0.1",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
         },
         "io.kubernetes:client-java-proto": {
-            "locked": "5.0.0",
+            "locked": "6.0.1",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -12976,7 +12976,7 @@
             ]
         },
         "io.swagger:swagger-annotations": {
-            "locked": "1.5.12",
+            "locked": "1.5.22",
             "transitive": [
                 "io.kubernetes:client-java-api",
                 "io.swagger:swagger-models"
@@ -14738,19 +14738,19 @@
             ]
         },
         "io.kubernetes:client-java": {
-            "locked": "5.0.0",
+            "locked": "6.0.1",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
         },
         "io.kubernetes:client-java-api": {
-            "locked": "5.0.0",
+            "locked": "6.0.1",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
         },
         "io.kubernetes:client-java-proto": {
-            "locked": "5.0.0",
+            "locked": "6.0.1",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -14959,7 +14959,7 @@
             ]
         },
         "io.swagger:swagger-annotations": {
-            "locked": "1.5.12",
+            "locked": "1.5.22",
             "transitive": [
                 "io.kubernetes:client-java-api",
                 "io.swagger:swagger-models"
@@ -16722,19 +16722,19 @@
             ]
         },
         "io.kubernetes:client-java": {
-            "locked": "5.0.0",
+            "locked": "6.0.1",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
         },
         "io.kubernetes:client-java-api": {
-            "locked": "5.0.0",
+            "locked": "6.0.1",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
         },
         "io.kubernetes:client-java-proto": {
-            "locked": "5.0.0",
+            "locked": "6.0.1",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -16943,7 +16943,7 @@
             ]
         },
         "io.swagger:swagger-annotations": {
-            "locked": "1.5.12",
+            "locked": "1.5.22",
             "transitive": [
                 "io.kubernetes:client-java-api",
                 "io.swagger:swagger-models"

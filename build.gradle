@@ -91,7 +91,7 @@ subprojects {
         commonsCodecVersion = '1.13'
         caffeineVersion = '2.6.+'
         rxJavaInteropVersion = '0.13.+'
-        kubernetesClientVersion = '5.0.0'
+        kubernetesClientVersion = '6.0.1'
 
         // Test
         junitVersion = '4.10'
