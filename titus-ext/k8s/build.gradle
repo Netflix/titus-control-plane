@@ -14,23 +14,10 @@
  * limitations under the License.
  */
 
-repositories {
-    flatDir {
-        dirs 'libs'
-    }
-}
-
-configurations.all {
-    exclude group: "io.kubernetes"
-}
-
 dependencies {
     compile project(':titus-api')
     compile "org.springframework.cloud:spring-cloud-commons:${springCloudVersion}"
-
-    // FIXME Use officially released artifact when available
-    compile "com.squareup.okhttp:okhttp:2.7.5"
-    compile "com.netflix.kubernetes:kubernetes-client-java:6.0.+"
+    compile "io.kubernetes:client-java-extended:${kubernetesClientVersion}"
 
     testCompile project(':titus-testkit')
 }

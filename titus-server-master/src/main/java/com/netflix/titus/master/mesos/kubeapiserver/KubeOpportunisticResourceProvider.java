@@ -22,7 +22,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BinaryOperator;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -39,7 +38,6 @@ import com.netflix.titus.master.scheduler.opportunistic.OpportunisticCpuAvailabi
 import com.squareup.okhttp.Call;
 import io.kubernetes.client.ApiClient;
 import io.kubernetes.client.ApiException;
-import io.kubernetes.client.Configuration;
 import io.kubernetes.client.apis.CustomObjectsApi;
 import io.kubernetes.client.informer.ResourceEventHandler;
 import io.kubernetes.client.informer.SharedIndexInformer;
@@ -55,11 +53,10 @@ public class KubeOpportunisticResourceProvider implements OpportunisticCpuAvaila
     private static final Logger logger = LoggerFactory.getLogger(KubeOpportunisticResourceProvider.class);
     private static final ThreadGroup THREAD_GROUP = new ThreadGroup(KubeOpportunisticResourceProvider.class.getSimpleName());
 
-    public static final String OPPORTUNISTIC_RESOURCE_GROUP = "titus.netflix.com";
-    public static final String OPPORTUNISTIC_RESOURCE_VERSION = "v1";
-    public static final String OPPORTUNISTIC_RESOURCE_NAMESPACE = "default";
-    public static final String OPPORTUNISTIC_RESOURCE_SINGULAR = "opportunistic-resource";
-    public static final String OPPORTUNISTIC_RESOURCE_PLURAL = "opportunistic-resources";
+    private static final String OPPORTUNISTIC_RESOURCE_GROUP = "titus.netflix.com";
+    private static final String OPPORTUNISTIC_RESOURCE_VERSION = "v1";
+    private static final String OPPORTUNISTIC_RESOURCE_NAMESPACE = "default";
+    private static final String OPPORTUNISTIC_RESOURCE_PLURAL = "opportunistic-resources";
 
     private final CustomObjectsApi api;
     private final TitusRuntime titusRuntime;
@@ -71,12 +68,10 @@ public class KubeOpportunisticResourceProvider implements OpportunisticCpuAvaila
         this.titusRuntime = titusRuntime;
         ApiClient apiClient = Config.fromUrl(configuration.getKubeApiServerUrl());
         apiClient.getHttpClient().setReadTimeout(0, TimeUnit.SECONDS); // infinite timeout for watch calls
-        // TODO(fabio): enhance the kube client to support custom ApiClient providers
-        Configuration.setDefaultApiClient(apiClient);
         this.api = new CustomObjectsApi(apiClient);
 
         AtomicLong nextThreadNum = new AtomicLong(0);
-        informerFactory = new SharedInformerFactory(Executors.newCachedThreadPool(runnable -> {
+        informerFactory = new SharedInformerFactory(apiClient, Executors.newCachedThreadPool(runnable -> {
             Thread thread = new Thread(THREAD_GROUP, runnable,
                     THREAD_GROUP.getName() + "-" + nextThreadNum.getAndIncrement());
             thread.setDaemon(true);
@@ -84,7 +79,7 @@ public class KubeOpportunisticResourceProvider implements OpportunisticCpuAvaila
         }));
         // TODO(fabio): enhance the kube client to support custom JSON deserialization options
         informer = informerFactory.sharedIndexInformerFor(
-                listCallFactory(),
+                this::listOpportunisticResourcesCall,
                 V1OpportunisticResource.class,
                 V1OpportunisticResourceList.class,
                 configuration.getKubeOpportunisticRefreshIntervalMs()
@@ -126,28 +121,27 @@ public class KubeOpportunisticResourceProvider implements OpportunisticCpuAvaila
         informerFactory.stopAllRegisteredInformers();
     }
 
-    private Function<CallGeneratorParams, Call> listCallFactory() {
-        return params -> {
-            try {
-                return api.listNamespacedCustomObjectCall(
-                        OPPORTUNISTIC_RESOURCE_GROUP,
-                        OPPORTUNISTIC_RESOURCE_VERSION,
-                        OPPORTUNISTIC_RESOURCE_NAMESPACE,
-                        OPPORTUNISTIC_RESOURCE_PLURAL,
-                        null,
-                        null,
-                        params.resourceVersion,
-                        params.timeoutSeconds,
-                        params.watch,
-                        null,
-                        null
-                );
-            } catch (ApiException e) {
-                codeInvariants().unexpectedError("Error building a kube http call for opportunistic resources", e);
-            }
-            // this should never happen, if it does the code building request calls is wrong
-            return null;
-        };
+    private Call listOpportunisticResourcesCall(CallGeneratorParams params) {
+        try {
+            return api.listNamespacedCustomObjectCall(
+                    OPPORTUNISTIC_RESOURCE_GROUP,
+                    OPPORTUNISTIC_RESOURCE_VERSION,
+                    OPPORTUNISTIC_RESOURCE_NAMESPACE,
+                    OPPORTUNISTIC_RESOURCE_PLURAL,
+                    null,
+                    null,
+                    null,
+                    params.resourceVersion,
+                    params.timeoutSeconds,
+                    params.watch,
+                    null,
+                    null
+            );
+        } catch (ApiException e) {
+            codeInvariants().unexpectedError("Error building a kube http call for opportunistic resources", e);
+        }
+        // this should never happen, if it does the code building request calls is wrong
+        return null;
     }
 
     private CodeInvariants codeInvariants() {
