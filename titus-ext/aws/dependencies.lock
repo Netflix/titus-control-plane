@@ -34,7 +34,7 @@
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.622",
+            "locked": "1.11.623",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-iam": {
@@ -1313,7 +1313,7 @@
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.622",
+            "locked": "1.11.623",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-iam": {
@@ -2592,7 +2592,7 @@
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.622",
+            "locked": "1.11.623",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-iam": {
@@ -3935,7 +3935,7 @@
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.622",
+            "locked": "1.11.623",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-iam": {
@@ -5215,7 +5215,7 @@
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.622",
+            "locked": "1.11.623",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-iam": {
@@ -6513,7 +6513,7 @@
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.622",
+            "locked": "1.11.623",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-iam": {
@@ -8618,7 +8618,7 @@
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.622",
+            "locked": "1.11.623",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-iam": {
@@ -10723,7 +10723,7 @@
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.622",
+            "locked": "1.11.623",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-iam": {
@@ -12829,7 +12829,7 @@
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.622",
+            "locked": "1.11.623",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-iam": {
