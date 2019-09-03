@@ -126,7 +126,8 @@ public class K8ClusterState {
     public ClusterMembershipEvent getSnapshotEvent() {
         return ClusterMembershipEvent.snapshotEvent(
                 CollectionsExt.copyAndAddToList(clusterMemberSiblings.values(), localMemberRevision),
-                localMemberLeadershipRevision
+                localMemberLeadershipRevision,
+                currentLeaderOptional
         );
     }
 

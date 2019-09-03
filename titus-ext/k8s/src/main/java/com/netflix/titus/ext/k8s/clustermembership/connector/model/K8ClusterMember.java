@@ -26,11 +26,11 @@ public class K8ClusterMember {
     @SerializedName("memberId")
     private String memberId;
 
-    @SerializedName("state")
-    private String state;
-
     @SerializedName("enabled")
     private boolean enabled;
+
+    @SerializedName("active")
+    private boolean active;
 
     @SerializedName("clusterMemberAddress")
     private List<K8ClusterMemberAddress> clusterMemberAddress;
@@ -42,12 +42,12 @@ public class K8ClusterMember {
         return memberId;
     }
 
-    public String getState() {
-        return state;
-    }
-
     public boolean isEnabled() {
         return enabled;
+    }
+
+    public boolean isActive() {
+        return active;
     }
 
     public List<K8ClusterMemberAddress> getClusterMemberAddress() {
@@ -63,13 +63,13 @@ public class K8ClusterMember {
         return this;
     }
 
-    public K8ClusterMember state(String state) {
-        this.state = state;
+    public K8ClusterMember enabled(boolean enabled) {
+        this.enabled = enabled;
         return this;
     }
 
-    public K8ClusterMember enabled(boolean enabled) {
-        this.enabled = enabled;
+    public K8ClusterMember active(boolean active) {
+        this.active = active;
         return this;
     }
 

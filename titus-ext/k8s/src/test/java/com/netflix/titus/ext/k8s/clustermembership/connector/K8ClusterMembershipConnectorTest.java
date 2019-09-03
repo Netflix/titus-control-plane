@@ -47,7 +47,9 @@ public class K8ClusterMembershipConnectorTest {
 
     private static final Duration TIMEOUT = Duration.ofSeconds(30);
 
-    private static final ClusterMember LOCAL_MEMBER = activeClusterMember("local");
+    private static final ClusterMember LOCAL_MEMBER_UNREGISTERED = activeClusterMember("local").toBuilder()
+            .withRegistered(false)
+            .build();
 
     private final TitusRuntime titusRuntime = TitusRuntimes.internal();
 
@@ -55,7 +57,7 @@ public class K8ClusterMembershipConnectorTest {
             "reRegistrationIntervalMs", "100"
     );
 
-    private final StubbedK8Executors k8Executors = new StubbedK8Executors(LOCAL_MEMBER.getMemberId());
+    private final StubbedK8Executors k8Executors = new StubbedK8Executors(LOCAL_MEMBER_UNREGISTERED.getMemberId());
 
     private K8ClusterMembershipConnector connector;
 
@@ -63,11 +65,11 @@ public class K8ClusterMembershipConnectorTest {
 
     @Before
     public void setUp() {
-        connector = new K8ClusterMembershipConnector(LOCAL_MEMBER, k8Executors, k8Executors, configuration, titusRuntime);
+        connector = new K8ClusterMembershipConnector(LOCAL_MEMBER_UNREGISTERED, k8Executors, k8Executors, configuration, titusRuntime);
         connector.membershipChangeEvents().subscribe(connectorEvents);
 
         // Initial sequence common for all tests
-        assertThat(connector.getLocalClusterMemberRevision().getCurrent()).isEqualTo(LOCAL_MEMBER);
+        assertThat(connector.getLocalClusterMemberRevision().getCurrent()).isEqualTo(LOCAL_MEMBER_UNREGISTERED);
         ClusterMembershipEvent snapshotEvent = connectorEvents.takeNext();
         assertThat(snapshotEvent).isInstanceOf(ClusterMembershipSnapshotEvent.class);
     }
@@ -268,7 +270,7 @@ public class K8ClusterMembershipConnectorTest {
     private void electLocalAsLeader() throws InterruptedException {
         k8Executors.emitLeadershipEvent(ClusterMembershipEvent.leaderElected(ClusterMembershipRevision.<ClusterMemberLeadership>newBuilder()
                 .withCurrent(ClusterMemberLeadership.newBuilder()
-                        .withMemberId(LOCAL_MEMBER.getMemberId())
+                        .withMemberId(LOCAL_MEMBER_UNREGISTERED.getMemberId())
                         .withLeadershipState(ClusterMemberLeadershipState.Leader)
                         .build()
                 )

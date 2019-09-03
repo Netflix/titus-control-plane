@@ -24,6 +24,7 @@ import com.netflix.titus.api.clustermembership.model.ClusterMember;
 import com.netflix.titus.api.clustermembership.model.ClusterMemberLeadership;
 import com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision;
 import com.netflix.titus.api.clustermembership.model.event.ClusterMembershipEvent;
+import com.netflix.titus.api.clustermembership.model.event.ClusterMembershipSnapshotEvent;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -61,7 +62,7 @@ public interface ClusterMembershipService {
     Mono<Void> stopBeingLeader();
 
     /**
-     * Cluster membership change events.
+     * Cluster membership change events. On subscription emits first {@link ClusterMembershipSnapshotEvent} event.
      */
-    Flux<ClusterMembershipEvent> events(boolean snapshot);
+    Flux<ClusterMembershipEvent> events();
 }

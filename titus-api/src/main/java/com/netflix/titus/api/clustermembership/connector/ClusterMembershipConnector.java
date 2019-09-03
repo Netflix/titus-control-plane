@@ -86,6 +86,7 @@ public interface ClusterMembershipConnector {
      * Follow the same rules as {@link #register(Function)} (see above).
      *
      * @param onlyNonLeader if set to true, the leader election process is terminated only if the local member is not an elected leader
+     * @return true if the local member left the leader election process
      */
     Mono<Boolean> leaveLeadershipGroup(boolean onlyNonLeader);
 

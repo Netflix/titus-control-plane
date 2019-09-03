@@ -159,9 +159,10 @@ class ScheduledActionExecutor {
     private ScheduledAction newScheduledAction(boolean retried) {
         long now = clock.wallTime();
 
-        long delayMs = (!retried || retryer == null)
-                ? descriptor.getInterval().toMillis()
-                : retryer.getDelayMs().orElse(descriptor.getInterval().toMillis());
+        boolean effectivelyRetried = retried && retryer != null && retryer.getDelayMs().isPresent();
+        long delayMs = effectivelyRetried
+                ? retryer.getDelayMs().orElse(descriptor.getInterval().toMillis())
+                : descriptor.getInterval().toMillis();
 
         return ScheduledAction.newBuilder()
                 .withId(schedule.getId())
@@ -171,7 +172,7 @@ class ScheduledActionExecutor {
                         .withTimestamp(now)
                         .build()
                 )
-                .withIteration(retried
+                .withIteration(effectivelyRetried
                         ? ExecutionId.nextAttempt(action.getExecutionId())
                         : ExecutionId.nextIteration(action.getExecutionId())
                 )

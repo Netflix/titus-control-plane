@@ -14,27 +14,23 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.api.clustermembership.model;
+package com.netflix.titus.runtime.clustermembership.service;
 
-public enum ClusterMemberLeadershipState {
+import com.netflix.archaius.api.annotations.Configuration;
+import com.netflix.archaius.api.annotations.DefaultValue;
 
-    /**
-     * Member is not part of the leadership process.
-     */
-    Disabled,
+@Configuration(prefix = "titus.clusterMembership")
+public interface ClusterMembershipServiceConfiguration {
 
-    /**
-     * Member is healthy, and participates in the leader election process, but is not the leader yet.
-     */
-    NonLeader,
+    @DefaultValue("1000")
+    long getHealthCheckEvaluationIntervalMs();
 
-    /**
-     * Member is a current leader.
-     */
-    Leader,
+    @DefaultValue("5000")
+    long getHealthCheckEvaluationTimeoutMs();
 
     /**
-     * Leadership state of a member is unknown.
+     * Set to false to remove a member from the leader election process. Has no effect for member that is a leader.
      */
-    Unknown
+    @DefaultValue("true")
+    boolean isLeaderElectionEnabled();
 }
