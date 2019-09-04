@@ -40,6 +40,7 @@ import com.netflix.titus.grpc.protogen.InstanceGroupAttributesUpdate;
 import com.netflix.titus.grpc.protogen.InstanceGroupLifecycleStateUpdate;
 import com.netflix.titus.grpc.protogen.TierUpdate;
 import com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters;
+import com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters2;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcAgentModelConverters;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
