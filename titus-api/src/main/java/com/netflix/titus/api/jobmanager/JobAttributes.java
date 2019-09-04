@@ -55,9 +55,43 @@ public final class JobAttributes {
     public static final String JOB_ATTRIBUTES_SANITIZATION_SKIPPED_IMAGE = JOB_ATTRIBUTE_SANITIZATION_PREFIX + "skipped.image";
 
     /**
+     * Set to true when job runtime prediction fails open
+     */
+    public static final String JOB_ATTRIBUTES_SANITIZATION_SKIPPED_RUNTIME_PREDICTION = JOB_ATTRIBUTE_SANITIZATION_PREFIX + "skipped.runtimePrediction";
+
+    /**
      * Predicted runtime for a particular job in seconds, used in opportunistic CPU scheduling
      */
     public static final String JOB_ATTRIBUTES_RUNTIME_PREDICTION_SEC = PREDICTION_ATTRIBUTE_PREFIX + "predictedRuntimeSec";
+
+    /**
+     * Confidence of the predicted runtime for a particular job
+     */
+    public static final String JOB_ATTRIBUTES_RUNTIME_PREDICTION_CONFIDENCE = PREDICTION_ATTRIBUTE_PREFIX + "confidence";
+
+    /**
+     * Metadata (identifier) about what model generated predictions for a particular job
+     */
+    public static final String JOB_ATTRIBUTES_RUNTIME_PREDICTION_MODEL_ID = PREDICTION_ATTRIBUTE_PREFIX + "modelId";
+
+    /**
+     * Metadata (version) of the service that generated predictions for a particular job
+     */
+    public static final String JOB_ATTRIBUTES_RUNTIME_PREDICTION_VERSION = PREDICTION_ATTRIBUTE_PREFIX + "version";
+
+    /**
+     * All available runtime predictions with their associated confidence, as returned from the predictions service for
+     * a particular job.
+     * <p>
+     * These are informational, if any particular prediction is selected for a job, it will be reflected by
+     * {@link JobAttributes#JOB_ATTRIBUTES_RUNTIME_PREDICTION_SEC} and {@link JobAttributes#JOB_ATTRIBUTES_RUNTIME_PREDICTION_CONFIDENCE}.
+     */
+    public static final String JOB_ATTRIBUTES_RUNTIME_PREDICTION_AVAILABLE = PREDICTION_ATTRIBUTE_PREFIX + "available";
+
+    /**
+     * Allow jobs to completely opt-out of having their runtime automatically predicted during admission
+     */
+    public static final String JOB_PARAMETER_SKIP_RUNTIME_PREDICTION = TITUS_PARAMETER_ATTRIBUTE_PREFIX + "runtimePrediction.skip";
 
     /**
      * (Experimental) allow jobs to request being placed into a particular cell (affinity)
