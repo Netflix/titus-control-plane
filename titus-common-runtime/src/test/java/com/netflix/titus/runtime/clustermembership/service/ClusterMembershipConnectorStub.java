@@ -83,7 +83,7 @@ class ClusterMembershipConnectorStub implements ClusterMembershipConnector {
     public Mono<ClusterMembershipRevision<ClusterMember>> register(Function<ClusterMember, ClusterMembershipRevision<ClusterMember>> selfUpdate) {
         return Mono.fromCallable(() -> {
             this.localMemberRevision = selfUpdate.apply(localMemberRevision.getCurrent());
-            eventProcessor.onNext(ClusterMembershipEvent.memberUpdatedEvent(localMemberRevision));
+            emitEvent(ClusterMembershipEvent.memberUpdatedEvent(localMemberRevision));
             return localMemberRevision;
         });
     }
@@ -100,7 +100,7 @@ class ClusterMembershipConnectorStub implements ClusterMembershipConnector {
             if (state == ClusterMemberLeadershipState.Disabled) {
                 this.localLeadershipRevision = newLocalLeadershipState(ClusterMemberLeadershipState.NonLeader);
             }
-            eventProcessor.onNext(ClusterMembershipEvent.localJoinedElection(localLeadershipRevision));
+            emitEvent(ClusterMembershipEvent.localJoinedElection(localLeadershipRevision));
             return Mono.empty();
         });
     }
@@ -116,7 +116,7 @@ class ClusterMembershipConnectorStub implements ClusterMembershipConnector {
                 return Mono.just(false);
             }
             this.localLeadershipRevision = newLocalLeadershipState(ClusterMemberLeadershipState.Disabled);
-            eventProcessor.onNext(ClusterMembershipEvent.localLeftElection(localLeadershipRevision));
+            emitEvent(ClusterMembershipEvent.localLeftElection(localLeadershipRevision));
             return Mono.just(true);
         });
     }
@@ -131,7 +131,7 @@ class ClusterMembershipConnectorStub implements ClusterMembershipConnector {
 
     void becomeLeader() {
         this.localLeadershipRevision = newLocalLeadershipState(ClusterMemberLeadershipState.Leader);
-        eventProcessor.onNext(ClusterMembershipEvent.localJoinedElection(localLeadershipRevision));
+        emitEvent(ClusterMembershipEvent.localJoinedElection(localLeadershipRevision));
     }
 
     private ClusterMembershipRevision<ClusterMemberLeadership> newLocalLeadershipState(ClusterMemberLeadershipState state) {
@@ -141,5 +141,11 @@ class ClusterMembershipConnectorStub implements ClusterMembershipConnector {
                         .build()
                 )
                 .build();
+    }
+
+    private void emitEvent(ClusterMembershipEvent event) {
+        synchronized (eventProcessor) {
+            eventProcessor.onNext(event);
+        }
     }
 }
