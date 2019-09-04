@@ -20,6 +20,7 @@ import java.time.Duration;
 import java.util.function.Consumer;
 
 import com.netflix.titus.api.clustermembership.service.ClusterMembershipService;
+import com.netflix.titus.client.clustermembership.grpc.ReactorClusterMembershipClient;
 import com.netflix.titus.grpc.protogen.ClusterMember;
 import com.netflix.titus.grpc.protogen.ClusterMembershipEvent;
 import com.netflix.titus.grpc.protogen.ClusterMembershipRevision;
@@ -28,7 +29,6 @@ import com.netflix.titus.grpc.protogen.DeleteMemberLabelsRequest;
 import com.netflix.titus.grpc.protogen.EnableMemberRequest;
 import com.netflix.titus.grpc.protogen.MemberId;
 import com.netflix.titus.grpc.protogen.UpdateMemberLabelsRequest;
-import com.netflix.titus.runtime.clustermembership.client.ReactorClusterMembershipClient;
 import com.netflix.titus.testkit.rx.TitusRxSubscriber;
 import org.junit.Before;
 import org.junit.Rule;

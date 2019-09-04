@@ -27,6 +27,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Preconditions;
 import com.google.rpc.BadRequest;
+import com.netflix.titus.client.common.grpc.GrpcClientErrorUtils;
 import com.netflix.titus.common.util.rx.ObservableExt;
 import com.netflix.titus.runtime.endpoint.v3.grpc.ErrorResponses;
 import io.grpc.StatusRuntimeException;

@@ -30,7 +30,7 @@ import com.netflix.titus.api.clustermembership.model.event.ClusterMembershipChan
 import com.netflix.titus.api.clustermembership.model.event.LeaderElectionChangeEvent;
 import com.netflix.titus.grpc.protogen.ClusterMembershipEvent;
 
-import static com.netflix.titus.runtime.clustermembership.endpoint.grpc.ClusterMembershipGrpcConverters.toGrpcClusterMembershipRevision;
+import static com.netflix.titus.client.clustermembership.grpc.ClusterMembershipGrpcConverters.toGrpcClusterMembershipRevision;
 
 /**
  * At the connector and service level we keep membership data and the leader election process separate. However

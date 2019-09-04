@@ -16,38 +16,28 @@
 
 package com.netflix.titus.testkit.grpc;
 
-import java.util.Optional;
-
 import com.google.protobuf.Any;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.Message;
-import com.google.protobuf.MessageOrBuilder;
 import com.google.rpc.BadRequest;
 import com.google.rpc.DebugInfo;
-import com.google.rpc.Status;
+import com.netflix.titus.client.common.grpc.GrpcClientErrorUtils;
 import com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor;
 import io.grpc.Metadata;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.AbstractStub;
 import io.grpc.stub.MetadataUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import static com.netflix.titus.client.common.grpc.GrpcClientErrorUtils.KEY_TITUS_ERROR_REPORT;
+import static com.netflix.titus.client.common.grpc.GrpcClientErrorUtils.X_TITUS_ERROR;
+import static com.netflix.titus.client.common.grpc.GrpcClientErrorUtils.X_TITUS_ERROR_BIN;
 
 /**
  * Titus GRPC error replies are based on Google RPC model: https://github.com/googleapis/googleapis/tree/master/google/rpc.
  * Additional error context data is encoded in HTTP2 headers. A client is not required to understand and process the error
  * context, but it will provide more insight into the cause of the error.
  */
-public class GrpcClientErrorUtils {
-
-    private static final Logger logger = LoggerFactory.getLogger(GrpcClientErrorUtils.class);
-
-    public static final String X_TITUS_ERROR = "X-Titus-Error";
-    public static final String X_TITUS_ERROR_BIN = "X-Titus-Error-bin";
-
-    public static final Metadata.Key<String> KEY_TITUS_ERROR_REPORT = Metadata.Key.of(X_TITUS_ERROR, Metadata.ASCII_STRING_MARSHALLER);
-    public static final Metadata.Key<byte[]> KEY_TITUS_ERROR_REPORT_BIN = Metadata.Key.of(X_TITUS_ERROR_BIN, Metadata.BINARY_BYTE_MARSHALLER);
+public class TestKitGrpcClientErrorUtils {
 
     public static <STUB extends AbstractStub<STUB>> STUB attachCallHeaders(STUB client) {
         Metadata metadata = new Metadata();
@@ -55,50 +45,6 @@ public class GrpcClientErrorUtils {
         metadata.put(V3HeaderInterceptor.CALL_REASON_KEY, "test call");
         metadata.put(V3HeaderInterceptor.DEBUG_KEY, "true");
         return client.withInterceptors(MetadataUtils.newAttachHeadersInterceptor(metadata));
-    }
-
-    public static Status getStatus(StatusRuntimeException error) {
-        if (error.getTrailers() == null) {
-            return Status.newBuilder().setCode(-1).setMessage(error.getMessage()).build();
-        }
-        try {
-            byte[] data = error.getTrailers().get(KEY_TITUS_ERROR_REPORT_BIN);
-            if (data == null) {
-                return Status.newBuilder().setCode(-1).setMessage(error.getMessage()).build();
-            }
-            return Status.parseFrom(data);
-        } catch (InvalidProtocolBufferException e) {
-            logger.error("Something went wrong with status parsing", e);
-            throw new IllegalArgumentException(e);
-        }
-    }
-
-    public static <D extends MessageOrBuilder> Optional<D> getDetail(StatusRuntimeException error, Class<D> detailType) {
-        Status status = getStatus(error);
-        for (Any any : status.getDetailsList()) {
-            Descriptors.Descriptor descriptor = any.getDescriptorForType();
-            Descriptors.FieldDescriptor typeUrlField = descriptor.findFieldByName("type_url");
-            String typeUrl = (String) any.getField(typeUrlField);
-
-            Class type;
-            if (typeUrl.contains(DebugInfo.class.getSimpleName())) {
-                type = DebugInfo.class;
-            } else if (typeUrl.contains(BadRequest.class.getSimpleName())) {
-                type = BadRequest.class;
-            } else {
-                return Optional.empty();
-            }
-            if (type == detailType) {
-                Message unpack;
-                try {
-                    unpack = any.unpack(type);
-                } catch (InvalidProtocolBufferException e) {
-                    throw new IllegalArgumentException("Cannot unpack error details", e);
-                }
-                return Optional.of((D) unpack);
-            }
-        }
-        return Optional.empty();
     }
 
     public static void printDetails(StatusRuntimeException error) {
@@ -119,7 +65,7 @@ public class GrpcClientErrorUtils {
 
         // GRPC RPC 'Status'
         System.out.println(X_TITUS_ERROR_BIN + ':');
-        getStatus(error).getDetailsList().forEach(GrpcClientErrorUtils::print);
+        GrpcClientErrorUtils.getStatus(error).getDetailsList().forEach(TestKitGrpcClientErrorUtils::print);
     }
 
     private static void print(Any any) {

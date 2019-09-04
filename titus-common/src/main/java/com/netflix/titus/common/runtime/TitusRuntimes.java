@@ -16,6 +16,8 @@
 
 package com.netflix.titus.common.runtime;
 
+import java.time.Duration;
+
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.titus.common.runtime.internal.DefaultTitusRuntime;
 import com.netflix.titus.common.runtime.internal.LoggingSystemAbortListener;
@@ -29,19 +31,26 @@ import rx.schedulers.TestScheduler;
 
 public final class TitusRuntimes {
 
+    private static final Duration LOCAL_SCHEDULER_LOOP_INTERVAL_MS = Duration.ofMillis(100);
+
     private TitusRuntimes() {
     }
 
-    public static TitusRuntime internal() {
+    public static TitusRuntime internal(Duration localSchedulerLoopInterval) {
         return new DefaultTitusRuntime(
                 new LoggingCodePointTracker(),
                 LoggingCodeInvariants.getDefault(),
                 LoggingSystemLogService.getInstance(),
                 LoggingSystemAbortListener.getDefault(),
+                localSchedulerLoopInterval,
                 new DefaultRegistry(),
                 Clocks.system(),
                 false
         );
+    }
+
+    public static TitusRuntime internal() {
+        return internal(LOCAL_SCHEDULER_LOOP_INTERVAL_MS);
     }
 
     public static TitusRuntime internal(boolean fitEnabled) {
@@ -50,6 +59,7 @@ public final class TitusRuntimes {
                 LoggingCodeInvariants.getDefault(),
                 LoggingSystemLogService.getInstance(),
                 LoggingSystemAbortListener.getDefault(),
+                LOCAL_SCHEDULER_LOOP_INTERVAL_MS,
                 new DefaultRegistry(),
                 Clocks.system(),
                 fitEnabled
@@ -62,6 +72,7 @@ public final class TitusRuntimes {
                 new RecordingCodeInvariants(),
                 LoggingSystemLogService.getInstance(),
                 LoggingSystemAbortListener.getDefault(),
+                LOCAL_SCHEDULER_LOOP_INTERVAL_MS,
                 new DefaultRegistry(),
                 Clocks.test(),
                 true
@@ -74,6 +85,7 @@ public final class TitusRuntimes {
                 new RecordingCodeInvariants(),
                 LoggingSystemLogService.getInstance(),
                 LoggingSystemAbortListener.getDefault(),
+                LOCAL_SCHEDULER_LOOP_INTERVAL_MS,
                 new DefaultRegistry(),
                 clock,
                 true
@@ -86,6 +98,7 @@ public final class TitusRuntimes {
                 new RecordingCodeInvariants(),
                 LoggingSystemLogService.getInstance(),
                 LoggingSystemAbortListener.getDefault(),
+                LOCAL_SCHEDULER_LOOP_INTERVAL_MS,
                 new DefaultRegistry(),
                 Clocks.testScheduler(testScheduler),
                 true

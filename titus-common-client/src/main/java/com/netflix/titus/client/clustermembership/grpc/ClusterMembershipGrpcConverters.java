@@ -14,21 +14,32 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.clustermembership.endpoint.grpc;
+package com.netflix.titus.client.clustermembership.grpc;
 
 import java.util.stream.Collectors;
 
 import com.netflix.titus.api.clustermembership.model.ClusterMember;
 import com.netflix.titus.api.clustermembership.model.ClusterMemberAddress;
+import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.grpc.protogen.ClusterMember.LeadershipState;
 import com.netflix.titus.grpc.protogen.ClusterMembershipRevision;
 
 public class ClusterMembershipGrpcConverters {
 
+    /**
+     * TODO Add revision number to GRPC IDL
+     */
+    private static final String REVISION_LABEL = "titus.clusterMembership.revision";
+
     public static ClusterMembershipRevision toGrpcClusterMembershipRevision(com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision<ClusterMember> memberRevision,
                                                                             boolean leader) {
+        ClusterMember tagged = memberRevision.getCurrent().toBuilder()
+                .withLabels(CollectionsExt.copyAndAdd(memberRevision.getCurrent().getLabels(), REVISION_LABEL, "" + memberRevision.getRevision()))
+                .build();
+
         return ClusterMembershipRevision.newBuilder()
-                .setCurrent(toGrpcClusterMember(memberRevision.getCurrent(), leader))
+                .setCurrent(toGrpcClusterMember(tagged, leader))
                 .setCode(memberRevision.getCode())
                 .setMessage(memberRevision.getMessage())
                 .setTimestamp(memberRevision.getTimestamp())
@@ -65,6 +76,42 @@ public class ClusterMembershipGrpcConverters {
                 .setProtocol(address.getProtocol())
                 .setSecure(address.isSecure())
                 .setDescription(address.getDescription())
+                .build();
+    }
+
+    public static com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision<ClusterMember> toCoreClusterMembershipRevision(ClusterMembershipRevision grpcRevision) {
+        String revisionValue = grpcRevision.getCurrent().getLabelsMap().get(REVISION_LABEL);
+        long revision = StringExt.parseLong(revisionValue).orElse(System.currentTimeMillis());
+
+        return com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision.<ClusterMember>newBuilder()
+                .withCurrent(toCoreClusterMember(grpcRevision.getCurrent()))
+                .withCode(grpcRevision.getCode())
+                .withMessage(grpcRevision.getMessage())
+                .withRevision(revision)
+                .withTimestamp(grpcRevision.getTimestamp())
+                .build();
+    }
+
+    private static ClusterMember toCoreClusterMember(com.netflix.titus.grpc.protogen.ClusterMember grpcClusterMember) {
+        return ClusterMember.newBuilder()
+                .withMemberId(grpcClusterMember.getMemberId())
+                .withEnabled(grpcClusterMember.getEnabled())
+                .withRegistered(grpcClusterMember.getRegistered())
+                .withLabels(grpcClusterMember.getLabelsMap())
+                .withClusterMemberAddresses(grpcClusterMember.getAddressesList().stream()
+                        .map(ClusterMembershipGrpcConverters::toCoreClusterMemberAddress)
+                        .collect(Collectors.toList())
+                )
+                .build();
+    }
+
+    private static ClusterMemberAddress toCoreClusterMemberAddress(com.netflix.titus.grpc.protogen.ClusterMemberAddress grpcAddress) {
+        return ClusterMemberAddress.newBuilder()
+                .withIpAddress(grpcAddress.getIpAddress())
+                .withPortNumber(grpcAddress.getPortNumber())
+                .withProtocol(grpcAddress.getProtocol())
+                .withSecure(grpcAddress.getSecure())
+                .withDescription(grpcAddress.getDescription())
                 .build();
     }
 }
