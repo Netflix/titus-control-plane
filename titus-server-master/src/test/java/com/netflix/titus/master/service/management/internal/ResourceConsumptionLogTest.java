@@ -49,7 +49,7 @@ public class ResourceConsumptionLogTest {
         );
         String result = ResourceConsumptionLog.doLog(event);
 
-        String expected = "Resource consumption change: group=myCapacityGroup [below limit] actual=[cpu=1.0, memoryMB=1, diskMB=10, networkMbs=10], max=[cpu=2.0, memoryMB=2, diskMB=20, networkMbs=20], limit=[cpu=3.0, memoryMB=3, diskMB=30, networkMbs=30], attrs={attrKey=attrValue}";
+        String expected = "Resource consumption change: group=myCapacityGroup [below limit] actual=[cpu=1.0, memoryMB=1, diskMB=10, networkMbs=10, gpu=0], max=[cpu=2.0, memoryMB=2, diskMB=20, networkMbs=20, gpu=0], limit=[cpu=3.0, memoryMB=3, diskMB=30, networkMbs=30, gpu=0], attrs={attrKey=attrValue}";
         assertThat(result).isEqualTo(expected);
     }
 
