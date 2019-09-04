@@ -41,16 +41,20 @@ public enum ResourceDimensionSample {
                     .withNetworkMbs(200);
         }
     },
-    SmallWithGpu() {
+    SmallWithGpuAndOpportunistic() {
         @Override
         public Builder builder() {
-            return Small.builder().withGpu(1);
+            return Small.builder()
+                    .withGpu(1)
+                    .withOpportunisticCpus(1);
         }
     },
-    SmallWithGpuX2() {
+    SmallWithGpuAndOpportunisticX2() {
         @Override
         public Builder builder() {
-            return SmallX2.builder().withGpu(2);
+            return SmallX2.builder()
+                    .withGpu(2)
+                    .withOpportunisticCpus(2);
         }
     };
 

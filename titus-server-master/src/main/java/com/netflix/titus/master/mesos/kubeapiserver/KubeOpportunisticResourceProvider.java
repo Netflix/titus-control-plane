@@ -51,7 +51,6 @@ import org.slf4j.LoggerFactory;
 @Singleton
 public class KubeOpportunisticResourceProvider implements OpportunisticCpuAvailabilityProvider {
     private static final Logger logger = LoggerFactory.getLogger(KubeOpportunisticResourceProvider.class);
-    private static final ThreadGroup THREAD_GROUP = new ThreadGroup(KubeOpportunisticResourceProvider.class.getSimpleName());
 
     private static final String OPPORTUNISTIC_RESOURCE_GROUP = "titus.netflix.com";
     private static final String OPPORTUNISTIC_RESOURCE_VERSION = "v1";
@@ -72,8 +71,7 @@ public class KubeOpportunisticResourceProvider implements OpportunisticCpuAvaila
 
         AtomicLong nextThreadNum = new AtomicLong(0);
         informerFactory = new SharedInformerFactory(apiClient, Executors.newCachedThreadPool(runnable -> {
-            Thread thread = new Thread(THREAD_GROUP, runnable,
-                    THREAD_GROUP.getName() + "-" + nextThreadNum.getAndIncrement());
+            Thread thread = new Thread(runnable, KubeOpportunisticResourceProvider.class.getSimpleName() + "-" + nextThreadNum.getAndIncrement());
             thread.setDaemon(true);
             return thread;
         }));
@@ -89,24 +87,24 @@ public class KubeOpportunisticResourceProvider implements OpportunisticCpuAvaila
         informer.addEventHandler(new ResourceEventHandler<V1OpportunisticResource>() {
             @Override
             public void onAdd(V1OpportunisticResource resource) {
-                logger.info("New opportunistic resources available: instance {}, expires at {}, cpus {}",
-                        resource.getInstanceId(), resource.getEnd(), resource.getCpus());
+                logger.info("New opportunistic resources available: instance {}, expires at {}, cpus {}, name {}",
+                        resource.getInstanceId(), resource.getEnd(), resource.getCpus(), resource.getName());
             }
 
             @Override
             public void onUpdate(V1OpportunisticResource old, V1OpportunisticResource update) {
-                logger.info("Opportunistic resources update: instance {}, expires at {}, cpus {}",
-                        update.getInstanceId(), update.getEnd(), update.getCpus());
+                logger.info("Opportunistic resources update: instance {}, expires at {}, cpus {}, name {}",
+                        update.getInstanceId(), update.getEnd(), update.getCpus(), update.getName());
             }
 
             @Override
             public void onDelete(V1OpportunisticResource resource, boolean deletedFinalStateUnknown) {
                 if (deletedFinalStateUnknown) {
-                    logger.info("Stale opportunistic resource deleted, updates for it may have been missed in the past: instance {}, resource {}",
-                            resource.getInstanceId(), resource.getEnd());
+                    logger.info("Stale opportunistic resource deleted, updates for it may have been missed in the past: instance {}, resource {}, name {}",
+                            resource.getInstanceId(), resource.getUid(), resource.getName());
                 } else {
-                    logger.debug("Opportunistic resource GCed: instance {}, resource {}",
-                            resource.getInstanceId(), resource.getUid());
+                    logger.debug("Opportunistic resource GCed: instance {}, resource {}, name {}",
+                            resource.getInstanceId(), resource.getUid(), resource.getName());
                 }
             }
         });

@@ -85,7 +85,7 @@ public class DefaultResourceConsumptionServiceTest {
 
     @Test
     public void testUndefinedCapacityGroupNameEvents() throws Exception {
-        generator.addConsumption(NOT_DEFINED_CAPACITY_GROUP, "myApp", new ResourceDimension(1, 0, 1, 1, 1), new ResourceDimension(2, 0, 2, 2, 2));
+        generator.addConsumption(NOT_DEFINED_CAPACITY_GROUP, "myApp", new ResourceDimension(1, 0, 1, 1, 1, 0), new ResourceDimension(2, 0, 2, 2, 2, 0));
         lastEvaluation.set(generator.getEvaluation());
         testScheduler.advanceTimeBy(DefaultResourceConsumptionService.UPDATE_INTERVAL_MS, TimeUnit.MILLISECONDS);
 

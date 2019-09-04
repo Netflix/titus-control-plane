@@ -16,11 +16,14 @@
 
 package com.netflix.titus.api.model;
 
+import java.util.Objects;
 import javax.validation.constraints.Min;
 
 /**
  * Encapsulates information application or server resources (CPU, memory, disk, etc).
  */
+// TODO: this model is also used to represent resource asks (reservations) and utilization, which have different
+//  requirements (e.g.: not everything that is being utilized was reserved)
 public class ResourceDimension {
 
     @Min(value = 0, message = "'cpu' must be >= 0, but is #{#root}")
@@ -38,12 +41,16 @@ public class ResourceDimension {
     @Min(value = 0, message = "'networkMbs' must be >= 0, but is #{#root}")
     private final long networkMbs;
 
-    public ResourceDimension(double cpu, long gpu, long memoryMB, long diskMB, long networkMbs) {
+    @Min(value = 0, message = "'opportunisticCpu' must be >= 0, but is #{#root}")
+    private final long opportunisticCpu;
+
+    public ResourceDimension(double cpu, long gpu, long memoryMB, long diskMB, long networkMbs, long opportunisticCpu) {
         this.cpu = cpu;
         this.gpu = gpu;
         this.memoryMB = memoryMB;
         this.diskMB = diskMB;
         this.networkMbs = networkMbs;
+        this.opportunisticCpu = opportunisticCpu;
     }
 
     public double getCpu() {
@@ -66,6 +73,10 @@ public class ResourceDimension {
         return networkMbs;
     }
 
+    public long getOpportunisticCpu() {
+        return opportunisticCpu;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -74,35 +85,18 @@ public class ResourceDimension {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
         ResourceDimension that = (ResourceDimension) o;
-
-        if (Double.compare(that.cpu, cpu) != 0) {
-            return false;
-        }
-        if (gpu != that.gpu) {
-            return false;
-        }
-        if (memoryMB != that.memoryMB) {
-            return false;
-        }
-        if (diskMB != that.diskMB) {
-            return false;
-        }
-        return networkMbs == that.networkMbs;
+        return Double.compare(that.cpu, cpu) == 0 &&
+                gpu == that.gpu &&
+                memoryMB == that.memoryMB &&
+                diskMB == that.diskMB &&
+                networkMbs == that.networkMbs &&
+                opportunisticCpu == that.opportunisticCpu;
     }
 
     @Override
     public int hashCode() {
-        int result;
-        long temp;
-        temp = Double.doubleToLongBits(cpu);
-        result = (int) (temp ^ (temp >>> 32));
-        result = 31 * result + (int) (gpu ^ (gpu >>> 32));
-        result = 31 * result + (int) (memoryMB ^ (memoryMB >>> 32));
-        result = 31 * result + (int) (diskMB ^ (diskMB >>> 32));
-        result = 31 * result + (int) (networkMbs ^ (networkMbs >>> 32));
-        return result;
+        return Objects.hash(cpu, gpu, memoryMB, diskMB, networkMbs, opportunisticCpu);
     }
 
     @Override
@@ -113,6 +107,7 @@ public class ResourceDimension {
                 ", memoryMB=" + memoryMB +
                 ", diskMB=" + diskMB +
                 ", networkMbs=" + networkMbs +
+                ", opportunisticCpu=" + opportunisticCpu +
                 '}';
     }
 
@@ -121,7 +116,7 @@ public class ResourceDimension {
     }
 
     public static ResourceDimension empty() {
-        return new ResourceDimension(0, 0, 0, 0, 0);
+        return new ResourceDimension(0, 0, 0, 0, 0, 0);
     }
 
     public static Builder newBuilder() {
@@ -142,6 +137,7 @@ public class ResourceDimension {
         private long memoryMB;
         private long diskMB;
         private long networkMbs;
+        private long opportunisticCpus;
 
         private Builder() {
         }
@@ -171,12 +167,18 @@ public class ResourceDimension {
             return this;
         }
 
+        public Builder withOpportunisticCpus(long cpus) {
+            this.opportunisticCpus = cpus;
+            return this;
+        }
+
         public Builder but() {
-            return newBuilder().withCpus(cpus).withMemoryMB(memoryMB).withDiskMB(diskMB).withNetworkMbs(networkMbs);
+            return newBuilder().withCpus(cpus).withMemoryMB(memoryMB).withDiskMB(diskMB).withNetworkMbs(networkMbs)
+                    .withOpportunisticCpus(opportunisticCpus);
         }
 
         public ResourceDimension build() {
-            return new ResourceDimension(cpus, gpu, memoryMB, diskMB, networkMbs);
+            return new ResourceDimension(cpus, gpu, memoryMB, diskMB, networkMbs, opportunisticCpus);
         }
     }
 }

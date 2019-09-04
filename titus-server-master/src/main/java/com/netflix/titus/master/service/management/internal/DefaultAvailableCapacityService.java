@@ -43,7 +43,6 @@ import com.netflix.titus.master.service.management.CapacityManagementConfigurati
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Scheduler;
-import rx.schedulers.Schedulers;
 
 import static com.netflix.titus.master.service.management.CapacityManagementFunctions.isAvailableToUse;
 
@@ -148,7 +147,7 @@ public class DefaultAvailableCapacityService implements AvailableCapacityService
                 serverInfo.getGpus() * maxSize,
                 serverInfo.getMemoryGB() * 1024 * maxSize,
                 serverInfo.getStorageGB() * 1024 * maxSize,
-                serverInfo.getNetworkMbs() * maxSize
-        );
+                serverInfo.getNetworkMbs() * maxSize,
+                0);
     }
 }

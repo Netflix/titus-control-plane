@@ -61,7 +61,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class JobModelSanitizationTest {
 
-    private static final ResourceDimension MAX_CONTAINER_SIZE = new ResourceDimension(64, 16, 256_000_000, 256_000_000, 10_000);
+    private static final ResourceDimension MAX_CONTAINER_SIZE = new ResourceDimension(64, 16, 256_000_000, 256_000_000, 10_000, 64);
 
     private static final MapConfig CONFIG = MapConfig.from(ImmutableMap.of(
             "titusMaster.job.configuration.defaultSecurityGroups", "sg-12345,sg-34567",
@@ -250,9 +250,9 @@ public class JobModelSanitizationTest {
                 .withContainer(JobModel.newContainer(jobDescriptor.getContainer())
                         .withContainerResources(
                                 JobModel.newContainerResources(jobDescriptor.getContainer().getContainerResources())
-                                .withMemoryMB(1024)
-                                .withShmMB(2048)
-                                .build()
+                                        .withMemoryMB(1024)
+                                        .withShmMB(2048)
+                                        .build()
                         ).build()
                 ).build();
 

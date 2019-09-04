@@ -35,9 +35,9 @@ public class ResourceConsumptionLogTest {
         CompositeResourceConsumption consumption = new CompositeResourceConsumption(
                 "myCapacityGroup",
                 ResourceConsumption.ConsumptionLevel.CapacityGroup,
-                new ResourceDimension(1, 0, 1, 10, 10), // actual
-                new ResourceDimension(2, 0, 2, 20, 20), // max
-                new ResourceDimension(3, 0, 3, 30, 30), // limit
+                new ResourceDimension(1, 0, 1, 10, 10, 0), // actual
+                new ResourceDimension(2, 0, 2, 20, 20, 0), // max
+                new ResourceDimension(3, 0, 3, 30, 30, 0), // limit
                 Collections.singletonMap("attrKey", "attrValue"),
                 Collections.emptyMap(),
                 false
@@ -49,7 +49,7 @@ public class ResourceConsumptionLogTest {
         );
         String result = ResourceConsumptionLog.doLog(event);
 
-        String expected = "Resource consumption change: group=myCapacityGroup [below limit] actual=[cpu=1.0, memoryMB=1, diskMB=10, networkMbs=10, gpu=0], max=[cpu=2.0, memoryMB=2, diskMB=20, networkMbs=20, gpu=0], limit=[cpu=3.0, memoryMB=3, diskMB=30, networkMbs=30, gpu=0], attrs={attrKey=attrValue}";
+        String expected = "Resource consumption change: group=myCapacityGroup [below limit] actual=[cpu=1.0, memoryMB=1, diskMB=10, networkMbs=10, gpu=0, opportunisticCpu=0], max=[cpu=2.0, memoryMB=2, diskMB=20, networkMbs=20, gpu=0, opportunisticCpu=0], limit=[cpu=3.0, memoryMB=3, diskMB=30, networkMbs=30, gpu=0, opportunisticCpu=0], attrs={attrKey=attrValue}";
         assertThat(result).isEqualTo(expected);
     }
 
