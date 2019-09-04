@@ -62,10 +62,11 @@ import rx.schedulers.Schedulers;
  * <p>
  */
 @Singleton
-public class TaskLivenessMetrics {
+public class JobAndTaskMetrics {
 
-    private static final Logger logger = LoggerFactory.getLogger(TaskLivenessMetrics.class);
+    private static final Logger logger = LoggerFactory.getLogger(JobAndTaskMetrics.class);
 
+    private static final String JOBS_METRIC_NAME = MetricConstants.METRIC_ROOT + "jobManager.jobs";
     private static final String TASK_IN_STATE_ROOT_METRIC_NAME = MetricConstants.METRIC_ROOT + "jobManager.taskLiveness.";
     private static final String TASK_IN_STATE_METRIC_NAME = TASK_IN_STATE_ROOT_METRIC_NAME + "duration";
     private static final String TASK_STATE_CHANGE_METRIC_NAME = MetricConstants.METRIC_ROOT + "jobManager.taskStateUpdates";
@@ -98,19 +99,22 @@ public class TaskLivenessMetrics {
     private final Registry registry;
 
     private final Map<String, Map<String, List<Gauge>>> capacityGroupsMetrics = new HashMap<>();
+    private final Id jobCountId;
 
     private Subscription taskLivenessRefreshSubscription;
     private Subscription taskStateUpdateSubscription;
 
     @Inject
-    public TaskLivenessMetrics(ApplicationSlaManagementService applicationSlaManagementService,
-                               V3JobOperations v3JobOperations,
-                               JobManagerConfiguration configuration,
-                               Registry registry) {
+    public JobAndTaskMetrics(ApplicationSlaManagementService applicationSlaManagementService,
+                             V3JobOperations v3JobOperations,
+                             JobManagerConfiguration configuration,
+                             Registry registry) {
         this.applicationSlaManagementService = applicationSlaManagementService;
         this.v3JobOperations = v3JobOperations;
         this.configuration = configuration;
         this.registry = registry;
+
+        this.jobCountId = registry.createId(JOBS_METRIC_NAME);
     }
 
     @Activator
@@ -153,7 +157,9 @@ public class TaskLivenessMetrics {
 
     private void refresh() {
         Map<String, Tier> tierMap = buildTierMap();
-        Map<String, Map<String, Histogram.Builder>> capacityGroupsHistograms = buildCapacityGroupsHistograms(tierMap.keySet());
+        List<Job> jobs = v3JobOperations.getJobs();
+        updateJobCounts(jobs);
+        Map<String, Map<String, Histogram.Builder>> capacityGroupsHistograms = buildCapacityGroupsHistograms(tierMap.keySet(), jobs);
         resetDroppedCapacityGroups(capacityGroupsHistograms.keySet());
         updateCapacityGroupCounters(capacityGroupsHistograms, tierMap);
     }
@@ -223,16 +229,22 @@ public class TaskLivenessMetrics {
     }
 
     /**
+     * Traverse all active jobs and update the count metrics
+     */
+    private void updateJobCounts(List<Job> jobs) {
+        registry.gauge(jobCountId).set(jobs.size());
+    }
+
+    /**
      * Traverse all active tasks and collect their state and the time they stayed in this state (the latter in form of histogram).
      *
      * @return mapOf(capacityGroupName - > mapOf ( taskState, histogram))
      */
-    private Map<String, Map<String, Histogram.Builder>> buildCapacityGroupsHistograms(Set<String> capacityGroups) {
+    private Map<String, Map<String, Histogram.Builder>> buildCapacityGroupsHistograms(Set<String> capacityGroups, List<Job> jobs) {
         Map<String, Map<String, Histogram.Builder>> capacityGroupsHistograms = newCapacityHistograms(capacityGroups);
-        v3JobOperations.getJobs()
-                .forEach(job -> resolveCapacityGroup(job, capacityGroupsHistograms).ifPresent(capacityGroup ->
-                        buildCapacityGroupHistogram(job, capacityGroup, capacityGroupsHistograms)
-                ));
+        jobs.forEach(job -> resolveCapacityGroup(job, capacityGroupsHistograms).ifPresent(capacityGroup ->
+                buildCapacityGroupHistogram(job, capacityGroup, capacityGroupsHistograms)
+        ));
         return capacityGroupsHistograms;
     }
 
