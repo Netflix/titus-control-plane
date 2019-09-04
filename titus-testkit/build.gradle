@@ -4,6 +4,7 @@ dependencies {
     compile project(':titus-server-master')
     compile project(':titus-server-gateway')
     compile project(':titus-server-federation')
+    compile project(':titus-common-testkit')
     compile project(':titus-ext-cassandra-testkit')
     compile "commons-cli:commons-cli:${apacheCommonsCliVersion}"
 

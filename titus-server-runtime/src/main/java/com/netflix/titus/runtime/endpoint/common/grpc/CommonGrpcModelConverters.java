@@ -21,7 +21,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import com.netflix.titus.api.model.Page;
 import com.netflix.titus.api.service.TitusServiceException;
@@ -34,9 +33,6 @@ import com.netflix.titus.grpc.protogen.Pagination;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.runtime.endpoint.JobQueryCriteria;
-import com.netflix.titus.api.jobmanager.model.CallMetadata;
-import com.netflix.titus.api.jobmanager.model.Caller;
-import com.netflix.titus.api.jobmanager.model.CallerType;
 
 import static com.netflix.titus.common.util.CollectionsExt.asSet;
 import static com.netflix.titus.common.util.CollectionsExt.copyAndRemove;
@@ -58,70 +54,6 @@ public class CommonGrpcModelConverters {
             "jobType", "attributes", "attributes.op", "labels", "labels.op", "jobState", "taskStates", "taskStateReasons",
             "needsMigration"
     );
-
-    public static CallMetadata toCallMetadata(com.netflix.titus.grpc.protogen.CallMetadata grpcCallContext) {
-        return CallMetadata.newBuilder()
-                .withCallerId(grpcCallContext.getCallerId())
-                .withCallReason(grpcCallContext.getCallReason())
-                .withCallPath(grpcCallContext.getCallPathList())
-                .withCallers(grpcCallContext.getCallersList().stream().map(CommonGrpcModelConverters::toCoreCaller).collect(Collectors.toList()))
-                .withDebug(grpcCallContext.getDebug())
-                .build();
-    }
-
-    public static CallerType toCoreCallerType(com.netflix.titus.grpc.protogen.CallMetadata.CallerType grpcCallerType) {
-        switch (grpcCallerType) {
-            case Application:
-                return CallerType.Application;
-            case User:
-                return CallerType.User;
-            case Unknown:
-            case UNRECOGNIZED:
-            default:
-                return CallerType.Unknown;
-        }
-    }
-
-    private static Caller toCoreCaller(com.netflix.titus.grpc.protogen.CallMetadata.Caller grpcCaller) {
-        return Caller.newBuilder()
-                .withId(grpcCaller.getId())
-                .withCallerType(toCoreCallerType(grpcCaller.getType()))
-                .withContext(grpcCaller.getContextMap())
-                .build();
-    }
-
-    public static com.netflix.titus.grpc.protogen.CallMetadata toGrpcCallMetadata(CallMetadata callMetadata) {
-        return com.netflix.titus.grpc.protogen.CallMetadata.newBuilder()
-                .setCallerId(callMetadata.getCallerId())
-                .addAllCallers(callMetadata.getCallers().stream().map(CommonGrpcModelConverters::toGrpcCaller).collect(Collectors.toList()))
-                .setCallReason(callMetadata.getCallReason())
-                .addAllCallPath(callMetadata.getCallPath())
-                .setDebug(callMetadata.isDebug())
-                .build();
-    }
-
-    private static com.netflix.titus.grpc.protogen.CallMetadata.CallerType toGrpcCallerType(CallerType callerType) {
-        if (callerType == null) {
-            return com.netflix.titus.grpc.protogen.CallMetadata.CallerType.Unknown;
-        }
-        switch (callerType) {
-            case Application:
-                return com.netflix.titus.grpc.protogen.CallMetadata.CallerType.Application;
-            case User:
-                return com.netflix.titus.grpc.protogen.CallMetadata.CallerType.User;
-            case Unknown:
-            default:
-                return com.netflix.titus.grpc.protogen.CallMetadata.CallerType.Unknown;
-        }
-    }
-
-    private static com.netflix.titus.grpc.protogen.CallMetadata.Caller toGrpcCaller(Caller coreCaller) {
-        return com.netflix.titus.grpc.protogen.CallMetadata.Caller.newBuilder()
-                .setId(coreCaller.getId())
-                .setType(toGrpcCallerType(coreCaller.getCallerType()))
-                .putAllContext(coreCaller.getContext())
-                .build();
-    }
 
     public static Page toPage(com.netflix.titus.grpc.protogen.Page grpcPage) {
         return new Page(grpcPage.getPageNumber(), grpcPage.getPageSize(), grpcPage.getCursor());

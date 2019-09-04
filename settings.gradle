@@ -1,6 +1,9 @@
 rootProject.name = 'titus'
-include 'titus-api',\
-        'titus-common',\
+include 'titus-common',\
+        'titus-common-api',\
+        'titus-common-runtime',\
+        'titus-common-testkit',\
+        'titus-api',\
         'titus-grpc-api',\
         'titus-server-gateway',\
         'titus-server-master',\
