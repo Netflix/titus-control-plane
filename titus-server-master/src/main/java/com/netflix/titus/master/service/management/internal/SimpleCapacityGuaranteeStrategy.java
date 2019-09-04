@@ -79,6 +79,10 @@ public class SimpleCapacityGuaranteeStrategy implements CapacityGuaranteeStrateg
         return new CapacityAllocations(instanceAllocations, resourceShortage);
     }
 
+    /**
+     * This implementation assumes that capacityRequirements never specify a gpu dimension, since instances with GPUs
+     * are not autoscaled, and are removed from the evaluation.
+     */
     private Optional<ResourceDimension> allocate(Tier tier,
                                                  CapacityRequirements capacityRequirements,
                                                  Map<AgentInstanceGroup, Integer> instanceAllocations) {
@@ -105,6 +109,7 @@ public class SimpleCapacityGuaranteeStrategy implements CapacityGuaranteeStrateg
             int instancesAvailable = instanceGroup.getMax() - instancesUsed;
 
             if (instancesAvailable > 0) {
+                // IMPORTANT: gpu are not considered, so GPUs can never be in capacity requirements (reserved)
                 int instanceRequired = (int) ResourceDimensions.divideAndRoundUp(left, instanceResources);
                 if (instanceRequired <= instancesAvailable) {
                     instanceAllocations.put(instanceGroup, instancesUsed + instanceRequired);
