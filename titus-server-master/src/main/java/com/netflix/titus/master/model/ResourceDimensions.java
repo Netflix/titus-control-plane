@@ -45,17 +45,20 @@ public class ResourceDimensions {
         long memorySum = 0;
         long diskSum = 0;
         long networkSum = 0;
+        long gpuSum = 0;
         for (ResourceDimension part : parts) {
             cpuSum += part.getCpu();
             memorySum += part.getMemoryMB();
             diskSum += part.getDiskMB();
             networkSum += part.getNetworkMbs();
+            gpuSum += part.getGpu();
         }
         return ResourceDimension.newBuilder()
                 .withCpus(cpuSum)
                 .withMemoryMB(memorySum)
                 .withDiskMB(diskSum)
                 .withNetworkMbs(networkSum)
+                .withGpu(gpuSum)
                 .build();
     }
 
@@ -77,6 +80,7 @@ public class ResourceDimensions {
                 .withMemoryMB(Math.max(0, left.getMemoryMB() - right.getMemoryMB()))
                 .withDiskMB(Math.max(0, left.getDiskMB() - right.getDiskMB()))
                 .withNetworkMbs(Math.max(0, left.getNetworkMbs() - right.getNetworkMbs()))
+                .withGpu(Math.max(0, left.getGpu() - right.getGpu()))
                 .build();
     }
 
@@ -89,6 +93,7 @@ public class ResourceDimensions {
                 .withMemoryMB((long) Math.ceil(base.getMemoryMB() * multiplier))
                 .withDiskMB((long) Math.ceil(base.getDiskMB() * multiplier))
                 .withNetworkMbs((long) Math.ceil(base.getNetworkMbs() * multiplier))
+                .withGpu((long) Math.ceil(base.getGpu() * multiplier))
                 .build();
     }
 
@@ -111,6 +116,10 @@ public class ResourceDimensions {
             Preconditions.checkArgument(right.getNetworkMbs() != 0, "NetworkMbs: division by 0");
             multiplier = Math.max(multiplier, left.getNetworkMbs() / right.getNetworkMbs());
         }
+        if (left.getGpu() != 0) {
+            Preconditions.checkArgument(right.getGpu() != 0, "GPU: division by 0");
+            multiplier = Math.max(multiplier, left.getGpu() / right.getGpu());
+        }
 
         if (multiplier == 0) { // left is empty
             return Pair.of(0L, ResourceDimension.empty());
@@ -131,6 +140,7 @@ public class ResourceDimensions {
                         .withMemoryMB(Math.max(0, left.getMemoryMB() - right.getMemoryMB() * full))
                         .withDiskMB(Math.max(0, left.getDiskMB() - right.getDiskMB() * full))
                         .withNetworkMbs(Math.max(0, left.getNetworkMbs() - right.getNetworkMbs() * full))
+                        .withGpu(Math.max(0, left.getGpu() - right.getGpu() * full))
                         .build()
         );
     }
@@ -141,8 +151,8 @@ public class ResourceDimensions {
     }
 
     /**
-     * Align source {@link ResourceDimension} resources, to match resource ratios from the reference entity, by
-     * adding additional allocations where needed.
+     * Align source {@link ResourceDimension} resources, to match resource ratios (cpu and memory) from the reference
+     * entity, by adding additional allocations where needed.
      */
     public static ResourceDimension alignUp(ResourceDimension source, ResourceDimension reference) {
         double cpuRatio = source.getCpu() / reference.getCpu();
@@ -154,9 +164,10 @@ public class ResourceDimensions {
         if (cpuRatio > memoryRatio) {
             return ResourceDimension.newBuilder()
                     .withCpus(source.getCpu())
-                    .withMemoryMB((int) (reference.getMemoryMB() * cpuRatio))
-                    .withDiskMB((int) (reference.getDiskMB() * cpuRatio))
-                    .withNetworkMbs((int) (reference.getNetworkMbs() * cpuRatio))
+                    .withMemoryMB((long) (reference.getMemoryMB() * cpuRatio))
+                    .withDiskMB((long) (reference.getDiskMB() * cpuRatio))
+                    .withNetworkMbs((long) (reference.getNetworkMbs() * cpuRatio))
+                    .withGpu((long) (reference.getGpu() * cpuRatio))
                     .build();
         }
 
@@ -164,8 +175,9 @@ public class ResourceDimensions {
         return ResourceDimension.newBuilder()
                 .withCpus(reference.getCpu() * memoryRatio)
                 .withMemoryMB(source.getMemoryMB())
-                .withDiskMB((int) (reference.getDiskMB() * memoryRatio))
-                .withNetworkMbs((int) (reference.getNetworkMbs() * memoryRatio))
+                .withDiskMB((long) (reference.getDiskMB() * memoryRatio))
+                .withNetworkMbs((long) (reference.getNetworkMbs() * memoryRatio))
+                .withGpu((long) (reference.getGpu() * memoryRatio))
                 .build();
     }
 
@@ -185,7 +197,7 @@ public class ResourceDimensions {
         if (dimension.getNetworkMbs() < subDimension.getNetworkMbs()) {
             return false;
         }
-        return true;
+        return dimension.getGpu() >= subDimension.getGpu();
     }
 
     public static StringBuilder format(ResourceDimension input, StringBuilder output) {
@@ -193,6 +205,7 @@ public class ResourceDimensions {
         output.append(", memoryMB=").append(input.getMemoryMB());
         output.append(", diskMB=").append(input.getDiskMB());
         output.append(", networkMbs=").append(input.getNetworkMbs());
+        output.append(", gpu=").append(input.getGpu());
         output.append(']');
         return output;
     }
@@ -207,6 +220,7 @@ public class ResourceDimensions {
                 .withMemoryMB(serverInfo.getMemoryGB() * 1024)
                 .withDiskMB(serverInfo.getStorageGB() * 1024)
                 .withNetworkMbs(serverInfo.getNetworkMbs())
+                .withGpu(serverInfo.getGpus())
                 .build();
     }
 
@@ -233,9 +247,9 @@ public class ResourceDimensions {
     public static ResourceDimension fromResAllocs(ResAllocs resAllocs) {
         return ResourceDimension.newBuilder()
                 .withCpus(resAllocs.getCores())
-                .withMemoryMB((int) resAllocs.getMemory())
-                .withDiskMB((int) resAllocs.getDisk())
-                .withNetworkMbs((int) resAllocs.getNetworkMbps())
+                .withMemoryMB((long) resAllocs.getMemory())
+                .withDiskMB((long) resAllocs.getDisk())
+                .withNetworkMbs((long) resAllocs.getNetworkMbps())
                 .build();
     }
 }

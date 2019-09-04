@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
+import com.netflix.spectator.api.patterns.PolledMeter;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.service.management.CompositeResourceConsumption;
@@ -33,8 +34,6 @@ import com.netflix.titus.master.service.management.ResourceConsumption;
 
 import static com.netflix.titus.common.util.CollectionsExt.copyAndRemove;
 
-/**
- */
 class ResourceConsumptionServiceMetrics {
 
     private final Id rootId;
@@ -125,7 +124,7 @@ class ResourceConsumptionServiceMetrics {
         metrics.update(groupConsumption.getAllowedConsumption());
     }
 
-    private enum ResourceType {Cpu, Memory, Disk, Network}
+    private enum ResourceType {Cpu, Memory, Disk, Network, Gpu}
 
     private class ResourceMetrics {
         private final Map<ResourceType, AtomicLong> usage;
@@ -137,7 +136,9 @@ class ResourceConsumptionServiceMetrics {
         private Map<ResourceType, AtomicLong> initialize(Id id) {
             Map<ResourceType, AtomicLong> result = new EnumMap<>(ResourceType.class);
             for (ResourceType rt : ResourceType.values()) {
-                result.put(rt, registry.gauge(id.withTag("resourceType", rt.name()), new AtomicLong()));
+                result.put(rt, PolledMeter.using(registry)
+                        .withId(id.withTag("resourceType", rt.name()))
+                        .monitorValue(new AtomicLong()));
             }
             return result;
         }
@@ -147,6 +148,7 @@ class ResourceConsumptionServiceMetrics {
             usage.get(ResourceType.Memory).set(consumption.getMemoryMB());
             usage.get(ResourceType.Disk).set(consumption.getDiskMB());
             usage.get(ResourceType.Network).set(consumption.getNetworkMbs());
+            usage.get(ResourceType.Gpu).set(consumption.getGpu());
         }
 
         private void reset() {

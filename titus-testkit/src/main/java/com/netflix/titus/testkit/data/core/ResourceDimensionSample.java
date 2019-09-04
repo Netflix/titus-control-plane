@@ -29,7 +29,6 @@ public enum ResourceDimensionSample {
                     .withMemoryMB(1024)
                     .withDiskMB(100)
                     .withNetworkMbs(100);
-
         }
     },
     SmallX2() {
@@ -40,7 +39,18 @@ public enum ResourceDimensionSample {
                     .withMemoryMB(2048)
                     .withDiskMB(200)
                     .withNetworkMbs(200);
-
+        }
+    },
+    SmallWithGpu() {
+        @Override
+        public Builder builder() {
+            return Small.builder().withGpu(1);
+        }
+    },
+    SmallWithGpuX2() {
+        @Override
+        public Builder builder() {
+            return SmallX2.builder().withGpu(2);
         }
     };
 
