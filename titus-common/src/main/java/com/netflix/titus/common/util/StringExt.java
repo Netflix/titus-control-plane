@@ -495,4 +495,12 @@ public final class StringExt {
             return Optional.empty();
         }
     }
+
+    public static Optional<Double> parseDouble(String s) {
+        try {
+            return Optional.of(Double.parseDouble(s));
+        } catch (NumberFormatException e) {
+            return Optional.empty();
+        }
+    }
 }

@@ -507,12 +507,19 @@ public final class JobFunctions {
                 .flatMap(StringExt::parseInt);
     }
 
+    /**
+     * Jobs can include a fractional runtime duration prediction in seconds, which are parsed with millisecond resolution.
+     *
+     * @return a duration (if present) with millisecond resolution
+     * @see JobAttributes#JOB_ATTRIBUTES_RUNTIME_PREDICTION_SEC
+     */
     public static Optional<Duration> getJobRuntimePrediction(Job job) {
         if (!isBatchJob(job)) {
             return Optional.empty();
         }
         return Optional.ofNullable(((Job<?>) job).getJobDescriptor().getAttributes().get(JobAttributes.JOB_ATTRIBUTES_RUNTIME_PREDICTION_SEC))
-                .flatMap(StringExt::parseLong)
-                .map(Duration::ofSeconds);
+                .flatMap(StringExt::parseDouble)
+                .map(seconds -> ((long) (seconds * 1000))) // seconds -> milliseconds
+                .map(Duration::ofMillis);
     }
 }
