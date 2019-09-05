@@ -112,6 +112,7 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 import rx.Observable;
 import rx.Subscription;
+import rx.schedulers.Schedulers;
 
 import static com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_STRICT_SANITIZER;
 import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toGrpcPagination;
@@ -619,6 +620,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
         V3TaskQueryCriteriaEvaluator tasksPredicate = new V3TaskQueryCriteriaEvaluator(criteria, titusRuntime);
 
         Observable<JobChangeNotification> eventStream = jobOperations.observeJobs(jobsPredicate, tasksPredicate)
+                .observeOn(Schedulers.io())
                 .map(event -> V3GrpcModelConverters.toGrpcJobChangeNotification(event, logStorageInfo))
                 .compose(ObservableExt.head(() -> {
                     List<JobChangeNotification> snapshot = createJobsSnapshot(jobsPredicate, tasksPredicate);
@@ -646,6 +648,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     public void observeJob(JobId request, StreamObserver<JobChangeNotification> responseObserver) {
         String jobId = request.getId();
         Observable<JobChangeNotification> eventStream = jobOperations.observeJob(jobId)
+                .observeOn(Schedulers.io())
                 .map(event -> V3GrpcModelConverters.toGrpcJobChangeNotification(event, logStorageInfo))
                 .compose(ObservableExt.head(() -> {
                     List<JobChangeNotification> snapshot = createJobSnapshot(jobId);

@@ -34,7 +34,6 @@ import com.netflix.titus.api.FeatureActivationConfiguration;
 import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.CallMetadata;
-import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.CapacityAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobCompatibility;
@@ -90,6 +89,7 @@ import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
+import rx.BackpressureOverflow;
 import rx.Completable;
 import rx.Observable;
 import rx.Subscription;
@@ -103,6 +103,7 @@ import static com.netflix.titus.common.util.FunctionExt.alwaysTrue;
 public class DefaultV3JobOperations implements V3JobOperations {
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultV3JobOperations.class);
+    private static final int OBSERVE_JOBS_BACKPRESSURE_BUFFER_SIZE = 1024;
 
     enum IndexKind {StatusCreationTime}
 
@@ -152,21 +153,33 @@ public class DefaultV3JobOperations implements V3JobOperations {
         this.transactionLoggerSubscription = JobTransactionLogger.logEvents(reconciliationFramework);
 
         // Remove finished jobs from the reconciliation framework.
-        this.reconcilerEventSubscription = reconciliationFramework.events().subscribe(
-                event -> {
-                    if (event instanceof JobModelUpdateReconcilerEvent) {
-                        JobModelUpdateReconcilerEvent jobUpdateEvent = (JobModelUpdateReconcilerEvent) event;
-                        handleJobCompletedEvent(jobUpdateEvent.getChangedEntityHolder());
+        Observable<JobManagerReconcilerEvent> reconciliationEventsObservable = reconciliationFramework.events()
+                .onBackpressureBuffer(
+                        OBSERVE_JOBS_BACKPRESSURE_BUFFER_SIZE,
+                        () -> logger.warn("Overflowed the buffer size: " + OBSERVE_JOBS_BACKPRESSURE_BUFFER_SIZE),
+                        BackpressureOverflow.ON_OVERFLOW_ERROR
+                ).doOnSubscribe(() -> {
+                    List<EntityHolder> entityHolders = reconciliationFramework.orderedView(IndexKind.StatusCreationTime);
+                    for (EntityHolder entityHolder : entityHolders) {
+                        handleJobCompletedEvent(entityHolder);
                     }
-                },
-                e -> logger.error("Event stream terminated with an error", e),
-                () -> logger.info("Event stream completed")
-        );
+                });
+        this.reconcilerEventSubscription = titusRuntime.persistentStream(reconciliationEventsObservable)
+                .subscribe(
+                        event -> {
+                            if (event instanceof JobModelUpdateReconcilerEvent) {
+                                JobModelUpdateReconcilerEvent jobUpdateEvent = (JobModelUpdateReconcilerEvent) event;
+                                handleJobCompletedEvent(jobUpdateEvent.getChangedEntityHolder());
+                            }
+                        },
+                        e -> logger.error("Event stream terminated with an error", e),
+                        () -> logger.info("Event stream completed")
+                );
 
         reconciliationFramework.start();
     }
 
-    private boolean handleJobCompletedEvent(EntityHolder changedEntityHolder) {
+    private void handleJobCompletedEvent(EntityHolder changedEntityHolder) {
         if (changedEntityHolder.getEntity() instanceof Job) {
             Job<?> job = changedEntityHolder.getEntity();
             if (job.getStatus().getState() == JobState.Finished) {
@@ -179,11 +192,9 @@ public class DefaultV3JobOperations implements V3JobOperations {
                                     e -> logger.warn("Could not remove reconciliation engine of job {}", jobId, e)
                             )
                     );
-                    return true;
                 }
             }
         }
-        return false;
     }
 
     @PreDestroy
@@ -511,7 +522,13 @@ public class DefaultV3JobOperations implements V3JobOperations {
     @Override
     public Observable<JobManagerEvent<?>> observeJobs(Predicate<Pair<Job<?>, List<Task>>> jobsPredicate,
                                                       Predicate<Pair<Job<?>, Task>> tasksPredicate) {
-        return toJobManagerEvents(reconciliationFramework.events(), jobsPredicate, tasksPredicate);
+        Observable<JobManagerReconcilerEvent> events = reconciliationFramework.events()
+                .onBackpressureBuffer(
+                        OBSERVE_JOBS_BACKPRESSURE_BUFFER_SIZE,
+                        () -> logger.warn("Overflowed the buffer size: " + OBSERVE_JOBS_BACKPRESSURE_BUFFER_SIZE),
+                        BackpressureOverflow.ON_OVERFLOW_ERROR
+                );
+        return toJobManagerEvents(events, jobsPredicate, tasksPredicate);
     }
 
     @Override
