@@ -110,6 +110,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     private static final int DELETE_GRACE_PERIOD_SECONDS = 300;
     private static final int NODE_GC_TTL_MS = 60_000;
     private static final int ORPHANED_POD_TIMEOUT_MS = 60_000;
+    private static final Quantity DEFAULT_QUANTITY = Quantity.fromString("0");
 
     private static final String POST = "POST";
     private static final String GET = "GET";
@@ -290,6 +291,12 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                     limits.put("titus/network", new Quantity(value));
                     break;
                 }
+                case "gpu": {
+                    String value = String.valueOf(resource.getScalar().getValue());
+                    requests.put("titus/gpu", new Quantity(value));
+                    limits.put("titus/gpu", new Quantity(value));
+                    break;
+                }
             }
         }
         return new V1ResourceRequirements()
@@ -453,10 +460,11 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         V1NodeStatus status = node.getStatus();
         Map<String, Quantity> allocatableResources = status.getAllocatable();
         List<Protos.Resource> resources = new ArrayList<>();
-        resources.add(createResource("cpus", allocatableResources.get("cpu").getNumber().doubleValue()));
-        resources.add(createResource("mem", allocatableResources.get("memory").getNumber().doubleValue()));
-        resources.add(createResource("disk", allocatableResources.get("storage").getNumber().doubleValue()));
-        resources.add(createResource("network", allocatableResources.get("network").getNumber().doubleValue()));
+        resources.add(createResource("cpus", allocatableResources.getOrDefault("cpu", DEFAULT_QUANTITY).getNumber().doubleValue()));
+        resources.add(createResource("mem", allocatableResources.getOrDefault("memory", DEFAULT_QUANTITY).getNumber().doubleValue()));
+        resources.add(createResource("disk", allocatableResources.getOrDefault("storage", DEFAULT_QUANTITY).getNumber().doubleValue()));
+        resources.add(createResource("network", allocatableResources.getOrDefault("network", DEFAULT_QUANTITY).getNumber().doubleValue()));
+        resources.add(createResource("gpu", allocatableResources.getOrDefault("gpu", DEFAULT_QUANTITY).getNumber().doubleValue()));
         return resources;
     }
 
