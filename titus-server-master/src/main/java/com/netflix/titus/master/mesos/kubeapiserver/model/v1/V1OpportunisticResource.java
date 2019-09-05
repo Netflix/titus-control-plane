@@ -137,4 +137,11 @@ public class V1OpportunisticResource {
         }
         return spec.getCapacity().getCpu();
     }
+
+    public String getName() {
+        if (metadata == null || metadata.getName() == null) {
+            return "";
+        }
+        return metadata.getName();
+    }
 }

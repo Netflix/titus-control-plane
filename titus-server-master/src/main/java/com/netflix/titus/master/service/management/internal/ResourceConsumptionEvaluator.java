@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -133,7 +134,7 @@ class ResourceConsumptionEvaluator {
             Job job = jobsAndTasks.getLeft();
             List<Task> tasks = jobsAndTasks.getRight();
 
-            ResourceDimension taskResources = toResourceDimension(job);
+            ResourceDimension taskResources = toResourceDimension(job, tasks);
             int max = getMaxJobSize(job);
 
             Map<String, Object> tasksStates = getWorkerStateMap(tasks);
@@ -227,15 +228,21 @@ class ResourceConsumptionEvaluator {
     }
 
     @VisibleForTesting
-    static ResourceDimension toResourceDimension(Job<?> job) {
+    static ResourceDimension toResourceDimension(Job<?> job, List<Task> tasks) {
         ContainerResources containerResources = job.getJobDescriptor().getContainer().getContainerResources();
+        long opportunisticCpus = tasks.stream()
+                .map(JobFunctions::getOpportunisticCpuCount)
+                .filter(Optional::isPresent)
+                .mapToLong(Optional::get)
+                .sum();
+
         return new ResourceDimension(
                 containerResources.getCpu(),
                 containerResources.getGpu(),
                 containerResources.getMemoryMB(),
                 containerResources.getDiskMB(),
-                containerResources.getNetworkMbps()
-        );
+                containerResources.getNetworkMbps(),
+                opportunisticCpus);
     }
 
     private List<Task> getRunningWorkers(List<Task> tasks) {

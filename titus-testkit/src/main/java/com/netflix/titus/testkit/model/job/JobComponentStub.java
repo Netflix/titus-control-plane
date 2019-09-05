@@ -118,10 +118,10 @@ public class JobComponentStub {
         return Pair.of(job, tasks);
     }
 
-    public Job createJobAndTasks(String templateId, BiConsumer<Job, List<Task>> processor) {
+    public Pair<Job, List<Task>> createJobAndTasks(String templateId, BiConsumer<Job, List<Task>> processor) {
         Pair<Job, List<Task>> pair = createJobAndTasks(templateId);
         processor.accept(pair.getLeft(), pair.getRight());
-        return pair.getLeft();
+        return pair;
     }
 
     public List<Pair<Job, List<Task>>> creteMultipleJobsAndTasks(String... templateIds) {

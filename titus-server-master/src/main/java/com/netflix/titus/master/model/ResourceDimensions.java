@@ -46,12 +46,14 @@ public class ResourceDimensions {
         long diskSum = 0;
         long networkSum = 0;
         long gpuSum = 0;
+        long opportunisticCpuSum = 0;
         for (ResourceDimension part : parts) {
             cpuSum += part.getCpu();
             memorySum += part.getMemoryMB();
             diskSum += part.getDiskMB();
             networkSum += part.getNetworkMbs();
             gpuSum += part.getGpu();
+            opportunisticCpuSum += part.getOpportunisticCpu();
         }
         return ResourceDimension.newBuilder()
                 .withCpus(cpuSum)
@@ -59,6 +61,7 @@ public class ResourceDimensions {
                 .withDiskMB(diskSum)
                 .withNetworkMbs(networkSum)
                 .withGpu(gpuSum)
+                .withOpportunisticCpus(opportunisticCpuSum)
                 .build();
     }
 
@@ -81,6 +84,7 @@ public class ResourceDimensions {
                 .withDiskMB(Math.max(0, left.getDiskMB() - right.getDiskMB()))
                 .withNetworkMbs(Math.max(0, left.getNetworkMbs() - right.getNetworkMbs()))
                 .withGpu(Math.max(0, left.getGpu() - right.getGpu()))
+                .withOpportunisticCpus(Math.max(0, left.getOpportunisticCpu() - right.getOpportunisticCpu()))
                 .build();
     }
 
@@ -94,6 +98,7 @@ public class ResourceDimensions {
                 .withDiskMB((long) Math.ceil(base.getDiskMB() * multiplier))
                 .withNetworkMbs((long) Math.ceil(base.getNetworkMbs() * multiplier))
                 .withGpu((long) Math.ceil(base.getGpu() * multiplier))
+                .withOpportunisticCpus((long) Math.ceil(base.getOpportunisticCpu() * multiplier))
                 .build();
     }
 
@@ -120,6 +125,10 @@ public class ResourceDimensions {
             Preconditions.checkArgument(right.getGpu() != 0, "GPU: division by 0");
             multiplier = Math.max(multiplier, left.getGpu() / right.getGpu());
         }
+        if (left.getOpportunisticCpu() != 0) {
+            Preconditions.checkArgument(right.getOpportunisticCpu() != 0, "Opportunistic CPU: division by 0");
+            multiplier = Math.max(multiplier, left.getOpportunisticCpu() / right.getOpportunisticCpu());
+        }
 
         if (multiplier == 0) { // left is empty
             return Pair.of(0L, ResourceDimension.empty());
@@ -133,14 +142,14 @@ public class ResourceDimensions {
 
         long full = (long) multiplier;
 
-        return Pair.of(
-                full,
+        return Pair.of(full,
                 ResourceDimension.newBuilder()
                         .withCpus(Math.max(0, left.getCpu() - right.getCpu() * full))
                         .withMemoryMB(Math.max(0, left.getMemoryMB() - right.getMemoryMB() * full))
                         .withDiskMB(Math.max(0, left.getDiskMB() - right.getDiskMB() * full))
                         .withNetworkMbs(Math.max(0, left.getNetworkMbs() - right.getNetworkMbs() * full))
                         .withGpu(Math.max(0, left.getGpu() - right.getGpu() * full))
+                        .withOpportunisticCpus(Math.max(0, left.getOpportunisticCpu() - right.getOpportunisticCpu() * full))
                         .build()
         );
     }
@@ -168,6 +177,7 @@ public class ResourceDimensions {
                     .withDiskMB((long) (reference.getDiskMB() * cpuRatio))
                     .withNetworkMbs((long) (reference.getNetworkMbs() * cpuRatio))
                     .withGpu((long) (reference.getGpu() * cpuRatio))
+                    .withOpportunisticCpus((long) (reference.getOpportunisticCpu() * cpuRatio))
                     .build();
         }
 
@@ -178,6 +188,7 @@ public class ResourceDimensions {
                 .withDiskMB((long) (reference.getDiskMB() * memoryRatio))
                 .withNetworkMbs((long) (reference.getNetworkMbs() * memoryRatio))
                 .withGpu((long) (reference.getGpu() * memoryRatio))
+                .withOpportunisticCpus((long) (reference.getOpportunisticCpu() * memoryRatio))
                 .build();
     }
 
@@ -185,19 +196,12 @@ public class ResourceDimensions {
      * Check if all resources from the second argument are below or equal to resources from the first argument.
      */
     public static boolean isBigger(ResourceDimension dimension, ResourceDimension subDimension) {
-        if (dimension.getCpu() < subDimension.getCpu()) {
-            return false;
-        }
-        if (dimension.getMemoryMB() < subDimension.getMemoryMB()) {
-            return false;
-        }
-        if (dimension.getDiskMB() < subDimension.getDiskMB()) {
-            return false;
-        }
-        if (dimension.getNetworkMbs() < subDimension.getNetworkMbs()) {
-            return false;
-        }
-        return dimension.getGpu() >= subDimension.getGpu();
+        return dimension.getCpu() >= subDimension.getCpu() &&
+                dimension.getMemoryMB() >= subDimension.getMemoryMB() &&
+                dimension.getDiskMB() >= subDimension.getDiskMB() &&
+                dimension.getNetworkMbs() >= subDimension.getNetworkMbs() &&
+                dimension.getGpu() >= subDimension.getGpu() &&
+                dimension.getOpportunisticCpu() >= subDimension.getOpportunisticCpu();
     }
 
     public static StringBuilder format(ResourceDimension input, StringBuilder output) {
@@ -206,6 +210,7 @@ public class ResourceDimensions {
         output.append(", diskMB=").append(input.getDiskMB());
         output.append(", networkMbs=").append(input.getNetworkMbs());
         output.append(", gpu=").append(input.getGpu());
+        output.append(", opportunisticCpu=").append(input.getOpportunisticCpu());
         output.append(']');
         return output;
     }

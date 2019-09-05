@@ -31,32 +31,32 @@ public class ResourceDimensionsTest {
 
     @Test
     public void testResourceDimensionAddition() throws Exception {
-        ResourceDimension small = ResourceDimensionSample.SmallWithGpu.build();
-        ResourceDimension expected = ResourceDimensionSample.SmallWithGpuX2.build();
+        ResourceDimension small = ResourceDimensionSample.SmallWithGpuAndOpportunistic.build();
+        ResourceDimension expected = ResourceDimensionSample.SmallWithGpuAndOpportunisticX2.build();
 
         assertThat(ResourceDimensions.add(small, small)).isEqualTo(expected);
     }
 
     @Test
     public void testResourceDimensionSubtraction() throws Exception {
-        ResourceDimension large = ResourceDimensionSample.SmallWithGpuX2.build();
-        ResourceDimension small = ResourceDimensionSample.SmallWithGpu.build();
+        ResourceDimension large = ResourceDimensionSample.SmallWithGpuAndOpportunisticX2.build();
+        ResourceDimension small = ResourceDimensionSample.SmallWithGpuAndOpportunistic.build();
 
         assertThat(ResourceDimensions.subtractPositive(large, small)).isEqualTo(small);
     }
 
     @Test
     public void testResourceDimensionMultiplication() throws Exception {
-        ResourceDimension small = ResourceDimensionSample.SmallWithGpu.build();
-        ResourceDimension expected = ResourceDimensionSample.SmallWithGpuX2.build();
+        ResourceDimension small = ResourceDimensionSample.SmallWithGpuAndOpportunistic.build();
+        ResourceDimension expected = ResourceDimensionSample.SmallWithGpuAndOpportunisticX2.build();
 
         assertThat(ResourceDimensions.multiply(small, 2)).isEqualTo(expected);
     }
 
     @Test
     public void testResourceDimensionDivide() throws Exception {
-        ResourceDimension large = ResourceDimensionSample.SmallWithGpuX2.build();
-        ResourceDimension small = ResourceDimensionSample.SmallWithGpu.build();
+        ResourceDimension large = ResourceDimensionSample.SmallWithGpuAndOpportunisticX2.build();
+        ResourceDimension small = ResourceDimensionSample.SmallWithGpuAndOpportunistic.build();
 
         Pair<Long, ResourceDimension> result = ResourceDimensions.divide(large, small);
         assertThat(result.getLeft()).isEqualTo(2);
@@ -65,9 +65,9 @@ public class ResourceDimensionsTest {
 
     @Test
     public void testResourceDimensionDivideAndRoundUp() throws Exception {
-        ResourceDimension large = ResourceDimensionSample.SmallWithGpuX2.build();
-        ResourceDimension largePlus = ResourceDimensionSample.SmallWithGpuX2.builder().withCpus(large.getCpu() + 1).build();
-        ResourceDimension small = ResourceDimensionSample.SmallWithGpu.build();
+        ResourceDimension large = ResourceDimensionSample.SmallWithGpuAndOpportunisticX2.build();
+        ResourceDimension largePlus = ResourceDimensionSample.SmallWithGpuAndOpportunisticX2.builder().withCpus(large.getCpu() + 1).build();
+        ResourceDimension small = ResourceDimensionSample.SmallWithGpuAndOpportunistic.build();
 
         assertThat(ResourceDimensions.divideAndRoundUp(large, small)).isEqualTo(2);
         assertThat(ResourceDimensions.divideAndRoundUp(largePlus, small)).isEqualTo(3);
@@ -75,16 +75,16 @@ public class ResourceDimensionsTest {
 
     @Test
     public void testAligningUpToHigherCPU() throws Exception {
-        ResourceDimension small2X = ResourceDimensionSample.SmallWithGpuX2.build();
-        ResourceDimension original = ResourceDimensionSample.SmallWithGpu.builder().withCpus(small2X.getCpu()).build();
+        ResourceDimension small2X = ResourceDimensionSample.SmallWithGpuAndOpportunisticX2.build();
+        ResourceDimension original = ResourceDimensionSample.SmallWithGpuAndOpportunistic.builder().withCpus(small2X.getCpu()).build();
 
         assertThat(ResourceDimensions.alignUp(original, small2X)).isEqualTo(small2X);
     }
 
     @Test
     public void testAligningUpToHigherMemory() throws Exception {
-        ResourceDimension small2X = ResourceDimensionSample.SmallWithGpuX2.build();
-        ResourceDimension original = ResourceDimensionSample.SmallWithGpu.builder().withMemoryMB(small2X.getMemoryMB()).build();
+        ResourceDimension small2X = ResourceDimensionSample.SmallWithGpuAndOpportunisticX2.build();
+        ResourceDimension original = ResourceDimensionSample.SmallWithGpuAndOpportunistic.builder().withMemoryMB(small2X.getMemoryMB()).build();
 
         assertThat(ResourceDimensions.alignUp(original, small2X)).isEqualTo(small2X);
     }

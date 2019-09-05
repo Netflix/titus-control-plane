@@ -16,6 +16,7 @@
 
 package com.netflix.titus.master.service.management.internal;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
@@ -23,12 +24,14 @@ import java.util.function.Function;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
+import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.model.ResourceDimensions;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import com.netflix.titus.master.service.management.CompositeResourceConsumption;
@@ -74,25 +77,31 @@ public class ResourceConsumptionEvaluatorTest {
         when(applicationSlaManagementService.getApplicationSLAs()).thenReturn(asList(ConsumptionModelGenerator.DEFAULT_SLA, ConsumptionModelGenerator.CRITICAL_SLA_1, ConsumptionModelGenerator.NOT_USED_SLA));
 
         // Job with defined capacity group SLA
-        Job goodCapacityJob = newJob(
+        Pair<Job, List<Task>> goodCapacity = newJob(
                 "goodCapacityJob",
                 jd -> jd.toBuilder().withCapacityGroup(ConsumptionModelGenerator.CRITICAL_SLA_1.getAppName()).build()
         );
+        Job goodCapacityJob = goodCapacity.getLeft();
+        List<Task> goodCapacityTasks = goodCapacity.getRight();
 
         // Job without appName defined
-        Job noAppNameJob = newJob(
+        Pair<Job, List<Task>> noAppName = newJob(
                 "badCapacityJob",
                 jd -> jd.toBuilder()
                         .withApplicationName("")
                         .withCapacityGroup(ConsumptionModelGenerator.DEFAULT_SLA.getAppName())
                         .build()
         );
+        Job noAppNameJob = noAppName.getLeft();
+        List<Task> noAppNameTasks = noAppName.getRight();
 
         // Job with capacity group for which SLA is not defined
-        Job badCapacityJob = newJob(
+        Pair<Job, List<Task>> badCapacity = newJob(
                 "goodCapacityJob",
                 jd -> jd.toBuilder().withCapacityGroup("missingCapacityGroup").build()
         );
+        Job badCapacityJob = badCapacity.getLeft();
+        List<Task> badCapacityTasks = badCapacity.getRight();
 
         // Evaluate
         ResourceConsumptionEvaluator evaluator = new ResourceConsumptionEvaluator(applicationSlaManagementService, v3JobOperations);
@@ -108,7 +117,7 @@ public class ResourceConsumptionEvaluatorTest {
         CompositeResourceConsumption criticalConsumption = (CompositeResourceConsumption) findConsumption(
                 systemConsumption, Tier.Critical.name(), ConsumptionModelGenerator.CRITICAL_SLA_1.getAppName()
         ).get();
-        assertThat(criticalConsumption.getCurrentConsumption()).isEqualTo(toResourceDimension(goodCapacityJob)); // We have single worker in Started state
+        assertThat(criticalConsumption.getCurrentConsumption()).isEqualTo(toResourceDimension(goodCapacityJob, goodCapacityTasks)); // We have single worker in Started state
 
         assertThat(criticalConsumption.getAllowedConsumption()).isEqualTo(ConsumptionModelGenerator.capacityGroupLimit(ConsumptionModelGenerator.CRITICAL_SLA_1));
         assertThat(criticalConsumption.isAboveLimit()).isTrue();
@@ -117,9 +126,10 @@ public class ResourceConsumptionEvaluatorTest {
         CompositeResourceConsumption defaultConsumption = (CompositeResourceConsumption) findConsumption(
                 systemConsumption, Tier.Flex.name(), ConsumptionModelGenerator.DEFAULT_SLA.getAppName()
         ).get();
-        assertThat(defaultConsumption.getCurrentConsumption()).isEqualTo(
-                ResourceDimensions.add(toResourceDimension(noAppNameJob), toResourceDimension(badCapacityJob))
-        );
+        assertThat(defaultConsumption.getCurrentConsumption()).isEqualTo(ResourceDimensions.add(
+                toResourceDimension(noAppNameJob, noAppNameTasks),
+                toResourceDimension(badCapacityJob, badCapacityTasks)
+        ));
 
         assertThat(defaultConsumption.getAllowedConsumption()).isEqualTo(ConsumptionModelGenerator.capacityGroupLimit(ConsumptionModelGenerator.DEFAULT_SLA));
         assertThat(defaultConsumption.isAboveLimit()).isFalse();
@@ -133,7 +143,7 @@ public class ResourceConsumptionEvaluatorTest {
         assertThat(notUsedConsumption.isAboveLimit()).isFalse();
     }
 
-    private Job newJob(String name, Function<JobDescriptor, JobDescriptor> transformer) {
+    private Pair<Job, List<Task>> newJob(String name, Function<JobDescriptor, JobDescriptor> transformer) {
         jobComponentStub.addJobTemplate(name, JobDescriptorGenerator.serviceJobDescriptors()
                 .map(jd -> jd.but(self -> self.getContainer().but(c -> CONTAINER_RESOURCES)))
                 .map(transformer::apply)

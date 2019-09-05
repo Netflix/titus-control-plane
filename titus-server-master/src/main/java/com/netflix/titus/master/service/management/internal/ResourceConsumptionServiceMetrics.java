@@ -124,7 +124,7 @@ class ResourceConsumptionServiceMetrics {
         metrics.update(groupConsumption.getAllowedConsumption());
     }
 
-    private enum ResourceType {Cpu, Memory, Disk, Network, Gpu}
+    private enum ResourceType {Cpu, Memory, Disk, Network, Gpu, OpportunisticCpu}
 
     private class ResourceMetrics {
         private final Map<ResourceType, AtomicLong> usage;
@@ -149,6 +149,7 @@ class ResourceConsumptionServiceMetrics {
             usage.get(ResourceType.Disk).set(consumption.getDiskMB());
             usage.get(ResourceType.Network).set(consumption.getNetworkMbs());
             usage.get(ResourceType.Gpu).set(consumption.getGpu());
+            usage.get(ResourceType.OpportunisticCpu).set(consumption.getOpportunisticCpu());
         }
 
         private void reset() {
