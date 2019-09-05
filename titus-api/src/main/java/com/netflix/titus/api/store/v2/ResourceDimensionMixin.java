@@ -17,8 +17,10 @@
 package com.netflix.titus.api.store.v2;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public abstract class ResourceDimensionMixin {
 
     @JsonCreator
@@ -26,6 +28,7 @@ public abstract class ResourceDimensionMixin {
                                   @JsonProperty("gpu") long gpu,
                                   @JsonProperty("memoryMB") long memoryMB,
                                   @JsonProperty("diskMB") long diskMB,
-                                  @JsonProperty("networkMbs") long networkMbs) {
+                                  @JsonProperty("networkMbs") long networkMbs,
+                                  @JsonProperty("opportunisticCpu") long opportunisticCpu) {
     }
 }
