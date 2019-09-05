@@ -153,7 +153,18 @@ public class DefaultV3JobOperations implements V3JobOperations {
         this.transactionLoggerSubscription = JobTransactionLogger.logEvents(reconciliationFramework);
 
         // Remove finished jobs from the reconciliation framework.
-        this.reconcilerEventSubscription = titusRuntime.persistentStream(reconciliationFramework.events().onBackpressureBuffer())
+        Observable<JobManagerReconcilerEvent> reconciliationEventsObservable = reconciliationFramework.events()
+                .onBackpressureBuffer(
+                        OBSERVE_JOBS_BACKPRESSURE_BUFFER_SIZE,
+                        () -> logger.warn("Overflowed the buffer size: " + OBSERVE_JOBS_BACKPRESSURE_BUFFER_SIZE),
+                        BackpressureOverflow.ON_OVERFLOW_ERROR
+                ).doOnSubscribe(() -> {
+                    List<EntityHolder> entityHolders = reconciliationFramework.orderedView(IndexKind.StatusCreationTime);
+                    for (EntityHolder entityHolder : entityHolders) {
+                        handleJobCompletedEvent(entityHolder);
+                    }
+                });
+        this.reconcilerEventSubscription = titusRuntime.persistentStream(reconciliationEventsObservable)
                 .subscribe(
                         event -> {
                             if (event instanceof JobModelUpdateReconcilerEvent) {
@@ -512,9 +523,11 @@ public class DefaultV3JobOperations implements V3JobOperations {
     public Observable<JobManagerEvent<?>> observeJobs(Predicate<Pair<Job<?>, List<Task>>> jobsPredicate,
                                                       Predicate<Pair<Job<?>, Task>> tasksPredicate) {
         Observable<JobManagerReconcilerEvent> events = reconciliationFramework.events()
-                .onBackpressureBuffer(OBSERVE_JOBS_BACKPRESSURE_BUFFER_SIZE, () -> {
-                    logger.warn("Overflowed the buffer size: " + OBSERVE_JOBS_BACKPRESSURE_BUFFER_SIZE);
-                }, BackpressureOverflow.ON_OVERFLOW_ERROR);
+                .onBackpressureBuffer(
+                        OBSERVE_JOBS_BACKPRESSURE_BUFFER_SIZE,
+                        () -> logger.warn("Overflowed the buffer size: " + OBSERVE_JOBS_BACKPRESSURE_BUFFER_SIZE),
+                        BackpressureOverflow.ON_OVERFLOW_ERROR
+                );
         return toJobManagerEvents(events, jobsPredicate, tasksPredicate);
     }
 
