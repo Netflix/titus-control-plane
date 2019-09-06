@@ -64,7 +64,7 @@ public final class Archaius2Ext {
      * by providing key/value pairs as parameters.
      */
     public static <C> C newConfiguration(Class<C> configType, String... keyValuePairs) {
-        if(keyValuePairs.length == 0) {
+        if (keyValuePairs.length == 0) {
             return DEFAULT_CONFIG_PROXY_FACTORY.newProxy(configType);
         }
 
@@ -72,11 +72,19 @@ public final class Archaius2Ext {
 
         Map<String, String> props = new HashMap<>();
         int len = keyValuePairs.length / 2;
-        for(int i = 0; i < len; i++) {
+        for (int i = 0; i < len; i++) {
             props.put(keyValuePairs[i * 2], keyValuePairs[i * 2 + 1]);
         }
         Config config = new MapConfig(props);
         return newConfiguration(configType, config);
+    }
+
+    /**
+     * Create Archaius based configuration object initialized with default values. Overrides can be provided
+     * via the properties parameter.
+     */
+    public static <C> C newConfiguration(Class<C> configType, Map<String, String> properties) {
+        return newConfiguration(configType, new MapConfig(properties));
     }
 
     /**

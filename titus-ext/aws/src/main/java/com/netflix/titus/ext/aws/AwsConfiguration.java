@@ -63,4 +63,17 @@ public interface AwsConfiguration {
      */
     @DefaultValue("60000")
     long getIamRoleCacheTimeoutMs();
+
+    /**
+     * IAM role ARN to assume into to access AWS API for the data plane account. If not set, it is assumed that
+     * the control plane and the data plane run in the same account and no cross access is required.
+     */
+    @DefaultValue("")
+    String getDataPlaneRoleArn();
+
+    @DefaultValue("titusDataPlaneClient")
+    String getDataPlaneRoleSessionName();
+
+    @DefaultValue("3600")
+    int getDataPlaneRoleSessionDurationSeconds();
 }

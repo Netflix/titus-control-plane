@@ -23,17 +23,22 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import com.amazonaws.auth.EnvironmentVariableCredentialsProvider;
+import com.amazonaws.auth.AWSCredentialsProvider;
+import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.autoscaling.AmazonAutoScalingAsyncClientBuilder;
 import com.amazonaws.services.ec2.AmazonEC2AsyncClientBuilder;
+import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceAsync;
 import com.google.common.base.Stopwatch;
+import com.google.common.collect.ImmutableMap;
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.titus.api.connector.cloud.Instance;
 import com.netflix.titus.api.connector.cloud.InstanceGroup;
 import com.netflix.titus.api.connector.cloud.InstanceLaunchConfiguration;
 import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.common.util.SystemExt;
+import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.common.util.tuple.Either;
 
 import static com.netflix.titus.common.util.CollectionsExt.asSet;
@@ -48,43 +53,12 @@ public class Main {
     private static final Set<String> ALL_COMMANDS = asSet("all", "sg", "instancesByInstanceGroupId", "instance",
             "terminate", "shrink", "tag", "tagged", "reaper", "scaleUp", "scaleDown");
 
-    private static final AwsConfiguration CONFIGURATION = new AwsConfiguration() {
-
-        @Override
-        public String getTitusMasterAsgName() {
-            return "TitusMaster";
-        }
-
-        @Override
-        public String getRegion() {
-            return REGION;
-        }
-
-        @Override
-        public long getInstanceGroupsFetchTimeoutMs() {
-            return 300_000;
-        }
-
-        @Override
-        public long getInstancesByInstanceGroupIdFetchTimeoutMs() {
-            return 60_000;
-        }
-
-        @Override
-        public long getAwsRequestTimeoutMs() {
-            return 30_000;
-        }
-
-        @Override
-        public long getReaperIntervalMs() {
-            return 10_000;
-        }
-
-        @Override
-        public long getIamRoleCacheTimeoutMs() {
-            return 60_000;
-        }
-    };
+    private static final AwsConfiguration CONFIGURATION = Archaius2Ext.newConfiguration(AwsConfiguration.class,
+            ImmutableMap.<String, String>builder()
+                    .put("titus.ext.aws.region", REGION)
+                    .putAll(SystemExt.getSystemPropertyMap())
+                    .build()
+    );
 
     private final AwsInstanceCloudConnector connector;
 
@@ -101,7 +75,11 @@ public class Main {
         List<InstanceGroup> instanceGroups = createConnector().getInstanceGroups(ids).toBlocking().first();
         System.out.println("Loaded instance groups: " + instanceGroups);
 
-        List<InstanceLaunchConfiguration> launchConfigurations = createConnector().getInstanceLaunchConfiguration(instanceGroups.stream().map(g -> g.getLaunchConfigurationName()).collect(Collectors.toList())).toBlocking().first();
+        List<String> names = instanceGroups.stream().map(InstanceGroup::getLaunchConfigurationName).collect(Collectors.toList());
+        List<InstanceLaunchConfiguration> launchConfigurations = createConnector()
+                .getInstanceLaunchConfiguration(names)
+                .toBlocking()
+                .first();
         System.out.println("Launch configurations: " + launchConfigurations);
     }
 
@@ -251,7 +229,10 @@ public class Main {
     }
 
     private static AwsInstanceCloudConnector createConnector() {
-        EnvironmentVariableCredentialsProvider credentialsProvider = new EnvironmentVariableCredentialsProvider();
+        AWSCredentialsProvider baseCredentials = new ProfileCredentialsProvider("default");
+        AWSSecurityTokenServiceAsync stsClient = new AmazonStsAsyncProvider(CONFIGURATION, baseCredentials).get();
+        AWSCredentialsProvider credentialsProvider = new DataPlaneAccountCredentialsProvider(CONFIGURATION, stsClient, baseCredentials).get();
+
         Region currentRegion = Regions.getCurrentRegion();
         if (currentRegion == null) {
             currentRegion = Region.getRegion(Regions.US_EAST_1);
