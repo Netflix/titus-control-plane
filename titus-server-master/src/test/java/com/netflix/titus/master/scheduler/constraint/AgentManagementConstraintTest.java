@@ -171,10 +171,10 @@ public class AgentManagementConstraintTest {
         AgentInstance instance = createAgentInstance(INSTANCE_GROUP_ID);
         when(agentManagementService.findAgentInstance(INSTANCE_ID)).thenReturn(Optional.of(instance));
         AgentInstanceGroup agentInstanceGroup = createAgentInstanceGroup(InstanceGroupLifecycleState.Active,
-                Tier.Flex, Collections.singletonMap(SchedulerAttributes.TAINTS, "b"));
+                Tier.Flex, Collections.singletonMap(SchedulerAttributes.TAINTS, "b,c"));
         when(agentManagementService.findInstanceGroup(INSTANCE_GROUP_ID)).thenReturn(Optional.of(agentInstanceGroup));
         JobDescriptor<BatchJobExt> descriptor = oneTaskBatchJobDescriptor()
-                .but(jd -> jd.toBuilder().withAttributes(Collections.singletonMap(JOB_PARAMETER_ATTRIBUTES_TOLERATIONS, "a,b")));
+                .but(jd -> jd.toBuilder().withAttributes(Collections.singletonMap(JOB_PARAMETER_ATTRIBUTES_TOLERATIONS, "a,b,c")));
         Job<BatchJobExt> job = JobGenerator.batchJobs(descriptor).getValue();
         TaskRequest taskRequest = createTaskRequest(job);
         Result result = agentManagementConstraint.evaluate(taskRequest,
@@ -184,12 +184,12 @@ public class AgentManagementConstraintTest {
 
     @Test
     public void taintsAndInstanceTolerationsMatch() {
-        AgentInstance instance = createAgentInstance(INSTANCE_GROUP_ID, Collections.singletonMap(SchedulerAttributes.TAINTS, "b"));
+        AgentInstance instance = createAgentInstance(INSTANCE_GROUP_ID, Collections.singletonMap(SchedulerAttributes.TAINTS, "b,c"));
         when(agentManagementService.findAgentInstance(INSTANCE_ID)).thenReturn(Optional.of(instance));
         AgentInstanceGroup agentInstanceGroup = createAgentInstanceGroup(InstanceGroupLifecycleState.Active, Tier.Flex);
         when(agentManagementService.findInstanceGroup(INSTANCE_GROUP_ID)).thenReturn(Optional.of(agentInstanceGroup));
         JobDescriptor<BatchJobExt> descriptor = oneTaskBatchJobDescriptor()
-                .but(jd -> jd.toBuilder().withAttributes(Collections.singletonMap(JOB_PARAMETER_ATTRIBUTES_TOLERATIONS, "a,b")));
+                .but(jd -> jd.toBuilder().withAttributes(Collections.singletonMap(JOB_PARAMETER_ATTRIBUTES_TOLERATIONS, "a,b,c")));
         Job<BatchJobExt> job = JobGenerator.batchJobs(descriptor).getValue();
         TaskRequest taskRequest = createTaskRequest(job);
         Result result = agentManagementConstraint.evaluate(taskRequest,
@@ -199,13 +199,13 @@ public class AgentManagementConstraintTest {
 
     @Test
     public void taintsAndTolerationsDoNotMatch() {
-        AgentInstance instance = createAgentInstance(INSTANCE_GROUP_ID, Collections.singletonMap(SchedulerAttributes.TAINTS, "c,d"));
+        AgentInstance instance = createAgentInstance(INSTANCE_GROUP_ID, Collections.singletonMap(SchedulerAttributes.TAINTS, "b,d"));
         when(agentManagementService.findAgentInstance(INSTANCE_ID)).thenReturn(Optional.of(instance));
         AgentInstanceGroup agentInstanceGroup = createAgentInstanceGroup(InstanceGroupLifecycleState.Active, Tier.Flex,
                 Collections.singletonMap(SchedulerAttributes.TAINTS, "b,c"));
         when(agentManagementService.findInstanceGroup(INSTANCE_GROUP_ID)).thenReturn(Optional.of(agentInstanceGroup));
         JobDescriptor<BatchJobExt> descriptor = oneTaskBatchJobDescriptor()
-                .but(jd -> jd.toBuilder().withAttributes(Collections.singletonMap(JOB_PARAMETER_ATTRIBUTES_TOLERATIONS, "a")));
+                .but(jd -> jd.toBuilder().withAttributes(Collections.singletonMap(JOB_PARAMETER_ATTRIBUTES_TOLERATIONS, "a,b")));
         Job<BatchJobExt> job = JobGenerator.batchJobs(descriptor).getValue();
         TaskRequest taskRequest = createTaskRequest(job);
         Result result = agentManagementConstraint.evaluate(taskRequest,

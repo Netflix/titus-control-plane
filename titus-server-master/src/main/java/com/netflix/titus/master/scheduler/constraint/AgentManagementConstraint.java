@@ -219,12 +219,12 @@ public class AgentManagementConstraint implements SystemConstraint {
         }
 
         for (String taint : taints) {
-            if (tolerations.contains(taint)) {
-                return true;
+            if (!tolerations.contains(taint)) {
+                return false;
             }
         }
 
-        return false;
+        return true;
     }
 
     private Set<String> getTolerations(V3QueueableTask taskRequest) {
