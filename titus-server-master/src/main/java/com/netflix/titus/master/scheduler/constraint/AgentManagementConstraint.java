@@ -214,17 +214,7 @@ public class AgentManagementConstraint implements SystemConstraint {
     private boolean taskCanTolerateTaints(V3QueueableTask taskRequest, AgentInstanceGroup instanceGroup, AgentInstance instance) {
         Set<String> taints = getTaints(instanceGroup, instance);
         Set<String> tolerations = getTolerations(taskRequest);
-        if (taints.isEmpty() && tolerations.isEmpty()) {
-            return true;
-        }
-
-        for (String taint : taints) {
-            if (!tolerations.contains(taint)) {
-                return false;
-            }
-        }
-
-        return true;
+        return tolerations.containsAll(taints);
     }
 
     private Set<String> getTolerations(V3QueueableTask taskRequest) {
