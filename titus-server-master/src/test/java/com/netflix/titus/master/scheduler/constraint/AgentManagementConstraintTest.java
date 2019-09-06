@@ -31,18 +31,27 @@ import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleStatus;
+import com.netflix.titus.api.agent.model.InstanceLifecycleState;
+import com.netflix.titus.api.agent.model.InstanceLifecycleStatus;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.agent.service.AgentStatusMonitor;
+import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import com.netflix.titus.master.scheduler.SchedulerAttributes;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
+import com.netflix.titus.testkit.model.job.JobGenerator;
 import org.apache.mesos.Protos;
 import org.junit.Before;
 import org.junit.Test;
 
+import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_TOLERATIONS;
+import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskBatchJobDescriptor;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -59,6 +68,7 @@ public class AgentManagementConstraintTest {
     @Before
     public void setUp() throws Exception {
         when(schedulerConfiguration.getInstanceAttributeName()).thenReturn("id");
+        when(agentStatusMonitor.isHealthy(any())).thenReturn(true);
     }
 
     @Test
@@ -125,10 +135,12 @@ public class AgentManagementConstraintTest {
         when(agentManagementService.findAgentInstance(INSTANCE_ID)).thenReturn(Optional.of(instance));
         AgentInstanceGroup agentInstanceGroup = createAgentInstanceGroup(InstanceGroupLifecycleState.Active, Tier.Flex);
         when(agentManagementService.findInstanceGroup(INSTANCE_GROUP_ID)).thenReturn(Optional.of(agentInstanceGroup));
-        TaskRequest taskRequest = createTaskRequest();
-        HashMap<String, Double> scalars = new HashMap<>();
-        scalars.put("gpu", 1.0);
-        when(taskRequest.getScalarRequests()).thenReturn(scalars);
+        JobDescriptor<BatchJobExt> descriptor = oneTaskBatchJobDescriptor()
+                .but(jd -> jd.getContainer().but(c -> c.toBuilder().withContainerResources(
+                        c.getContainerResources().toBuilder().withGpu(1).build()
+                )));
+        Job<BatchJobExt> gpuBatchJob = JobGenerator.batchJobs(descriptor).getValue();
+        TaskRequest taskRequest = createTaskRequest(gpuBatchJob);
         Result result = agentManagementConstraint.evaluate(taskRequest,
                 createVirtualMachineCurrentStateMock(INSTANCE_ID), mock(TaskTrackerState.class));
         assertThat(result.isSuccessful()).isFalse();
@@ -141,13 +153,65 @@ public class AgentManagementConstraintTest {
         when(agentManagementService.findAgentInstance(INSTANCE_ID)).thenReturn(Optional.of(instance));
         AgentInstanceGroup agentInstanceGroup = createAgentInstanceGroup(InstanceGroupLifecycleState.Active, Tier.Flex, 1);
         when(agentManagementService.findInstanceGroup(INSTANCE_GROUP_ID)).thenReturn(Optional.of(agentInstanceGroup));
-        TaskRequest taskRequest = createTaskRequest();
-        HashMap<String, Double> scalars = new HashMap<>();
-        when(taskRequest.getScalarRequests()).thenReturn(scalars);
+
+        JobDescriptor<BatchJobExt> descriptor = oneTaskBatchJobDescriptor()
+                .but(jd -> jd.getContainer().but(c -> c.toBuilder().withContainerResources(
+                        c.getContainerResources().toBuilder().withGpu(0).build()
+                )));
+        Job<BatchJobExt> gpuBatchJob = JobGenerator.batchJobs(descriptor).getValue();
+        TaskRequest taskRequest = createTaskRequest(gpuBatchJob);
         Result result = agentManagementConstraint.evaluate(taskRequest,
                 createVirtualMachineCurrentStateMock(INSTANCE_ID), mock(TaskTrackerState.class));
         assertThat(result.isSuccessful()).isFalse();
         assertThat(result.getFailureReason()).isEqualToIgnoringCase("Instance group does not run non gpu tasks");
+    }
+
+    @Test
+    public void taintsAndInstanceGroupTolerationsMatch() {
+        AgentInstance instance = createAgentInstance(INSTANCE_GROUP_ID);
+        when(agentManagementService.findAgentInstance(INSTANCE_ID)).thenReturn(Optional.of(instance));
+        AgentInstanceGroup agentInstanceGroup = createAgentInstanceGroup(InstanceGroupLifecycleState.Active,
+                Tier.Flex, Collections.singletonMap(SchedulerAttributes.TAINTS, "b"));
+        when(agentManagementService.findInstanceGroup(INSTANCE_GROUP_ID)).thenReturn(Optional.of(agentInstanceGroup));
+        JobDescriptor<BatchJobExt> descriptor = oneTaskBatchJobDescriptor()
+                .but(jd -> jd.toBuilder().withAttributes(Collections.singletonMap(JOB_PARAMETER_ATTRIBUTES_TOLERATIONS, "a,b")));
+        Job<BatchJobExt> job = JobGenerator.batchJobs(descriptor).getValue();
+        TaskRequest taskRequest = createTaskRequest(job);
+        Result result = agentManagementConstraint.evaluate(taskRequest,
+                createVirtualMachineCurrentStateMock(INSTANCE_ID), mock(TaskTrackerState.class));
+        assertThat(result.isSuccessful()).isTrue();
+    }
+
+    @Test
+    public void taintsAndInstanceTolerationsMatch() {
+        AgentInstance instance = createAgentInstance(INSTANCE_GROUP_ID, Collections.singletonMap(SchedulerAttributes.TAINTS, "b"));
+        when(agentManagementService.findAgentInstance(INSTANCE_ID)).thenReturn(Optional.of(instance));
+        AgentInstanceGroup agentInstanceGroup = createAgentInstanceGroup(InstanceGroupLifecycleState.Active, Tier.Flex);
+        when(agentManagementService.findInstanceGroup(INSTANCE_GROUP_ID)).thenReturn(Optional.of(agentInstanceGroup));
+        JobDescriptor<BatchJobExt> descriptor = oneTaskBatchJobDescriptor()
+                .but(jd -> jd.toBuilder().withAttributes(Collections.singletonMap(JOB_PARAMETER_ATTRIBUTES_TOLERATIONS, "a,b")));
+        Job<BatchJobExt> job = JobGenerator.batchJobs(descriptor).getValue();
+        TaskRequest taskRequest = createTaskRequest(job);
+        Result result = agentManagementConstraint.evaluate(taskRequest,
+                createVirtualMachineCurrentStateMock(INSTANCE_ID), mock(TaskTrackerState.class));
+        assertThat(result.isSuccessful()).isTrue();
+    }
+
+    @Test
+    public void taintsAndTolerationsDoNotMatch() {
+        AgentInstance instance = createAgentInstance(INSTANCE_GROUP_ID, Collections.singletonMap(SchedulerAttributes.TAINTS, "c,d"));
+        when(agentManagementService.findAgentInstance(INSTANCE_ID)).thenReturn(Optional.of(instance));
+        AgentInstanceGroup agentInstanceGroup = createAgentInstanceGroup(InstanceGroupLifecycleState.Active, Tier.Flex,
+                Collections.singletonMap(SchedulerAttributes.TAINTS, "b,c"));
+        when(agentManagementService.findInstanceGroup(INSTANCE_GROUP_ID)).thenReturn(Optional.of(agentInstanceGroup));
+        JobDescriptor<BatchJobExt> descriptor = oneTaskBatchJobDescriptor()
+                .but(jd -> jd.toBuilder().withAttributes(Collections.singletonMap(JOB_PARAMETER_ATTRIBUTES_TOLERATIONS, "a")));
+        Job<BatchJobExt> job = JobGenerator.batchJobs(descriptor).getValue();
+        TaskRequest taskRequest = createTaskRequest(job);
+        Result result = agentManagementConstraint.evaluate(taskRequest,
+                createVirtualMachineCurrentStateMock(INSTANCE_ID), mock(TaskTrackerState.class));
+        assertThat(result.isSuccessful()).isFalse();
+        assertThat(result.getFailureReason()).isEqualToIgnoringCase("Cannot place on instance group or agent instance due to toleration attribute not matching taint attribute");
     }
 
     private VirtualMachineCurrentState createVirtualMachineCurrentStateMock(String id) {
@@ -165,6 +229,15 @@ public class AgentManagementConstraintTest {
         QAttributes qAttributes = mock(QAttributes.class);
         when(qAttributes.getTierNumber()).thenReturn(1);
         when(taskRequest.getQAttributes()).thenReturn(qAttributes);
+        return taskRequest;
+    }
+
+    private TaskRequest createTaskRequest(Job job) {
+        V3QueueableTask taskRequest = mock(V3QueueableTask.class);
+        QAttributes qAttributes = mock(QAttributes.class);
+        when(qAttributes.getTierNumber()).thenReturn(1);
+        when(taskRequest.getQAttributes()).thenReturn(qAttributes);
+        when(taskRequest.getJob()).thenReturn(job);
         return taskRequest;
     }
 
@@ -199,9 +272,15 @@ public class AgentManagementConstraintTest {
     }
 
     private AgentInstance createAgentInstance(String instanceGroupId) {
+        return createAgentInstance(instanceGroupId, Collections.emptyMap());
+    }
+
+    private AgentInstance createAgentInstance(String instanceGroupId, Map<String, String> attributes) {
         return AgentInstance.newBuilder()
                 .withId(INSTANCE_ID)
                 .withInstanceGroupId(instanceGroupId)
+                .withDeploymentStatus(InstanceLifecycleStatus.newBuilder().withState(InstanceLifecycleState.Started).build())
+                .withAttributes(attributes)
                 .build();
     }
 }

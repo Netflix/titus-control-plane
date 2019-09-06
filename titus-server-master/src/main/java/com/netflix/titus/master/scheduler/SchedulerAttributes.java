@@ -36,4 +36,9 @@ public final class SchedulerAttributes {
      * Mark an agent such that placements will not be preferred on this instance group.
      */
     public static final String PREFER_NO_PLACEMENT = "titus.scheduler.preferNoPlacement";
+
+    /**
+     * Mark an agent instance or instance group such that placements will only place if the job has a toleration that matches.
+     */
+    public static final String TAINTS = "titus.scheduler.taints";
 }

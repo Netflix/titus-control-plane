@@ -110,6 +110,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     private static final int DELETE_GRACE_PERIOD_SECONDS = 300;
     private static final int NODE_GC_TTL_MS = 60_000;
     private static final int ORPHANED_POD_TIMEOUT_MS = 60_000;
+    private static final String NEVER_RESTART_POLICY = "Never";
     private static final Quantity DEFAULT_QUANTITY = Quantity.fromString("0");
 
     private static final String POST = "POST";
@@ -255,7 +256,8 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         V1PodSpec spec = new V1PodSpec()
                 .nodeName(nodeName)
                 .containers(Collections.singletonList(container))
-                .terminationGracePeriodSeconds(POD_TERMINATION_GRACE_PERIOD_SECONDS);
+                .terminationGracePeriodSeconds(POD_TERMINATION_GRACE_PERIOD_SECONDS)
+                .restartPolicy(NEVER_RESTART_POLICY);
 
         return new V1Pod()
                 .metadata(metadata)

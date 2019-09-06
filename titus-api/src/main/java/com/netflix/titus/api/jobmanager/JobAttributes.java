@@ -103,6 +103,11 @@ public final class JobAttributes {
      */
     public static final String JOB_PARAMETER_ATTRIBUTES_CELL_AVOID = TITUS_PARAMETER_ATTRIBUTE_PREFIX + "cell.avoid";
 
+    /**
+     * A comma separated list specifying what taints this job can tolerate during scheduling.
+     */
+    public static final String JOB_PARAMETER_ATTRIBUTES_TOLERATIONS = TITUS_PARAMETER_ATTRIBUTE_PREFIX + "tolerations";
+
     // Container Attributes
 
     /**

@@ -25,7 +25,6 @@ import javax.inject.Singleton;
 import com.netflix.fenzo.TaskRequest;
 import com.netflix.fenzo.TaskTrackerState;
 import com.netflix.fenzo.VirtualMachineCurrentState;
-import com.netflix.fenzo.queues.QueuableTask;
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
@@ -34,10 +33,15 @@ import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.agent.service.AgentStatusMonitor;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.common.util.StringExt;
+import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import com.netflix.titus.master.scheduler.SchedulerAttributes;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 import com.netflix.titus.master.scheduler.SchedulerUtils;
 
+import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_TOLERATIONS;
+import static com.netflix.titus.common.util.StringExt.nonNull;
+import static com.netflix.titus.master.scheduler.SchedulerAttributes.TAINTS;
 import static com.netflix.titus.master.scheduler.SchedulerUtils.getTier;
 
 /**
@@ -61,6 +65,7 @@ public class AgentManagementConstraint implements SystemConstraint {
 
     private static final Result SYSTEM_NO_PLACEMENT = new Result(false, "Cannot place on instance group or agent instance due to systemNoPlacement attribute");
     private static final Result NO_PLACEMENT = new Result(false, "Cannot place on instance group or agent instance due to noPlacement attribute");
+    private static final Result TOLERATION_DOES_NOT_MATCH_TAINT = new Result(false, "Cannot place on instance group or agent instance due to toleration attribute not matching taint attribute");
 
     private static final Result TRUE_RESULT = new Result(true, null);
 
@@ -74,7 +79,8 @@ public class AgentManagementConstraint implements SystemConstraint {
             INSTANCE_NOT_STARTED.getFailureReason(),
             INSTANCE_UNHEALTHY.getFailureReason(),
             SYSTEM_NO_PLACEMENT.getFailureReason(),
-            NO_PLACEMENT.getFailureReason()
+            NO_PLACEMENT.getFailureReason(),
+            TOLERATION_DOES_NOT_MATCH_TAINT.getFailureReason()
     );
 
     private final SchedulerConfiguration schedulerConfiguration;
@@ -97,6 +103,7 @@ public class AgentManagementConstraint implements SystemConstraint {
 
     @Override
     public Result evaluate(TaskRequest taskRequest, VirtualMachineCurrentState targetVM, TaskTrackerState taskTrackerState) {
+        V3QueueableTask v3QueueableTask = (V3QueueableTask) taskRequest;
         Optional<AgentInstance> instanceOpt = SchedulerUtils.findInstance(agentManagementService, schedulerConfiguration.getInstanceAttributeName(), targetVM);
         if (!instanceOpt.isPresent()) {
             return INSTANCE_NOT_FOUND;
@@ -110,52 +117,32 @@ public class AgentManagementConstraint implements SystemConstraint {
             return INSTANCE_GROUP_NOT_FOUND;
         }
 
-        Result instanceGroupEvaluationResult = evaluateInstanceGroup(taskRequest, instanceGroupOpt.get());
+        AgentInstanceGroup instanceGroup = instanceGroupOpt.get();
+        Result instanceGroupEvaluationResult = evaluateInstanceGroup(instanceGroup);
         if (instanceGroupEvaluationResult != TRUE_RESULT) {
             return instanceGroupEvaluationResult;
         }
 
-        Result InstanceEvaluationResult = evaluateInstance(instance);
-        if (InstanceEvaluationResult != TRUE_RESULT) {
-            return InstanceEvaluationResult;
+        Result instanceEvaluationResult = evaluateInstance(instance);
+        if (instanceEvaluationResult != TRUE_RESULT) {
+            return instanceEvaluationResult;
         }
 
-        return TRUE_RESULT;
+        return evaluateTask(v3QueueableTask, instanceGroup, instance);
     }
 
     public static boolean isAgentManagementConstraintReason(String reason) {
         return reason != null && FAILURE_REASONS.contains(reason);
     }
 
-    private Result evaluateInstanceGroup(TaskRequest taskRequest, AgentInstanceGroup instanceGroup) {
+    private Result evaluateInstanceGroup(AgentInstanceGroup instanceGroup) {
         InstanceGroupLifecycleState state = instanceGroup.getLifecycleStatus().getState();
 
-        //TODO safer way to know what is active?
         if (state != InstanceGroupLifecycleState.Active && state != InstanceGroupLifecycleState.PhasedOut) {
             return INSTANCE_GROUP_NOT_ACTIVE;
         }
 
-        Result instanceGroupAttributesResult = evaluateInstanceGroupAttributes(instanceGroup);
-        if (instanceGroupAttributesResult != TRUE_RESULT) {
-            return instanceGroupAttributesResult;
-        }
-
-        Tier tier = getTier((QueuableTask) taskRequest);
-        if (instanceGroup.getTier() != tier) {
-            return INSTANCE_GROUP_TIER_MISMATCH;
-        }
-
-        //TODO read job resource dimensions when we get rid of v2
-        boolean gpuTask = taskRequestsGpu(taskRequest);
-        boolean gpuAgent = instanceGroup.getResourceDimension().getGpu() > 0;
-        if (gpuTask && !gpuAgent) {
-            return INSTANCE_GROUP_DOES_NOT_HAVE_GPUS;
-        }
-        if (!gpuTask && gpuAgent) {
-            return INSTANCE_GROUP_CANNOT_RUN_NON_GPU_TASKS;
-        }
-
-        return TRUE_RESULT;
+        return evaluateInstanceGroupAttributes(instanceGroup);
     }
 
     private Result evaluateInstance(AgentInstance instance) {
@@ -176,17 +163,41 @@ public class AgentManagementConstraint implements SystemConstraint {
         return TRUE_RESULT;
     }
 
-    private boolean taskRequestsGpu(TaskRequest taskRequest) {
-        Map<String, Double> scalars = taskRequest.getScalarRequests();
-        if (scalars != null && !scalars.isEmpty()) {
-            final Double gpu = scalars.get("gpu");
-            return gpu != null && gpu >= 1.0;
+    private Result evaluateTask(V3QueueableTask taskRequest, AgentInstanceGroup instanceGroup, AgentInstance instance) {
+        Tier tier = getTier(taskRequest);
+        if (instanceGroup.getTier() != tier) {
+            return INSTANCE_GROUP_TIER_MISMATCH;
         }
-        return false;
+
+        boolean gpuTask = isGpuTask(taskRequest);
+        boolean gpuAgent = instanceGroup.getResourceDimension().getGpu() > 0;
+        if (gpuTask && !gpuAgent) {
+            return INSTANCE_GROUP_DOES_NOT_HAVE_GPUS;
+        }
+        if (!gpuTask && gpuAgent) {
+            return INSTANCE_GROUP_CANNOT_RUN_NON_GPU_TASKS;
+        }
+
+        if (!taskCanTolerateTaints(taskRequest, instanceGroup, instance)) {
+            return TOLERATION_DOES_NOT_MATCH_TAINT;
+        }
+
+        return TRUE_RESULT;
+    }
+
+    private boolean isGpuTask(V3QueueableTask taskRequest) {
+        return taskRequest.getJob().getJobDescriptor().getContainer().getContainerResources().getGpu() > 0;
     }
 
     private Result evaluateInstanceGroupAttributes(AgentInstanceGroup instanceGroup) {
-        Map<String, String> attributes = instanceGroup.getAttributes();
+        return evaluateSchedulingAttributes(instanceGroup.getAttributes());
+    }
+
+    private Result evaluateAgentInstanceAttributes(AgentInstance agentInstance) {
+        return evaluateSchedulingAttributes(agentInstance.getAttributes());
+    }
+
+    private Result evaluateSchedulingAttributes(Map<String, String> attributes) {
         boolean systemNoPlacement = Boolean.parseBoolean(attributes.get(SchedulerAttributes.SYSTEM_NO_PLACEMENT));
         if (systemNoPlacement) {
             return SYSTEM_NO_PLACEMENT;
@@ -200,18 +211,36 @@ public class AgentManagementConstraint implements SystemConstraint {
         return TRUE_RESULT;
     }
 
-    private Result evaluateAgentInstanceAttributes(AgentInstance agentInstance) {
-        Map<String, String> attributes = agentInstance.getAttributes();
-        boolean systemNoPlacement = Boolean.parseBoolean(attributes.get(SchedulerAttributes.SYSTEM_NO_PLACEMENT));
-        if (systemNoPlacement) {
-            return SYSTEM_NO_PLACEMENT;
+    private boolean taskCanTolerateTaints(V3QueueableTask taskRequest, AgentInstanceGroup instanceGroup, AgentInstance instance) {
+        Set<String> taints = getTaints(instanceGroup, instance);
+        Set<String> tolerations = getTolerations(taskRequest);
+        if (taints.isEmpty() && tolerations.isEmpty()) {
+            return true;
         }
 
-        boolean noPlacement = Boolean.parseBoolean(attributes.get(SchedulerAttributes.NO_PLACEMENT));
-        if (noPlacement) {
-            return NO_PLACEMENT;
+        for (String taint : taints) {
+            if (tolerations.contains(taint)) {
+                return true;
+            }
         }
 
-        return TRUE_RESULT;
+        return false;
+    }
+
+    private Set<String> getTolerations(V3QueueableTask taskRequest) {
+        String jobTolerationValue = nonNull(
+                (String) taskRequest.getJob().getJobDescriptor().getAttributes().get(JOB_PARAMETER_ATTRIBUTES_TOLERATIONS)
+        ).toLowerCase();
+        return StringExt.splitByCommaIntoSet(jobTolerationValue);
+    }
+
+    private Set<String> getTaints(AgentInstanceGroup instanceGroup, AgentInstance instance) {
+        String instanceGroupTaintsValue = nonNull(instanceGroup.getAttributes().get(TAINTS)).toLowerCase();
+        Set<String> instanceGroupTaints = StringExt.splitByCommaIntoSet(instanceGroupTaintsValue);
+
+        String instanceTaintsValue = nonNull(instance.getAttributes().get(TAINTS)).toLowerCase();
+        Set<String> instanceTaints = StringExt.splitByCommaIntoSet(instanceTaintsValue);
+
+        return CollectionsExt.merge(instanceGroupTaints, instanceTaints);
     }
 }
