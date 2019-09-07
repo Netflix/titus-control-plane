@@ -284,6 +284,7 @@
         "com.netflix.archaius:archaius2-guice": {
             "locked": "2.3.15",
             "transitive": [
+                "com.netflix.titus:titus-common-runtime",
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
@@ -348,13 +349,28 @@
             "project": true,
             "transitive": [
                 "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common-api",
+                "com.netflix.titus:titus-common-runtime",
+                "com.netflix.titus:titus-server-runtime"
+            ]
+        },
+        "com.netflix.titus:titus-common-api": {
+            "project": true,
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common-runtime"
+            ]
+        },
+        "com.netflix.titus:titus-common-runtime": {
+            "project": true,
+            "transitive": [
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
         "com.netflix.titus:titus-grpc-api": {
             "project": true,
             "transitive": [
-                "com.netflix.titus:titus-server-runtime"
+                "com.netflix.titus:titus-common-runtime"
             ]
         },
         "com.netflix.titus:titus-server-runtime": {
@@ -555,6 +571,7 @@
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-common-runtime",
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
@@ -575,6 +592,7 @@
         "io.grpc:grpc-services": {
             "locked": "1.10.1",
             "transitive": [
+                "com.netflix.titus:titus-common-runtime",
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
@@ -593,7 +611,7 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-codec-http",
@@ -609,7 +627,7 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
@@ -621,7 +639,7 @@
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
@@ -631,20 +649,20 @@
             ]
         },
         "io.netty:netty-codec-http2": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-socks": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-handler-proxy",
                 "org.mock-server:mockserver-core"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-codec",
@@ -661,7 +679,7 @@
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
@@ -671,19 +689,19 @@
             ]
         },
         "io.netty:netty-handler-proxy": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-codec-http",
@@ -698,13 +716,13 @@
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-transport-native-epoll"
             ]
@@ -729,13 +747,13 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.10.RELEASE",
+            "locked": "0.8.11.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.2.11.RELEASE",
+            "locked": "3.2.12.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
@@ -1084,6 +1102,8 @@
                 "com.netflix.spectator:spectator-api",
                 "com.netflix.titus:titus-api",
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-common-api",
+                "com.netflix.titus:titus-common-runtime",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-runtime",
                 "io.swagger:swagger-core",
@@ -1100,6 +1120,8 @@
             "transitive": [
                 "com.netflix.titus:titus-api",
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-common-api",
+                "com.netflix.titus:titus-common-runtime",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-runtime"
             ]
@@ -1478,6 +1500,7 @@
         "com.netflix.archaius:archaius2-guice": {
             "locked": "2.3.15",
             "transitive": [
+                "com.netflix.titus:titus-common-runtime",
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
@@ -1542,13 +1565,28 @@
             "project": true,
             "transitive": [
                 "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common-api",
+                "com.netflix.titus:titus-common-runtime",
+                "com.netflix.titus:titus-server-runtime"
+            ]
+        },
+        "com.netflix.titus:titus-common-api": {
+            "project": true,
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common-runtime"
+            ]
+        },
+        "com.netflix.titus:titus-common-runtime": {
+            "project": true,
+            "transitive": [
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
         "com.netflix.titus:titus-grpc-api": {
             "project": true,
             "transitive": [
-                "com.netflix.titus:titus-server-runtime"
+                "com.netflix.titus:titus-common-runtime"
             ]
         },
         "com.netflix.titus:titus-server-runtime": {
@@ -1749,6 +1787,7 @@
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-common-runtime",
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
@@ -1769,6 +1808,7 @@
         "io.grpc:grpc-services": {
             "locked": "1.10.1",
             "transitive": [
+                "com.netflix.titus:titus-common-runtime",
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
@@ -1787,7 +1827,7 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-codec-http",
@@ -1803,7 +1843,7 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
@@ -1815,7 +1855,7 @@
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
@@ -1825,20 +1865,20 @@
             ]
         },
         "io.netty:netty-codec-http2": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-socks": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-handler-proxy",
                 "org.mock-server:mockserver-core"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-codec",
@@ -1855,7 +1895,7 @@
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
@@ -1865,19 +1905,19 @@
             ]
         },
         "io.netty:netty-handler-proxy": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-codec-http",
@@ -1892,13 +1932,13 @@
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-transport-native-epoll"
             ]
@@ -1923,13 +1963,13 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.10.RELEASE",
+            "locked": "0.8.11.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.2.11.RELEASE",
+            "locked": "3.2.12.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
@@ -2278,6 +2318,8 @@
                 "com.netflix.spectator:spectator-api",
                 "com.netflix.titus:titus-api",
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-common-api",
+                "com.netflix.titus:titus-common-runtime",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-runtime",
                 "io.swagger:swagger-core",
@@ -2294,6 +2336,8 @@
             "transitive": [
                 "com.netflix.titus:titus-api",
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-common-api",
+                "com.netflix.titus:titus-common-runtime",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-runtime"
             ]
@@ -2672,6 +2716,7 @@
         "com.netflix.archaius:archaius2-guice": {
             "locked": "2.3.15",
             "transitive": [
+                "com.netflix.titus:titus-common-runtime",
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
@@ -2736,13 +2781,28 @@
             "project": true,
             "transitive": [
                 "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common-api",
+                "com.netflix.titus:titus-common-runtime",
+                "com.netflix.titus:titus-server-runtime"
+            ]
+        },
+        "com.netflix.titus:titus-common-api": {
+            "project": true,
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common-runtime"
+            ]
+        },
+        "com.netflix.titus:titus-common-runtime": {
+            "project": true,
+            "transitive": [
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
         "com.netflix.titus:titus-grpc-api": {
             "project": true,
             "transitive": [
-                "com.netflix.titus:titus-server-runtime"
+                "com.netflix.titus:titus-common-runtime"
             ]
         },
         "com.netflix.titus:titus-server-runtime": {
@@ -2943,6 +3003,7 @@
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-common-runtime",
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
@@ -2963,6 +3024,7 @@
         "io.grpc:grpc-services": {
             "locked": "1.10.1",
             "transitive": [
+                "com.netflix.titus:titus-common-runtime",
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
@@ -2981,7 +3043,7 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-codec-http",
@@ -2997,7 +3059,7 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
@@ -3009,7 +3071,7 @@
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
@@ -3019,20 +3081,20 @@
             ]
         },
         "io.netty:netty-codec-http2": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-socks": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-handler-proxy",
                 "org.mock-server:mockserver-core"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-codec",
@@ -3049,7 +3111,7 @@
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
@@ -3059,19 +3121,19 @@
             ]
         },
         "io.netty:netty-handler-proxy": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-codec-http",
@@ -3086,13 +3148,13 @@
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-transport-native-epoll"
             ]
@@ -3117,13 +3179,13 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.10.RELEASE",
+            "locked": "0.8.11.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.2.11.RELEASE",
+            "locked": "3.2.12.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
@@ -3472,6 +3534,8 @@
                 "com.netflix.spectator:spectator-api",
                 "com.netflix.titus:titus-api",
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-common-api",
+                "com.netflix.titus:titus-common-runtime",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-runtime",
                 "io.swagger:swagger-core",
@@ -3489,6 +3553,8 @@
             "transitive": [
                 "com.netflix.titus:titus-api",
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-common-api",
+                "com.netflix.titus:titus-common-runtime",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-runtime"
             ]
@@ -3930,6 +3996,7 @@
         "com.netflix.archaius:archaius2-guice": {
             "locked": "2.3.15",
             "transitive": [
+                "com.netflix.titus:titus-common-runtime",
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
@@ -3994,13 +4061,28 @@
             "project": true,
             "transitive": [
                 "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common-api",
+                "com.netflix.titus:titus-common-runtime",
+                "com.netflix.titus:titus-server-runtime"
+            ]
+        },
+        "com.netflix.titus:titus-common-api": {
+            "project": true,
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common-runtime"
+            ]
+        },
+        "com.netflix.titus:titus-common-runtime": {
+            "project": true,
+            "transitive": [
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
         "com.netflix.titus:titus-grpc-api": {
             "project": true,
             "transitive": [
-                "com.netflix.titus:titus-server-runtime"
+                "com.netflix.titus:titus-common-runtime"
             ]
         },
         "com.netflix.titus:titus-server-runtime": {
@@ -4201,6 +4283,7 @@
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-common-runtime",
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
@@ -4221,6 +4304,7 @@
         "io.grpc:grpc-services": {
             "locked": "1.10.1",
             "transitive": [
+                "com.netflix.titus:titus-common-runtime",
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
@@ -4239,7 +4323,7 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-codec-http",
@@ -4255,7 +4339,7 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
@@ -4267,7 +4351,7 @@
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
@@ -4277,20 +4361,20 @@
             ]
         },
         "io.netty:netty-codec-http2": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-socks": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-handler-proxy",
                 "org.mock-server:mockserver-core"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-codec",
@@ -4307,7 +4391,7 @@
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
@@ -4317,19 +4401,19 @@
             ]
         },
         "io.netty:netty-handler-proxy": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-codec-http",
@@ -4344,13 +4428,13 @@
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-transport-native-epoll"
             ]
@@ -4375,13 +4459,13 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.10.RELEASE",
+            "locked": "0.8.11.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.2.11.RELEASE",
+            "locked": "3.2.12.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
@@ -4730,6 +4814,8 @@
                 "com.netflix.spectator:spectator-api",
                 "com.netflix.titus:titus-api",
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-common-api",
+                "com.netflix.titus:titus-common-runtime",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-runtime",
                 "io.swagger:swagger-core",
@@ -4747,6 +4833,8 @@
             "transitive": [
                 "com.netflix.titus:titus-api",
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-common-api",
+                "com.netflix.titus:titus-common-runtime",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-runtime"
             ]
@@ -5125,6 +5213,7 @@
         "com.netflix.archaius:archaius2-guice": {
             "locked": "2.3.15",
             "transitive": [
+                "com.netflix.titus:titus-common-runtime",
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
@@ -5189,13 +5278,28 @@
             "project": true,
             "transitive": [
                 "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common-api",
+                "com.netflix.titus:titus-common-runtime",
+                "com.netflix.titus:titus-server-runtime"
+            ]
+        },
+        "com.netflix.titus:titus-common-api": {
+            "project": true,
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common-runtime"
+            ]
+        },
+        "com.netflix.titus:titus-common-runtime": {
+            "project": true,
+            "transitive": [
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
         "com.netflix.titus:titus-grpc-api": {
             "project": true,
             "transitive": [
-                "com.netflix.titus:titus-server-runtime"
+                "com.netflix.titus:titus-common-runtime"
             ]
         },
         "com.netflix.titus:titus-server-runtime": {
@@ -5396,6 +5500,7 @@
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-common-runtime",
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
@@ -5416,6 +5521,7 @@
         "io.grpc:grpc-services": {
             "locked": "1.10.1",
             "transitive": [
+                "com.netflix.titus:titus-common-runtime",
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
@@ -5434,7 +5540,7 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-codec-http",
@@ -5450,7 +5556,7 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
@@ -5462,7 +5568,7 @@
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
@@ -5472,20 +5578,20 @@
             ]
         },
         "io.netty:netty-codec-http2": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-socks": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-handler-proxy",
                 "org.mock-server:mockserver-core"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-codec",
@@ -5502,7 +5608,7 @@
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
@@ -5512,19 +5618,19 @@
             ]
         },
         "io.netty:netty-handler-proxy": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-codec-http",
@@ -5539,13 +5645,13 @@
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-transport-native-epoll"
             ]
@@ -5570,13 +5676,13 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.10.RELEASE",
+            "locked": "0.8.11.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.2.11.RELEASE",
+            "locked": "3.2.12.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
@@ -5925,6 +6031,8 @@
                 "com.netflix.spectator:spectator-api",
                 "com.netflix.titus:titus-api",
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-common-api",
+                "com.netflix.titus:titus-common-runtime",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-runtime",
                 "io.swagger:swagger-core",
@@ -5942,6 +6050,8 @@
             "transitive": [
                 "com.netflix.titus:titus-api",
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-common-api",
+                "com.netflix.titus:titus-common-runtime",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-runtime"
             ]
@@ -6490,6 +6600,7 @@
             "locked": "2.3.15",
             "transitive": [
                 "com.netflix.runtime:health-guice",
+                "com.netflix.titus:titus-common-runtime",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime"
@@ -6594,8 +6705,31 @@
             "project": true,
             "transitive": [
                 "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common-api",
+                "com.netflix.titus:titus-common-runtime",
+                "com.netflix.titus:titus-common-testkit",
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-server-runtime"
+            ]
+        },
+        "com.netflix.titus:titus-common-api": {
+            "project": true,
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common-runtime"
+            ]
+        },
+        "com.netflix.titus:titus-common-runtime": {
+            "project": true,
+            "transitive": [
+                "com.netflix.titus:titus-common-testkit",
+                "com.netflix.titus:titus-server-runtime"
+            ]
+        },
+        "com.netflix.titus:titus-common-testkit": {
+            "project": true,
+            "transitive": [
+                "com.netflix.titus:titus-testkit"
             ]
         },
         "com.netflix.titus:titus-ext-cassandra": {
@@ -6613,7 +6747,7 @@
         "com.netflix.titus:titus-grpc-api": {
             "project": true,
             "transitive": [
-                "com.netflix.titus:titus-server-runtime"
+                "com.netflix.titus:titus-common-runtime"
             ]
         },
         "com.netflix.titus:titus-server-federation": {
@@ -6904,6 +7038,7 @@
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-common-runtime",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-runtime"
             ]
@@ -6925,6 +7060,7 @@
         "io.grpc:grpc-services": {
             "locked": "1.10.1",
             "transitive": [
+                "com.netflix.titus:titus-common-runtime",
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
@@ -6961,7 +7097,7 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-codec-http",
@@ -6977,7 +7113,7 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
@@ -6989,7 +7125,7 @@
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
@@ -6999,20 +7135,20 @@
             ]
         },
         "io.netty:netty-codec-http2": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-socks": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-handler-proxy",
                 "org.mock-server:mockserver-core"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-codec",
@@ -7029,7 +7165,7 @@
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "io.netty:netty-codec-http",
@@ -7041,19 +7177,19 @@
             ]
         },
         "io.netty:netty-handler-proxy": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-codec-http",
@@ -7068,13 +7204,13 @@
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-transport-native-epoll"
             ]
@@ -7099,14 +7235,14 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.10.RELEASE",
+            "locked": "0.8.11.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-reactor-netty"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.2.11.RELEASE",
+            "locked": "3.2.12.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-testkit",
@@ -7284,6 +7420,7 @@
             "locked": "4.10",
             "requested": "4.10",
             "transitive": [
+                "com.netflix.titus:titus-common-testkit",
                 "com.netflix.titus:titus-testkit"
             ]
         },
@@ -7452,6 +7589,7 @@
             "locked": "3.8.0",
             "requested": "3.8.0",
             "transitive": [
+                "com.netflix.titus:titus-common-testkit",
                 "com.netflix.titus:titus-testkit"
             ]
         },
@@ -7696,6 +7834,7 @@
             "locked": "2.28.2",
             "requested": "2.+",
             "transitive": [
+                "com.netflix.titus:titus-common-testkit",
                 "com.netflix.titus:titus-testkit"
             ]
         },
@@ -7819,6 +7958,9 @@
                 "com.netflix.spectator:spectator-api",
                 "com.netflix.titus:titus-api",
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-common-api",
+                "com.netflix.titus:titus-common-runtime",
+                "com.netflix.titus:titus-common-testkit",
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
                 "com.netflix.titus:titus-grpc-api",
@@ -7855,6 +7997,9 @@
             "transitive": [
                 "com.netflix.titus:titus-api",
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-common-api",
+                "com.netflix.titus:titus-common-runtime",
+                "com.netflix.titus:titus-common-testkit",
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
                 "com.netflix.titus:titus-grpc-api",
@@ -8505,6 +8650,7 @@
             "locked": "2.3.15",
             "transitive": [
                 "com.netflix.runtime:health-guice",
+                "com.netflix.titus:titus-common-runtime",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime"
@@ -8609,8 +8755,31 @@
             "project": true,
             "transitive": [
                 "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common-api",
+                "com.netflix.titus:titus-common-runtime",
+                "com.netflix.titus:titus-common-testkit",
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-server-runtime"
+            ]
+        },
+        "com.netflix.titus:titus-common-api": {
+            "project": true,
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common-runtime"
+            ]
+        },
+        "com.netflix.titus:titus-common-runtime": {
+            "project": true,
+            "transitive": [
+                "com.netflix.titus:titus-common-testkit",
+                "com.netflix.titus:titus-server-runtime"
+            ]
+        },
+        "com.netflix.titus:titus-common-testkit": {
+            "project": true,
+            "transitive": [
+                "com.netflix.titus:titus-testkit"
             ]
         },
         "com.netflix.titus:titus-ext-cassandra": {
@@ -8628,7 +8797,7 @@
         "com.netflix.titus:titus-grpc-api": {
             "project": true,
             "transitive": [
-                "com.netflix.titus:titus-server-runtime"
+                "com.netflix.titus:titus-common-runtime"
             ]
         },
         "com.netflix.titus:titus-server-federation": {
@@ -8919,6 +9088,7 @@
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-common-runtime",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-runtime"
             ]
@@ -8940,6 +9110,7 @@
         "io.grpc:grpc-services": {
             "locked": "1.10.1",
             "transitive": [
+                "com.netflix.titus:titus-common-runtime",
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
@@ -8976,7 +9147,7 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-codec-http",
@@ -8992,7 +9163,7 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
@@ -9004,7 +9175,7 @@
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
@@ -9014,20 +9185,20 @@
             ]
         },
         "io.netty:netty-codec-http2": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-socks": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-handler-proxy",
                 "org.mock-server:mockserver-core"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-codec",
@@ -9044,7 +9215,7 @@
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "io.netty:netty-codec-http",
@@ -9056,19 +9227,19 @@
             ]
         },
         "io.netty:netty-handler-proxy": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-codec-http",
@@ -9083,13 +9254,13 @@
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-transport-native-epoll"
             ]
@@ -9114,14 +9285,14 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.10.RELEASE",
+            "locked": "0.8.11.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-reactor-netty"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.2.11.RELEASE",
+            "locked": "3.2.12.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-testkit",
@@ -9299,6 +9470,7 @@
             "locked": "4.10",
             "requested": "4.10",
             "transitive": [
+                "com.netflix.titus:titus-common-testkit",
                 "com.netflix.titus:titus-testkit"
             ]
         },
@@ -9467,6 +9639,7 @@
             "locked": "3.8.0",
             "requested": "3.8.0",
             "transitive": [
+                "com.netflix.titus:titus-common-testkit",
                 "com.netflix.titus:titus-testkit"
             ]
         },
@@ -9711,6 +9884,7 @@
             "locked": "2.28.2",
             "requested": "2.+",
             "transitive": [
+                "com.netflix.titus:titus-common-testkit",
                 "com.netflix.titus:titus-testkit"
             ]
         },
@@ -9834,6 +10008,9 @@
                 "com.netflix.spectator:spectator-api",
                 "com.netflix.titus:titus-api",
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-common-api",
+                "com.netflix.titus:titus-common-runtime",
+                "com.netflix.titus:titus-common-testkit",
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
                 "com.netflix.titus:titus-grpc-api",
@@ -9870,6 +10047,9 @@
             "transitive": [
                 "com.netflix.titus:titus-api",
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-common-api",
+                "com.netflix.titus:titus-common-runtime",
+                "com.netflix.titus:titus-common-testkit",
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
                 "com.netflix.titus:titus-grpc-api",
@@ -10520,6 +10700,7 @@
             "locked": "2.3.15",
             "transitive": [
                 "com.netflix.runtime:health-guice",
+                "com.netflix.titus:titus-common-runtime",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime"
@@ -10624,8 +10805,31 @@
             "project": true,
             "transitive": [
                 "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common-api",
+                "com.netflix.titus:titus-common-runtime",
+                "com.netflix.titus:titus-common-testkit",
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-server-runtime"
+            ]
+        },
+        "com.netflix.titus:titus-common-api": {
+            "project": true,
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common-runtime"
+            ]
+        },
+        "com.netflix.titus:titus-common-runtime": {
+            "project": true,
+            "transitive": [
+                "com.netflix.titus:titus-common-testkit",
+                "com.netflix.titus:titus-server-runtime"
+            ]
+        },
+        "com.netflix.titus:titus-common-testkit": {
+            "project": true,
+            "transitive": [
+                "com.netflix.titus:titus-testkit"
             ]
         },
         "com.netflix.titus:titus-ext-cassandra": {
@@ -10643,7 +10847,7 @@
         "com.netflix.titus:titus-grpc-api": {
             "project": true,
             "transitive": [
-                "com.netflix.titus:titus-server-runtime"
+                "com.netflix.titus:titus-common-runtime"
             ]
         },
         "com.netflix.titus:titus-server-federation": {
@@ -10934,6 +11138,7 @@
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-common-runtime",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-runtime"
             ]
@@ -10955,6 +11160,7 @@
         "io.grpc:grpc-services": {
             "locked": "1.10.1",
             "transitive": [
+                "com.netflix.titus:titus-common-runtime",
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
@@ -10991,7 +11197,7 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-codec-http",
@@ -11007,7 +11213,7 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
@@ -11019,7 +11225,7 @@
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
@@ -11029,20 +11235,20 @@
             ]
         },
         "io.netty:netty-codec-http2": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-socks": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-handler-proxy",
                 "org.mock-server:mockserver-core"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-codec",
@@ -11059,7 +11265,7 @@
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "io.netty:netty-codec-http",
@@ -11071,19 +11277,19 @@
             ]
         },
         "io.netty:netty-handler-proxy": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-codec-http",
@@ -11098,13 +11304,13 @@
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-transport-native-epoll"
             ]
@@ -11129,14 +11335,14 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.10.RELEASE",
+            "locked": "0.8.11.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-reactor-netty"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.2.11.RELEASE",
+            "locked": "3.2.12.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-testkit",
@@ -11314,6 +11520,7 @@
             "locked": "4.10",
             "requested": "4.10",
             "transitive": [
+                "com.netflix.titus:titus-common-testkit",
                 "com.netflix.titus:titus-testkit"
             ]
         },
@@ -11482,6 +11689,7 @@
             "locked": "3.8.0",
             "requested": "3.8.0",
             "transitive": [
+                "com.netflix.titus:titus-common-testkit",
                 "com.netflix.titus:titus-testkit"
             ]
         },
@@ -11726,6 +11934,7 @@
             "locked": "2.28.2",
             "requested": "2.+",
             "transitive": [
+                "com.netflix.titus:titus-common-testkit",
                 "com.netflix.titus:titus-testkit"
             ]
         },
@@ -11849,6 +12058,9 @@
                 "com.netflix.spectator:spectator-api",
                 "com.netflix.titus:titus-api",
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-common-api",
+                "com.netflix.titus:titus-common-runtime",
+                "com.netflix.titus:titus-common-testkit",
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
                 "com.netflix.titus:titus-grpc-api",
@@ -11886,6 +12098,9 @@
             "transitive": [
                 "com.netflix.titus:titus-api",
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-common-api",
+                "com.netflix.titus:titus-common-runtime",
+                "com.netflix.titus:titus-common-testkit",
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
                 "com.netflix.titus:titus-grpc-api",
@@ -12536,6 +12751,7 @@
             "locked": "2.3.15",
             "transitive": [
                 "com.netflix.runtime:health-guice",
+                "com.netflix.titus:titus-common-runtime",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime"
@@ -12640,8 +12856,31 @@
             "project": true,
             "transitive": [
                 "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common-api",
+                "com.netflix.titus:titus-common-runtime",
+                "com.netflix.titus:titus-common-testkit",
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-server-runtime"
+            ]
+        },
+        "com.netflix.titus:titus-common-api": {
+            "project": true,
+            "transitive": [
+                "com.netflix.titus:titus-api",
+                "com.netflix.titus:titus-common-runtime"
+            ]
+        },
+        "com.netflix.titus:titus-common-runtime": {
+            "project": true,
+            "transitive": [
+                "com.netflix.titus:titus-common-testkit",
+                "com.netflix.titus:titus-server-runtime"
+            ]
+        },
+        "com.netflix.titus:titus-common-testkit": {
+            "project": true,
+            "transitive": [
+                "com.netflix.titus:titus-testkit"
             ]
         },
         "com.netflix.titus:titus-ext-cassandra": {
@@ -12659,7 +12898,7 @@
         "com.netflix.titus:titus-grpc-api": {
             "project": true,
             "transitive": [
-                "com.netflix.titus:titus-server-runtime"
+                "com.netflix.titus:titus-common-runtime"
             ]
         },
         "com.netflix.titus:titus-server-federation": {
@@ -12950,6 +13189,7 @@
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-common-runtime",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-runtime"
             ]
@@ -12971,6 +13211,7 @@
         "io.grpc:grpc-services": {
             "locked": "1.10.1",
             "transitive": [
+                "com.netflix.titus:titus-common-runtime",
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
@@ -13007,7 +13248,7 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-codec-http",
@@ -13023,7 +13264,7 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
@@ -13035,7 +13276,7 @@
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
@@ -13045,20 +13286,20 @@
             ]
         },
         "io.netty:netty-codec-http2": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-socks": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-handler-proxy",
                 "org.mock-server:mockserver-core"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-codec",
@@ -13075,7 +13316,7 @@
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "io.netty:netty-codec-http",
@@ -13087,19 +13328,19 @@
             ]
         },
         "io.netty:netty-handler-proxy": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-codec-http",
@@ -13114,13 +13355,13 @@
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
-            "locked": "4.1.36.Final",
+            "locked": "4.1.39.Final",
             "transitive": [
                 "io.netty:netty-transport-native-epoll"
             ]
@@ -13145,14 +13386,14 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.10.RELEASE",
+            "locked": "0.8.11.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-reactor-netty"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.2.11.RELEASE",
+            "locked": "3.2.12.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-testkit",
@@ -13330,6 +13571,7 @@
             "locked": "4.10",
             "requested": "4.10",
             "transitive": [
+                "com.netflix.titus:titus-common-testkit",
                 "com.netflix.titus:titus-testkit"
             ]
         },
@@ -13498,6 +13740,7 @@
             "locked": "3.8.0",
             "requested": "3.8.0",
             "transitive": [
+                "com.netflix.titus:titus-common-testkit",
                 "com.netflix.titus:titus-testkit"
             ]
         },
@@ -13742,6 +13985,7 @@
             "locked": "2.28.2",
             "requested": "2.+",
             "transitive": [
+                "com.netflix.titus:titus-common-testkit",
                 "com.netflix.titus:titus-testkit"
             ]
         },
@@ -13865,6 +14109,9 @@
                 "com.netflix.spectator:spectator-api",
                 "com.netflix.titus:titus-api",
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-common-api",
+                "com.netflix.titus:titus-common-runtime",
+                "com.netflix.titus:titus-common-testkit",
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
                 "com.netflix.titus:titus-grpc-api",
@@ -13902,6 +14149,9 @@
             "transitive": [
                 "com.netflix.titus:titus-api",
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-common-api",
+                "com.netflix.titus:titus-common-runtime",
+                "com.netflix.titus:titus-common-testkit",
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
                 "com.netflix.titus:titus-grpc-api",
