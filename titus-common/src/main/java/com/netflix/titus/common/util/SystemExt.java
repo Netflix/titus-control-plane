@@ -16,10 +16,36 @@
 
 package com.netflix.titus.common.util;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * System/process helper methods.
  */
 public class SystemExt {
+
+    /**
+     * Convert {@link System#getProperties()} to a map of strings.
+     */
+    public static Map<String, String> getSystemPropertyMap() {
+        Map<String, String> properties = new HashMap<>();
+
+        System.getProperties().forEach((key, value) -> {
+            // Build the string representation of key
+            String keyStr = key == null ? null : key.toString();
+            if (keyStr == null) {
+                return;
+            }
+
+            // Build the string representation of value
+            String valueStr = value == null ? null : value.toString();
+
+            properties.put(keyStr, valueStr);
+        });
+
+        return Collections.unmodifiableMap(properties);
+    }
 
     /**
      * Terminate the JVM process.
