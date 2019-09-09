@@ -19,6 +19,7 @@ dependencies {
     compile "io.swagger:swagger-jaxrs:${swaggerVersion}"
     compile "org.hibernate:hibernate-validator:${hibernateValidatorVersion}"
     compile "org.mock-server:mockserver-netty:${mockServerVersion}"
+    compile "org.apache.commons:commons-math3:${commonsMath3Version}"
 
     // GRPC dependencies
     compile "io.grpc:grpc-netty-shaded:${grpcVersion}"

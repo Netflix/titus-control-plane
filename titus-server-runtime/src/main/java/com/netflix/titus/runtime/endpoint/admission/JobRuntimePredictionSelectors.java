@@ -24,6 +24,7 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.SortedSet;
 
+import com.netflix.archaius.api.annotations.DefaultValue;
 import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.runtime.connector.prediction.JobRuntimePrediction;
@@ -58,18 +59,30 @@ public final class JobRuntimePredictionSelectors {
     /**
      * Select prediction with the lowest confidence level which is above the provided confidenceThreshold.
      */
-    public static JobRuntimePredictionSelector aboveThreshold(double confidenceThreshold, Map<String, String> selectionMetadata) {
+    public static JobRuntimePredictionSelector aboveThreshold(double runtimeThresholdInSeconds,
+                                                              double sigmaThreshold,
+                                                              Map<String, String> selectionMetadata) {
         return (jobDescriptor, predictions) -> {
             SortedSet<JobRuntimePrediction> predictionsSet = predictions.getPredictions();
-            if (CollectionsExt.isNullOrEmpty(predictionsSet)) {
+            if (CollectionsExt.isNullOrEmpty(predictionsSet) || predictionsSet.size() < 2) {
                 return Optional.empty();
             }
-            for (JobRuntimePrediction prediction : predictionsSet) {
-                if (prediction.getConfidence() > confidenceThreshold) {
-                    return Optional.of(JobRuntimePredictionSelection.newBuilder().withPrediction(prediction).withMetadata(selectionMetadata).build());
-                }
+
+            JobRuntimePrediction last = predictionsSet.last();
+            if (last.getRuntimeInSeconds() > runtimeThresholdInSeconds) {
+                return Optional.empty();
             }
-            return Optional.empty();
+
+            JobRuntimePrediction first = predictionsSet.first();
+            double sigma = (last.getRuntimeInSeconds() - first.getRuntimeInSeconds()) / JobRuntimePredictionUtil.NORM_SIGMA;
+            if (sigma > sigmaThreshold) {
+                return Optional.empty();
+            }
+            return Optional.of(JobRuntimePredictionSelection.newBuilder()
+                    .withPrediction(last)
+                    .withMetadata(selectionMetadata)
+                    .build()
+            );
         };
     }
 
@@ -95,5 +108,14 @@ public final class JobRuntimePredictionSelectors {
                 return selection.toBuilder().withMetadata(metadata).build();
             });
         };
+    }
+
+    public interface ThresholdSelectorConfiguration {
+
+        @DefaultValue("600")
+        long getRuntimeThresholdInSeconds();
+
+        @DefaultValue("1")
+        long getSigmaThreshold();
     }
 }
