@@ -89,6 +89,11 @@ public final class JobAttributes {
     public static final String JOB_ATTRIBUTES_RUNTIME_PREDICTION_AVAILABLE = PREDICTION_ATTRIBUTE_PREFIX + "available";
 
     /**
+     * AB test metadata associated with a prediction.
+     */
+    public static final String JOB_ATTRIBUTES_RUNTIME_PREDICTION_AB_TEST = PREDICTION_ATTRIBUTE_PREFIX + "abTest";
+
+    /**
      * Allow jobs to completely opt-out of having their runtime automatically predicted during admission
      */
     public static final String JOB_PARAMETER_SKIP_RUNTIME_PREDICTION = TITUS_PARAMETER_ATTRIBUTE_PREFIX + "runtimePrediction.skip";
