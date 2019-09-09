@@ -27,6 +27,7 @@ import com.netflix.spectator.api.Tag;
 
 public class IamConnectorMetrics {
     public enum IamMethods {
+        CanAgentAssume,
         GetIamRole
     }
 
