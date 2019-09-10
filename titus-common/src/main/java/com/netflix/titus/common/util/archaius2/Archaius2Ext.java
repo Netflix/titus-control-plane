@@ -18,6 +18,7 @@ package com.netflix.titus.common.util.archaius2;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -126,5 +127,20 @@ public final class Archaius2Ext {
                 configType,
                 defaultConfig
         );
+    }
+
+    /**
+     * Write {@link Config} to {@link String}.
+     */
+    public static String toString(Config config) {
+        StringBuilder sb = new StringBuilder("{");
+        for (Iterator<String> it = config.getKeys(); it.hasNext(); ) {
+            String key = it.next();
+            sb.append(key).append('=').append(config.getString(key, ""));
+            if (it.hasNext()) {
+                sb.append(", ");
+            }
+        }
+        return sb.append('}').toString();
     }
 }

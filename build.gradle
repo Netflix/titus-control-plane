@@ -92,6 +92,7 @@ subprojects {
         caffeineVersion = '2.6.+'
         rxJavaInteropVersion = '0.13.+'
         kubernetesClientVersion = '6.0.1'
+        commonsMath3Version = '3.6.1'
 
         // Test
         junitVersion = '4.10'
