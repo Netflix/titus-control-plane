@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.clustermembership.client;
+package com.netflix.titus.client.clustermembership.grpc;
 
 import com.netflix.titus.grpc.protogen.ClusterMembershipEvent;
 import com.netflix.titus.grpc.protogen.ClusterMembershipRevision;

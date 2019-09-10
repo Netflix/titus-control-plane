@@ -23,9 +23,9 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.google.rpc.BadRequest;
+import com.netflix.titus.client.common.grpc.GrpcClientErrorUtils;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
-import com.netflix.titus.testkit.grpc.GrpcClientErrorUtils;
 import io.grpc.StatusRuntimeException;
 
 import static org.assertj.core.api.Assertions.assertThat;

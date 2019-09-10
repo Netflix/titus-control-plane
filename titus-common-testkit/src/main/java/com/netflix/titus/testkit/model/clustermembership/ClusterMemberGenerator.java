@@ -20,12 +20,18 @@ import java.util.Collections;
 
 import com.netflix.titus.api.clustermembership.model.ClusterMember;
 import com.netflix.titus.api.clustermembership.model.ClusterMemberAddress;
+import com.netflix.titus.api.clustermembership.model.ClusterMemberLeadership;
+import com.netflix.titus.api.clustermembership.model.ClusterMemberLeadershipState;
 import com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision;
 import com.netflix.titus.common.util.CollectionsExt;
 
 public final class ClusterMemberGenerator {
 
     public static ClusterMember activeClusterMember(String memberId) {
+        return activeClusterMember(memberId, "10.0.0.1");
+    }
+
+    public static ClusterMember activeClusterMember(String memberId, String ipAddress) {
         return ClusterMember.newBuilder()
                 .withMemberId(memberId)
                 .withEnabled(true)
@@ -33,7 +39,7 @@ public final class ClusterMemberGenerator {
                 .withRegistered(true)
                 .withClusterMemberAddresses(Collections.singletonList(
                         ClusterMemberAddress.newBuilder()
-                                .withIpAddress("10.0.0.1")
+                                .withIpAddress(ipAddress)
                                 .withPortNumber(8081)
                                 .withProtocol("https")
                                 .withSecure(true)
@@ -83,6 +89,16 @@ public final class ClusterMemberGenerator {
                 .withMessage("Random update to generate next revision number")
                 .withRevision(currentRevision.getRevision() + 1)
                 .withTimestamp(now)
+                .build();
+    }
+
+    public static ClusterMembershipRevision<ClusterMemberLeadership> leaderRevision(ClusterMembershipRevision<ClusterMember> memberRevision) {
+        return ClusterMembershipRevision.<ClusterMemberLeadership>newBuilder()
+                .withCurrent(ClusterMemberLeadership.newBuilder()
+                        .withMemberId(memberRevision.getCurrent().getMemberId())
+                        .withLeadershipState(ClusterMemberLeadershipState.Leader)
+                        .build()
+                )
                 .build();
     }
 }

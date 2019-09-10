@@ -22,7 +22,7 @@ import com.netflix.titus.grpc.protogen.SupervisorServiceGrpc.SupervisorServiceBl
 import com.netflix.titus.master.supervisor.endpoint.grpc.SupervisorGrpcModelConverters;
 import com.netflix.titus.testkit.cli.CliCommand;
 import com.netflix.titus.testkit.cli.CommandContext;
-import com.netflix.titus.testkit.grpc.GrpcClientErrorUtils;
+import com.netflix.titus.testkit.grpc.TestKitGrpcClientErrorUtils;
 import org.apache.commons.cli.Options;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,7 +51,7 @@ public class SupervisorObserveEventsCommand implements CliCommand {
 
     @Override
     public void execute(CommandContext context) {
-        SupervisorServiceBlockingStub stub = GrpcClientErrorUtils.attachCallHeaders(SupervisorServiceGrpc.newBlockingStub(context.createChannel()));
+        SupervisorServiceBlockingStub stub = TestKitGrpcClientErrorUtils.attachCallHeaders(SupervisorServiceGrpc.newBlockingStub(context.createChannel()));
         stub.observeEvents(Empty.getDefaultInstance())
                 .forEachRemaining(event -> {
                             switch (event.getEventCase()) {

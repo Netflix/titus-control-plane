@@ -42,7 +42,7 @@ import com.netflix.titus.grpc.protogen.UpdateMemberLabelsRequest;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import static com.netflix.titus.runtime.clustermembership.endpoint.grpc.ClusterMembershipGrpcConverters.toGrpcClusterMembershipRevision;
+import static com.netflix.titus.client.clustermembership.grpc.ClusterMembershipGrpcConverters.toGrpcClusterMembershipRevision;
 import static com.netflix.titus.runtime.clustermembership.endpoint.grpc.MemberDataMixer.NO_LEADER_ID;
 
 @Singleton

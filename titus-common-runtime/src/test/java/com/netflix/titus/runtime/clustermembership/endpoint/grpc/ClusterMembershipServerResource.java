@@ -17,11 +17,11 @@
 package com.netflix.titus.runtime.clustermembership.endpoint.grpc;
 
 import com.netflix.titus.api.clustermembership.service.ClusterMembershipService;
+import com.netflix.titus.client.clustermembership.grpc.ReactorClusterMembershipClient;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.grpc.protogen.ClusterMembershipServiceGrpc;
-import com.netflix.titus.runtime.clustermembership.client.ReactorClusterMembershipClient;
 import com.netflix.titus.runtime.connector.GrpcRequestConfiguration;
 import com.netflix.titus.runtime.connector.common.reactor.client.DefaultGrpcToReactorClientFactory;
 import com.netflix.titus.runtime.connector.common.reactor.server.DefaultGrpcToReactorServerFactory;
