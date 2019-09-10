@@ -17,6 +17,7 @@
 package com.netflix.titus.client.clustermembership.resolver;
 
 import java.time.Duration;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -196,13 +197,12 @@ public class MultiNodeClusterMemberResolver implements ClusterMemberResolver {
     private ClusterMembershipRevision<ClusterMember> findBestMemberRevision(List<ClusterMembershipRevision<ClusterMember>> singleMemberVersions) {
         Preconditions.checkArgument(singleMemberVersions.size() > 0);
 
-        long bestRevision = singleMemberVersions.get(0).getRevision();
-        ClusterMembershipRevision<ClusterMember> best = singleMemberVersions.get(0);
+        Iterator<ClusterMembershipRevision<ClusterMember>> it = singleMemberVersions.iterator();
+        ClusterMembershipRevision<ClusterMember> best = it.next();
 
-        for (int i = 1; i < singleMemberVersions.size(); i++) {
-            ClusterMembershipRevision<ClusterMember> next = singleMemberVersions.get(i);
-            if (next.getRevision() > bestRevision) {
-                bestRevision = next.getRevision();
+        while (it.hasNext()) {
+            ClusterMembershipRevision<ClusterMember> next = it.next();
+            if (next.getRevision() > best.getRevision()) {
                 best = next;
             }
         }
