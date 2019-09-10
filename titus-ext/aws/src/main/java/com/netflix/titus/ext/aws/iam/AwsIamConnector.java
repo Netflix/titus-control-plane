@@ -39,6 +39,7 @@ import com.netflix.titus.common.util.cache.Caches;
 import com.netflix.titus.common.util.guice.ProxyType;
 import com.netflix.titus.common.util.guice.annotation.ProxyConfiguration;
 import com.netflix.titus.common.util.spectator.IamConnectorMetrics;
+import com.netflix.titus.common.util.tuple.Either;
 import com.netflix.titus.ext.aws.AwsConfiguration;
 import com.netflix.titus.ext.aws.AwsReactorExt;
 import org.slf4j.Logger;
@@ -68,7 +69,7 @@ public class AwsIamConnector implements IamConnector {
     private final IamConnectorMetrics connectorMetrics;
 
     private final Cache<String, IamRole> cache;
-    private final Cache<String, Boolean> canAssumeCache;
+    private final Cache<String, Either<Boolean, Throwable>> canAssumeCache;
 
     @Inject
     public AwsIamConnector(AwsConfiguration configuration,
@@ -159,8 +160,9 @@ public class AwsIamConnector implements IamConnector {
             long startTime = registry.clock().wallTime();
 
             // Check cache first
-            if (Boolean.TRUE.equals(canAssumeCache.getIfPresent(iamRoleName))) {
-                return Mono.empty();
+            Either<Boolean, Throwable> lastCheck = canAssumeCache.getIfPresent(iamRoleName);
+            if (lastCheck != null) {
+                return lastCheck.hasValue() ? Mono.empty() : Mono.error(lastCheck.getError());
             }
 
             // Must call AWS STS service
@@ -174,7 +176,7 @@ public class AwsIamConnector implements IamConnector {
                     )
                     .flatMap(response -> {
                         logger.debug("Assumed into: {}", iamRoleName);
-                        canAssumeCache.put(iamRoleName, true);
+                        canAssumeCache.put(iamRoleName, Either.ofValue(true));
                         connectorMetrics.success(IamConnectorMetrics.IamMethods.CanAgentAssume, startTime);
                         return Mono.<Void>empty();
                     })
@@ -186,7 +188,9 @@ public class AwsIamConnector implements IamConnector {
                         if ("AccessDenied".equals(errorCode)) {
                             // STS service returns access denied error with no additional clues. To get more insight we
                             // would have to make a call to IAM service, but this would require access to all client accounts.
-                            return IamConnectorException.iamRoleCannotAssume(iamRoleName, configuration.getDataPlaneAgentRoleArn());
+                            IamConnectorException cannotAssumeError = IamConnectorException.iamRoleCannotAssume(iamRoleName, configuration.getDataPlaneAgentRoleArn());
+                            canAssumeCache.put(iamRoleName, Either.ofError(cannotAssumeError));
+                            return cannotAssumeError;
                         }
                         return IamConnectorException.iamRoleUnexpectedError(iamRoleName, error.getMessage());
                     });
