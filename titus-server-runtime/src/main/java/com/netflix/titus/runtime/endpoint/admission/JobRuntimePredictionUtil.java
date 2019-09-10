@@ -16,20 +16,28 @@
 
 package com.netflix.titus.runtime.endpoint.admission;
 
+import com.netflix.titus.runtime.connector.prediction.JobRuntimePrediction;
 import org.apache.commons.math3.distribution.NormalDistribution;
 
-public final class JobRuntimePredictionUtil {
+final class JobRuntimePredictionUtil {
 
-    private static final int LOW_QUANTILE = 5;
-    private static final int HIGH_QUANTILE = 95;
+    private static final double LOW_QUANTILE = 0.05;
+    private static final double HIGH_QUANTILE = 0.95;
 
     static final double NORM_SIGMA = computeNormSigma();
 
     private JobRuntimePredictionUtil() {
     }
 
+    static boolean expectedQuantiles(JobRuntimePrediction low, JobRuntimePrediction high) {
+        return low.getConfidence() == LOW_QUANTILE && high.getConfidence() == HIGH_QUANTILE;
+    }
+
+    /**
+     * Estimate the standard deviation of a gaussian distribution given 2 quantiles. See https://www.johndcook.com/quantiles_parameters.pdf
+     */
     private static double computeNormSigma() {
         NormalDistribution normal = new NormalDistribution();
-        return normal.inverseCumulativeProbability(HIGH_QUANTILE / 100.0) - normal.inverseCumulativeProbability(LOW_QUANTILE / 100.0);
+        return normal.inverseCumulativeProbability(HIGH_QUANTILE) - normal.inverseCumulativeProbability(LOW_QUANTILE);
     }
 }

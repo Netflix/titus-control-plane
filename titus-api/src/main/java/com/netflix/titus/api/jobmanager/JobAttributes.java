@@ -60,6 +60,11 @@ public final class JobAttributes {
     public static final String JOB_ATTRIBUTES_SANITIZATION_SKIPPED_RUNTIME_PREDICTION = JOB_ATTRIBUTE_SANITIZATION_PREFIX + "skipped.runtimePrediction";
 
     /**
+     * Information about the prediction selector used in the evaluation process.
+     */
+    public static final String JOB_ATTRIBUTES_RUNTIME_PREDICTION_SELECTOR_INFO = PREDICTION_ATTRIBUTE_PREFIX + "selectorInfo";
+
+    /**
      * Predicted runtime for a particular job in seconds, used in opportunistic CPU scheduling
      */
     public static final String JOB_ATTRIBUTES_RUNTIME_PREDICTION_SEC = PREDICTION_ATTRIBUTE_PREFIX + "predictedRuntimeSec";
