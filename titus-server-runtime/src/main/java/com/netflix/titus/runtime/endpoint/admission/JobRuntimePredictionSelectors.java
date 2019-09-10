@@ -127,8 +127,8 @@ public final class JobRuntimePredictionSelectors {
      * See {@link #aboveThreshold(double, double, Map)}.
      */
     public static JobRuntimePredictionSelector aboveThreshold(Config config, Map<String, String> selectionMetadata) {
-        double runtimeThresholdInSeconds = config.getDouble("runtimeThresholdInSeconds", 600.0);
-        double sigmaThreshold = config.getDouble("sigmaThreshold", 60.0);
+        double runtimeThresholdInSeconds = config.getDouble("runtimeThresholdInSeconds", Double.MAX_VALUE);
+        double sigmaThreshold = config.getDouble("sigmaThreshold", Double.MAX_VALUE);
         return aboveThreshold(runtimeThresholdInSeconds, sigmaThreshold, selectionMetadata);
     }
 

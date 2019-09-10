@@ -58,7 +58,7 @@ class DefaultCloseableReference<T> implements CloseableReference<T> {
 
     @Override
     public void close() {
-        if (isClosed()) {
+        if (closed.getAndSet(true)) {
             return;
         }
         try {

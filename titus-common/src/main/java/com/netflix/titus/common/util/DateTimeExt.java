@@ -63,7 +63,7 @@ public final class DateTimeExt {
         if (msSinceEpoch == 0L) {
             return null;
         }
-        return ISO_LOCAL_DATE_TIME_FORMATTER.format(Instant.ofEpochMilli(msSinceEpoch)) + 'Z';
+        return ISO_LOCAL_DATE_TIME_FORMATTER.format(Instant.ofEpochMilli(msSinceEpoch));
     }
 
     public static String toTimeUnitAbbreviation(TimeUnit timeUnit) {
