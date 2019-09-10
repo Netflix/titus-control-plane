@@ -18,8 +18,8 @@ package com.netflix.titus.runtime.connector.common.reactor.server;
 
 import java.lang.reflect.InvocationTargetException;
 
-import com.netflix.titus.api.jobmanager.model.CallMetadata;
-import com.netflix.titus.api.jobmanager.model.CallMetadataConstants;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
+import com.netflix.titus.api.model.callmetadata.CallMetadataConstants;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import io.grpc.MethodDescriptor;
 import io.grpc.stub.ServerCallStreamObserver;

@@ -18,7 +18,7 @@ package com.netflix.titus.master.jobmanager.endpoint.v3.grpc;
 
 import java.util.Map;
 
-import com.netflix.titus.api.jobmanager.model.CallMetadata;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.common.util.StringExt;

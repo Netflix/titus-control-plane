@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.api.jobmanager.model;
+package com.netflix.titus.api.model.callmetadata;
 
 public class CallMetadataConstants {
 
@@ -26,5 +26,5 @@ public class CallMetadataConstants {
     /**
      * Call metadata for replicator event stream
      */
-    public static final CallMetadata GRPC_REPLICATOR_CALL_METADATA = CallMetadata.newBuilder().withCallerId("JobReplictorEvent").withCallReason("Replication").build();
+    public static final CallMetadata GRPC_REPLICATOR_CALL_METADATA = CallMetadata.newBuilder().withCallerId("ReplicatorEvent").withCallReason("Replication").build();
 }

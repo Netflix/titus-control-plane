@@ -19,7 +19,7 @@ package com.netflix.titus.runtime.jobmanager.gateway;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.netflix.titus.api.jobmanager.model.CallMetadata;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.CapacityAttributes;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;

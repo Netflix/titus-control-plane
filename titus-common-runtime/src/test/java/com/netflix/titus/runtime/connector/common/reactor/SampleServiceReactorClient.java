@@ -16,7 +16,7 @@
 
 package com.netflix.titus.runtime.connector.common.reactor;
 
-import com.netflix.titus.api.jobmanager.model.CallMetadata;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.testing.SampleGrpcService;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;

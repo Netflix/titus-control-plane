@@ -16,7 +16,7 @@
 
 package com.netflix.titus.api.jobmanager.service;
 
-import com.netflix.titus.api.jobmanager.model.CallMetadata;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 
 /**
  * Constant keys for Job Manager attributes.

@@ -20,7 +20,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.protobuf.Empty;
-import com.netflix.titus.api.jobmanager.model.CallMetadata;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.common.runtime.SystemLogService;
 import com.netflix.titus.grpc.protogen.Job;

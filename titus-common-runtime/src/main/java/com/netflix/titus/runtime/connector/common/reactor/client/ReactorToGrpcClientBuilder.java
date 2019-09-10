@@ -27,7 +27,7 @@ import java.util.function.Function;
 
 import com.google.common.base.Preconditions;
 import com.google.protobuf.Message;
-import com.netflix.titus.api.jobmanager.model.CallMetadata;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.runtime.connector.GrpcRequestConfiguration;
 import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactUtil;
 import com.netflix.titus.runtime.endpoint.metadata.AnonymousCallMetadataResolver;

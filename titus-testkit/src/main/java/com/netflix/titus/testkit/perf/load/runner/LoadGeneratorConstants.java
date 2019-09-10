@@ -1,6 +1,6 @@
 package com.netflix.titus.testkit.perf.load.runner;
 
-import com.netflix.titus.api.jobmanager.model.CallMetadata;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 
 public final class LoadGeneratorConstants {
     /**
