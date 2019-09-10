@@ -21,7 +21,7 @@ message JobActivityRecord {
 
     CallMetadata callMetadata = 1;
     Job job = 2;
-    uint64 timestamp = 4;
+    uint64 timestamp = 3;
 }
 
 message TaskActivityRecord {
