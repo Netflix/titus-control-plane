@@ -21,7 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.netflix.titus.api.jobmanager.JobAttributes;
-import com.netflix.titus.api.jobmanager.model.CallMetadata;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.model.job.migration.SystemDefaultMigrationPolicy;

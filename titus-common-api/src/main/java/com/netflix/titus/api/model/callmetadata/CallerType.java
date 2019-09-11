@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.api.jobmanager.model;
+package com.netflix.titus.api.model.callmetadata;
 
 import com.netflix.titus.common.util.StringExt;
 

@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
 import com.google.common.base.Preconditions;
 import com.netflix.titus.api.containerhealth.model.ContainerHealthState;
 import com.netflix.titus.api.containerhealth.model.ContainerHealthStatus;
-import com.netflix.titus.api.jobmanager.model.CallMetadata;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;

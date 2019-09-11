@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import com.google.common.collect.ImmutableMap;
-import com.netflix.titus.api.jobmanager.model.CallMetadata;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;

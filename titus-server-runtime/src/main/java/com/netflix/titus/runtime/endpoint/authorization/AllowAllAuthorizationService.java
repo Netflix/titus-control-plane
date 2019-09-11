@@ -16,7 +16,7 @@
 
 package com.netflix.titus.runtime.endpoint.authorization;
 
-import com.netflix.titus.api.jobmanager.model.CallMetadata;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import reactor.core.publisher.Mono;
 
 public class AllowAllAuthorizationService implements AuthorizationService {

@@ -16,7 +16,7 @@
 
 package com.netflix.titus.master.jobmanager.service.event;
 
-import com.netflix.titus.api.jobmanager.model.CallMetadata;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 

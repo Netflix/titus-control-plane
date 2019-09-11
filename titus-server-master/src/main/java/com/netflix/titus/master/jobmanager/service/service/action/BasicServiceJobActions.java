@@ -18,7 +18,7 @@ package com.netflix.titus.master.jobmanager.service.service.action;
 
 import java.util.Set;
 
-import com.netflix.titus.api.jobmanager.model.CallMetadata;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.CapacityAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
@@ -35,7 +35,6 @@ import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.model.sanitizer.ValidationError;
-import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;

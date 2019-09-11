@@ -33,7 +33,7 @@ import com.google.protobuf.Empty;
 import com.netflix.titus.api.FeatureRolloutPlans;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
-import com.netflix.titus.api.jobmanager.model.CallMetadata;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.CapacityAttributes;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;

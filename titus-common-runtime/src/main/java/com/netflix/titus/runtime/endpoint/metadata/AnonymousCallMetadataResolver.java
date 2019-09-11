@@ -16,9 +16,9 @@
 
 package com.netflix.titus.runtime.endpoint.metadata;
 
-import com.netflix.titus.api.jobmanager.model.CallMetadata;
-import com.netflix.titus.api.jobmanager.model.Caller;
-import com.netflix.titus.api.jobmanager.model.CallerType;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
+import com.netflix.titus.api.model.callmetadata.Caller;
+import com.netflix.titus.api.model.callmetadata.CallerType;
 
 import java.util.Collections;
 import java.util.Optional;

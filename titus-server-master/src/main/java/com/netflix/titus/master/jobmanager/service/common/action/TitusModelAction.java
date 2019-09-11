@@ -20,8 +20,7 @@ import java.util.Optional;
 import java.util.function.Function;
 
 import com.google.common.base.Preconditions;
-import com.netflix.titus.api.jobmanager.TaskAttributes;
-import com.netflix.titus.api.jobmanager.model.CallMetadata;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;

@@ -20,9 +20,9 @@ import java.util.Collections;
 import java.util.Optional;
 import javax.inject.Singleton;
 
-import com.netflix.titus.api.jobmanager.model.CallMetadata;
-import com.netflix.titus.api.jobmanager.model.Caller;
-import com.netflix.titus.api.jobmanager.model.CallerType;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
+import com.netflix.titus.api.model.callmetadata.Caller;
+import com.netflix.titus.api.model.callmetadata.CallerType;
 import com.netflix.titus.common.util.CollectionsExt;
 import io.grpc.Context;
 

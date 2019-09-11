@@ -26,7 +26,7 @@ import java.util.function.Supplier;
 
 import com.netflix.fenzo.queues.QAttributes;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
-import com.netflix.titus.api.jobmanager.model.CallMetadata;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;

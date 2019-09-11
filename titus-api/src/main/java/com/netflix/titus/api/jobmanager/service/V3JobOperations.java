@@ -21,8 +21,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 
-import com.netflix.titus.api.jobmanager.model.CallMetadata;
-import com.netflix.titus.api.jobmanager.model.job.Capacity;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.CapacityAttributes;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
