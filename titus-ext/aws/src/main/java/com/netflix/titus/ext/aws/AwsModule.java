@@ -49,6 +49,10 @@ public class AwsModule extends AbstractModule {
         bind(AWSCredentialsProvider.class)
                 .annotatedWith(Names.named(DataPlaneControllerCredentialsProvider.NAME))
                 .toProvider(DataPlaneControllerCredentialsProvider.class);
+        bind(AWSCredentialsProvider.class)
+                .annotatedWith(Names.named(DataPlaneAgentCredentialsProvider.NAME))
+                .toProvider(DataPlaneAgentCredentialsProvider.class);
+
         bind(InstanceReaper.class).asEagerSingleton();
     }
 
