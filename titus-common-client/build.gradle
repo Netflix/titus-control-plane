@@ -15,8 +15,7 @@
  */
 
 dependencies {
-    compile project(':titus-common')
-    compile project(':titus-common-api')
+    compile project(':titus-common-runtime')
     compile project(':titus-grpc-api')
 
     // Netflix dependencies
