@@ -20,14 +20,16 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
+import com.netflix.titus.common.util.grpc.reactor.GrpcToReactorClientFactory;
+import com.netflix.titus.common.util.grpc.reactor.client.ReactorToGrpcClientBuilder;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.runtime.connector.GrpcRequestConfiguration;
 import com.netflix.titus.runtime.connector.agent.AgentManagementClient;
 import com.netflix.titus.runtime.connector.agent.ReactorAgentManagementServiceStub;
 import com.netflix.titus.runtime.connector.agent.RemoteAgentManagementClient;
-import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorClientFactory;
-import com.netflix.titus.runtime.connector.common.reactor.client.ReactorToGrpcClientBuilder;
 import com.netflix.titus.runtime.endpoint.metadata.AnonymousCallMetadataResolver;
+import com.netflix.titus.runtime.endpoint.metadata.CommonCallMetadataUtils;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.ServiceDescriptor;
@@ -82,10 +84,10 @@ public class CommandContext {
             @Override
             public <GRPC_STUB extends AbstractStub<GRPC_STUB>, REACT_API> REACT_API apply(GRPC_STUB stub, Class<REACT_API> apiType, ServiceDescriptor serviceDescriptor) {
                 return ReactorToGrpcClientBuilder
-                        .newBuilder(
-                                apiType, stub, serviceDescriptor
+                        .<REACT_API, GRPC_STUB, CallMetadata>newBuilder(
+                                apiType, stub, serviceDescriptor, CallMetadata.class
                         )
-                        .withCallMetadataResolver(AnonymousCallMetadataResolver.getInstance())
+                        .withGrpcStubDecorator(CommonCallMetadataUtils.newGrpcStubDecorator(AnonymousCallMetadataResolver.getInstance()))
                         .withTimeout(Duration.ofMillis(GrpcRequestConfiguration.DEFAULT_REQUEST_TIMEOUT_MS))
                         .withStreamingTimeout(Duration.ofMillis(GrpcRequestConfiguration.DEFAULT_STREAMING_TIMEOUT_MS))
                         .build();

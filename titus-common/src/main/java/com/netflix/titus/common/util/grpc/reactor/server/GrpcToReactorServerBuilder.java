@@ -14,39 +14,42 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.connector.common.reactor.server;
+package com.netflix.titus.common.util.grpc.reactor.server;
 
-import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
+import java.util.function.Supplier;
+
 import io.grpc.ServerServiceDefinition;
 import io.grpc.ServiceDescriptor;
 
 import static io.grpc.stub.ServerCalls.asyncServerStreamingCall;
 import static io.grpc.stub.ServerCalls.asyncUnaryCall;
 
-class GrpcToReactorServerBuilder<REACT_SERVICE> {
+class GrpcToReactorServerBuilder<REACT_SERVICE, CONTEXT> {
 
     private final ServiceDescriptor serviceDescriptor;
     private final REACT_SERVICE reactorService;
+    private Class<CONTEXT> contextType;
+    private Supplier<CONTEXT> contextResolver;
 
-    private CallMetadataResolver callMetadataResolver;
 
     private GrpcToReactorServerBuilder(ServiceDescriptor serviceDescriptor, REACT_SERVICE reactorService) {
         this.serviceDescriptor = serviceDescriptor;
         this.reactorService = reactorService;
     }
 
-    GrpcToReactorServerBuilder<REACT_SERVICE> withCallMetadataResolver(CallMetadataResolver callMetadataResolver) {
-        this.callMetadataResolver = callMetadataResolver;
+    GrpcToReactorServerBuilder<REACT_SERVICE, CONTEXT> withContext(Class<CONTEXT> contextType, Supplier<CONTEXT> contextResolver) {
+        this.contextType = contextType;
+        this.contextResolver = contextResolver;
         return this;
     }
 
-    static <REACT_SERVICE> GrpcToReactorServerBuilder<REACT_SERVICE> newBuilder(
+    static <REACT_SERVICE, CONTEXT> GrpcToReactorServerBuilder<REACT_SERVICE, CONTEXT> newBuilder(
             ServiceDescriptor grpcServiceDescriptor, REACT_SERVICE reactService) {
         return new GrpcToReactorServerBuilder<>(grpcServiceDescriptor, reactService);
     }
 
     ServerServiceDefinition build() {
-        MethodHandlersBuilder handlersBuilder = new MethodHandlersBuilder(reactorService, serviceDescriptor, callMetadataResolver);
+        MethodHandlersBuilder<CONTEXT> handlersBuilder = new MethodHandlersBuilder<>(reactorService, serviceDescriptor, contextType, contextResolver);
 
         ServerServiceDefinition.Builder builder = ServerServiceDefinition.builder(serviceDescriptor);
         handlersBuilder.getUnaryMethodHandlers().forEach(handler -> {

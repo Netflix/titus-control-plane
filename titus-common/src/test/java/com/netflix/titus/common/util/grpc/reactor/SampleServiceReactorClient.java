@@ -14,24 +14,23 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.connector.common.reactor;
+package com.netflix.titus.common.util.grpc.reactor;
 
-import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.testing.SampleGrpcService;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-interface SampleServiceReactorClient {
+public interface SampleServiceReactorClient {
 
     Mono<SampleGrpcService.SampleContainer> getOneValue();
 
-    Mono<SampleGrpcService.SampleContainer> getOneValue(CallMetadata callMetadata);
+    Mono<SampleGrpcService.SampleContainer> getOneValue(SampleContext context);
 
     Mono<Void> setOneValue(SampleGrpcService.SampleContainer value);
 
-    Mono<Void> setOneValue(SampleGrpcService.SampleContainer value, CallMetadata callMetadata);
+    Mono<Void> setOneValue(SampleGrpcService.SampleContainer value, SampleContext context);
 
     Flux<SampleGrpcService.SampleContainer> stream();
 
-    Flux<SampleGrpcService.SampleContainer> stream(CallMetadata callMetadata);
+    Flux<SampleGrpcService.SampleContainer> stream(SampleContext context);
 }

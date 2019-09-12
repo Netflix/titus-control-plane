@@ -27,6 +27,7 @@ import com.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import com.netflix.titus.api.connector.cloud.noop.NoOpLoadBalancerConnector;
 import com.netflix.titus.api.loadbalancer.model.sanitizer.DefaultLoadBalancerResourceValidator;
 import com.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerResourceValidator;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.common.network.http.HttpClient;
 import com.netflix.titus.common.network.http.RxHttpClient;
 import com.netflix.titus.common.network.http.internal.okhttp.CompositeRetryInterceptor;
@@ -35,6 +36,7 @@ import com.netflix.titus.common.network.http.internal.okhttp.OkHttpClient;
 import com.netflix.titus.common.network.http.internal.okhttp.PassthroughInterceptor;
 import com.netflix.titus.common.network.http.internal.okhttp.RxOkHttpClient;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.grpc.reactor.GrpcToReactorClientFactory;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.AgentManagementServiceStub;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
@@ -49,9 +51,9 @@ import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc.SchedulerServiceStub;
 import com.netflix.titus.grpc.protogen.SupervisorServiceGrpc;
 import com.netflix.titus.runtime.connector.GrpcRequestConfiguration;
-import com.netflix.titus.runtime.connector.common.reactor.client.DefaultGrpcToReactorClientFactory;
-import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorClientFactory;
+import com.netflix.titus.runtime.connector.common.reactor.DefaultGrpcToReactorClientFactory;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
+import com.netflix.titus.runtime.endpoint.metadata.CommonCallMetadataUtils;
 import io.grpc.Channel;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import okhttp3.Interceptor;
@@ -119,7 +121,10 @@ public class TitusMasterConnectorModule extends AbstractModule {
     @Singleton
     public GrpcToReactorClientFactory getReactorGrpcClientAdapterFactory(GrpcRequestConfiguration configuration,
                                                                          CallMetadataResolver callMetadataResolver) {
-        return new DefaultGrpcToReactorClientFactory(configuration, callMetadataResolver);
+        return new DefaultGrpcToReactorClientFactory<>(configuration,
+                CommonCallMetadataUtils.newGrpcStubDecorator(callMetadataResolver),
+                CallMetadata.class
+        );
     }
 
     @Provides

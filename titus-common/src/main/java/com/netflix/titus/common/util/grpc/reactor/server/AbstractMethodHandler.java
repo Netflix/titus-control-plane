@@ -14,32 +14,31 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.connector.common.reactor.server;
+package com.netflix.titus.common.util.grpc.reactor.server;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.function.Supplier;
 
-import com.netflix.titus.api.model.callmetadata.CallMetadata;
-import com.netflix.titus.api.model.callmetadata.CallMetadataConstants;
-import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import io.grpc.MethodDescriptor;
 import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 import org.reactivestreams.Publisher;
 import reactor.core.Disposable;
 
-abstract class AbstractMethodHandler<REQ, RESP> {
+abstract class AbstractMethodHandler<REQ, RESP, CONTEXT> {
 
     private static final Object[] EMPTY_ARG_ARRAY = new Object[0];
 
     final GrpcToReactorMethodBinding<REQ, RESP> binding;
-    private final CallMetadataResolver callMetadataResolver;
+
+    private final Supplier<CONTEXT> contextResolver;
     private final Object reactorService;
 
     AbstractMethodHandler(GrpcToReactorMethodBinding<REQ, RESP> binding,
-                          CallMetadataResolver callMetadataResolver,
+                          Supplier<CONTEXT> contextResolver,
                           Object reactorService) {
         this.binding = binding;
-        this.callMetadataResolver = callMetadataResolver;
+        this.contextResolver = contextResolver;
         this.reactorService = reactorService;
     }
 
@@ -52,19 +51,19 @@ abstract class AbstractMethodHandler<REQ, RESP> {
         if (binding.getCallMetadataPos() < 0) {
             args = binding.getGrpcArgumentPos() < 0 ? EMPTY_ARG_ARRAY : new Object[]{request};
         } else {
-            CallMetadata callMetadata = callMetadataResolver.resolve().orElse(CallMetadataConstants.UNDEFINED_CALL_METADATA);
+            CONTEXT context = contextResolver.get();
 
             if (binding.getCallMetadataPos() == 0) {
                 if (binding.getGrpcArgumentPos() < 0) {
-                    args = new Object[]{callMetadata};
+                    args = new Object[]{context};
                 } else {
-                    args = new Object[]{callMetadata, request};
+                    args = new Object[]{context, request};
                 }
             } else {
                 if (binding.getCallMetadataPos() == 0) {
-                    args = new Object[]{callMetadata, request};
+                    args = new Object[]{context, request};
                 } else {
-                    args = new Object[]{request, callMetadata};
+                    args = new Object[]{request, context};
                 }
             }
         }

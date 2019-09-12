@@ -24,7 +24,7 @@ import com.google.inject.Singleton;
 import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.runtime.connector.agent.replicator.AgentDataReplicatorProvider;
-import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorClientFactory;
+import com.netflix.titus.common.util.grpc.reactor.GrpcToReactorClientFactory;
 import io.grpc.Channel;
 
 import static com.netflix.titus.runtime.connector.titusmaster.TitusMasterConnectorModule.MANAGED_CHANNEL_NAME;

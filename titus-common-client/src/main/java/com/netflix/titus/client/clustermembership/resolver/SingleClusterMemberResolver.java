@@ -27,6 +27,7 @@ import com.netflix.titus.api.clustermembership.model.ClusterMemberLeadership;
 import com.netflix.titus.api.clustermembership.model.ClusterMemberLeadershipState;
 import com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision;
 import com.netflix.titus.api.clustermembership.model.ClusterMembershipSnapshot;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.client.clustermembership.grpc.ReactorClusterMembershipClient;
 import com.netflix.titus.client.common.grpc.GrpcClientErrorUtils;
 import com.netflix.titus.common.runtime.TitusRuntime;
@@ -36,8 +37,7 @@ import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.grpc.protogen.ClusterMember.LeadershipState;
 import com.netflix.titus.grpc.protogen.ClusterMembershipEvent;
 import com.netflix.titus.grpc.protogen.ClusterMembershipServiceGrpc;
-import com.netflix.titus.runtime.connector.common.reactor.client.ReactorToGrpcClientBuilder;
-import com.netflix.titus.runtime.endpoint.metadata.AnonymousCallMetadataResolver;
+import com.netflix.titus.common.util.grpc.reactor.client.ReactorToGrpcClientBuilder;
 import io.grpc.ManagedChannel;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
@@ -97,13 +97,14 @@ class SingleClusterMemberResolver implements DirectClusterMemberResolver {
         this.channel = channelProvider.apply(address);
         this.disconnectTimeRef = new AtomicReference<>(clock.wallTime());
         this.client = ReactorToGrpcClientBuilder
-                .newBuilder(
+                .newBuilderWithDefaults(
                         ReactorClusterMembershipClient.class,
                         ClusterMembershipServiceGrpc.newStub(channel),
-                        ClusterMembershipServiceGrpc.getServiceDescriptor()
+                        ClusterMembershipServiceGrpc.getServiceDescriptor(),
+                        CallMetadata.class
                 )
-                // FIXME Once call metadata is fully refactored out job management
-                .withCallMetadataResolver(AnonymousCallMetadataResolver.getInstance())
+                // FIXME Once call metadata interceptor is moved into common module
+//                .withGrpcStubDecorator(AnonymousCallMetadataResolver.getInstance())
                 .withTimeout(GRPC_REQUEST_TIMEOUT)
                 .withStreamingTimeout(Duration.ofMillis(configuration.getSingleMemberReconnectIntervalMs()))
                 .build();

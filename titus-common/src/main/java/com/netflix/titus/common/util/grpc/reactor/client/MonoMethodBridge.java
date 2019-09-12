@@ -14,18 +14,17 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.connector.common.reactor.client;
+package com.netflix.titus.common.util.grpc.reactor.client;
 
 import java.lang.reflect.Method;
 import java.time.Duration;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import com.google.protobuf.Empty;
-import com.netflix.titus.api.model.callmetadata.CallMetadata;
-import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactUtil;
-import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
-import com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor;
+import com.netflix.titus.common.util.grpc.GrpcToReactUtil;
 import io.grpc.Deadline;
 import io.grpc.stub.AbstractStub;
 import io.grpc.stub.ClientCallStreamObserver;
@@ -35,12 +34,12 @@ import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoSink;
 
-class MonoMethodBridge<GRPC_STUB extends AbstractStub<GRPC_STUB>> implements Function<Object[], Publisher> {
+class MonoMethodBridge<GRPC_STUB extends AbstractStub<GRPC_STUB>, CONTEXT> implements Function<Object[], Publisher> {
 
     private final Method grpcMethod;
     private final int grpcArgPos;
-    private final int callMetadataPos;
-    private final CallMetadataResolver callMetadataResolver;
+    private final int contextPos;
+    private final BiFunction<GRPC_STUB, Optional<CONTEXT>, GRPC_STUB> grpcStubDecorator;
     private final GRPC_STUB grpcStub;
     private final boolean emptyToVoidReply;
     private final Duration timeout;
@@ -48,19 +47,20 @@ class MonoMethodBridge<GRPC_STUB extends AbstractStub<GRPC_STUB>> implements Fun
 
     /**
      * If grpcArgPos is less then zero, it means no GRPC argument is provided, and instead {@link Empty} value should be used.
-     * If callMetadataPos is less then zero, it means the {@link CallMetadata} value should be resolved from the local context.
+     * If contextPos is less then zero, it means the context value should be resolved as it is not passed directly by
+     * the client.
      */
     MonoMethodBridge(Method reactMethod,
                      Method grpcMethod,
                      int grpcArgPos,
-                     int callMetadataPos,
-                     CallMetadataResolver callMetadataResolver,
+                     int contextPos,
+                     BiFunction<GRPC_STUB, Optional<CONTEXT>, GRPC_STUB> grpcStubDecorator,
                      GRPC_STUB grpcStub,
                      Duration timeout) {
         this.grpcMethod = grpcMethod;
         this.grpcArgPos = grpcArgPos;
-        this.callMetadataPos = callMetadataPos;
-        this.callMetadataResolver = callMetadataResolver;
+        this.contextPos = contextPos;
+        this.grpcStubDecorator = grpcStubDecorator;
         this.grpcStub = grpcStub;
         this.emptyToVoidReply = GrpcToReactUtil.isEmptyToVoidResult(reactMethod, grpcMethod);
         this.timeout = timeout;
@@ -117,12 +117,8 @@ class MonoMethodBridge<GRPC_STUB extends AbstractStub<GRPC_STUB>> implements Fun
         }
 
         private GRPC_STUB handleCallMetadata(Object[] args) {
-            if (callMetadataPos >= 0) {
-                return V3HeaderInterceptor.attachCallMetadata(grpcStub, (CallMetadata) args[callMetadataPos]);
-            }
-            return callMetadataResolver.resolve()
-                    .map(callMetadata -> V3HeaderInterceptor.attachCallMetadata(grpcStub, callMetadata))
-                    .orElse(grpcStub);
+            Optional<CONTEXT> contextOptional = contextPos >= 0 ? (Optional<CONTEXT>) Optional.of(args[contextPos]) : Optional.empty();
+            return grpcStubDecorator.apply(grpcStub, contextOptional);
         }
     }
 }

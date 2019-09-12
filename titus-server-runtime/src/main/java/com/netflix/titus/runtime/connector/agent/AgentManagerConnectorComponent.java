@@ -19,7 +19,7 @@ package com.netflix.titus.runtime.connector.agent;
 import javax.inject.Named;
 
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
-import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorClientFactory;
+import com.netflix.titus.common.util.grpc.reactor.GrpcToReactorClientFactory;
 import io.grpc.Channel;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
