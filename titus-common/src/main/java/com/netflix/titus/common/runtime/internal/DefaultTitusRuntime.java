@@ -62,7 +62,7 @@ public class DefaultTitusRuntime implements TitusRuntime {
     private static final long INITIAL_RETRY_DELAY_MS = 10;
     private static final long MAX_RETRY_DELAY_MS = 10_000;
 
-    private static final int LOCAL_SCHEDULER_LOOP_INTERVAL_MS = 100;
+    private static final Duration LOCAL_SCHEDULER_LOOP_INTERVAL = Duration.ofMillis(100);
 
     private final CodePointTracker codePointTracker;
     private final CodeInvariants codeInvariants;
@@ -83,6 +83,7 @@ public class DefaultTitusRuntime implements TitusRuntime {
                 codeInvariants,
                 systemLogService,
                 systemAbortListener,
+                LOCAL_SCHEDULER_LOOP_INTERVAL,
                 registry,
                 Clocks.system(),
                 "true".equals(System.getProperty(FIT_ACTIVATION_PROPERTY, "false"))
@@ -93,6 +94,7 @@ public class DefaultTitusRuntime implements TitusRuntime {
                                CodeInvariants codeInvariants,
                                SystemLogService systemLogService,
                                SystemAbortListener systemAbortListener,
+                               Duration localSchedulerLoopInterval,
                                Registry registry,
                                Clock clock,
                                boolean isFitEnabled) {
@@ -103,7 +105,7 @@ public class DefaultTitusRuntime implements TitusRuntime {
         this.registry = registry;
         this.clock = clock;
         this.fitFramework = isFitEnabled ? FitFramework.newFitFramework() : FitFramework.inactiveFitFramework();
-        this.localScheduler = new DefaultLocalScheduler(Duration.ofMillis(LOCAL_SCHEDULER_LOOP_INTERVAL_MS), Schedulers.parallel(), clock, registry);
+        this.localScheduler = new DefaultLocalScheduler(localSchedulerLoopInterval, Schedulers.parallel(), clock, registry);
     }
 
     @Override

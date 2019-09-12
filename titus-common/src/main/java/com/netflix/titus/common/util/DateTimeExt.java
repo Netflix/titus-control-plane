@@ -31,6 +31,7 @@ import com.google.protobuf.util.Durations;
 public final class DateTimeExt {
 
     private static final DateTimeFormatter ISO_UTC_DATE_TIME_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME.withZone(ZoneId.of("UTC"));
+    private static final DateTimeFormatter ISO_LOCAL_DATE_TIME_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME.withZone(ZoneId.systemDefault());
 
     private DateTimeExt() {
     }
@@ -56,6 +57,13 @@ public final class DateTimeExt {
             return null;
         }
         return ISO_UTC_DATE_TIME_FORMATTER.format(Instant.ofEpochMilli(msSinceEpoch)) + 'Z';
+    }
+
+    public static String toLocalDateTimeString(long msSinceEpoch) {
+        if (msSinceEpoch == 0L) {
+            return null;
+        }
+        return ISO_LOCAL_DATE_TIME_FORMATTER.format(Instant.ofEpochMilli(msSinceEpoch));
     }
 
     public static String toTimeUnitAbbreviation(TimeUnit timeUnit) {

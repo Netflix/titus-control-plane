@@ -101,7 +101,7 @@ import com.netflix.titus.testkit.embedded.cloud.connector.local.SimulatedLocalMe
 import com.netflix.titus.testkit.embedded.cloud.connector.local.SimulatedLocalMesosSchedulerDriverFactory;
 import com.netflix.titus.testkit.embedded.cloud.connector.remote.SimulatedRemoteInstanceCloudConnector;
 import com.netflix.titus.testkit.embedded.cloud.connector.remote.SimulatedRemoteMesosSchedulerDriverFactory;
-import com.netflix.titus.testkit.grpc.GrpcClientErrorUtils;
+import com.netflix.titus.testkit.grpc.TestKitGrpcClientErrorUtils;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import org.slf4j.Logger;
@@ -323,42 +323,42 @@ public class EmbeddedTitusMaster {
 
     public HealthStub getHealthClient() {
         HealthStub client = HealthGrpc.newStub(getOrCreateGrpcChannel());
-        return GrpcClientErrorUtils.attachCallHeaders(client);
+        return TestKitGrpcClientErrorUtils.attachCallHeaders(client);
     }
 
     public SupervisorServiceBlockingStub getSupervisorBlockingGrpcClient() {
         SupervisorServiceBlockingStub client = SupervisorServiceGrpc.newBlockingStub(getOrCreateGrpcChannel());
-        return GrpcClientErrorUtils.attachCallHeaders(client);
+        return TestKitGrpcClientErrorUtils.attachCallHeaders(client);
     }
 
     public JobManagementServiceStub getV3GrpcClient() {
         JobManagementServiceStub client = JobManagementServiceGrpc.newStub(getOrCreateGrpcChannel());
-        return GrpcClientErrorUtils.attachCallHeaders(client);
+        return TestKitGrpcClientErrorUtils.attachCallHeaders(client);
     }
 
     public JobManagementServiceBlockingStub getV3BlockingGrpcClient() {
         JobManagementServiceBlockingStub client = JobManagementServiceGrpc.newBlockingStub(getOrCreateGrpcChannel());
-        return GrpcClientErrorUtils.attachCallHeaders(client);
+        return TestKitGrpcClientErrorUtils.attachCallHeaders(client);
     }
 
     public AgentManagementServiceGrpc.AgentManagementServiceStub getV3GrpcAgentClient() {
         AgentManagementServiceGrpc.AgentManagementServiceStub client = AgentManagementServiceGrpc.newStub(getOrCreateGrpcChannel());
-        return GrpcClientErrorUtils.attachCallHeaders(client);
+        return TestKitGrpcClientErrorUtils.attachCallHeaders(client);
     }
 
     public AgentManagementServiceGrpc.AgentManagementServiceBlockingStub getV3BlockingGrpcAgentClient() {
         AgentManagementServiceGrpc.AgentManagementServiceBlockingStub client = AgentManagementServiceGrpc.newBlockingStub(getOrCreateGrpcChannel());
-        return GrpcClientErrorUtils.attachCallHeaders(client);
+        return TestKitGrpcClientErrorUtils.attachCallHeaders(client);
     }
 
     public AutoScalingServiceGrpc.AutoScalingServiceStub getAutoScaleGrpcClient() {
         AutoScalingServiceGrpc.AutoScalingServiceStub client = AutoScalingServiceGrpc.newStub(getOrCreateGrpcChannel());
-        return GrpcClientErrorUtils.attachCallHeaders(client);
+        return TestKitGrpcClientErrorUtils.attachCallHeaders(client);
     }
 
     public LoadBalancerServiceGrpc.LoadBalancerServiceStub getLoadBalancerGrpcClient() {
         LoadBalancerServiceGrpc.LoadBalancerServiceStub client = LoadBalancerServiceGrpc.newStub(getOrCreateGrpcChannel());
-        return GrpcClientErrorUtils.attachCallHeaders(client);
+        return TestKitGrpcClientErrorUtils.attachCallHeaders(client);
     }
 
     public EvictionServiceGrpc.EvictionServiceBlockingStub getBlockingGrpcEvictionClient() {

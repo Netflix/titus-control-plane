@@ -16,15 +16,10 @@
 
 package com.netflix.titus.runtime.endpoint.admission;
 
-import java.util.Collections;
-import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import com.netflix.titus.common.util.CollectionsExt;
-import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.runtime.connector.prediction.JobRuntimePrediction;
 import com.netflix.titus.runtime.connector.prediction.JobRuntimePredictions;
 
 /**
@@ -32,22 +27,5 @@ import com.netflix.titus.runtime.connector.prediction.JobRuntimePredictions;
  * quality. In addition to returning one of the predictions to be used, implementations may return job attributes to
  * be appended to a {@link JobDescriptor} as metadata about the selection.
  */
-public interface JobRuntimePredictionSelector extends
-        Function<JobRuntimePredictions, Pair<Optional<JobRuntimePrediction>, Map<String, String>>> {
-
-    /**
-     * Always select the highest quality prediction.
-     */
-    static JobRuntimePredictionSelector best() {
-        return best(Collections.emptyMap());
-    }
-
-    /**
-     * Always select the highest quality prediction, with additional metadata.
-     */
-    static JobRuntimePredictionSelector best(Map<String, String> selectionMetadata) {
-        return predictions -> CollectionsExt.isNullOrEmpty(predictions.getPredictions()) ?
-                Pair.of(Optional.empty(), selectionMetadata) :
-                Pair.of(Optional.of(predictions.getPredictions().last()), selectionMetadata);
-    }
+public interface JobRuntimePredictionSelector extends BiFunction<JobDescriptor<?>, JobRuntimePredictions, Optional<JobRuntimePredictionSelection>> {
 }

@@ -69,7 +69,7 @@ public class JobRuntimePredictionSanitizerTest {
     @Test
     public void predictionsAreAddedToJobs() {
         AdmissionSanitizer<JobDescriptor> sanitizer = new JobRuntimePredictionSanitizer(client,
-                JobRuntimePredictionSelector.best());
+                JobRuntimePredictionSelectors.best());
 
         StepVerifier.create(sanitizer.sanitizeAndApply(jobDescriptor))
                 .assertNext(result -> assertThat(((JobDescriptor<?>) result).getAttributes())
@@ -88,7 +88,7 @@ public class JobRuntimePredictionSanitizerTest {
         when(errorClient.getRuntimePredictions(any())).thenReturn(Mono.error(TitusServiceException.internal("bad request")));
 
         AdmissionSanitizer<JobDescriptor> sanitizer = new JobRuntimePredictionSanitizer(errorClient,
-                JobRuntimePredictionSelector.best());
+                JobRuntimePredictionSelectors.best());
 
         StepVerifier.create(sanitizer.sanitizeAndApply(jobDescriptor))
                 .assertNext(result -> assertThat(((JobDescriptor<?>) result).getAttributes())
@@ -110,7 +110,7 @@ public class JobRuntimePredictionSanitizerTest {
         when(client.getRuntimePredictions(any())).thenReturn(Mono.just(predictions));
 
         AdmissionSanitizer<JobDescriptor> sanitizer = new JobRuntimePredictionSanitizer(client,
-                JobRuntimePredictionSelector.best());
+                JobRuntimePredictionSelectors.best());
 
         StepVerifier.create(sanitizer.sanitizeAndApply(jobDescriptor))
                 .assertNext(result -> assertThat(((JobDescriptor<?>) result).getAttributes())
@@ -134,7 +134,7 @@ public class JobRuntimePredictionSanitizerTest {
         when(client.getRuntimePredictions(any())).thenReturn(Mono.just(predictions));
 
         AdmissionSanitizer<JobDescriptor> sanitizer = new JobRuntimePredictionSanitizer(client,
-                JobRuntimePredictionSelector.best());
+                JobRuntimePredictionSelectors.best());
 
         StepVerifier.create(sanitizer.sanitizeAndApply(jobDescriptor))
                 .assertNext(result -> assertThat(((JobDescriptor<?>) result).getAttributes())
@@ -159,7 +159,7 @@ public class JobRuntimePredictionSanitizerTest {
         when(client.getRuntimePredictions(any())).thenReturn(Mono.just(predictions));
 
         AdmissionSanitizer<JobDescriptor> sanitizer = new JobRuntimePredictionSanitizer(client,
-                JobRuntimePredictionSelector.best());
+                JobRuntimePredictionSelectors.best());
 
         StepVerifier.create(sanitizer.sanitizeAndApply(jobDescriptor))
                 .assertNext(result -> assertThat(((JobDescriptor<?>) result).getAttributes())
@@ -174,7 +174,7 @@ public class JobRuntimePredictionSanitizerTest {
     @Test
     public void metadataFromSelectorIsAddedToJobs() {
         AdmissionSanitizer<JobDescriptor> sanitizer = new JobRuntimePredictionSanitizer(client,
-                JobRuntimePredictionSelector.best(CollectionsExt.asMap(
+                JobRuntimePredictionSelectors.best(CollectionsExt.asMap(
                         "selection.extra", "foobar",
                         // can't override prediction attributes
                         JOB_ATTRIBUTES_RUNTIME_PREDICTION_SEC, "0.82",
@@ -198,7 +198,7 @@ public class JobRuntimePredictionSanitizerTest {
                 ))
                 .build();
         AdmissionSanitizer<JobDescriptor> sanitizer = new JobRuntimePredictionSanitizer(client,
-                JobRuntimePredictionSelector.best());
+                JobRuntimePredictionSelectors.best());
 
         StepVerifier.create(sanitizer.sanitizeAndApply(optedOut))
                 .assertNext(result -> assertThat(((JobDescriptor<?>) result).getAttributes())

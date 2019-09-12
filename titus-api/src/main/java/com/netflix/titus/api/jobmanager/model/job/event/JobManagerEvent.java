@@ -19,7 +19,7 @@ package com.netflix.titus.api.jobmanager.model.job.event;
 import java.util.Objects;
 import java.util.Optional;
 
-import com.netflix.titus.api.jobmanager.model.CallMetadata;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 

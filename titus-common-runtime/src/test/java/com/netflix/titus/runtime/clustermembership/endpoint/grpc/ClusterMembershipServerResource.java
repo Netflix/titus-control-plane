@@ -17,16 +17,17 @@
 package com.netflix.titus.runtime.clustermembership.endpoint.grpc;
 
 import com.netflix.titus.api.clustermembership.service.ClusterMembershipService;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
+import com.netflix.titus.api.model.callmetadata.CallMetadataConstants;
+import com.netflix.titus.client.clustermembership.grpc.ReactorClusterMembershipClient;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.archaius2.Archaius2Ext;
+import com.netflix.titus.common.util.grpc.reactor.server.DefaultGrpcToReactorServerFactory;
 import com.netflix.titus.grpc.protogen.ClusterMembershipServiceGrpc;
-import com.netflix.titus.runtime.clustermembership.client.ReactorClusterMembershipClient;
 import com.netflix.titus.runtime.connector.GrpcRequestConfiguration;
-import com.netflix.titus.runtime.connector.common.reactor.client.DefaultGrpcToReactorClientFactory;
-import com.netflix.titus.runtime.connector.common.reactor.server.DefaultGrpcToReactorServerFactory;
+import com.netflix.titus.runtime.connector.common.reactor.DefaultGrpcToReactorClientFactory;
 import com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcEndpointConfiguration;
-import com.netflix.titus.runtime.endpoint.metadata.AnonymousCallMetadataResolver;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import org.junit.rules.ExternalResource;
@@ -61,7 +62,7 @@ public class ClusterMembershipServerResource extends ExternalResource {
                         service,
                         titusRuntime
                 ),
-                new DefaultGrpcToReactorServerFactory(AnonymousCallMetadataResolver.getInstance()),
+                new DefaultGrpcToReactorServerFactory<>(CallMetadata.class, () -> CallMetadataConstants.UNDEFINED_CALL_METADATA),
                 titusRuntime
         );
         server.start();
@@ -70,9 +71,10 @@ public class ClusterMembershipServerResource extends ExternalResource {
                 .usePlaintext(true)
                 .build();
 
-        this.client = new DefaultGrpcToReactorClientFactory(
+        this.client = new DefaultGrpcToReactorClientFactory<>(
                 grpcRequestConfiguration,
-                AnonymousCallMetadataResolver.getInstance()
+                (stub, contextOpt) -> stub,
+                CallMetadata.class
         ).apply(
                 ClusterMembershipServiceGrpc.newStub(channel),
                 ReactorClusterMembershipClient.class,

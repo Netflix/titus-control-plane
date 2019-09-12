@@ -16,7 +16,6 @@
 
 package com.netflix.titus.runtime.endpoint.admission;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -27,7 +26,6 @@ import javax.inject.Singleton;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.common.util.CollectionsExt;
-import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.runtime.connector.prediction.JobRuntimePrediction;
 import com.netflix.titus.runtime.connector.prediction.JobRuntimePredictionClient;
 import com.netflix.titus.runtime.connector.prediction.JobRuntimePredictions;
@@ -80,30 +78,24 @@ public class JobRuntimePredictionSanitizer implements AdmissionSanitizer<JobDesc
     }
 
     private UnaryOperator<JobDescriptor> addPredictionToJob(JobRuntimePredictions predictions) {
-        Optional<JobRuntimePrediction> predictionOpt;
-        Map<String, String> attributes;
-        if (isValid(predictions)) {
-            Pair<Optional<JobRuntimePrediction>, Map<String, String>> predictionWithAttributes = selector.apply(predictions);
-            predictionOpt = predictionWithAttributes.getLeft();
-            attributes = predictionWithAttributes.getRight();
-        } else {
-            predictionOpt = Optional.empty();
-            attributes = Collections.emptyMap();
-        }
-
         return jobDescriptor -> {
             Map<String, String> metadata = new HashMap<>(((JobDescriptor<?>) jobDescriptor).getAttributes());
-            metadata.putAll(attributes);
             metadata.put(JOB_ATTRIBUTES_RUNTIME_PREDICTION_MODEL_ID, predictions.getModelId());
             metadata.put(JOB_ATTRIBUTES_RUNTIME_PREDICTION_VERSION, predictions.getVersion());
             metadata.put(JOB_ATTRIBUTES_RUNTIME_PREDICTION_AVAILABLE, predictions.toSimpleString());
-            JobDescriptor<?> withPredictionMetadata = jobDescriptor.toBuilder().withAttributes(metadata).build();
 
+            Optional<JobRuntimePredictionSelection> selectionOpt = isValid(predictions) ? selector.apply(jobDescriptor, predictions) : Optional.empty();
+
+            // Make direct assignment here, otherwise the compiler type inference breaks.
             //noinspection unchecked
-            return predictionOpt.map(prediction -> appendJobDescriptorAttributes(withPredictionMetadata, CollectionsExt.asMap(
-                    JOB_ATTRIBUTES_RUNTIME_PREDICTION_SEC, Double.toString(prediction.getRuntimeInSeconds()),
-                    JOB_ATTRIBUTES_RUNTIME_PREDICTION_CONFIDENCE, Double.toString(prediction.getConfidence())
-            ))).orElseGet(() -> skipSanitization(withPredictionMetadata));
+            Optional<JobDescriptor> resultOpt = selectionOpt
+                    .map(selection -> {
+                        metadata.putAll(selection.getMetadata());
+                        metadata.put(JOB_ATTRIBUTES_RUNTIME_PREDICTION_SEC, Double.toString(selection.getPrediction().getRuntimeInSeconds()));
+                        metadata.put(JOB_ATTRIBUTES_RUNTIME_PREDICTION_CONFIDENCE, Double.toString(selection.getPrediction().getConfidence()));
+                        return appendJobDescriptorAttributes(jobDescriptor, metadata);
+                    });
+            return resultOpt.orElseGet(() -> skipSanitization(appendJobDescriptorAttributes(jobDescriptor, metadata)));
         };
     }
 

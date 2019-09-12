@@ -23,7 +23,7 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.runtime.connector.agent.AgentManagementDataReplicationComponent;
 import com.netflix.titus.runtime.connector.agent.AgentManagerConnectorComponent;
 import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorClientFactoryComponent;
-import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorServerFactory;
+import com.netflix.titus.common.util.grpc.reactor.GrpcToReactorServerFactory;
 import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorServerFactoryComponent;
 import com.netflix.titus.runtime.connector.eviction.EvictionConnectorComponent;
 import com.netflix.titus.runtime.connector.eviction.EvictionDataReplicationComponent;

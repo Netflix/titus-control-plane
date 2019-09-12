@@ -23,7 +23,7 @@ import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
-import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorClientFactory;
+import com.netflix.titus.common.util.grpc.reactor.GrpcToReactorClientFactory;
 import com.netflix.titus.runtime.connector.jobmanager.replicator.JobDataReplicatorProvider;
 import io.grpc.Channel;
 

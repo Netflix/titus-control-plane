@@ -22,7 +22,7 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.netflix.titus.grpc.protogen.TaskRelocationServiceGrpc;
-import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorClientFactory;
+import com.netflix.titus.common.util.grpc.reactor.GrpcToReactorClientFactory;
 import io.grpc.Channel;
 
 public class RelocationClientConnectorModule extends AbstractModule {

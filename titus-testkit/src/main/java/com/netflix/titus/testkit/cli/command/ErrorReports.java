@@ -16,7 +16,7 @@
 
 package com.netflix.titus.testkit.cli.command;
 
-import com.netflix.titus.testkit.grpc.GrpcClientErrorUtils;
+import com.netflix.titus.testkit.grpc.TestKitGrpcClientErrorUtils;
 import io.grpc.StatusRuntimeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +28,7 @@ public final class ErrorReports {
     public static void handleReplyError(String message, Throwable e) {
         logger.error(message + ": " + e.getMessage());
         if (e instanceof StatusRuntimeException) {
-            GrpcClientErrorUtils.printDetails((StatusRuntimeException) e);
+            TestKitGrpcClientErrorUtils.printDetails((StatusRuntimeException) e);
         }
         logger.info("stack trace", e);
     }
