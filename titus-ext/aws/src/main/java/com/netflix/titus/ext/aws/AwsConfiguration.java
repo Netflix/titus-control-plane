@@ -65,15 +65,28 @@ public interface AwsConfiguration {
     long getIamRoleCacheTimeoutMs();
 
     /**
+     * IAM role associated with agent instances. Agent instances use this role to assume into container provided
+     * IAM roles.
+     */
+    @DefaultValue("")
+    String getDataPlaneAgentRoleArn();
+
+    @DefaultValue("titusControlPlaneSession")
+    String getDataPlaneAgentRoleSessionName();
+
+    @DefaultValue("3600")
+    int getDataPlaneAgentRoleSessionDurationSeconds();
+
+    /**
      * IAM role ARN to assume into to access AWS API for the data plane account. If not set, it is assumed that
      * the control plane and the data plane run in the same account and no cross access is required.
      */
     @DefaultValue("")
-    String getDataPlaneRoleArn();
+    String getDataPlaneControllerRoleArn();
 
-    @DefaultValue("titusDataPlaneClient")
-    String getDataPlaneRoleSessionName();
+    @DefaultValue("titusControlPlaneSession")
+    String getDataPlaneControllerRoleSessionName();
 
     @DefaultValue("3600")
-    int getDataPlaneRoleSessionDurationSeconds();
+    int getDataPlaneControllerRoleSessionDurationSeconds();
 }

@@ -23,8 +23,16 @@ import com.netflix.archaius.api.annotations.DefaultValue;
 
 @Configuration(prefix = "titus.validate.job.security")
 public interface JobSecurityValidatorConfiguration extends AdmissionValidatorConfiguration {
+
     @DefaultValue("true")
     boolean isIamValidatorEnabled();
+
+    /**
+     * If set to true, validation process executes assume role by calling AWS STS service. For safety reason, the
+     * acquired credentials are valid for short amount of time only.
+     */
+    @DefaultValue("false")
+    boolean isIamRoleWithStsValidationEnabled();
 
     @DefaultValue("titusagentInstanceProfile")
     String getAgentIamAssumeRole();

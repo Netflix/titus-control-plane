@@ -34,4 +34,9 @@ public interface IamConnector {
      * into by the provided assuming Role.
      */
     Mono<Void> canIamAssume(String iamRoleName, String assumeResourceName);
+
+    /**
+     * Returns true if Titus agent can assume into the given role.
+     */
+    Mono<Void> canAgentAssume(String iamRoleName);
 }

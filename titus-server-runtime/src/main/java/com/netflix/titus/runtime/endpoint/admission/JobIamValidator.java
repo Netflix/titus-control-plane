@@ -67,14 +67,22 @@ public class JobIamValidator implements AdmissionValidator<JobDescriptor>, Admis
             return Mono.just(Collections.emptySet());
         }
 
-        // Skip any IAM that is not in "friendly" format. A non-friendly format is
-        // likely a cross-account IAM and would need cross-account access to get and validate.
-        if (isIamArn(iamRoleName)) {
-            validatorMetrics.incrementValidationSkipped(iamRoleName, "notFriendly");
-            return Mono.just(Collections.emptySet());
-        }
+        return Mono
+                .defer(() -> {
+                            if (configuration.isIamRoleWithStsValidationEnabled()) {
+                                return iamConnector.canAgentAssume(iamRoleName);
+                            }
 
-        return iamConnector.canIamAssume(iamRoleName, configuration.getAgentIamAssumeRole())
+                            // Skip any IAM that is not in "friendly" format. A non-friendly format is
+                            // likely a cross-account IAM and would need cross-account access to get and validate.
+                            if (isIamArn(iamRoleName)) {
+                                validatorMetrics.incrementValidationSkipped(iamRoleName, "notFriendly");
+                                return Mono.just(Collections.emptySet());
+                            }
+
+                            return iamConnector.canIamAssume(iamRoleName, configuration.getAgentIamAssumeRole());
+                        }
+                )
                 .timeout(Duration.ofMillis(configuration.getIamValidationTimeoutMs()))
                 // If role is found and is assumable return an empty ValidationError set, otherwise
                 // populate the set with a specific error.

@@ -26,18 +26,18 @@ import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceAsync;
 import com.netflix.titus.common.util.StringExt;
 
 @Singleton
-public class DataPlaneAccountCredentialsProvider implements Provider<AWSCredentialsProvider> {
+public class DataPlaneAgentCredentialsProvider implements Provider<AWSCredentialsProvider> {
 
-    public static final String NAME = "dataPlaneCredentials";
+    public static final String NAME = "dataPlaneAgentCredentials";
 
     private final AwsConfiguration configuration;
     private final AWSSecurityTokenServiceAsync stsClient;
     private final AWSCredentialsProvider defaultCredentialsProvider;
 
     @Inject
-    public DataPlaneAccountCredentialsProvider(AwsConfiguration configuration,
-                                               AWSSecurityTokenServiceAsync stsClient,
-                                               AWSCredentialsProvider defaultCredentialsProvider) {
+    public DataPlaneAgentCredentialsProvider(AwsConfiguration configuration,
+                                             AWSSecurityTokenServiceAsync stsClient,
+                                             AWSCredentialsProvider defaultCredentialsProvider) {
         this.configuration = configuration;
         this.stsClient = stsClient;
         this.defaultCredentialsProvider = defaultCredentialsProvider;
@@ -45,13 +45,13 @@ public class DataPlaneAccountCredentialsProvider implements Provider<AWSCredenti
 
     @Override
     public AWSCredentialsProvider get() {
-        String roleArn = configuration.getDataPlaneRoleArn();
+        String roleArn = configuration.getDataPlaneAgentRoleArn();
         if (StringExt.isEmpty(roleArn)) {
             return defaultCredentialsProvider;
         }
 
-        String roleSessionName = configuration.getDataPlaneRoleSessionName();
-        int roleSessionDurationSeconds = configuration.getDataPlaneRoleSessionDurationSeconds();
+        String roleSessionName = configuration.getDataPlaneAgentRoleSessionName();
+        int roleSessionDurationSeconds = configuration.getDataPlaneAgentRoleSessionDurationSeconds();
 
         return new STSAssumeRoleSessionCredentialsProvider.Builder(roleArn, roleSessionName)
                 .withStsClient(stsClient)

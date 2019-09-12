@@ -231,7 +231,7 @@ public class Main {
     private static AwsInstanceCloudConnector createConnector() {
         AWSCredentialsProvider baseCredentials = new ProfileCredentialsProvider("default");
         AWSSecurityTokenServiceAsync stsClient = new AmazonStsAsyncProvider(CONFIGURATION, baseCredentials).get();
-        AWSCredentialsProvider credentialsProvider = new DataPlaneAccountCredentialsProvider(CONFIGURATION, stsClient, baseCredentials).get();
+        AWSCredentialsProvider credentialsProvider = new DataPlaneControllerCredentialsProvider(CONFIGURATION, stsClient, baseCredentials).get();
 
         Region currentRegion = Regions.getCurrentRegion();
         if (currentRegion == null) {
