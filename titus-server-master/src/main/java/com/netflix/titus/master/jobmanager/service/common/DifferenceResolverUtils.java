@@ -92,7 +92,7 @@ public class DifferenceResolverUtils {
 
     public static boolean hasReachedRetryLimit(Job<?> refJob, Task task) {
         int retryLimit = apply(refJob, BatchJobExt::getRetryPolicy, ServiceJobExt::getRetryPolicy).getRetries();
-        if (task.getStatus().getState() != TaskState.Finished || TaskStatus.isSystemError(task.getStatus())) {
+        if (task.getStatus().getState() != TaskState.Finished || TaskStatus.hasSystemError(task)) {
             return false;
         }
         int userRetries = task.getResubmitNumber() - task.getSystemResubmitNumber() - task.getEvictionResubmitNumber();

@@ -153,7 +153,7 @@ public class CreateOrReplaceBatchTaskActions {
                 .withCellInfo(oldTask)
                 .withResubmitOf(oldTask.getId())
                 .withResubmitNumber(oldTask.getResubmitNumber() + 1)
-                .withSystemResubmitNumber(TaskStatus.isSystemError(oldTask.getStatus()) ? oldTask.getSystemResubmitNumber() + 1 : oldTask.getSystemResubmitNumber())
+                .withSystemResubmitNumber(TaskStatus.hasSystemError(oldTask) ? oldTask.getSystemResubmitNumber() + 1 : oldTask.getSystemResubmitNumber())
                 .withEvictionResubmitNumber(TaskStatus.isEvicted(oldTask) ? oldTask.getEvictionResubmitNumber() + 1 : oldTask.getEvictionResubmitNumber())
                 .addAllToTaskContext(taskContext)
                 .build();
