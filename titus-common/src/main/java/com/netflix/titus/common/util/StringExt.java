@@ -481,6 +481,9 @@ public final class StringExt {
     }
 
     public static Optional<Integer> parseInt(String s) {
+        if (StringExt.isEmpty(s)) {
+            return Optional.empty();
+        }
         try {
             return Optional.of(Integer.parseInt(s));
         } catch (NumberFormatException e) {
@@ -489,6 +492,9 @@ public final class StringExt {
     }
 
     public static Optional<Long> parseLong(String s) {
+        if (StringExt.isEmpty(s)) {
+            return Optional.empty();
+        }
         try {
             return Optional.of(Long.parseLong(s));
         } catch (NumberFormatException e) {
@@ -497,6 +503,9 @@ public final class StringExt {
     }
 
     public static Optional<Double> parseDouble(String s) {
+        if (StringExt.isEmpty(s)) {
+            return Optional.empty();
+        }
         try {
             return Optional.of(Double.parseDouble(s));
         } catch (NumberFormatException e) {

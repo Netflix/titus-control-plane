@@ -46,6 +46,7 @@ import com.netflix.titus.master.scheduler.TaskPlacementFailure.FailureKind;
 import com.netflix.titus.master.scheduler.constraint.AgentLaunchGuardConstraint;
 import com.netflix.titus.master.scheduler.constraint.AgentManagementConstraint;
 import com.netflix.titus.master.scheduler.constraint.IpAllocationConstraint;
+import com.netflix.titus.master.scheduler.constraint.OpportunisticCpuConstraint;
 import com.netflix.titus.master.scheduler.constraint.V3UniqueHostConstraint;
 import com.netflix.titus.master.scheduler.constraint.V3ZoneBalancedHardConstraintEvaluator;
 import org.slf4j.Logger;
@@ -120,7 +121,8 @@ class TaskPlacementFailureClassifier {
                 && !processTooLargeToFit(taskRequest, assignmentResults, resultCollector)
                 && !processLaunchGuard(taskRequest, assignmentResults, resultCollector)
                 && !processJobHardConstraints(taskRequest, assignmentResults, resultCollector)
-                && !processInUseIpAllocation(taskRequest, assignmentResults, resultCollector)) {
+                && !processInUseIpAllocation(taskRequest, assignmentResults, resultCollector)
+                && !processOpportunisticResources(taskRequest, assignmentResults, resultCollector)) {
             resultCollector.computeIfAbsent(FailureKind.Unrecognized, k -> new HashMap<>())
                     .computeIfAbsent(taskRequest.getId(), k -> new ArrayList<>())
                     .add(new TaskPlacementFailure(taskRequest.getId(), FailureKind.Unrecognized, -1, SchedulerUtils.getTier((QueuableTask) taskRequest), buildRawDataMap(taskRequest, assignmentResults)));
@@ -134,7 +136,7 @@ class TaskPlacementFailureClassifier {
             }
         }
         resultCollector.computeIfAbsent(FailureKind.NoActiveAgents, k -> new HashMap<>())
-                .computeIfAbsent(taskRequest.getId(), k-> new ArrayList<>())
+                .computeIfAbsent(taskRequest.getId(), k -> new ArrayList<>())
                 .add(new TaskPlacementFailure(taskRequest.getId(), FailureKind.NoActiveAgents, -1, SchedulerUtils.getTier((QueuableTask) taskRequest), buildRawDataMap(taskRequest, assignmentResults)));
         return true;
     }
@@ -243,6 +245,24 @@ class TaskPlacementFailureClassifier {
         return true;
     }
 
+    private boolean processOpportunisticResources(TaskRequest taskRequest, List<TaskAssignmentResult> assignmentResults, Map<FailureKind, Map<String, List<TaskPlacementFailure>>> resultCollector) {
+        int count = 0;
+        for (TaskAssignmentResult assignmentResult : assignmentResults) {
+            if (isOpportunisticResource(assignmentResult)) {
+                count++;
+            }
+        }
+        if (count == 0) {
+            return false;
+        }
+
+        resultCollector.computeIfAbsent(FailureKind.OpportunisticResource, k -> new HashMap<>())
+                .computeIfAbsent(taskRequest.getId(), k -> new ArrayList<>())
+                .add(new TaskPlacementFailure(taskRequest.getId(), FailureKind.OpportunisticResource, count, SchedulerUtils.getTier((QueuableTask) taskRequest), buildRawDataMap(taskRequest, assignmentResults)));
+
+        return true;
+    }
+
     private Map<String, Object> buildRawDataMap(TaskRequest taskRequest, List<TaskAssignmentResult> assignmentResults) {
         Map<String, Object> rawData = new HashMap<>();
         rawData.put("taskRequest", taskRequest);
@@ -302,6 +322,14 @@ class TaskPlacementFailureClassifier {
             return false;
         }
         return IpAllocationConstraint.isInUseIpAllocationConstraintReason(constraintFailure.getReason());
+    }
+
+    private boolean isOpportunisticResource(TaskAssignmentResult assignmentResult) {
+        ConstraintFailure constraintFailure = assignmentResult.getConstraintFailure();
+        if (constraintFailure == null || StringExt.isEmpty(constraintFailure.getReason())) {
+            return false;
+        }
+        return OpportunisticCpuConstraint.isOpportunisticCpuConstraintReason(constraintFailure.getReason());
     }
 
     private void writeToLog() {

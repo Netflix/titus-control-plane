@@ -54,6 +54,9 @@ import rx.Completable;
 import rx.schedulers.Schedulers;
 import rx.schedulers.TestScheduler;
 
+import static com.netflix.titus.master.scheduler.TaskPlacementFailure.FailureKind.AllAgentsFull;
+import static com.netflix.titus.master.scheduler.TaskPlacementFailure.FailureKind.OpportunisticResource;
+import static com.netflix.titus.master.scheduler.TaskPlacementFailure.FailureKind.WaitingForInUseIpAllocation;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
@@ -63,6 +66,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.matches;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -179,7 +183,7 @@ public class ClusterAgentAutoScalerTest {
         when(v3JobOperations.getTasks()).thenReturn(tasks);
 
         Map<TaskPlacementFailure.FailureKind, Map<String, List<TaskPlacementFailure>>> taskPlacementFailures = createTaskPlacementFailures(ImmutableMap.of(
-                TaskPlacementFailure.FailureKind.AllAgentsFull, 10
+                AllAgentsFull, 10
         ), Tier.Flex);
         when(schedulingService.getLastTaskPlacementFailures()).thenReturn(taskPlacementFailures);
 
@@ -209,6 +213,49 @@ public class ClusterAgentAutoScalerTest {
         clusterAgentAutoScaler.doAgentScaling().await();
 
         verify(agentManagementService).scaleUp("instanceGroup1", 10);
+    }
+
+    @Test
+    public void testNoScaleUpForSomeFailureKinds() {
+        when(configuration.getFlexMinIdle()).thenReturn(0);
+
+        Job job = createJob();
+        when(v3JobOperations.getJobs()).thenReturn(Collections.singletonList(job));
+
+        List<Task> tasks = createTasks(10, "jobId");
+        when(v3JobOperations.getTasks()).thenReturn(tasks);
+
+        Map<TaskPlacementFailure.FailureKind, Map<String, List<TaskPlacementFailure>>> taskPlacementFailures = createTaskPlacementFailures(ImmutableMap.of(
+                WaitingForInUseIpAllocation, 2,
+                OpportunisticResource, 8
+        ), Tier.Flex);
+        when(schedulingService.getLastTaskPlacementFailures()).thenReturn(taskPlacementFailures);
+
+        AgentInstanceGroup instanceGroup = AgentInstanceGroup.newBuilder()
+                .withId("instanceGroup1")
+                .withTier(Tier.Flex)
+                .withLifecycleStatus(InstanceGroupLifecycleStatus.newBuilder()
+                        .withState(InstanceGroupLifecycleState.Active)
+                        .withTimestamp(titusRuntime.getClock().wallTime())
+                        .build())
+                .withInstanceType("r4.16xlarge")
+                .withMin(0)
+                .withCurrent(0)
+                .withMax(20)
+                .withAttributes(Collections.emptyMap())
+                .build();
+        when(agentManagementService.getInstanceGroups()).thenReturn(singletonList(instanceGroup));
+
+        when(agentManagementService.getAgentInstances("instanceGroup1")).thenReturn(Collections.emptyList());
+        when(agentManagementService.scaleUp(eq("instanceGroup1"), anyInt())).thenReturn(Completable.complete());
+
+        testScheduler.advanceTimeBy(6, TimeUnit.MINUTES);
+
+        ClusterAgentAutoScaler clusterAgentAutoScaler = new ClusterAgentAutoScaler(titusRuntime, configuration,
+                agentManagementService, v3JobOperations, schedulingService, testScheduler);
+
+        clusterAgentAutoScaler.doAgentScaling().await();
+        verify(agentManagementService, never()).scaleUp(anyString(), anyInt());
     }
 
     @Test
@@ -249,7 +296,7 @@ public class ClusterAgentAutoScalerTest {
         when(v3JobOperations.getTasks()).thenReturn(tasks);
 
         Map<TaskPlacementFailure.FailureKind, Map<String, List<TaskPlacementFailure>>> taskPlacementFailures = createTaskPlacementFailures(ImmutableMap.of(
-                TaskPlacementFailure.FailureKind.AllAgentsFull, 10
+                AllAgentsFull, 10
         ), Tier.Flex);
         when(schedulingService.getLastTaskPlacementFailures()).thenReturn(taskPlacementFailures);
 
@@ -263,6 +310,61 @@ public class ClusterAgentAutoScalerTest {
         clusterAgentAutoScaler.doAgentScaling().await();
 
         verify(agentManagementService).scaleUp("instanceGroup1", 10);
+    }
+
+    @Test
+    public void testNoScaleUpForTasksPastSloWithSomeFailureKinds() {
+        when(configuration.getFlexMinIdle()).thenReturn(0);
+        when(configuration.getFlexScaleUpCoolDownMs()).thenReturn(72000000L);
+        when(configuration.getFlexTaskSloMs()).thenReturn(3600000L);
+
+        AgentInstanceGroup instanceGroup = AgentInstanceGroup.newBuilder()
+                .withId("instanceGroup1")
+                .withTier(Tier.Flex)
+                .withLifecycleStatus(InstanceGroupLifecycleStatus.newBuilder()
+                        .withState(InstanceGroupLifecycleState.Active)
+                        .withTimestamp(titusRuntime.getClock().wallTime())
+                        .build())
+                .withInstanceType("r4.16xlarge")
+                .withMin(0)
+                .withCurrent(0)
+                .withMax(10)
+                .withAttributes(Collections.emptyMap())
+                .build();
+        when(agentManagementService.getInstanceGroups()).thenReturn(singletonList(instanceGroup));
+
+        when(agentManagementService.getAgentInstances("instanceGroup1")).thenReturn(Collections.emptyList());
+        when(agentManagementService.scaleUp(eq("instanceGroup1"), anyInt())).thenReturn(Completable.complete());
+
+        testScheduler.advanceTimeBy(6, TimeUnit.MINUTES);
+
+        ClusterAgentAutoScaler clusterAgentAutoScaler = new ClusterAgentAutoScaler(titusRuntime, configuration,
+                agentManagementService, v3JobOperations, schedulingService, testScheduler);
+
+        clusterAgentAutoScaler.doAgentScaling().await();
+
+        Job job = createJob();
+        when(v3JobOperations.getJobs()).thenReturn(Collections.singletonList(job));
+
+        List<Task> tasks = createTasks(10, "jobId");
+        when(v3JobOperations.getTasks()).thenReturn(tasks);
+
+        Map<TaskPlacementFailure.FailureKind, Map<String, List<TaskPlacementFailure>>> taskPlacementFailures = createTaskPlacementFailures(ImmutableMap.of(
+                WaitingForInUseIpAllocation, 2,
+                OpportunisticResource, 8
+        ), Tier.Flex);
+        when(schedulingService.getLastTaskPlacementFailures()).thenReturn(taskPlacementFailures);
+
+        when(agentManagementService.getInstanceGroups()).thenReturn(singletonList(instanceGroup));
+
+        when(agentManagementService.getAgentInstances("instanceGroup1")).thenReturn(Collections.emptyList());
+        when(agentManagementService.scaleUp(eq("instanceGroup1"), anyInt())).thenReturn(Completable.complete());
+
+        testScheduler.advanceTimeBy(1, TimeUnit.HOURS);
+
+        clusterAgentAutoScaler.doAgentScaling().await();
+
+        verify(agentManagementService, never()).scaleUp(anyString(), anyInt());
     }
 
     @Test
@@ -524,7 +626,7 @@ public class ClusterAgentAutoScalerTest {
     }
 
     private Map<TaskPlacementFailure.FailureKind, Map<String, List<TaskPlacementFailure>>> createTaskPlacementFailures(Map<TaskPlacementFailure.FailureKind, Integer> count,
-                                                                                                          Tier tier) {
+                                                                                                                       Tier tier) {
         Map<TaskPlacementFailure.FailureKind, Map<String, List<TaskPlacementFailure>>> failureKinds = new HashMap<>();
         for (Map.Entry<TaskPlacementFailure.FailureKind, Integer> entry : count.entrySet()) {
             TaskPlacementFailure.FailureKind failureKind = entry.getKey();

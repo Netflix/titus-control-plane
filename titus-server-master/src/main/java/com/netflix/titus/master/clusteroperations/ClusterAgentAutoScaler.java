@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -40,7 +41,6 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.primitives.Ints;
-import com.google.common.primitives.Longs;
 import com.netflix.spectator.api.BasicTag;
 import com.netflix.spectator.api.Gauge;
 import com.netflix.spectator.api.Registry;
@@ -60,6 +60,7 @@ import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.limiter.ImmutableLimiters;
 import com.netflix.titus.common.util.limiter.tokenbucket.ImmutableTokenBucket;
@@ -181,8 +182,10 @@ public class ClusterAgentAutoScaler {
                     .collect(Collectors.toMap(e -> e.getKey().getId(), Map.Entry::getValue));
             Map<String, Long> numberOfTasksOnAgents = getNumberOfTasksOnAgents(allTasks.values());
             Map<FailureKind, Map<String, List<TaskPlacementFailure>>> lastTaskPlacementFailures = schedulingService.getLastTaskPlacementFailures();
-            Map<String, List<TaskPlacementFailure>> launchGuardFailuresByTaskId = getLaunchGuardFailuresByTaskId(lastTaskPlacementFailures);
-            Map<Tier, Set<String>> failedTaskIdsByTier = getFailedTaskIds(lastTaskPlacementFailures);
+            Map<Tier, Set<String>> failedTaskIdsByTier = getFailedTaskIds(lastTaskPlacementFailures, EnumSet.of(
+                    FailureKind.WaitingForInUseIpAllocation,
+                    FailureKind.OpportunisticResource
+            ));
 
             long now = clock.wallTime();
 
@@ -223,7 +226,11 @@ public class ClusterAgentAutoScaler {
                         agentCountToScaleUp += instancesNeededForMinIdle;
                     }
 
-                    Set<String> placementFailureTaskIds = getTaskIdsForTierWithoutLaunchGuardFailures(tier, lastTaskPlacementFailures, launchGuardFailuresByTaskId);
+                    Set<String> placementFailureTaskIds = getFailedTaskIds(lastTaskPlacementFailures, EnumSet.of(
+                            FailureKind.LaunchGuard,
+                            FailureKind.WaitingForInUseIpAllocation,
+                            FailureKind.OpportunisticResource
+                    )).getOrDefault(tier, Collections.emptySet());
                     logger.info("{} had the placement excluding launch guard failures({}): {}", tier, placementFailureTaskIds.size(), placementFailureTaskIds);
 
                     Set<String> scalablePlacementFailureTaskIds = filterOutTaskIdsForScaling(placementFailureTaskIds, allJobs, allTasks, tierResourceDimension);
@@ -355,8 +362,7 @@ public class ClusterAgentAutoScaler {
                 .flatMap(e -> e.getValue().stream().filter(i -> {
                     String removableTimestampValue = i.getAttributes().get(ClusterOperationsAttributes.REMOVABLE);
                     if (!Strings.isNullOrEmpty(removableTimestampValue)) {
-                        Long parsedRemovableTimestamp = Longs.tryParse(removableTimestampValue);
-                        long removableTimestamp = parsedRemovableTimestamp == null ? 0L : parsedRemovableTimestamp;
+                        long removableTimestamp = StringExt.parseLong(removableTimestampValue).orElse(0L);
                         return hasTimeElapsed(removableTimestamp, finish, elapsed);
                     }
                     return false;
@@ -388,23 +394,6 @@ public class ClusterAgentAutoScaler {
                 }))
                 .collect(Collectors.toList());
     }
-
-    private Set<String> getTaskIdsForTierWithoutLaunchGuardFailures(Tier tier,
-                                                                    Map<FailureKind, Map<String, List<TaskPlacementFailure>>> lastTaskPlacementFailures,
-                                                                    Map<String, List<TaskPlacementFailure>> launchGuardFailuresByTaskId) {
-        Set<String> taskIds = new HashSet<>();
-        for (Map<String, List<TaskPlacementFailure>> failuresByTaskId : lastTaskPlacementFailures.values()) {
-            for (List<TaskPlacementFailure> taskFailures : failuresByTaskId.values()) {
-                for (TaskPlacementFailure failure : taskFailures) {
-                    if (failure.getTier() == tier && !launchGuardFailuresByTaskId.containsKey(failure.getTaskId())) {
-                        taskIds.add(failure.getTaskId());
-                    }
-                }
-            }
-        }
-        return taskIds;
-    }
-
 
     private Pair<Integer, Completable> createScaleUpCompletable(List<AgentInstanceGroup> scalableInstanceGroups, int scaleUpCount) {
         int count = 0;
@@ -484,13 +473,16 @@ public class ClusterAgentAutoScaler {
         return v3JobOperations.getTasks().stream().collect(Collectors.toMap(Task::getId, Function.identity()));
     }
 
-    private Map<Tier, Set<String>> getFailedTaskIds(Map<FailureKind, Map<String, List<TaskPlacementFailure>>> taskPlacementFailures) {
+    private Map<Tier, Set<String>> getFailedTaskIds(Map<FailureKind, Map<String, List<TaskPlacementFailure>>> taskPlacementFailures, Set<FailureKind> ignoring) {
         Map<Tier, Set<String>> failedTaskIdsByTier = new HashMap<>();
         for (Map<String, List<TaskPlacementFailure>> failuresByTaskId : taskPlacementFailures.values()) {
             for (List<TaskPlacementFailure> taskFailures : failuresByTaskId.values()) {
                 for (TaskPlacementFailure failure : taskFailures) {
-                    Set<String> failedTaskIds = failedTaskIdsByTier.computeIfAbsent(failure.getTier(), k -> new HashSet<>());
-                    failedTaskIds.add(failure.getTaskId());
+                    if (ignoring.contains(failure.getFailureKind())) {
+                        continue;
+                    }
+                    failedTaskIdsByTier.computeIfAbsent(failure.getTier(), k -> new HashSet<>())
+                            .add(failure.getTaskId());
                 }
             }
         }
@@ -509,10 +501,6 @@ public class ClusterAgentAutoScaler {
             }
         }
         return taskIdsPastSlo;
-    }
-
-    private Map<String, List<TaskPlacementFailure>> getLaunchGuardFailuresByTaskId(Map<FailureKind, Map<String, List<TaskPlacementFailure>>> lastTaskPlacementFailures) {
-        return lastTaskPlacementFailures.getOrDefault(FailureKind.LaunchGuard, Collections.emptyMap());
     }
 
     private Set<String> filterOutTaskIdsForScaling(Set<String> taskIds,

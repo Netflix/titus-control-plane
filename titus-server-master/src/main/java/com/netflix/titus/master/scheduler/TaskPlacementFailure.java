@@ -60,6 +60,11 @@ public class TaskPlacementFailure {
          */
         WaitingForInUseIpAllocation,
 
+        /**
+         * Task not launched due to failure to assign requested opportunistic resources
+         */
+        OpportunisticResource,
+
         Unrecognized,
     }
 
