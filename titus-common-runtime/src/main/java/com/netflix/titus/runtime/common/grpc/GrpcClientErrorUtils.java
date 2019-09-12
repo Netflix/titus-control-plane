@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.client.common.grpc;
+package com.netflix.titus.runtime.common.grpc;
 
 import java.util.Optional;
 

@@ -16,7 +16,7 @@
 
 dependencies {
     compile project(':titus-common-runtime')
-    compile project(':titus-grpc-api')
+    compile project(':titus-common-grpc-api')
 
     // Netflix dependencies
     compile "com.netflix.archaius:archaius2-guice:${archaius2Version}"
