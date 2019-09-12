@@ -66,6 +66,7 @@ import io.kubernetes.client.apis.CoreV1Api;
 import io.kubernetes.client.custom.Quantity;
 import io.kubernetes.client.models.V1Container;
 import io.kubernetes.client.models.V1Node;
+import io.kubernetes.client.models.V1NodeAddress;
 import io.kubernetes.client.models.V1NodeCondition;
 import io.kubernetes.client.models.V1NodeList;
 import io.kubernetes.client.models.V1NodeStatus;
@@ -97,13 +98,12 @@ import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TASK_
 /**
  * Responsible for integrating Kubernetes API Server concepts into Titus's Mesos based approaches.
  */
-@Experimental(detail = "This is a basic integration with the kubernetes api server", deadline = "9/1/2019")
+@Experimental(detail = "This is a basic integration with the kubernetes api server", deadline = "10/1/2019")
 @Singleton
 public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     private static final Logger logger = LoggerFactory.getLogger(KubeApiServerIntegrator.class);
 
     private static final String ATTRIBUTE_PREFIX = "com.netflix.titus.agent.attribute/";
-    private static final String NODE_ID_ATTRIBUTE = ATTRIBUTE_PREFIX + "id";
     private static final String KUBERNETES_NAMESPACE = "default";
     private static final String CLIENT_METRICS_PREFIX = "titusMaster.mesos.kubeApiServerIntegration";
     private static final long POD_TERMINATION_GRACE_PERIOD_SECONDS = 600L;
@@ -111,6 +111,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     private static final int NODE_GC_TTL_MS = 60_000;
     private static final int ORPHANED_POD_TIMEOUT_MS = 60_000;
     private static final String NEVER_RESTART_POLICY = "Never";
+    private static final String INTERNAL_IP = "InternalIP";
     private static final Quantity DEFAULT_QUANTITY = Quantity.fromString("0");
 
     private static final String POST = "POST";
@@ -438,14 +439,11 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
             V1ObjectMeta metadata = node.getMetadata();
             V1NodeStatus status = node.getStatus();
             String nodeName = metadata.getName();
-            String nodeId = metadata.getAnnotations().getOrDefault(NODE_ID_ATTRIBUTE, nodeName);
             boolean hasTrueReadyCondition = status.getConditions().stream()
                     .anyMatch(c -> c.getType().equalsIgnoreCase(READY) && Boolean.parseBoolean(c.getStatus()));
             if (hasTrueReadyCondition) {
                 return Protos.Offer.newBuilder()
-                        .setId(Protos.OfferID.newBuilder().setValue(nodeId).build())
-                        // TODO(fabio): change to nodeId since host IPs are ephemeral and can be reused,
-                        //   but the virtual-kubelet is needs to be changed in lockstep
+                        .setId(Protos.OfferID.newBuilder().setValue(nodeName).build())
                         .setSlaveId(Protos.SlaveID.newBuilder().setValue(nodeName).build())
                         .setHostname(nodeName)
                         .setFrameworkId(Protos.FrameworkID.newBuilder().setValue("TitusFramework").build())
@@ -480,9 +478,20 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
 
     private Iterable<? extends Protos.Attribute> nodeToAttributes(V1Node node) {
         V1ObjectMeta metadata = node.getMetadata();
-        return metadata.getAnnotations().entrySet().stream()
-                .map(e -> createAttribute(e.getKey(), e.getValue()))
-                .collect(Collectors.toList());
+        String nodeIp = node.getStatus().getAddresses().stream()
+                .filter(a -> a.getType().equalsIgnoreCase(INTERNAL_IP))
+                .findAny()
+                .map(V1NodeAddress::getAddress)
+                .orElse("UnknownIpAddress");
+
+        List<Protos.Attribute> attributes = new ArrayList<>();
+        attributes.add(createAttribute("hostIp", nodeIp));
+
+        for (Map.Entry<String, String> entry : metadata.getAnnotations().entrySet()) {
+            attributes.add(createAttribute(entry.getKey(), entry.getValue()));
+
+        }
+        return attributes;
     }
 
     private Protos.Attribute createAttribute(String name, String value) {
