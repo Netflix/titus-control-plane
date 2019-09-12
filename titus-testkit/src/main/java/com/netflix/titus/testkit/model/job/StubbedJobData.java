@@ -32,7 +32,6 @@ import java.util.stream.Collectors;
 import com.google.common.base.Preconditions;
 import com.netflix.titus.api.containerhealth.model.ContainerHealthState;
 import com.netflix.titus.api.containerhealth.model.ContainerHealthStatus;
-import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
@@ -50,6 +49,7 @@ import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.common.data.generator.DataGenerator;
 import com.netflix.titus.common.data.generator.MutableDataGenerator;
 import com.netflix.titus.common.runtime.TitusRuntime;
@@ -313,7 +313,7 @@ class StubbedJobData {
         Task createTaskReplacement(Task task) {
             Task.TaskBuilder<?, ?> taskBuilder = taskGenerator.getValue().toBuilder()
                     .withResubmitNumber(task.getResubmitNumber() + 1)
-                    .withEvictionResubmitNumber(TaskStatus.isSystemError(task.getStatus()) ? task.getSystemResubmitNumber() + 1 : task.getSystemResubmitNumber())
+                    .withEvictionResubmitNumber(TaskStatus.hasSystemError(task) ? task.getSystemResubmitNumber() + 1 : task.getSystemResubmitNumber())
                     .withEvictionResubmitNumber(TaskStatus.isEvicted(task) ? task.getEvictionResubmitNumber() + 1 : task.getEvictionResubmitNumber())
                     .withOriginalId(task.getOriginalId())
                     .withResubmitOf(task.getId());

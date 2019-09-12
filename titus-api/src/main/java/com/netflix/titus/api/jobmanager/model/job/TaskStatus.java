@@ -98,7 +98,7 @@ public class TaskStatus extends ExecutableStatus<TaskState> {
 
     /**
      * Unrecognized error which cannot be classified neither as local/non-local or transient.
-     * If there are multiple occurences of this error, the agent should be quarantined or terminated.
+     * If there are multiple occurrences of this error, the agent should be quarantined or terminated.
      */
     public static final String REASON_UNKNOWN_SYSTEM_ERROR = "unknownSystemError";
 
@@ -116,8 +116,17 @@ public class TaskStatus extends ExecutableStatus<TaskState> {
         super(taskState, reasonCode, reasonMessage, timestamp);
     }
 
+    public static boolean hasSystemError(Task task) {
+        if (isSystemError(task.getStatus())) {
+            return true;
+        }
+
+        return JobFunctions.findTaskStatus(task, TaskState.KillInitiated).map(TaskStatus::isSystemError)
+                .orElse(false);
+    }
+
     public static boolean isSystemError(TaskStatus status) {
-        if (status.getState() != TaskState.Finished) {
+        if (status.getState() != TaskState.KillInitiated && status.getState() != TaskState.Finished) {
             return false;
         }
         String reasonCode = status.getReasonCode();

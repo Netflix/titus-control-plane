@@ -294,6 +294,21 @@ public class BatchJobSchedulingTest {
         );
     }
 
+    @Test
+    public void testStuckInLaunchedIsRetriedAlways() {
+        JobDescriptor<BatchJobExt> jobWithRetries = JobFunctions.changeRetryPolicy(
+                oneTaskBatchJobDescriptor(),
+                JobModel.newImmediateRetryPolicy().withRetries(0).build()
+        );
+        jobsScenarioBuilder.scheduleJob(jobWithRetries, jobScenario -> jobScenario
+                .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
+                .template(ScenarioTemplates.startTask(0, 0, TaskState.StartInitiated))
+                // Task will time out and move to KillInitiated by the system
+                .advance(120, TimeUnit.SECONDS)
+                .expectTaskStateChangeEvent(0, 1, TaskState.Accepted)
+        );
+    }
+
     /**
      * Check task timeout in Launched state. if the timeout passes, task should be moved to KillInitiated state.
      */
