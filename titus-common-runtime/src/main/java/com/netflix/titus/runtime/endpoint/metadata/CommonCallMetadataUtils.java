@@ -16,8 +16,23 @@
 
 package com.netflix.titus.runtime.endpoint.metadata;
 
+import java.util.Optional;
+import java.util.function.BiFunction;
+
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
+import io.grpc.stub.AbstractStub;
+
 public class CommonCallMetadataUtils {
 
     public static final String UNKNOWN_CALLER_ID = "unknownDirectCaller";
 
+    public static <STUB extends AbstractStub<STUB>> BiFunction<STUB, Optional<CallMetadata>, STUB> newGrpcStubDecorator(CallMetadataResolver callMetadataResolver) {
+        return (grpcStub, callMetadataOpt) -> callMetadataOpt
+                .map(callMetadata -> V3HeaderInterceptor.attachCallMetadata(grpcStub, callMetadata))
+                .orElseGet(() ->
+                        callMetadataResolver.resolve()
+                                .map(callMetadata -> V3HeaderInterceptor.attachCallMetadata(grpcStub, callMetadata))
+                                .orElse(grpcStub)
+                );
+    }
 }

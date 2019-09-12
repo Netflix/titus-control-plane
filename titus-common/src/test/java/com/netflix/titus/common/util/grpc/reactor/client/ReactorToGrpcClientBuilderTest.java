@@ -14,43 +14,36 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.connector.common.reactor;
+package com.netflix.titus.common.util.grpc.reactor.client;
 
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
-import com.netflix.titus.api.model.callmetadata.CallMetadata;
-import com.netflix.titus.api.model.callmetadata.CallMetadataConstants;
+import com.google.protobuf.Empty;
 import com.netflix.titus.common.util.ExceptionExt;
-import com.netflix.titus.runtime.connector.GrpcRequestConfiguration;
-import com.netflix.titus.runtime.connector.common.reactor.client.ReactorToGrpcClientBuilder;
-import com.netflix.titus.runtime.connector.common.reactor.server.DefaultGrpcToReactorServerFactory;
-import com.netflix.titus.runtime.endpoint.metadata.AnonymousCallMetadataResolver;
-import com.netflix.titus.runtime.endpoint.metadata.SimpleGrpcCallMetadataResolver;
-import com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor;
+import com.netflix.titus.common.util.grpc.reactor.SampleContext;
+import com.netflix.titus.common.util.grpc.reactor.SampleContextServerInterceptor;
+import com.netflix.titus.common.util.grpc.reactor.SampleServiceReactorClient;
 import com.netflix.titus.testing.SampleGrpcService.SampleContainer;
 import com.netflix.titus.testing.SampleServiceGrpc;
 import com.netflix.titus.testkit.rx.TitusRxSubscriber;
 import io.grpc.ManagedChannel;
 import io.grpc.Server;
 import io.grpc.ServerInterceptors;
-import io.grpc.ServerServiceDefinition;
 import io.grpc.netty.shaded.io.grpc.netty.NegotiationType;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
+import io.grpc.stub.ServerCallStreamObserver;
+import io.grpc.stub.StreamObserver;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import reactor.core.Disposable;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 import static com.jayway.awaitility.Awaitility.await;
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class GrpcToReactorServerBuilderTest {
+public class ReactorToGrpcClientBuilderTest {
 
     private static final long TIMEOUT_MS = 30_000;
 
@@ -58,33 +51,28 @@ public class GrpcToReactorServerBuilderTest {
 
     private static final SampleContainer HELLO = SampleContainer.newBuilder().setStringValue("Hello").build();
 
-    private ReactorSampleServiceImpl reactorSampleService;
+    private static final SampleContext JUNIT_CONTEXT = new SampleContext("junitContext");
 
     private ManagedChannel channel;
     private Server server;
-
+    private SampleServiceImpl sampleService;
     private SampleServiceReactorClient client;
 
     @Before
     public void setUp() throws Exception {
-        this.reactorSampleService = new ReactorSampleServiceImpl();
-
-        DefaultGrpcToReactorServerFactory factory = new DefaultGrpcToReactorServerFactory(new SimpleGrpcCallMetadataResolver());
-        ServerServiceDefinition serviceDefinition = factory.apply(SampleServiceGrpc.getServiceDescriptor(), reactorSampleService);
-
+        this.sampleService = new SampleServiceImpl();
         this.server = NettyServerBuilder.forPort(0)
-                .addService(ServerInterceptors.intercept(serviceDefinition, new V3HeaderInterceptor()))
+                .addService(ServerInterceptors.intercept(sampleService, new SampleContextServerInterceptor()))
                 .build()
                 .start();
-
         this.channel = NettyChannelBuilder.forTarget("localhost:" + server.getPort())
                 .negotiationType(NegotiationType.PLAINTEXT)
                 .build();
 
-        this.client = ReactorToGrpcClientBuilder.newBuilder(SampleServiceReactorClient.class, SampleServiceGrpc.newStub(channel), SampleServiceGrpc.getServiceDescriptor())
+        this.client = ReactorToGrpcClientBuilder.newBuilder(SampleServiceReactorClient.class, SampleServiceGrpc.newStub(channel), SampleServiceGrpc.getServiceDescriptor(), SampleContext.class)
                 .withTimeout(TIMEOUT_DURATION)
-                .withStreamingTimeout(Duration.ofMillis(GrpcRequestConfiguration.DEFAULT_STREAMING_TIMEOUT_MS))
-                .withCallMetadataResolver(AnonymousCallMetadataResolver.getInstance())
+                .withStreamingTimeout(Duration.ofMillis(ReactorToGrpcClientBuilder.DEFAULT_STREAMING_TIMEOUT_MS))
+                .withGrpcStubDecorator(SampleContextServerInterceptor::attachClientContext)
                 .build();
     }
 
@@ -101,21 +89,21 @@ public class GrpcToReactorServerBuilderTest {
 
     @Test(timeout = 30_000)
     public void testMonoGetWithCallMetadata() {
-        reactorSampleService.expectedCallerId = CallMetadataConstants.GRPC_REPLICATOR_CALL_METADATA.getCallers().get(0).getId();
-        assertThat(client.getOneValue(CallMetadataConstants.GRPC_REPLICATOR_CALL_METADATA).block().getStringValue()).isEqualTo("Hello");
+        sampleService.expectedContext = JUNIT_CONTEXT;
+        assertThat(client.getOneValue(JUNIT_CONTEXT).block().getStringValue()).isEqualTo("Hello");
     }
 
     @Test(timeout = 30_000)
     public void testMonoSet() {
         assertThat(client.setOneValue(HELLO).block()).isNull();
-        assertThat(reactorSampleService.lastSet).isEqualTo(HELLO);
+        assertThat(sampleService.lastSet).isEqualTo(HELLO);
     }
 
     @Test(timeout = 30_000)
     public void testMonoSetWithCallMetadata() {
-        reactorSampleService.expectedCallerId = CallMetadataConstants.GRPC_REPLICATOR_CALL_METADATA.getCallerId();
-        assertThat(client.setOneValue(HELLO, CallMetadataConstants.GRPC_REPLICATOR_CALL_METADATA).block()).isNull();
-        assertThat(reactorSampleService.lastSet).isEqualTo(HELLO);
+        sampleService.expectedContext = JUNIT_CONTEXT;
+        assertThat(client.setOneValue(HELLO, JUNIT_CONTEXT).block()).isNull();
+        assertThat(sampleService.lastSet).isEqualTo(HELLO);
     }
 
     @Test(timeout = 30_000)
@@ -127,10 +115,10 @@ public class GrpcToReactorServerBuilderTest {
 
     @Test(timeout = 30_000)
     public void testFluxWithCallMetadata() throws InterruptedException {
-        reactorSampleService.expectedCallerId = CallMetadataConstants.GRPC_REPLICATOR_CALL_METADATA.getCallerId();
+        sampleService.expectedContext = JUNIT_CONTEXT;
         TitusRxSubscriber<SampleContainer> subscriber = new TitusRxSubscriber<>();
 
-        client.stream(CallMetadataConstants.GRPC_REPLICATOR_CALL_METADATA).subscribe(subscriber);
+        client.stream(JUNIT_CONTEXT).subscribe(subscriber);
         checkTestFlux(subscriber);
     }
 
@@ -144,56 +132,74 @@ public class GrpcToReactorServerBuilderTest {
 
     @Test(timeout = 30_000)
     public void testMonoCancel() {
-        reactorSampleService.block = true;
+        sampleService.block = true;
         testCancellation(client.getOneValue().subscribe());
     }
 
     @Test(timeout = 30_000)
     public void testFluxStreamCancel() {
-        reactorSampleService.block = true;
+        sampleService.block = true;
         testCancellation(client.stream().subscribe());
     }
 
     private void testCancellation(Disposable disposable) {
-        await().timeout(TIMEOUT_MS, TimeUnit.MILLISECONDS).until(() -> reactorSampleService.requestTimestamp > 0);
+        await().timeout(TIMEOUT_MS, TimeUnit.MILLISECONDS).until(() -> sampleService.requestTimestamp > 0);
         disposable.dispose();
-        await().timeout(TIMEOUT_MS, TimeUnit.MILLISECONDS).until(() -> reactorSampleService.cancelled);
+        await().timeout(TIMEOUT_MS, TimeUnit.MILLISECONDS).until(() -> sampleService.cancelled);
     }
 
-    public static class ReactorSampleServiceImpl {
+    static class SampleServiceImpl extends SampleServiceGrpc.SampleServiceImplBase {
 
         private long requestTimestamp;
         private SampleContainer lastSet;
 
-        private String expectedCallerId = AnonymousCallMetadataResolver.getInstance().resolve().get().getCallers().get(0).getId();
+        private SampleContext expectedContext = SampleContextServerInterceptor.CONTEXT_UNDEFINED;
         private boolean block;
         private volatile boolean cancelled;
 
-        public Mono<SampleContainer> getOneValue(CallMetadata callMetadata) {
-            checkMetadata(callMetadata);
-            return block ? Mono.<SampleContainer>never().doOnCancel(() -> cancelled = true) : Mono.just(HELLO);
-        }
-
-        public Mono<Void> setOneValue(SampleContainer request, CallMetadata callMetadata) {
-            checkMetadata(callMetadata);
-            this.lastSet = request;
-            return block ? Mono.<Void>never().doOnCancel(() -> cancelled = true) : Mono.empty();
-        }
-
-        public Flux<SampleContainer> stream(CallMetadata callMetadata) {
-            checkMetadata(callMetadata);
-            if (block) {
-                return Flux.<SampleContainer>never().doOnCancel(() -> cancelled = true);
+        @Override
+        public void getOneValue(Empty request, StreamObserver<SampleContainer> responseObserver) {
+            onRequest(responseObserver);
+            if (!block) {
+                responseObserver.onNext(HELLO);
             }
-            Stream<SampleContainer> events = IntStream.of(1, 2, 3).mapToObj(i ->
-                    SampleContainer.newBuilder().setStringValue("Event" + i).build()
-            );
-            return Flux.fromStream(events);
         }
 
-        private void checkMetadata(CallMetadata metadata) {
+        @Override
+        public void setOneValue(SampleContainer request, StreamObserver<Empty> responseObserver) {
+            onRequest(responseObserver);
+            if (!block) {
+                this.lastSet = request;
+                responseObserver.onNext(Empty.getDefaultInstance());
+                responseObserver.onCompleted();
+            }
+        }
+
+        @Override
+        public void stream(Empty request, StreamObserver<SampleContainer> responseObserver) {
+            onRequest(responseObserver);
+            if (!block) {
+                for (int i = 1; i <= 3; i++) {
+                    responseObserver.onNext(SampleContainer.newBuilder().setStringValue("Event" + i).build());
+                }
+                responseObserver.onCompleted();
+            }
+        }
+
+        private void onRequest(StreamObserver<?> responseObserver) {
+            registerCancellationCallback(responseObserver);
+            checkMetadata();
+        }
+
+        private void registerCancellationCallback(StreamObserver<?> responseObserver) {
+            ServerCallStreamObserver serverCallStreamObserver = (ServerCallStreamObserver) responseObserver;
+            serverCallStreamObserver.setOnCancelHandler(() -> cancelled = true);
+        }
+
+        private void checkMetadata() {
             requestTimestamp = System.currentTimeMillis();
-            assertThat(metadata.getCallers().get(0).getId()).isEqualTo(expectedCallerId);
+            SampleContext context = SampleContextServerInterceptor.serverResolve();
+            assertThat(context).isEqualTo(expectedContext);
         }
     }
 }

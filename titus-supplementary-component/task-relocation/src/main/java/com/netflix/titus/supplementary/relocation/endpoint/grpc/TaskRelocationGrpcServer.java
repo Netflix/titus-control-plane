@@ -23,7 +23,7 @@ import javax.inject.Singleton;
 import com.netflix.titus.common.framework.fit.adapter.GrpcFitInterceptor;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.grpc.protogen.TaskRelocationServiceGrpc;
-import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorServerFactory;
+import com.netflix.titus.common.util.grpc.reactor.GrpcToReactorServerFactory;
 import com.netflix.titus.runtime.endpoint.common.grpc.AbstractTitusGrpcServer;
 import com.netflix.titus.runtime.endpoint.common.grpc.GrpcEndpointConfiguration;
 import io.grpc.ServerInterceptor;

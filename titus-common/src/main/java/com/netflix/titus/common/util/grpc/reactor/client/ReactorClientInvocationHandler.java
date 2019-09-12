@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.connector.common.reactor.client;
+package com.netflix.titus.common.util.grpc.reactor.client;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;

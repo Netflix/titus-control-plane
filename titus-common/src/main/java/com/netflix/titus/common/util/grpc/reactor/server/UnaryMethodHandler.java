@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.connector.common.reactor.server;
+package com.netflix.titus.common.util.grpc.reactor.server;
+
+import java.util.function.Supplier;
 
 import com.google.protobuf.Empty;
-import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import io.grpc.stub.StreamObserver;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
@@ -25,14 +26,14 @@ import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
 
-class UnaryMethodHandler<REQ, RESP> extends AbstractMethodHandler<REQ, RESP> implements io.grpc.stub.ServerCalls.UnaryMethod<REQ, RESP> {
+class UnaryMethodHandler<REQ, RESP, CONTEXT> extends AbstractMethodHandler<REQ, RESP, CONTEXT> implements io.grpc.stub.ServerCalls.UnaryMethod<REQ, RESP> {
 
     private static final Logger logger = LoggerFactory.getLogger(UnaryMethodHandler.class);
 
     UnaryMethodHandler(GrpcToReactorMethodBinding<REQ, RESP> binding,
-                       CallMetadataResolver callMetadataResolver,
+                       Supplier<CONTEXT> contextResolver,
                        Object reactorService) {
-        super(binding, callMetadataResolver, reactorService);
+        super(binding, contextResolver, reactorService);
     }
 
     @Override

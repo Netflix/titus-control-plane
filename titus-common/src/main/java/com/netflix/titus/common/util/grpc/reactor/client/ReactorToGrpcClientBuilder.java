@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.connector.common.reactor.client;
+package com.netflix.titus.common.util.grpc.reactor.client;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
@@ -22,76 +22,91 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.protobuf.Message;
-import com.netflix.titus.api.model.callmetadata.CallMetadata;
-import com.netflix.titus.runtime.connector.GrpcRequestConfiguration;
-import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactUtil;
-import com.netflix.titus.runtime.endpoint.metadata.AnonymousCallMetadataResolver;
-import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
+import com.netflix.titus.common.util.grpc.GrpcToReactUtil;
 import io.grpc.ServiceDescriptor;
 import io.grpc.stub.AbstractStub;
 import org.reactivestreams.Publisher;
 import reactor.core.publisher.Mono;
 
-public class ReactorToGrpcClientBuilder<REACT_API, GRPC_STUB extends AbstractStub<GRPC_STUB>> {
+public class ReactorToGrpcClientBuilder<REACT_API, GRPC_STUB extends AbstractStub<GRPC_STUB>, CONTEXT> {
 
-    private static final Set<Class> NON_GRPC_PARAMETERS = Collections.singleton(CallMetadata.class);
+    private static final long DEFAULT_REQUEST_TIMEOUT_MS = 60_000;
+
+    @VisibleForTesting
+    public static final long DEFAULT_STREAMING_TIMEOUT_MS = 12 * 60 * 60_000;
+
+    private static final BiFunction EMPTY_STUB_DECORATOR = (stub, context) -> stub;
 
     private final Class<REACT_API> reactApi;
     private final GRPC_STUB grpcStub;
     private final ServiceDescriptor grpcServiceDescriptor;
+    private final Class<CONTEXT> contextType;
+
+    private final Set<Class> nonGrpcParameters;
 
     private Duration timeout;
     private Duration streamingTimeout;
-    private CallMetadataResolver callMetadataResolver;
+    private BiFunction<GRPC_STUB, Optional<CONTEXT>, GRPC_STUB> grpcStubDecorator;
 
-    private ReactorToGrpcClientBuilder(Class<REACT_API> reactApi, GRPC_STUB grpcStub, ServiceDescriptor grpcServiceDescriptor) {
+    private ReactorToGrpcClientBuilder(Class<REACT_API> reactApi,
+                                       GRPC_STUB grpcStub,
+                                       ServiceDescriptor grpcServiceDescriptor,
+                                       Class<CONTEXT> contextType) {
         this.reactApi = reactApi;
         this.grpcStub = grpcStub;
         this.grpcServiceDescriptor = grpcServiceDescriptor;
+        this.contextType = contextType;
+        this.nonGrpcParameters = Collections.singleton(this.contextType);
     }
 
-    public ReactorToGrpcClientBuilder<REACT_API, GRPC_STUB> withTimeout(Duration timeout) {
+    public ReactorToGrpcClientBuilder<REACT_API, GRPC_STUB, CONTEXT> withTimeout(Duration timeout) {
         this.timeout = timeout;
         return this;
     }
 
-    public ReactorToGrpcClientBuilder<REACT_API, GRPC_STUB> withStreamingTimeout(Duration streamingTimeout) {
+    public ReactorToGrpcClientBuilder<REACT_API, GRPC_STUB, CONTEXT> withStreamingTimeout(Duration streamingTimeout) {
         this.streamingTimeout = streamingTimeout;
         return this;
     }
 
-    public ReactorToGrpcClientBuilder<REACT_API, GRPC_STUB> withCallMetadataResolver(CallMetadataResolver callMetadataResolver) {
-        this.callMetadataResolver = callMetadataResolver;
+    public ReactorToGrpcClientBuilder<REACT_API, GRPC_STUB, CONTEXT> withGrpcStubDecorator(BiFunction<GRPC_STUB, Optional<CONTEXT>, GRPC_STUB> grpcStubDecorator) {
+        this.grpcStubDecorator = grpcStubDecorator;
         return this;
     }
 
-    public static <REACT_API, GRPC_STUB extends AbstractStub<GRPC_STUB>> ReactorToGrpcClientBuilder<REACT_API, GRPC_STUB> newBuilder(
+    public static <REACT_API, GRPC_STUB extends AbstractStub<GRPC_STUB>, CONTEXT> ReactorToGrpcClientBuilder<REACT_API, GRPC_STUB, CONTEXT> newBuilder(
             Class<REACT_API> reactApi,
             GRPC_STUB grpcStub,
-            ServiceDescriptor grpcServiceDescriptor) {
+            ServiceDescriptor grpcServiceDescriptor,
+            Class<CONTEXT> contextType) {
         Preconditions.checkArgument(reactApi.isInterface(), "Interface type required");
-        return new ReactorToGrpcClientBuilder<>(reactApi, grpcStub, grpcServiceDescriptor);
+        return new ReactorToGrpcClientBuilder<>(reactApi, grpcStub, grpcServiceDescriptor, contextType);
     }
 
-    public static <REACT_API, GRPC_STUB extends AbstractStub<GRPC_STUB>> ReactorToGrpcClientBuilder<REACT_API, GRPC_STUB> newBuilderWithDefaults(
+    public static <REACT_API, GRPC_STUB extends AbstractStub<GRPC_STUB>, CONTEXT> ReactorToGrpcClientBuilder<REACT_API, GRPC_STUB, CONTEXT> newBuilderWithDefaults(
             Class<REACT_API> reactApi,
             GRPC_STUB grpcStub,
-            ServiceDescriptor grpcServiceDescriptor) {
+            ServiceDescriptor grpcServiceDescriptor,
+            Class<CONTEXT> contextType) {
         Preconditions.checkArgument(reactApi.isInterface(), "Interface type required");
-        return new ReactorToGrpcClientBuilder<>(reactApi, grpcStub, grpcServiceDescriptor)
-                .withTimeout(Duration.ofMillis(GrpcRequestConfiguration.DEFAULT_REQUEST_TIMEOUT_MS))
-                .withStreamingTimeout(Duration.ofMillis(GrpcRequestConfiguration.DEFAULT_STREAMING_TIMEOUT_MS))
-                .withCallMetadataResolver(AnonymousCallMetadataResolver.getInstance());
+        return new ReactorToGrpcClientBuilder<>(reactApi, grpcStub, grpcServiceDescriptor, contextType)
+                .withTimeout(Duration.ofMillis(DEFAULT_REQUEST_TIMEOUT_MS))
+                .withStreamingTimeout(Duration.ofMillis(DEFAULT_STREAMING_TIMEOUT_MS))
+                .withGrpcStubDecorator(EMPTY_STUB_DECORATOR);
     }
 
     public REACT_API build() {
         Preconditions.checkNotNull(timeout, "GRPC request timeout not set");
         Preconditions.checkNotNull(streamingTimeout, "GRPC streaming request timeout not set");
+        Preconditions.checkNotNull(grpcStubDecorator, "GRPC stub decorator not set");
 
         Map<Method, Function<Object[], Publisher>> methodMap = buildMethodMap();
         return (REACT_API) Proxy.newProxyInstance(
@@ -117,12 +132,12 @@ public class ReactorToGrpcClientBuilder<REACT_API, GRPC_STUB extends AbstractStu
             if (Message.class.isAssignableFrom(argTypes[i])) {
                 grpcArgPos = i;
             }
-            if (CallMetadata.class.isAssignableFrom(argTypes[i])) {
+            if (contextType.isAssignableFrom(argTypes[i])) {
                 callMetadataPos = i;
             }
         }
 
-        Method grpcMethod = GrpcToReactUtil.getGrpcMethod(grpcStub, reactMethod, NON_GRPC_PARAMETERS);
+        Method grpcMethod = GrpcToReactUtil.getGrpcMethod(grpcStub, reactMethod, nonGrpcParameters);
 
         if (reactMethod.getReturnType().isAssignableFrom(Mono.class)) {
             return new MonoMethodBridge<>(
@@ -130,7 +145,7 @@ public class ReactorToGrpcClientBuilder<REACT_API, GRPC_STUB extends AbstractStu
                     grpcMethod,
                     grpcArgPos,
                     callMetadataPos,
-                    callMetadataResolver,
+                    grpcStubDecorator,
                     grpcStub,
                     timeout
             );
@@ -142,7 +157,7 @@ public class ReactorToGrpcClientBuilder<REACT_API, GRPC_STUB extends AbstractStu
                 grpcMethod,
                 grpcArgPos,
                 callMetadataPos,
-                callMetadataResolver,
+                grpcStubDecorator,
                 grpcStub,
                 timeout,
                 streamingTimeout

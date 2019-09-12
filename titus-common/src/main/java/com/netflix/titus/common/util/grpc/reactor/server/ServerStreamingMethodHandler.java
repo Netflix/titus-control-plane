@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.connector.common.reactor.server;
+package com.netflix.titus.common.util.grpc.reactor.server;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.netflix.titus.common.util.rx.ReactorExt;
-import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import io.grpc.stub.ServerCalls;
 import io.grpc.stub.StreamObserver;
 import org.reactivestreams.Publisher;
@@ -30,14 +30,14 @@ import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 
-class ServerStreamingMethodHandler<REQ, RESP> extends AbstractMethodHandler<REQ, RESP> implements ServerCalls.ServerStreamingMethod<REQ, RESP> {
+class ServerStreamingMethodHandler<REQ, RESP, CONTEXT> extends AbstractMethodHandler<REQ, RESP, CONTEXT> implements ServerCalls.ServerStreamingMethod<REQ, RESP> {
 
     private static final Logger logger = LoggerFactory.getLogger(ServerStreamingMethodHandler.class);
 
     ServerStreamingMethodHandler(GrpcToReactorMethodBinding<REQ, RESP> binding,
-                                 CallMetadataResolver callMetadataResolver,
+                                 Supplier<CONTEXT> contextResolver,
                                  Object reactorService) {
-        super(binding, callMetadataResolver, reactorService);
+        super(binding, contextResolver, reactorService);
     }
 
     @Override
@@ -57,7 +57,7 @@ class ServerStreamingMethodHandler<REQ, RESP> extends AbstractMethodHandler<REQ,
 
         Disposable disposable = Flux.from(result).subscribe(
                 value -> {
-                    if(cancelled.get()) {
+                    if (cancelled.get()) {
                         ReactorExt.safeDispose(disposableRef.get());
                         return;
                     }
@@ -77,7 +77,7 @@ class ServerStreamingMethodHandler<REQ, RESP> extends AbstractMethodHandler<REQ,
                     }
                 },
                 e -> {
-                    if(cancelled.get()) {
+                    if (cancelled.get()) {
                         return;
                     }
                     try {
@@ -87,7 +87,7 @@ class ServerStreamingMethodHandler<REQ, RESP> extends AbstractMethodHandler<REQ,
                     }
                 },
                 () -> {
-                    if(cancelled.get()) {
+                    if (cancelled.get()) {
                         return;
                     }
                     try {

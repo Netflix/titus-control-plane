@@ -14,26 +14,28 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.connector.common.reactor.server;
+package com.netflix.titus.common.util.grpc.reactor.server;
 
-import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorServerFactory;
-import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
+import java.util.function.Supplier;
+
+import com.netflix.titus.common.util.grpc.reactor.GrpcToReactorServerFactory;
 import io.grpc.ServerServiceDefinition;
 import io.grpc.ServiceDescriptor;
 
-public class DefaultGrpcToReactorServerFactory implements GrpcToReactorServerFactory {
+public class DefaultGrpcToReactorServerFactory<CONTEXT> implements GrpcToReactorServerFactory {
 
-    private final CallMetadataResolver callMetadataResolver;
+    private final Class<CONTEXT> contextType;
+    private final Supplier<CONTEXT> contextResolver;
 
-    public DefaultGrpcToReactorServerFactory(CallMetadataResolver callMetadataResolver) {
-        this.callMetadataResolver = callMetadataResolver;
+    public DefaultGrpcToReactorServerFactory(Class<CONTEXT> contextType, Supplier<CONTEXT> contextResolver) {
+        this.contextType = contextType;
+        this.contextResolver = contextResolver;
     }
 
     @Override
     public <REACT_SERVICE> ServerServiceDefinition apply(ServiceDescriptor serviceDescriptor, REACT_SERVICE reactService) {
-        return GrpcToReactorServerBuilder
-                .newBuilder(serviceDescriptor, reactService)
-                .withCallMetadataResolver(callMetadataResolver)
+        return GrpcToReactorServerBuilder.<REACT_SERVICE, CONTEXT>newBuilder(serviceDescriptor, reactService)
+                .withContext(contextType, contextResolver)
                 .build();
     }
 }

@@ -14,34 +14,39 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.connector.common.reactor.client;
+package com.netflix.titus.runtime.connector.common.reactor;
 
 import java.time.Duration;
+import java.util.Optional;
+import java.util.function.BiFunction;
 
+import com.netflix.titus.common.util.grpc.reactor.client.ReactorToGrpcClientBuilder;
 import com.netflix.titus.runtime.connector.GrpcRequestConfiguration;
-import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorClientFactory;
-import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
+import com.netflix.titus.common.util.grpc.reactor.GrpcToReactorClientFactory;
 import io.grpc.ServiceDescriptor;
 import io.grpc.stub.AbstractStub;
 
-public class DefaultGrpcToReactorClientFactory implements GrpcToReactorClientFactory {
+public class DefaultGrpcToReactorClientFactory<CONTEXT> implements GrpcToReactorClientFactory {
 
     private final GrpcRequestConfiguration configuration;
-    private final CallMetadataResolver callMetadataResolver;
+    private final BiFunction grpcStubDecorator;
+    private final Class<CONTEXT> contextType;
 
     public DefaultGrpcToReactorClientFactory(GrpcRequestConfiguration configuration,
-                                             CallMetadataResolver callMetadataResolver) {
+                                             BiFunction<AbstractStub, Optional<CONTEXT>, AbstractStub> grpcStubDecorator,
+                                             Class<CONTEXT> contextType) {
         this.configuration = configuration;
-        this.callMetadataResolver = callMetadataResolver;
+        this.grpcStubDecorator = grpcStubDecorator;
+        this.contextType = contextType;
     }
 
     @Override
     public <GRPC_STUB extends AbstractStub<GRPC_STUB>, REACT_API> REACT_API apply(GRPC_STUB stub, Class<REACT_API> apiType, ServiceDescriptor serviceDescriptor) {
         return ReactorToGrpcClientBuilder
                 .newBuilder(
-                        apiType, stub, serviceDescriptor
+                        apiType, stub, serviceDescriptor, contextType
                 )
-                .withCallMetadataResolver(callMetadataResolver)
+                .withGrpcStubDecorator((BiFunction<GRPC_STUB, Optional<CONTEXT>, GRPC_STUB>) grpcStubDecorator)
                 .withTimeout(Duration.ofMillis(configuration.getRequestTimeoutMs()))
                 .withStreamingTimeout(Duration.ofMillis(configuration.getStreamingTimeoutMs()))
                 .build();

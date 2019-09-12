@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.connector.common.reactor.server;
+package com.netflix.titus.common.util.grpc.reactor.server;
 
 import io.grpc.stub.StreamObserver;
 import org.junit.Test;

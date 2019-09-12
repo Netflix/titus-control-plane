@@ -17,7 +17,10 @@
 package com.netflix.titus.runtime.connector.common.reactor;
 
 import com.netflix.archaius.api.annotations.Configuration;
-import com.netflix.titus.runtime.connector.common.reactor.server.DefaultGrpcToReactorServerFactory;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
+import com.netflix.titus.api.model.callmetadata.CallMetadataConstants;
+import com.netflix.titus.common.util.grpc.reactor.GrpcToReactorServerFactory;
+import com.netflix.titus.common.util.grpc.reactor.server.DefaultGrpcToReactorServerFactory;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import org.springframework.context.annotation.Bean;
 
@@ -26,6 +29,9 @@ public class GrpcToReactorServerFactoryComponent {
 
     @Bean
     public GrpcToReactorServerFactory getGrpcToReactorServerFactory(CallMetadataResolver callMetadataResolver) {
-        return new DefaultGrpcToReactorServerFactory(callMetadataResolver);
+        return new DefaultGrpcToReactorServerFactory<>(
+                CallMetadata.class,
+                () -> callMetadataResolver.resolve().orElse(CallMetadataConstants.UNDEFINED_CALL_METADATA)
+        );
     }
 }

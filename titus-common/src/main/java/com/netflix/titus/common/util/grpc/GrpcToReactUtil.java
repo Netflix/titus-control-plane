@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.connector.common.reactor;
+package com.netflix.titus.common.util.grpc;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
