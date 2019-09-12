@@ -1,0 +1,81 @@
+apply plugin: 'com.google.protobuf'
+
+buildscript {
+    dependencies {
+        classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.4'
+    }
+    repositories {
+        jcenter()
+    }
+}
+
+configurations {
+    protobuf
+    protoPluginDeps {
+        description = 'used to resolve grpc versions from recommendations for reference in proto plugin'
+    }
+}
+
+dependencies {
+    // FIXME We generate classes for the same schema twice, as there is no easy way to separate them.
+    protobuf "com.netflix.titus:titus-api-definitions:${titusApiDefinitionsVersion}"
+
+    compile "io.grpc:grpc-protobuf:${grpcVersion}"
+    compile "io.grpc:grpc-stub:${grpcVersion}"
+    compile "com.google.protobuf:protobuf-java:${protobufVersion}"
+
+    protoPluginDeps "io.grpc:protoc-gen-grpc-java:${grpcVersion}"
+    protoPluginDeps "com.google.protobuf:protoc:${protobufVersion}"
+}
+
+if (project.hasProperty("idlLocal")) {
+    task extractProto {
+        doLast {
+            copy {
+                from '../../titus-api-definitions/src/main/proto'
+                into new File(buildDir, "extracted-protos/main")
+            }
+        }
+    }
+}
+
+idea {
+    module {
+        excludeDirs -= file(buildDir)
+        buildDir.listFiles({ d, f -> f != 'generated' } as FilenameFilter).each { excludeDirs += it }
+    }
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir "${protobuf.generatedFilesBaseDir}/main/grpc"
+            srcDir "${protobuf.generatedFilesBaseDir}/main/java"
+        }
+    }
+}
+
+check.dependsOn.remove(test)
+
+//Grabs the resolved dependency coordinates so we can pass them to the protobuf plugin with the platform-recommended version
+def getResolvedDependencyFromProtoPluginDeps(dependency) {
+    configurations.protoPluginDeps.resolvedConfiguration.firstLevelModuleDependencies.collect { it.name }.find {
+        it.startsWith(dependency)
+    }
+}
+
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:${protobufVersion}"
+    }
+    plugins {
+        grpc {
+            artifact = "io.grpc:protoc-gen-grpc-java:${grpcVersion}"
+        }
+    }
+    generateProtoTasks {
+        all()*.plugins {
+            grpc {}
+        }
+    }
+}

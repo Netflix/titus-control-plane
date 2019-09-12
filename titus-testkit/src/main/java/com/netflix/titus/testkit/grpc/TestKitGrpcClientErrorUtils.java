@@ -21,16 +21,16 @@ import com.google.protobuf.Descriptors;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.rpc.BadRequest;
 import com.google.rpc.DebugInfo;
-import com.netflix.titus.client.common.grpc.GrpcClientErrorUtils;
+import com.netflix.titus.runtime.common.grpc.GrpcClientErrorUtils;
 import com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor;
 import io.grpc.Metadata;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.AbstractStub;
 import io.grpc.stub.MetadataUtils;
 
-import static com.netflix.titus.client.common.grpc.GrpcClientErrorUtils.KEY_TITUS_ERROR_REPORT;
-import static com.netflix.titus.client.common.grpc.GrpcClientErrorUtils.X_TITUS_ERROR;
-import static com.netflix.titus.client.common.grpc.GrpcClientErrorUtils.X_TITUS_ERROR_BIN;
+import static com.netflix.titus.runtime.common.grpc.GrpcClientErrorUtils.KEY_TITUS_ERROR_REPORT;
+import static com.netflix.titus.runtime.common.grpc.GrpcClientErrorUtils.X_TITUS_ERROR;
+import static com.netflix.titus.runtime.common.grpc.GrpcClientErrorUtils.X_TITUS_ERROR_BIN;
 
 /**
  * Titus GRPC error replies are based on Google RPC model: https://github.com/googleapis/googleapis/tree/master/google/rpc.

@@ -15,9 +15,15 @@
  */
 
 dependencies {
-    compile project(':titus-api')
-    compile "org.springframework.cloud:spring-cloud-commons:${springCloudVersion}"
-    compile "io.kubernetes:client-java-extended:${kubernetesClientVersion}"
+    compile project(':titus-common-client')
 
-    testCompile project(':titus-testkit')
+    // Netflix dependencies
+    compile "com.netflix.archaius:archaius2-guice:${archaius2Version}"
+
+    // GRPC dependencies
+    compile "io.grpc:grpc-netty-shaded:${grpcVersion}"
+    compile "io.grpc:grpc-services:${grpcVersion}"
+
+    testCompile "io.grpc:grpc-testing:${grpcVersion}"
+    testCompile project(':titus-common-testkit')
 }

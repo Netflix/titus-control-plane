@@ -14,13 +14,10 @@
  * limitations under the License.
  */
 
-apply plugin: 'java'
-
 dependencies {
-    compile project(':titus-common-client')
-    compile project(':titus-common-server')
+    compile project(':titus-common-api')
+    compile "org.springframework.cloud:spring-cloud-commons:${springCloudVersion}"
+    compile "io.kubernetes:client-java-extended:${kubernetesClientVersion}"
 
-    compile "junit:junit-dep:${junitVersion}"
-    compile "org.assertj:assertj-core:${assertjVersion}"
-    compile "org.mockito:mockito-core:${mockitoVersion}"
+    testCompile project(':titus-common-testkit')
 }

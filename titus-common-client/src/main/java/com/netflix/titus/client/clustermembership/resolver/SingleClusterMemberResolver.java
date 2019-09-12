@@ -29,7 +29,7 @@ import com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision;
 import com.netflix.titus.api.clustermembership.model.ClusterMembershipSnapshot;
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.client.clustermembership.grpc.ReactorClusterMembershipClient;
-import com.netflix.titus.client.common.grpc.GrpcClientErrorUtils;
+import com.netflix.titus.runtime.common.grpc.GrpcClientErrorUtils;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.rx.ReactorExt;

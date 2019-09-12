@@ -15,15 +15,5 @@
  */
 
 dependencies {
-    compile project(':titus-common-client')
-
-    // Netflix dependencies
-    compile "com.netflix.archaius:archaius2-guice:${archaius2Version}"
-
-    // GRPC dependencies
-    compile "io.grpc:grpc-netty-shaded:${grpcVersion}"
-    compile "io.grpc:grpc-services:${grpcVersion}"
-
-    testCompile "io.grpc:grpc-testing:${grpcVersion}"
-    testCompile project(':titus-common-testkit')
+    compile project(':titus-common-api')
 }
