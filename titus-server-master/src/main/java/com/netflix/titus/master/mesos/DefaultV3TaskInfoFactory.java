@@ -37,7 +37,6 @@ import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.JobGroupInfo;
 import com.netflix.titus.api.jobmanager.model.job.SecurityProfile;
 import com.netflix.titus.api.jobmanager.model.job.Task;
@@ -71,8 +70,7 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
     private static final String OWNER_EMAIL_ATTRIBUTE = "titus.agent.ownerEmail";
     private static final String JOB_TYPE_ATTRIBUTE = "titus.agent.jobType";
     private static final String RUNTIME_PREDICTION_ATTRIBUTE = "titus.agent.runtimePredictionSec";
-    private static final String OPPORTUNISTIC_CPU_COUNT_ATTRIBUTE = "titus.agent.opportunisticCpus";
-    private static final String OPPORTUNISTIC_CPU_ALLOCATION_ATTRIBUTE = "titus.agent.opportunisticCpuAllocation";
+    private static final String RUNTIME_PREDICTIONS_AVAILABLE_ATTRIBUTE = "titus.agent.runtimePredictionsAvailable";
     private static final String EXECUTOR_PER_TASK_LABEL = "executorpertask";
     private static final String LEGACY_EXECUTOR_NAME = "docker-executor";
     private static final String EXECUTOR_PER_TASK_EXECUTOR_NAME = "docker-per-task-executor";
@@ -173,11 +171,12 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
         containerInfoBuilder.putAllPassthroughAttributes(passthroughAttributes);
         containerInfoBuilder.putPassthroughAttributes(OWNER_EMAIL_ATTRIBUTE, jobDescriptor.getOwner().getTeamEmail());
         containerInfoBuilder.putPassthroughAttributes(JOB_TYPE_ATTRIBUTE, getJobType(jobDescriptor).name());
-        if (jobAttributes.containsKey(JobAttributes.JOB_ATTRIBUTES_RUNTIME_PREDICTION_SEC)) {
-            containerInfoBuilder.putPassthroughAttributes(RUNTIME_PREDICTION_ATTRIBUTE,
-                    jobAttributes.get(JobAttributes.JOB_ATTRIBUTES_RUNTIME_PREDICTION_SEC));
-
-        }
+        Evaluators.acceptNotNull(jobAttributes.get(JobAttributes.JOB_ATTRIBUTES_RUNTIME_PREDICTION_SEC),
+                v -> containerInfoBuilder.putPassthroughAttributes(RUNTIME_PREDICTION_ATTRIBUTE, v)
+        );
+        Evaluators.acceptNotNull(jobAttributes.get(JobAttributes.JOB_ATTRIBUTES_RUNTIME_PREDICTION_AVAILABLE),
+                v -> containerInfoBuilder.putPassthroughAttributes(RUNTIME_PREDICTIONS_AVAILABLE_ATTRIBUTE, v)
+        );
 
         // Configure Environment Variables
         container.getEnv().forEach((k, v) -> {
