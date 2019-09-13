@@ -26,10 +26,13 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.netflix.spectator.api.Id;
+import com.netflix.spectator.api.patterns.PolledMeter;
 import com.netflix.titus.common.annotation.Experimental;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.code.CodeInvariants;
 import com.netflix.titus.common.util.guice.annotation.Activator;
+import com.netflix.titus.common.util.guice.annotation.Deactivator;
 import com.netflix.titus.master.mesos.MesosConfiguration;
 import com.netflix.titus.master.mesos.kubeapiserver.model.v1.V1OpportunisticResource;
 import com.netflix.titus.master.mesos.kubeapiserver.model.v1.V1OpportunisticResourceList;
@@ -61,10 +64,13 @@ public class KubeOpportunisticResourceProvider implements OpportunisticCpuAvaila
     private final TitusRuntime titusRuntime;
     private final SharedIndexInformer<V1OpportunisticResource> informer;
     private final SharedInformerFactory informerFactory;
+    private final Id cpuSupplyId;
+    private final AtomicLong lastCpuSupply = new AtomicLong(0L);
 
     @Inject
     public KubeOpportunisticResourceProvider(MesosConfiguration configuration, TitusRuntime titusRuntime) {
         this.titusRuntime = titusRuntime;
+        cpuSupplyId = titusRuntime.getRegistry().createId("titusMaster.opportunistic.supply.cpu");
         ApiClient apiClient = Config.fromUrl(configuration.getKubeApiServerUrl());
         apiClient.getHttpClient().setReadTimeout(0, TimeUnit.SECONDS); // infinite timeout for watch calls
         this.api = new CustomObjectsApi(apiClient);
@@ -113,9 +119,12 @@ public class KubeOpportunisticResourceProvider implements OpportunisticCpuAvaila
     @Activator
     public void enterActiveMode() {
         informerFactory.startAllRegisteredInformers();
+        PolledMeter.using(titusRuntime.getRegistry()).withId(cpuSupplyId).monitorValue(lastCpuSupply);
     }
 
+    @Deactivator
     public void shutdown() {
+        PolledMeter.remove(titusRuntime.getRegistry(), cpuSupplyId);
         informerFactory.stopAllRegisteredInformers();
     }
 
@@ -167,10 +176,19 @@ public class KubeOpportunisticResourceProvider implements OpportunisticCpuAvaila
      */
     @Override
     public Map<String, OpportunisticCpuAvailability> getOpportunisticCpus() {
-        return informer.getIndexer().list().stream().collect(Collectors.toMap(
+        Map<String, OpportunisticCpuAvailability> cpuAvailability = informer.getIndexer().list().stream().collect(Collectors.toMap(
                 V1OpportunisticResource::getInstanceId,
                 resource -> new OpportunisticCpuAvailability(resource.getUid(), resource.getEnd(), resource.getCpus()),
                 BinaryOperator.maxBy(EXPIRES_AT_COMPARATOR)
         ));
+        lastCpuSupply.set(cpuAvailability.values().stream()
+                .filter(this::isNotExpired)
+                .mapToLong(OpportunisticCpuAvailability::getCount)
+                .sum());
+        return cpuAvailability;
+    }
+
+    private boolean isNotExpired(OpportunisticCpuAvailability availability) {
+        return !titusRuntime.getClock().isPast(availability.getExpiresAt().toEpochMilli());
     }
 }
