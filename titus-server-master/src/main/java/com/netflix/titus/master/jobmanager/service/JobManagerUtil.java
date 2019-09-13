@@ -46,6 +46,7 @@ import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
@@ -54,7 +55,6 @@ import com.netflix.titus.master.service.management.ApplicationSlaManagementServi
 import org.apache.mesos.Protos;
 
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_EXECUTOR_URI_OVERRIDE;
-import static com.netflix.titus.common.util.CollectionsExt.isNullOrEmpty;
 
 /**
  * Collection of common functions.
@@ -154,12 +154,14 @@ public final class JobManagerUtil {
             }
 
             Map<String, String> taskContext = new HashMap<>(opportunisticResourcesContext);
-            taskContext.put(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST, lease.hostname());
+            Map<String, Protos.Attribute> attributes = CollectionsExt.nonNull(lease.getAttributeMap());
+            String hostIp = addAttributeToContext(attributes, "hostIp").orElse(lease.hostname());
+            taskContext.put(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST, hostIp);
+
             executorUriOverrideOpt.ifPresent(v -> taskContext.put(TASK_ATTRIBUTES_EXECUTOR_URI_OVERRIDE, v));
             taskContext.put(TaskAttributes.TASK_ATTRIBUTES_TIER, tier);
 
-            Map<String, Protos.Attribute> attributes = lease.getAttributeMap();
-            if (!isNullOrEmpty(attributes)) {
+            if (!attributes.isEmpty()) {
                 attributesMap.forEach((k, v) -> taskContext.put("agent." + k, v));
 
                 // TODO Some agent attribute names are configurable, some not. We need to clean this up.
