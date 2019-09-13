@@ -25,6 +25,7 @@ import java.util.Optional;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.netflix.fenzo.PreferentialNamedConsumableResourceSet;
 import com.netflix.titus.api.agent.service.AgentManagementService;
+import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -33,6 +34,7 @@ import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.data.generator.DataGenerator;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.master.config.MasterConfiguration;
 import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
@@ -71,9 +73,14 @@ public class DefaultV3TaskInfoFactoryTest {
     }
 
     @Test
-    public void useRequestedCpusInsteadOfAssigned() {
+    public void useRequestedCpusInsteadOfAssigned() throws InvalidProtocolBufferException {
         DefaultV3TaskInfoFactory factory = new DefaultV3TaskInfoFactory(masterConfiguration, mock(MesosConfiguration.class));
-        JobDescriptor<BatchJobExt> jobDescriptor = JobDescriptorGenerator.oneTaskBatchJobDescriptor();
+        JobDescriptor<BatchJobExt> jobDescriptor = JobDescriptorGenerator.oneTaskBatchJobDescriptor().but(jd -> jd.toBuilder()
+                .withAttributes(CollectionsExt.copyAndAdd(jd.getAttributes(), CollectionsExt.asMap(
+                        JobAttributes.JOB_ATTRIBUTES_RUNTIME_PREDICTION_SEC, "12.5",
+                        JobAttributes.JOB_ATTRIBUTES_RUNTIME_PREDICTION_AVAILABLE, "0.1=1;0.5=5.2;0.95=12.5"
+                )))
+        );
         double requestedCpus = jobDescriptor.getContainer().getContainerResources().getCpu();
 
         // opportunistic task with a runtime prediction
@@ -91,6 +98,10 @@ public class DefaultV3TaskInfoFactoryTest {
                         .setScalar(Protos.Value.Scalar.newBuilder().setValue(requestedCpus).build())
                         .build()
         );
+        TitanProtos.ContainerInfo containerInfo = TitanProtos.ContainerInfo.parseFrom(taskInfo.getData());
+        assertThat(containerInfo.getPassthroughAttributesMap())
+                .containsEntry("titus.agent.runtimePredictionSec", "12.5")
+                .containsEntry("titus.agent.runtimePredictionsAvailable", "0.1=1;0.5=5.2;0.95=12.5");
     }
 
     @Test
