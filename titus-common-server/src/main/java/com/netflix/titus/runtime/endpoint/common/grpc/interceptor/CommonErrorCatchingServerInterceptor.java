@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,12 +17,11 @@
 package com.netflix.titus.runtime.endpoint.common.grpc.interceptor;
 
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.runtime.endpoint.v3.grpc.ErrorResponses;
+import com.netflix.titus.runtime.endpoint.common.grpc.GrpcExceptionMapper;
 import io.grpc.ForwardingServerCall;
 import io.grpc.ForwardingServerCallListener;
 import io.grpc.Metadata;
 import io.grpc.ServerCall;
-import io.grpc.ServerCall.Listener;
 import io.grpc.ServerCallHandler;
 import io.grpc.ServerInterceptor;
 import io.grpc.Status;
@@ -30,7 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.netflix.titus.common.util.Evaluators.getOrDefault;
-import static com.netflix.titus.runtime.endpoint.v3.grpc.ErrorResponses.KEY_TITUS_DEBUG;
+import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcExceptionMapper.KEY_TITUS_DEBUG;
 
 /**
  * (adapted from netflix-grpc-extensions)
@@ -38,32 +37,36 @@ import static com.netflix.titus.runtime.endpoint.v3.grpc.ErrorResponses.KEY_TITU
  * Interceptor that ensures any exception thrown by a method handler is propagated
  * as a close() to all upstream {@link ServerInterceptor}s.
  * Custom exceptions mapping can be provided through customMappingFunction.
- *
- * @deprecated Use {@link CommonErrorCatchingServerInterceptor}
  */
-public final class ErrorCatchingServerInterceptor implements ServerInterceptor {
+public final class CommonErrorCatchingServerInterceptor implements ServerInterceptor {
 
-    private static final Logger logger = LoggerFactory.getLogger(ErrorCatchingServerInterceptor.class);
+    private static final Logger logger = LoggerFactory.getLogger(CommonErrorCatchingServerInterceptor.class);
+
+    private final GrpcExceptionMapper exceptionMapper;
+
+    public CommonErrorCatchingServerInterceptor(GrpcExceptionMapper exceptionMapper) {
+        this.exceptionMapper = exceptionMapper;
+    }
 
     private <ReqT, RespT> void handlingException(ServerCall<ReqT, RespT> call, Exception e, boolean debug) {
         logger.info("Returning exception to the client: {}", e.getMessage(), e);
-        Pair<Status, Metadata> statusAndMeta = ErrorResponses.of(e, debug);
+        Pair<Status, Metadata> statusAndMeta = exceptionMapper.of(e, debug);
         Status status = statusAndMeta.getLeft();
         safeClose(() -> call.close(status, statusAndMeta.getRight()));
         throw status.asRuntimeException();
     }
 
     @Override
-    public <ReqT, RespT> Listener<ReqT> interceptCall(ServerCall<ReqT, RespT> call, Metadata headers,
-                                                      ServerCallHandler<ReqT, RespT> next) {
+    public <ReqT, RespT> ServerCall.Listener<ReqT> interceptCall(ServerCall<ReqT, RespT> call, Metadata headers,
+                                                                 ServerCallHandler<ReqT, RespT> next) {
         boolean debug = "true".equalsIgnoreCase(getOrDefault(headers.get(KEY_TITUS_DEBUG), "false"));
-        Listener<ReqT> listener = null;
+        ServerCall.Listener<ReqT> listener = null;
         try {
             listener = next.startCall(new ForwardingServerCall.SimpleForwardingServerCall<ReqT, RespT>(call) {
                 @Override
                 public void close(Status status, Metadata trailers) {
                     if (status.getCode() != Status.Code.OK) {
-                        Pair<Status, Metadata> pair = ErrorResponses.of(status, trailers, debug);
+                        Pair<Status, Metadata> pair = exceptionMapper.of(status, trailers, debug);
                         Status newStatus = pair.getLeft();
                         if (isCriticalError(newStatus)) {
                             logger.warn("Returning exception to the client: {}", formatStatus(newStatus));

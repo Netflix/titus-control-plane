@@ -92,6 +92,7 @@ public interface ClusterMembershipConnector {
 
     /**
      * Cluster membership change events. The event stream includes all members both local and siblings.
+     * Emits snapshot data on subscription followed by update events.
      */
     Flux<ClusterMembershipEvent> membershipChangeEvents();
 }

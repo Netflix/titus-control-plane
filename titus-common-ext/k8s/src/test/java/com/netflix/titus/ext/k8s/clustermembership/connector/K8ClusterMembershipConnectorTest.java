@@ -54,7 +54,7 @@ public class K8ClusterMembershipConnectorTest {
     private final TitusRuntime titusRuntime = TitusRuntimes.internal();
 
     private final K8ConnectorConfiguration configuration = Archaius2Ext.newConfiguration(K8ConnectorConfiguration.class,
-            "reRegistrationIntervalMs", "100"
+            "titus.ext.k8s.reRegistrationIntervalMs", "100"
     );
 
     private final StubbedK8Executors k8Executors = new StubbedK8Executors(LOCAL_MEMBER_UNREGISTERED.getMemberId());

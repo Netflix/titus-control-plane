@@ -16,9 +16,23 @@
 
 package com.netflix.titus.ext.k8s.clustermembership.connector;
 
+import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
 
+import static com.netflix.titus.ext.k8s.clustermembership.connector.K8ConnectorConfiguration.PREFIX;
+
+@Configuration(prefix = PREFIX)
 public interface K8ConnectorConfiguration {
+
+    String PREFIX = "titus.ext.k8s";
+
+    String getK8ApiServerUri();
+
+    @DefaultValue("titus")
+    String getNamespace();
+
+    @DefaultValue("titus")
+    String getClusterName();
 
     @DefaultValue("10")
     long getReconcilerQuickCycleMs();
@@ -31,4 +45,7 @@ public interface K8ConnectorConfiguration {
 
     @DefaultValue("500")
     long getK8ReconnectIntervalMs();
+
+    @DefaultValue("10000")
+    long getLeaseDurationMs();
 }
