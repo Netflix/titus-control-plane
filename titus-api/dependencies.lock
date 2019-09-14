@@ -3345,6 +3345,7 @@
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-common-grpc-api",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-master",
                 "io.grpc:grpc-protobuf",
@@ -3435,7 +3436,8 @@
             "locked": "2.3.15",
             "transitive": [
                 "com.netflix.runtime:health-guice",
-                "com.netflix.titus:titus-common-runtime",
+                "com.netflix.titus:titus-common-client",
+                "com.netflix.titus:titus-common-server",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime"
@@ -3541,8 +3543,6 @@
             "transitive": [
                 "com.netflix.titus:titus-api",
                 "com.netflix.titus:titus-common-api",
-                "com.netflix.titus:titus-common-runtime",
-                "com.netflix.titus:titus-common-testkit",
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-server-runtime"
             ]
@@ -3554,7 +3554,26 @@
                 "com.netflix.titus:titus-common-runtime"
             ]
         },
+        "com.netflix.titus:titus-common-client": {
+            "project": true,
+            "transitive": [
+                "com.netflix.titus:titus-common-server",
+                "com.netflix.titus:titus-common-testkit"
+            ]
+        },
+        "com.netflix.titus:titus-common-grpc-api": {
+            "project": true,
+            "transitive": [
+                "com.netflix.titus:titus-common-client"
+            ]
+        },
         "com.netflix.titus:titus-common-runtime": {
+            "project": true,
+            "transitive": [
+                "com.netflix.titus:titus-common-client"
+            ]
+        },
+        "com.netflix.titus:titus-common-server": {
             "project": true,
             "transitive": [
                 "com.netflix.titus:titus-common-testkit",
@@ -3582,7 +3601,7 @@
         "com.netflix.titus:titus-grpc-api": {
             "project": true,
             "transitive": [
-                "com.netflix.titus:titus-common-runtime"
+                "com.netflix.titus:titus-server-runtime"
             ]
         },
         "com.netflix.titus:titus-server-federation": {
@@ -3873,7 +3892,8 @@
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-runtime",
+                "com.netflix.titus:titus-common-client",
+                "com.netflix.titus:titus-common-server",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-runtime"
             ]
@@ -3882,6 +3902,7 @@
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-common-grpc-api",
                 "com.netflix.titus:titus-grpc-api",
                 "io.grpc:grpc-services"
             ]
@@ -3895,7 +3916,8 @@
         "io.grpc:grpc-services": {
             "locked": "1.10.1",
             "transitive": [
-                "com.netflix.titus:titus-common-runtime",
+                "com.netflix.titus:titus-common-client",
+                "com.netflix.titus:titus-common-server",
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
@@ -3903,6 +3925,7 @@
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-common-grpc-api",
                 "com.netflix.titus:titus-grpc-api",
                 "io.grpc:grpc-services"
             ]
@@ -4363,8 +4386,9 @@
             ]
         },
         "org.apache.commons:commons-math3": {
-            "locked": "3.2",
+            "locked": "3.6.1",
             "transitive": [
+                "com.netflix.titus:titus-server-runtime",
                 "org.apache.cassandra:cassandra-all"
             ]
         },
@@ -4794,7 +4818,10 @@
                 "com.netflix.titus:titus-api",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-common-api",
+                "com.netflix.titus:titus-common-client",
+                "com.netflix.titus:titus-common-grpc-api",
                 "com.netflix.titus:titus-common-runtime",
+                "com.netflix.titus:titus-common-server",
                 "com.netflix.titus:titus-common-testkit",
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
@@ -4833,7 +4860,10 @@
                 "com.netflix.titus:titus-api",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-common-api",
+                "com.netflix.titus:titus-common-client",
+                "com.netflix.titus:titus-common-grpc-api",
                 "com.netflix.titus:titus-common-runtime",
+                "com.netflix.titus:titus-common-server",
                 "com.netflix.titus:titus-common-testkit",
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
@@ -5393,6 +5423,7 @@
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-common-grpc-api",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-master",
                 "io.grpc:grpc-protobuf",
@@ -5483,7 +5514,8 @@
             "locked": "2.3.15",
             "transitive": [
                 "com.netflix.runtime:health-guice",
-                "com.netflix.titus:titus-common-runtime",
+                "com.netflix.titus:titus-common-client",
+                "com.netflix.titus:titus-common-server",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime"
@@ -5589,8 +5621,6 @@
             "transitive": [
                 "com.netflix.titus:titus-api",
                 "com.netflix.titus:titus-common-api",
-                "com.netflix.titus:titus-common-runtime",
-                "com.netflix.titus:titus-common-testkit",
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-server-runtime"
             ]
@@ -5602,7 +5632,26 @@
                 "com.netflix.titus:titus-common-runtime"
             ]
         },
+        "com.netflix.titus:titus-common-client": {
+            "project": true,
+            "transitive": [
+                "com.netflix.titus:titus-common-server",
+                "com.netflix.titus:titus-common-testkit"
+            ]
+        },
+        "com.netflix.titus:titus-common-grpc-api": {
+            "project": true,
+            "transitive": [
+                "com.netflix.titus:titus-common-client"
+            ]
+        },
         "com.netflix.titus:titus-common-runtime": {
+            "project": true,
+            "transitive": [
+                "com.netflix.titus:titus-common-client"
+            ]
+        },
+        "com.netflix.titus:titus-common-server": {
             "project": true,
             "transitive": [
                 "com.netflix.titus:titus-common-testkit",
@@ -5630,7 +5679,7 @@
         "com.netflix.titus:titus-grpc-api": {
             "project": true,
             "transitive": [
-                "com.netflix.titus:titus-common-runtime"
+                "com.netflix.titus:titus-server-runtime"
             ]
         },
         "com.netflix.titus:titus-server-federation": {
@@ -5921,7 +5970,8 @@
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-runtime",
+                "com.netflix.titus:titus-common-client",
+                "com.netflix.titus:titus-common-server",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-runtime"
             ]
@@ -5930,6 +5980,7 @@
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-common-grpc-api",
                 "com.netflix.titus:titus-grpc-api",
                 "io.grpc:grpc-services"
             ]
@@ -5943,7 +5994,8 @@
         "io.grpc:grpc-services": {
             "locked": "1.10.1",
             "transitive": [
-                "com.netflix.titus:titus-common-runtime",
+                "com.netflix.titus:titus-common-client",
+                "com.netflix.titus:titus-common-server",
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
@@ -5951,6 +6003,7 @@
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-common-grpc-api",
                 "com.netflix.titus:titus-grpc-api",
                 "io.grpc:grpc-services"
             ]
@@ -6411,8 +6464,9 @@
             ]
         },
         "org.apache.commons:commons-math3": {
-            "locked": "3.2",
+            "locked": "3.6.1",
             "transitive": [
+                "com.netflix.titus:titus-server-runtime",
                 "org.apache.cassandra:cassandra-all"
             ]
         },
@@ -6842,7 +6896,10 @@
                 "com.netflix.titus:titus-api",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-common-api",
+                "com.netflix.titus:titus-common-client",
+                "com.netflix.titus:titus-common-grpc-api",
                 "com.netflix.titus:titus-common-runtime",
+                "com.netflix.titus:titus-common-server",
                 "com.netflix.titus:titus-common-testkit",
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
@@ -6881,7 +6938,10 @@
                 "com.netflix.titus:titus-api",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-common-api",
+                "com.netflix.titus:titus-common-client",
+                "com.netflix.titus:titus-common-grpc-api",
                 "com.netflix.titus:titus-common-runtime",
+                "com.netflix.titus:titus-common-server",
                 "com.netflix.titus:titus-common-testkit",
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
@@ -7441,6 +7501,7 @@
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-common-grpc-api",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-master",
                 "io.grpc:grpc-protobuf",
@@ -7531,7 +7592,8 @@
             "locked": "2.3.15",
             "transitive": [
                 "com.netflix.runtime:health-guice",
-                "com.netflix.titus:titus-common-runtime",
+                "com.netflix.titus:titus-common-client",
+                "com.netflix.titus:titus-common-server",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime"
@@ -7637,8 +7699,6 @@
             "transitive": [
                 "com.netflix.titus:titus-api",
                 "com.netflix.titus:titus-common-api",
-                "com.netflix.titus:titus-common-runtime",
-                "com.netflix.titus:titus-common-testkit",
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-server-runtime"
             ]
@@ -7650,7 +7710,26 @@
                 "com.netflix.titus:titus-common-runtime"
             ]
         },
+        "com.netflix.titus:titus-common-client": {
+            "project": true,
+            "transitive": [
+                "com.netflix.titus:titus-common-server",
+                "com.netflix.titus:titus-common-testkit"
+            ]
+        },
+        "com.netflix.titus:titus-common-grpc-api": {
+            "project": true,
+            "transitive": [
+                "com.netflix.titus:titus-common-client"
+            ]
+        },
         "com.netflix.titus:titus-common-runtime": {
+            "project": true,
+            "transitive": [
+                "com.netflix.titus:titus-common-client"
+            ]
+        },
+        "com.netflix.titus:titus-common-server": {
             "project": true,
             "transitive": [
                 "com.netflix.titus:titus-common-testkit",
@@ -7678,7 +7757,7 @@
         "com.netflix.titus:titus-grpc-api": {
             "project": true,
             "transitive": [
-                "com.netflix.titus:titus-common-runtime"
+                "com.netflix.titus:titus-server-runtime"
             ]
         },
         "com.netflix.titus:titus-server-federation": {
@@ -7969,7 +8048,8 @@
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-runtime",
+                "com.netflix.titus:titus-common-client",
+                "com.netflix.titus:titus-common-server",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-runtime"
             ]
@@ -7978,6 +8058,7 @@
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-common-grpc-api",
                 "com.netflix.titus:titus-grpc-api",
                 "io.grpc:grpc-services"
             ]
@@ -7991,7 +8072,8 @@
         "io.grpc:grpc-services": {
             "locked": "1.10.1",
             "transitive": [
-                "com.netflix.titus:titus-common-runtime",
+                "com.netflix.titus:titus-common-client",
+                "com.netflix.titus:titus-common-server",
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
@@ -7999,6 +8081,7 @@
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-common-grpc-api",
                 "com.netflix.titus:titus-grpc-api",
                 "io.grpc:grpc-services"
             ]
@@ -8459,8 +8542,9 @@
             ]
         },
         "org.apache.commons:commons-math3": {
-            "locked": "3.2",
+            "locked": "3.6.1",
             "transitive": [
+                "com.netflix.titus:titus-server-runtime",
                 "org.apache.cassandra:cassandra-all"
             ]
         },
@@ -8890,7 +8974,10 @@
                 "com.netflix.titus:titus-api",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-common-api",
+                "com.netflix.titus:titus-common-client",
+                "com.netflix.titus:titus-common-grpc-api",
                 "com.netflix.titus:titus-common-runtime",
+                "com.netflix.titus:titus-common-server",
                 "com.netflix.titus:titus-common-testkit",
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
@@ -8930,7 +9017,10 @@
                 "com.netflix.titus:titus-api",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-common-api",
+                "com.netflix.titus:titus-common-client",
+                "com.netflix.titus:titus-common-grpc-api",
                 "com.netflix.titus:titus-common-runtime",
+                "com.netflix.titus:titus-common-server",
                 "com.netflix.titus:titus-common-testkit",
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
@@ -9490,6 +9580,7 @@
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-common-grpc-api",
                 "com.netflix.titus:titus-grpc-api",
                 "com.netflix.titus:titus-server-master",
                 "io.grpc:grpc-protobuf",
@@ -9580,7 +9671,8 @@
             "locked": "2.3.15",
             "transitive": [
                 "com.netflix.runtime:health-guice",
-                "com.netflix.titus:titus-common-runtime",
+                "com.netflix.titus:titus-common-client",
+                "com.netflix.titus:titus-common-server",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime"
@@ -9686,8 +9778,6 @@
             "transitive": [
                 "com.netflix.titus:titus-api",
                 "com.netflix.titus:titus-common-api",
-                "com.netflix.titus:titus-common-runtime",
-                "com.netflix.titus:titus-common-testkit",
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-server-runtime"
             ]
@@ -9699,7 +9789,26 @@
                 "com.netflix.titus:titus-common-runtime"
             ]
         },
+        "com.netflix.titus:titus-common-client": {
+            "project": true,
+            "transitive": [
+                "com.netflix.titus:titus-common-server",
+                "com.netflix.titus:titus-common-testkit"
+            ]
+        },
+        "com.netflix.titus:titus-common-grpc-api": {
+            "project": true,
+            "transitive": [
+                "com.netflix.titus:titus-common-client"
+            ]
+        },
         "com.netflix.titus:titus-common-runtime": {
+            "project": true,
+            "transitive": [
+                "com.netflix.titus:titus-common-client"
+            ]
+        },
+        "com.netflix.titus:titus-common-server": {
             "project": true,
             "transitive": [
                 "com.netflix.titus:titus-common-testkit",
@@ -9727,7 +9836,7 @@
         "com.netflix.titus:titus-grpc-api": {
             "project": true,
             "transitive": [
-                "com.netflix.titus:titus-common-runtime"
+                "com.netflix.titus:titus-server-runtime"
             ]
         },
         "com.netflix.titus:titus-server-federation": {
@@ -10018,7 +10127,8 @@
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-runtime",
+                "com.netflix.titus:titus-common-client",
+                "com.netflix.titus:titus-common-server",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-runtime"
             ]
@@ -10027,6 +10137,7 @@
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-common-grpc-api",
                 "com.netflix.titus:titus-grpc-api",
                 "io.grpc:grpc-services"
             ]
@@ -10040,7 +10151,8 @@
         "io.grpc:grpc-services": {
             "locked": "1.10.1",
             "transitive": [
-                "com.netflix.titus:titus-common-runtime",
+                "com.netflix.titus:titus-common-client",
+                "com.netflix.titus:titus-common-server",
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
@@ -10048,6 +10160,7 @@
             "locked": "1.10.1",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "com.netflix.titus:titus-common-grpc-api",
                 "com.netflix.titus:titus-grpc-api",
                 "io.grpc:grpc-services"
             ]
@@ -10508,8 +10621,9 @@
             ]
         },
         "org.apache.commons:commons-math3": {
-            "locked": "3.2",
+            "locked": "3.6.1",
             "transitive": [
+                "com.netflix.titus:titus-server-runtime",
                 "org.apache.cassandra:cassandra-all"
             ]
         },
@@ -10939,7 +11053,10 @@
                 "com.netflix.titus:titus-api",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-common-api",
+                "com.netflix.titus:titus-common-client",
+                "com.netflix.titus:titus-common-grpc-api",
                 "com.netflix.titus:titus-common-runtime",
+                "com.netflix.titus:titus-common-server",
                 "com.netflix.titus:titus-common-testkit",
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",
@@ -10979,7 +11096,10 @@
                 "com.netflix.titus:titus-api",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-common-api",
+                "com.netflix.titus:titus-common-client",
+                "com.netflix.titus:titus-common-grpc-api",
                 "com.netflix.titus:titus-common-runtime",
+                "com.netflix.titus:titus-common-server",
                 "com.netflix.titus:titus-common-testkit",
                 "com.netflix.titus:titus-ext-cassandra",
                 "com.netflix.titus:titus-ext-cassandra-testkit",

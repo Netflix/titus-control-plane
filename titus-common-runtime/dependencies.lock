@@ -59,7 +59,6 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
-                "com.google.instrumentation:instrumentation-api",
                 "io.grpc:grpc-core"
             ]
         },
@@ -83,7 +82,6 @@
             "locked": "20.0",
             "transitive": [
                 "com.google.inject:guice",
-                "com.google.instrumentation:instrumentation-api",
                 "com.google.protobuf:protobuf-java-util",
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
@@ -111,7 +109,6 @@
             "locked": "4.1.0",
             "transitive": [
                 "com.google.inject.extensions:guice-grapher",
-                "com.netflix.archaius:archaius2-guice",
                 "com.netflix.governator:governator-core"
             ]
         },
@@ -121,14 +118,7 @@
                 "com.google.inject.extensions:guice-assistedinject",
                 "com.google.inject.extensions:guice-grapher",
                 "com.google.inject.extensions:guice-multibindings",
-                "com.netflix.archaius:archaius2-guice",
                 "com.netflix.governator:governator-core"
-            ]
-        },
-        "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.4.3",
-            "transitive": [
-                "io.grpc:grpc-services"
             ]
         },
         "com.google.protobuf:protobuf-java": {
@@ -138,7 +128,6 @@
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-grpc-api",
                 "io.grpc:grpc-protobuf"
             ]
         },
@@ -176,15 +165,7 @@
         "com.netflix.archaius:archaius2-core": {
             "locked": "2.3.15",
             "transitive": [
-                "com.netflix.archaius:archaius2-guice",
                 "com.netflix.titus:titus-common"
-            ]
-        },
-        "com.netflix.archaius:archaius2-guice": {
-            "locked": "2.3.15",
-            "transitive": [
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-server"
             ]
         },
         "com.netflix.governator:governator-api": {
@@ -218,30 +199,6 @@
             ]
         },
         "com.netflix.titus:titus-common-api": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-common-runtime"
-            ]
-        },
-        "com.netflix.titus:titus-common-client": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-common-server"
-            ]
-        },
-        "com.netflix.titus:titus-common-grpc-api": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-common-client"
-            ]
-        },
-        "com.netflix.titus:titus-common-runtime": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-common-client"
-            ]
-        },
-        "com.netflix.titus:titus-common-server": {
             "project": true
         },
         "com.squareup.okhttp3:okhttp": {
@@ -280,17 +237,13 @@
         "io.grpc:grpc-netty-shaded": {
             "locked": "1.10.1",
             "transitive": [
-                "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-server"
+                "com.netflix.titus:titus-common"
             ]
         },
         "io.grpc:grpc-protobuf": {
             "locked": "1.10.1",
             "transitive": [
-                "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-grpc-api",
-                "io.grpc:grpc-services"
+                "com.netflix.titus:titus-common"
             ]
         },
         "io.grpc:grpc-protobuf-lite": {
@@ -299,19 +252,10 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
-        "io.grpc:grpc-services": {
-            "locked": "1.10.1",
-            "transitive": [
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-server"
-            ]
-        },
         "io.grpc:grpc-stub": {
             "locked": "1.10.1",
             "transitive": [
-                "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-grpc-api",
-                "io.grpc:grpc-services"
+                "com.netflix.titus:titus-common"
             ]
         },
         "io.netty:netty-buffer": {
@@ -477,7 +421,6 @@
             "transitive": [
                 "com.google.inject:guice",
                 "com.netflix.archaius:archaius2-api",
-                "com.netflix.archaius:archaius2-guice",
                 "com.netflix.governator:governator-api",
                 "com.netflix.governator:governator-core"
             ]
@@ -506,26 +449,10 @@
                 "com.google.truth:truth"
             ]
         },
-        "junit:junit-dep": {
-            "locked": "4.10",
-            "requested": "4.10"
-        },
         "log4j:log4j": {
             "locked": "1.2.17",
             "transitive": [
                 "org.slf4j:slf4j-log4j12"
-            ]
-        },
-        "net.bytebuddy:byte-buddy": {
-            "locked": "1.9.10",
-            "transitive": [
-                "org.mockito:mockito-core"
-            ]
-        },
-        "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.9.10",
-            "transitive": [
-                "org.mockito:mockito-core"
             ]
         },
         "org.apache.commons:commons-lang3": {
@@ -533,10 +460,6 @@
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
-        },
-        "org.assertj:assertj-core": {
-            "locked": "3.8.0",
-            "requested": "3.8.0"
         },
         "org.glassfish:javax.el": {
             "locked": "3.0.1-b11",
@@ -547,8 +470,7 @@
         "org.hamcrest:hamcrest-core": {
             "locked": "1.3",
             "transitive": [
-                "junit:junit",
-                "junit:junit-dep"
+                "junit:junit"
             ]
         },
         "org.hdrhistogram:HdrHistogram": {
@@ -569,16 +491,6 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
-        "org.mockito:mockito-core": {
-            "locked": "2.28.2",
-            "requested": "2.+"
-        },
-        "org.objenesis:objenesis": {
-            "locked": "2.6",
-            "transitive": [
-                "org.mockito:mockito-core"
-            ]
-        },
         "org.reactivestreams:reactive-streams": {
             "locked": "1.0.2",
             "transitive": [
@@ -596,10 +508,6 @@
                 "com.netflix.spectator:spectator-api",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-common-api",
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-grpc-api",
-                "com.netflix.titus:titus-common-runtime",
-                "com.netflix.titus:titus-common-server",
                 "org.slf4j:slf4j-log4j12"
             ]
         },
@@ -607,11 +515,7 @@
             "locked": "1.7.0",
             "transitive": [
                 "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-api",
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-grpc-api",
-                "com.netflix.titus:titus-common-runtime",
-                "com.netflix.titus:titus-common-server"
+                "com.netflix.titus:titus-common-api"
             ]
         },
         "org.springframework:spring-aop": {
@@ -738,7 +642,6 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
-                "com.google.instrumentation:instrumentation-api",
                 "io.grpc:grpc-core"
             ]
         },
@@ -762,7 +665,6 @@
             "locked": "20.0",
             "transitive": [
                 "com.google.inject:guice",
-                "com.google.instrumentation:instrumentation-api",
                 "com.google.protobuf:protobuf-java-util",
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
@@ -790,7 +692,6 @@
             "locked": "4.1.0",
             "transitive": [
                 "com.google.inject.extensions:guice-grapher",
-                "com.netflix.archaius:archaius2-guice",
                 "com.netflix.governator:governator-core"
             ]
         },
@@ -800,14 +701,7 @@
                 "com.google.inject.extensions:guice-assistedinject",
                 "com.google.inject.extensions:guice-grapher",
                 "com.google.inject.extensions:guice-multibindings",
-                "com.netflix.archaius:archaius2-guice",
                 "com.netflix.governator:governator-core"
-            ]
-        },
-        "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.4.3",
-            "transitive": [
-                "io.grpc:grpc-services"
             ]
         },
         "com.google.protobuf:protobuf-java": {
@@ -817,7 +711,6 @@
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-grpc-api",
                 "io.grpc:grpc-protobuf"
             ]
         },
@@ -855,15 +748,7 @@
         "com.netflix.archaius:archaius2-core": {
             "locked": "2.3.15",
             "transitive": [
-                "com.netflix.archaius:archaius2-guice",
                 "com.netflix.titus:titus-common"
-            ]
-        },
-        "com.netflix.archaius:archaius2-guice": {
-            "locked": "2.3.15",
-            "transitive": [
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-server"
             ]
         },
         "com.netflix.governator:governator-api": {
@@ -897,30 +782,6 @@
             ]
         },
         "com.netflix.titus:titus-common-api": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-common-runtime"
-            ]
-        },
-        "com.netflix.titus:titus-common-client": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-common-server"
-            ]
-        },
-        "com.netflix.titus:titus-common-grpc-api": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-common-client"
-            ]
-        },
-        "com.netflix.titus:titus-common-runtime": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-common-client"
-            ]
-        },
-        "com.netflix.titus:titus-common-server": {
             "project": true
         },
         "com.squareup.okhttp3:okhttp": {
@@ -959,17 +820,13 @@
         "io.grpc:grpc-netty-shaded": {
             "locked": "1.10.1",
             "transitive": [
-                "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-server"
+                "com.netflix.titus:titus-common"
             ]
         },
         "io.grpc:grpc-protobuf": {
             "locked": "1.10.1",
             "transitive": [
-                "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-grpc-api",
-                "io.grpc:grpc-services"
+                "com.netflix.titus:titus-common"
             ]
         },
         "io.grpc:grpc-protobuf-lite": {
@@ -978,19 +835,10 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
-        "io.grpc:grpc-services": {
-            "locked": "1.10.1",
-            "transitive": [
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-server"
-            ]
-        },
         "io.grpc:grpc-stub": {
             "locked": "1.10.1",
             "transitive": [
-                "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-grpc-api",
-                "io.grpc:grpc-services"
+                "com.netflix.titus:titus-common"
             ]
         },
         "io.netty:netty-buffer": {
@@ -1156,7 +1004,6 @@
             "transitive": [
                 "com.google.inject:guice",
                 "com.netflix.archaius:archaius2-api",
-                "com.netflix.archaius:archaius2-guice",
                 "com.netflix.governator:governator-api",
                 "com.netflix.governator:governator-core"
             ]
@@ -1185,26 +1032,10 @@
                 "com.google.truth:truth"
             ]
         },
-        "junit:junit-dep": {
-            "locked": "4.10",
-            "requested": "4.10"
-        },
         "log4j:log4j": {
             "locked": "1.2.17",
             "transitive": [
                 "org.slf4j:slf4j-log4j12"
-            ]
-        },
-        "net.bytebuddy:byte-buddy": {
-            "locked": "1.9.10",
-            "transitive": [
-                "org.mockito:mockito-core"
-            ]
-        },
-        "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.9.10",
-            "transitive": [
-                "org.mockito:mockito-core"
             ]
         },
         "org.apache.commons:commons-lang3": {
@@ -1212,10 +1043,6 @@
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
-        },
-        "org.assertj:assertj-core": {
-            "locked": "3.8.0",
-            "requested": "3.8.0"
         },
         "org.glassfish:javax.el": {
             "locked": "3.0.1-b11",
@@ -1226,8 +1053,7 @@
         "org.hamcrest:hamcrest-core": {
             "locked": "1.3",
             "transitive": [
-                "junit:junit",
-                "junit:junit-dep"
+                "junit:junit"
             ]
         },
         "org.hdrhistogram:HdrHistogram": {
@@ -1248,16 +1074,6 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
-        "org.mockito:mockito-core": {
-            "locked": "2.28.2",
-            "requested": "2.+"
-        },
-        "org.objenesis:objenesis": {
-            "locked": "2.6",
-            "transitive": [
-                "org.mockito:mockito-core"
-            ]
-        },
         "org.reactivestreams:reactive-streams": {
             "locked": "1.0.2",
             "transitive": [
@@ -1275,10 +1091,6 @@
                 "com.netflix.spectator:spectator-api",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-common-api",
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-grpc-api",
-                "com.netflix.titus:titus-common-runtime",
-                "com.netflix.titus:titus-common-server",
                 "org.slf4j:slf4j-log4j12"
             ]
         },
@@ -1286,11 +1098,7 @@
             "locked": "1.7.0",
             "transitive": [
                 "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-api",
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-grpc-api",
-                "com.netflix.titus:titus-common-runtime",
-                "com.netflix.titus:titus-common-server"
+                "com.netflix.titus:titus-common-api"
             ]
         },
         "org.springframework:spring-aop": {
@@ -1417,7 +1225,6 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
-                "com.google.instrumentation:instrumentation-api",
                 "io.grpc:grpc-core"
             ]
         },
@@ -1441,7 +1248,6 @@
             "locked": "20.0",
             "transitive": [
                 "com.google.inject:guice",
-                "com.google.instrumentation:instrumentation-api",
                 "com.google.protobuf:protobuf-java-util",
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
@@ -1469,7 +1275,6 @@
             "locked": "4.1.0",
             "transitive": [
                 "com.google.inject.extensions:guice-grapher",
-                "com.netflix.archaius:archaius2-guice",
                 "com.netflix.governator:governator-core"
             ]
         },
@@ -1479,14 +1284,7 @@
                 "com.google.inject.extensions:guice-assistedinject",
                 "com.google.inject.extensions:guice-grapher",
                 "com.google.inject.extensions:guice-multibindings",
-                "com.netflix.archaius:archaius2-guice",
                 "com.netflix.governator:governator-core"
-            ]
-        },
-        "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.4.3",
-            "transitive": [
-                "io.grpc:grpc-services"
             ]
         },
         "com.google.protobuf:protobuf-java": {
@@ -1496,7 +1294,6 @@
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-grpc-api",
                 "io.grpc:grpc-protobuf"
             ]
         },
@@ -1534,15 +1331,7 @@
         "com.netflix.archaius:archaius2-core": {
             "locked": "2.3.15",
             "transitive": [
-                "com.netflix.archaius:archaius2-guice",
                 "com.netflix.titus:titus-common"
-            ]
-        },
-        "com.netflix.archaius:archaius2-guice": {
-            "locked": "2.3.15",
-            "transitive": [
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-server"
             ]
         },
         "com.netflix.governator:governator-api": {
@@ -1576,30 +1365,6 @@
             ]
         },
         "com.netflix.titus:titus-common-api": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-common-runtime"
-            ]
-        },
-        "com.netflix.titus:titus-common-client": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-common-server"
-            ]
-        },
-        "com.netflix.titus:titus-common-grpc-api": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-common-client"
-            ]
-        },
-        "com.netflix.titus:titus-common-runtime": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-common-client"
-            ]
-        },
-        "com.netflix.titus:titus-common-server": {
             "project": true
         },
         "com.squareup.okhttp3:okhttp": {
@@ -1638,17 +1403,13 @@
         "io.grpc:grpc-netty-shaded": {
             "locked": "1.10.1",
             "transitive": [
-                "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-server"
+                "com.netflix.titus:titus-common"
             ]
         },
         "io.grpc:grpc-protobuf": {
             "locked": "1.10.1",
             "transitive": [
-                "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-grpc-api",
-                "io.grpc:grpc-services"
+                "com.netflix.titus:titus-common"
             ]
         },
         "io.grpc:grpc-protobuf-lite": {
@@ -1657,19 +1418,10 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
-        "io.grpc:grpc-services": {
-            "locked": "1.10.1",
-            "transitive": [
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-server"
-            ]
-        },
         "io.grpc:grpc-stub": {
             "locked": "1.10.1",
             "transitive": [
-                "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-grpc-api",
-                "io.grpc:grpc-services"
+                "com.netflix.titus:titus-common"
             ]
         },
         "io.netty:netty-buffer": {
@@ -1835,7 +1587,6 @@
             "transitive": [
                 "com.google.inject:guice",
                 "com.netflix.archaius:archaius2-api",
-                "com.netflix.archaius:archaius2-guice",
                 "com.netflix.governator:governator-api",
                 "com.netflix.governator:governator-core"
             ]
@@ -1864,26 +1615,10 @@
                 "com.google.truth:truth"
             ]
         },
-        "junit:junit-dep": {
-            "locked": "4.10",
-            "requested": "4.10"
-        },
         "log4j:log4j": {
             "locked": "1.2.17",
             "transitive": [
                 "org.slf4j:slf4j-log4j12"
-            ]
-        },
-        "net.bytebuddy:byte-buddy": {
-            "locked": "1.9.10",
-            "transitive": [
-                "org.mockito:mockito-core"
-            ]
-        },
-        "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.9.10",
-            "transitive": [
-                "org.mockito:mockito-core"
             ]
         },
         "org.apache.commons:commons-lang3": {
@@ -1891,10 +1626,6 @@
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
-        },
-        "org.assertj:assertj-core": {
-            "locked": "3.8.0",
-            "requested": "3.8.0"
         },
         "org.glassfish:javax.el": {
             "locked": "3.0.1-b11",
@@ -1905,8 +1636,7 @@
         "org.hamcrest:hamcrest-core": {
             "locked": "1.3",
             "transitive": [
-                "junit:junit",
-                "junit:junit-dep"
+                "junit:junit"
             ]
         },
         "org.hdrhistogram:HdrHistogram": {
@@ -1927,16 +1657,6 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
-        "org.mockito:mockito-core": {
-            "locked": "2.28.2",
-            "requested": "2.+"
-        },
-        "org.objenesis:objenesis": {
-            "locked": "2.6",
-            "transitive": [
-                "org.mockito:mockito-core"
-            ]
-        },
         "org.reactivestreams:reactive-streams": {
             "locked": "1.0.2",
             "transitive": [
@@ -1954,10 +1674,6 @@
                 "com.netflix.spectator:spectator-api",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-common-api",
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-grpc-api",
-                "com.netflix.titus:titus-common-runtime",
-                "com.netflix.titus:titus-common-server",
                 "org.slf4j:slf4j-log4j12"
             ]
         },
@@ -1966,11 +1682,7 @@
             "requested": "1.7.0",
             "transitive": [
                 "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-api",
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-grpc-api",
-                "com.netflix.titus:titus-common-runtime",
-                "com.netflix.titus:titus-common-server"
+                "com.netflix.titus:titus-common-api"
             ]
         },
         "org.springframework:spring-aop": {
@@ -2160,7 +1872,6 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
-                "com.google.instrumentation:instrumentation-api",
                 "io.grpc:grpc-core"
             ]
         },
@@ -2184,7 +1895,6 @@
             "locked": "20.0",
             "transitive": [
                 "com.google.inject:guice",
-                "com.google.instrumentation:instrumentation-api",
                 "com.google.protobuf:protobuf-java-util",
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
@@ -2212,7 +1922,6 @@
             "locked": "4.1.0",
             "transitive": [
                 "com.google.inject.extensions:guice-grapher",
-                "com.netflix.archaius:archaius2-guice",
                 "com.netflix.governator:governator-core"
             ]
         },
@@ -2222,14 +1931,7 @@
                 "com.google.inject.extensions:guice-assistedinject",
                 "com.google.inject.extensions:guice-grapher",
                 "com.google.inject.extensions:guice-multibindings",
-                "com.netflix.archaius:archaius2-guice",
                 "com.netflix.governator:governator-core"
-            ]
-        },
-        "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.4.3",
-            "transitive": [
-                "io.grpc:grpc-services"
             ]
         },
         "com.google.protobuf:protobuf-java": {
@@ -2239,7 +1941,6 @@
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-grpc-api",
                 "io.grpc:grpc-protobuf"
             ]
         },
@@ -2277,15 +1978,7 @@
         "com.netflix.archaius:archaius2-core": {
             "locked": "2.3.15",
             "transitive": [
-                "com.netflix.archaius:archaius2-guice",
                 "com.netflix.titus:titus-common"
-            ]
-        },
-        "com.netflix.archaius:archaius2-guice": {
-            "locked": "2.3.15",
-            "transitive": [
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-server"
             ]
         },
         "com.netflix.governator:governator-api": {
@@ -2319,30 +2012,6 @@
             ]
         },
         "com.netflix.titus:titus-common-api": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-common-runtime"
-            ]
-        },
-        "com.netflix.titus:titus-common-client": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-common-server"
-            ]
-        },
-        "com.netflix.titus:titus-common-grpc-api": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-common-client"
-            ]
-        },
-        "com.netflix.titus:titus-common-runtime": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-common-client"
-            ]
-        },
-        "com.netflix.titus:titus-common-server": {
             "project": true
         },
         "com.squareup.okhttp3:okhttp": {
@@ -2381,17 +2050,13 @@
         "io.grpc:grpc-netty-shaded": {
             "locked": "1.10.1",
             "transitive": [
-                "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-server"
+                "com.netflix.titus:titus-common"
             ]
         },
         "io.grpc:grpc-protobuf": {
             "locked": "1.10.1",
             "transitive": [
-                "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-grpc-api",
-                "io.grpc:grpc-services"
+                "com.netflix.titus:titus-common"
             ]
         },
         "io.grpc:grpc-protobuf-lite": {
@@ -2400,19 +2065,10 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
-        "io.grpc:grpc-services": {
-            "locked": "1.10.1",
-            "transitive": [
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-server"
-            ]
-        },
         "io.grpc:grpc-stub": {
             "locked": "1.10.1",
             "transitive": [
-                "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-grpc-api",
-                "io.grpc:grpc-services"
+                "com.netflix.titus:titus-common"
             ]
         },
         "io.netty:netty-buffer": {
@@ -2578,7 +2234,6 @@
             "transitive": [
                 "com.google.inject:guice",
                 "com.netflix.archaius:archaius2-api",
-                "com.netflix.archaius:archaius2-guice",
                 "com.netflix.governator:governator-api",
                 "com.netflix.governator:governator-core"
             ]
@@ -2607,26 +2262,10 @@
                 "com.google.truth:truth"
             ]
         },
-        "junit:junit-dep": {
-            "locked": "4.10",
-            "requested": "4.10"
-        },
         "log4j:log4j": {
             "locked": "1.2.17",
             "transitive": [
                 "org.slf4j:slf4j-log4j12"
-            ]
-        },
-        "net.bytebuddy:byte-buddy": {
-            "locked": "1.9.10",
-            "transitive": [
-                "org.mockito:mockito-core"
-            ]
-        },
-        "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.9.10",
-            "transitive": [
-                "org.mockito:mockito-core"
             ]
         },
         "org.apache.commons:commons-lang3": {
@@ -2634,10 +2273,6 @@
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
-        },
-        "org.assertj:assertj-core": {
-            "locked": "3.8.0",
-            "requested": "3.8.0"
         },
         "org.glassfish:javax.el": {
             "locked": "3.0.1-b11",
@@ -2648,8 +2283,7 @@
         "org.hamcrest:hamcrest-core": {
             "locked": "1.3",
             "transitive": [
-                "junit:junit",
-                "junit:junit-dep"
+                "junit:junit"
             ]
         },
         "org.hdrhistogram:HdrHistogram": {
@@ -2670,16 +2304,6 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
-        "org.mockito:mockito-core": {
-            "locked": "2.28.2",
-            "requested": "2.+"
-        },
-        "org.objenesis:objenesis": {
-            "locked": "2.6",
-            "transitive": [
-                "org.mockito:mockito-core"
-            ]
-        },
         "org.reactivestreams:reactive-streams": {
             "locked": "1.0.2",
             "transitive": [
@@ -2697,10 +2321,6 @@
                 "com.netflix.spectator:spectator-api",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-common-api",
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-grpc-api",
-                "com.netflix.titus:titus-common-runtime",
-                "com.netflix.titus:titus-common-server",
                 "org.slf4j:slf4j-log4j12"
             ]
         },
@@ -2709,11 +2329,7 @@
             "requested": "1.7.0",
             "transitive": [
                 "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-api",
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-grpc-api",
-                "com.netflix.titus:titus-common-runtime",
-                "com.netflix.titus:titus-common-server"
+                "com.netflix.titus:titus-common-api"
             ]
         },
         "org.springframework:spring-aop": {
@@ -2840,7 +2456,6 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
-                "com.google.instrumentation:instrumentation-api",
                 "io.grpc:grpc-core"
             ]
         },
@@ -2864,7 +2479,6 @@
             "locked": "20.0",
             "transitive": [
                 "com.google.inject:guice",
-                "com.google.instrumentation:instrumentation-api",
                 "com.google.protobuf:protobuf-java-util",
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
@@ -2892,7 +2506,6 @@
             "locked": "4.1.0",
             "transitive": [
                 "com.google.inject.extensions:guice-grapher",
-                "com.netflix.archaius:archaius2-guice",
                 "com.netflix.governator:governator-core"
             ]
         },
@@ -2902,14 +2515,7 @@
                 "com.google.inject.extensions:guice-assistedinject",
                 "com.google.inject.extensions:guice-grapher",
                 "com.google.inject.extensions:guice-multibindings",
-                "com.netflix.archaius:archaius2-guice",
                 "com.netflix.governator:governator-core"
-            ]
-        },
-        "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.4.3",
-            "transitive": [
-                "io.grpc:grpc-services"
             ]
         },
         "com.google.protobuf:protobuf-java": {
@@ -2919,7 +2525,6 @@
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-grpc-api",
                 "io.grpc:grpc-protobuf"
             ]
         },
@@ -2957,15 +2562,7 @@
         "com.netflix.archaius:archaius2-core": {
             "locked": "2.3.15",
             "transitive": [
-                "com.netflix.archaius:archaius2-guice",
                 "com.netflix.titus:titus-common"
-            ]
-        },
-        "com.netflix.archaius:archaius2-guice": {
-            "locked": "2.3.15",
-            "transitive": [
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-server"
             ]
         },
         "com.netflix.governator:governator-api": {
@@ -2999,30 +2596,6 @@
             ]
         },
         "com.netflix.titus:titus-common-api": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-common-runtime"
-            ]
-        },
-        "com.netflix.titus:titus-common-client": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-common-server"
-            ]
-        },
-        "com.netflix.titus:titus-common-grpc-api": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-common-client"
-            ]
-        },
-        "com.netflix.titus:titus-common-runtime": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-common-client"
-            ]
-        },
-        "com.netflix.titus:titus-common-server": {
             "project": true
         },
         "com.squareup.okhttp3:okhttp": {
@@ -3061,17 +2634,13 @@
         "io.grpc:grpc-netty-shaded": {
             "locked": "1.10.1",
             "transitive": [
-                "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-server"
+                "com.netflix.titus:titus-common"
             ]
         },
         "io.grpc:grpc-protobuf": {
             "locked": "1.10.1",
             "transitive": [
-                "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-grpc-api",
-                "io.grpc:grpc-services"
+                "com.netflix.titus:titus-common"
             ]
         },
         "io.grpc:grpc-protobuf-lite": {
@@ -3080,19 +2649,10 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
-        "io.grpc:grpc-services": {
-            "locked": "1.10.1",
-            "transitive": [
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-server"
-            ]
-        },
         "io.grpc:grpc-stub": {
             "locked": "1.10.1",
             "transitive": [
-                "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-grpc-api",
-                "io.grpc:grpc-services"
+                "com.netflix.titus:titus-common"
             ]
         },
         "io.netty:netty-buffer": {
@@ -3258,7 +2818,6 @@
             "transitive": [
                 "com.google.inject:guice",
                 "com.netflix.archaius:archaius2-api",
-                "com.netflix.archaius:archaius2-guice",
                 "com.netflix.governator:governator-api",
                 "com.netflix.governator:governator-core"
             ]
@@ -3287,26 +2846,10 @@
                 "com.google.truth:truth"
             ]
         },
-        "junit:junit-dep": {
-            "locked": "4.10",
-            "requested": "4.10"
-        },
         "log4j:log4j": {
             "locked": "1.2.17",
             "transitive": [
                 "org.slf4j:slf4j-log4j12"
-            ]
-        },
-        "net.bytebuddy:byte-buddy": {
-            "locked": "1.9.10",
-            "transitive": [
-                "org.mockito:mockito-core"
-            ]
-        },
-        "net.bytebuddy:byte-buddy-agent": {
-            "locked": "1.9.10",
-            "transitive": [
-                "org.mockito:mockito-core"
             ]
         },
         "org.apache.commons:commons-lang3": {
@@ -3314,10 +2857,6 @@
             "transitive": [
                 "com.netflix.archaius:archaius2-core"
             ]
-        },
-        "org.assertj:assertj-core": {
-            "locked": "3.8.0",
-            "requested": "3.8.0"
         },
         "org.glassfish:javax.el": {
             "locked": "3.0.1-b11",
@@ -3328,8 +2867,7 @@
         "org.hamcrest:hamcrest-core": {
             "locked": "1.3",
             "transitive": [
-                "junit:junit",
-                "junit:junit-dep"
+                "junit:junit"
             ]
         },
         "org.hdrhistogram:HdrHistogram": {
@@ -3350,16 +2888,6 @@
                 "org.hibernate:hibernate-validator"
             ]
         },
-        "org.mockito:mockito-core": {
-            "locked": "2.28.2",
-            "requested": "2.+"
-        },
-        "org.objenesis:objenesis": {
-            "locked": "2.6",
-            "transitive": [
-                "org.mockito:mockito-core"
-            ]
-        },
         "org.reactivestreams:reactive-streams": {
             "locked": "1.0.2",
             "transitive": [
@@ -3377,10 +2905,6 @@
                 "com.netflix.spectator:spectator-api",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-common-api",
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-grpc-api",
-                "com.netflix.titus:titus-common-runtime",
-                "com.netflix.titus:titus-common-server",
                 "org.slf4j:slf4j-log4j12"
             ]
         },
@@ -3389,11 +2913,7 @@
             "requested": "1.7.0",
             "transitive": [
                 "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-api",
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-grpc-api",
-                "com.netflix.titus:titus-common-runtime",
-                "com.netflix.titus:titus-common-server"
+                "com.netflix.titus:titus-common-api"
             ]
         },
         "org.springframework:spring-aop": {
@@ -3526,7 +3046,6 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
-                "com.google.instrumentation:instrumentation-api",
                 "io.grpc:grpc-core"
             ]
         },
@@ -3550,7 +3069,6 @@
             "locked": "20.0",
             "transitive": [
                 "com.google.inject:guice",
-                "com.google.instrumentation:instrumentation-api",
                 "com.google.protobuf:protobuf-java-util",
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
@@ -3578,7 +3096,6 @@
             "locked": "4.1.0",
             "transitive": [
                 "com.google.inject.extensions:guice-grapher",
-                "com.netflix.archaius:archaius2-guice",
                 "com.netflix.governator:governator-core"
             ]
         },
@@ -3588,14 +3105,7 @@
                 "com.google.inject.extensions:guice-assistedinject",
                 "com.google.inject.extensions:guice-grapher",
                 "com.google.inject.extensions:guice-multibindings",
-                "com.netflix.archaius:archaius2-guice",
                 "com.netflix.governator:governator-core"
-            ]
-        },
-        "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.4.3",
-            "transitive": [
-                "io.grpc:grpc-services"
             ]
         },
         "com.google.protobuf:protobuf-java": {
@@ -3605,7 +3115,6 @@
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-grpc-api",
                 "io.grpc:grpc-protobuf"
             ]
         },
@@ -3647,15 +3156,7 @@
         "com.netflix.archaius:archaius2-core": {
             "locked": "2.3.15",
             "transitive": [
-                "com.netflix.archaius:archaius2-guice",
                 "com.netflix.titus:titus-common"
-            ]
-        },
-        "com.netflix.archaius:archaius2-guice": {
-            "locked": "2.3.15",
-            "transitive": [
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-server"
             ]
         },
         "com.netflix.governator:governator-api": {
@@ -3689,30 +3190,6 @@
             ]
         },
         "com.netflix.titus:titus-common-api": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-common-runtime"
-            ]
-        },
-        "com.netflix.titus:titus-common-client": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-common-server"
-            ]
-        },
-        "com.netflix.titus:titus-common-grpc-api": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-common-client"
-            ]
-        },
-        "com.netflix.titus:titus-common-runtime": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-common-client"
-            ]
-        },
-        "com.netflix.titus:titus-common-server": {
             "project": true
         },
         "com.squareup.okhttp3:okhttp": {
@@ -3751,17 +3228,13 @@
         "io.grpc:grpc-netty-shaded": {
             "locked": "1.10.1",
             "transitive": [
-                "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-server"
+                "com.netflix.titus:titus-common"
             ]
         },
         "io.grpc:grpc-protobuf": {
             "locked": "1.10.1",
             "transitive": [
-                "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-grpc-api",
-                "io.grpc:grpc-services"
+                "com.netflix.titus:titus-common"
             ]
         },
         "io.grpc:grpc-protobuf-lite": {
@@ -3770,19 +3243,10 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
-        "io.grpc:grpc-services": {
-            "locked": "1.10.1",
-            "transitive": [
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-server"
-            ]
-        },
         "io.grpc:grpc-stub": {
             "locked": "1.10.1",
             "transitive": [
-                "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-grpc-api",
-                "io.grpc:grpc-services"
+                "com.netflix.titus:titus-common"
             ]
         },
         "io.netty:netty-buffer": {
@@ -3953,7 +3417,6 @@
             "transitive": [
                 "com.google.inject:guice",
                 "com.netflix.archaius:archaius2-api",
-                "com.netflix.archaius:archaius2-guice",
                 "com.netflix.governator:governator-api",
                 "com.netflix.governator:governator-core"
             ]
@@ -4082,10 +3545,6 @@
                 "com.netflix.spectator:spectator-api",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-common-api",
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-grpc-api",
-                "com.netflix.titus:titus-common-runtime",
-                "com.netflix.titus:titus-common-server",
                 "org.slf4j:slf4j-log4j12"
             ]
         },
@@ -4093,11 +3552,7 @@
             "locked": "1.7.0",
             "transitive": [
                 "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-api",
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-grpc-api",
-                "com.netflix.titus:titus-common-runtime",
-                "com.netflix.titus:titus-common-server"
+                "com.netflix.titus:titus-common-api"
             ]
         },
         "org.springframework:spring-aop": {
@@ -4230,7 +3685,6 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
-                "com.google.instrumentation:instrumentation-api",
                 "io.grpc:grpc-core"
             ]
         },
@@ -4254,7 +3708,6 @@
             "locked": "20.0",
             "transitive": [
                 "com.google.inject:guice",
-                "com.google.instrumentation:instrumentation-api",
                 "com.google.protobuf:protobuf-java-util",
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
@@ -4282,7 +3735,6 @@
             "locked": "4.1.0",
             "transitive": [
                 "com.google.inject.extensions:guice-grapher",
-                "com.netflix.archaius:archaius2-guice",
                 "com.netflix.governator:governator-core"
             ]
         },
@@ -4292,14 +3744,7 @@
                 "com.google.inject.extensions:guice-assistedinject",
                 "com.google.inject.extensions:guice-grapher",
                 "com.google.inject.extensions:guice-multibindings",
-                "com.netflix.archaius:archaius2-guice",
                 "com.netflix.governator:governator-core"
-            ]
-        },
-        "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.4.3",
-            "transitive": [
-                "io.grpc:grpc-services"
             ]
         },
         "com.google.protobuf:protobuf-java": {
@@ -4309,7 +3754,6 @@
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-grpc-api",
                 "io.grpc:grpc-protobuf"
             ]
         },
@@ -4351,15 +3795,7 @@
         "com.netflix.archaius:archaius2-core": {
             "locked": "2.3.15",
             "transitive": [
-                "com.netflix.archaius:archaius2-guice",
                 "com.netflix.titus:titus-common"
-            ]
-        },
-        "com.netflix.archaius:archaius2-guice": {
-            "locked": "2.3.15",
-            "transitive": [
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-server"
             ]
         },
         "com.netflix.governator:governator-api": {
@@ -4393,30 +3829,6 @@
             ]
         },
         "com.netflix.titus:titus-common-api": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-common-runtime"
-            ]
-        },
-        "com.netflix.titus:titus-common-client": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-common-server"
-            ]
-        },
-        "com.netflix.titus:titus-common-grpc-api": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-common-client"
-            ]
-        },
-        "com.netflix.titus:titus-common-runtime": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-common-client"
-            ]
-        },
-        "com.netflix.titus:titus-common-server": {
             "project": true
         },
         "com.squareup.okhttp3:okhttp": {
@@ -4455,17 +3867,13 @@
         "io.grpc:grpc-netty-shaded": {
             "locked": "1.10.1",
             "transitive": [
-                "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-server"
+                "com.netflix.titus:titus-common"
             ]
         },
         "io.grpc:grpc-protobuf": {
             "locked": "1.10.1",
             "transitive": [
-                "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-grpc-api",
-                "io.grpc:grpc-services"
+                "com.netflix.titus:titus-common"
             ]
         },
         "io.grpc:grpc-protobuf-lite": {
@@ -4474,19 +3882,10 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
-        "io.grpc:grpc-services": {
-            "locked": "1.10.1",
-            "transitive": [
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-server"
-            ]
-        },
         "io.grpc:grpc-stub": {
             "locked": "1.10.1",
             "transitive": [
-                "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-grpc-api",
-                "io.grpc:grpc-services"
+                "com.netflix.titus:titus-common"
             ]
         },
         "io.netty:netty-buffer": {
@@ -4657,7 +4056,6 @@
             "transitive": [
                 "com.google.inject:guice",
                 "com.netflix.archaius:archaius2-api",
-                "com.netflix.archaius:archaius2-guice",
                 "com.netflix.governator:governator-api",
                 "com.netflix.governator:governator-core"
             ]
@@ -4786,10 +4184,6 @@
                 "com.netflix.spectator:spectator-api",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-common-api",
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-grpc-api",
-                "com.netflix.titus:titus-common-runtime",
-                "com.netflix.titus:titus-common-server",
                 "org.slf4j:slf4j-log4j12"
             ]
         },
@@ -4797,11 +4191,7 @@
             "locked": "1.7.0",
             "transitive": [
                 "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-api",
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-grpc-api",
-                "com.netflix.titus:titus-common-runtime",
-                "com.netflix.titus:titus-common-server"
+                "com.netflix.titus:titus-common-api"
             ]
         },
         "org.springframework:spring-aop": {
@@ -4934,7 +4324,6 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
-                "com.google.instrumentation:instrumentation-api",
                 "io.grpc:grpc-core"
             ]
         },
@@ -4958,7 +4347,6 @@
             "locked": "20.0",
             "transitive": [
                 "com.google.inject:guice",
-                "com.google.instrumentation:instrumentation-api",
                 "com.google.protobuf:protobuf-java-util",
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
@@ -4986,7 +4374,6 @@
             "locked": "4.1.0",
             "transitive": [
                 "com.google.inject.extensions:guice-grapher",
-                "com.netflix.archaius:archaius2-guice",
                 "com.netflix.governator:governator-core"
             ]
         },
@@ -4996,14 +4383,7 @@
                 "com.google.inject.extensions:guice-assistedinject",
                 "com.google.inject.extensions:guice-grapher",
                 "com.google.inject.extensions:guice-multibindings",
-                "com.netflix.archaius:archaius2-guice",
                 "com.netflix.governator:governator-core"
-            ]
-        },
-        "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.4.3",
-            "transitive": [
-                "io.grpc:grpc-services"
             ]
         },
         "com.google.protobuf:protobuf-java": {
@@ -5013,7 +4393,6 @@
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-grpc-api",
                 "io.grpc:grpc-protobuf"
             ]
         },
@@ -5055,15 +4434,7 @@
         "com.netflix.archaius:archaius2-core": {
             "locked": "2.3.15",
             "transitive": [
-                "com.netflix.archaius:archaius2-guice",
                 "com.netflix.titus:titus-common"
-            ]
-        },
-        "com.netflix.archaius:archaius2-guice": {
-            "locked": "2.3.15",
-            "transitive": [
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-server"
             ]
         },
         "com.netflix.governator:governator-api": {
@@ -5097,30 +4468,6 @@
             ]
         },
         "com.netflix.titus:titus-common-api": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-common-runtime"
-            ]
-        },
-        "com.netflix.titus:titus-common-client": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-common-server"
-            ]
-        },
-        "com.netflix.titus:titus-common-grpc-api": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-common-client"
-            ]
-        },
-        "com.netflix.titus:titus-common-runtime": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-common-client"
-            ]
-        },
-        "com.netflix.titus:titus-common-server": {
             "project": true
         },
         "com.squareup.okhttp3:okhttp": {
@@ -5159,17 +4506,13 @@
         "io.grpc:grpc-netty-shaded": {
             "locked": "1.10.1",
             "transitive": [
-                "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-server"
+                "com.netflix.titus:titus-common"
             ]
         },
         "io.grpc:grpc-protobuf": {
             "locked": "1.10.1",
             "transitive": [
-                "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-grpc-api",
-                "io.grpc:grpc-services"
+                "com.netflix.titus:titus-common"
             ]
         },
         "io.grpc:grpc-protobuf-lite": {
@@ -5178,19 +4521,10 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
-        "io.grpc:grpc-services": {
-            "locked": "1.10.1",
-            "transitive": [
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-server"
-            ]
-        },
         "io.grpc:grpc-stub": {
             "locked": "1.10.1",
             "transitive": [
-                "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-grpc-api",
-                "io.grpc:grpc-services"
+                "com.netflix.titus:titus-common"
             ]
         },
         "io.netty:netty-buffer": {
@@ -5361,7 +4695,6 @@
             "transitive": [
                 "com.google.inject:guice",
                 "com.netflix.archaius:archaius2-api",
-                "com.netflix.archaius:archaius2-guice",
                 "com.netflix.governator:governator-api",
                 "com.netflix.governator:governator-core"
             ]
@@ -5490,10 +4823,6 @@
                 "com.netflix.spectator:spectator-api",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-common-api",
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-grpc-api",
-                "com.netflix.titus:titus-common-runtime",
-                "com.netflix.titus:titus-common-server",
                 "org.slf4j:slf4j-log4j12"
             ]
         },
@@ -5502,11 +4831,7 @@
             "requested": "1.7.0",
             "transitive": [
                 "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-api",
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-grpc-api",
-                "com.netflix.titus:titus-common-runtime",
-                "com.netflix.titus:titus-common-server"
+                "com.netflix.titus:titus-common-api"
             ]
         },
         "org.springframework:spring-aop": {
@@ -5639,7 +4964,6 @@
         "com.google.code.findbugs:jsr305": {
             "locked": "3.0.0",
             "transitive": [
-                "com.google.instrumentation:instrumentation-api",
                 "io.grpc:grpc-core"
             ]
         },
@@ -5663,7 +4987,6 @@
             "locked": "20.0",
             "transitive": [
                 "com.google.inject:guice",
-                "com.google.instrumentation:instrumentation-api",
                 "com.google.protobuf:protobuf-java-util",
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
@@ -5691,7 +5014,6 @@
             "locked": "4.1.0",
             "transitive": [
                 "com.google.inject.extensions:guice-grapher",
-                "com.netflix.archaius:archaius2-guice",
                 "com.netflix.governator:governator-core"
             ]
         },
@@ -5701,14 +5023,7 @@
                 "com.google.inject.extensions:guice-assistedinject",
                 "com.google.inject.extensions:guice-grapher",
                 "com.google.inject.extensions:guice-multibindings",
-                "com.netflix.archaius:archaius2-guice",
                 "com.netflix.governator:governator-core"
-            ]
-        },
-        "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.4.3",
-            "transitive": [
-                "io.grpc:grpc-services"
             ]
         },
         "com.google.protobuf:protobuf-java": {
@@ -5718,7 +5033,6 @@
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
                 "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-grpc-api",
                 "io.grpc:grpc-protobuf"
             ]
         },
@@ -5760,15 +5074,7 @@
         "com.netflix.archaius:archaius2-core": {
             "locked": "2.3.15",
             "transitive": [
-                "com.netflix.archaius:archaius2-guice",
                 "com.netflix.titus:titus-common"
-            ]
-        },
-        "com.netflix.archaius:archaius2-guice": {
-            "locked": "2.3.15",
-            "transitive": [
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-server"
             ]
         },
         "com.netflix.governator:governator-api": {
@@ -5802,30 +5108,6 @@
             ]
         },
         "com.netflix.titus:titus-common-api": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-common-runtime"
-            ]
-        },
-        "com.netflix.titus:titus-common-client": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-common-server"
-            ]
-        },
-        "com.netflix.titus:titus-common-grpc-api": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-common-client"
-            ]
-        },
-        "com.netflix.titus:titus-common-runtime": {
-            "project": true,
-            "transitive": [
-                "com.netflix.titus:titus-common-client"
-            ]
-        },
-        "com.netflix.titus:titus-common-server": {
             "project": true
         },
         "com.squareup.okhttp3:okhttp": {
@@ -5864,17 +5146,13 @@
         "io.grpc:grpc-netty-shaded": {
             "locked": "1.10.1",
             "transitive": [
-                "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-server"
+                "com.netflix.titus:titus-common"
             ]
         },
         "io.grpc:grpc-protobuf": {
             "locked": "1.10.1",
             "transitive": [
-                "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-grpc-api",
-                "io.grpc:grpc-services"
+                "com.netflix.titus:titus-common"
             ]
         },
         "io.grpc:grpc-protobuf-lite": {
@@ -5883,19 +5161,10 @@
                 "io.grpc:grpc-protobuf"
             ]
         },
-        "io.grpc:grpc-services": {
-            "locked": "1.10.1",
-            "transitive": [
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-server"
-            ]
-        },
         "io.grpc:grpc-stub": {
             "locked": "1.10.1",
             "transitive": [
-                "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-grpc-api",
-                "io.grpc:grpc-services"
+                "com.netflix.titus:titus-common"
             ]
         },
         "io.netty:netty-buffer": {
@@ -6066,7 +5335,6 @@
             "transitive": [
                 "com.google.inject:guice",
                 "com.netflix.archaius:archaius2-api",
-                "com.netflix.archaius:archaius2-guice",
                 "com.netflix.governator:governator-api",
                 "com.netflix.governator:governator-core"
             ]
@@ -6195,10 +5463,6 @@
                 "com.netflix.spectator:spectator-api",
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-common-api",
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-grpc-api",
-                "com.netflix.titus:titus-common-runtime",
-                "com.netflix.titus:titus-common-server",
                 "org.slf4j:slf4j-log4j12"
             ]
         },
@@ -6207,11 +5471,7 @@
             "requested": "1.7.0",
             "transitive": [
                 "com.netflix.titus:titus-common",
-                "com.netflix.titus:titus-common-api",
-                "com.netflix.titus:titus-common-client",
-                "com.netflix.titus:titus-common-grpc-api",
-                "com.netflix.titus:titus-common-runtime",
-                "com.netflix.titus:titus-common-server"
+                "com.netflix.titus:titus-common-api"
             ]
         },
         "org.springframework:spring-aop": {
