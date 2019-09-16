@@ -19,10 +19,8 @@ package com.netflix.titus.api.clustermembership.connector;
 public class ClusterMembershipConnectorException extends RuntimeException {
 
     public enum ErrorCode {
-        BadData,
-        DeserializationError,
-        NoChange,
-        SerializationError,
+        Conflict,
+        ClientError,
     }
 
     private final ErrorCode errorCode;
@@ -36,34 +34,18 @@ public class ClusterMembershipConnectorException extends RuntimeException {
         return errorCode;
     }
 
-    public static ClusterMembershipConnectorException noChange() {
+    public static ClusterMembershipConnectorException clientError(String message, Throwable cause) {
         return new ClusterMembershipConnectorException(
-                ErrorCode.NoChange,
-                "Data update produced identical record to the stored one",
-                null
+                ErrorCode.ClientError,
+                String.format("Error during communicating with the cluster membership client: %s", message),
+                cause
         );
     }
 
-    public static <T> ClusterMembershipConnectorException serializationError(T entity, Exception e) {
+    public static ClusterMembershipConnectorException conflict(String message, Throwable cause) {
         return new ClusterMembershipConnectorException(
-                ErrorCode.SerializationError,
-                "Cannot serialize entity: " + entity,
-                e
-        );
-    }
-
-    public static <T> ClusterMembershipConnectorException deserializationError(String encodedEntity, Exception e) {
-        return new ClusterMembershipConnectorException(
-                ErrorCode.DeserializationError,
-                "Cannot deserialize entity: " + encodedEntity,
-                e
-        );
-    }
-
-    public static ClusterMembershipConnectorException badMemberData(Throwable cause) {
-        return new ClusterMembershipConnectorException(
-                ErrorCode.BadData,
-                "Invalid member data",
+                ErrorCode.Conflict,
+                String.format("Request conflicts with the current sate: %s", message),
                 cause
         );
     }

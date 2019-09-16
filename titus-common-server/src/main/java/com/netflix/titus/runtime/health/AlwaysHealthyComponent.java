@@ -14,19 +14,18 @@
  * limitations under the License.
  */
 
-dependencies {
-    compile project(':titus-common-client')
+package com.netflix.titus.runtime.health;
 
-    // Netflix dependencies
-    compile "com.netflix.archaius:archaius2-guice:${archaius2Version}"
+import com.netflix.titus.api.health.HealthIndicator;
+import com.netflix.titus.api.health.HealthIndicators;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
-    // Spring
-    compile "org.springframework.boot:spring-boot-autoconfigure:${springBootVersion}"
+@Configuration
+public class AlwaysHealthyComponent {
 
-    // GRPC dependencies
-    compile "io.grpc:grpc-netty-shaded:${grpcVersion}"
-    compile "io.grpc:grpc-services:${grpcVersion}"
-
-    testCompile "io.grpc:grpc-testing:${grpcVersion}"
-    testCompile project(':titus-common-testkit')
+    @Bean
+    public HealthIndicator getHealthIndicator() {
+        return HealthIndicators.alwaysHealthy();
+    }
 }

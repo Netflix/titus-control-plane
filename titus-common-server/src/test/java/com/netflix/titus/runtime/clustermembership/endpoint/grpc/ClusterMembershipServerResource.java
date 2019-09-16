@@ -16,6 +16,9 @@
 
 package com.netflix.titus.runtime.clustermembership.endpoint.grpc;
 
+import java.time.Duration;
+import java.util.Collections;
+
 import com.netflix.titus.api.clustermembership.service.ClusterMembershipService;
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.model.callmetadata.CallMetadataConstants;
@@ -28,6 +31,7 @@ import com.netflix.titus.grpc.protogen.ClusterMembershipServiceGrpc;
 import com.netflix.titus.runtime.connector.GrpcRequestConfiguration;
 import com.netflix.titus.runtime.connector.common.reactor.DefaultGrpcToReactorClientFactory;
 import com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcEndpointConfiguration;
+import com.netflix.titus.runtime.endpoint.common.grpc.TitusGrpcServer;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import org.junit.rules.ExternalResource;
@@ -44,7 +48,7 @@ public class ClusterMembershipServerResource extends ExternalResource {
 
     private final ClusterMembershipService service;
 
-    private ClusterMembershipGrpcServer server;
+    private TitusGrpcServer server;
     private ManagedChannel channel;
     private ReactorClusterMembershipClient client;
 
@@ -56,15 +60,21 @@ public class ClusterMembershipServerResource extends ExternalResource {
     protected void before() {
         when(grpcEndpointConfiguration.getPort()).thenReturn(0);
 
-        server = new ClusterMembershipGrpcServer(
-                grpcEndpointConfiguration,
-                new ReactorClusterMembershipGrpcService(
-                        service,
-                        titusRuntime
-                ),
-                new DefaultGrpcToReactorServerFactory<>(CallMetadata.class, () -> CallMetadataConstants.UNDEFINED_CALL_METADATA),
-                titusRuntime
+        DefaultGrpcToReactorServerFactory reactorServerFactory = new DefaultGrpcToReactorServerFactory<>(
+                CallMetadata.class,
+                () -> CallMetadataConstants.UNDEFINED_CALL_METADATA
         );
+        server = TitusGrpcServer.newBuilder(0, titusRuntime)
+                .withService(
+                        reactorServerFactory.apply(
+                                ClusterMembershipServiceGrpc.getServiceDescriptor(),
+                                new ReactorClusterMembershipGrpcService(service, titusRuntime)
+                        ),
+                        Collections.emptyList()
+                )
+                .withExceptionMapper(ClusterMembershipGrpcExceptionMapper.getInstance())
+                .withShutdownTime(Duration.ZERO)
+                .build();
         server.start();
 
         this.channel = ManagedChannelBuilder.forAddress("localhost", server.getPort())

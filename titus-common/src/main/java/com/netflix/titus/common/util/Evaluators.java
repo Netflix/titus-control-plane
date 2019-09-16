@@ -72,6 +72,18 @@ public final class Evaluators {
         return value == null ? defaultValue : value;
     }
 
+    /**
+     * Returns first non-null value
+     */
+    public static <T> T getFirstNotNull(T... values) {
+        for (T value : values) {
+            if (value != null) {
+                return value;
+            }
+        }
+        return null;
+    }
+
     public static void times(int count, Runnable task) {
         for (int i = 0; i < count; i++) {
             task.run();

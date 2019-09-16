@@ -88,6 +88,12 @@ public class GrpcFitInterceptor implements ServerInterceptor {
                 .orElse(next.startCall(call, headers));
     }
 
+    public static Optional<ServerInterceptor> getIfFitEnabled(TitusRuntime titusRuntime) {
+        return titusRuntime.getFitFramework().isActive()
+                ? Optional.of(new GrpcFitInterceptor(titusRuntime, Schedulers.parallel()))
+                : Optional.empty();
+    }
+
     public static List<ServerInterceptor> appendIfFitEnabled(List<ServerInterceptor> original,
                                                              TitusRuntime titusRuntime) {
         return titusRuntime.getFitFramework().isActive()

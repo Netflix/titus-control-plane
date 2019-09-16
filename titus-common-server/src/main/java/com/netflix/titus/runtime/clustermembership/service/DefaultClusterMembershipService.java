@@ -203,6 +203,9 @@ public class DefaultClusterMembershipService implements ClusterMembershipService
                 return connector.register(current -> toInactive(current, "Unhealthy: " + health)).ignoreElement().cast(Void.class);
             }
             return Mono.empty();
+        }).doOnError(error -> {
+            logger.info("Cluster membership health evaluation error: {}", error.getMessage());
+            logger.debug("Stack trace", error);
         });
     }
 

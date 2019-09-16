@@ -14,17 +14,17 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.ext.k8s.clustermembership.connector.action;
+package com.netflix.titus.runtime.clustermembership.endpoint.rest;
 
-import io.kubernetes.client.ApiException;
+import com.netflix.titus.runtime.clustermembership.endpoint.grpc.ReactorClusterMembershipGrpcService;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
-public class K8ActionsUtil {
+@Configuration
+public class ClusterMembershipRestEndpointComponent {
 
-    public static boolean is4xx(Throwable error) {
-        Throwable cause = error;
-        while (cause != null && !(cause instanceof ApiException)) {
-            cause = cause.getCause();
-        }
-        return cause != null && ((ApiException) cause).getCode() % 100 == 4;
+    @Bean
+    public ClusterMembershipSpringResource getClusterMembershipSpringResource(ReactorClusterMembershipGrpcService reactorClusterMembershipService) {
+        return new ClusterMembershipSpringResource(reactorClusterMembershipService);
     }
 }

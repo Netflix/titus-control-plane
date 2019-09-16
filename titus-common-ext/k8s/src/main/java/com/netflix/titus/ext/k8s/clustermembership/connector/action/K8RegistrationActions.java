@@ -23,6 +23,7 @@ import com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision;
 import com.netflix.titus.ext.k8s.clustermembership.connector.K8ClusterState;
 import com.netflix.titus.ext.k8s.clustermembership.connector.K8Context;
 import com.netflix.titus.ext.k8s.clustermembership.connector.K8MembershipExecutor;
+import com.netflix.titus.ext.k8s.clustermembership.connector.KubeUtils;
 import reactor.core.publisher.Mono;
 
 public class K8RegistrationActions {
@@ -40,14 +41,36 @@ public class K8RegistrationActions {
         if (k8ClusterState.isRegistered()) {
             monoAction = membershipExecutor
                     .updateLocal(newRevision)
-                    .onErrorResume(e -> K8ActionsUtil.is4xx(e) ? membershipExecutor.createLocal(newRevision) : Mono.error(e));
+                    .onErrorResume(e -> {
+                        if (!KubeUtils.is4xx(e)) {
+                            return Mono.error(e);
+                        }
+                        int status = KubeUtils.getHttpStatusCode(e);
+                        if (status == 404) {
+                            return membershipExecutor.createLocal(newRevision);
+                        }
+                        // Bad or stale data record. Remove it first and than register.
+                        return membershipExecutor
+                                .removeLocal(newRevision.getCurrent().getMemberId())
+                                .then(membershipExecutor.createLocal(newRevision));
+                    });
         } else {
             monoAction = membershipExecutor
                     .createLocal(newRevision)
-                    .onErrorResume(e -> K8ActionsUtil.is4xx(e) ? membershipExecutor.updateLocal(newRevision) : Mono.error(e));
+                    .onErrorResume(e -> {
+                        if (!KubeUtils.is4xx(e)) {
+                            return Mono.error(e);
+                        }
+                        // Bad or stale data record. Remove it first and than register.
+                        return membershipExecutor
+                                .removeLocal(newRevision.getCurrent().getMemberId())
+                                .then(membershipExecutor.createLocal(newRevision));
+                    });
         }
 
-        return monoAction.map(update -> currentState -> currentState.setLocalClusterMemberRevision(update));
+        return monoAction
+                .onErrorMap(KubeUtils::toConnectorException)
+                .map(update -> currentState -> currentState.setLocalClusterMemberRevision(update));
     }
 
     public static Mono<Function<K8ClusterState, K8ClusterState>> unregister(K8Context context,
@@ -62,6 +85,7 @@ public class K8RegistrationActions {
 
         Mono monoAction = context.getK8MembershipExecutor().removeLocal(k8ClusterState.getLocalMemberRevision().getCurrent().getMemberId());
         return ((Mono<Function<K8ClusterState, K8ClusterState>>) monoAction)
+                .onErrorMap(KubeUtils::toConnectorException)
                 .thenReturn(currentState -> currentState.setLocalClusterMemberRevision(newRevision));
     }
 

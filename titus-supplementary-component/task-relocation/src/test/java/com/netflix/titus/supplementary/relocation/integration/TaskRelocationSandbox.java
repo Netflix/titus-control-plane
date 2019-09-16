@@ -19,13 +19,17 @@ package com.netflix.titus.supplementary.relocation.integration;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import com.netflix.titus.runtime.clustermembership.connector.ClusterMembershipInMemoryConnectorComponent;
+import com.netflix.titus.runtime.clustermembership.endpoint.grpc.ClusterMembershipGrpcEndpointComponent;
+import com.netflix.titus.runtime.clustermembership.service.ClusterMembershipServiceComponent;
 import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorServerFactoryComponent;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolveComponent;
+import com.netflix.titus.runtime.health.AlwaysHealthyComponent;
 import com.netflix.titus.supplementary.relocation.RelocationConfiguration;
 import com.netflix.titus.supplementary.relocation.RelocationConnectorStubs;
 import com.netflix.titus.supplementary.relocation.descheduler.DeschedulerComponent;
 import com.netflix.titus.supplementary.relocation.endpoint.grpc.TaskRelocationGrpcComponent;
-import com.netflix.titus.supplementary.relocation.endpoint.grpc.TaskRelocationGrpcServer;
+import com.netflix.titus.supplementary.relocation.endpoint.grpc.TaskRelocationGrpcServerRunner;
 import com.netflix.titus.supplementary.relocation.endpoint.rest.TaskRelocationExceptionHandler;
 import com.netflix.titus.supplementary.relocation.endpoint.rest.TaskRelocationSpringResource;
 import com.netflix.titus.supplementary.relocation.store.memory.InMemoryRelocationStoreComponent;
@@ -54,6 +58,12 @@ public class TaskRelocationSandbox {
         this.container = new AnnotationConfigApplicationContext();
         container.getEnvironment().merge(config);
         container.setParent(relocationConnectorStubs.getApplicationContext());
+
+        container.register(AlwaysHealthyComponent.class);
+        container.register(ClusterMembershipInMemoryConnectorComponent.class);
+        container.register(ClusterMembershipServiceComponent.class);
+        container.register(ClusterMembershipGrpcEndpointComponent.class);
+
         container.register(CallMetadataResolveComponent.class);
         container.register(GrpcToReactorServerFactoryComponent.class);
         container.register(RelocationConfiguration.class);
@@ -61,11 +71,12 @@ public class TaskRelocationSandbox {
         container.register(DeschedulerComponent.class);
         container.register(TaskRelocationWorkflowComponent.class);
         container.register(TaskRelocationGrpcComponent.class);
-        container.register(TaskRelocationGrpcServer.class);
+        container.register(TaskRelocationGrpcServerRunner.class);
         container.register(TaskRelocationSpringResource.class);
         container.register(TaskRelocationExceptionHandler.class);
         container.refresh();
         container.start();
+
     }
 
     public void shutdown() {
@@ -76,7 +87,7 @@ public class TaskRelocationSandbox {
     }
 
     public ManagedChannel getGrpcChannel() {
-        int port = container.getBean(TaskRelocationGrpcServer.class).getPort();
+        int port = container.getBean(TaskRelocationGrpcServerRunner.class).getServer().getPort();
         ManagedChannel channel = ManagedChannelBuilder.forAddress("localhost", port)
                 .usePlaintext(true)
                 .build();
