@@ -50,7 +50,7 @@ import io.kubernetes.client.util.Config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Experimental(detail = "Informer-pattern based integration with k8s for opportunistic resources", deadline = "10/1/2019")
+@Experimental(detail = "Informer-pattern based integration with Kubernetes for opportunistic resources", deadline = "10/1/2019")
 @Singleton
 public class KubeOpportunisticResourceProvider implements OpportunisticCpuAvailabilityProvider {
     private static final Logger logger = LoggerFactory.getLogger(KubeOpportunisticResourceProvider.class);
