@@ -25,7 +25,6 @@ import com.netflix.titus.api.clustermembership.model.event.ClusterMembershipChan
 import com.netflix.titus.api.clustermembership.model.event.ClusterMembershipEvent;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.rx.ReactorExt;
-import com.netflix.titus.ext.k8s.clustermembership.connector.action.K8ActionsUtil;
 import com.netflix.titus.testkit.junit.category.RemoteIntegrationTest;
 import com.netflix.titus.testkit.rx.TitusRxSubscriber;
 import org.junit.After;
@@ -105,7 +104,7 @@ public class DefaultK8MembershipExecutorTest {
             executor.getMemberById(memberId).block();
             fail("Found removed member");
         } catch (Exception e) {
-            assertThat(K8ActionsUtil.is4xx(e)).isTrue();
+            assertThat(KubeUtils.is4xx(e)).isTrue();
         }
 
         expectClusterMembershipChangeEvent(result, ClusterMembershipChangeEvent.ChangeType.Added);
@@ -139,6 +138,6 @@ public class DefaultK8MembershipExecutorTest {
     }
 
     private ClusterMembershipRevision<ClusterMember> newMemberRevision() {
-        return clusterMemberRegistrationRevision(activeClusterMember(newMemberId()));
+        return clusterMemberRegistrationRevision(activeClusterMember(newMemberId()).toBuilder().withRegistered(false).build());
     }
 }

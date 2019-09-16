@@ -90,6 +90,9 @@ public class DefaultSimpleReconciliationEngineTest {
         await().until(canceled::get);
 
         assertThat(changesSubscriber.takeNext()).isNull();
+
+        // Now run regular action
+        assertThat(reconciliationEngine.apply(Mono.just(anything -> "Regular")).block(TIMEOUT)).isEqualTo("Regular");
     }
 
     @Test(timeout = 30_000)

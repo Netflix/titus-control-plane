@@ -111,7 +111,7 @@ public class K8ClusterMembershipConnector implements ClusterMembershipConnector 
                             if (event instanceof LeaderElectionChangeEvent) {
                                 reconciler.apply(Mono.just(currentState -> currentState.processLeaderElectionEventStreamEvent((LeaderElectionChangeEvent) event)))
                                         .subscribe(
-                                                next -> logger.info("Processed K8S event: {}", event),
+                                                next -> logger.debug("Processed K8S event: {}", event),
                                                 e -> logger.warn("K8S event processing failure", e)
                                         );
                             }

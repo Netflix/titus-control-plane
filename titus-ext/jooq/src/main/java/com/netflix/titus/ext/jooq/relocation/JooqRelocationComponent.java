@@ -20,10 +20,12 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.supplementary.relocation.store.TaskRelocationResultStore;
 import com.netflix.titus.supplementary.relocation.store.TaskRelocationStore;
 import org.jooq.DSLContext;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
+@ConditionalOnProperty(name = "titus.ext.jooq.relocation.enabled", havingValue = "true", matchIfMissing = true)
 public class JooqRelocationComponent {
 
     @Bean

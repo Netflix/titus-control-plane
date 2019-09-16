@@ -18,10 +18,12 @@ package com.netflix.titus.supplementary.relocation.store.memory;
 
 import com.netflix.titus.supplementary.relocation.store.TaskRelocationResultStore;
 import com.netflix.titus.supplementary.relocation.store.TaskRelocationStore;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
+@ConditionalOnProperty(name = "titus.relocation.store.inMemory.enabled", havingValue = "true", matchIfMissing = true)
 public class InMemoryRelocationStoreComponent {
 
     @Bean

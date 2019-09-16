@@ -41,11 +41,7 @@ class SingleTransaction<DATA> implements Transaction<DATA> {
 
     SingleTransaction(ChangeActionHolder<DATA> actionHolder) {
         this.subscription = actionHolder.getAction()
-                .doFinally(signal -> {
-                    if (stateRef.get() == null) {
-                        stateRef.set(State.Cancelled);
-                    }
-                })
+                .doFinally(signal -> stateRef.compareAndSet(State.Running, State.Cancelled))
                 .subscribe(
                         newValue -> {
                             updateFunRef.set(newValue);
@@ -67,7 +63,7 @@ class SingleTransaction<DATA> implements Transaction<DATA> {
     @Override
     public void close() {
         ReactorExt.safeDispose(subscription);
-        if(actionHolder.getSubscriberSink() != null) {
+        if (actionHolder.getSubscriberSink() != null) {
             try {
                 actionHolder.getSubscriberSink().error(new IllegalStateException("Reconciliation engine closed"));
             } catch (Exception ignore) {
