@@ -153,7 +153,7 @@ public class ClusterRemovableAgentRemoverTest {
 
     private Task createTask(String agentId) {
         Task task = mock(Task.class);
-        when(task.getTaskContext()).thenReturn(singletonMap(TaskAttributes.TASK_ATTRIBUTES_AGENT_ID, agentId));
+        when(task.getTaskContext()).thenReturn(singletonMap(TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID, agentId));
         return task;
     }
 }

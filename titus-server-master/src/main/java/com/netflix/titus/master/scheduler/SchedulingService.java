@@ -26,6 +26,7 @@ import com.netflix.titus.master.scheduler.TaskPlacementFailure.FailureKind;
 import rx.Observable;
 
 /**
+ *
  */
 public interface SchedulingService {
 
@@ -43,11 +44,8 @@ public interface SchedulingService {
 
     /**
      * Removes a task from the scheduler.
-     * <p>
-     * FIXME To remove a task, it should be enough to pass the task id. The other arguments represent an internal state of the scheduling component itself.
      */
-    @Deprecated
-    void removeTask(String taskid, QAttributes qAttributes, String hostname);
+    void removeTask(String taskid);
 
     /**
      * Returns the last known scheduling result for a task.

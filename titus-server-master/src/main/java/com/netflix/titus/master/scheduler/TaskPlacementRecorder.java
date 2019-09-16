@@ -226,7 +226,7 @@ class TaskPlacementRecorder {
         if (!fenzoTask.isCpuOpportunistic() || count <= 0) {
             return Collections.emptyMap();
         }
-        Optional<OpportunisticCpuAvailability> availability = opportunisticCpuCache.findAvailableOpportunisticCpus(assignmentResult.getVMId());
+        Optional<OpportunisticCpuAvailability> availability = opportunisticCpuCache.findAvailableOpportunisticCpus(assignmentResult.getHostname());
         if (!availability.isPresent()) {
             titusRuntime.getCodeInvariants().inconsistent("Task %s was scheduled on opportunistic CPUs that are not available",
                     fenzoTask.getId());

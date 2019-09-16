@@ -155,7 +155,7 @@ public final class JobManagerUtil {
 
             Map<String, String> taskContext = new HashMap<>(opportunisticResourcesContext);
             Map<String, Protos.Attribute> attributes = CollectionsExt.nonNull(lease.getAttributeMap());
-            String hostIp = addAttributeToContext(attributes, "hostIp").orElse(lease.hostname());
+            String hostIp = findAttribute(attributes, "hostIp").orElse(lease.hostname());
             taskContext.put(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST, hostIp);
 
             executorUriOverrideOpt.ifPresent(v -> taskContext.put(TASK_ATTRIBUTES_EXECUTOR_URI_OVERRIDE, v));
@@ -165,10 +165,10 @@ public final class JobManagerUtil {
                 attributesMap.forEach((k, v) -> taskContext.put("agent." + k, v));
 
                 // TODO Some agent attribute names are configurable, some not. We need to clean this up.
-                addAttributeToContext(attributes, zoneAttributeName).ifPresent(value ->
+                findAttribute(attributes, zoneAttributeName).ifPresent(value ->
                         taskContext.put(TaskAttributes.TASK_ATTRIBUTES_AGENT_ZONE, value)
                 );
-                addAttributeToContext(attributes, "id").ifPresent(value ->
+                findAttribute(attributes, "id").ifPresent(value ->
                         taskContext.put(TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID, value)
                 );
             }
@@ -223,7 +223,7 @@ public final class JobManagerUtil {
         return Optional.empty();
     }
 
-    private static Optional<String> addAttributeToContext(Map<String, Protos.Attribute> attributes, String name) {
+    private static Optional<String> findAttribute(Map<String, Protos.Attribute> attributes, String name) {
         Protos.Attribute attribute = attributes.get(name);
         return (attribute != null) ? Optional.of(attribute.getText().getValue()) : Optional.empty();
     }
