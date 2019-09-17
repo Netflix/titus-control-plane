@@ -193,7 +193,6 @@ public class JobComponentStub {
                                 .withTimestamp(clock.wallTime())
                                 .build()
                         )
-                        .addToTaskContext("agent.id", agentInstance.getId())
                         .addToTaskContext(TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID, agentInstance.getId())
                         .addToTaskContext(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST, agentInstance.getIpAddress())
                         .build());

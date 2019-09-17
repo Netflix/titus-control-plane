@@ -560,10 +560,9 @@ public class DefaultSchedulingService implements SchedulingService {
             Pair<Tier, String> tierAssignment = JobManagerUtil.getTierAssignment(job, capacityGroupService);
             QAttributes qAttributes = new V3QAttributes(tierAssignment.getLeft().ordinal(), tierAssignment.getRight());
             // host name should be null if it doesn't exist for fenzo to not try to unassign it
-            String hostname = kubeIntegrationEnabled ?
-                    task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID)
-                    :
-                    task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST);
+            String hostname = kubeIntegrationEnabled
+                    ? task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID)
+                    : task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST);
 
             logger.info("Removing task from Fenzo: taskId={}, qAttributes={}, hostname={}", taskId, qAttributes, hostname);
             schedulingService.removeTask(taskId, qAttributes, hostname);
