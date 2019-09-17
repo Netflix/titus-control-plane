@@ -499,7 +499,7 @@ public class ClusterAgentAutoScalerTest {
         List<Task> tasks = createTasks(17, "jobId");
         for (int i = 0; i < tasks.size(); i++) {
             Task task = tasks.get(i);
-            when(task.getTaskContext()).thenReturn(singletonMap(TaskAttributes.TASK_ATTRIBUTES_AGENT_ID, "instanceGroup1" + i));
+            when(task.getTaskContext()).thenReturn(singletonMap(TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID, "instanceGroup1" + i));
         }
 
         when(v3JobOperations.getTasks()).thenReturn(tasks);

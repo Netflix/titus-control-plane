@@ -79,7 +79,7 @@ public final class RelocationUtil {
     }
 
     public static boolean isOnInstance(AgentInstance instance, Task task) {
-        String taskAgentId = task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_ID);
+        String taskAgentId = task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID);
         return taskAgentId != null && taskAgentId.equals(instance.getId());
     }
 

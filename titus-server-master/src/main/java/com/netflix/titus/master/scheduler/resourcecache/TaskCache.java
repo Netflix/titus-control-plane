@@ -177,7 +177,7 @@ public class TaskCache {
     }
 
     private static Optional<String> getAgentId(Task task) {
-        return Optional.ofNullable(task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_ID));
+        return Optional.ofNullable(task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID));
     }
 
     private static Optional<String> getOpportunisticCpuAllocationId(Task task) {

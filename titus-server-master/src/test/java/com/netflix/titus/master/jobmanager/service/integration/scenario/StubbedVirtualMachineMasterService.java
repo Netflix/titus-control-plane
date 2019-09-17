@@ -74,7 +74,7 @@ class StubbedVirtualMachineMasterService implements VirtualMachineMasterService 
 
             @Override
             public String hostname() {
-                return "1.2.3.4";
+                return "i-12345";
             }
 
             @Override

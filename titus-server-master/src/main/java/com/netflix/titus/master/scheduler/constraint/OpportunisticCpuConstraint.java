@@ -108,12 +108,12 @@ public class OpportunisticCpuConstraint implements SystemConstraint {
             return Failure.NO_RUNTIME_PREDICTION.toResult();
         }
 
-        String agentId = targetVM.getVMId();
-        if (StringExt.isEmpty(agentId)) {
+        String machineId = targetVM.getHostname();
+        if (StringExt.isEmpty(machineId)) {
             return Failure.NO_MACHINE_ID.toResult();
         }
 
-        Optional<OpportunisticCpuAvailability> availabilityOpt = opportunisticCpuCache.findAvailableOpportunisticCpus(agentId);
+        Optional<OpportunisticCpuAvailability> availabilityOpt = opportunisticCpuCache.findAvailableOpportunisticCpus(machineId);
         if (!availabilityOpt.isPresent()) {
             return Failure.NO_OPPORTUNISTIC_CPUS.toResult();
         }
@@ -124,7 +124,7 @@ public class OpportunisticCpuConstraint implements SystemConstraint {
             return Failure.AVAILABILITY_NOT_LONG_ENOUGH.toResult();
         }
 
-        if (availabilityOpt.get().getCount() - taskCache.getOpportunisticCpusAllocated(agentId) < request.getOpportunisticCpus()) {
+        if (availabilityOpt.get().getCount() - taskCache.getOpportunisticCpusAllocated(machineId) < request.getOpportunisticCpus()) {
             return Failure.NOT_ENOUGH_OPPORTUNISTIC_CPUS.toResult();
         }
 

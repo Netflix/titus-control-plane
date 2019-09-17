@@ -58,12 +58,14 @@ import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.Timer;
 import com.netflix.titus.api.agent.service.AgentManagementFunctions;
 import com.netflix.titus.api.agent.service.AgentManagementService;
+import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudgetFunctions;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
+import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.framework.fit.FitFramework;
 import com.netflix.titus.common.framework.fit.FitInjection;
 import com.netflix.titus.common.runtime.TitusRuntime;
@@ -73,6 +75,8 @@ import com.netflix.titus.common.util.rx.ObservableExt;
 import com.netflix.titus.common.util.spectator.SpectatorExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.config.MasterConfiguration;
+import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
+import com.netflix.titus.master.jobmanager.service.common.V3QAttributes;
 import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import com.netflix.titus.master.mesos.LeaseRescindedEvent;
 import com.netflix.titus.master.mesos.MesosConfiguration;
@@ -87,6 +91,7 @@ import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCache;
 import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheUpdater;
 import com.netflix.titus.master.scheduler.resourcecache.OpportunisticCpuCache;
 import com.netflix.titus.master.scheduler.resourcecache.TaskCache;
+import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import com.netflix.titus.master.taskmigration.TaskMigrator;
 import org.apache.mesos.Protos;
 import org.slf4j.Logger;
@@ -118,7 +123,6 @@ public class DefaultSchedulingService implements SchedulingService {
     private final V3JobOperations v3JobOperations;
     private final VMOperations vmOps;
     private final Optional<FitInjection> fitInjection;
-    private final MesosConfiguration mesosConfiguration;
     private TaskScheduler taskScheduler;
     private final TaskSchedulingService schedulingService;
     private TaskQueue taskQueue;
@@ -169,10 +173,12 @@ public class DefaultSchedulingService implements SchedulingService {
     private final Registry registry;
     private final TaskMigrator taskMigrator;
     private final AgentManagementService agentManagementService;
+    private final ApplicationSlaManagementService capacityGroupService;
     private Subscription vmStateUpdateSubscription;
 
     private final AtomicReference<Map<String, List<TaskAssignmentResult>>> lastSchedulingResult = new AtomicReference<>();
     private final BehaviorSubject<Map<String, List<TaskAssignmentResult>>> schedulingResultSubject = BehaviorSubject.create();
+    private final boolean kubeIntegrationEnabled;
 
     @Inject
     public DefaultSchedulingService(V3JobOperations v3JobOperations,
@@ -193,12 +199,13 @@ public class DefaultSchedulingService implements SchedulingService {
                                     TitusRuntime titusRuntime,
                                     AgentResourceCache agentResourceCache,
                                     Config config,
-                                    MesosConfiguration mesosConfiguration) {
+                                    MesosConfiguration mesosConfiguration,
+                                    ApplicationSlaManagementService capacityGroupService) {
         this(v3JobOperations, agentManagementService, v3TaskInfoFactory, vmOps, virtualMachineService,
                 masterConfiguration, schedulerConfiguration, systemHardConstraint, taskCache, opportunisticCpuCache,
                 Schedulers.computation(), tierSlaUpdater, registry, preferentialNamedConsumableResourceEvaluator,
                 agentManagementFitnessCalculator, taskMigrator, titusRuntime, agentResourceCache, config,
-                mesosConfiguration);
+                mesosConfiguration, capacityGroupService);
     }
 
     public DefaultSchedulingService(V3JobOperations v3JobOperations,
@@ -220,7 +227,8 @@ public class DefaultSchedulingService implements SchedulingService {
                                     TitusRuntime titusRuntime,
                                     AgentResourceCache agentResourceCache,
                                     Config config,
-                                    MesosConfiguration mesosConfiguration) {
+                                    MesosConfiguration mesosConfiguration,
+                                    ApplicationSlaManagementService capacityGroupService) {
         this.v3JobOperations = v3JobOperations;
         this.agentManagementService = agentManagementService;
         this.vmOps = vmOps;
@@ -234,8 +242,9 @@ public class DefaultSchedulingService implements SchedulingService {
         this.titusRuntime = titusRuntime;
         this.agentResourceCache = agentResourceCache;
         this.systemHardConstraint = systemHardConstraint;
-        this.mesosConfiguration = mesosConfiguration;
+        this.capacityGroupService = capacityGroupService;
         agentResourceCacheUpdater = new AgentResourceCacheUpdater(titusRuntime, agentResourceCache, v3JobOperations);
+        kubeIntegrationEnabled = mesosConfiguration.isKubeApiServerIntegrationEnabled();
 
         FitFramework fit = titusRuntime.getFitFramework();
         if (fit.isActive()) {
@@ -364,7 +373,7 @@ public class DefaultSchedulingService implements SchedulingService {
                                              TaskScheduler.Builder schedulerBuilder) {
         int minMinIdle = 4;
         final TaskScheduler scheduler = schedulerBuilder.withMaxOffersToReject(Math.max(1, minMinIdle))
-                .withSingleOfferPerVM(mesosConfiguration.isKubeApiServerIntegrationEnabled())
+                .withSingleOfferPerVM(kubeIntegrationEnabled)
                 .build();
         vmLeaseRescindedObservable
                 .doOnNext(event -> {
@@ -542,9 +551,24 @@ public class DefaultSchedulingService implements SchedulingService {
     }
 
     @Override
-    public void removeTask(String taskId, QAttributes qAttributes, String hostname) {
-        logger.info("Removing task from Fenzo: taskId={}, qAttributes={}, hostname={}", taskId, qAttributes, hostname);
-        schedulingService.removeTask(taskId, qAttributes, hostname);
+    public void removeTask(String taskId) {
+        Optional<Pair<Job<?>, Task>> taskById = v3JobOperations.findTaskById(taskId);
+        if (taskById.isPresent()) {
+            Pair<Job<?>, Task> jobTaskPair = taskById.get();
+            Job job = jobTaskPair.getLeft();
+            Task task = jobTaskPair.getRight();
+            Pair<Tier, String> tierAssignment = JobManagerUtil.getTierAssignment(job, capacityGroupService);
+            QAttributes qAttributes = new V3QAttributes(tierAssignment.getLeft().ordinal(), tierAssignment.getRight());
+            // host name should be null if it doesn't exist for fenzo to not try to unassign it
+            String hostname = kubeIntegrationEnabled
+                    ? task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID)
+                    : task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST);
+
+            logger.info("Removing task from Fenzo: taskId={}, qAttributes={}, hostname={}", taskId, qAttributes, hostname);
+            schedulingService.removeTask(taskId, qAttributes, hostname);
+        } else {
+            logger.warn("Unable to remove taskId: {} from fenzo because it does not exist in job management", taskId);
+        }
     }
 
     @Override

@@ -44,9 +44,9 @@ class StubbedSchedulingService implements SchedulingService {
     }
 
     @Override
-    public void removeTask(String taskid, QAttributes qAttributes, String hostname) {
-        Preconditions.checkArgument(queuableTasks.containsKey(taskid));
-        queuableTasks.remove(taskid);
+    public void removeTask(String taskId) {
+        Preconditions.checkArgument(queuableTasks.containsKey(taskId));
+        queuableTasks.remove(taskId);
     }
 
     @Override

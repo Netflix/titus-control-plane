@@ -222,7 +222,7 @@ public class ContainerFailureBasedAgentQualityTracker implements AgentQualityTra
     }
 
     private PlacementHistory tryGetOrCreatePlacementHistory(Task task) {
-        String hostname = task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST);
+        String hostname = task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID);
         if (hostname == null) {
             invariants.inconsistent("Task without host name assigned: taskId=%s", task.getId());
             return null;

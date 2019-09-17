@@ -24,9 +24,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import com.netflix.fenzo.queues.QAttributes;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
-import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
@@ -37,6 +35,7 @@ import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
 import com.netflix.titus.api.jobmanager.store.JobStore;
 import com.netflix.titus.api.model.Tier;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
@@ -45,7 +44,6 @@ import com.netflix.titus.common.util.DateTimeExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
-import com.netflix.titus.master.jobmanager.service.common.V3QAttributes;
 import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import com.netflix.titus.master.jobmanager.service.common.action.JobEntityHolders;
 import com.netflix.titus.master.jobmanager.service.common.action.TaskRetryers;
@@ -114,11 +112,7 @@ public class BasicTaskActions {
                     return titusStore.updateTask(referenceTask)
                             .andThen(Observable.fromCallable(() -> {
                                 if (referenceTask.getStatus().getState() == TaskState.Finished) {
-                                    Pair<Tier, String> tierAssignment = JobManagerUtil.getTierAssignment((Job) engine.getReferenceView().getEntity(), capacityGroupService);
-                                    QAttributes qAttributes = new V3QAttributes(tierAssignment.getLeft().ordinal(), tierAssignment.getRight());
-                                    // host name should be null if it doesn't exist for fenzo to not try to unassign it
-                                    String hostName = referenceTask.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST);
-                                    schedulingService.removeTask(referenceTask.getId(), qAttributes, hostName);
+                                    schedulingService.removeTask(referenceTask.getId());
                                 }
                                 TitusModelAction modelUpdateAction = TitusModelAction.newModelUpdate(self)
                                         .taskUpdate(storeRoot -> {

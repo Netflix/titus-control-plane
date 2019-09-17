@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Subscription;
 
-import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST;
+import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID;
 
 public class AgentResourceCacheUpdater {
     private static final Logger logger = LoggerFactory.getLogger(AgentResourceCacheUpdater.class);
@@ -80,7 +80,7 @@ public class AgentResourceCacheUpdater {
     private void createOrUpdateAgentResourceCacheForV3Task(TaskUpdateEvent event) {
         Job<?> job = event.getCurrentJob();
         Task task = event.getCurrentTask();
-        String hostname = task.getTaskContext().get(TASK_ATTRIBUTES_AGENT_HOST);
+        String hostname = task.getTaskContext().get(TASK_ATTRIBUTES_AGENT_INSTANCE_ID);
         if (task.getStatus().getState() == TaskState.Started) {
             agentResourceCache.createOrUpdate(hostname, instanceOpt -> {
                 AgentResourceCacheInstance instance = AgentResourceCacheFunctions.createInstance(hostname, job, task, titusRuntime.getClock().wallTime());

@@ -43,7 +43,7 @@ import com.netflix.titus.common.util.StringExt;
 
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_ASG;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST;
-import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_ID;
+import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_ITYPE;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_REGION;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_ZONE;
@@ -475,7 +475,7 @@ public class TaskDocument {
             taskDocument.instanceType = instanceType;
         }
 
-        final String instanceId = taskContext.get(TASK_ATTRIBUTES_AGENT_ID);
+        final String instanceId = taskContext.get(TASK_ATTRIBUTES_AGENT_INSTANCE_ID);
         if (instanceId != null) {
             taskDocument.hostInstanceId = instanceId;
         }

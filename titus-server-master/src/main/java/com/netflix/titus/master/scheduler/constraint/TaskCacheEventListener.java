@@ -61,20 +61,15 @@ public class TaskCacheEventListener implements SchedulingEventListener {
 
         int opportunisticCpus = request.getOpportunisticCpus();
         if (request.isCpuOpportunistic() && opportunisticCpus > 0) {
-            String agentId = taskAssignmentResult.getVMId();
-            if (agentId == null) {
-                String hostname = taskAssignmentResult.getHostname();
-                codeInvariants().inconsistent("No machine ID for hostname %s", hostname);
-                agentId = hostname;
-            }
-            Optional<String> allocationId = opportunisticCpuCache.findAvailableOpportunisticCpus(agentId)
+            String machineId = taskAssignmentResult.getHostname();
+            Optional<String> allocationId = opportunisticCpuCache.findAvailableOpportunisticCpus(machineId)
                     .map(OpportunisticCpuAvailability::getAllocationId);
             if (!allocationId.isPresent()) {
-                codeInvariants().inconsistent("Task assigned to opportunistic CPUs on machine %s that can not be found", agentId);
+                codeInvariants().inconsistent("Task assigned to opportunistic CPUs on machine %s that can not be found", machineId);
             }
             taskCache.addOpportunisticCpuAllocation(new OpportunisticCpuAllocation(
                     taskAssignmentResult.getTaskId(),
-                    agentId,
+                    machineId,
                     allocationId.orElse(UNKNOWN_ALLOCATION_ID),
                     opportunisticCpus
             ));

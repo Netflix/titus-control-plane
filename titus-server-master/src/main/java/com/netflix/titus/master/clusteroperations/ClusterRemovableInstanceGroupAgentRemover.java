@@ -265,7 +265,7 @@ public class ClusterRemovableInstanceGroupAgentRemover {
     private Map<String, Long> getNumberOfTasksOnAgents() {
         return v3JobOperations.getTasks().stream()
                 .collect(Collectors.groupingBy(
-                        task -> task.getTaskContext().getOrDefault(TaskAttributes.TASK_ATTRIBUTES_AGENT_ID, "Unknown"),
+                        task -> task.getTaskContext().getOrDefault(TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID, "Unknown"),
                         Collectors.counting())
                 );
     }

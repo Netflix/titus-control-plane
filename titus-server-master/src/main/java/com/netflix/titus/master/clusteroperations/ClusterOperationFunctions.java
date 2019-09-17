@@ -69,7 +69,7 @@ public class ClusterOperationFunctions {
     public static Map<String, Long> getNumberOfTasksOnAgents(Collection<Task> tasks) {
         return tasks.stream()
                 .collect(Collectors.groupingBy(
-                        task -> task.getTaskContext().getOrDefault(TaskAttributes.TASK_ATTRIBUTES_AGENT_ID, "Unknown"),
+                        task -> task.getTaskContext().getOrDefault(TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID, "Unknown"),
                         Collectors.counting())
                 );
     }
