@@ -561,7 +561,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         Optional<TitusExecutorDetails> executorDetails = getTitusExecutorDetails(pod);
 
         if (phase.equalsIgnoreCase(PENDING)) {
-            // inspect pod status reason to differentiate between Launched and StartInitiated (this is not standard k8s)
+            // inspect pod status reason to differentiate between Launched and StartInitiated (this is not standard Kubernetes)
             if (reason != null && reason.equalsIgnoreCase(TASK_STARTING)) {
                 publishContainerEvent(podName, StartInitiated, REASON_NORMAL, reasonMessage, executorDetails);
             } else {
