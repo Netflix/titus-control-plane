@@ -38,14 +38,14 @@ public class KubeClusterMembershipConnectorComponent {
     public static final String LOCAL_MEMBER_INITIAL = "localMemberInitial";
 
     @Bean
-    public KubeConnectorConfiguration getK8ConnectorConfiguration(Environment environment) {
+    public KubeConnectorConfiguration getKubeConnectorConfiguration(Environment environment) {
         return new KubeConnectorConfigurationBean(environment, KubeConnectorConfiguration.PREFIX);
     }
 
     @Bean
     public ApiClient getApiClient(KubeConnectorConfiguration configuration) {
-        String k8ApiServerUri = Preconditions.checkNotNull(
-                StringExt.safeTrim(configuration.getK8ApiServerUri()),
+        String kubeApiServerUri = Preconditions.checkNotNull(
+                StringExt.safeTrim(configuration.getKubeApiServerUri()),
                 "Kubernetes address not set"
         );
 
@@ -53,7 +53,7 @@ public class KubeClusterMembershipConnectorComponent {
         try {
             client = ClientBuilder
                     .standard()
-                    .setBasePath(k8ApiServerUri)
+                    .setBasePath(kubeApiServerUri)
                     .build();
         } catch (IOException e) {
             throw new IllegalStateException(e);
@@ -66,13 +66,13 @@ public class KubeClusterMembershipConnectorComponent {
     public ClusterMembershipConnector getClusterMembershipConnector(
             KubeConnectorConfiguration configuration,
             @Qualifier(LOCAL_MEMBER_INITIAL) ClusterMember initial,
-            ApiClient k8ApiClient,
+            ApiClient kubeApiClient,
             TitusRuntime titusRuntime) {
         return new KubeClusterMembershipConnector(
                 initial,
-                new DefaultKubeMembershipExecutor(k8ApiClient, configuration.getNamespace()),
+                new DefaultKubeMembershipExecutor(kubeApiClient, configuration.getNamespace()),
                 new DefaultKubeLeaderElectionExecutor(
-                        k8ApiClient,
+                        kubeApiClient,
                         configuration.getNamespace(),
                         configuration.getClusterName(),
                         Duration.ofMillis(configuration.getLeaseDurationMs()),

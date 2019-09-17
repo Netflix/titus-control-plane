@@ -30,8 +30,8 @@ public class KubeConnectorConfigurationBean implements KubeConnectorConfiguratio
     }
 
     @Override
-    public String getK8ApiServerUri() {
-        return SpringConfigurationUtil.getString(environment, prefix + "k8ApiServerUri", "");
+    public String getKubeApiServerUri() {
+        return SpringConfigurationUtil.getString(environment, prefix + "kubeApiServerUri", "");
     }
 
     @Override
@@ -60,8 +60,8 @@ public class KubeConnectorConfigurationBean implements KubeConnectorConfiguratio
     }
 
     @Override
-    public long getK8ReconnectIntervalMs() {
-        return SpringConfigurationUtil.getLong(environment, prefix + "k8ReconnectIntervalMs", 500);
+    public long getKubeReconnectIntervalMs() {
+        return SpringConfigurationUtil.getLong(environment, prefix + "kubeReconnectIntervalMs", 500);
     }
 
     @Override

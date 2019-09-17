@@ -26,7 +26,7 @@ public interface KubeConnectorConfiguration {
 
     String PREFIX = "titus.ext.kube";
 
-    String getK8ApiServerUri();
+    String getKubeApiServerUri();
 
     @DefaultValue("titus")
     String getNamespace();
@@ -44,7 +44,7 @@ public interface KubeConnectorConfiguration {
     long getReRegistrationIntervalMs();
 
     @DefaultValue("500")
-    long getK8ReconnectIntervalMs();
+    long getKubeReconnectIntervalMs();
 
     @DefaultValue("10000")
     long getLeaseDurationMs();

@@ -76,7 +76,7 @@ public class KubeClusterMembershipConnector implements ClusterMembershipConnecto
                 .withTitusRuntime(titusRuntime)
                 .build();
 
-        Duration reconnectInterval = Duration.ofMillis(configuration.getK8ReconnectIntervalMs());
+        Duration reconnectInterval = Duration.ofMillis(configuration.getKubeReconnectIntervalMs());
         this.membershipSubscription = kubeMembershipExecutor.watchMembershipEvents()
                 .onErrorResume(e -> {
                             logger.info("Reconnecting membership event stream from Kubernetes terminated with an error: {}", e.getMessage());

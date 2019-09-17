@@ -60,7 +60,7 @@ class DefaultKubeLeaderElectionExecutor implements KubeLeaderElectionExecutor {
     private final Duration leaseDuration;
     private final Duration retryPeriod;
 
-    private final ApiClient k8ApiClient;
+    private final ApiClient kubeApiClient;
     private final TitusRuntime titusRuntime;
 
     private final EndpointsLock readOnlyEndpointsLock;
@@ -68,7 +68,7 @@ class DefaultKubeLeaderElectionExecutor implements KubeLeaderElectionExecutor {
     private final AtomicReference<LeaderElectionHandler> leaderElectionHandlerRef = new AtomicReference<>();
     private final ReplayProcessor<LeaderElectionHandler> handlerProcessor = ReplayProcessor.create();
 
-    DefaultKubeLeaderElectionExecutor(ApiClient k8ApiClient,
+    DefaultKubeLeaderElectionExecutor(ApiClient kubeApiClient,
                                       String namespace,
                                       String clusterName,
                                       Duration leaseDuration,
@@ -80,9 +80,9 @@ class DefaultKubeLeaderElectionExecutor implements KubeLeaderElectionExecutor {
         this.retryPeriod = leaseDuration.dividedBy(2);
         this.localMemberId = localMemberId;
 
-        this.k8ApiClient = k8ApiClient;
+        this.kubeApiClient = kubeApiClient;
         this.titusRuntime = titusRuntime;
-        this.readOnlyEndpointsLock = new EndpointsLock(namespace, clusterName, localMemberId, k8ApiClient);
+        this.readOnlyEndpointsLock = new EndpointsLock(namespace, clusterName, localMemberId, kubeApiClient);
     }
 
     @Override
@@ -194,7 +194,7 @@ class DefaultKubeLeaderElectionExecutor implements KubeLeaderElectionExecutor {
         private final AtomicBoolean leaderFlag = new AtomicBoolean();
 
         private LeaderElectionHandler() {
-            EndpointsLock lock = new EndpointsLock(namespace, clusterName, localMemberId, k8ApiClient);
+            EndpointsLock lock = new EndpointsLock(namespace, clusterName, localMemberId, kubeApiClient);
             LeaderElectionConfig leaderElectionConfig = new LeaderElectionConfig(lock, leaseDuration, null, retryPeriod);
             LeaderElector leaderElector = new LeaderElector(leaderElectionConfig);
 

@@ -57,7 +57,7 @@ public class KubeClusterMembershipConnectorTest {
             "titus.ext.kube.reRegistrationIntervalMs", "100"
     );
 
-    private final StubbedKubeExecutors k8Executors = new StubbedKubeExecutors(LOCAL_MEMBER_UNREGISTERED.getMemberId());
+    private final StubbedKubeExecutors kubeExecutors = new StubbedKubeExecutors(LOCAL_MEMBER_UNREGISTERED.getMemberId());
 
     private KubeClusterMembershipConnector connector;
 
@@ -65,7 +65,7 @@ public class KubeClusterMembershipConnectorTest {
 
     @Before
     public void setUp() {
-        connector = new KubeClusterMembershipConnector(LOCAL_MEMBER_UNREGISTERED, k8Executors, k8Executors, configuration, titusRuntime);
+        connector = new KubeClusterMembershipConnector(LOCAL_MEMBER_UNREGISTERED, kubeExecutors, kubeExecutors, configuration, titusRuntime);
         connector.membershipChangeEvents().subscribe(connectorEvents);
 
         // Initial sequence common for all tests
@@ -106,7 +106,7 @@ public class KubeClusterMembershipConnectorTest {
 
     @Test
     public void testRegistrationConnectionErrorInRegistrationRequest() throws InterruptedException {
-        k8Executors.failOnMembershipUpdate(new RuntimeException("Simulated membership update error"), 1);
+        kubeExecutors.failOnMembershipUpdate(new RuntimeException("Simulated membership update error"), 1);
         try {
             connector.register(ClusterMemberGenerator::clusterMemberRegistrationRevision).block();
             fail("Failure expected");
@@ -119,8 +119,8 @@ public class KubeClusterMembershipConnectorTest {
     public void testRegistrationConnectionErrorRecoveryInReconciler() throws InterruptedException {
         doRegister();
 
-        k8Executors.failOnMembershipUpdate(new RuntimeException("Simulated membership update error"), 1);
-        await().until(() -> !k8Executors.isFailingOnMembershipUpdate());
+        kubeExecutors.failOnMembershipUpdate(new RuntimeException("Simulated membership update error"), 1);
+        await().until(() -> !kubeExecutors.isFailingOnMembershipUpdate());
         long now = System.currentTimeMillis();
         ClusterMembershipChangeEvent event;
         while ((event = (ClusterMembershipChangeEvent) connectorEvents.takeNext(TIMEOUT)) != null) {
@@ -135,13 +135,13 @@ public class KubeClusterMembershipConnectorTest {
     public void testUnregistrationConnectionError() throws InterruptedException {
         doRegister();
 
-        k8Executors.failOnMembershipUpdate(new RuntimeException("Simulated membership update error"), Integer.MAX_VALUE);
+        kubeExecutors.failOnMembershipUpdate(new RuntimeException("Simulated membership update error"), Integer.MAX_VALUE);
         try {
             connector.unregister(ClusterMemberGenerator::clusterMemberUnregistrationRevision).block();
             fail("Failure expected");
         } catch (Exception ignore) {
         }
-        k8Executors.doNotFailOnMembershipUpdate();
+        kubeExecutors.doNotFailOnMembershipUpdate();
         doUnregister();
     }
 
@@ -162,7 +162,7 @@ public class KubeClusterMembershipConnectorTest {
 
     @Test
     public void testMembershipEventStreamConnectionError() throws InterruptedException {
-        k8Executors.breakMembershipEventSource();
+        kubeExecutors.breakMembershipEventSource();
         doRegister();
     }
 
@@ -196,7 +196,7 @@ public class KubeClusterMembershipConnectorTest {
 
     @Test
     public void testLeadershipEventStreamConnectionError() throws InterruptedException {
-        k8Executors.breakLeadershipEventSource();
+        kubeExecutors.breakLeadershipEventSource();
         joinLeaderElectionProcess();
     }
 
@@ -238,7 +238,7 @@ public class KubeClusterMembershipConnectorTest {
     private ClusterMembershipRevision<ClusterMember> doAddOrUpdateSibling(ClusterMembershipRevision<ClusterMember> revision,
                                                                           ClusterMembershipChangeEvent.ChangeType changeType) throws InterruptedException {
         String siblingId = revision.getCurrent().getMemberId();
-        k8Executors.addOrUpdateSibling(revision);
+        kubeExecutors.addOrUpdateSibling(revision);
 
         ClusterMembershipEvent event = connectorEvents.takeNext(TIMEOUT);
         assertThat(event).isInstanceOf(ClusterMembershipChangeEvent.class);
@@ -251,7 +251,7 @@ public class KubeClusterMembershipConnectorTest {
     }
 
     private void doRemoveSibling(ClusterMembershipRevision<ClusterMember> revision) throws InterruptedException {
-        k8Executors.removeSibling(revision.getCurrent().getMemberId());
+        kubeExecutors.removeSibling(revision.getCurrent().getMemberId());
 
         ClusterMembershipEvent event = connectorEvents.takeNext(TIMEOUT);
         assertThat(event).isInstanceOf(ClusterMembershipChangeEvent.class);
@@ -268,7 +268,7 @@ public class KubeClusterMembershipConnectorTest {
     }
 
     private void electLocalAsLeader() throws InterruptedException {
-        k8Executors.emitLeadershipEvent(ClusterMembershipEvent.leaderElected(ClusterMembershipRevision.<ClusterMemberLeadership>newBuilder()
+        kubeExecutors.emitLeadershipEvent(ClusterMembershipEvent.leaderElected(ClusterMembershipRevision.<ClusterMemberLeadership>newBuilder()
                 .withCurrent(ClusterMemberLeadership.newBuilder()
                         .withMemberId(LOCAL_MEMBER_UNREGISTERED.getMemberId())
                         .withLeadershipState(ClusterMemberLeadershipState.Leader)
@@ -302,7 +302,7 @@ public class KubeClusterMembershipConnectorTest {
                 .withMemberId("sibling1")
                 .withLeadershipState(ClusterMemberLeadershipState.Leader)
                 .build();
-        k8Executors.emitLeadershipEvent(ClusterMembershipEvent.leaderElected(ClusterMembershipRevision.<ClusterMemberLeadership>newBuilder()
+        kubeExecutors.emitLeadershipEvent(ClusterMembershipEvent.leaderElected(ClusterMembershipRevision.<ClusterMemberLeadership>newBuilder()
                 .withCurrent(sibling)
                 .build()
         ));

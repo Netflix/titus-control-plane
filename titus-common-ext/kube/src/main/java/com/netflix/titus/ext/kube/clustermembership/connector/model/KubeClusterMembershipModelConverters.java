@@ -34,8 +34,8 @@ public class KubeClusterMembershipModelConverters {
 
     public static final String CRD_PLURAL_MEMBERS = "members";
 
-    public static KubeClusterMembershipRevisionResource toK8ClusterMembershipRevisionResource(String namespace,
-                                                                                              ClusterMembershipRevision<ClusterMember> revision) {
+    public static KubeClusterMembershipRevisionResource toKubeClusterMembershipRevisionResource(String namespace,
+                                                                                                ClusterMembershipRevision<ClusterMember> revision) {
         ClusterMember member = revision.getCurrent();
 
         return new KubeClusterMembershipRevisionResource()
@@ -46,33 +46,33 @@ public class KubeClusterMembershipModelConverters {
                         .name(member.getMemberId())
                         .resourceVersion(member.getLabels().get("resourceVersion"))
                 )
-                .spec(KubeClusterMembershipModelConverters.toK8ClusterMembershipRevision(revision));
+                .spec(KubeClusterMembershipModelConverters.toKubeClusterMembershipRevision(revision));
     }
 
-    public static KubeClusterMembershipRevision toK8ClusterMembershipRevision(ClusterMembershipRevision<ClusterMember> revision) {
+    public static KubeClusterMembershipRevision toKubeClusterMembershipRevision(ClusterMembershipRevision<ClusterMember> revision) {
         return new KubeClusterMembershipRevision()
-                .current(toK8ClusterMember(revision.getCurrent()))
+                .current(toKubeClusterMember(revision.getCurrent()))
                 .code(revision.getCode())
                 .message(revision.getMessage())
                 .timestamp(revision.getTimestamp());
     }
 
-    public static ClusterMembershipRevision toClusterMembershipRevision(KubeClusterMembershipRevision k8Revision) {
+    public static ClusterMembershipRevision toClusterMembershipRevision(KubeClusterMembershipRevision kubeRevision) {
         return ClusterMembershipRevision.newBuilder()
-                .withCurrent(toClusterMember(k8Revision.getCurrent()))
-                .withCode(k8Revision.getCode())
-                .withMessage(k8Revision.getMessage())
-                .withTimestamp(k8Revision.getTimestamp())
+                .withCurrent(toClusterMember(kubeRevision.getCurrent()))
+                .withCode(kubeRevision.getCode())
+                .withMessage(kubeRevision.getMessage())
+                .withTimestamp(kubeRevision.getTimestamp())
                 .build();
     }
 
-    public static KubeClusterMember toK8ClusterMember(ClusterMember clusterMember) {
+    public static KubeClusterMember toKubeClusterMember(ClusterMember clusterMember) {
         return new KubeClusterMember()
                 .memberId(clusterMember.getMemberId())
                 .enabled(clusterMember.isEnabled())
                 .active(clusterMember.isActive())
                 .labels(clusterMember.getLabels())
-                .clusterMemberAddress(toK8ClusterMemberAddresses(clusterMember.getClusterMemberAddresses()));
+                .clusterMemberAddress(toKubeClusterMemberAddresses(clusterMember.getClusterMemberAddresses()));
     }
 
     private static ClusterMember toClusterMember(KubeClusterMember kubeClusterMember) {
@@ -85,15 +85,15 @@ public class KubeClusterMembershipModelConverters {
                 .build();
     }
 
-    public static List<KubeClusterMemberAddress> toK8ClusterMemberAddresses(List<ClusterMemberAddress> addresses) {
-        return addresses.stream().map(KubeClusterMembershipModelConverters::toK8ClusterMemberAddress).collect(Collectors.toList());
+    public static List<KubeClusterMemberAddress> toKubeClusterMemberAddresses(List<ClusterMemberAddress> addresses) {
+        return addresses.stream().map(KubeClusterMembershipModelConverters::toKubeClusterMemberAddress).collect(Collectors.toList());
     }
 
-    public static List<ClusterMemberAddress> toClusterMemberAddresses(List<KubeClusterMemberAddress> k8Addresses) {
-        return k8Addresses.stream().map(KubeClusterMembershipModelConverters::toClusterMemberAddress).collect(Collectors.toList());
+    public static List<ClusterMemberAddress> toClusterMemberAddresses(List<KubeClusterMemberAddress> kubeAddresses) {
+        return kubeAddresses.stream().map(KubeClusterMembershipModelConverters::toClusterMemberAddress).collect(Collectors.toList());
     }
 
-    public static KubeClusterMemberAddress toK8ClusterMemberAddress(ClusterMemberAddress address) {
+    public static KubeClusterMemberAddress toKubeClusterMemberAddress(ClusterMemberAddress address) {
         return new KubeClusterMemberAddress()
                 .ipAddress(address.getIpAddress())
                 .portNumber(address.getPortNumber())
@@ -102,13 +102,13 @@ public class KubeClusterMembershipModelConverters {
                 .description(address.getDescription());
     }
 
-    public static ClusterMemberAddress toClusterMemberAddress(KubeClusterMemberAddress k8Address) {
+    public static ClusterMemberAddress toClusterMemberAddress(KubeClusterMemberAddress kubeAddress) {
         return ClusterMemberAddress.newBuilder()
-                .withIpAddress(k8Address.getIpAddress())
-                .withPortNumber(k8Address.getPortNumber())
-                .withProtocol(k8Address.getProtocol())
-                .withSecure(k8Address.isSecure())
-                .withDescription(k8Address.getDescription())
+                .withIpAddress(kubeAddress.getIpAddress())
+                .withPortNumber(kubeAddress.getPortNumber())
+                .withProtocol(kubeAddress.getProtocol())
+                .withSecure(kubeAddress.isSecure())
+                .withDescription(kubeAddress.getDescription())
                 .build();
     }
 }

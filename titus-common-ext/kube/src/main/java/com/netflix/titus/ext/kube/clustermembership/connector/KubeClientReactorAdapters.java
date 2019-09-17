@@ -37,7 +37,7 @@ import reactor.core.publisher.Mono;
 
 class KubeClientReactorAdapters {
 
-    private static final JSON K8_JSON = new JSON();
+    private static final JSON KUBE_JSON = new JSON();
 
     private static final AtomicInteger WATCH_IDX = new AtomicInteger();
 
@@ -69,7 +69,7 @@ class KubeClientReactorAdapters {
                             KubeStatus kubeStatus = toKubeStatus(result);
                             Object spec = resultMap.get("spec");
                             if (spec != null) {
-                                kubeStatus.spec(K8_JSON.deserialize(K8_JSON.serialize(spec), type));
+                                kubeStatus.spec(KUBE_JSON.deserialize(KUBE_JSON.serialize(spec), type));
                             }
                             sink.success(kubeStatus);
                         } catch (Exception e) {
@@ -130,11 +130,11 @@ class KubeClientReactorAdapters {
         });
     }
 
-    static <T> Flux<Watch.Response<T>> watch(ApiClient k8ApiClient, CallProvider callSupplier, Type watchType) {
+    static <T> Flux<Watch.Response<T>> watch(ApiClient kubeApiClient, CallProvider callSupplier, Type watchType) {
         return Flux.create(sink -> {
             Watch<T> watch;
             try {
-                watch = Watch.createWatch(k8ApiClient, callSupplier.newCall(), watchType);
+                watch = Watch.createWatch(kubeApiClient, callSupplier.newCall(), watchType);
             } catch (ApiException e) {
                 sink.error(e);
                 return;
@@ -163,6 +163,6 @@ class KubeClientReactorAdapters {
     }
 
     private static KubeStatus toKubeStatus(Object result) {
-        return K8_JSON.deserialize(K8_JSON.serialize(result), KubeStatus.class);
+        return KUBE_JSON.deserialize(KUBE_JSON.serialize(result), KubeStatus.class);
     }
 }
