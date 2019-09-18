@@ -23,14 +23,14 @@ import java.util.Map;
 import java.util.Optional;
 
 import com.google.common.base.Preconditions;
-import com.netflix.fenzo.queues.QAttributes;
+import com.netflix.fenzo.TaskRequest;
 import com.netflix.fenzo.queues.QueuableTask;
 import com.netflix.titus.master.scheduler.SchedulingResultEvent;
 import com.netflix.titus.master.scheduler.SchedulingService;
 import com.netflix.titus.master.scheduler.TaskPlacementFailure;
 import rx.Observable;
 
-class StubbedSchedulingService implements SchedulingService {
+class StubbedSchedulingService implements SchedulingService<TaskRequest> {
 
     private final Map<String, QueuableTask> queuableTasks = new HashMap<>();
 
@@ -65,7 +65,7 @@ class StubbedSchedulingService implements SchedulingService {
     }
 
     @Override
-    public Map<TaskPlacementFailure.FailureKind, Map<String, List<TaskPlacementFailure>>> getLastTaskPlacementFailures() {
+    public Map<TaskPlacementFailure.FailureKind, Map<TaskRequest, List<TaskPlacementFailure>>> getLastTaskPlacementFailures() {
         return Collections.emptyMap();
     }
 }

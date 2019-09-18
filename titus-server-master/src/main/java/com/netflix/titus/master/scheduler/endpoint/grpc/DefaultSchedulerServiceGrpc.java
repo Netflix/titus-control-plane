@@ -30,6 +30,8 @@ import javax.inject.Singleton;
 import com.google.protobuf.Empty;
 import com.netflix.fenzo.ConstraintFailure;
 import com.netflix.fenzo.TaskAssignmentResult;
+import com.netflix.fenzo.TaskRequest;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.scheduler.service.SchedulerService;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.util.CollectionsExt;
@@ -44,29 +46,24 @@ import com.netflix.titus.master.scheduler.SchedulingResultEvent;
 import com.netflix.titus.master.scheduler.SchedulingResultEvent.FailedSchedulingResultEvent;
 import com.netflix.titus.master.scheduler.SchedulingService;
 import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
-import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcSchedulerModelConverters;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import rx.Subscription;
 
 @Singleton
 public class DefaultSchedulerServiceGrpc extends SchedulerServiceGrpc.SchedulerServiceImplBase {
-    private static final Logger logger = LoggerFactory.getLogger(DefaultSchedulerServiceGrpc.class);
-
     private static final int AGENT_SAMPLE_SIZE = 5;
 
     private final SchedulerService schedulerService;
-    private final SchedulingService schedulingService;
+    private final SchedulingService<? extends TaskRequest> schedulingService;
     private final CallMetadataResolver callMetadataResolver;
 
     @Inject
     public DefaultSchedulerServiceGrpc(SchedulerService schedulerService,
-                                       SchedulingService schedulingService,
+                                       SchedulingService<? extends TaskRequest> schedulingService,
                                        CallMetadataResolver callMetadataResolver) {
         this.schedulerService = schedulerService;
         this.schedulingService = schedulingService;

@@ -17,6 +17,7 @@
 package com.netflix.titus.master.jobmanager.endpoint.v3.grpc;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
@@ -30,10 +31,10 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.google.protobuf.Empty;
+import com.netflix.fenzo.TaskRequest;
 import com.netflix.titus.api.FeatureRolloutPlans;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
-import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.CapacityAttributes;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
@@ -50,6 +51,7 @@ import com.netflix.titus.api.model.Pagination;
 import com.netflix.titus.api.model.PaginationUtil;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.model.Tier;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.model.sanitizer.ValidationError;
@@ -145,7 +147,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     private final CellDecorator cellDecorator;
     private final AuthorizationService authorizationService;
     private final TitusRuntime titusRuntime;
-    private final SchedulingService schedulingService;
+    private final SchedulingService<? extends TaskRequest> schedulingService;
 
     @Inject
     public DefaultJobManagementServiceGrpc(GrpcMasterEndpointConfiguration configuration,
@@ -160,7 +162,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
                                            CellInfoResolver cellInfoResolver,
                                            AuthorizationService authorizationService,
                                            TitusRuntime titusRuntime,
-                                           SchedulingService schedulingService) {
+                                           SchedulingService<? extends TaskRequest> schedulingService) {
         this.configuration = configuration;
         this.agentManagementService = agentManagementService;
         this.capacityGroupService = capacityGroupService;
@@ -418,19 +420,17 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void updateJobStatus(JobStatusUpdate request, StreamObserver<Empty> responseObserver) {
-        execute(callMetadataResolver, responseObserver, callMetadata -> {
-            authorizeJobUpdate(callMetadata, request.getId())
-                    .concatWith(jobOperations.updateJobStatusReactor(request.getId(), request.getEnableStatus(), callMetadata))
-                    .subscribe(
-                            nothing -> {
-                            },
-                            e -> safeOnError(logger, e, responseObserver),
-                            () -> {
-                                responseObserver.onNext(Empty.getDefaultInstance());
-                                responseObserver.onCompleted();
-                            }
-                    );
-        });
+        execute(callMetadataResolver, responseObserver, callMetadata -> authorizeJobUpdate(callMetadata, request.getId())
+                .concatWith(jobOperations.updateJobStatusReactor(request.getId(), request.getEnableStatus(), callMetadata))
+                .subscribe(
+                        nothing -> {
+                        },
+                        e -> safeOnError(logger, e, responseObserver),
+                        () -> {
+                            responseObserver.onNext(Empty.getDefaultInstance());
+                            responseObserver.onCompleted();
+                        }
+                ));
     }
 
     @Override
@@ -506,111 +506,104 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void updateJobAttributes(JobAttributesUpdate request, StreamObserver<Empty> responseObserver) {
-        execute(callMetadataResolver, responseObserver, callMetadata -> {
-            authorizeJobUpdate(callMetadata, request.getJobId())
-                    .concatWith(jobOperations.updateJobAttributes(request.getJobId(), request.getAttributesMap(), callMetadata))
-                    .subscribe(
-                            nothing -> {
-                            },
-                            e -> safeOnError(logger, e, responseObserver),
-                            () -> {
-                                responseObserver.onNext(Empty.getDefaultInstance());
-                                responseObserver.onCompleted();
-                            }
-                    );
-        });
+        execute(callMetadataResolver, responseObserver, callMetadata -> authorizeJobUpdate(callMetadata, request.getJobId())
+                .concatWith(jobOperations.updateJobAttributes(request.getJobId(), request.getAttributesMap(), callMetadata))
+                .subscribe(
+                        nothing -> {
+                        },
+                        e -> safeOnError(logger, e, responseObserver),
+                        () -> {
+                            responseObserver.onNext(Empty.getDefaultInstance());
+                            responseObserver.onCompleted();
+                        }
+                )
+        );
     }
 
     @Override
     public void deleteJobAttributes(JobAttributesDeleteRequest request, StreamObserver<Empty> responseObserver) {
-        execute(callMetadataResolver, responseObserver, callMetadata -> {
-            authorizeJobUpdate(callMetadata, request.getJobId())
-                    .concatWith(jobOperations.deleteJobAttributes(request.getJobId(), new HashSet<>(request.getKeysList()), callMetadata))
-                    .subscribe(
-                            nothing -> {
-                            },
-                            e -> safeOnError(logger, e, responseObserver),
-                            () -> {
-                                responseObserver.onNext(Empty.getDefaultInstance());
-                                responseObserver.onCompleted();
-                            }
-                    );
-        });
+        execute(callMetadataResolver, responseObserver, callMetadata -> authorizeJobUpdate(callMetadata, request.getJobId())
+                .concatWith(jobOperations.deleteJobAttributes(request.getJobId(), new HashSet<>(request.getKeysList()), callMetadata))
+                .subscribe(
+                        nothing -> {
+                        },
+                        e -> safeOnError(logger, e, responseObserver),
+                        () -> {
+                            responseObserver.onNext(Empty.getDefaultInstance());
+                            responseObserver.onCompleted();
+                        }
+                )
+        );
     }
 
     @Override
     public void killTask(TaskKillRequest request, StreamObserver<Empty> responseObserver) {
-        execute(callMetadataResolver, responseObserver, callMetadata -> {
-            authorizeTaskUpdate(callMetadata, request.getTaskId())
-                    .concatWith(jobOperations.killTask(request.getTaskId(), request.getShrink(), request.getPreventMinSizeUpdate(), Trigger.API, callMetadata))
-                    .subscribe(
-                            nothing -> {
-                            },
-                            e -> safeOnError(logger, e, responseObserver),
-                            () -> {
-                                responseObserver.onNext(Empty.getDefaultInstance());
-                                responseObserver.onCompleted();
-                            }
-                    );
-        });
+        execute(callMetadataResolver, responseObserver, callMetadata -> authorizeTaskUpdate(callMetadata, request.getTaskId())
+                .concatWith(jobOperations.killTask(request.getTaskId(), request.getShrink(), request.getPreventMinSizeUpdate(), Trigger.API, callMetadata))
+                .subscribe(
+                        nothing -> {
+                        },
+                        e -> safeOnError(logger, e, responseObserver),
+                        () -> {
+                            responseObserver.onNext(Empty.getDefaultInstance());
+                            responseObserver.onCompleted();
+                        }
+                )
+        );
     }
 
     @Override
     public void moveTask(TaskMoveRequest request, StreamObserver<Empty> responseObserver) {
-        execute(callMetadataResolver, responseObserver, callMetadata -> {
-            jobOperations.moveServiceTask(request.getSourceJobId(), request.getTargetJobId(), request.getTaskId(), callMetadata).subscribe(
-                    nothing -> {
-                    },
-                    e -> safeOnError(logger, e, responseObserver),
-                    () -> {
-                        responseObserver.onNext(Empty.getDefaultInstance());
-                        responseObserver.onCompleted();
-                    }
-            );
-        });
+        execute(callMetadataResolver, responseObserver, callMetadata ->
+                jobOperations.moveServiceTask(request.getSourceJobId(), request.getTargetJobId(), request.getTaskId(), callMetadata).subscribe(
+                        nothing -> {
+                        },
+                        e -> safeOnError(logger, e, responseObserver),
+                        () -> {
+                            responseObserver.onNext(Empty.getDefaultInstance());
+                            responseObserver.onCompleted();
+                        }
+                )
+        );
     }
 
     @Override
     public void updateTaskAttributes(TaskAttributesUpdate request, StreamObserver<Empty> responseObserver) {
-        execute(callMetadataResolver, responseObserver, callMetadata -> {
-            jobOperations.updateTask(
-                    request.getTaskId(),
-                    task -> {
-                        Map<String, String> updatedAttributes = CollectionsExt.merge(task.getAttributes(), request.getAttributesMap());
-                        return Optional.of(task.toBuilder().withAttributes(updatedAttributes).build());
-                    },
-                    Trigger.API,
-                    "User request: userId=" + callMetadata.getCallerId(), callMetadata
-            ).subscribe(
-                    () -> {
-                        responseObserver.onNext(Empty.getDefaultInstance());
-                        responseObserver.onCompleted();
-                    },
-                    e -> safeOnError(logger, e, responseObserver)
-            );
-        });
+        execute(callMetadataResolver, responseObserver, callMetadata -> jobOperations.updateTask(
+                request.getTaskId(),
+                task -> {
+                    Map<String, String> updatedAttributes = CollectionsExt.merge(task.getAttributes(), request.getAttributesMap());
+                    return Optional.of(task.toBuilder().withAttributes(updatedAttributes).build());
+                },
+                Trigger.API,
+                "User request: userId=" + callMetadata.getCallerId(), callMetadata
+        ).subscribe(
+                () -> {
+                    responseObserver.onNext(Empty.getDefaultInstance());
+                    responseObserver.onCompleted();
+                },
+                e -> safeOnError(logger, e, responseObserver)
+        ));
     }
 
     @Override
     public void deleteTaskAttributes(TaskAttributesDeleteRequest request, StreamObserver<Empty> responseObserver) {
-        execute(callMetadataResolver, responseObserver, callMetadata -> {
-            jobOperations.updateTask(
-                    request.getTaskId(),
-                    task -> {
-                        Map<String, String> updatedAttributes = CollectionsExt.copyAndRemove(task.getAttributes(), request.getKeysList());
-                        return Optional.of(task.toBuilder().withAttributes(updatedAttributes).build());
-                    },
-                    Trigger.API,
-                    "User request: userId=" + callMetadata.getCallerId(),
-                    callMetadata
-            ).subscribe(
-                    () -> {
-                        responseObserver.onNext(Empty.getDefaultInstance());
-                        responseObserver.onCompleted();
-                    },
-                    e -> safeOnError(logger, e, responseObserver)
-            );
-        });
+        execute(callMetadataResolver, responseObserver, callMetadata -> jobOperations.updateTask(
+                request.getTaskId(),
+                task -> {
+                    Map<String, String> updatedAttributes = CollectionsExt.copyAndRemove(task.getAttributes(), request.getKeysList());
+                    return Optional.of(task.toBuilder().withAttributes(updatedAttributes).build());
+                },
+                Trigger.API,
+                "User request: userId=" + callMetadata.getCallerId(),
+                callMetadata
+        ).subscribe(
+                () -> {
+                    responseObserver.onNext(Empty.getDefaultInstance());
+                    responseObserver.onCompleted();
+                },
+                e -> safeOnError(logger, e, responseObserver)
+        ));
     }
 
     @Override
@@ -840,25 +833,28 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
      * Adds dynamic Task Context to a task that is being returned in a task lookup.
      */
     private Task addTaskContextToTask(Task task) {
-        List<TaskPlacementFailure> taskIpAllocationFailures = schedulingService.getLastTaskPlacementFailures()
-                // Get all in use IP allocation failures
-                .getOrDefault(TaskPlacementFailure.FailureKind.WaitingForInUseIpAllocation, Collections.emptyMap())
-                // Get all in use IP allocation failures for this specific task
-                .getOrDefault(task.getId(), Collections.emptyList());
-        for (TaskPlacementFailure inUseIpAllocationFailure : taskIpAllocationFailures) {
-            // Return the first instance of an in use IP allocation failure.
-            if (inUseIpAllocationFailure instanceof InUseIpAllocationConstraintFailure) {
-                return task.toBuilder()
-                        .putTaskContext(TaskAttributes.TASK_ATTRIBUTES_IN_USE_IP_ALLOCATION, ((InUseIpAllocationConstraintFailure) inUseIpAllocationFailure).getInUseTaskId())
-                        .build();
-            } else {
-                // We expect each in use IP allocation failure to be of type InUseIpAllocationConstraintFailure
-                titusRuntime.getCodeInvariants().inconsistent("Found in use IP allocation placement failure not of type {}, instead {}",
-                        InUseIpAllocationConstraintFailure.class.getSimpleName(),
-                        inUseIpAllocationFailure.getClass().getSimpleName());
-            }
+        Map<? extends TaskRequest, List<TaskPlacementFailure>> taskIpAllocationFailures = schedulingService.getLastTaskPlacementFailures()
+                .getOrDefault(TaskPlacementFailure.FailureKind.WaitingForInUseIpAllocation, Collections.emptyMap());
+
+        return taskIpAllocationFailures.values().stream().flatMap(Collection::stream)
+                .filter(failure -> failure.getTaskId().equals(task.getId()))
+                .filter(this::isValidFailureType)
+                .map(InUseIpAllocationConstraintFailure.class::cast)
+                .findFirst()
+                .map(failure -> task.toBuilder()
+                        .putTaskContext(TaskAttributes.TASK_ATTRIBUTES_IN_USE_IP_ALLOCATION, failure.getInUseTaskId())
+                        .build())
+                .orElse(task);
+    }
+
+    private boolean isValidFailureType(TaskPlacementFailure failure) {
+        boolean valid = failure instanceof InUseIpAllocationConstraintFailure;
+        if (!valid) {
+            titusRuntime.getCodeInvariants().inconsistent("Found in use IP allocation placement failure not of type {}, instead {}",
+                    InUseIpAllocationConstraintFailure.class.getSimpleName(),
+                    failure.getClass().getSimpleName());
         }
-        return task;
+        return valid;
     }
 
     /**

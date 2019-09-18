@@ -20,7 +20,6 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.netflix.titus.common.util.guice.annotation.Activator;
-import com.netflix.titus.master.scheduler.SchedulingService;
 
 /**
  * Helper class providing an extra indirection step for proper activation order.
@@ -31,8 +30,7 @@ public class VirtualMachineMasterServiceActivator {
     private final VirtualMachineMasterService virtualMachineMasterService;
 
     @Inject
-    public VirtualMachineMasterServiceActivator(VirtualMachineMasterService virtualMachineMasterService,
-                                                SchedulingService schedulingService) {
+    public VirtualMachineMasterServiceActivator(VirtualMachineMasterService virtualMachineMasterService) {
         this.virtualMachineMasterService = virtualMachineMasterService;
     }
 

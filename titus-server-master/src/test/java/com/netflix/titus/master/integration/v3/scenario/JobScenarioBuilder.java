@@ -36,6 +36,7 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.protobuf.Empty;
 import com.google.protobuf.UInt32Value;
+import com.netflix.fenzo.TaskRequest;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -57,6 +58,7 @@ import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobStatusUpdate;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
+import com.netflix.titus.master.scheduler.SchedulingService;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
 import com.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
@@ -91,6 +93,7 @@ public class JobScenarioBuilder {
     private final EmbeddedTitusOperations titusOperations;
     private final JobsScenarioBuilder jobsScenarioBuilder;
     private final String jobId;
+    private final SchedulingService<? extends TaskRequest> schedulingService;
     private final DiagnosticReporter diagnosticReporter;
 
     private final JobManagementServiceGrpc.JobManagementServiceStub client;
@@ -107,11 +110,13 @@ public class JobScenarioBuilder {
     public JobScenarioBuilder(EmbeddedTitusOperations titusOperations,
                               JobsScenarioBuilder jobsScenarioBuilder,
                               String jobId,
+                              SchedulingService<? extends TaskRequest> schedulingService,
                               DiagnosticReporter diagnosticReporter) {
         this.client = titusOperations.getV3GrpcClient();
         this.titusOperations = titusOperations;
         this.jobsScenarioBuilder = jobsScenarioBuilder;
         this.jobId = jobId;
+        this.schedulingService = schedulingService;
         this.diagnosticReporter = diagnosticReporter;
 
         // FIXME Job is not made immediately visible after it is accepted by reconciliation framework
@@ -252,7 +257,7 @@ public class JobScenarioBuilder {
 
         client.updateJobCapacityWithOptionalAttributes(
                 JobCapacityUpdateWithOptionalAttributes.newBuilder().setJobId(jobId)
-                    .setJobCapacityWithOptionalAttributes(JobCapacityWithOptionalAttributes.newBuilder().setDesired(UInt32Value.newBuilder().setValue(desired).build()).build()).build(),
+                        .setJobCapacityWithOptionalAttributes(JobCapacityWithOptionalAttributes.newBuilder().setDesired(UInt32Value.newBuilder().setValue(desired).build()).build()).build(),
                 responseObserver);
 
         rethrow(() -> responseObserver.awaitDone(TIMEOUT_MS, TimeUnit.MILLISECONDS));
@@ -316,7 +321,7 @@ public class JobScenarioBuilder {
 
         client.updateJobCapacityWithOptionalAttributes(
                 JobCapacityUpdateWithOptionalAttributes.newBuilder().setJobId(jobId)
-                    .setJobCapacityWithOptionalAttributes(JobCapacityWithOptionalAttributes.newBuilder().setMin(UInt32Value.newBuilder().setValue(min).build()).build()).build(),
+                        .setJobCapacityWithOptionalAttributes(JobCapacityWithOptionalAttributes.newBuilder().setMin(UInt32Value.newBuilder().setValue(min).build()).build()).build(),
                 responseObserver);
 
         rethrow(() -> responseObserver.awaitDone(TIMEOUT_MS, TimeUnit.MILLISECONDS));
@@ -339,7 +344,7 @@ public class JobScenarioBuilder {
 
         client.updateJobCapacityWithOptionalAttributes(
                 JobCapacityUpdateWithOptionalAttributes.newBuilder().setJobId(jobId)
-                    .setJobCapacityWithOptionalAttributes(JobCapacityWithOptionalAttributes.newBuilder().setMax(UInt32Value.newBuilder().setValue(max).build()).build()).build(),
+                        .setJobCapacityWithOptionalAttributes(JobCapacityWithOptionalAttributes.newBuilder().setMax(UInt32Value.newBuilder().setValue(max).build()).build()).build(),
                 responseObserver);
 
         rethrow(() -> responseObserver.awaitDone(TIMEOUT_MS, TimeUnit.MILLISECONDS));
@@ -601,7 +606,8 @@ public class JobScenarioBuilder {
 
         private TaskHolder() {
             this.taskEventStream = ReplaySubject.create();
-            this.taskScenarioBuilder = new TaskScenarioBuilder(titusOperations, JobScenarioBuilder.this, taskEventStream, diagnosticReporter);
+            this.taskScenarioBuilder = new TaskScenarioBuilder(titusOperations, JobScenarioBuilder.this, taskEventStream,
+                    schedulingService, diagnosticReporter);
         }
 
         private TaskScenarioBuilder getTaskScenarioBuilder() {

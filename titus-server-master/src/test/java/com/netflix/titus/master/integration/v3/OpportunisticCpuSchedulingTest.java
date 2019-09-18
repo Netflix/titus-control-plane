@@ -23,12 +23,15 @@ import java.util.UUID;
 import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
+import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
+import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.master.integration.BaseIntegrationTest;
 import com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates;
 import com.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import com.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
 import com.netflix.titus.master.integration.v3.scenario.ScenarioTemplates;
+import com.netflix.titus.master.integration.v3.scenario.TaskScenarioBuilder;
 import com.netflix.titus.master.scheduler.opportunistic.OpportunisticCpuAvailability;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import com.netflix.titus.testkit.junit.master.TitusStackResource;
@@ -222,6 +225,51 @@ public class OpportunisticCpuSchedulingTest extends BaseIntegrationTest {
                         .template(ScenarioTemplates.startLaunchedTask())
                 )
         );
+    }
+
+    @Test(timeout = TEST_TIMEOUT_MS)
+    public void launchGuardsDoNotPreventOpportunisticScheduling() throws Exception {
+        String allocationId = UUID.randomUUID().toString();
+        Instant expiresAt = Instant.now().plus(Duration.ofHours(6));
+        OpportunisticCpuAvailability availability = new OpportunisticCpuAvailability(allocationId, expiresAt, 4);
+        instanceGroupsScenarioBuilder.apply("flex2",
+                group -> group.any(instance -> instance.addOpportunisticCpus(availability))
+        );
+
+        JobDescriptor<BatchJobExt> regularJob = oneTaskBatchJobDescriptor().but(j ->
+                j.getExtensions().toBuilder().withSize(4) // one per available agent machine
+        );
+        JobDescriptor<BatchJobExt> opportunisticJob = BATCH_JOB_WITH_RUNTIME_PREDICTION.but(j ->
+                j.getContainer().but(c -> c.getContainerResources().toBuilder().withCpu(4))
+        );
+
+        String regularJobId = jobsScenarioBuilder.schedule(regularJob, jobScenarioBuilder -> jobScenarioBuilder
+                .template(ScenarioTemplates.launchJob())
+                .allTasks(TaskScenarioBuilder::expectTaskOnAgent /* hold launch guard */)
+        ).takeJobId(0);
+
+        String opportunisticJobId = jobsScenarioBuilder.schedule(opportunisticJob, jobScenarioBuilder -> jobScenarioBuilder
+                .template(ScenarioTemplates.jobAccepted())
+                .expectAllTasksCreated()
+                .allTasks(taskScenarioBuilder -> taskScenarioBuilder
+                        .expectSchedulingFailed()
+                        .assertTask(task -> task.getStatus().getState().equals(TaskState.Accepted), "are still waiting for launchguards")
+                )
+        ).takeJobId(1);
+
+        // free up launch guards
+        jobsScenarioBuilder.takeJob(regularJobId).template(ScenarioTemplates.startLaunchedTasks());
+
+        // opportunistic scheduling can now proceed without decrementing allocated opportunistic CPUs
+        jobsScenarioBuilder.takeJob(opportunisticJobId)
+                .allTasks(taskScenarioBuilder -> taskScenarioBuilder
+                        .expectStateUpdateSkipOther(TaskStatus.TaskState.Launched)
+                        .expectTaskContext(TASK_ATTRIBUTES_AGENT_ASG, "flex2")
+                        .expectTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION, allocationId)
+                        .expectTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT, "4")
+                        // free up launch guard
+                        .template(ScenarioTemplates.startLaunchedTask())
+                );
     }
 
     @Test(timeout = TEST_TIMEOUT_MS)

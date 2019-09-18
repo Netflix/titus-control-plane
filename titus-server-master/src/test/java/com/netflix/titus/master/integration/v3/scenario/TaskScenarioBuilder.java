@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 import com.google.protobuf.Empty;
+import com.netflix.fenzo.TaskRequest;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.common.aws.AwsInstanceType;
@@ -39,6 +40,7 @@ import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskMoveRequest;
 import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.grpc.protogen.TaskTerminateRequest;
+import com.netflix.titus.master.scheduler.SchedulingResultEvent;
 import com.netflix.titus.master.scheduler.SchedulingService;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
@@ -76,9 +78,7 @@ public class TaskScenarioBuilder {
     private final ExtTestSubscriber<Task> eventStreamSubscriber = new ExtTestSubscriber<>();
     private final Subscription eventStreamSubscription;
 
-    /**
-     * Keep reference to {@link SchedulingService} for diagnostic purposes.
-     */
+    private final SchedulingService<? extends TaskRequest> schedulingService;
     private final DiagnosticReporter diagnosticReporter;
 
     private volatile TaskExecutorHolder taskExecutionHolder;
@@ -86,11 +86,13 @@ public class TaskScenarioBuilder {
     public TaskScenarioBuilder(EmbeddedTitusOperations titusOperations,
                                JobScenarioBuilder jobScenarioBuilder,
                                Observable<Task> eventStream,
+                               SchedulingService<? extends TaskRequest> schedulingService,
                                DiagnosticReporter diagnosticReporter) {
         this.jobClient = titusOperations.getV3GrpcClient();
         this.evictionClient = titusOperations.getBlockingGrpcEvictionClient();
         this.jobScenarioBuilder = jobScenarioBuilder;
         this.eventStreamSubscription = eventStream.subscribe(eventStreamSubscriber);
+        this.schedulingService = schedulingService;
         this.diagnosticReporter = diagnosticReporter;
         eventStream.take(1).flatMap(task ->
                 titusOperations.awaitTaskExecutorHolderOf(task.getId())
@@ -263,6 +265,18 @@ public class TaskScenarioBuilder {
             diagnosticReporter.reportWhenTaskNotScheduled(getTask().getId());
             throw e;
         }
+        return this;
+    }
+
+
+    public TaskScenarioBuilder expectSchedulingFailed() {
+        String taskId = getTask().getId();
+        logger.info("[{}] Expecting task {} to fail being scheduled", discoverActiveTest(), taskId);
+        await().pollInterval(1, TimeUnit.SECONDS).timeout(TIMEOUT_MS, TimeUnit.MILLISECONDS).until(() ->
+                schedulingService.findLastSchedulingResult(taskId)
+                        .map(event -> event instanceof SchedulingResultEvent.FailedSchedulingResultEvent)
+                        .orElse(false)
+        );
         return this;
     }
 

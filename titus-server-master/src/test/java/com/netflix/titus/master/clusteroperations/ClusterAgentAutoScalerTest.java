@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.netflix.fenzo.TaskRequest;
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
@@ -65,6 +66,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.matches;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -78,7 +80,8 @@ public class ClusterAgentAutoScalerTest {
     private final ClusterOperationsConfiguration configuration = mock(ClusterOperationsConfiguration.class);
     private final AgentManagementService agentManagementService = mock(AgentManagementService.class);
     private final V3JobOperations v3JobOperations = mock(V3JobOperations.class);
-    private final SchedulingService schedulingService = mock(SchedulingService.class);
+    @SuppressWarnings("unchecked")
+    private final SchedulingService<? extends TaskRequest> schedulingService = mock(SchedulingService.class);
 
     @Before
     public void setUp() throws Exception {
@@ -185,7 +188,7 @@ public class ClusterAgentAutoScalerTest {
         Map<TaskPlacementFailure.FailureKind, Map<String, List<TaskPlacementFailure>>> taskPlacementFailures = createTaskPlacementFailures(ImmutableMap.of(
                 AllAgentsFull, 10
         ), Tier.Flex);
-        when(schedulingService.getLastTaskPlacementFailures()).thenReturn(taskPlacementFailures);
+        doReturn(taskPlacementFailures).when(schedulingService).getLastTaskPlacementFailures();
 
         AgentInstanceGroup instanceGroup = AgentInstanceGroup.newBuilder()
                 .withId("instanceGroup1")
@@ -229,7 +232,7 @@ public class ClusterAgentAutoScalerTest {
                 WaitingForInUseIpAllocation, 2,
                 OpportunisticResource, 8
         ), Tier.Flex);
-        when(schedulingService.getLastTaskPlacementFailures()).thenReturn(taskPlacementFailures);
+        doReturn(taskPlacementFailures).when(schedulingService).getLastTaskPlacementFailures();
 
         AgentInstanceGroup instanceGroup = AgentInstanceGroup.newBuilder()
                 .withId("instanceGroup1")
@@ -298,7 +301,7 @@ public class ClusterAgentAutoScalerTest {
         Map<TaskPlacementFailure.FailureKind, Map<String, List<TaskPlacementFailure>>> taskPlacementFailures = createTaskPlacementFailures(ImmutableMap.of(
                 AllAgentsFull, 10
         ), Tier.Flex);
-        when(schedulingService.getLastTaskPlacementFailures()).thenReturn(taskPlacementFailures);
+        doReturn(taskPlacementFailures).when(schedulingService).getLastTaskPlacementFailures();
 
         when(agentManagementService.getInstanceGroups()).thenReturn(singletonList(instanceGroup));
 
@@ -353,7 +356,7 @@ public class ClusterAgentAutoScalerTest {
                 WaitingForInUseIpAllocation, 2,
                 OpportunisticResource, 8
         ), Tier.Flex);
-        when(schedulingService.getLastTaskPlacementFailures()).thenReturn(taskPlacementFailures);
+        doReturn(taskPlacementFailures).when(schedulingService).getLastTaskPlacementFailures();
 
         when(agentManagementService.getInstanceGroups()).thenReturn(singletonList(instanceGroup));
 

@@ -30,12 +30,14 @@ import javax.inject.Singleton;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
 import com.google.inject.AbstractModule;
+import com.google.inject.Key;
 import com.google.inject.Module;
 import com.google.inject.Provides;
 import com.google.inject.util.Modules;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.archaius.config.DefaultSettableConfig;
 import com.netflix.archaius.guice.ArchaiusModule;
+import com.netflix.fenzo.TaskRequest;
 import com.netflix.governator.InjectorBuilder;
 import com.netflix.governator.LifecycleInjector;
 import com.netflix.governator.guice.jetty.JettyModule;
@@ -83,6 +85,7 @@ import com.netflix.titus.master.eviction.service.quota.system.ArchaiusSystemDisr
 import com.netflix.titus.master.eviction.service.quota.system.SystemDisruptionBudgetDescriptor;
 import com.netflix.titus.master.mesos.MesosSchedulerDriverFactory;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
+import com.netflix.titus.master.scheduler.SchedulingService;
 import com.netflix.titus.master.scheduler.opportunistic.OpportunisticCpuAvailability;
 import com.netflix.titus.master.scheduler.opportunistic.OpportunisticCpuAvailabilityProvider;
 import com.netflix.titus.master.supervisor.service.leader.LocalMasterMonitor;
@@ -391,7 +394,16 @@ public class EmbeddedTitusMaster {
         return ((EmbeddedVirtualMachineMasterService) injector.getInstance(VirtualMachineMasterService.class)).getSimulatedMesosDriver();
     }
 
+    public SchedulingService<? extends TaskRequest> getSchedulingService() {
+        return getInstance(new Key<SchedulingService<? extends TaskRequest>>() {
+        });
+    }
+
     public <T> T getInstance(Class<T> type) {
+        return injector.getInstance(type);
+    }
+
+    public <T> T getInstance(Key<T> type) {
         return injector.getInstance(type);
     }
 

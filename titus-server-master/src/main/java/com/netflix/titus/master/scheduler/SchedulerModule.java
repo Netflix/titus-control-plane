@@ -23,6 +23,7 @@ import com.google.inject.Provides;
 import com.google.inject.TypeLiteral;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.fenzo.PreferentialNamedConsumableResourceEvaluator;
+import com.netflix.fenzo.TaskRequest;
 import com.netflix.titus.api.scheduler.service.SchedulerService;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
@@ -50,7 +51,8 @@ public final class SchedulerModule extends AbstractModule {
         bind(VMOperations.class).to(VMOperationsImpl.class);
         bind(TierSlaUpdater.class).to(DefaultTierSlaUpdater.class);
         bind(PreferentialNamedConsumableResourceEvaluator.class).to(TitusNetworkInterfaceFitnessEvaluator.class);
-        bind(SchedulingService.class).to(DefaultSchedulingService.class).asEagerSingleton();
+        bind(new TypeLiteral<SchedulingService<? extends TaskRequest>>() {
+        }).to(DefaultSchedulingService.class).asEagerSingleton();
         bind(AgentResourceCache.class).to(DefaultAgentResourceCache.class);
 
         bind(SystemSoftConstraint.class).to(DefaultSystemSoftConstraint.class);

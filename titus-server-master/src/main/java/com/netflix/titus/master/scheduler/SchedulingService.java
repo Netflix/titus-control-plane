@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import com.netflix.fenzo.queues.QAttributes;
+import com.netflix.fenzo.TaskRequest;
 import com.netflix.fenzo.queues.QueuableTask;
 import com.netflix.titus.master.scheduler.TaskPlacementFailure.FailureKind;
 import rx.Observable;
@@ -28,7 +28,7 @@ import rx.Observable;
 /**
  *
  */
-public interface SchedulingService {
+public interface SchedulingService<T extends TaskRequest> {
 
     String COMPONENT = "scheduler";
 
@@ -67,5 +67,5 @@ public interface SchedulingService {
     /**
      * Returns the last known task placement failures grouped by a failure kind and task id.
      */
-    Map<FailureKind, Map<String, List<TaskPlacementFailure>>> getLastTaskPlacementFailures();
+    Map<FailureKind, Map<T, List<TaskPlacementFailure>>> getLastTaskPlacementFailures();
 }

@@ -18,7 +18,9 @@ package com.netflix.titus.master.scheduler;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
+import com.google.common.collect.Sets;
 import com.netflix.titus.api.model.Tier;
 
 public class TaskPlacementFailure {
@@ -65,7 +67,21 @@ public class TaskPlacementFailure {
          */
         OpportunisticResource,
 
-        Unrecognized,
+        Unrecognized;
+
+        /**
+         * Failures that are expected to go away, and should not be acted upon
+         *
+         * @see DefaultSchedulingService
+         */
+        public static final Set<FailureKind> TRANSIENT = Sets.immutableEnumSet(WaitingForInUseIpAllocation, LaunchGuard);
+
+        /**
+         * Failures that should never trigger cluster autoscaling
+         *
+         * @see com.netflix.titus.master.clusteroperations.ClusterAgentAutoScaler
+         */
+        public static final Set<FailureKind> NEVER_TRIGGER_AUTOSCALING = Sets.immutableEnumSet(WaitingForInUseIpAllocation, OpportunisticResource);
     }
 
     private final String taskId;

@@ -83,6 +83,7 @@ import com.netflix.titus.master.mesos.MesosConfiguration;
 import com.netflix.titus.master.mesos.TaskInfoFactory;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.model.job.TitusQueuableTask;
+import com.netflix.titus.master.scheduler.TaskPlacementFailure.FailureKind;
 import com.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
 import com.netflix.titus.master.scheduler.constraint.TaskCacheEventListener;
 import com.netflix.titus.master.scheduler.fitness.AgentManagementFitnessCalculator;
@@ -105,7 +106,7 @@ import rx.subjects.BehaviorSubject;
 import static com.netflix.titus.master.MetricConstants.METRIC_SCHEDULING_SERVICE;
 
 @Singleton
-public class DefaultSchedulingService implements SchedulingService {
+public class DefaultSchedulingService implements SchedulingService<V3QueueableTask> {
     private static final Logger logger = LoggerFactory.getLogger(DefaultSchedulingService.class);
 
     private static final String METRIC_SLA_UPDATES = METRIC_SCHEDULING_SERVICE + "slaUpdates";
@@ -127,7 +128,7 @@ public class DefaultSchedulingService implements SchedulingService {
     private final TaskSchedulingService schedulingService;
     private TaskQueue taskQueue;
     private Subscription slaUpdateSubscription;
-    private final TaskPlacementFailureClassifier taskPlacementFailureClassifier;
+    private final TaskPlacementFailureClassifier<V3QueueableTask> taskPlacementFailureClassifier;
 
     private final Gauge totalTasksPerIterationGauge;
     private final Gauge assignedTasksPerIterationGauge;
@@ -285,7 +286,7 @@ public class DefaultSchedulingService implements SchedulingService {
         });
 
         this.taskPlacementRecorder = new TaskPlacementRecorder(config, masterConfiguration, schedulingService, v3JobOperations, v3TaskInfoFactory, opportunisticCpuCache, titusRuntime);
-        this.taskPlacementFailureClassifier = new TaskPlacementFailureClassifier(titusRuntime);
+        this.taskPlacementFailureClassifier = new TaskPlacementFailureClassifier<>(titusRuntime);
 
         totalTasksPerIterationGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "totalTasksPerIteration");
         assignedTasksPerIterationGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "assignedTasksPerIteration");
@@ -486,8 +487,8 @@ public class DefaultSchedulingService implements SchedulingService {
         assignedDuringSchedulingResult += taskInfos.stream().mapToInt(p -> p.getRight().size()).sum();
 
         recordLastSchedulingResult(schedulingResult);
-        processTaskSchedulingFailureCallbacks(schedulingResult);
         taskPlacementFailureClassifier.update(schedulingResult);
+        processTaskSchedulingFailureCallbacks(taskPlacementFailureClassifier.getLastTaskPlacementFailures());
 
         totalTasksPerIterationGauge.set(assignedDuringSchedulingResult + failedTasksDuringSchedulingResult);
         assignedTasksPerIterationGauge.set(assignedDuringSchedulingResult);
@@ -517,8 +518,12 @@ public class DefaultSchedulingService implements SchedulingService {
         }
     }
 
-    private void processTaskSchedulingFailureCallbacks(SchedulingResult schedulingResult) {
-        for (TaskRequest failed : schedulingResult.getFailures().keySet()) {
+    /**
+     * Notify opportunistic tasks when they could not be scheduled in an iteration, ignoring scheduling failures that
+     * are transient and should be retried on every iteration.
+     */
+    private void processTaskSchedulingFailureCallbacks(Map<FailureKind, Map<V3QueueableTask, List<TaskPlacementFailure>>> failuresByKind) {
+        for (V3QueueableTask failed : SchedulerUtils.collectFailedTasksIgnoring(failuresByKind, FailureKind.TRANSIENT)) {
             ((TitusQueuableTask) failed).opportunisticSchedulingFailed();
         }
     }
@@ -670,7 +675,7 @@ public class DefaultSchedulingService implements SchedulingService {
     }
 
     @Override
-    public Map<TaskPlacementFailure.FailureKind, Map<String, List<TaskPlacementFailure>>> getLastTaskPlacementFailures() {
+    public Map<FailureKind, Map<V3QueueableTask, List<TaskPlacementFailure>>> getLastTaskPlacementFailures() {
         return taskPlacementFailureClassifier.getLastTaskPlacementFailures();
     }
 
