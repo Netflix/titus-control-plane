@@ -30,6 +30,7 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
+import com.netflix.fenzo.TaskRequest;
 import com.netflix.spectator.api.BasicTag;
 import com.netflix.spectator.api.Gauge;
 import com.netflix.spectator.api.Registry;
@@ -112,7 +113,7 @@ public class JobReconciliationFrameworkFactory {
     private final DifferenceResolver<JobManagerReconcilerEvent> dispatchingResolver;
     private final JobManagerConfiguration jobManagerConfiguration;
     private final JobStore store;
-    private final SchedulingService schedulingService;
+    private final SchedulingService<? extends TaskRequest> schedulingService;
     private final ApplicationSlaManagementService capacityGroupService;
     private final SystemSoftConstraint systemSoftConstraint;
     private final SystemHardConstraint systemHardConstraint;
@@ -135,7 +136,7 @@ public class JobReconciliationFrameworkFactory {
                                              @Named(BATCH_RESOLVER) DifferenceResolver<JobManagerReconcilerEvent> batchDifferenceResolver,
                                              @Named(SERVICE_RESOLVER) DifferenceResolver<JobManagerReconcilerEvent> serviceDifferenceResolver,
                                              JobStore store,
-                                             SchedulingService schedulingService,
+                                             SchedulingService<? extends TaskRequest> schedulingService,
                                              ApplicationSlaManagementService capacityGroupService,
                                              SystemSoftConstraint systemSoftConstraint,
                                              SystemHardConstraint systemHardConstraint,
@@ -154,7 +155,7 @@ public class JobReconciliationFrameworkFactory {
                                              DifferenceResolver<JobManagerReconcilerEvent> batchDifferenceResolver,
                                              DifferenceResolver<JobManagerReconcilerEvent> serviceDifferenceResolver,
                                              JobStore store,
-                                             SchedulingService schedulingService,
+                                             SchedulingService<? extends TaskRequest> schedulingService,
                                              ApplicationSlaManagementService capacityGroupService,
                                              SystemSoftConstraint systemSoftConstraint,
                                              SystemHardConstraint systemHardConstraint,

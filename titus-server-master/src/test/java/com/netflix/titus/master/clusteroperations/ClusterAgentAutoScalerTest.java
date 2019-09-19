@@ -25,6 +25,9 @@ import java.util.concurrent.TimeUnit;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
+import com.netflix.fenzo.ConstraintEvaluator;
+import com.netflix.fenzo.TaskRequest;
+import com.netflix.fenzo.VMTaskFitnessCalculator;
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
@@ -48,6 +51,7 @@ import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.master.scheduler.SchedulingService;
 import com.netflix.titus.master.scheduler.TaskPlacementFailure;
+import com.netflix.titus.master.scheduler.TaskPlacementFailure.FailureKind;
 import org.junit.Before;
 import org.junit.Test;
 import rx.Completable;
@@ -65,6 +69,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.matches;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -78,7 +83,8 @@ public class ClusterAgentAutoScalerTest {
     private final ClusterOperationsConfiguration configuration = mock(ClusterOperationsConfiguration.class);
     private final AgentManagementService agentManagementService = mock(AgentManagementService.class);
     private final V3JobOperations v3JobOperations = mock(V3JobOperations.class);
-    private final SchedulingService schedulingService = mock(SchedulingService.class);
+    @SuppressWarnings("unchecked")
+    private final SchedulingService<StubTaskRequest> schedulingService = mock(SchedulingService.class);
 
     @Before
     public void setUp() throws Exception {
@@ -182,10 +188,10 @@ public class ClusterAgentAutoScalerTest {
         List<Task> tasks = createTasks(10, "jobId");
         when(v3JobOperations.getTasks()).thenReturn(tasks);
 
-        Map<TaskPlacementFailure.FailureKind, Map<String, List<TaskPlacementFailure>>> taskPlacementFailures = createTaskPlacementFailures(ImmutableMap.of(
+        Map<FailureKind, Map<StubTaskRequest, List<TaskPlacementFailure>>> taskPlacementFailures = createTaskPlacementFailures(ImmutableMap.of(
                 AllAgentsFull, 10
         ), Tier.Flex);
-        when(schedulingService.getLastTaskPlacementFailures()).thenReturn(taskPlacementFailures);
+        doReturn(taskPlacementFailures).when(schedulingService).getLastTaskPlacementFailures();
 
         AgentInstanceGroup instanceGroup = AgentInstanceGroup.newBuilder()
                 .withId("instanceGroup1")
@@ -225,11 +231,11 @@ public class ClusterAgentAutoScalerTest {
         List<Task> tasks = createTasks(10, "jobId");
         when(v3JobOperations.getTasks()).thenReturn(tasks);
 
-        Map<TaskPlacementFailure.FailureKind, Map<String, List<TaskPlacementFailure>>> taskPlacementFailures = createTaskPlacementFailures(ImmutableMap.of(
+        Map<FailureKind, Map<StubTaskRequest, List<TaskPlacementFailure>>> taskPlacementFailures = createTaskPlacementFailures(ImmutableMap.of(
                 WaitingForInUseIpAllocation, 2,
                 OpportunisticResource, 8
         ), Tier.Flex);
-        when(schedulingService.getLastTaskPlacementFailures()).thenReturn(taskPlacementFailures);
+        doReturn(taskPlacementFailures).when(schedulingService).getLastTaskPlacementFailures();
 
         AgentInstanceGroup instanceGroup = AgentInstanceGroup.newBuilder()
                 .withId("instanceGroup1")
@@ -295,10 +301,10 @@ public class ClusterAgentAutoScalerTest {
         List<Task> tasks = createTasks(10, "jobId");
         when(v3JobOperations.getTasks()).thenReturn(tasks);
 
-        Map<TaskPlacementFailure.FailureKind, Map<String, List<TaskPlacementFailure>>> taskPlacementFailures = createTaskPlacementFailures(ImmutableMap.of(
+        Map<FailureKind, Map<StubTaskRequest, List<TaskPlacementFailure>>> taskPlacementFailures = createTaskPlacementFailures(ImmutableMap.of(
                 AllAgentsFull, 10
         ), Tier.Flex);
-        when(schedulingService.getLastTaskPlacementFailures()).thenReturn(taskPlacementFailures);
+        doReturn(taskPlacementFailures).when(schedulingService).getLastTaskPlacementFailures();
 
         when(agentManagementService.getInstanceGroups()).thenReturn(singletonList(instanceGroup));
 
@@ -349,11 +355,11 @@ public class ClusterAgentAutoScalerTest {
         List<Task> tasks = createTasks(10, "jobId");
         when(v3JobOperations.getTasks()).thenReturn(tasks);
 
-        Map<TaskPlacementFailure.FailureKind, Map<String, List<TaskPlacementFailure>>> taskPlacementFailures = createTaskPlacementFailures(ImmutableMap.of(
+        Map<FailureKind, Map<StubTaskRequest, List<TaskPlacementFailure>>> taskPlacementFailures = createTaskPlacementFailures(ImmutableMap.of(
                 WaitingForInUseIpAllocation, 2,
                 OpportunisticResource, 8
         ), Tier.Flex);
-        when(schedulingService.getLastTaskPlacementFailures()).thenReturn(taskPlacementFailures);
+        doReturn(taskPlacementFailures).when(schedulingService).getLastTaskPlacementFailures();
 
         when(agentManagementService.getInstanceGroups()).thenReturn(singletonList(instanceGroup));
 
@@ -625,15 +631,15 @@ public class ClusterAgentAutoScalerTest {
         return agents;
     }
 
-    private Map<TaskPlacementFailure.FailureKind, Map<String, List<TaskPlacementFailure>>> createTaskPlacementFailures(Map<TaskPlacementFailure.FailureKind, Integer> count,
-                                                                                                                       Tier tier) {
-        Map<TaskPlacementFailure.FailureKind, Map<String, List<TaskPlacementFailure>>> failureKinds = new HashMap<>();
-        for (Map.Entry<TaskPlacementFailure.FailureKind, Integer> entry : count.entrySet()) {
-            TaskPlacementFailure.FailureKind failureKind = entry.getKey();
+    private Map<FailureKind, Map<StubTaskRequest, List<TaskPlacementFailure>>> createTaskPlacementFailures(Map<FailureKind, Integer> count, Tier tier) {
+        Map<FailureKind, Map<StubTaskRequest, List<TaskPlacementFailure>>> failureKinds = new HashMap<>();
+        for (Map.Entry<FailureKind, Integer> entry : count.entrySet()) {
+            FailureKind failureKind = entry.getKey();
             for (int i = 0; i < entry.getValue(); i++) {
-                Map<String, List<TaskPlacementFailure>> failuresByTaskId = failureKinds.computeIfAbsent(failureKind, k -> new HashMap<>());
+                Map<StubTaskRequest, List<TaskPlacementFailure>> failuresByTaskId = failureKinds.computeIfAbsent(failureKind, k -> new HashMap<>());
                 String taskId = "task" + i;
-                failuresByTaskId.computeIfAbsent(taskId, k -> new ArrayList<>()).add(new TaskPlacementFailure(taskId, failureKind, -1, tier, Collections.emptyMap()));
+                failuresByTaskId.computeIfAbsent(new StubTaskRequest(taskId), k -> new ArrayList<>())
+                        .add(new TaskPlacementFailure(taskId, failureKind, -1, tier, Collections.emptyMap()));
             }
         }
         return failureKinds;
@@ -668,5 +674,79 @@ public class ClusterAgentAutoScalerTest {
             tasks.add(task);
         }
         return tasks;
+    }
+
+    private static class StubTaskRequest implements TaskRequest {
+        private final String taskId;
+        private AssignedResources assignedResources;
+
+        private StubTaskRequest(String taskId) {
+            this.taskId = taskId;
+        }
+
+        @Override
+        public String getId() {
+            return taskId;
+        }
+
+        @Override
+        public String taskGroupName() {
+            return "";
+        }
+
+        @Override
+        public double getCPUs() {
+            return 1.0;
+        }
+
+        @Override
+        public double getMemory() {
+            return 512.0;
+        }
+
+        @Override
+        public double getNetworkMbps() {
+            return 128;
+        }
+
+        @Override
+        public double getDisk() {
+            return 10000;
+        }
+
+        @Override
+        public int getPorts() {
+            return 0;
+        }
+
+        @Override
+        public Map<String, Double> getScalarRequests() {
+            return Collections.emptyMap();
+        }
+
+        @Override
+        public Map<String, NamedResourceSetRequest> getCustomNamedResources() {
+            return Collections.emptyMap();
+        }
+
+        @Override
+        public List<? extends ConstraintEvaluator> getHardConstraints() {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public List<? extends VMTaskFitnessCalculator> getSoftConstraints() {
+            return Collections.emptyList();
+        }
+
+        @Override
+        public void setAssignedResources(AssignedResources assignedResources) {
+            this.assignedResources = assignedResources;
+        }
+
+        @Override
+        public AssignedResources getAssignedResources() {
+            return assignedResources;
+        }
     }
 }

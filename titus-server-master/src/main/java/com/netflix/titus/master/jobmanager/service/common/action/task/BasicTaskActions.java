@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import com.netflix.fenzo.TaskRequest;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
@@ -91,7 +92,7 @@ public class BasicTaskActions {
      * This command calls {@link JobStore#updateTask(Task)}, which assumes that the task record was created already.
      */
     public static TitusChangeAction writeReferenceTaskToStore(JobStore titusStore,
-                                                              SchedulingService schedulingService,
+                                                              SchedulingService<? extends TaskRequest> schedulingService,
                                                               ApplicationSlaManagementService capacityGroupService,
                                                               ReconciliationEngine<JobManagerReconcilerEvent> engine,
                                                               String taskId,
@@ -193,7 +194,7 @@ public class BasicTaskActions {
      * Add a task to {@link SchedulingService}, and create runtime entity holder for it.
      */
     public static TitusChangeAction scheduleTask(ApplicationSlaManagementService capacityGroupService,
-                                                 SchedulingService schedulingService,
+                                                 SchedulingService<? extends TaskRequest> schedulingService,
                                                  Job<?> job,
                                                  Task task,
                                                  Supplier<Boolean> opportunisticSchedulingEnabled,

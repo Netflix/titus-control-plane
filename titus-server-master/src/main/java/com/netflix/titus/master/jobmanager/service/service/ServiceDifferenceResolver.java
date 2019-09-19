@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.netflix.fenzo.TaskRequest;
 import com.netflix.titus.api.FeatureActivationConfiguration;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
@@ -80,7 +81,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
     private final JobManagerConfiguration configuration;
     private final FeatureActivationConfiguration featureConfiguration;
     private final ApplicationSlaManagementService capacityGroupService;
-    private final SchedulingService schedulingService;
+    private final SchedulingService<? extends TaskRequest> schedulingService;
     private final VirtualMachineMasterService vmService;
     private final JobStore jobStore;
     private final ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer;
@@ -97,7 +98,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
             JobManagerConfiguration configuration,
             FeatureActivationConfiguration featureConfiguration,
             ApplicationSlaManagementService capacityGroupService,
-            SchedulingService schedulingService,
+            SchedulingService<? extends TaskRequest> schedulingService,
             VirtualMachineMasterService vmService,
             JobStore jobStore,
             ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
@@ -113,7 +114,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
             JobManagerConfiguration configuration,
             FeatureActivationConfiguration featureConfiguration,
             ApplicationSlaManagementService capacityGroupService,
-            SchedulingService schedulingService,
+            SchedulingService<? extends TaskRequest> schedulingService,
             VirtualMachineMasterService vmService,
             JobStore jobStore,
             ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,

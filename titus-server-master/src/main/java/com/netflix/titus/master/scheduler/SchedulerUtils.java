@@ -18,8 +18,11 @@ package com.netflix.titus.master.scheduler;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import com.netflix.fenzo.TaskRequest;
 import com.netflix.fenzo.TaskTracker;
@@ -27,7 +30,6 @@ import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.fenzo.VirtualMachineLease;
 import com.netflix.fenzo.queues.QueuableTask;
 import com.netflix.titus.api.agent.model.AgentInstance;
-import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.util.StringExt;
@@ -106,5 +108,18 @@ public class SchedulerUtils {
         }
 
         return result;
+    }
+
+    static Set<V3QueueableTask> collectFailedTasksIgnoring(
+            Map<TaskPlacementFailure.FailureKind, Map<V3QueueableTask, List<TaskPlacementFailure>>> failuresByKind,
+            Set<TaskPlacementFailure.FailureKind> ignoredFailureKinds) {
+        Set<V3QueueableTask> failedTasks = new HashSet<>();
+        for (Map.Entry<TaskPlacementFailure.FailureKind, Map<V3QueueableTask, List<TaskPlacementFailure>>> entry : failuresByKind.entrySet()) {
+            if (ignoredFailureKinds.contains(entry.getKey())) {
+                continue;
+            }
+            failedTasks.addAll(entry.getValue().keySet());
+        }
+        return failedTasks;
     }
 }

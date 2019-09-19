@@ -28,6 +28,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.netflix.fenzo.TaskRequest;
 import com.netflix.titus.api.FeatureActivationConfiguration;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Job;
@@ -77,7 +78,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
     private final JobManagerConfiguration configuration;
     private final FeatureActivationConfiguration featureConfiguration;
     private final ApplicationSlaManagementService capacityGroupService;
-    private final SchedulingService schedulingService;
+    private final SchedulingService<? extends TaskRequest> schedulingService;
     private final VirtualMachineMasterService vmService;
     private final JobStore jobStore;
 
@@ -95,7 +96,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
             JobManagerConfiguration configuration,
             FeatureActivationConfiguration featureConfiguration,
             ApplicationSlaManagementService capacityGroupService,
-            SchedulingService schedulingService,
+            SchedulingService<? extends TaskRequest> schedulingService,
             VirtualMachineMasterService vmService,
             JobStore jobStore,
             ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
@@ -111,7 +112,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
             JobManagerConfiguration configuration,
             FeatureActivationConfiguration featureConfiguration,
             ApplicationSlaManagementService capacityGroupService,
-            SchedulingService schedulingService,
+            SchedulingService<? extends TaskRequest> schedulingService,
             VirtualMachineMasterService vmService,
             JobStore jobStore,
             ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,

@@ -20,6 +20,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import com.google.inject.Key;
+import com.netflix.fenzo.TaskRequest;
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.service.AgentManagementService;
@@ -48,14 +50,14 @@ public class DiagnosticReporter {
 
     private final AgentManagementService agentManagement;
     private final V3JobOperations jobOperations;
-    private final SchedulingService schedulingService;
+    private final SchedulingService<? extends TaskRequest> schedulingService;
     private final SimulatedCloud simulatedCloud;
 
     public DiagnosticReporter(EmbeddedTitusMaster titusMaster) {
         this.simulatedCloud = titusMaster.getSimulatedCloud();
         this.agentManagement = titusMaster.getInstance(AgentManagementService.class);
         this.jobOperations = titusMaster.getInstance(V3JobOperations.class);
-        this.schedulingService = titusMaster.getInstance(SchedulingService.class);
+        this.schedulingService = titusMaster.getSchedulingService();
     }
 
     public void reportAgentsInTheCloud() {

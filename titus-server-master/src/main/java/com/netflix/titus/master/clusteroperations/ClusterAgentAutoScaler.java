@@ -20,7 +20,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -40,7 +39,9 @@ import com.google.common.base.Strings;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.primitives.Ints;
+import com.netflix.fenzo.TaskRequest;
 import com.netflix.spectator.api.BasicTag;
 import com.netflix.spectator.api.Gauge;
 import com.netflix.spectator.api.Registry;
@@ -108,12 +109,16 @@ public class ClusterAgentAutoScaler {
     private static final Comparator<AgentInstanceGroup> PREFER_ACTIVE_INSTANCE_GROUP_COMPARATOR = Comparator.comparing(ig -> ig.getLifecycleStatus().getState());
     private static final Comparator<AgentInstanceGroup> PREFER_PHASED_OUT_INSTANCE_GROUP_COMPARATOR = PREFER_ACTIVE_INSTANCE_GROUP_COMPARATOR.reversed();
     private static final Set<String> IGNORED_HARD_CONSTRAINT_NAMES = asSet("machineid", "machinetype");
+    private static final Set<FailureKind> IGNORED_FAILURE_KINDS_WITH_LAUNCHGUARD = ImmutableSet.<FailureKind>builder()
+            .addAll(FailureKind.NEVER_TRIGGER_AUTOSCALING)
+            .add(FailureKind.LaunchGuard)
+            .build();
 
     private final TitusRuntime titusRuntime;
     private final ClusterOperationsConfiguration configuration;
     private final AgentManagementService agentManagementService;
     private final V3JobOperations v3JobOperations;
-    private final SchedulingService schedulingService;
+    private final SchedulingService<? extends TaskRequest> schedulingService;
     private final Scheduler scheduler;
     private final Clock clock;
     private final Cache<String, String> taskIdsForPreviousScaleUps;
@@ -126,7 +131,7 @@ public class ClusterAgentAutoScaler {
                                   ClusterOperationsConfiguration configuration,
                                   AgentManagementService agentManagementService,
                                   V3JobOperations v3JobOperations,
-                                  SchedulingService schedulingService) {
+                                  SchedulingService<? extends TaskRequest> schedulingService) {
         this(titusRuntime, configuration, agentManagementService, v3JobOperations, schedulingService,
                 SchedulerExt.createSingleThreadScheduler("cluster-auto-scaler"));
     }
@@ -135,7 +140,7 @@ public class ClusterAgentAutoScaler {
                                   ClusterOperationsConfiguration configuration,
                                   AgentManagementService agentManagementService,
                                   V3JobOperations v3JobOperations,
-                                  SchedulingService schedulingService,
+                                  SchedulingService<? extends TaskRequest> schedulingService,
                                   Scheduler scheduler) {
         this.titusRuntime = titusRuntime;
         this.configuration = configuration;
@@ -181,11 +186,9 @@ public class ClusterAgentAutoScaler {
             Map<String, List<AgentInstance>> instancesForActiveInstanceGroupsById = instancesForActiveInstanceGroups.entrySet().stream()
                     .collect(Collectors.toMap(e -> e.getKey().getId(), Map.Entry::getValue));
             Map<String, Long> numberOfTasksOnAgents = getNumberOfTasksOnAgents(allTasks.values());
-            Map<FailureKind, Map<String, List<TaskPlacementFailure>>> lastTaskPlacementFailures = schedulingService.getLastTaskPlacementFailures();
-            Map<Tier, Set<String>> failedTaskIdsByTier = getFailedTaskIds(lastTaskPlacementFailures, EnumSet.of(
-                    FailureKind.WaitingForInUseIpAllocation,
-                    FailureKind.OpportunisticResource
-            ));
+            Map<Tier, Set<String>> failedTaskIdsByTier = getFailedTaskIdsByTier(
+                    schedulingService.getLastTaskPlacementFailures(), FailureKind.NEVER_TRIGGER_AUTOSCALING
+            );
 
             long now = clock.wallTime();
 
@@ -226,11 +229,9 @@ public class ClusterAgentAutoScaler {
                         agentCountToScaleUp += instancesNeededForMinIdle;
                     }
 
-                    Set<String> placementFailureTaskIds = getFailedTaskIds(lastTaskPlacementFailures, EnumSet.of(
-                            FailureKind.LaunchGuard,
-                            FailureKind.WaitingForInUseIpAllocation,
-                            FailureKind.OpportunisticResource
-                    )).getOrDefault(tier, Collections.emptySet());
+                    Set<String> placementFailureTaskIds = getFailedTaskIdsByTier(
+                            schedulingService.getLastTaskPlacementFailures(), IGNORED_FAILURE_KINDS_WITH_LAUNCHGUARD
+                    ).getOrDefault(tier, Collections.emptySet());
                     logger.info("{} had the placement excluding launch guard failures({}): {}", tier, placementFailureTaskIds.size(), placementFailureTaskIds);
 
                     Set<String> scalablePlacementFailureTaskIds = filterOutTaskIdsForScaling(placementFailureTaskIds, allJobs, allTasks, tierResourceDimension);
@@ -473,9 +474,13 @@ public class ClusterAgentAutoScaler {
         return v3JobOperations.getTasks().stream().collect(Collectors.toMap(Task::getId, Function.identity()));
     }
 
-    private Map<Tier, Set<String>> getFailedTaskIds(Map<FailureKind, Map<String, List<TaskPlacementFailure>>> taskPlacementFailures, Set<FailureKind> ignoring) {
+    /**
+     * @param <T> generic helper "trick" to capture the wildcard. See https://docs.oracle.com/javase/tutorial/java/generics/capture.html
+     */
+    private <T> Map<Tier, Set<String>> getFailedTaskIdsByTier(Map<FailureKind, Map<T, List<TaskPlacementFailure>>> taskPlacementFailures,
+                                                              Set<FailureKind> ignoring) {
         Map<Tier, Set<String>> failedTaskIdsByTier = new HashMap<>();
-        for (Map<String, List<TaskPlacementFailure>> failuresByTaskId : taskPlacementFailures.values()) {
+        for (Map<T, List<TaskPlacementFailure>> failuresByTaskId : taskPlacementFailures.values()) {
             for (List<TaskPlacementFailure> taskFailures : failuresByTaskId.values()) {
                 for (TaskPlacementFailure failure : taskFailures) {
                     if (ignoring.contains(failure.getFailureKind())) {
