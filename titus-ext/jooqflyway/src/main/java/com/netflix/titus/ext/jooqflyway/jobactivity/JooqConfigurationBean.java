@@ -31,4 +31,25 @@ public class JooqConfigurationBean implements JooqConfiguration {
     public String getJdbcUrl() {
         return SpringConfigurationUtil.getString(environment, PREFIX + "jdcbUrl", "jdbc:postgresql://localhost:5432/jobactivity");
     }
+
+    @Override
+    public String getJdbcSchema() {
+        return SpringConfigurationUtil.getString(environment, PREFIX + "jdbcSchema", "public");
+    }
+
+    @Override
+    public String getJdbcUsername() {
+        return SpringConfigurationUtil.getString(environment, PREFIX + "jdbcUsername", "activityuser");
+    }
+
+    @Override
+    public String getJdbcPassword() {
+        return SpringConfigurationUtil.getString(environment, PREFIX + "jdbcPassword", "activitypassword");
+    }
+
+    @Override
+    public String getProducerDatatabaseUrl() {
+        return SpringConfigurationUtil.getString(environment, PREFIX + "databaseUrl", "jdbc://notSet");
+    }
 }
+
