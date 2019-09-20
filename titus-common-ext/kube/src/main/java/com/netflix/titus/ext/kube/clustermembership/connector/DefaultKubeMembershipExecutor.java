@@ -99,7 +99,7 @@ class DefaultKubeMembershipExecutor implements KubeMembershipExecutor {
     }
 
     @Override
-    public Mono<Void> removeLocal(String memberId) {
+    public Mono<Void> removeMember(String memberId) {
         return KubeClientReactorAdapters.doUpdate(callbackHandler ->
                 kubeCustomObjectClient.deleteNamespacedCustomObjectAsync(
                         KubeClusterMembershipModelConverters.CRD_GROUP,

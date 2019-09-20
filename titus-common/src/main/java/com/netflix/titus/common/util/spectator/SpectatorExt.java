@@ -93,9 +93,16 @@ public final class SpectatorExt {
     }
 
     /**
-     * RxJava long running completable metrics.
+     * Collection of metrics for tracking a status of an action run periodically.
      */
     public static ActionMetrics actionMetrics(String rootName, List<Tag> tags, Registry registry) {
-        return new ActionMetrics(rootName, tags, registry);
+        return new ActionMetrics(registry.createId(rootName, tags), registry);
+    }
+
+    /**
+     * Collection of metrics for tracking a status of an action run periodically.
+     */
+    public static ActionMetrics actionMetrics(Id rootId, Registry registry) {
+        return new ActionMetrics(rootId, registry);
     }
 }

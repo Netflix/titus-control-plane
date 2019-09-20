@@ -28,11 +28,13 @@ import com.netflix.titus.common.util.StringExt;
 import io.kubernetes.client.ApiClient;
 import io.kubernetes.client.util.ClientBuilder;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 
 @Configuration
+@ConditionalOnProperty(name = "titus.ext.kube.enabled", havingValue = "true", matchIfMissing = true)
 public class KubeClusterMembershipConnectorComponent {
 
     public static final String LOCAL_MEMBER_INITIAL = "localMemberInitial";
@@ -63,22 +65,36 @@ public class KubeClusterMembershipConnectorComponent {
     }
 
     @Bean
+    public KubeMembershipExecutor getKubeMembershipExecutor(KubeConnectorConfiguration configuration, ApiClient kubeApiClient) {
+        return new DefaultKubeMembershipExecutor(kubeApiClient, configuration.getNamespace());
+    }
+
+    @Bean
+    public KubeLeaderElectionExecutor getDefaultKubeLeaderElectionExecutor(KubeConnectorConfiguration configuration,
+                                                                           @Qualifier(LOCAL_MEMBER_INITIAL) ClusterMember initial,
+                                                                           ApiClient kubeApiClient,
+                                                                           TitusRuntime titusRuntime) {
+        return new DefaultKubeLeaderElectionExecutor(
+                kubeApiClient,
+                configuration.getNamespace(),
+                configuration.getClusterName(),
+                Duration.ofMillis(configuration.getLeaseDurationMs()),
+                initial.getMemberId(),
+                titusRuntime
+        );
+    }
+
+    @Bean
     public ClusterMembershipConnector getClusterMembershipConnector(
             KubeConnectorConfiguration configuration,
             @Qualifier(LOCAL_MEMBER_INITIAL) ClusterMember initial,
-            ApiClient kubeApiClient,
+            KubeMembershipExecutor membershipExecutor,
+            KubeLeaderElectionExecutor leaderElectionExecutor,
             TitusRuntime titusRuntime) {
         return new KubeClusterMembershipConnector(
                 initial,
-                new DefaultKubeMembershipExecutor(kubeApiClient, configuration.getNamespace()),
-                new DefaultKubeLeaderElectionExecutor(
-                        kubeApiClient,
-                        configuration.getNamespace(),
-                        configuration.getClusterName(),
-                        Duration.ofMillis(configuration.getLeaseDurationMs()),
-                        initial.getMemberId(),
-                        titusRuntime
-                ),
+                membershipExecutor,
+                leaderElectionExecutor,
                 configuration,
                 titusRuntime
         );

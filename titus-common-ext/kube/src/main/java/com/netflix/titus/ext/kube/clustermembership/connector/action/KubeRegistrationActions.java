@@ -28,9 +28,9 @@ import reactor.core.publisher.Mono;
 
 public class KubeRegistrationActions {
 
-    public static Mono<Function<KubeClusterState, KubeClusterState>> register(KubeContext context,
-                                                                              KubeClusterState kubeClusterState,
-                                                                              Function<ClusterMember, ClusterMembershipRevision<ClusterMember>> selfUpdate) {
+    public static Mono<Function<KubeClusterState, KubeClusterState>> registerLocal(KubeContext context,
+                                                                                   KubeClusterState kubeClusterState,
+                                                                                   Function<ClusterMember, ClusterMembershipRevision<ClusterMember>> selfUpdate) {
 
         ClusterMember localMember = kubeClusterState.getLocalMemberRevision().getCurrent();
         ClusterMembershipRevision<ClusterMember> newRevision = setRegistrationStatus(selfUpdate.apply(localMember), true);
@@ -51,7 +51,7 @@ public class KubeRegistrationActions {
                         }
                         // Bad or stale data record. Remove it first and than register.
                         return membershipExecutor
-                                .removeLocal(newRevision.getCurrent().getMemberId())
+                                .removeMember(newRevision.getCurrent().getMemberId())
                                 .then(membershipExecutor.createLocal(newRevision));
                     });
         } else {
@@ -63,7 +63,7 @@ public class KubeRegistrationActions {
                         }
                         // Bad or stale data record. Remove it first and than register.
                         return membershipExecutor
-                                .removeLocal(newRevision.getCurrent().getMemberId())
+                                .removeMember(newRevision.getCurrent().getMemberId())
                                 .then(membershipExecutor.createLocal(newRevision));
                     });
         }
@@ -73,9 +73,9 @@ public class KubeRegistrationActions {
                 .map(update -> currentState -> currentState.setLocalClusterMemberRevision(update));
     }
 
-    public static Mono<Function<KubeClusterState, KubeClusterState>> unregister(KubeContext context,
-                                                                                KubeClusterState kubeClusterState,
-                                                                                Function<ClusterMember, ClusterMembershipRevision<ClusterMember>> selfUpdate) {
+    public static Mono<Function<KubeClusterState, KubeClusterState>> unregisterLocal(KubeContext context,
+                                                                                     KubeClusterState kubeClusterState,
+                                                                                     Function<ClusterMember, ClusterMembershipRevision<ClusterMember>> selfUpdate) {
         if (!kubeClusterState.isRegistered()) {
             return Mono.just(Function.identity());
         }
@@ -83,10 +83,16 @@ public class KubeRegistrationActions {
         ClusterMember localMember = kubeClusterState.getLocalMemberRevision().getCurrent();
         ClusterMembershipRevision<ClusterMember> newRevision = setRegistrationStatus(selfUpdate.apply(localMember), false);
 
-        Mono monoAction = context.getKubeMembershipExecutor().removeLocal(kubeClusterState.getLocalMemberRevision().getCurrent().getMemberId());
+        Mono monoAction = context.getKubeMembershipExecutor().removeMember(kubeClusterState.getLocalMemberRevision().getCurrent().getMemberId());
         return ((Mono<Function<KubeClusterState, KubeClusterState>>) monoAction)
                 .onErrorMap(KubeUtils::toConnectorException)
                 .thenReturn(currentState -> currentState.setLocalClusterMemberRevision(newRevision));
+    }
+
+    public static Mono<Function<KubeClusterState, KubeClusterState>> removeStaleRegistration(KubeContext context, String memberId) {
+        return context.getKubeMembershipExecutor().removeMember(memberId)
+                .onErrorMap(KubeUtils::toConnectorException)
+                .thenReturn(s -> s.removeStaleMember(memberId));
     }
 
     private static ClusterMembershipRevision<ClusterMember> setRegistrationStatus(ClusterMembershipRevision<ClusterMember> revision, boolean registered) {

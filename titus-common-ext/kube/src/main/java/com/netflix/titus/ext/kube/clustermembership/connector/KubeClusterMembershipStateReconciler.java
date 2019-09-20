@@ -18,8 +18,12 @@ package com.netflix.titus.ext.kube.clustermembership.connector;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
+import java.util.Random;
 import java.util.function.Function;
 
+import com.netflix.spectator.api.Id;
+import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.clustermembership.model.ClusterMember;
 import com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision;
 import com.netflix.titus.common.runtime.TitusRuntime;
@@ -36,41 +40,80 @@ class KubeClusterMembershipStateReconciler implements Function<KubeClusterState,
     private final TitusRuntime titusRuntime;
     private final KubeContext context;
 
-    KubeClusterMembershipStateReconciler(KubeContext context, KubeConnectorConfiguration configuration) {
+    private final Id reconcilerMetricId;
+    private final Registry registry;
+    private final Random random;
+
+    KubeClusterMembershipStateReconciler(KubeContext context,
+                                         KubeConnectorConfiguration configuration) {
         this.context = context;
         this.configuration = configuration;
         this.titusRuntime = context.getTitusRuntime();
         this.clock = titusRuntime.getClock();
+        this.random = new Random(System.nanoTime());
+
+        this.registry = titusRuntime.getRegistry();
+        this.reconcilerMetricId = registry.createId(KubeMetrics.KUBE_METRIC_ROOT + "reconciler");
     }
 
     @Override
     public List<Mono<Function<KubeClusterState, KubeClusterState>>> apply(KubeClusterState kubeClusterState) {
 
         // Check leader election process.
-
         boolean inLeaderElectionProcess = context.getKubeLeaderElectionExecutor().isInLeaderElectionProcess();
         if (kubeClusterState.isInLeaderElectionProcess()) {
             if (!inLeaderElectionProcess) {
-                return Collections.singletonList(KubeLeaderElectionActions.createJoinLeadershipGroupAction(context));
+                return Collections.singletonList(withMetrics(
+                        "joinLeadershipGroup",
+                        KubeLeaderElectionActions.createJoinLeadershipGroupAction(context)
+                ));
             }
         } else {
             if (inLeaderElectionProcess) {
-                return Collections.singletonList(KubeLeaderElectionActions.createLeaveLeadershipGroupAction(context, false));
+                return Collections.singletonList(withMetrics(
+                        "leaveLeadershipGroup",
+                        KubeLeaderElectionActions.createLeaveLeadershipGroupAction(context, false)
+                ));
             }
         }
 
         // Refresh registration data so it does not look stale to other cluster members
-
         if (kubeClusterState.isRegistered() && clock.isPast(kubeClusterState.getLocalMemberRevision().getTimestamp() + configuration.getReRegistrationIntervalMs())) {
-            return Collections.singletonList(KubeRegistrationActions.register(context, kubeClusterState, clusterMember ->
+            Mono<Function<KubeClusterState, KubeClusterState>> action = KubeRegistrationActions.registerLocal(context, kubeClusterState, clusterMember ->
                     ClusterMembershipRevision.<ClusterMember>newBuilder()
                             .withCurrent(clusterMember)
                             .withTimestamp(titusRuntime.getClock().wallTime())
                             .withCode("reregistered")
                             .withMessage("Registration update")
-                            .build()));
+                            .build());
+            return Collections.singletonList(withMetrics("register", action));
+        }
+
+        // Check for stale data
+        long cleanupThreshold = applyJitter(configuration.getRegistrationCleanupThresholdMs(), 30);
+        Optional<ClusterMembershipRevision<ClusterMember>> staleRegistration = kubeClusterState.getStaleClusterMemberSiblings().values().stream()
+                .filter(s -> clock.isPast(s.getTimestamp() + cleanupThreshold))
+                .findFirst();
+        if (staleRegistration.isPresent()) {
+            String staleMemberId = staleRegistration.get().getCurrent().getMemberId();
+            return Collections.singletonList(withMetrics("removeStaleMember", KubeRegistrationActions.removeStaleRegistration(context, staleMemberId)));
         }
 
         return Collections.emptyList();
+    }
+
+    private <T> Mono<T> withMetrics(String name, Mono<T> action) {
+        return action
+                .doOnSuccess(v ->
+                        registry.counter(reconcilerMetricId.withTag("action", name)).increment())
+                .doOnError(error ->
+                        registry.counter(reconcilerMetricId
+                                .withTag("action", name)
+                                .withTag("error", error.getClass().getSimpleName())
+                        ).increment());
+    }
+
+    private long applyJitter(long value, int percent) {
+        return ((100 + random.nextInt(percent)) * value) / 100;
     }
 }

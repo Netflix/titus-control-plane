@@ -26,11 +26,13 @@ import com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.NetworkExt;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import reactor.core.scheduler.Schedulers;
 
 @Configuration
+@ConditionalOnProperty(name = "titus.clusterMembership.connector.inMemory.enabled", havingValue = "true", matchIfMissing = true)
 public class ClusterMembershipInMemoryConnectorComponent {
 
     @Bean

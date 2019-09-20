@@ -58,7 +58,7 @@ public class DefaultKubeMembershipExecutorTest {
     @After
     public void tearDown() {
         ReactorExt.safeDispose(eventSubscriber);
-        createdMemberIds.forEach(memberId -> ExceptionExt.silent(() -> executor.removeLocal(memberId).block(KubeExternalResource.KUBE_TIMEOUT)));
+        createdMemberIds.forEach(memberId -> ExceptionExt.silent(() -> executor.removeMember(memberId).block(KubeExternalResource.KUBE_TIMEOUT)));
     }
 
     @Test(timeout = 30_000)
@@ -98,7 +98,7 @@ public class DefaultKubeMembershipExecutorTest {
         String memberId = revision.getCurrent().getMemberId();
 
         ClusterMembershipRevision<ClusterMember> result = executor.createLocal(revision).block();
-        executor.removeLocal(memberId).block();
+        executor.removeMember(memberId).block();
         try {
             executor.getMemberById(memberId).block();
             fail("Found removed member");

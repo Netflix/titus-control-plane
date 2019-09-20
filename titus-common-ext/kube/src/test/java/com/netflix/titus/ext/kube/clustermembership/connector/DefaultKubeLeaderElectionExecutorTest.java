@@ -26,6 +26,7 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.testkit.junit.category.RemoteIntegrationTest;
 import com.netflix.titus.testkit.rx.TitusRxSubscriber;
+import io.kubernetes.client.ApiClient;
 import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -60,7 +61,7 @@ public class DefaultKubeLeaderElectionExecutorTest {
     @Test
     public void testLeaderElection() {
         // Join first member
-        MemberHolder member1 = new MemberHolder();
+        MemberHolder member1 = new MemberHolder(KUBE_RESOURCE.getClient());
         joinLeaderElectionProcess(member1);
         awaitBeingLeader(member1);
 
@@ -69,7 +70,7 @@ public class DefaultKubeLeaderElectionExecutorTest {
         assertThat(leaderSelectedEvent.getChangeType()).isEqualTo(LeaderElectionChangeEvent.ChangeType.LeaderElected);
 
         // Join second member
-        MemberHolder member2 = new MemberHolder();
+        MemberHolder member2 = new MemberHolder(KUBE_RESOURCE.getClient());
         joinLeaderElectionProcess(member2);
 
         // Leave leader election process.
@@ -106,10 +107,10 @@ public class DefaultKubeLeaderElectionExecutorTest {
         private final DefaultKubeLeaderElectionExecutor executor;
         private final TitusRxSubscriber<LeaderElectionChangeEvent> eventSubscriber = new TitusRxSubscriber<>();
 
-        MemberHolder() {
+        MemberHolder(ApiClient client) {
             this.memberId = newMemberId();
             this.executor = new DefaultKubeLeaderElectionExecutor(
-                    KUBE_RESOURCE.getClient(),
+                    client,
                     "default",
                     clusterName,
                     LEASE_DURATION,

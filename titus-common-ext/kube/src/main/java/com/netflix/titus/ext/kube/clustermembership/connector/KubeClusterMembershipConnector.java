@@ -68,7 +68,7 @@ public class KubeClusterMembershipConnector implements ClusterMembershipConnecto
 
         this.context = new KubeContext(kubeMembershipExecutor, kubeLeaderElectionExecutor, titusRuntime);
         this.reconciler = SimpleReconciliationEngine.<KubeClusterState>newBuilder("LeaderElection")
-                .withInitial(new KubeClusterState(initial, titusRuntime.getClock()))
+                .withInitial(new KubeClusterState(initial, configuration, titusRuntime.getClock()))
                 .withReconcilerActionsProvider(new KubeClusterMembershipStateReconciler(context, configuration))
                 .withQuickCycle(Duration.ofMillis(configuration.getReconcilerQuickCycleMs()))
                 .withLongCycle(Duration.ofMillis(configuration.getReconcilerLongCycleMs()))
@@ -140,7 +140,7 @@ public class KubeClusterMembershipConnector implements ClusterMembershipConnecto
 
     @Override
     public Map<String, ClusterMembershipRevision<ClusterMember>> getClusterMemberSiblings() {
-        return reconciler.getCurrent().getClusterMemberSiblings();
+        return reconciler.getCurrent().getNotStaleClusterMemberSiblings();
     }
 
     @Override
@@ -156,14 +156,14 @@ public class KubeClusterMembershipConnector implements ClusterMembershipConnecto
     @Override
     public Mono<ClusterMembershipRevision<ClusterMember>> register(Function<ClusterMember, ClusterMembershipRevision<ClusterMember>> selfUpdate) {
         return reconciler.apply(Mono.defer(() ->
-                KubeRegistrationActions.register(context, reconciler.getCurrent(), selfUpdate))
+                KubeRegistrationActions.registerLocal(context, reconciler.getCurrent(), selfUpdate))
         ).map(KubeClusterState::getLocalMemberRevision);
     }
 
     @Override
     public Mono<ClusterMembershipRevision<ClusterMember>> unregister(Function<ClusterMember, ClusterMembershipRevision<ClusterMember>> selfUpdate) {
         return reconciler.apply(Mono.defer(() ->
-                KubeRegistrationActions.unregister(context, reconciler.getCurrent(), selfUpdate))
+                KubeRegistrationActions.unregisterLocal(context, reconciler.getCurrent(), selfUpdate))
         ).map(KubeClusterState::getLocalMemberRevision);
     }
 

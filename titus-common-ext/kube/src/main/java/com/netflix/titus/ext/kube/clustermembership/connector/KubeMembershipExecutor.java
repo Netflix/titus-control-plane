@@ -30,7 +30,7 @@ public interface KubeMembershipExecutor {
 
     Mono<ClusterMembershipRevision<ClusterMember>> updateLocal(ClusterMembershipRevision<ClusterMember> localMemberRevision);
 
-    Mono<Void> removeLocal(String memberId);
+    Mono<Void> removeMember(String memberId);
 
     Flux<ClusterMembershipEvent> watchMembershipEvents();
 }

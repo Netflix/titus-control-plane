@@ -43,6 +43,21 @@ public interface KubeConnectorConfiguration {
     @DefaultValue("30000")
     long getReRegistrationIntervalMs();
 
+    /**
+     * Each cluster member periodically updates its registration entry. As the data in Kubernetes do not have
+     * TTL associated with them, an entry belonging to a terminated node will stay there until it is removed by
+     * the garbage collection process. This property defines a threshold, above which registration entries are
+     * regarded as stale and not advertised.
+     */
+    @DefaultValue("180000")
+    long getRegistrationStaleThresholdMs();
+
+    /**
+     * Data staleness threshold above which the registration data are removed.
+     */
+    @DefaultValue("600000")
+    long getRegistrationCleanupThresholdMs();
+
     @DefaultValue("500")
     long getKubeReconnectIntervalMs();
 
