@@ -36,7 +36,7 @@ import org.springframework.stereotype.Component;
 
 
 @Configuration
-public class JooqJobActivityConnector {
+public class JooqJobActivityConnectorComponent {
 
     @Bean
     public JooqConfiguration getJooqConfiguration(Environment environment) {
