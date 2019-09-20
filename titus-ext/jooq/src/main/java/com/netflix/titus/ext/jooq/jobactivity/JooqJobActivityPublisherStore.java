@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.ext.jooq;
+package com.netflix.titus.ext.jooq.jobactivity;
 
 import java.util.Collections;
 import java.util.List;

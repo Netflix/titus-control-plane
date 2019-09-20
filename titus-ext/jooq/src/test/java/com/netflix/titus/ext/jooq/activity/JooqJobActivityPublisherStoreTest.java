@@ -26,7 +26,7 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.common.data.generator.DataGenerator;
 import com.netflix.titus.common.runtime.TitusRuntimes;
-import com.netflix.titus.ext.jooq.JooqJobActivityPublisherStore;
+import com.netflix.titus.ext.jooq.jobactivity.JooqJobActivityPublisherStore;
 import com.netflix.titus.ext.jooq.relocation.JooqResource;
 import com.netflix.titus.runtime.endpoint.common.EmptyLogStorageInfo;
 import com.netflix.titus.runtime.jobactivity.JobActivityPublisherRecordUtils;
