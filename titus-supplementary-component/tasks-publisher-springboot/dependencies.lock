@@ -1879,6 +1879,7 @@
         "org.springframework.boot:spring-boot-autoconfigure": {
             "locked": "2.1.2.RELEASE",
             "transitive": [
+                "com.netflix.titus:titus-common-server",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "org.springframework.boot:spring-boot-starter"
             ]
@@ -3963,6 +3964,7 @@
         "org.springframework.boot:spring-boot-autoconfigure": {
             "locked": "2.1.2.RELEASE",
             "transitive": [
+                "com.netflix.titus:titus-common-server",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "org.springframework.boot:spring-boot-actuator-autoconfigure",
                 "org.springframework.boot:spring-boot-starter"
@@ -6055,6 +6057,7 @@
         "org.springframework.boot:spring-boot-autoconfigure": {
             "locked": "2.1.2.RELEASE",
             "transitive": [
+                "com.netflix.titus:titus-common-server",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "org.springframework.boot:spring-boot-actuator-autoconfigure",
                 "org.springframework.boot:spring-boot-starter"
@@ -8182,6 +8185,7 @@
         "org.springframework.boot:spring-boot-autoconfigure": {
             "locked": "2.1.2.RELEASE",
             "transitive": [
+                "com.netflix.titus:titus-common-server",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "org.springframework.boot:spring-boot-starter"
             ]
@@ -10267,6 +10271,7 @@
         "org.springframework.boot:spring-boot-autoconfigure": {
             "locked": "2.1.2.RELEASE",
             "transitive": [
+                "com.netflix.titus:titus-common-server",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "org.springframework.boot:spring-boot-actuator-autoconfigure",
                 "org.springframework.boot:spring-boot-starter"
@@ -12352,6 +12357,7 @@
         "org.springframework.boot:spring-boot-autoconfigure": {
             "locked": "2.1.2.RELEASE",
             "transitive": [
+                "com.netflix.titus:titus-common-server",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "org.springframework.boot:spring-boot-starter"
             ]
@@ -14458,6 +14464,7 @@
         "org.springframework.boot:spring-boot-autoconfigure": {
             "locked": "2.1.2.RELEASE",
             "transitive": [
+                "com.netflix.titus:titus-common-server",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "org.springframework.boot:spring-boot-actuator-autoconfigure",
                 "org.springframework.boot:spring-boot-starter"
@@ -16544,6 +16551,7 @@
         "org.springframework.boot:spring-boot-autoconfigure": {
             "locked": "2.1.2.RELEASE",
             "transitive": [
+                "com.netflix.titus:titus-common-server",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "org.springframework.boot:spring-boot-starter"
             ]
@@ -18651,6 +18659,7 @@
         "org.springframework.boot:spring-boot-autoconfigure": {
             "locked": "2.1.2.RELEASE",
             "transitive": [
+                "com.netflix.titus:titus-common-server",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "org.springframework.boot:spring-boot-actuator-autoconfigure",
                 "org.springframework.boot:spring-boot-starter"

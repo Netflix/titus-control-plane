@@ -614,6 +614,18 @@
                 "com.netflix.titus:titus-common-server"
             ]
         },
+        "org.springframework.boot:spring-boot": {
+            "locked": "2.1.3.RELEASE",
+            "transitive": [
+                "org.springframework.boot:spring-boot-autoconfigure"
+            ]
+        },
+        "org.springframework.boot:spring-boot-autoconfigure": {
+            "locked": "2.1.3.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common-server"
+            ]
+        },
         "org.springframework:spring-aop": {
             "locked": "5.1.9.RELEASE",
             "transitive": [
@@ -632,12 +644,14 @@
         "org.springframework:spring-context": {
             "locked": "5.1.9.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-common"
+                "com.netflix.titus:titus-common",
+                "org.springframework.boot:spring-boot"
             ]
         },
         "org.springframework:spring-core": {
             "locked": "5.1.9.RELEASE",
             "transitive": [
+                "org.springframework.boot:spring-boot",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
                 "org.springframework:spring-context",
@@ -1293,6 +1307,18 @@
                 "com.netflix.titus:titus-common-server"
             ]
         },
+        "org.springframework.boot:spring-boot": {
+            "locked": "2.1.3.RELEASE",
+            "transitive": [
+                "org.springframework.boot:spring-boot-autoconfigure"
+            ]
+        },
+        "org.springframework.boot:spring-boot-autoconfigure": {
+            "locked": "2.1.3.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common-server"
+            ]
+        },
         "org.springframework:spring-aop": {
             "locked": "5.1.9.RELEASE",
             "transitive": [
@@ -1311,12 +1337,14 @@
         "org.springframework:spring-context": {
             "locked": "5.1.9.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-common"
+                "com.netflix.titus:titus-common",
+                "org.springframework.boot:spring-boot"
             ]
         },
         "org.springframework:spring-core": {
             "locked": "5.1.9.RELEASE",
             "transitive": [
+                "org.springframework.boot:spring-boot",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
                 "org.springframework:spring-context",
@@ -1973,6 +2001,18 @@
                 "com.netflix.titus:titus-common-server"
             ]
         },
+        "org.springframework.boot:spring-boot": {
+            "locked": "2.1.3.RELEASE",
+            "transitive": [
+                "org.springframework.boot:spring-boot-autoconfigure"
+            ]
+        },
+        "org.springframework.boot:spring-boot-autoconfigure": {
+            "locked": "2.1.3.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common-server"
+            ]
+        },
         "org.springframework:spring-aop": {
             "locked": "5.1.9.RELEASE",
             "transitive": [
@@ -1991,12 +2031,14 @@
         "org.springframework:spring-context": {
             "locked": "5.1.9.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-common"
+                "com.netflix.titus:titus-common",
+                "org.springframework.boot:spring-boot"
             ]
         },
         "org.springframework:spring-core": {
             "locked": "5.1.9.RELEASE",
             "transitive": [
+                "org.springframework.boot:spring-boot",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
                 "org.springframework:spring-context",
@@ -2716,6 +2758,18 @@
                 "com.netflix.titus:titus-common-server"
             ]
         },
+        "org.springframework.boot:spring-boot": {
+            "locked": "2.1.3.RELEASE",
+            "transitive": [
+                "org.springframework.boot:spring-boot-autoconfigure"
+            ]
+        },
+        "org.springframework.boot:spring-boot-autoconfigure": {
+            "locked": "2.1.3.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common-server"
+            ]
+        },
         "org.springframework:spring-aop": {
             "locked": "5.1.9.RELEASE",
             "transitive": [
@@ -2734,12 +2788,14 @@
         "org.springframework:spring-context": {
             "locked": "5.1.9.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-common"
+                "com.netflix.titus:titus-common",
+                "org.springframework.boot:spring-boot"
             ]
         },
         "org.springframework:spring-core": {
             "locked": "5.1.9.RELEASE",
             "transitive": [
+                "org.springframework.boot:spring-boot",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
                 "org.springframework:spring-context",
@@ -3396,6 +3452,18 @@
                 "com.netflix.titus:titus-common-server"
             ]
         },
+        "org.springframework.boot:spring-boot": {
+            "locked": "2.1.3.RELEASE",
+            "transitive": [
+                "org.springframework.boot:spring-boot-autoconfigure"
+            ]
+        },
+        "org.springframework.boot:spring-boot-autoconfigure": {
+            "locked": "2.1.3.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common-server"
+            ]
+        },
         "org.springframework:spring-aop": {
             "locked": "5.1.9.RELEASE",
             "transitive": [
@@ -3414,12 +3482,14 @@
         "org.springframework:spring-context": {
             "locked": "5.1.9.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-common"
+                "com.netflix.titus:titus-common",
+                "org.springframework.boot:spring-boot"
             ]
         },
         "org.springframework:spring-core": {
             "locked": "5.1.9.RELEASE",
             "transitive": [
+                "org.springframework.boot:spring-boot",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
                 "org.springframework:spring-context",
@@ -4100,6 +4170,18 @@
                 "com.netflix.titus:titus-common-server"
             ]
         },
+        "org.springframework.boot:spring-boot": {
+            "locked": "2.1.3.RELEASE",
+            "transitive": [
+                "org.springframework.boot:spring-boot-autoconfigure"
+            ]
+        },
+        "org.springframework.boot:spring-boot-autoconfigure": {
+            "locked": "2.1.3.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common-server"
+            ]
+        },
         "org.springframework:spring-aop": {
             "locked": "5.1.9.RELEASE",
             "transitive": [
@@ -4118,12 +4200,14 @@
         "org.springframework:spring-context": {
             "locked": "5.1.9.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-common"
+                "com.netflix.titus:titus-common",
+                "org.springframework.boot:spring-boot"
             ]
         },
         "org.springframework:spring-core": {
             "locked": "5.1.9.RELEASE",
             "transitive": [
+                "org.springframework.boot:spring-boot",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
                 "org.springframework:spring-context",
@@ -4804,6 +4888,18 @@
                 "com.netflix.titus:titus-common-server"
             ]
         },
+        "org.springframework.boot:spring-boot": {
+            "locked": "2.1.3.RELEASE",
+            "transitive": [
+                "org.springframework.boot:spring-boot-autoconfigure"
+            ]
+        },
+        "org.springframework.boot:spring-boot-autoconfigure": {
+            "locked": "2.1.3.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common-server"
+            ]
+        },
         "org.springframework:spring-aop": {
             "locked": "5.1.9.RELEASE",
             "transitive": [
@@ -4822,12 +4918,14 @@
         "org.springframework:spring-context": {
             "locked": "5.1.9.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-common"
+                "com.netflix.titus:titus-common",
+                "org.springframework.boot:spring-boot"
             ]
         },
         "org.springframework:spring-core": {
             "locked": "5.1.9.RELEASE",
             "transitive": [
+                "org.springframework.boot:spring-boot",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
                 "org.springframework:spring-context",
@@ -5509,6 +5607,18 @@
                 "com.netflix.titus:titus-common-server"
             ]
         },
+        "org.springframework.boot:spring-boot": {
+            "locked": "2.1.3.RELEASE",
+            "transitive": [
+                "org.springframework.boot:spring-boot-autoconfigure"
+            ]
+        },
+        "org.springframework.boot:spring-boot-autoconfigure": {
+            "locked": "2.1.3.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common-server"
+            ]
+        },
         "org.springframework:spring-aop": {
             "locked": "5.1.9.RELEASE",
             "transitive": [
@@ -5527,12 +5637,14 @@
         "org.springframework:spring-context": {
             "locked": "5.1.9.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-common"
+                "com.netflix.titus:titus-common",
+                "org.springframework.boot:spring-boot"
             ]
         },
         "org.springframework:spring-core": {
             "locked": "5.1.9.RELEASE",
             "transitive": [
+                "org.springframework.boot:spring-boot",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
                 "org.springframework:spring-context",
@@ -6214,6 +6326,18 @@
                 "com.netflix.titus:titus-common-server"
             ]
         },
+        "org.springframework.boot:spring-boot": {
+            "locked": "2.1.3.RELEASE",
+            "transitive": [
+                "org.springframework.boot:spring-boot-autoconfigure"
+            ]
+        },
+        "org.springframework.boot:spring-boot-autoconfigure": {
+            "locked": "2.1.3.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common-server"
+            ]
+        },
         "org.springframework:spring-aop": {
             "locked": "5.1.9.RELEASE",
             "transitive": [
@@ -6232,12 +6356,14 @@
         "org.springframework:spring-context": {
             "locked": "5.1.9.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-common"
+                "com.netflix.titus:titus-common",
+                "org.springframework.boot:spring-boot"
             ]
         },
         "org.springframework:spring-core": {
             "locked": "5.1.9.RELEASE",
             "transitive": [
+                "org.springframework.boot:spring-boot",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
                 "org.springframework:spring-context",

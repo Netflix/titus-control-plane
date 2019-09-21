@@ -1862,6 +1862,7 @@
         "org.springframework.boot:spring-boot-autoconfigure": {
             "locked": "2.1.3.RELEASE",
             "transitive": [
+                "com.netflix.titus:titus-common-server",
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
@@ -3894,6 +3895,7 @@
         "org.springframework.boot:spring-boot-autoconfigure": {
             "locked": "2.1.3.RELEASE",
             "transitive": [
+                "com.netflix.titus:titus-common-server",
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
@@ -5927,6 +5929,7 @@
         "org.springframework.boot:spring-boot-autoconfigure": {
             "locked": "2.1.3.RELEASE",
             "transitive": [
+                "com.netflix.titus:titus-common-server",
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
@@ -8023,6 +8026,7 @@
         "org.springframework.boot:spring-boot-autoconfigure": {
             "locked": "2.1.3.RELEASE",
             "transitive": [
+                "com.netflix.titus:titus-common-server",
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
@@ -10056,6 +10060,7 @@
         "org.springframework.boot:spring-boot-autoconfigure": {
             "locked": "2.1.3.RELEASE",
             "transitive": [
+                "com.netflix.titus:titus-common-server",
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
@@ -12107,6 +12112,7 @@
         "org.springframework.boot:spring-boot-autoconfigure": {
             "locked": "2.1.3.RELEASE",
             "transitive": [
+                "com.netflix.titus:titus-common-server",
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
@@ -14158,6 +14164,7 @@
         "org.springframework.boot:spring-boot-autoconfigure": {
             "locked": "2.1.3.RELEASE",
             "transitive": [
+                "com.netflix.titus:titus-common-server",
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
@@ -16210,6 +16217,7 @@
         "org.springframework.boot:spring-boot-autoconfigure": {
             "locked": "2.1.3.RELEASE",
             "transitive": [
+                "com.netflix.titus:titus-common-server",
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
@@ -18262,6 +18270,7 @@
         "org.springframework.boot:spring-boot-autoconfigure": {
             "locked": "2.1.3.RELEASE",
             "transitive": [
+                "com.netflix.titus:titus-common-server",
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
