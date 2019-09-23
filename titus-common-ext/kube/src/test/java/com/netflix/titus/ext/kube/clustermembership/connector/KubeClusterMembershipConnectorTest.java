@@ -200,6 +200,21 @@ public class KubeClusterMembershipConnectorTest {
         joinLeaderElectionProcess();
     }
 
+    @Test
+    public void testStaleMemberRemoval() throws InterruptedException {
+        ClusterMembershipRevision<ClusterMember> stale = clusterMemberRegistrationRevision(activeClusterMember("staleSibling")).toBuilder()
+                .withTimestamp(1)
+                .build();
+        kubeExecutors.addOrUpdateSibling(stale);
+
+        // Now add normal
+        doAddSibling("sibling1");
+
+        assertThat(connector.getClusterMemberSiblings()).containsKey("sibling1");
+
+        await().until(() -> kubeExecutors.getMemberById("staleSibling").map(r -> "staleSibling").onErrorReturn("null").block().equals("null"));
+    }
+
     private ClusterMembershipRevision<ClusterMember> doRegister() throws InterruptedException {
         ClusterMembershipRevision<ClusterMember> newRevision = doRegistrationChange(() -> connector.register(ClusterMemberGenerator::clusterMemberRegistrationRevision).block());
         assertThat(connector.getLocalClusterMemberRevision().getCurrent().isRegistered()).isTrue();

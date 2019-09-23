@@ -47,9 +47,13 @@ public class KubeClusterState {
 
     private final List<ClusterMembershipEvent> events;
 
+    private final KubeConnectorConfiguration configuration;
     private final Clock clock;
 
-    public KubeClusterState(ClusterMember initial, Clock clock) {
+    public KubeClusterState(ClusterMember initial,
+                            KubeConnectorConfiguration configuration,
+                            Clock clock) {
+        this.configuration = configuration;
         this.clock = clock;
         this.localMemberId = initial.getMemberId();
         this.localMemberRevision = ClusterMembershipRevision.<ClusterMember>newBuilder()
@@ -83,7 +87,9 @@ public class KubeClusterState {
                              boolean localLeader,
                              Map<String, ClusterMembershipRevision<ClusterMember>> clusterMemberSiblings,
                              Optional<ClusterMembershipRevision<ClusterMemberLeadership>> currentLeaderOptional,
-                             List<ClusterMembershipEvent> events, Clock clock) {
+                             List<ClusterMembershipEvent> events,
+                             KubeConnectorConfiguration configuration,
+                             Clock clock) {
         this.localMemberId = localMemberLeadershipRevision.getCurrent().getMemberId();
         this.localMemberRevision = localMemberRevision;
         this.localMemberLeadershipRevision = localMemberLeadershipRevision;
@@ -92,6 +98,7 @@ public class KubeClusterState {
         this.clusterMemberSiblings = clusterMemberSiblings;
         this.currentLeaderOptional = currentLeaderOptional;
         this.events = events;
+        this.configuration = configuration;
         this.clock = clock;
     }
 
@@ -115,8 +122,12 @@ public class KubeClusterState {
         return localMemberLeadershipRevision;
     }
 
-    public Map<String, ClusterMembershipRevision<ClusterMember>> getClusterMemberSiblings() {
-        return clusterMemberSiblings;
+    public Map<String, ClusterMembershipRevision<ClusterMember>> getStaleClusterMemberSiblings() {
+        return CollectionsExt.copyAndRemoveByValue(clusterMemberSiblings, r -> !isStale(r));
+    }
+
+    public Map<String, ClusterMembershipRevision<ClusterMember>> getNotStaleClusterMemberSiblings() {
+        return CollectionsExt.copyAndRemoveByValue(clusterMemberSiblings, this::isStale);
     }
 
     public Optional<ClusterMembershipRevision<ClusterMemberLeadership>> findCurrentLeader() {
@@ -192,10 +203,15 @@ public class KubeClusterState {
         switch (event.getChangeType()) {
             case Added:
             case Updated:
-                return toBuilder()
-                        .withClusterMemberSiblings(CollectionsExt.copyAndAdd(clusterMemberSiblings, eventMemberId, event.getRevision()))
-                        .withEvent(event)
-                        .build();
+                Builder builder = toBuilder()
+                        .withClusterMemberSiblings(CollectionsExt.copyAndAdd(clusterMemberSiblings, eventMemberId, event.getRevision()));
+
+                // Filter out stale members not seen before
+                if (clusterMemberSiblings.containsKey(eventMemberId) || !isStale(event.getRevision())) {
+                    builder.withEvent(event);
+                }
+
+                return builder.build();
             case Removed:
                 if (!clusterMemberSiblings.containsKey(eventMemberId)) {
                     return this;
@@ -235,6 +251,21 @@ public class KubeClusterState {
         return this;
     }
 
+    public KubeClusterState removeStaleMember(String memberId) {
+        ClusterMembershipRevision<ClusterMember> staleMember = clusterMemberSiblings.get(memberId);
+        if (staleMember == null) {
+            return this;
+        }
+        return toBuilder()
+                .withClusterMemberSiblings(CollectionsExt.copyAndRemove(clusterMemberSiblings, memberId))
+                .withEvent(ClusterMembershipChangeEvent.memberRemovedEvent(staleMember))
+                .build();
+    }
+
+    private boolean isStale(ClusterMembershipRevision<ClusterMember> memberRevision) {
+        return clock.isPast(memberRevision.getTimestamp() + configuration.getRegistrationStaleThresholdMs());
+    }
+
     private Builder toBuilder() {
         return new Builder()
                 .withLocalMemberRevision(localMemberRevision)
@@ -243,6 +274,7 @@ public class KubeClusterState {
                 .withLocalLeader(localLeader)
                 .withClusterMemberSiblings(clusterMemberSiblings)
                 .withCurrentLeader(currentLeaderOptional.orElse(null))
+                .withConfiguration(configuration)
                 .withClock(clock);
     }
 
@@ -256,6 +288,7 @@ public class KubeClusterState {
         private Optional<ClusterMembershipRevision<ClusterMemberLeadership>> currentLeaderOptional;
         private final List<ClusterMembershipEvent> events = new ArrayList<>();
 
+        private KubeConnectorConfiguration configuration;
         private Clock clock;
 
         private Builder() {
@@ -296,6 +329,11 @@ public class KubeClusterState {
             return this;
         }
 
+        Builder withConfiguration(KubeConnectorConfiguration configuration) {
+            this.configuration = configuration;
+            return this;
+        }
+
         Builder withClock(Clock clock) {
             this.clock = clock;
             return this;
@@ -310,6 +348,7 @@ public class KubeClusterState {
                     clusterMemberSiblings,
                     currentLeaderOptional,
                     events,
+                    configuration,
                     clock
             );
         }

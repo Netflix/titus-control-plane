@@ -31,7 +31,6 @@ import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Either;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.ReplayProcessor;

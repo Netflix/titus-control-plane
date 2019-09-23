@@ -69,6 +69,7 @@ public class InstrumentedEventLoop {
         if (!worker.isUnsubscribed()) {
             worker.unsubscribe();
         }
+        actionMetrics.values().forEach(ActionMetrics::close);
         actionMetrics.clear();
         PolledMeter.remove(registry, actionsRemainingId);
     }

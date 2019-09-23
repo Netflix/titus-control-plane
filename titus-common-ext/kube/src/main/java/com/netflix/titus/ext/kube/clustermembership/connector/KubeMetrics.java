@@ -14,13 +14,9 @@
  * limitations under the License.
  */
 
-dependencies {
-    compile project(':titus-common-api')
+package com.netflix.titus.ext.kube.clustermembership.connector;
 
-    compile "org.springframework.cloud:spring-cloud-commons:${springCloudVersion}"
-    compile "org.springframework.boot:spring-boot-autoconfigure:${springBootVersion}"
+public final class KubeMetrics {
 
-    compile "io.kubernetes:client-java-extended:${kubernetesClientVersion}"
-
-    testCompile project(':titus-common-testkit')
+    public static final String KUBE_METRIC_ROOT = "titus.clusterMembership.kubeConnector.";
 }

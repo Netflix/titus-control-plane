@@ -106,7 +106,10 @@ class StubbedKubeExecutors implements KubeMembershipExecutor, KubeLeaderElection
         if (memberId.equals(this.localMemberId)) {
             return Mono.just(localMemberRevision);
         }
-        throw new IllegalStateException("not implemented yet");
+        ClusterMembershipRevision<ClusterMember> sibling = siblings.get(memberId);
+        return sibling == null
+                ? Mono.error(new IllegalArgumentException("Sibling not found: " + memberId))
+                : Mono.just(sibling);
     }
 
     @Override
@@ -129,10 +132,14 @@ class StubbedKubeExecutors implements KubeMembershipExecutor, KubeLeaderElection
     }
 
     @Override
-    public Mono<Void> removeLocal(String memberId) {
+    public Mono<Void> removeMember(String memberId) {
         return handleMemberUpdate(() -> {
-            Preconditions.checkArgument(memberId.equals(this.localMemberId));
-            this.firstRegistration = true;
+            if (memberId.equals(this.localMemberId)) {
+                this.firstRegistration = true;
+            } else {
+                ClusterMembershipRevision<ClusterMember> removed = siblings.remove(memberId);
+                membershipEventsProcessor.onNext(ClusterMembershipEvent.memberRemovedEvent(removed));
+            }
             return Mono.empty();
         });
     }

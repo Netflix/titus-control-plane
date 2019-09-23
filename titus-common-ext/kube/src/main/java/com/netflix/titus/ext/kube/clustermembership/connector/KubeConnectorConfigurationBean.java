@@ -68,4 +68,14 @@ public class KubeConnectorConfigurationBean implements KubeConnectorConfiguratio
     public long getLeaseDurationMs() {
         return SpringConfigurationUtil.getLong(environment, prefix + "leaseDurationMs", 10_000);
     }
+
+    @Override
+    public long getRegistrationStaleThresholdMs() {
+        return SpringConfigurationUtil.getLong(environment, prefix + "registrationStaleThresholdMs", 180_000);
+    }
+
+    @Override
+    public long getRegistrationCleanupThresholdMs() {
+        return SpringConfigurationUtil.getLong(environment, prefix + "registrationCleanupThresholdMs", 600_000);
+    }
 }
