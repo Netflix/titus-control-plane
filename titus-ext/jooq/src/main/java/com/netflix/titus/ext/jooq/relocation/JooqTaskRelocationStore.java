@@ -57,6 +57,10 @@ public class JooqTaskRelocationStore implements TaskRelocationStore {
     public JooqTaskRelocationStore(DSLContext dslContext) {
         this.dslContext = dslContext;
         createSchemaIfNotExist();
+    }
+
+    @Override
+    public void activate() {
         load();
     }
 

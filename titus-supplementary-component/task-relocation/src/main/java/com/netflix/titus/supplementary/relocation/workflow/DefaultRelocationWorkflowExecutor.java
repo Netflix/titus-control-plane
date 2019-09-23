@@ -30,6 +30,7 @@ import javax.inject.Singleton;
 
 import com.google.common.base.Stopwatch;
 import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
+import com.netflix.titus.api.common.LeaderActivationListener;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.api.relocation.model.TaskRelocationStatus;
@@ -65,7 +66,7 @@ import reactor.core.publisher.ReplayProcessor;
 import reactor.core.scheduler.Schedulers;
 
 @Singleton
-public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExecutor {
+public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExecutor, LeaderActivationListener {
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultRelocationWorkflowExecutor.class);
 
@@ -85,7 +86,7 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
 
     private final TitusRuntime titusRuntime;
     private final WorkflowMetrics metrics;
-    private final ScheduleReference localSchedulerDisposable;
+    private ScheduleReference localSchedulerDisposable;
 
     private final RelocationMetricsStep relocationMetricsStep;
     private final MustBeRelocatedSelfManagedTaskCollectorStep mustBeRelocatedSelfManagedTaskCollectorStep;
@@ -132,11 +133,12 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
         this.deschedulerStep = new DeschedulerStep(deschedulerService, transactionLog, titusRuntime);
         this.taskEvictionStep = new TaskEvictionStep(evictionServiceClient, titusRuntime, transactionLog, Schedulers.parallel());
         this.taskEvictionResultStoreStep = new TaskEvictionResultStoreStep(archiveStore, transactionLog, titusRuntime);
-
         this.lastDeschedulingTimestamp = titusRuntime.getClock().wallTime();
-
         this.deschedulingResultLogger = new DeschedulingResultLogger();
+    }
 
+    @Override
+    public void activate() {
         ScheduleDescriptor relocationScheduleDescriptor = ScheduleDescriptor.newBuilder()
                 .withName("relocationWorkflow")
                 .withDescription("Task relocation scheduler")
@@ -145,8 +147,12 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
                 .withTimeout(Duration.ofMillis(configuration.getRelocationTimeoutMs()))
                 .withRetryerSupplier(() -> Retryers.exponentialBackoff(1, 5, TimeUnit.MINUTES))
                 .build();
+        this.localSchedulerDisposable = titusRuntime.getLocalScheduler().schedule(relocationScheduleDescriptor, this::nextRelocationStep, true);
+    }
 
-        localSchedulerDisposable = titusRuntime.getLocalScheduler().schedule(relocationScheduleDescriptor, this::nextRelocationStep, true);
+    @Override
+    public void deactivate() {
+        localSchedulerDisposable.cancel();
     }
 
     /**

@@ -96,7 +96,6 @@ public class TaskRelocationIntegrationTest {
 
     @Test(timeout = 60_000)
     public void testEvents() throws InterruptedException {
-
         TestStreamObserver<RelocationEvent> events = new TestStreamObserver<>();
         client.observeRelocationEvents(TaskRelocationQuery.getDefaultInstance(), events);
         RelocationEvent firstEvent = events.takeNext(30, TimeUnit.SECONDS);
