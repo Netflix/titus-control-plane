@@ -550,9 +550,9 @@ public class DefaultSchedulingService implements SchedulingService<V3QueueableTa
     }
 
     @Override
-    public void addTask(QueuableTask queuableTask) {
-        logger.info("Adding task to Fenzo: taskId={}, qAttributes={}", queuableTask.getId(), queuableTask.getQAttributes());
-        taskQueue.queueTask(queuableTask);
+    public void addTask(V3QueueableTask queueableTask) {
+        logger.info("Adding task to Fenzo: taskId={}, qAttributes={}", queueableTask.getId(), queueableTask.getQAttributes());
+        taskQueue.queueTask(queueableTask);
     }
 
     @Override
@@ -565,10 +565,7 @@ public class DefaultSchedulingService implements SchedulingService<V3QueueableTa
             Pair<Tier, String> tierAssignment = JobManagerUtil.getTierAssignment(job, capacityGroupService);
             QAttributes qAttributes = new V3QAttributes(tierAssignment.getLeft().ordinal(), tierAssignment.getRight());
             // host name should be null if it doesn't exist for fenzo to not try to unassign it
-            String hostname = kubeIntegrationEnabled
-                    ? task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID)
-                    : task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST);
-
+            String hostname = getHostname(task);
             logger.info("Removing task from Fenzo: taskId={}, qAttributes={}, hostname={}", taskId, qAttributes, hostname);
             schedulingService.removeTask(taskId, qAttributes, hostname);
         } else {
@@ -577,10 +574,11 @@ public class DefaultSchedulingService implements SchedulingService<V3QueueableTa
     }
 
     @Override
-    public void addRunningTask(QueuableTask task, String hostname) {
-        logger.info("Initializing Fenzo with the task: taskId={}, qAttributes={}, host={}", task.getId(), task.getQAttributes(), hostname);
-        schedulingService.initializeRunningTask(task, hostname);
-        agentResourceCacheUpdater.createOrUpdateAgentResourceCacheForTask(task, hostname);
+    public void addRunningTask(V3QueueableTask queueableTask) {
+        String hostname = getHostname(queueableTask.getTask());
+        logger.info("Initializing Fenzo with the task: taskId={}, qAttributes={}, host={}", queueableTask.getId(), queueableTask.getQAttributes(), hostname);
+        schedulingService.initializeRunningTask(queueableTask, hostname);
+        agentResourceCacheUpdater.createOrUpdateAgentResourceCacheForTask(queueableTask, hostname);
     }
 
     @Activator
@@ -807,4 +805,9 @@ public class DefaultSchedulingService implements SchedulingService<V3QueueableTa
         agentResourceCache.shutdown();
     }
 
+    private String getHostname(Task task) {
+        return kubeIntegrationEnabled
+                ? task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID)
+                : task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST);
+    }
 }

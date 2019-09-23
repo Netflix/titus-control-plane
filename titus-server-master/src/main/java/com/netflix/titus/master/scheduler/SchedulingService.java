@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import com.netflix.fenzo.TaskRequest;
-import com.netflix.fenzo.queues.QueuableTask;
+import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import com.netflix.titus.master.scheduler.TaskPlacementFailure.FailureKind;
 import rx.Observable;
 
@@ -35,12 +35,12 @@ public interface SchedulingService<T extends TaskRequest> {
     /**
      * Adds a running task to the scheduler. This method is used to restore the scheduler state after system failover.
      */
-    void addRunningTask(QueuableTask task, String hostname);
+    void addRunningTask(V3QueueableTask queueableTask);
 
     /**
      * Adds a new, not scheduled yet, task to the scheduler.
      */
-    void addTask(QueuableTask queuableTask);
+    void addTask(V3QueueableTask queueableTask);
 
     /**
      * Removes a task from the scheduler.
