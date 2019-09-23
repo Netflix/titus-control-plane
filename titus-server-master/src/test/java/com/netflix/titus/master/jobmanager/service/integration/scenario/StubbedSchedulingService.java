@@ -24,7 +24,7 @@ import java.util.Optional;
 
 import com.google.common.base.Preconditions;
 import com.netflix.fenzo.TaskRequest;
-import com.netflix.fenzo.queues.QueuableTask;
+import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import com.netflix.titus.master.scheduler.SchedulingResultEvent;
 import com.netflix.titus.master.scheduler.SchedulingService;
 import com.netflix.titus.master.scheduler.TaskPlacementFailure;
@@ -32,14 +32,14 @@ import rx.Observable;
 
 class StubbedSchedulingService implements SchedulingService<TaskRequest> {
 
-    private final Map<String, QueuableTask> queuableTasks = new HashMap<>();
+    private final Map<String, V3QueueableTask> queuableTasks = new HashMap<>();
 
-    public HashMap<String, QueuableTask> getQueuableTasks() {
+    public HashMap<String, V3QueueableTask> getQueuableTasks() {
         return new HashMap<>(queuableTasks);
     }
 
     @Override
-    public void addTask(QueuableTask queuableTask) {
+    public void addTask(V3QueueableTask queuableTask) {
         queuableTasks.put(queuableTask.getId(), queuableTask);
     }
 
@@ -50,7 +50,7 @@ class StubbedSchedulingService implements SchedulingService<TaskRequest> {
     }
 
     @Override
-    public void addRunningTask(QueuableTask task, String hostname) {
+    public void addRunningTask(V3QueueableTask task) {
         queuableTasks.put(task.getId(), task);
     }
 
