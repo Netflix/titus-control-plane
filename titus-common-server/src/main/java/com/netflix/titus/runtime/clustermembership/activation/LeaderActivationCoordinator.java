@@ -27,6 +27,9 @@ import java.util.function.Consumer;
 import javax.annotation.PreDestroy;
 
 import com.google.common.base.Stopwatch;
+import com.netflix.spectator.api.Id;
+import com.netflix.spectator.api.Registry;
+import com.netflix.spectator.api.patterns.PolledMeter;
 import com.netflix.titus.api.clustermembership.model.ClusterMember;
 import com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision;
 import com.netflix.titus.api.clustermembership.service.ClusterMembershipService;
@@ -85,13 +88,16 @@ public class LeaderActivationCoordinator {
 
     private final AtomicReference<State> stateRef = new AtomicReference<>(State.Awaiting);
     private volatile List<LeaderActivationListener> activatedServices = Collections.emptyList();
+    private volatile long activationTimestamp = -1;
 
     private final Scheduler scheduler;
     private final ScheduleReference scheduleRef;
 
     private final Clock clock;
+    private final Registry registry;
 
     private final SpectatorExt.FsmMetrics<State> stateMetricFsm;
+    private final Id inActiveStateTimeId;
 
     /**
      * @param services list of services to activate in the desired activation order
@@ -108,11 +114,16 @@ public class LeaderActivationCoordinator {
         this.localMemberId = membershipService.getLocalClusterMember().getCurrent().getMemberId();
         this.clock = titusRuntime.getClock();
 
+        this.registry = titusRuntime.getRegistry();
         this.stateMetricFsm = SpectatorExt.fsmMetrics(
-                titusRuntime.getRegistry().createId(METRIC_ROOT + "state"),
+                registry.createId(METRIC_ROOT + "state"),
                 s -> s == State.Deactivated,
                 State.Awaiting,
-                titusRuntime.getRegistry()
+                registry
+        );
+        this.inActiveStateTimeId = registry.createId(METRIC_ROOT + "inActiveStateTime");
+        PolledMeter.using(registry).withId(inActiveStateTimeId).monitorValue(this, self ->
+                (self.stateRef.get() == State.ElectedLeader && activationTimestamp > 0) ? self.clock.wallTime() - self.activationTimestamp : 0
         );
 
         this.scheduler = Schedulers.newSingle("LeaderActivationCoordinator");
@@ -147,6 +158,9 @@ public class LeaderActivationCoordinator {
 
     @PreDestroy
     public void shutdown() {
+        activationTimestamp = -1;
+        PolledMeter.remove(registry, inActiveStateTimeId);
+
         scheduleRef.cancel();
 
         // Give it some time to finish pending work if any.
@@ -201,11 +215,14 @@ public class LeaderActivationCoordinator {
             }
         }
         this.activatedServices = activated;
+        this.activationTimestamp = clock.wallTime();
 
         logger.info("Activation process finished in: {}", DateTimeExt.toTimeUnitString(allStart.elapsed(TimeUnit.MILLISECONDS)));
     }
 
     private void deactivate() {
+        this.activationTimestamp = -1;
+
         State current = stateRef.getAndSet(State.Deactivated);
         if (current == State.Awaiting) {
             logger.info("Deactivating non-leader member");
