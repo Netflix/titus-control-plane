@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import com.netflix.titus.api.common.LeaderActivationListener;
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import reactor.core.publisher.Mono;
 
@@ -28,7 +29,7 @@ import reactor.core.publisher.Mono;
  * Store API for managing the active data set. This includes active task relocation plans, and the latest
  * relocation attempts.
  */
-public interface TaskRelocationStore {
+public interface TaskRelocationStore extends LeaderActivationListener {
 
     /**
      * Creates or updates task relocation plans in the database.

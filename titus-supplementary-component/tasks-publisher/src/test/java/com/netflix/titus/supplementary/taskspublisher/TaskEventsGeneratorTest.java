@@ -81,7 +81,7 @@ public class TaskEventsGeneratorTest {
                 Collections.emptyMap());
 
         EsPublisher esPublisher = new EsPublisher(taskEventsGenerator, mockElasticSearchClient(), new DefaultRegistry());
-        esPublisher.start();
+        esPublisher.activate();
 
         final CountDownLatch latch = new CountDownLatch(1);
         Flux.interval(Duration.ofSeconds(1), Schedulers.elastic())

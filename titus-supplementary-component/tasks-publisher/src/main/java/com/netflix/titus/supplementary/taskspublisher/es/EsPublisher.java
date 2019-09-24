@@ -18,12 +18,11 @@ package com.netflix.titus.supplementary.taskspublisher.es;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
 
 import com.netflix.spectator.api.Functions;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.patterns.PolledMeter;
+import com.netflix.titus.api.common.LeaderActivationListener;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.supplementary.taskspublisher.TaskDocument;
 import com.netflix.titus.supplementary.taskspublisher.TaskEventsGenerator;
@@ -34,7 +33,7 @@ import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.publisher.ConnectableFlux;
 
-public class EsPublisher implements TasksPublisher {
+public class EsPublisher implements TasksPublisher, LeaderActivationListener {
     private static final Logger logger = LoggerFactory.getLogger(EsPublisher.class);
     private static final int MAX_CONCURRENCY = 20;
     private TaskEventsGenerator taskEventsGenerator;
@@ -55,21 +54,15 @@ public class EsPublisher implements TasksPublisher {
         configureMetrics();
     }
 
-
-    @PreDestroy
-    public void stop() {
-        ReactorExt.safeDispose(subscription, taskEventsSourceConnection);
-    }
-
-    @PostConstruct
-    public void start() {
+    @Override
+    public void activate() {
         ConnectableFlux<TaskDocument> taskEvents = taskEventsGenerator.getTaskEvents();
         subscription = taskEvents.bufferTimeout(100, Duration.ofSeconds(5))
                 .flatMap(taskDocuments ->
-                        esClient.bulkIndexTaskDocument(taskDocuments)
-                                .retryWhen(TaskPublisherRetryUtil.buildRetryHandler(
-                                        TaskPublisherRetryUtil.INITIAL_RETRY_DELAY_MS,
-                                        TaskPublisherRetryUtil.MAX_RETRY_DELAY_MS, 3)),
+                                esClient.bulkIndexTaskDocument(taskDocuments)
+                                        .retryWhen(TaskPublisherRetryUtil.buildRetryHandler(
+                                                TaskPublisherRetryUtil.INITIAL_RETRY_DELAY_MS,
+                                                TaskPublisherRetryUtil.MAX_RETRY_DELAY_MS, 3)),
                         MAX_CONCURRENCY)
                 .doOnError(e -> {
                     logger.error("Error in indexing documents (Retrying) : ", e);
@@ -88,6 +81,11 @@ public class EsPublisher implements TasksPublisher {
                         },
                         e -> logger.error("Error in indexing documents ", e));
         taskEventsSourceConnection = taskEvents.connect();
+    }
+
+    @Override
+    public void deactivate() {
+        ReactorExt.safeDispose(subscription, taskEventsSourceConnection);
     }
 
     @Override

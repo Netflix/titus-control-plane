@@ -35,11 +35,11 @@ import reactor.core.publisher.Mono;
 import static com.netflix.titus.testkit.model.clustermembership.ClusterMemberGenerator.activeClusterMember;
 import static com.netflix.titus.testkit.model.clustermembership.ClusterMemberGenerator.clusterMemberRegistrationRevision;
 
-class ClusterMembershipServiceStub implements ClusterMembershipService {
+public class ClusterMembershipServiceStub implements ClusterMembershipService {
 
     static final String LOCAL_MEMBER_ID = "local";
 
-    static final ClusterMembershipRevision<ClusterMemberLeadership> LOCAL_LEADERSHIP =
+    static final ClusterMembershipRevision<ClusterMemberLeadership> INITIAL_LOCAL_LEADERSHIP =
             com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision.<ClusterMemberLeadership>newBuilder()
                     .withCurrent(ClusterMemberLeadership.newBuilder()
                             .withMemberId(LOCAL_MEMBER_ID)
@@ -58,12 +58,13 @@ class ClusterMembershipServiceStub implements ClusterMembershipService {
     private volatile ClusterMembershipRevision<ClusterMemberLeadership> localLeadership;
 
     private volatile Map<String, ClusterMembershipRevision<ClusterMember>> siblings;
+    private volatile ClusterMembershipRevision<ClusterMemberLeadership> siblingElection;
 
     private final DirectProcessor<ClusterMembershipEvent> eventProcessor = DirectProcessor.create();
 
-    ClusterMembershipServiceStub() {
+    public ClusterMembershipServiceStub() {
         this.localMember = LOCAL_MEMBER;
-        this.localLeadership = LOCAL_LEADERSHIP;
+        this.localLeadership = INITIAL_LOCAL_LEADERSHIP;
 
         this.siblings = new HashMap<>();
         siblings.put("sibling1", SIBLING_1);
@@ -87,7 +88,13 @@ class ClusterMembershipServiceStub implements ClusterMembershipService {
 
     @Override
     public Optional<ClusterMembershipRevision<ClusterMemberLeadership>> findLeader() {
-        return Optional.of(LOCAL_LEADERSHIP);
+        if (localLeadership.getCurrent().getLeadershipState() == ClusterMemberLeadershipState.Leader) {
+            return Optional.of(localLeadership);
+        }
+        if (siblingElection != null && siblingElection.getCurrent().getLeadershipState() == ClusterMemberLeadershipState.Leader) {
+            return Optional.of(siblingElection);
+        }
+        return Optional.empty();
     }
 
     @Override
@@ -114,7 +121,7 @@ class ClusterMembershipServiceStub implements ClusterMembershipService {
 
             // Elect new leader
             ClusterMembershipRevision<ClusterMember> sibling = CollectionsExt.first(siblings.values());
-            ClusterMembershipRevision<ClusterMemberLeadership> siblingElection = ClusterMembershipRevision.<ClusterMemberLeadership>newBuilder()
+            this.siblingElection = ClusterMembershipRevision.<ClusterMemberLeadership>newBuilder()
                     .withCurrent(ClusterMemberLeadership.newBuilder()
                             .withMemberId(sibling.getCurrent().getMemberId())
                             .withLeadershipState(ClusterMemberLeadershipState.Leader)

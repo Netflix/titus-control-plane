@@ -22,11 +22,13 @@ import java.util.concurrent.LinkedBlockingQueue;
 import com.netflix.titus.runtime.clustermembership.connector.ClusterMembershipInMemoryConnectorComponent;
 import com.netflix.titus.runtime.clustermembership.endpoint.grpc.ClusterMembershipGrpcEndpointComponent;
 import com.netflix.titus.runtime.clustermembership.service.ClusterMembershipServiceComponent;
+import com.netflix.titus.runtime.clustermembership.activation.LeaderActivationComponent;
 import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorServerFactoryComponent;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolveComponent;
 import com.netflix.titus.runtime.health.AlwaysHealthyComponent;
 import com.netflix.titus.supplementary.relocation.RelocationConfiguration;
 import com.netflix.titus.supplementary.relocation.RelocationConnectorStubs;
+import com.netflix.titus.supplementary.relocation.RelocationLeaderActivator;
 import com.netflix.titus.supplementary.relocation.descheduler.DeschedulerComponent;
 import com.netflix.titus.supplementary.relocation.endpoint.grpc.TaskRelocationGrpcComponent;
 import com.netflix.titus.supplementary.relocation.endpoint.grpc.TaskRelocationGrpcServerRunner;
@@ -63,6 +65,7 @@ public class TaskRelocationSandbox {
         container.register(ClusterMembershipInMemoryConnectorComponent.class);
         container.register(ClusterMembershipServiceComponent.class);
         container.register(ClusterMembershipGrpcEndpointComponent.class);
+        container.register(LeaderActivationComponent.class);
 
         container.register(CallMetadataResolveComponent.class);
         container.register(GrpcToReactorServerFactoryComponent.class);
@@ -74,9 +77,9 @@ public class TaskRelocationSandbox {
         container.register(TaskRelocationGrpcServerRunner.class);
         container.register(TaskRelocationSpringResource.class);
         container.register(TaskRelocationExceptionHandler.class);
+        container.register(RelocationLeaderActivator.class);
         container.refresh();
         container.start();
-
     }
 
     public void shutdown() {

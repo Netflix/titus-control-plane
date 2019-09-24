@@ -89,7 +89,9 @@ public class JooqTaskRelocationStoreTest {
     }
 
     private JooqTaskRelocationStore newStore() {
-        return new JooqTaskRelocationStore(jooqResource.getDslContext());
+        JooqTaskRelocationStore store = new JooqTaskRelocationStore(jooqResource.getDslContext());
+        store.activate();
+        return store;
     }
 
     private List<TaskRelocationPlan> newRelocationPlans(int count) {
