@@ -515,7 +515,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                     new TypeToken<Watch.Response<V1Pod>>() {
                     }.getType());
             for (Watch.Response<V1Pod> item : watch) {
-                logger.info("Received pod update with type: {}, object: {}", item.type, item.object);
+                logger.debug("Received pod update with type: {}, object: {}", item.type, item.object);
                 V1Pod pod = item.object;
                 try {
                     podUpdated(pod);
