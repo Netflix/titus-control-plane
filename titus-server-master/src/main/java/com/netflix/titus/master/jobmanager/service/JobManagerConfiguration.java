@@ -74,7 +74,7 @@ public interface JobManagerConfiguration {
     @DefaultValue("2")
     long getTaskKillAttempts();
 
-    @DefaultValue("12000")
+    @DefaultValue("20000")
     long getMaxActiveJobs();
 
     /**
