@@ -51,6 +51,7 @@ import com.netflix.titus.common.framework.scheduler.model.ScheduleDescriptor;
 import com.netflix.titus.common.network.client.ClientMetrics;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExecutorsExt;
+import com.netflix.titus.common.util.NetworkExt;
 import com.netflix.titus.common.util.RegExpExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.time.Clock;
@@ -479,7 +480,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     private Iterable<? extends Protos.Attribute> nodeToAttributes(V1Node node) {
         V1ObjectMeta metadata = node.getMetadata();
         String nodeIp = node.getStatus().getAddresses().stream()
-                .filter(a -> a.getType().equalsIgnoreCase(INTERNAL_IP))
+                .filter(a -> a.getType().equalsIgnoreCase(INTERNAL_IP) && NetworkExt.isIpV4(a.getAddress()))
                 .findAny()
                 .map(V1NodeAddress::getAddress)
                 .orElse("UnknownIpAddress");
