@@ -4,26 +4,11 @@ metadata:
   name: members.clustermembership.titus.netflix
 spec:
   group: clustermembership.titus.netflix
+  version: v1alpha1
   versions:
     - name: v1alpha1
       served: true
       storage: true
-      schema:
-        openAPIV3Schema:
-          properties:
-            state:
-              type: string
-            enabled:
-              type: boolean
-            addresses:
-              type: array
-              items:
-                type: object
-                properties:
-                  ipAddress:
-                    type: string
-            labels:
-              type: properties
   scope: Namespaced
   names:
     plural: members
@@ -31,3 +16,4 @@ spec:
     kind: Members
     shortNames:
       - mbs
+  preserveUnknownFields: true

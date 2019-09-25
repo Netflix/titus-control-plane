@@ -161,6 +161,8 @@ public class DefaultSchedulingService implements SchedulingService<V3QueueableTa
     private final Timer recordTaskPlacementLatencyTimer;
     private final Timer mesosLatencyTimer;
 
+    private final FenzoLeaseMetrics fenzoLeaseMetrics;
+
     private final AtomicLong totalSchedulingIterationMesosLatency;
 
     private final ConcurrentMap<Integer, List<VirtualMachineCurrentState>> vmCurrentStatesMap;
@@ -321,6 +323,8 @@ public class DefaultSchedulingService implements SchedulingService<V3QueueableTa
 
         totalSchedulingIterationMesosLatency = new AtomicLong();
 
+        this.fenzoLeaseMetrics = new FenzoLeaseMetrics(titusRuntime);
+
         vmCurrentStatesMap = new ConcurrentHashMap<>();
     }
 
@@ -399,6 +403,7 @@ public class DefaultSchedulingService implements SchedulingService<V3QueueableTa
                                 states -> {
                                     vmCurrentStatesMap.put(0, states);
                                     verifyAndReportResourceUsageMetrics(states);
+                                    fenzoLeaseMetrics.update(states);
                                     checkInactiveVMs(states);
                                     vmOps.setAgentInfos(states);
                                 }
