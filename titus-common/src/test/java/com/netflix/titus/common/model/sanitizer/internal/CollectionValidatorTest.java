@@ -29,6 +29,7 @@ import com.netflix.titus.common.model.sanitizer.TestValidator;
 import org.junit.Before;
 import org.junit.Test;
 
+import static com.netflix.titus.common.util.CollectionsExt.first;
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -37,39 +38,68 @@ public class CollectionValidatorTest {
     private Validator validator;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         validator = TestValidator.testStrictValidator();
     }
 
     @Test
-    public void testCollection() throws Exception {
+    public void testValidCollection() {
         assertThat(validator.validate(new ListWrapper(asList("A", "A", "C")))).isEmpty();
-
-        Set<ConstraintViolation<ListWrapper>> violations = validator.validate(new ListWrapper(asList("A", null, "C")));
-        System.out.println(violations);
-        assertThat(violations).hasSize(1);
     }
 
     @Test
-    public void testMap() throws Exception {
+    public void testCollectionWithNullValues() {
+        Set<ConstraintViolation<ListWrapper>> violations = validator.validate(new ListWrapper(asList("A", null, "C")));
+        assertThat(violations).hasSize(1);
+        assertThat(first(violations).getMessage()).isEqualTo("null values not allowed");
+    }
+
+    @Test
+    public void testValidMap() {
         assertThat(validator.validate(new MapWrapper(ImmutableMap.of(
                 "k1", "v1",
                 "k2", "v2",
                 "k3", "v3"
         )))).isEmpty();
+    }
 
+    @Test
+    public void testMapWithEmptyKeys() {
+        Map<String, String> mapWithEmptyKeys = new HashMap<>();
+        mapWithEmptyKeys.put("k1", "v1");
+        mapWithEmptyKeys.put("", "v2");
+
+        Set<ConstraintViolation<MapWrapper>> violations = validator.validate(new MapWrapper(mapWithEmptyKeys));
+        assertThat(violations).hasSize(1);
+        assertThat(first(violations).getMessage()).isEqualTo("empty key names not allowed");
+    }
+
+    @Test
+    public void testMapWithNullKeys() {
+        Map<String, String> mapWithNullKeys = new HashMap<>();
+        mapWithNullKeys.put("k1", "v1");
+        mapWithNullKeys.put(null, "v2");
+
+        Set<ConstraintViolation<MapWrapperWithEmptyKeys>> violations = validator.validate(new MapWrapperWithEmptyKeys(mapWithNullKeys));
+        assertThat(violations).hasSize(1);
+        assertThat(first(violations).getMessage()).isEqualTo("null key names not allowed");
+    }
+
+    @Test
+    public void testMapWithNullValues() {
         Map<String, String> mapWithNullValues = new HashMap<>();
         mapWithNullValues.put("k1", "v1");
         mapWithNullValues.put("k2", null);
-        mapWithNullValues.put(null, "v3");
+        mapWithNullValues.put("k3", null);
+
         Set<ConstraintViolation<MapWrapper>> violations = validator.validate(new MapWrapper(mapWithNullValues));
-        System.out.println(violations);
         assertThat(violations).hasSize(1);
+        assertThat(first(violations).getMessage()).isEqualTo("null values found for keys: [k2, k3]");
     }
 
     static class ListWrapper {
 
-        @CollectionInvariants(message = "Collection contains null values")
+        @CollectionInvariants
         List<String> values;
 
         ListWrapper(List<String> values) {
@@ -78,10 +108,20 @@ public class CollectionValidatorTest {
     }
 
     static class MapWrapper {
-        @CollectionInvariants(message = "Map contains null keys or values")
+        @CollectionInvariants(allowEmptyKeys = false)
         Map<String, String> values;
 
         MapWrapper(Map<String, String> values) {
+            this.values = values;
+        }
+
+    }
+
+    static class MapWrapperWithEmptyKeys {
+        @CollectionInvariants(allowEmptyKeys = true, allowNullValues = false)
+        Map<String, String> values;
+
+        MapWrapperWithEmptyKeys(Map<String, String> values) {
             this.values = values;
         }
 
