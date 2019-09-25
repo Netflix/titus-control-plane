@@ -119,4 +119,7 @@ public interface SchedulerConfiguration {
      */
     @DefaultValue("machineType")
     String getMachineTypeAttributeName();
+
+    @DefaultValue("600000")
+    long getLeaseDumpIntervalMs();
 }
