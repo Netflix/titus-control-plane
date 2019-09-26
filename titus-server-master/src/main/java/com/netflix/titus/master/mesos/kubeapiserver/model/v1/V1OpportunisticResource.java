@@ -125,10 +125,7 @@ public class V1OpportunisticResource {
     }
 
     public Instant getEnd() {
-        if (spec == null || spec.getWindow() == null || spec.getWindow().getEnd() == null) {
-            return Instant.EPOCH;
-        }
-        return Instant.ofEpochMilli(spec.getWindow().getEnd().getMillis());
+        return Instant.ofEpochMilli(spec.getWindow().getEnd());
     }
 
     public int getCpus() {

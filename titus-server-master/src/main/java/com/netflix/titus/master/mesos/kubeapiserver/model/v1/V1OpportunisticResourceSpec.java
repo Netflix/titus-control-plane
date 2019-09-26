@@ -19,7 +19,6 @@ package com.netflix.titus.master.mesos.kubeapiserver.model.v1;
 import java.util.Objects;
 
 import com.google.gson.annotations.SerializedName;
-import org.joda.time.DateTime;
 
 /**
  * GSON-compatible POJO, with a default constructor following JavaBeans conventions.
@@ -123,25 +122,31 @@ public class V1OpportunisticResourceSpec {
      * @see io.kubernetes.client.JSON.DateTimeTypeAdapter
      */
     public static class Window {
+        /**
+         * UNIX timestamp: milliseconds since epoch
+         */
         @SerializedName("start")
-        private DateTime start;
+        private long start;
 
+        /**
+         * UNIX timestamp: milliseconds since epoch
+         */
         @SerializedName("end")
-        private DateTime end;
+        private long end;
 
-        public DateTime getStart() {
+        public long getStart() {
             return start;
         }
 
-        public void setStart(DateTime start) {
+        public void setStart(long start) {
             this.start = start;
         }
 
-        public DateTime getEnd() {
+        public long getEnd() {
             return end;
         }
 
-        public void setEnd(DateTime end) {
+        public void setEnd(long end) {
             this.end = end;
         }
 
@@ -154,8 +159,8 @@ public class V1OpportunisticResourceSpec {
                 return false;
             }
             Window window = (Window) o;
-            return Objects.equals(start, window.start) &&
-                    Objects.equals(end, window.end);
+            return start == window.start &&
+                    end == window.end;
         }
 
         @Override
