@@ -15,11 +15,9 @@ jobs:
             sudo apt update
             sudo apt install -qy ca-certificates git
       - checkout
-      - run: sudo chmod -R 777 /root/.gradle/caches
-      - run: sudo chmod -R 777 /root/.gradle/wrapper
       - restore_cache:
           keys:
-            - v1-gradle-cache
+            - v2-gradle-cache
       - run: ./gradlew testAll --parallel --no-daemon --max-workers 2 --stacktrace
       - run:
           name: Save test results
@@ -35,6 +33,6 @@ jobs:
           paths:
             - ~/.gradle/caches
             - ~/.gradle/wrapper
-          key: v1-gradle-cache
+          key: v2-gradle-cache
           when: always
 
