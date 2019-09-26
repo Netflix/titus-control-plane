@@ -45,6 +45,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static com.netflix.titus.api.FeatureRolloutPlans.ENVIRONMENT_VARIABLE_NAMES_STRICT_VALIDATION_FEATURE;
+import static com.netflix.titus.gateway.service.v3.internal.DisruptionBudgetSanitizer.BATCH_RUNTIME_LIMIT_FACTOR;
 import static com.netflix.titus.gateway.service.v3.internal.ExtendedJobSanitizer.TITUS_NON_COMPLIANT_FEATURES;
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -267,8 +268,9 @@ public class ExtendedJobSanitizerTest {
         assertThat(nonCompliant).contains(FeatureRolloutPlans.DISRUPTION_BUDGET_FEATURE);
 
         SelfManagedDisruptionBudgetPolicy policy = (SelfManagedDisruptionBudgetPolicy) sanitized.getDisruptionBudget().getDisruptionBudgetPolicy();
-        assertThat(policy.getRelocationTimeMs()).isEqualTo(((BatchJobExt) jobDescriptor.getExtensions()).getRuntimeLimitMs());
-
+        assertThat(policy.getRelocationTimeMs()).isEqualTo(
+                (long) ((jobDescriptor.getExtensions()).getRuntimeLimitMs() * BATCH_RUNTIME_LIMIT_FACTOR)
+        );
     }
 
     private DataGenerator<JobDescriptor<BatchJobExt>> newBatchJob() {

@@ -50,6 +50,13 @@ public class DisruptionBudgetSanitizer {
     @VisibleForTesting
     static final int DEFAULT_SERVICE_RELOCATION_TIME_MS = 60_000;
 
+    /**
+     * A strict alignment of a batch task runtime limit and a self migration deadline, may cause interruption of a batch task
+     * which is almost finished. To prevent that we set migration limit to a slightly higher value.
+     */
+    @VisibleForTesting
+    static final double BATCH_RUNTIME_LIMIT_FACTOR = 1.2;
+
     private final DisruptionBudgetSanitizerConfiguration configuration;
     private final Registry registry;
 
@@ -104,7 +111,10 @@ public class DisruptionBudgetSanitizer {
     }
 
     private JobDescriptor injectDefaultBatchDisruptionBudget(JobDescriptor<BatchJobExt> original) {
-        long runtimeLimitMs = Math.max(MIN_BATCH_RELOCATION_TIME_MS, original.getExtensions().getRuntimeLimitMs());
+        long runtimeLimitMs = Math.max(
+                MIN_BATCH_RELOCATION_TIME_MS,
+                (long) (original.getExtensions().getRuntimeLimitMs() * BATCH_RUNTIME_LIMIT_FACTOR)
+        );
 
         DisruptionBudget.Builder budgetBuilder = DisruptionBudget.newBuilder()
                 .withDisruptionBudgetPolicy(SelfManagedDisruptionBudgetPolicy.newBuilder()
