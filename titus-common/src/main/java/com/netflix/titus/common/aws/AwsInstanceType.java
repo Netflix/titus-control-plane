@@ -220,6 +220,67 @@ public enum AwsInstanceType {
     ),
 
     /*
+     * G4 family
+     */
+
+    G4DN_XLarge(AwsInstanceDescriptor.newBuilder("g4dn.xlarge")
+            .cpu(4)
+            .gpu(1)
+            .memoryGB(16)
+            .networkMbs(25000)
+            .storageGB(125)
+            .build()
+    ),
+    G4DN_2XLarge(AwsInstanceDescriptor.newBuilder("g4dn.2xlarge")
+            .cpu(8)
+            .gpu(1)
+            .memoryGB(32)
+            .networkMbs(25000)
+            .storageGB(225)
+            .build()
+    ),
+    G4DN_4XLarge(AwsInstanceDescriptor.newBuilder("g4dn.4xlarge")
+            .cpu(16)
+            .gpu(1)
+            .memoryGB(64)
+            .networkMbs(25000)
+            .storageGB(225)
+            .build()
+    ),
+    G4DN_8XLarge(AwsInstanceDescriptor.newBuilder("g4dn.8xlarge")
+            .cpu(32)
+            .gpu(1)
+            .memoryGB(128)
+            .networkMbs(50000)
+            .storageGB(900)
+            .build()
+    ),
+    G4DN_12XLarge(AwsInstanceDescriptor.newBuilder("g4dn.12xlarge")
+            .cpu(48)
+            .gpu(4)
+            .memoryGB(192)
+            .networkMbs(50000)
+            .storageGB(900)
+            .build()
+    ),
+    G4DN_16XLarge(AwsInstanceDescriptor.newBuilder("g4dn.16xlarge")
+            .cpu(64)
+            .gpu(1)
+            .memoryGB(256)
+            .networkMbs(50000)
+            .storageGB(900)
+            .build()
+    ),
+    G4DN_Metal(AwsInstanceDescriptor.newBuilder("g4dn.metal")
+            .cpu(96)
+            .gpu(8)
+            .memoryGB(384)
+            .networkMbs(100000)
+            .storageGB(1800)
+            .build()
+    ),
+
+    /*
      * P2 family
      */
 
@@ -296,6 +357,14 @@ public enum AwsInstanceType {
     public static final String G2_XLARGE_ID = "g2.xlarge";
     public static final String G2_2XLARGE_ID = "g2.2xlarge";
     public static final String G2_8XLARGE_ID = "g2.8xlarge";
+
+    public static final String G4DN_XLARGE_ID = "g4dn.xlarge";
+    public static final String G4DN_2XLARGE_ID = "g4dn.2xlarge";
+    public static final String G4DN_4XLARGE_ID = "g4dn.4xlarge";
+    public static final String G4DN_8XLARGE_ID = "g4dn.8xlarge";
+    public static final String G4DN_12XLARGE_ID = "g4dn.12xlarge";
+    public static final String G4DN_16XLARGE_ID = "g4dn.16xlarge";
+    public static final String G4DN_METAL_ID = "g4dn.metal";
 
     public static final String P2_XLARGE_ID = "p2.xlarge";
     public static final String P2_2XLARGE_ID = "p2.2xlarge";
