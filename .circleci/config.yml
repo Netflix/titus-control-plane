@@ -15,6 +15,8 @@ jobs:
             sudo apt update
             sudo apt install -qy ca-certificates git
       - checkout
+      - run: sudo chmod -R 777 /root/.gradle/caches
+      - run: sudo chmod -R 777 /root/.gradle/wrapper
       - restore_cache:
           keys:
             - v1-gradle-cache
