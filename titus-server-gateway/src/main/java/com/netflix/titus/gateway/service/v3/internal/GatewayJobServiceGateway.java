@@ -59,7 +59,6 @@ import com.netflix.titus.runtime.endpoint.admission.AdmissionSanitizer;
 import com.netflix.titus.runtime.endpoint.admission.AdmissionValidator;
 import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
 import com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters;
-import com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters2;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
 import com.netflix.titus.runtime.jobmanager.JobManagerConfiguration;
@@ -115,6 +114,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
                                     TaskRelocationDataInjector taskRelocationDataInjector,
                                     NeedsMigrationQueryHandler needsMigrationQueryHandler,
                                     @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer,
+                                    DisruptionBudgetSanitizer disruptionBudgetSanitizer,
                                     @Named(SECURITY_GROUPS_REQUIRED_FEATURE) Predicate<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> securityGroupsRequiredPredicate,
                                     @Named(ENVIRONMENT_VARIABLE_NAMES_STRICT_VALIDATION_FEATURE) Predicate<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> environmentVariableNamesStrictValidationPredicate,
                                     JobAssertions jobAssertions,
@@ -123,8 +123,15 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
                                     TitusRuntime titusRuntime) {
         super(new SanitizingJobServiceGateway(
                 new GrpcJobServiceGateway(client, callMetadataResolver, tunablesConfiguration),
-                new ExtendedJobSanitizer(jobManagerConfiguration, jobAssertions, entitySanitizer,
-                        securityGroupsRequiredPredicate, environmentVariableNamesStrictValidationPredicate, titusRuntime),
+                new ExtendedJobSanitizer(
+                        jobManagerConfiguration,
+                        jobAssertions,
+                        entitySanitizer,
+                        disruptionBudgetSanitizer,
+                        securityGroupsRequiredPredicate,
+                        environmentVariableNamesStrictValidationPredicate,
+                        titusRuntime
+                ),
                 validator, sanitizer));
         this.tunablesConfiguration = tunablesConfiguration;
         this.gatewayConfiguration = gatewayConfiguration;

@@ -22,8 +22,10 @@ package com.netflix.titus.gateway;
 public class MetricConstants {
 
     public static final String METRIC_ROOT = "titusGateway.";
+
     public static final String METRIC_ENDPOINT = METRIC_ROOT + "endpoint.";
-    public static final String METRIC_REWRITE = METRIC_ENDPOINT + "rewrite.";
+
     public static final String METRIC_PROXY = METRIC_ENDPOINT + "proxy.";
-    public static final String METRIC_CLIENT_REQUEST = METRIC_ROOT + "clientRequest.";
+
+    public static final String METRIC_JOB_MANAGEMENT = METRIC_ROOT + "jobManagement.";
 }
