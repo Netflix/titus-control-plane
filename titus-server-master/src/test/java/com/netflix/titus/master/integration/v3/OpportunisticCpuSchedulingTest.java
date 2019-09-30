@@ -44,7 +44,7 @@ import org.junit.rules.RuleChain;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_ASG;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT;
-import static com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCells.twoPartitionsPerTierCell;
+import static com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCells.basicCell;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskBatchJobDescriptor;
 
 @Category(IntegrationTest.class)
@@ -53,7 +53,7 @@ public class OpportunisticCpuSchedulingTest extends BaseIntegrationTest {
             oneTaskBatchJobDescriptor(), JobAttributes.JOB_ATTRIBUTES_RUNTIME_PREDICTION_SEC, "12.6" /* seconds */
     );
 
-    private final TitusStackResource titusStackResource = new TitusStackResource(twoPartitionsPerTierCell(2));
+    private final TitusStackResource titusStackResource = new TitusStackResource(basicCell(2));
 
     private final JobsScenarioBuilder jobsScenarioBuilder = new JobsScenarioBuilder(titusStackResource);
 
@@ -64,7 +64,7 @@ public class OpportunisticCpuSchedulingTest extends BaseIntegrationTest {
 
     @Before
     public void setUp() throws Exception {
-        instanceGroupsScenarioBuilder.synchronizeWithCloud().template(InstanceGroupScenarioTemplates.twoPartitionsPerTierStackActivation());
+        instanceGroupsScenarioBuilder.synchronizeWithCloud().template(InstanceGroupScenarioTemplates.basicCloudActivation());
     }
 
     /**
@@ -94,7 +94,7 @@ public class OpportunisticCpuSchedulingTest extends BaseIntegrationTest {
         String allocationId = UUID.randomUUID().toString();
         Instant expiresAt = Instant.now().plus(Duration.ofSeconds(10));
         OpportunisticCpuAvailability availability = new OpportunisticCpuAvailability(allocationId, expiresAt, 4);
-        instanceGroupsScenarioBuilder.apply("flex2",
+        instanceGroupsScenarioBuilder.apply("flex1",
                 group -> group.any(instance -> instance.addOpportunisticCpus(availability))
         );
 
@@ -120,7 +120,7 @@ public class OpportunisticCpuSchedulingTest extends BaseIntegrationTest {
         String allocationId = UUID.randomUUID().toString();
         Instant expiresAt = Instant.now().plus(Duration.ofHours(6));
         OpportunisticCpuAvailability availability = new OpportunisticCpuAvailability(allocationId, expiresAt, 4);
-        instanceGroupsScenarioBuilder.apply("flex2",
+        instanceGroupsScenarioBuilder.apply("flex1",
                 group -> group.any(instance -> instance.addOpportunisticCpus(availability))
         );
 
@@ -132,7 +132,7 @@ public class OpportunisticCpuSchedulingTest extends BaseIntegrationTest {
                 .template(ScenarioTemplates.launchJob())
                 .allTasks(taskScenarioBuilder -> taskScenarioBuilder
                         .expectTaskOnAgent()
-                        .expectTaskContext(TASK_ATTRIBUTES_AGENT_ASG, "flex2")
+                        .expectTaskContext(TASK_ATTRIBUTES_AGENT_ASG, "flex1")
                         .expectTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION, allocationId)
                         .expectTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT, "2")
                         // free up launch guard
@@ -143,7 +143,7 @@ public class OpportunisticCpuSchedulingTest extends BaseIntegrationTest {
                 .template(ScenarioTemplates.launchJob())
                 .allTasks(taskScenarioBuilder -> taskScenarioBuilder
                         .expectTaskOnAgent()
-                        .expectTaskContext(TASK_ATTRIBUTES_AGENT_ASG, "flex2")
+                        .expectTaskContext(TASK_ATTRIBUTES_AGENT_ASG, "flex1")
                         .expectTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION, allocationId)
                         .expectTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT, "2")
                         // free up launch guard
@@ -171,7 +171,7 @@ public class OpportunisticCpuSchedulingTest extends BaseIntegrationTest {
                 .template(ScenarioTemplates.launchJob())
                 .allTasks(taskScenarioBuilder -> taskScenarioBuilder
                         .expectTaskOnAgent()
-                        .expectTaskContext(TASK_ATTRIBUTES_AGENT_ASG, "flex2")
+                        .expectTaskContext(TASK_ATTRIBUTES_AGENT_ASG, "flex1")
                         .expectTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION, allocationId)
                         .expectTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT, "2")
                         // free up launch guard
@@ -184,7 +184,7 @@ public class OpportunisticCpuSchedulingTest extends BaseIntegrationTest {
         String allocationId = UUID.randomUUID().toString();
         Instant expiresAt = Instant.now().minus(Duration.ofMillis(1));
         OpportunisticCpuAvailability availability = new OpportunisticCpuAvailability(allocationId, expiresAt, 10);
-        instanceGroupsScenarioBuilder.apply("flex2",
+        instanceGroupsScenarioBuilder.apply("flex1",
                 group -> group.any(instance -> instance.addOpportunisticCpus(availability))
         );
 
@@ -208,7 +208,7 @@ public class OpportunisticCpuSchedulingTest extends BaseIntegrationTest {
         String allocationId = UUID.randomUUID().toString();
         Instant expiresAt = Instant.now().plus(Duration.ofHours(6));
         OpportunisticCpuAvailability availability = new OpportunisticCpuAvailability(allocationId, expiresAt, 2);
-        instanceGroupsScenarioBuilder.apply("flex2",
+        instanceGroupsScenarioBuilder.apply("flex1",
                 group -> group.any(instance -> instance.addOpportunisticCpus(availability))
         );
 
@@ -219,7 +219,7 @@ public class OpportunisticCpuSchedulingTest extends BaseIntegrationTest {
                 .template(ScenarioTemplates.launchJob())
                 .allTasks(taskScenarioBuilder -> taskScenarioBuilder
                         .expectTaskOnAgent()
-                        .expectTaskContext(TASK_ATTRIBUTES_AGENT_ASG, "flex2")
+                        .expectTaskContext(TASK_ATTRIBUTES_AGENT_ASG, "flex1")
                         .expectTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION, allocationId)
                         .expectTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT, "2")
                         .template(ScenarioTemplates.startLaunchedTask())
@@ -232,12 +232,12 @@ public class OpportunisticCpuSchedulingTest extends BaseIntegrationTest {
         String allocationId = UUID.randomUUID().toString();
         Instant expiresAt = Instant.now().plus(Duration.ofHours(6));
         OpportunisticCpuAvailability availability = new OpportunisticCpuAvailability(allocationId, expiresAt, 4);
-        instanceGroupsScenarioBuilder.apply("flex2",
+        instanceGroupsScenarioBuilder.apply("flex1",
                 group -> group.any(instance -> instance.addOpportunisticCpus(availability))
         );
 
         JobDescriptor<BatchJobExt> regularJob = oneTaskBatchJobDescriptor().but(j ->
-                j.getExtensions().toBuilder().withSize(4) // one per available agent machine
+                j.getExtensions().toBuilder().withSize(2) // one per available agent machine
         );
         JobDescriptor<BatchJobExt> opportunisticJob = BATCH_JOB_WITH_RUNTIME_PREDICTION.but(j ->
                 j.getContainer().but(c -> c.getContainerResources().toBuilder().withCpu(4))
@@ -264,7 +264,7 @@ public class OpportunisticCpuSchedulingTest extends BaseIntegrationTest {
         jobsScenarioBuilder.takeJob(opportunisticJobId)
                 .allTasks(taskScenarioBuilder -> taskScenarioBuilder
                         .expectStateUpdateSkipOther(TaskStatus.TaskState.Launched)
-                        .expectTaskContext(TASK_ATTRIBUTES_AGENT_ASG, "flex2")
+                        .expectTaskContext(TASK_ATTRIBUTES_AGENT_ASG, "flex1")
                         .expectTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION, allocationId)
                         .expectTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT, "4")
                         // free up launch guard
@@ -277,7 +277,7 @@ public class OpportunisticCpuSchedulingTest extends BaseIntegrationTest {
         String allocationId = UUID.randomUUID().toString();
         Instant expiresAt = Instant.now().plus(Duration.ofHours(6));
         OpportunisticCpuAvailability availability = new OpportunisticCpuAvailability(allocationId, expiresAt, 4);
-        instanceGroupsScenarioBuilder.apply("flex2",
+        instanceGroupsScenarioBuilder.apply("flex1",
                 group -> group.any(instance -> instance.addOpportunisticCpus(availability))
         );
 
@@ -294,7 +294,7 @@ public class OpportunisticCpuSchedulingTest extends BaseIntegrationTest {
                 .template(ScenarioTemplates.launchJob())
                 .allTasks(taskScenarioBuilder -> taskScenarioBuilder
                         .expectTaskOnAgent()
-                        .expectTaskContext(TASK_ATTRIBUTES_AGENT_ASG, "flex2")
+                        .expectTaskContext(TASK_ATTRIBUTES_AGENT_ASG, "flex1")
                         .expectTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION, allocationId)
                         .expectTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT, "2")
                         // free up launch guard
@@ -306,6 +306,7 @@ public class OpportunisticCpuSchedulingTest extends BaseIntegrationTest {
                 .template(ScenarioTemplates.launchJob())
                 .allTasks(taskScenarioBuilder -> taskScenarioBuilder
                         .expectTaskOnAgent()
+                        .expectTaskContext(TASK_ATTRIBUTES_AGENT_ASG, "flex1")
                         .assertTask(task -> !task.getTaskContext().containsKey(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION) &&
                                         !task.getTaskContext().containsKey(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT),
                                 "Not scheduled on opportunistic CPUs")
@@ -318,7 +319,7 @@ public class OpportunisticCpuSchedulingTest extends BaseIntegrationTest {
                 .template(ScenarioTemplates.launchJob())
                 .allTasks(taskScenarioBuilder -> taskScenarioBuilder
                         .expectTaskOnAgent()
-                        .expectTaskContext(TASK_ATTRIBUTES_AGENT_ASG, "flex2")
+                        .expectTaskContext(TASK_ATTRIBUTES_AGENT_ASG, "flex1")
                         .expectTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION, allocationId)
                         .expectTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT, "2")
                         // free up launch guard

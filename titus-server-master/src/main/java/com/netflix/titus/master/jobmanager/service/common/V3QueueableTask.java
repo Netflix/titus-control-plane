@@ -243,7 +243,7 @@ public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
         if (!isStillEnabled) {
             return;
         }
-        int newCount = opportunisticCpuCount.updateAndGet(current -> current >= 1 ? current - 1 : initialOpportunisticCpuCount(cpus));
+        int newCount = opportunisticCpuCount.updateAndGet(current -> current >= 1 ? current - 1 : 0);
         logger.info("Task {} opportunistic scheduling failed, reduced requested opportunistic cpus to {}",
                 task.getId(), newCount);
     }
@@ -321,10 +321,6 @@ public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
         return String.join(":", securityGroups);
     }
 
-    private static int initialOpportunisticCpuCount(JobDescriptor jobDescriptor) {
-        return initialOpportunisticCpuCount(jobDescriptor.getContainer().getContainerResources().getCpu());
-    }
-
     /**
      * Start by allocating all requested CPUs as opportunistic. In case the number of CPUs asked is fractional, we still
      * allocate only the integer part as opportunistic, and leave the fractional as regular CPUs. E.g.:
@@ -333,9 +329,9 @@ public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
      * Care must be taken with floating point arithmetic to avoid the situation where <tt>requestedCpus</tt> should be
      * e.g. <tt>3</tt>, but ends up being <tt>2.99999...</tt>
      */
-    private static int initialOpportunisticCpuCount(double cpusRequested) {
-        Preconditions.checkArgument(cpusRequested < Integer.MAX_VALUE, "too many CPUs would cause overflow");
-        return (int) cpusRequested;
+    private static int initialOpportunisticCpuCount(JobDescriptor jobDescriptor) {
+        double requestedCpus = jobDescriptor.getContainer().getContainerResources().getCpu();
+        Preconditions.checkArgument(requestedCpus < Integer.MAX_VALUE, "too many CPUs would cause overflow");
+        return (int) requestedCpus;
     }
-
 }
