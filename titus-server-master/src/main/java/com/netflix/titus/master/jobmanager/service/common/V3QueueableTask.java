@@ -224,11 +224,11 @@ public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
     }
 
     /**
-     * Decrease the amount of requested opportunistic CPUs on a scheduling failure, up to no opportunistic, then cycle
-     * back to all requested CPUs being opportunistic.
+     * Decrease the amount of requested opportunistic CPUs on a scheduling failure, up to no opportunistic CPUs.
      * <p>
      * This allows scheduling with the maximum amount of opportunistic CPUs at a given moment, and falling back to less
-     * opportunistic CPUs when not enough are available.
+     * opportunistic CPUs when not enough are available, eventually falling back to not using any opportunistic CPUs and
+     * no opportunistic scheduling.
      */
     @Override
     public void opportunisticSchedulingFailed() {
