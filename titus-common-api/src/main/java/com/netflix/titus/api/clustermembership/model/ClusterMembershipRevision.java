@@ -18,6 +18,9 @@ package com.netflix.titus.api.clustermembership.model;
 
 import java.util.Objects;
 
+import com.google.common.base.Preconditions;
+import com.netflix.titus.common.util.Evaluators;
+
 public class ClusterMembershipRevision<T> {
 
     private final T current;
@@ -32,8 +35,8 @@ public class ClusterMembershipRevision<T> {
                                      long revision,
                                      long timestamp) {
         this.current = current;
-        this.code = code;
-        this.message = message;
+        this.code = Evaluators.getOrDefault(code, "");
+        this.message = Evaluators.getOrDefault(message, "");
         this.revision = revision;
         this.timestamp = timestamp;
     }
@@ -134,6 +137,8 @@ public class ClusterMembershipRevision<T> {
         }
 
         public ClusterMembershipRevision<T> build() {
+            Preconditions.checkNotNull(current, "Current object not set");
+
             return new ClusterMembershipRevision<>(current, code, message, revision, timestamp);
         }
     }

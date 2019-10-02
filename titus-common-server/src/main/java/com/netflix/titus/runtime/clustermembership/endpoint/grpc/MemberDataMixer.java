@@ -33,6 +33,8 @@ import com.netflix.titus.grpc.protogen.ClusterMembershipEvent;
 import static com.netflix.titus.client.clustermembership.grpc.ClusterMembershipGrpcConverters.toGrpcClusterMembershipRevision;
 
 /**
+ * FIXME Snapshot does not include leader data.
+ *
  * At the connector and service level we keep membership data and the leader election process separate. However
  * when exposing the data outside, we want to merge this into a single data model. This class deals with the complexity
  * of doing that.

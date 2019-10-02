@@ -14,29 +14,12 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.client.clustermembership.resolver;
-
-import java.io.Closeable;
-
-import com.netflix.titus.api.clustermembership.model.ClusterMembershipSnapshot;
-import reactor.core.publisher.Flux;
+package com.netflix.titus.client.clustermembership;
 
 /**
- * Provider of all known cluster members.
+ * Common metric constants.
  */
-public interface ClusterMemberResolver extends Closeable {
+public final class ClusterMembershipClientMetrics {
 
-    ClusterMembershipSnapshot getSnapshot();
-
-    /**
-     * Emits known cluster members, followed by updates.
-     */
-    Flux<ClusterMembershipSnapshot> resolve();
-
-    /**
-     * Release resources associated with this resolver if any.
-     */
-    @Override
-    default void close() {
-    }
+    public static final String CLUSTER_MEMBERSHIP_CLIENT_METRICS_ROOT = "titus.clusterMembership.client.";
 }

@@ -18,6 +18,9 @@ package com.netflix.titus.api.clustermembership.model;
 
 import java.util.Objects;
 
+import com.google.common.base.Preconditions;
+import com.netflix.titus.common.util.Evaluators;
+
 public class ClusterMemberAddress {
 
     private final String ipAddress;
@@ -31,7 +34,7 @@ public class ClusterMemberAddress {
         this.portNumber = portNumber;
         this.protocol = protocol;
         this.secure = secure;
-        this.description = description;
+        this.description = Evaluators.getOrDefault(description, "");
     }
 
     public String getIpAddress() {
@@ -130,6 +133,9 @@ public class ClusterMemberAddress {
         }
 
         public ClusterMemberAddress build() {
+            Preconditions.checkNotNull(ipAddress, "IP address not set");
+            Preconditions.checkNotNull(protocol, "Protocol not set");
+
             return new ClusterMemberAddress(ipAddress, portNumber, protocol, secure, description);
         }
     }

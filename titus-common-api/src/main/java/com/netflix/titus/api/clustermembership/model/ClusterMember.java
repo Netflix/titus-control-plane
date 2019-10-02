@@ -16,9 +16,13 @@
 
 package com.netflix.titus.api.clustermembership.model;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+
+import com.google.common.base.Preconditions;
+import com.netflix.titus.common.util.Evaluators;
 
 public class ClusterMember {
 
@@ -39,8 +43,8 @@ public class ClusterMember {
         this.enabled = enabled;
         this.registered = registered;
         this.active = active;
-        this.clusterMemberAddresses = clusterMemberAddresses;
-        this.labels = labels;
+        this.clusterMemberAddresses = Evaluators.getOrDefault(clusterMemberAddresses, Collections.emptyList());
+        this.labels = Evaluators.getOrDefault(labels, Collections.emptyMap());
     }
 
     public String getMemberId() {
@@ -157,6 +161,8 @@ public class ClusterMember {
         }
 
         public ClusterMember build() {
+            Preconditions.checkNotNull(memberId, "Member id is null");
+
             return new ClusterMember(memberId, enabled, registered, active, clusterMemberAddress, labels);
         }
     }

@@ -17,6 +17,7 @@
 package com.netflix.titus.client.clustermembership.resolver;
 
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -91,6 +92,8 @@ public class MultiNodeClusterMemberResolver implements ClusterMemberResolver {
     private final Function<ClusterMemberAddress, DirectClusterMemberResolver> directResolverFactory;
     private final Function<ClusterMember, ClusterMemberAddress> addressSelector;
 
+    private final MultiNodeClusterMemberResolverMetrics metrics;
+
     private final ConcurrentMap<String, DirectClusterMemberResolver> memberResolversByIpAddress = new ConcurrentHashMap<>();
     private final ScheduleReference scheduleReference;
     private volatile ClusterMembershipSnapshot lastReportedSnapshot;
@@ -109,6 +112,7 @@ public class MultiNodeClusterMemberResolver implements ClusterMemberResolver {
         this.seedAddressesProvider = seedAddressesProvider;
         this.directResolverFactory = directResolverFactory;
         this.addressSelector = addressSelector;
+        this.metrics = new MultiNodeClusterMemberResolverMetrics(titusRuntime);
 
         this.scheduleReference = titusRuntime.getLocalScheduler().schedule(
                 SCHEDULE_DESCRIPTOR.toBuilder()
@@ -128,7 +132,8 @@ public class MultiNodeClusterMemberResolver implements ClusterMemberResolver {
         );
     }
 
-    public void shutdown() {
+    @Override
+    public void close() {
         scheduleReference.cancel();
     }
 
@@ -137,11 +142,8 @@ public class MultiNodeClusterMemberResolver implements ClusterMemberResolver {
      */
     @Override
     public ClusterMembershipSnapshot getSnapshot() {
-        if (memberResolversByIpAddress.isEmpty()) {
-            return ClusterMembershipSnapshot.empty();
-        }
-        // Each cluster member should be reported by by each resolver.
-        return buildSnapshot(findHealthySnapshots());
+        // Each cluster member should be reported by each resolver.
+        return buildSnapshot();
     }
 
     @Override
@@ -157,7 +159,13 @@ public class MultiNodeClusterMemberResolver implements ClusterMemberResolver {
         return findHealthyMembers().stream().map(DirectClusterMemberResolver::getSnapshot).collect(Collectors.toList());
     }
 
-    private ClusterMembershipSnapshot buildSnapshot(List<ClusterMembershipSnapshot> healthySnapshots) {
+    private ClusterMembershipSnapshot buildSnapshot() {
+        if (memberResolversByIpAddress.isEmpty()) {
+            return ClusterMembershipSnapshot.empty();
+        }
+
+        List<ClusterMembershipSnapshot> healthySnapshots = findHealthySnapshots();
+
         ClusterMembershipSnapshot.Builder builder = ClusterMembershipSnapshot.newBuilder();
 
         Map<String, List<ClusterMembershipRevision<ClusterMember>>> grouped = healthySnapshots.stream()
@@ -213,43 +221,62 @@ public class MultiNodeClusterMemberResolver implements ClusterMemberResolver {
         // Always first add missing seed nodes.
         addNewSeeds();
 
-        // If no healthy member, we cannot make any progress, so exit.
-        List<DirectClusterMemberResolver> healthyMemberResolvers = findHealthyMembers();
-        if (healthyMemberResolvers.isEmpty()) {
+        ClusterMembershipSnapshot resolvedSnapshot = buildSnapshot();
+
+        // If no members, we cannot make any progress, so exit.
+        if (resolvedSnapshot.getMemberRevisions().isEmpty()) {
+            Set<String> toRemove = memberResolversByIpAddress.keySet().stream().filter(ip -> !isSeedIp(ip)).collect(Collectors.toSet());
+            disconnectTerminatedMembers(toRemove);
+
             logger.debug("Cannot connect to any cluster member. Known members: {}", toResolvedMembersString());
             return;
         }
-        ClusterMembershipSnapshot resolvedSnapshot = buildSnapshot(healthyMemberResolvers.stream()
-                .map(DirectClusterMemberResolver::getSnapshot)
-                .collect(Collectors.toList()));
 
-        Map<String, ClusterMembershipRevision<ClusterMember>> resolvedMembersByIp = resolvedSnapshot.getMemberRevisions().values().stream()
-                .collect(Collectors.toMap(r -> addressSelector.apply(r.getCurrent()).getIpAddress(), r -> r));
+        // As IP address can be reused take always more recent record first.
+        Map<String, ClusterMembershipRevision<ClusterMember>> resolvedMembersByIp = new HashMap<>();
+        resolvedSnapshot.getMemberRevisions().forEach((memberId, revision) -> {
+            String ipAddress = addressSelector.apply(revision.getCurrent()).getIpAddress();
+            ClusterMembershipRevision<ClusterMember> previous = resolvedMembersByIp.get(ipAddress);
+            if (previous == null || previous.getTimestamp() < revision.getTimestamp()) {
+                resolvedMembersByIp.put(ipAddress, revision);
+            }
+        });
 
         // Find terminated members.
         Set<String> toRemove = memberResolversByIpAddress.keySet().stream()
                 .filter(ip -> !resolvedMembersByIp.containsKey(ip) && !isSeedIp(ip))
                 .collect(Collectors.toSet());
+        disconnectTerminatedMembers(toRemove);
+
+        // Find new members that we should connect to.
+        Set<String> toAdd = resolvedMembersByIp.keySet().stream()
+                .filter(ip -> !memberResolversByIpAddress.containsKey(ip))
+                .collect(Collectors.toSet());
+        connectNewMembers(resolvedMembersByIp, toAdd);
+    }
+
+    private void connectNewMembers(Map<String, ClusterMembershipRevision<ClusterMember>> resolvedMembersByIp, Set<String> toAdd) {
+        if (!toAdd.isEmpty()) {
+            logger.info("Connecting to the new cluster members: {}", toAdd);
+            toAdd.forEach(ip -> memberResolversByIpAddress.put(
+                    ip,
+                    directResolverFactory.apply(addressSelector.apply(resolvedMembersByIp.get(ip).getCurrent())))
+            );
+        }
+    }
+
+    private void disconnectTerminatedMembers(Set<String> toRemove) {
         if (!toRemove.isEmpty()) {
-            logger.info("Removing terminated cluster members: {}", toRemove);
+            // Closing connection usually will happen some time after the member was removed from the membership
+            // group, as the seed provider may still advertise it for some time. For example Eureka has up to 90sec
+            // propagation delay.
+            logger.info("Closing connection to the terminated cluster members: {}", toRemove);
             toRemove.forEach(ip -> {
                 DirectClusterMemberResolver removed = memberResolversByIpAddress.remove(ip);
                 if (removed != null) {
                     removed.shutdown();
                 }
             });
-        }
-
-        // Find new members that we should connect to.
-        Set<String> toAdd = resolvedMembersByIp.keySet().stream()
-                .filter(ip -> !memberResolversByIpAddress.containsKey(ip))
-                .collect(Collectors.toSet());
-        if (!toAdd.isEmpty()) {
-            logger.info("Adding new cluster members: {}", toAdd);
-            toAdd.forEach(ip -> memberResolversByIpAddress.put(
-                    ip,
-                    directResolverFactory.apply(addressSelector.apply(resolvedMembersByIp.get(ip).getCurrent())))
-            );
         }
     }
 
@@ -277,9 +304,47 @@ public class MultiNodeClusterMemberResolver implements ClusterMemberResolver {
     }
 
     private void report(ClusterMembershipSnapshot newSnapshot) {
-        if (lastReportedSnapshot == null || !lastReportedSnapshot.equals(newSnapshot)) {
-            logger.info("Cluster membership change: {}", newSnapshot);
+        if (lastReportedSnapshot == null) {
+            newSnapshot.getMemberRevisions().forEach((memberId, revision) -> {
+                logger.info("Discovered new cluster member: id={}, addresses={}", memberId, revision.getCurrent().getClusterMemberAddresses());
+            });
+            if (newSnapshot.getLeaderRevision().isPresent()) {
+                logger.info("Cluster leader is {}", newSnapshot.getLeaderRevision().get().getCurrent().getMemberId());
+            } else {
+                logger.info("No leader yet");
+            }
+        } else {
+            Map<String, ClusterMembershipRevision<ClusterMember>> previousRevisions = lastReportedSnapshot.getMemberRevisions();
+            newSnapshot.getMemberRevisions().forEach((memberId, revision) -> {
+                if (!previousRevisions.containsKey(memberId)) {
+                    logger.info("Discovered new cluster member: id={}, addresses={}", memberId, revision.getCurrent().getClusterMemberAddresses());
+                }
+            });
+
+            lastReportedSnapshot.getMemberRevisions().forEach((memberId, previousRevision) -> {
+                if (!newSnapshot.getMemberRevisions().containsKey(memberId)) {
+                    logger.info("Removed cluster member: {}", memberId);
+                }
+            });
+
+            if (lastReportedSnapshot.getLeaderRevision().isPresent()) {
+                ClusterMemberLeadership previousLeader = lastReportedSnapshot.getLeaderRevision().get().getCurrent();
+
+                if (newSnapshot.getLeaderRevision().isPresent()) {
+                    ClusterMemberLeadership newLeader = newSnapshot.getLeaderRevision().get().getCurrent();
+                    if (!newLeader.getMemberId().equals(previousLeader.getMemberId())) {
+                        logger.info("Leader changed from {} to {}", previousLeader.getMemberId(), newLeader.getMemberId());
+                    }
+                } else {
+                    logger.info("{} is no longer leader, and no new leader is re-elected yet", previousLeader.getMemberId());
+                }
+            } else if (newSnapshot.getLeaderRevision().isPresent()) {
+                logger.info("Cluster leader is {}", newSnapshot.getLeaderRevision().get().getCurrent().getMemberId());
+            }
         }
+
+        metrics.updateConnectedMembers(memberResolversByIpAddress);
+        metrics.updateSnapshot(newSnapshot);
 
         this.lastReportedSnapshot = newSnapshot;
     }

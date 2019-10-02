@@ -44,4 +44,8 @@ public final class ClusterMembershipFunctions {
         }
         return false;
     }
+
+    public static String toStringUri(ClusterMemberAddress address) {
+        return address.getProtocol() + "://" + address.getIpAddress() + ':' + address.getPortNumber();
+    }
 }

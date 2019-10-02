@@ -25,19 +25,20 @@ import com.netflix.titus.api.clustermembership.model.ClusterMember;
 import com.netflix.titus.api.clustermembership.model.ClusterMemberAddress;
 import com.netflix.titus.api.clustermembership.model.ClusterMemberLeadership;
 import com.netflix.titus.api.clustermembership.model.ClusterMemberLeadershipState;
+import com.netflix.titus.api.clustermembership.model.ClusterMembershipFunctions;
 import com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision;
 import com.netflix.titus.api.clustermembership.model.ClusterMembershipSnapshot;
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.client.clustermembership.grpc.ReactorClusterMembershipClient;
-import com.netflix.titus.runtime.common.grpc.GrpcClientErrorUtils;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExceptionExt;
+import com.netflix.titus.common.util.grpc.reactor.client.ReactorToGrpcClientBuilder;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.grpc.protogen.ClusterMember.LeadershipState;
 import com.netflix.titus.grpc.protogen.ClusterMembershipEvent;
 import com.netflix.titus.grpc.protogen.ClusterMembershipServiceGrpc;
-import com.netflix.titus.common.util.grpc.reactor.client.ReactorToGrpcClientBuilder;
+import com.netflix.titus.runtime.common.grpc.GrpcClientErrorUtils;
 import io.grpc.ManagedChannel;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
@@ -59,7 +60,7 @@ import static com.netflix.titus.client.clustermembership.grpc.ClusterMembershipG
  * <p>
  * Resolves cluster member addresses by calling a cluster membership service directly at a specified location.
  */
-class SingleClusterMemberResolver implements DirectClusterMemberResolver {
+public class SingleClusterMemberResolver implements DirectClusterMemberResolver {
 
     private static final Logger logger = LoggerFactory.getLogger(SingleClusterMemberResolver.class);
 
@@ -68,6 +69,7 @@ class SingleClusterMemberResolver implements DirectClusterMemberResolver {
      */
     private static final Duration GRPC_REQUEST_TIMEOUT = Duration.ofSeconds(1);
 
+    private final String name;
     private final ClusterMembershipResolverConfiguration configuration;
     private final ClusterMemberAddress address;
     private final Clock clock;
@@ -90,6 +92,7 @@ class SingleClusterMemberResolver implements DirectClusterMemberResolver {
                                        ClusterMemberAddress address,
                                        Scheduler scheduler,
                                        TitusRuntime titusRuntime) {
+        this.name = "member@" + ClusterMembershipFunctions.toStringUri(address);
         this.configuration = configuration;
         this.address = address;
         this.clock = titusRuntime.getClock();
@@ -113,14 +116,18 @@ class SingleClusterMemberResolver implements DirectClusterMemberResolver {
                 .materialize()
                 .flatMap(signal -> {
                     if (signal.getType() == SignalType.ON_COMPLETE) {
-                        logger.info("Unexpected end of stream. Converting to error to force retry...");
-                        return Mono.error(new IllegalStateException("Unexpected end of stream"));
+                        logger.info("[{}] Unexpected end of stream. Converting to error to force retry...", name);
+                        return Mono.error(new IllegalStateException(String.format("[%s] Unexpected end of stream", name)));
                     }
                     if (signal.getType() == SignalType.ON_ERROR) {
                         Throwable error = signal.getThrowable();
-                        logger.info("Connection terminated with an error: {}", GrpcClientErrorUtils.toDetailedMessage(error));
-                        logger.debug("Stack trace", error);
-                        disconnectTimeRef.set(clock.wallTime());
+                        if (isConnectionDeadline(error)) {
+                            logger.debug("[{}] Connection deadline", name, error);
+                        } else {
+                            logger.info("[{}] Connection terminated with an error: {}", name, GrpcClientErrorUtils.toDetailedMessage(error));
+                            logger.debug("[{}] Stack trace", name, error);
+                        }
+                        disconnectTimeRef.compareAndSet(null, clock.wallTime());
                         return Mono.error(error);
                     }
                     if (signal.getType() == SignalType.ON_NEXT) {
@@ -134,14 +141,19 @@ class SingleClusterMemberResolver implements DirectClusterMemberResolver {
                         Duration.ofMillis(configuration.getSingleMemberMaxRetryIntervalMs()),
                         scheduler
                 )
-                .doFinally(signal -> disconnectTimeRef.set(clock.wallTime()))
+                .doFinally(signal -> {
+                    if (signal == SignalType.CANCEL) {
+                        logger.info("[{}] Event stream canceled: address={}", name, address);
+                    }
+                    disconnectTimeRef.compareAndSet(null, clock.wallTime());
+                })
                 .subscribe(
                         next -> {
                             disconnectTimeRef.set(null);
                             processEvent(next);
                         },
-                        e -> logger.warn("Event stream terminated with an error: address={}", address, e),
-                        () -> logger.info("Event stream terminated: address={}", address)
+                        e -> logger.warn("[{}] Event stream terminated with an error: address={}", name, address, e),
+                        () -> logger.info("[{}] Event stream terminated: address={}", name, address)
                 );
     }
 
@@ -164,7 +176,7 @@ class SingleClusterMemberResolver implements DirectClusterMemberResolver {
 
     @Override
     public boolean isHealthy() {
-        return disconnectTimeRef.get() == null || clock.isPast(disconnectTimeRef.get() + configuration.getHealthDisconnectThresholdMs());
+        return disconnectTimeRef.get() == null || !clock.isPast(disconnectTimeRef.get() + configuration.getHealthDisconnectThresholdMs());
     }
 
     @Override
@@ -206,7 +218,14 @@ class SingleClusterMemberResolver implements DirectClusterMemberResolver {
 
     private ClusterMembershipSnapshot processSnapshotEvent(ClusterMembershipEvent.Snapshot snapshot) {
         ClusterMembershipSnapshot.Builder builder = ClusterMembershipSnapshot.newBuilder();
-        snapshot.getRevisionsList().forEach(grpcRevision -> builder.withMemberRevisions(toCoreClusterMembershipRevision(grpcRevision)));
+        snapshot.getRevisionsList().forEach(grpcRevision -> {
+            ClusterMembershipRevision<ClusterMember> coreRevision = toCoreClusterMembershipRevision(grpcRevision);
+            builder.withMemberRevisions(coreRevision);
+            boolean isLeader = grpcRevision.getCurrent().getLeadershipState() == LeadershipState.Leader;
+            if (isLeader) {
+                builder.withLeaderRevision(buildLeaderRevision(coreRevision));
+            }
+        });
         return builder.build();
     }
 
@@ -220,22 +239,25 @@ class SingleClusterMemberResolver implements DirectClusterMemberResolver {
 
         if (isLeader) {
             if (!previousLeader) {
-                builder.withLeaderRevision(ClusterMembershipRevision.<ClusterMemberLeadership>newBuilder()
-                        .withCurrent(ClusterMemberLeadership.newBuilder()
-                                .withMemberId(memberId)
-                                .withLeadershipState(ClusterMemberLeadershipState.Leader)
-                                .build()
-                        )
-                        .withRevision(memberRevision.getRevision())
-                        .withTimestamp(memberRevision.getTimestamp())
-                        .build()
-                );
+                builder.withLeaderRevision(buildLeaderRevision(memberRevision));
             }
         } else if (previousLeader) {
             builder.withLeaderRevision(null);
         }
 
         return builder.build();
+    }
+
+    private ClusterMembershipRevision<ClusterMemberLeadership> buildLeaderRevision(ClusterMembershipRevision<ClusterMember> memberRevision) {
+        return ClusterMembershipRevision.<ClusterMemberLeadership>newBuilder()
+                .withCurrent(ClusterMemberLeadership.newBuilder()
+                        .withMemberId(memberRevision.getCurrent().getMemberId())
+                        .withLeadershipState(ClusterMemberLeadershipState.Leader)
+                        .build()
+                )
+                .withRevision(memberRevision.getRevision())
+                .withTimestamp(memberRevision.getTimestamp())
+                .build();
     }
 
     private ClusterMembershipSnapshot processMemberRemovedEvent(ClusterMembershipEvent.MemberRemoved memberRemoved) {

@@ -21,7 +21,7 @@ import com.netflix.titus.api.clustermembership.model.ClusterMemberAddress;
 /**
  * Supplementary interface to simplify the testing process.
  */
-interface DirectClusterMemberResolver extends ClusterMemberResolver {
+public interface DirectClusterMemberResolver extends ClusterMemberResolver {
 
     ClusterMemberAddress getAddress();
 
