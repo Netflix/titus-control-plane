@@ -42,10 +42,17 @@ import static com.netflix.titus.common.util.StringExt.startWithLowercase;
 
 public class UnhealthyTasksLimitTracker implements QuotaTracker {
 
+    /**
+     * Do not track health status of small jobs with size below the threshold.
+     */
+    private static final int JOB_SIZE_TRACKING_THRESHOLD = 3;
+
     private static final int TASK_ID_REPORT_LIMIT = 20;
 
     private final Job<?> job;
     private final int minimumHealthyCount;
+    private final boolean aboveThreshold;
+    private final EvictionQuota belowJobSizeThresholdQuota;
 
     private final V3JobOperations jobOperations;
     private final ContainerHealthService containerHealthService;
@@ -54,14 +61,28 @@ public class UnhealthyTasksLimitTracker implements QuotaTracker {
                                        int minimumHealthyCount,
                                        V3JobOperations jobOperations,
                                        ContainerHealthService containerHealthService) {
+        int jobSize = JobFunctions.getJobDesiredSize(job);
+
         this.job = job;
         this.minimumHealthyCount = minimumHealthyCount;
+        this.aboveThreshold = jobSize >= JOB_SIZE_TRACKING_THRESHOLD;
+        this.belowJobSizeThresholdQuota = EvictionQuota.newBuilder()
+                .withReference(Reference.job(job.getId()))
+                .withQuota(jobSize)
+                .withMessage(String.format("Job to small to apply container health constraints: jobSize=%s, threshold=%s",
+                        jobSize, JOB_SIZE_TRACKING_THRESHOLD
+                ))
+                .build();
         this.jobOperations = jobOperations;
         this.containerHealthService = containerHealthService;
     }
 
     @Override
     public EvictionQuota getQuota(Reference reference) {
+        if (!aboveThreshold) {
+            return belowJobSizeThresholdQuota.toBuilder().withReference(reference).build();
+        }
+
         int healthyCount = countHealthy().getLeft();
         long quota = Math.max(0, healthyCount - minimumHealthyCount);
         if (quota > 0) {
