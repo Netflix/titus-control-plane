@@ -19,6 +19,7 @@ package com.netflix.titus.master.mesos.kubeapiserver;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -67,6 +68,7 @@ public class KubeOpportunisticResourceProvider implements OpportunisticCpuAvaila
     private final SharedIndexInformer<V1OpportunisticResource> informer;
     private final SharedInformerFactory informerFactory;
     private final Id cpuSupplyId;
+    private final ScheduledExecutorService metricsPollerExecutor;
 
     private static long currentOpportunisticCpuCount(KubeOpportunisticResourceProvider self) {
         return self.getOpportunisticCpus().values().stream()
@@ -84,9 +86,10 @@ public class KubeOpportunisticResourceProvider implements OpportunisticCpuAvaila
                 .setNameFormat("kube-opportunistic-cpu-metrics-poller")
                 .setDaemon(true)
                 .build();
+        metricsPollerExecutor = Executors.newSingleThreadScheduledExecutor(threadFactory);
         PolledMeter.using(titusRuntime.getRegistry())
                 .withId(cpuSupplyId)
-                .scheduleOn(Executors.newSingleThreadScheduledExecutor(threadFactory))
+                .scheduleOn(metricsPollerExecutor)
                 .monitorValue(this, KubeOpportunisticResourceProvider::currentOpportunisticCpuCount);
 
         ApiClient apiClient = Config.fromUrl(configuration.getKubeApiServerUrl());
@@ -142,6 +145,7 @@ public class KubeOpportunisticResourceProvider implements OpportunisticCpuAvaila
     @Deactivator
     public void shutdown() {
         PolledMeter.remove(titusRuntime.getRegistry(), cpuSupplyId);
+        metricsPollerExecutor.shutdown();
         informerFactory.stopAllRegisteredInformers();
     }
 
