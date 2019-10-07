@@ -39,6 +39,7 @@ final class MultiNodeClusterMemberResolverMetrics {
 
     private static final String ROOT = ClusterMembershipClientMetrics.CLUSTER_MEMBERSHIP_CLIENT_METRICS_ROOT + "multiNodeResolver.";
 
+    private final String serviceName;
     private final Clock clock;
     private final Registry registry;
 
@@ -47,7 +48,8 @@ final class MultiNodeClusterMemberResolverMetrics {
 
     private Leader leader;
 
-    MultiNodeClusterMemberResolverMetrics(TitusRuntime titusRuntime) {
+    MultiNodeClusterMemberResolverMetrics(String serviceName, TitusRuntime titusRuntime) {
+        this.serviceName = serviceName;
         this.clock = titusRuntime.getClock();
         this.registry = titusRuntime.getRegistry();
     }
@@ -99,25 +101,36 @@ final class MultiNodeClusterMemberResolverMetrics {
         private final Id connectionHealthId;
         private final Id connectionTimeId;
 
+        private volatile boolean closed;
+
         private DirectConnection(String ipAddress, DirectClusterMemberResolver directResolver) {
             this.startTime = clock.wallTime();
             this.directResolver = directResolver;
 
             this.connectionHealthId = registry.createId(
                     ROOT + "directConnection.health",
+                    "service", serviceName,
                     "memberIp", ipAddress
             );
             this.connectionTimeId = registry.createId(
                     ROOT + "directConnection.time",
+                    "service", serviceName,
                     "memberIp", ipAddress
             );
 
-            PolledMeter.using(registry).withId(connectionHealthId).monitorValue(this, self -> self.directResolver.isHealthy() ? 1 : 0);
-            PolledMeter.using(registry).withId(connectionTimeId).monitorValue(this, self -> clock.wallTime() - self.startTime);
+            PolledMeter.using(registry).withId(connectionHealthId).monitorValue(this, self ->
+                    closed ? 0 : (self.directResolver.isHealthy() ? 1 : 0)
+            );
+            PolledMeter.using(registry).withId(connectionTimeId).monitorValue(this, self ->
+                    closed ? 0 : (clock.wallTime() - self.startTime)
+            );
         }
 
         @Override
         public void close() {
+            closed = true;
+            PolledMeter.update(registry);
+
             PolledMeter.remove(registry, connectionHealthId);
             PolledMeter.remove(registry, connectionTimeId);
         }
@@ -129,19 +142,27 @@ final class MultiNodeClusterMemberResolverMetrics {
 
         private final Id memberTimeId;
 
+        private volatile boolean closed;
+
         private KnownMember(String memberId) {
             this.startTime = clock.wallTime();
 
             this.memberTimeId = registry.createId(
                     ROOT + "knownMember.time",
+                    "service", serviceName,
                     "memberId", memberId
             );
 
-            PolledMeter.using(registry).withId(memberTimeId).monitorValue(this, self -> clock.wallTime() - self.startTime);
+            PolledMeter.using(registry).withId(memberTimeId).monitorValue(this, self ->
+                    closed ? 0 : (clock.wallTime() - self.startTime)
+            );
         }
 
         @Override
         public void close() {
+            closed = true;
+            PolledMeter.update(registry);
+
             PolledMeter.remove(registry, memberTimeId);
         }
     }
@@ -153,16 +174,21 @@ final class MultiNodeClusterMemberResolverMetrics {
         private final Id leaderTimeId;
         private final String memberId;
 
+        private volatile boolean closed;
+
         private Leader(ClusterMemberLeadership leader) {
             this.memberId = leader.getMemberId();
             this.startTime = clock.wallTime();
 
             this.leaderTimeId = registry.createId(
                     ROOT + "leader.time",
+                    "service", serviceName,
                     "memberId", memberId
             );
 
-            PolledMeter.using(registry).withId(leaderTimeId).monitorValue(this, self -> clock.wallTime() - self.startTime);
+            PolledMeter.using(registry).withId(leaderTimeId).monitorValue(this, self ->
+                    closed ? 0 : (clock.wallTime() - self.startTime)
+            );
         }
 
         private String getMemberId() {
@@ -171,6 +197,9 @@ final class MultiNodeClusterMemberResolverMetrics {
 
         @Override
         public void close() {
+            closed = true;
+            PolledMeter.update(registry);
+
             PolledMeter.remove(registry, leaderTimeId);
         }
     }

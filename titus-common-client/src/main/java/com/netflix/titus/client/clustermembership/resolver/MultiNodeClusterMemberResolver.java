@@ -104,7 +104,8 @@ public class MultiNodeClusterMemberResolver implements ClusterMemberResolver {
             .onBackpressureError()
             .compose(ReactorExt.badSubscriberHandler(logger));
 
-    public MultiNodeClusterMemberResolver(ClusterMembershipResolverConfiguration configuration,
+    public MultiNodeClusterMemberResolver(String serviceName,
+                                          ClusterMembershipResolverConfiguration configuration,
                                           Supplier<Set<ClusterMemberAddress>> seedAddressesProvider,
                                           Function<ClusterMemberAddress, DirectClusterMemberResolver> directResolverFactory,
                                           Function<ClusterMember, ClusterMemberAddress> addressSelector,
@@ -112,7 +113,7 @@ public class MultiNodeClusterMemberResolver implements ClusterMemberResolver {
         this.seedAddressesProvider = seedAddressesProvider;
         this.directResolverFactory = directResolverFactory;
         this.addressSelector = addressSelector;
-        this.metrics = new MultiNodeClusterMemberResolverMetrics(titusRuntime);
+        this.metrics = new MultiNodeClusterMemberResolverMetrics(serviceName, titusRuntime);
 
         this.scheduleReference = titusRuntime.getLocalScheduler().schedule(
                 SCHEDULE_DESCRIPTOR.toBuilder()

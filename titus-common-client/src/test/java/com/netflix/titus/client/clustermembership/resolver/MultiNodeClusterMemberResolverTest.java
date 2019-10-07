@@ -48,6 +48,8 @@ public class MultiNodeClusterMemberResolverTest {
 
     private static final java.time.Duration TIMEOUT = Duration.ofSeconds(5);
 
+    private static final String TEST_SERVICE = "testService";
+
     private static final ClusterMembershipRevision<ClusterMember> MEMBER_1 = clusterMemberRegistrationRevision(activeClusterMember("member1", "10.0.0.1"));
     private static final ClusterMembershipRevision<ClusterMember> MEMBER_2 = clusterMemberRegistrationRevision(activeClusterMember("member2", "10.0.0.2"));
     private static final ClusterMembershipRevision<ClusterMember> MEMBER_3 = clusterMemberRegistrationRevision(activeClusterMember("member3", "10.0.0.3"));
@@ -71,6 +73,7 @@ public class MultiNodeClusterMemberResolverTest {
         addSeed(MEMBER_1);
 
         this.resolver = new MultiNodeClusterMemberResolver(
+                TEST_SERVICE,
                 configuration,
                 () -> new HashSet<>(seedAddresses.values()),
                 address -> {
