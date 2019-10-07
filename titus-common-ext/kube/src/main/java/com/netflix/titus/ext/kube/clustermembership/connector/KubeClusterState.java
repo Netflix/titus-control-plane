@@ -136,7 +136,7 @@ public class KubeClusterState {
 
     public ClusterMembershipEvent getSnapshotEvent() {
         return ClusterMembershipEvent.snapshotEvent(
-                CollectionsExt.copyAndAddToList(clusterMemberSiblings.values(), localMemberRevision),
+                CollectionsExt.copyAndAddToList(getNotStaleClusterMemberSiblings().values(), localMemberRevision),
                 localMemberLeadershipRevision,
                 currentLeaderOptional
         );

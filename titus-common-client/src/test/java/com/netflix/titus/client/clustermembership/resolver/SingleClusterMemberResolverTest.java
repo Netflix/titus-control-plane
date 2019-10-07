@@ -43,7 +43,10 @@ public class SingleClusterMemberResolverTest {
 
     private static final String IP_PREFIX = "1.0.0.";
 
-    private static final ClusterMemberAddress ADDRESS = ClusterMemberAddress.newBuilder().withIpAddress(IP_PREFIX + "1").build();
+    private static final ClusterMemberAddress ADDRESS = ClusterMemberAddress.newBuilder()
+            .withIpAddress(IP_PREFIX + "1")
+            .withProtocol("grpc")
+            .build();
 
     private static final java.time.Duration TIMEOUT = Duration.ofSeconds(5);
 
@@ -63,7 +66,12 @@ public class SingleClusterMemberResolverTest {
 
     @Before
     public void setUp() throws IOException {
-        serviceStub.addMember(MEMBER_1);
+        serviceStub.addMember(MEMBER_1.toBuilder()
+                .setCurrent(MEMBER_1.getCurrent().toBuilder()
+                        .setLeadershipState(ClusterMember.LeadershipState.Leader)
+                )
+                .build()
+        );
         serviceStub.addMember(MEMBER_2);
         serviceStub.addMember(MEMBER_3);
 
@@ -100,7 +108,7 @@ public class SingleClusterMemberResolverTest {
         ClusterMembershipSnapshot snapshotEvent = resolver.resolve().blockFirst(TIMEOUT);
         assertThat(snapshotEvent).isNotNull();
         assertThat(snapshotEvent.getMemberRevisions()).hasSize(3);
-        assertThat(snapshotEvent.getLeaderRevision()).isEmpty();
+        assertThat(snapshotEvent.getLeaderRevision()).isNotEmpty();
     }
 
     @Test(timeout = 30_000)
@@ -147,6 +155,14 @@ public class SingleClusterMemberResolverTest {
         serviceStub.removeMember(MEMBER_2);
         ClusterMembershipSnapshot leaderLostEvent = eventIt.next();
         assertThat(leaderLostEvent.getLeaderRevision()).isEmpty();
+    }
+
+    @Test
+    public void testElectedLeaderSetInSnapshot() {
+        Iterator<ClusterMembershipSnapshot> eventIt = resolver.resolve().toIterable().iterator();
+        ClusterMembershipSnapshot leadElectedEvent = eventIt.next();
+
+        assertThat(leadElectedEvent.getLeaderRevision()).isNotEmpty();
     }
 
     @Test(timeout = 30_000)

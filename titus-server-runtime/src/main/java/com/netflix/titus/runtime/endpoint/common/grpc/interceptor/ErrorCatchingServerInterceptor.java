@@ -16,6 +16,7 @@
 
 package com.netflix.titus.runtime.endpoint.common.grpc.interceptor;
 
+import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.runtime.endpoint.v3.grpc.ErrorResponses;
 import io.grpc.ForwardingServerCall;
@@ -70,6 +71,8 @@ public final class ErrorCatchingServerInterceptor implements ServerInterceptor {
                         } else {
                             logger.debug("Returning exception to the client: {}", formatStatus(newStatus));
                         }
+                        Evaluators.acceptNotNull(newStatus.getCause(), error -> logger.debug("Stack trace", error));
+
                         safeClose(() -> super.close(newStatus, pair.getRight()));
                     }
                     safeClose(() -> super.close(status, trailers));

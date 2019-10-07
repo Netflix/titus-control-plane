@@ -16,8 +16,12 @@
 
 package com.netflix.titus.api.clustermembership.model;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
+
+import com.google.common.base.Preconditions;
+import com.netflix.titus.common.util.Evaluators;
 
 public class ClusterMemberLeadership {
 
@@ -29,8 +33,8 @@ public class ClusterMemberLeadership {
                                    ClusterMemberLeadershipState leadershipState,
                                    Map<String, String> labels) {
         this.memberId = memberId;
-        this.leadershipState = leadershipState;
-        this.labels = labels;
+        this.leadershipState = Evaluators.getOrDefault(leadershipState, ClusterMemberLeadershipState.Unknown);
+        this.labels = Evaluators.getOrDefault(labels, Collections.emptyMap());
     }
 
     public String getMemberId() {
@@ -105,6 +109,8 @@ public class ClusterMemberLeadership {
         }
 
         public ClusterMemberLeadership build() {
+            Preconditions.checkNotNull(memberId, "Member id not set");
+
             return new ClusterMemberLeadership(memberId, leadershipState, labels);
         }
     }

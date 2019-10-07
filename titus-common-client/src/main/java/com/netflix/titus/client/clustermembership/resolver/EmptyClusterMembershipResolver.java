@@ -16,27 +16,27 @@
 
 package com.netflix.titus.client.clustermembership.resolver;
 
-import java.io.Closeable;
-
 import com.netflix.titus.api.clustermembership.model.ClusterMembershipSnapshot;
 import reactor.core.publisher.Flux;
 
-/**
- * Provider of all known cluster members.
- */
-public interface ClusterMemberResolver extends Closeable {
+public class EmptyClusterMembershipResolver implements ClusterMemberResolver {
 
-    ClusterMembershipSnapshot getSnapshot();
+    private static final ClusterMemberResolver INSTANCE = new EmptyClusterMembershipResolver();
 
-    /**
-     * Emits known cluster members, followed by updates.
-     */
-    Flux<ClusterMembershipSnapshot> resolve();
+    private EmptyClusterMembershipResolver() {
+    }
 
-    /**
-     * Release resources associated with this resolver if any.
-     */
     @Override
-    default void close() {
+    public ClusterMembershipSnapshot getSnapshot() {
+        return ClusterMembershipSnapshot.empty();
+    }
+
+    @Override
+    public Flux<ClusterMembershipSnapshot> resolve() {
+        return Flux.just(ClusterMembershipSnapshot.empty()).concatWith(Flux.never());
+    }
+
+    public static ClusterMemberResolver getInstance() {
+        return INSTANCE;
     }
 }
