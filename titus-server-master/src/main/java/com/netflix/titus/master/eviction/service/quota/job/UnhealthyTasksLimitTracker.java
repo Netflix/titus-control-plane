@@ -45,7 +45,7 @@ public class UnhealthyTasksLimitTracker implements QuotaTracker {
     /**
      * Do not track health status of small jobs with size below the threshold.
      */
-    private static final int JOB_SIZE_TRACKING_THRESHOLD = 3;
+    private static final int JOB_SIZE_TRACKING_THRESHOLD = 2;
 
     private static final int TASK_ID_REPORT_LIMIT = 20;
 
@@ -69,7 +69,7 @@ public class UnhealthyTasksLimitTracker implements QuotaTracker {
         this.belowJobSizeThresholdQuota = EvictionQuota.newBuilder()
                 .withReference(Reference.job(job.getId()))
                 .withQuota(jobSize)
-                .withMessage(String.format("Job to small to apply container health constraints: jobSize=%s, threshold=%s",
+                .withMessage(String.format("Job too small to apply container health constraints: jobSize=%s, threshold=%s",
                         jobSize, JOB_SIZE_TRACKING_THRESHOLD
                 ))
                 .build();
