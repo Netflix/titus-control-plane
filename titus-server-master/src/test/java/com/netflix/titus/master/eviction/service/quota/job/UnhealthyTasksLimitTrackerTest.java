@@ -87,6 +87,29 @@ public class UnhealthyTasksLimitTrackerTest {
     }
 
     @Test
+    public void testPercentageBasedQuotaWithOneTaskJob() {
+        Job<BatchJobExt> job = newBatchJobWithPercentageLimit(1, 95);
+        UnhealthyTasksLimitTracker tracker = UnhealthyTasksLimitTracker.percentageLimit(
+                job,
+                (AvailabilityPercentageLimitDisruptionBudgetPolicy) job.getJobDescriptor().getDisruptionBudget().getDisruptionBudgetPolicy(),
+                jobOperations,
+                jobComponentStub.getContainerHealthService()
+        );
+        Reference jobReference = Reference.job(job.getId());
+
+        // No tasks are started yet
+        assertThat(tracker.getQuota(jobReference).getQuota()).isEqualTo(1);
+
+        // Start task
+        jobOperations.getTasks().forEach(task -> jobComponentStub.moveTaskToState(task, TaskState.Started));
+        assertThat(tracker.getQuota(jobReference).getQuota()).isEqualTo(1);
+
+        // Now make one unhealthy. As this is the only task in the job, it should be possible to move it
+        jobComponentStub.changeContainerHealth(jobOperations.getTasks().get(0).getId(), ContainerHealthState.Unhealthy);
+        assertThat(tracker.getQuota(jobReference).getQuota()).isEqualTo(1);
+    }
+
+    @Test
     public void testAbsoluteLimitBasedQuota() {
         Job<?> job = newBatchJobWithAbsoluteLimit(10, 2);
         UnhealthyTasksLimitTracker tracker = UnhealthyTasksLimitTracker.absoluteLimit(

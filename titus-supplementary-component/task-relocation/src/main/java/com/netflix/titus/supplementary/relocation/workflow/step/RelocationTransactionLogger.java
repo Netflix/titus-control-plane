@@ -17,11 +17,12 @@
 package com.netflix.titus.supplementary.relocation.workflow.step;
 
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
-import com.netflix.titus.common.util.ExceptionExt;
-import com.netflix.titus.supplementary.relocation.model.DeschedulingResult;
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.api.relocation.model.TaskRelocationStatus;
 import com.netflix.titus.api.relocation.model.TaskRelocationStatus.TaskRelocationState;
+import com.netflix.titus.common.util.ExceptionExt;
+import com.netflix.titus.supplementary.relocation.model.DeschedulingFailure;
+import com.netflix.titus.supplementary.relocation.model.DeschedulingResult;
 import com.netflix.titus.supplementary.relocation.util.RelocationUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,13 +77,28 @@ public class RelocationTransactionLogger {
 
     void logTaskRelocationDeschedulingResult(String stepName, DeschedulingResult deschedulingResult) {
         String taskId = deschedulingResult.getTask().getId();
-        doLog(findJob(taskId),
-                taskId,
-                stepName,
-                "descheduling",
-                "success",
-                "Scheduled for being evicted now from agent: agentId=" + deschedulingResult.getAgentInstance().getId()
-        );
+        DeschedulingFailure failure = deschedulingResult.getFailure().orElse(null);
+
+        if (failure == null) {
+            doLog(findJob(taskId),
+                    taskId,
+                    stepName,
+                    "descheduling",
+                    "success",
+                    "Scheduled for being evicted now from agent: agentId=" + deschedulingResult.getAgentInstance().getId()
+            );
+        } else {
+            doLog(findJob(taskId),
+                    taskId,
+                    stepName,
+                    "descheduling",
+                    "failure",
+                    String.format("Task eviction not possible: agentId=%s, reason=%s",
+                            deschedulingResult.getAgentInstance().getId(),
+                            failure.getReasonMessage()
+                    )
+            );
+        }
     }
 
     void logTaskRelocationStatus(String stepName, String action, TaskRelocationStatus status) {

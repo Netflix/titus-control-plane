@@ -59,12 +59,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class EvictionComponentIntegrationTest extends BaseIntegrationTest {
 
     private static final JobDescriptor<BatchJobExt> JOB_TEMPLATE = newBatchJobDescriptor(
-            2,
+            4,
             budget(percentageOfHealthyPolicy(50), hourlyRatePercentage(50), Collections.emptyList())
     );
 
     private static final TitusStackResource titusStackResource = new TitusStackResource(EmbeddedTitusCell.aTitusCell()
-            .withMaster(EmbeddedTitusMasters.basicMaster(SimulatedClouds.basicCloud(2)).toBuilder()
+            .withMaster(EmbeddedTitusMasters.basicMaster(SimulatedClouds.basicCloud(4)).toBuilder()
                     .withCellName("test")
                     .withSystemDisruptionBudgetDescriptor(new SystemDisruptionBudgetDescriptor(10, 10, Collections.emptyList()))
                     .build()
@@ -98,9 +98,9 @@ public class EvictionComponentIntegrationTest extends BaseIntegrationTest {
     public void testJobQuotaAccess() throws Exception {
         jobsScenarioBuilder.schedule(JOB_TEMPLATE, jobScenarioBuilder -> jobScenarioBuilder
                 .template(ScenarioTemplates.startTasksInNewJob())
-                .andThen(() -> awaitQuota(jobScenarioBuilder, 1))
+                .andThen(() -> awaitQuota(jobScenarioBuilder, 2))
                 .inTask(0, tsb -> tsb.transitionTo(TaskStatus.TaskState.Finished))
-                .andThen(() -> awaitQuota(jobScenarioBuilder, 0))
+                .andThen(() -> awaitQuota(jobScenarioBuilder, 1))
         );
     }
 
@@ -110,10 +110,12 @@ public class EvictionComponentIntegrationTest extends BaseIntegrationTest {
 
         jobsScenarioBuilder.schedule(JOB_TEMPLATE, jobScenarioBuilder -> jobScenarioBuilder
                 .template(ScenarioTemplates.startTasksInNewJob())
-                .andThen(() -> await().until(() -> hasJobQuotaEvent(eventIt, 1)))
+                .andThen(() -> await().until(() -> hasJobQuotaEvent(eventIt, 2)))
                 .inTask(0, TaskScenarioBuilder::evictTask)
+                .andThen(() -> await().until(() -> hasJobQuotaEvent(eventIt, 1)))
+                .inTask(1, TaskScenarioBuilder::evictTask)
                 .andThen(() -> await().until(() -> hasJobQuotaEvent(eventIt, 0)))
-                .inTask(1, tsb -> {
+                .inTask(2, tsb -> {
                             try {
                                 tsb.evictTask();
                                 throw new IllegalStateException("Error expected");
