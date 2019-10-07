@@ -19,6 +19,7 @@ package com.netflix.titus.master.mesos.kubeapiserver;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BinaryOperator;
@@ -26,6 +27,7 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.patterns.PolledMeter;
 import com.netflix.titus.common.annotation.Experimental;
@@ -50,7 +52,7 @@ import io.kubernetes.client.util.Config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Experimental(detail = "Informer-pattern based integration with Kubernetes for opportunistic resources", deadline = "10/1/2019")
+@Experimental(detail = "Informer-pattern based integration with Kubernetes for opportunistic resources", deadline = "12/1/2019")
 @Singleton
 public class KubeOpportunisticResourceProvider implements OpportunisticCpuAvailabilityProvider {
     private static final Logger logger = LoggerFactory.getLogger(KubeOpportunisticResourceProvider.class);
@@ -65,12 +67,28 @@ public class KubeOpportunisticResourceProvider implements OpportunisticCpuAvaila
     private final SharedIndexInformer<V1OpportunisticResource> informer;
     private final SharedInformerFactory informerFactory;
     private final Id cpuSupplyId;
-    private final AtomicLong lastCpuSupply = new AtomicLong(0L);
+
+    private static long currentOpportunisticCpuCount(KubeOpportunisticResourceProvider self) {
+        return self.getOpportunisticCpus().values().stream()
+                .filter(self::isNotExpired)
+                .mapToLong(OpportunisticCpuAvailability::getCount)
+                .sum();
+    }
 
     @Inject
     public KubeOpportunisticResourceProvider(MesosConfiguration configuration, TitusRuntime titusRuntime) {
         this.titusRuntime = titusRuntime;
         cpuSupplyId = titusRuntime.getRegistry().createId("titusMaster.opportunistic.supply.cpu");
+
+        ThreadFactory threadFactory = new ThreadFactoryBuilder()
+                .setNameFormat("kube-opportunistic-cpu-metrics-poller")
+                .setDaemon(true)
+                .build();
+        PolledMeter.using(titusRuntime.getRegistry())
+                .withId(cpuSupplyId)
+                .scheduleOn(Executors.newSingleThreadScheduledExecutor(threadFactory))
+                .monitorValue(this, KubeOpportunisticResourceProvider::currentOpportunisticCpuCount);
+
         ApiClient apiClient = Config.fromUrl(configuration.getKubeApiServerUrl());
         apiClient.getHttpClient().setReadTimeout(0, TimeUnit.SECONDS); // infinite timeout for watch calls
         this.api = new CustomObjectsApi(apiClient);
@@ -119,7 +137,6 @@ public class KubeOpportunisticResourceProvider implements OpportunisticCpuAvaila
     @Activator
     public void enterActiveMode() {
         informerFactory.startAllRegisteredInformers();
-        PolledMeter.using(titusRuntime.getRegistry()).withId(cpuSupplyId).monitorValue(lastCpuSupply);
     }
 
     @Deactivator
@@ -176,19 +193,15 @@ public class KubeOpportunisticResourceProvider implements OpportunisticCpuAvaila
      */
     @Override
     public Map<String, OpportunisticCpuAvailability> getOpportunisticCpus() {
-        Map<String, OpportunisticCpuAvailability> cpuAvailability = informer.getIndexer().list().stream().collect(Collectors.toMap(
+        return informer.getIndexer().list().stream().collect(Collectors.toMap(
                 V1OpportunisticResource::getInstanceId,
                 resource -> new OpportunisticCpuAvailability(resource.getUid(), resource.getEnd(), resource.getCpus()),
                 BinaryOperator.maxBy(EXPIRES_AT_COMPARATOR)
         ));
-        lastCpuSupply.set(cpuAvailability.values().stream()
-                .filter(this::isNotExpired)
-                .mapToLong(OpportunisticCpuAvailability::getCount)
-                .sum());
-        return cpuAvailability;
     }
 
     private boolean isNotExpired(OpportunisticCpuAvailability availability) {
         return !titusRuntime.getClock().isPast(availability.getExpiresAt().toEpochMilli());
     }
+
 }
