@@ -59,7 +59,7 @@ public class RelocationDataReplicatorProvider implements Provider<RelocationData
         StreamDataReplicator<TaskRelocationSnapshot, TaskRelocationEvent> original = StreamDataReplicator.newStreamDataReplicator(
                 new ReplicatorEvent<>(TaskRelocationSnapshot.empty(), STARTUP_EVENT, 0L),
                 newReplicatorEventStream(client, titusRuntime),
-                new DataReplicatorMetrics<>(RELOCATION_REPLICATOR, titusRuntime),
+                new RelocationDataReplicatorMetrics(RELOCATION_REPLICATOR, titusRuntime),
                 titusRuntime
         );
 
@@ -95,6 +95,19 @@ public class RelocationDataReplicatorProvider implements Provider<RelocationData
     private static class RelocationDataReplicatorImpl extends DataReplicatorDelegate<TaskRelocationSnapshot, TaskRelocationEvent> implements RelocationDataReplicator {
         RelocationDataReplicatorImpl(DataReplicator<TaskRelocationSnapshot, TaskRelocationEvent> delegate) {
             super(delegate);
+        }
+    }
+
+    private static class RelocationDataReplicatorMetrics extends DataReplicatorMetrics<TaskRelocationSnapshot, TaskRelocationEvent> {
+
+        private RelocationDataReplicatorMetrics(String source, TitusRuntime titusRuntime) {
+            super(source, titusRuntime);
+        }
+
+        @Override
+        public void event(ReplicatorEvent<TaskRelocationSnapshot, TaskRelocationEvent> event) {
+            super.event(event);
+            setCacheCollectionSize("plans", event.getSnapshot().getPlans().size());
         }
     }
 }
