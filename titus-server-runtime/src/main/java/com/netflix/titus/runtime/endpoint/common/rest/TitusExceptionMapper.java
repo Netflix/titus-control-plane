@@ -170,26 +170,19 @@ public class TitusExceptionMapper implements ExceptionMapper<Throwable> {
                 .exceptionContext(e);
 
         switch (e.getErrorCode()) {
+            case CELL_NOT_FOUND:
             case JOB_NOT_FOUND:
             case TASK_NOT_FOUND:
                 errorBuilder.status(HttpServletResponse.SC_NOT_FOUND);
                 break;
-            case UNSUPPORTED_JOB_TYPE:
-                errorBuilder.status(HttpServletResponse.SC_BAD_REQUEST);
-                break;
-            case NOT_READY:
-                errorBuilder.status(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
-                break;
-            case UNIMPLEMENTED:
-            case INTERNAL:
-                errorBuilder.status(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                break;
-            case UNEXPECTED:
-                errorBuilder.status(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-                break;
             case INVALID_ARGUMENT:
+            case INVALID_JOB:
+            case INVALID_PAGE_OFFSET:
+            case NO_CALLER_ID:
                 errorBuilder.status(HttpServletResponse.SC_BAD_REQUEST);
                 break;
+            case INTERNAL:
+            case UNEXPECTED:
             default:
                 errorBuilder.status(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
