@@ -50,10 +50,10 @@ public class DefaultAggregatingSchedulerService implements AggregatingSchedulerS
 
     @Override
     public Mono<SchedulingResultEvent> findLastSchedulingResult(String taskId) {
-        return findTaskInAllCells(taskId).map(CellResponse::getResult);
+        return findSchedulingResultInAllCells(taskId).map(CellResponse::getResult);
     }
 
-    private Mono<CellResponse<SchedulerServiceGrpc.SchedulerServiceStub, SchedulingResultEvent>> findTaskInAllCells(String taskId) {
+    private Mono<CellResponse<SchedulerServiceGrpc.SchedulerServiceStub, SchedulingResultEvent>> findSchedulingResultInAllCells(String taskId) {
         Observable<CellResponse<SchedulerServiceGrpc.SchedulerServiceStub, SchedulingResultEvent>> action = aggregatingClient.callExpectingErrors(SchedulerServiceGrpc::newStub, findSchedulingResultInCell(taskId))
                 .reduce(ResponseMerger.singleValue())
                 .flatMap(response -> response.getResult()

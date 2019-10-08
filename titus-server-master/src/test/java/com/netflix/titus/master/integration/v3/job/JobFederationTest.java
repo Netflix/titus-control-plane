@@ -123,7 +123,7 @@ public class JobFederationTest extends BaseIntegrationTest {
     }
 
     @Test(timeout = LONG_TEST_TIMEOUT_MS)
-    public void testLastSchedulingResult() throws InterruptedException {
+    public void testLastSchedulingResult() {
         // Ask for a lot of
         JobDescriptor<BatchJobExt> tooBigJob = oneTaskBatchJobDescriptor().but(jd -> jd.getContainer().toBuilder()
                 .withContainerResources(ContainerResources.newBuilder()
@@ -144,6 +144,7 @@ public class JobFederationTest extends BaseIntegrationTest {
                 .map(e -> e.getTaskUpdate().getTask())
                 .take(2)
                 .toList()
+                .timeout(5, TimeUnit.SECONDS)
                 .toBlocking()
                 .first();
 
@@ -152,7 +153,7 @@ public class JobFederationTest extends BaseIntegrationTest {
     }
 
     private void checkSchedulingResult(Task task) {
-        while (true) {
+        await().timeout(30, TimeUnit.SECONDS).until(() -> {
             try {
                 SchedulingResultEvent result = blockingSchedulerClient.getSchedulingResult(SchedulingResultRequest.newBuilder()
                         .setTaskId(task.getId())
@@ -161,11 +162,12 @@ public class JobFederationTest extends BaseIntegrationTest {
                 logger.info("Received scheduling result: {}", result);
 
                 if (result.getFailures().getFailuresList().size() >= 1) {
-                    return;
+                    return true;
                 }
             } catch (Exception e) {
                 logger.warn("Scheduling result query error", e);
             }
-        }
+            return false;
+        });
     }
 }
