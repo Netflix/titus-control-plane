@@ -22,6 +22,7 @@ import com.netflix.titus.grpc.protogen.EvictionServiceGrpc;
 import com.netflix.titus.grpc.protogen.HealthGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
+import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import com.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
 import rx.Observable;
@@ -30,6 +31,8 @@ public interface EmbeddedTitusOperations {
     SimulatedCloud getSimulatedCloud();
 
     HealthGrpc.HealthStub getHealthClient();
+
+    SchedulerServiceGrpc.SchedulerServiceBlockingStub getV3BlockingSchedulerClient();
 
     JobManagementServiceGrpc.JobManagementServiceStub getV3GrpcClient();
 

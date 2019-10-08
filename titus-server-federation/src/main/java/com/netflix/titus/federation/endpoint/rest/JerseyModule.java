@@ -71,6 +71,7 @@ public final class JerseyModule extends JerseyServletModule {
 
             // resources
             config.getClasses().add(HealthResource.class);
+            config.getClasses().add(FederationSchedulerResource.class);
             config.getClasses().add(JobManagementResource.class);
             config.getClasses().add(AutoScalingResource.class);
             config.getClasses().add(LoadBalancerResource.class);

@@ -74,6 +74,7 @@ import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceBlockingStub;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
+import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
 import com.netflix.titus.grpc.protogen.SupervisorServiceGrpc;
 import com.netflix.titus.grpc.protogen.SupervisorServiceGrpc.SupervisorServiceBlockingStub;
 import com.netflix.titus.master.TitusMaster;
@@ -331,6 +332,11 @@ public class EmbeddedTitusMaster {
 
     public SupervisorServiceBlockingStub getSupervisorBlockingGrpcClient() {
         SupervisorServiceBlockingStub client = SupervisorServiceGrpc.newBlockingStub(getOrCreateGrpcChannel());
+        return TestKitGrpcClientErrorUtils.attachCallHeaders(client);
+    }
+
+    public SchedulerServiceGrpc.SchedulerServiceBlockingStub getV3BlockingSchedulerClient() {
+        SchedulerServiceGrpc.SchedulerServiceBlockingStub client = SchedulerServiceGrpc.newBlockingStub(getOrCreateGrpcChannel());
         return TestKitGrpcClientErrorUtils.attachCallHeaders(client);
     }
 

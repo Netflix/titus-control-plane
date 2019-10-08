@@ -26,6 +26,7 @@ public class ServiceModule extends AbstractModule {
     @Override
     protected void configure() {
         bind(HealthService.class).to(AggregatingHealthService.class);
+        bind(AggregatingSchedulerService.class).to(DefaultAggregatingSchedulerService.class);
         bind(JobServiceGateway.class).to(AggregatingJobServiceGateway.class);
         bind(AutoScalingService.class).to(AggregatingAutoScalingService.class);
         bind(LoadBalancerService.class).to(AggregatingLoadbalancerService.class);

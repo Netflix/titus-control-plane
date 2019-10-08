@@ -35,6 +35,8 @@ import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceImplBase;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc.LoadBalancerServiceImplBase;
+import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
+import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc.SchedulerServiceImplBase;
 import com.netflix.titus.runtime.endpoint.common.grpc.interceptor.ErrorCatchingServerInterceptor;
 import com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor;
 import io.grpc.Server;
@@ -52,6 +54,7 @@ public class TitusFederationGrpcServer {
     private static final Logger LOG = LoggerFactory.getLogger(TitusFederationGrpcServer.class);
 
     private final HealthImplBase healthService;
+    private final SchedulerServiceImplBase schedulerService;
     private final JobManagementServiceImplBase jobManagementService;
     private AutoScalingServiceImplBase autoScalingService;
     private LoadBalancerServiceImplBase loadBalancerService;
@@ -64,11 +67,13 @@ public class TitusFederationGrpcServer {
     @Inject
     public TitusFederationGrpcServer(
             HealthImplBase healthService,
+            SchedulerServiceImplBase schedulerService,
             JobManagementServiceImplBase jobManagementService,
             AutoScalingServiceImplBase autoScalingService,
             LoadBalancerServiceImplBase loadBalancerService,
             EndpointConfiguration config) {
         this.healthService = healthService;
+        this.schedulerService = schedulerService;
         this.jobManagementService = jobManagementService;
         this.autoScalingService = autoScalingService;
         this.loadBalancerService = loadBalancerService;
@@ -87,6 +92,10 @@ public class TitusFederationGrpcServer {
                     .addService(ServerInterceptors.intercept(
                             healthService,
                             createInterceptors(HealthGrpc.getServiceDescriptor())
+                    ))
+                    .addService(ServerInterceptors.intercept(
+                            schedulerService,
+                            createInterceptors(SchedulerServiceGrpc.getServiceDescriptor())
                     ))
                     .addService(ServerInterceptors.intercept(
                             jobManagementService,

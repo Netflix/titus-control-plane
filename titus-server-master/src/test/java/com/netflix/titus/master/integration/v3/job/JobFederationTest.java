@@ -16,15 +16,22 @@
 
 package com.netflix.titus.master.integration.v3.job;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
+import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
+import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
+import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
+import com.netflix.titus.grpc.protogen.SchedulingResultEvent;
+import com.netflix.titus.grpc.protogen.SchedulingResultRequest;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.master.integration.BaseIntegrationTest;
 import com.netflix.titus.testkit.embedded.federation.EmbeddedTitusFederation;
@@ -35,6 +42,8 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static com.jayway.awaitility.Awaitility.await;
 import static com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters.toGrpcJobDescriptor;
@@ -44,6 +53,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @Category(IntegrationTest.class)
 public class JobFederationTest extends BaseIntegrationTest {
+
+    private static final Logger logger = LoggerFactory.getLogger(JobFederationTest.class);
+
     private final String federatedStackName = UUID.randomUUID().toString();
 
     @Rule
@@ -54,12 +66,15 @@ public class JobFederationTest extends BaseIntegrationTest {
                     .withCell("b.*", basicCell("v3OnlyCell", 2))
                     .build()
     );
-    private JobManagementServiceGrpc.JobManagementServiceBlockingStub blockingClient;
+    private JobManagementServiceGrpc.JobManagementServiceBlockingStub blockingJobClient;
+    private SchedulerServiceGrpc.SchedulerServiceBlockingStub blockingSchedulerClient;
+
     private TestStreamObserver<JobChangeNotification> eventStreamObserver;
 
     @Before
     public void setUp() throws Exception {
-        this.blockingClient = titusStackResource.getOperations().getV3BlockingGrpcClient();
+        this.blockingJobClient = titusStackResource.getOperations().getV3BlockingGrpcClient();
+        this.blockingSchedulerClient = titusStackResource.getOperations().getV3BlockingSchedulerClient();
         this.eventStreamObserver = new TestStreamObserver<>();
 
         JobManagementServiceGrpc.JobManagementServiceStub asyncClient = titusStackResource.getOperations().getV3GrpcClient();
@@ -85,8 +100,8 @@ public class JobFederationTest extends BaseIntegrationTest {
                 }
         );
 
-        String cell1JobId = blockingClient.createJob(toGrpcJobDescriptor(oneTaskBatchJobDescriptor().toBuilder().withCapacityGroup("a123").build())).getId();
-        String cell2JobId = blockingClient.createJob(toGrpcJobDescriptor(oneTaskBatchJobDescriptor().toBuilder().withCapacityGroup("b123").build())).getId();
+        String cell1JobId = blockingJobClient.createJob(toGrpcJobDescriptor(oneTaskBatchJobDescriptor().toBuilder().withCapacityGroup("a123").build())).getId();
+        String cell2JobId = blockingJobClient.createJob(toGrpcJobDescriptor(oneTaskBatchJobDescriptor().toBuilder().withCapacityGroup("b123").build())).getId();
 
 
         await().timeout(5, TimeUnit.SECONDS).until(() -> tasks.containsKey(cell1JobId));
@@ -105,5 +120,52 @@ public class JobFederationTest extends BaseIntegrationTest {
         Map<String, String> cell2TaskContext = tasks.get(cell2JobId).getTaskContextMap();
         assertThat(cell2TaskContext).containsEntry("titus.stack", federatedStackName);
         assertThat(cell2TaskContext).containsEntry("titus.cell", "v3OnlyCell");
+    }
+
+    @Test(timeout = LONG_TEST_TIMEOUT_MS)
+    public void testLastSchedulingResult() throws InterruptedException {
+        // Ask for a lot of
+        JobDescriptor<BatchJobExt> tooBigJob = oneTaskBatchJobDescriptor().but(jd -> jd.getContainer().toBuilder()
+                .withContainerResources(ContainerResources.newBuilder()
+                        .withCpu(64)
+                        .withGpu(16)
+                        .withMemoryMB(472_000)
+                        .withDiskMB(999_000)
+                        .withNetworkMbps(40_000)
+                        .build()
+                )
+                .build()
+        );
+        blockingJobClient.createJob(toGrpcJobDescriptor(tooBigJob.toBuilder().withCapacityGroup("a123").build())).getId();
+        blockingJobClient.createJob(toGrpcJobDescriptor(tooBigJob.toBuilder().withCapacityGroup("b123").build())).getId();
+
+        List<Task> tasks = eventStreamObserver.toObservable()
+                .filter(event -> event.getNotificationCase() == JobChangeNotification.NotificationCase.TASKUPDATE)
+                .map(e -> e.getTaskUpdate().getTask())
+                .take(2)
+                .toList()
+                .toBlocking()
+                .first();
+
+        checkSchedulingResult(tasks.get(0));
+        checkSchedulingResult(tasks.get(1));
+    }
+
+    private void checkSchedulingResult(Task task) {
+        while (true) {
+            try {
+                SchedulingResultEvent result = blockingSchedulerClient.getSchedulingResult(SchedulingResultRequest.newBuilder()
+                        .setTaskId(task.getId())
+                        .build()
+                );
+                logger.info("Received scheduling result: {}", result);
+
+                if (result.getFailures().getFailuresList().size() >= 1) {
+                    return;
+                }
+            } catch (Exception e) {
+                logger.warn("Scheduling result query error", e);
+            }
+        }
     }
 }
