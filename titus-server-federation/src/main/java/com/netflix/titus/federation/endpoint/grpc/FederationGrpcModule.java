@@ -21,6 +21,7 @@ import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.HealthGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
+import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
 import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultAutoScalingServiceGrpc;
 import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultHealthServiceGrpc;
 import com.netflix.titus.runtime.endpoint.v3.grpc.DefaultJobManagementServiceGrpc;
@@ -32,6 +33,7 @@ public class FederationGrpcModule extends AbstractModule {
     protected void configure() {
         bind(TitusFederationGrpcServer.class).asEagerSingleton();
         bind(HealthGrpc.HealthImplBase.class).to(DefaultHealthServiceGrpc.class);
+        bind(SchedulerServiceGrpc.SchedulerServiceImplBase.class).to(AggregatingSchedulerServiceGrpc.class);
         bind(JobManagementServiceGrpc.JobManagementServiceImplBase.class).to(DefaultJobManagementServiceGrpc.class);
         bind(AutoScalingServiceGrpc.AutoScalingServiceImplBase.class).to(DefaultAutoScalingServiceGrpc.class);
         bind(LoadBalancerServiceGrpc.LoadBalancerServiceImplBase.class).to(DefaultLoadBalancerServiceGrpc.class);

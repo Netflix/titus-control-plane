@@ -36,6 +36,7 @@ import com.netflix.titus.grpc.protogen.EvictionServiceGrpc;
 import com.netflix.titus.grpc.protogen.HealthGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
+import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
 import com.netflix.titus.master.TitusMaster;
 import com.netflix.titus.runtime.endpoint.common.rest.EmbeddedJettyModule;
 import com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor;
@@ -153,6 +154,11 @@ public class EmbeddedTitusFederation {
 
     public HealthGrpc.HealthStub getHealthGrpcClient() {
         HealthGrpc.HealthStub client = HealthGrpc.newStub(getOrCreateGrpcChannel());
+        return attachCallHeaders(client);
+    }
+
+    public SchedulerServiceGrpc.SchedulerServiceBlockingStub getV3BlockingSchedulerClient() {
+        SchedulerServiceGrpc.SchedulerServiceBlockingStub client = SchedulerServiceGrpc.newBlockingStub(getOrCreateGrpcChannel());
         return attachCallHeaders(client);
     }
 
