@@ -125,23 +125,18 @@ public final class ErrorResponses {
         } else if (cause instanceof TitusServiceException) {
             TitusServiceException e = (TitusServiceException) cause;
             switch (e.getErrorCode()) {
-                case NOT_LEADER:
-                    return Status.ABORTED;
-                case NOT_READY:
-                    return Status.UNAVAILABLE;
+                case CELL_NOT_FOUND:
                 case JOB_NOT_FOUND:
                 case TASK_NOT_FOUND:
                     return Status.NOT_FOUND;
                 case INVALID_ARGUMENT:
+                case NO_CALLER_ID:
+                case INVALID_JOB:
+                case INVALID_PAGE_OFFSET:
                     return Status.INVALID_ARGUMENT;
-                case UNSUPPORTED_JOB_TYPE:
-                    return Status.UNIMPLEMENTED;
                 case INTERNAL:
-                    return Status.INTERNAL;
-                case NOT_SUPPORTED:
-                case UNIMPLEMENTED:
-                    return Status.UNIMPLEMENTED;
                 case UNEXPECTED:
+                default:
                     return Status.INTERNAL;
             }
         } else if (cause instanceof AgentManagementException) {

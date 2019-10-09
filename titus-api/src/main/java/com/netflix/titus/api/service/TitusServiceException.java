@@ -17,7 +17,6 @@
 package com.netflix.titus.api.service;
 
 import java.util.Collections;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -31,15 +30,10 @@ import static java.lang.String.format;
 public class TitusServiceException extends RuntimeException {
 
     public enum ErrorCode {
-        NOT_LEADER,
-        NOT_READY,
         INTERNAL,
         NO_CALLER_ID,
         JOB_NOT_FOUND,
-        UNSUPPORTED_JOB_TYPE,
         TASK_NOT_FOUND,
-        NOT_SUPPORTED,
-        UNIMPLEMENTED,
         UNEXPECTED,
         INVALID_PAGE_OFFSET,
         INVALID_ARGUMENT,
@@ -49,13 +43,11 @@ public class TitusServiceException extends RuntimeException {
 
     private final ErrorCode errorCode;
     private final Set<? extends ValidationError> validationErrors;
-    private final Optional<String> leaderAddress;
 
     private TitusServiceException(TitusServiceExceptionBuilder builder) {
         super(builder.message, builder.cause);
         this.errorCode = builder.errorCode;
         this.validationErrors = builder.validationErrors;
-        this.leaderAddress = builder.leaderAddress;
     }
 
     public static TitusServiceExceptionBuilder newBuilder(ErrorCode errorCode, String message) {
@@ -70,16 +62,11 @@ public class TitusServiceException extends RuntimeException {
         return validationErrors;
     }
 
-    public Optional<String> getLeaderAddress() {
-        return leaderAddress;
-    }
-
     public static final class TitusServiceExceptionBuilder {
         ErrorCode errorCode;
         String message;
         Throwable cause;
         Set<? extends ValidationError> validationErrors;
-        Optional<String> leaderAddress;
 
         private TitusServiceExceptionBuilder(ErrorCode errorCode, String message) {
             this.errorCode = errorCode;
@@ -96,20 +83,9 @@ public class TitusServiceException extends RuntimeException {
             return this;
         }
 
-        public TitusServiceExceptionBuilder withLeaderAddress(String leaderAddress) {
-            this.leaderAddress = Optional.ofNullable(leaderAddress);
-            return this;
-        }
-
         public TitusServiceException build() {
             if (this.validationErrors == null) {
                 this.validationErrors = Collections.emptySet();
-            }
-            if (this.leaderAddress == null) {
-                this.leaderAddress = Optional.empty();
-            }
-            if (errorCode == ErrorCode.NOT_LEADER && !this.leaderAddress.isPresent()) {
-                throw new IllegalArgumentException("Leader address must be present when specifying not leader code");
             }
             return new TitusServiceException(this);
         }
@@ -186,29 +162,6 @@ public class TitusServiceException extends RuntimeException {
         return TitusServiceException.newBuilder(ErrorCode.INTERNAL, format(message, args))
                 .withCause(cause)
                 .build();
-    }
-
-    public static TitusServiceException notSupported() {
-        return TitusServiceException.newBuilder(ErrorCode.NOT_SUPPORTED, "Not supported").build();
-    }
-
-    public static TitusServiceException unimplemented() {
-        return TitusServiceException.newBuilder(ErrorCode.UNIMPLEMENTED, "Not implemented").build();
-    }
-
-    public static TitusServiceException notLeader(String leaderAddress) {
-        return TitusServiceException.newBuilder(ErrorCode.NOT_LEADER, format("Not a leader node. Current leader is: %s", leaderAddress))
-                .withLeaderAddress(leaderAddress)
-                .build();
-    }
-
-    public static TitusServiceException unknownLeader() {
-        return TitusServiceException.newBuilder(ErrorCode.NOT_LEADER, "Not a leader node")
-                .build();
-    }
-
-    public static TitusServiceException notReady() {
-        return TitusServiceException.newBuilder(ErrorCode.NOT_READY, "Leader not ready").build();
     }
 
     public static TitusServiceException noCallerId() {
