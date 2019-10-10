@@ -20,7 +20,9 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.stream.Collectors;
 import javax.inject.Singleton;
 
@@ -44,7 +46,7 @@ public class ActivationProvisionListener implements ActivationLifecycle, Provisi
 
     private static final Logger logger = LoggerFactory.getLogger(ActivationProvisionListener.class);
 
-    private final List<ServiceHolder> services = new CopyOnWriteArrayList<>();
+    private final Set<ServiceHolder> services = new CopyOnWriteArraySet<>();
 
     private long activationTime = -1;
 
@@ -188,6 +190,20 @@ public class ActivationProvisionListener implements ActivationLifecycle, Provisi
 
             activated = false;
             activationTime = -1;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (!(obj instanceof ServiceHolder)) {
+                return false;
+            }
+            ServiceHolder other = (ServiceHolder) obj;
+            return Objects.equals(this.injectee, other.injectee);
+        }
+
+        @Override
+        public int hashCode() {
+            return injectee.hashCode();
         }
     }
 }
