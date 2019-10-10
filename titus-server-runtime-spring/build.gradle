@@ -1,8 +1,0 @@
-dependencies {
-    compile "org.springframework:spring-web:${springVersion}"
-    compile "org.springframework.boot:spring-boot:${springBootVersion}"
-
-    compile project(':titus-server-runtime')
-
-    testCompile project(':titus-testkit')
-}

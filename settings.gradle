@@ -12,7 +12,6 @@ include 'titus-common',\
         'titus-server-master',\
         'titus-server-federation',\
         'titus-server-runtime',\
-        'titus-server-runtime-spring',\
         'titus-testkit'
 
 ['kube'].each {
