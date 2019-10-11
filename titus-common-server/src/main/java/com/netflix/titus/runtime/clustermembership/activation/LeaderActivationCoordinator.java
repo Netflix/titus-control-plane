@@ -138,22 +138,24 @@ public class LeaderActivationCoordinator {
     }
 
     private Mono<Void> refresh() {
-        try {
-            if (isLocalLeader()) {
-                activate();
-            } else {
-                if (stateRef.get() != State.Awaiting) {
-                    try {
-                        deactivate();
-                    } finally {
-                        deactivationCallback.accept(new RuntimeException("Lost leadership"));
+        return Mono.defer(() -> {
+            try {
+                if (isLocalLeader()) {
+                    activate();
+                } else {
+                    if (stateRef.get() != State.Awaiting) {
+                        try {
+                            deactivate();
+                        } finally {
+                            deactivationCallback.accept(new RuntimeException("Lost leadership"));
+                        }
                     }
                 }
+                return recordState();
+            } catch (Exception e) {
+                return Mono.error(new IllegalStateException("Unexpected leader election coordinator error: " + e.getMessage(), e));
             }
-            return recordState();
-        } catch (Exception e) {
-            return Mono.error(new IllegalStateException("Unexpected leader election coordinator error: " + e.getMessage(), e));
-        }
+        });
     }
 
     @PreDestroy
@@ -184,7 +186,7 @@ public class LeaderActivationCoordinator {
 
     private void activate() {
         if (!stateRef.compareAndSet(State.Awaiting, State.ElectedLeader)) {
-            logger.debug("Already activated");
+            logger.debug("Activation process has been already attempted. Component is in: state={}", stateRef.get());
             return;
         }
 
@@ -212,6 +214,7 @@ public class LeaderActivationCoordinator {
                 } finally {
                     deactivationCallback.accept(e);
                 }
+                return;
             }
         }
         this.activatedServices = activated;
