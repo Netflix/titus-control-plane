@@ -216,6 +216,7 @@ class ScheduledActionExecutor {
                     )
                     .timeout(descriptor.getTimeout())
                     .subscribeOn(scheduler)
+                    .publishOn(scheduler)
                     .doOnCancel(() -> actionCompleted = true)
                     .subscribe(
                             next -> {

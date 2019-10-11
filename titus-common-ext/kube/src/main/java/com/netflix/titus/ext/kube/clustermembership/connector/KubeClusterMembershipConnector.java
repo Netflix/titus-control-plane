@@ -121,7 +121,7 @@ public class KubeClusterMembershipConnector implements ClusterMembershipConnecto
                 );
 
         this.reconcilerEventsSubscription = this.reconciler.changes().subscribe(
-                next -> logger.info("Reconciler update: {}", next.getDeltaEvents()),
+                next -> logger.debug("Reconciler update: {}", next.getDeltaEvents()),
                 e -> logger.warn("Reconciler event stream terminated with an error", e),
                 () -> logger.warn("Reconciler event stream completed")
         );
