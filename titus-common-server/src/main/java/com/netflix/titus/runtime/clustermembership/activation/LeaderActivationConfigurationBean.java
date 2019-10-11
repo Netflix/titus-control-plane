@@ -21,26 +21,26 @@ import org.springframework.core.env.Environment;
 
 public class LeaderActivationConfigurationBean implements LeaderActivationConfiguration {
 
-    private final Environment environment;
-    private final String prefix;
+    public static final String PREFIX = "titus.leaderActivation.controller.";
 
-    public LeaderActivationConfigurationBean(Environment environment, String prefix) {
+    private final Environment environment;
+
+    public LeaderActivationConfigurationBean(Environment environment) {
         this.environment = environment;
-        this.prefix = prefix;
     }
 
     @Override
     public boolean isSystemExitOnLeadershipLost() {
-        return SpringConfigurationUtil.getBoolean(environment, prefix + "systemExitOnLeadershipLost", false);
+        return SpringConfigurationUtil.getBoolean(environment, PREFIX + "systemExitOnLeadershipLost", false);
     }
 
     @Override
     public long getLeaderCheckIntervalMs() {
-        return SpringConfigurationUtil.getLong(environment, prefix + "leaderCheckIntervalMs", 500);
+        return SpringConfigurationUtil.getLong(environment, PREFIX + "leaderCheckIntervalMs", 500);
     }
 
     @Override
     public long getLeaderActivationTimeout() {
-        return SpringConfigurationUtil.getLong(environment, prefix + "leaderActivationTimeout", 180_000);
+        return SpringConfigurationUtil.getLong(environment, PREFIX + "leaderActivationTimeout", 180_000);
     }
 }

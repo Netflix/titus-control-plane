@@ -25,6 +25,6 @@ public class LeaderActivationComponent {
 
     @Bean
     public LeaderActivationConfiguration getLeaderActivationConfiguration(Environment environment) {
-        return new LeaderActivationConfigurationBean(environment, "titus.leaderActivation.controller");
+        return new LeaderActivationConfigurationBean(environment);
     }
 }
