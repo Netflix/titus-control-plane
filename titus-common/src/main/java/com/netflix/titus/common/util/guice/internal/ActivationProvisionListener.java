@@ -39,6 +39,8 @@ import org.slf4j.LoggerFactory;
 /**
  * Guice {@link ProvisionListener} that scans services for presence of {@link Activator} and {@link Deactivator}
  * annotations, and adds them to activation/deactivation lifecycle.
+ * <p>
+ * Deactivations happen in the reverse order of activations.
  */
 @Singleton
 @SuppressLifecycleUninitialized
@@ -46,6 +48,11 @@ public class ActivationProvisionListener implements ActivationLifecycle, Provisi
 
     private static final Logger logger = LoggerFactory.getLogger(ActivationProvisionListener.class);
 
+    /**
+     * Keep all services that need activation/deactivation as a {@link Set} to avoid activating the same instance
+     * multiple times. <b>Note:</b> the {@link Set} implementation used <b>must</b> preserve insertion order, since
+     * deactivation needs to happen in the reverse order of activation.
+     */
     private final Set<ServiceHolder> services = new CopyOnWriteArraySet<>();
 
     private long activationTime = -1;
