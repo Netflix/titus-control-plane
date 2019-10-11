@@ -121,8 +121,8 @@ public class ActivationProvisionListener implements ActivationLifecycle, Provisi
         private final List<Method> activateMethods;
         private final List<Method> deactivateMethods;
 
-        private boolean activated;
-        private long activationTime = -1;
+        private volatile boolean activated;
+        private volatile long activationTime = -1;
 
         ServiceHolder(Object injectee) {
             this.injectee = injectee;
