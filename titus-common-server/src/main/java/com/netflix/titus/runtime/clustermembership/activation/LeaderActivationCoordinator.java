@@ -126,7 +126,13 @@ public class LeaderActivationCoordinator {
                 (self.stateRef.get() == State.ElectedLeader && activationTimestamp > 0) ? self.clock.wallTime() - self.activationTimestamp : 0
         );
 
-        this.scheduler = Schedulers.newSingle("LeaderActivationCoordinator");
+        // We create the thread here, as the default one is NonBlocking, and we allow React blocking subscriptions in
+        // the activation phase.
+        this.scheduler = Schedulers.newSingle(r -> {
+            Thread thread = new Thread(r, "LeaderActivationCoordinator");
+            thread.setDaemon(true);
+            return thread;
+        });
         this.scheduleRef = titusRuntime.getLocalScheduler().scheduleMono(
                 SCHEDULE_DESCRIPTOR.toBuilder()
                         .withInterval(Duration.ofMillis(configuration.getLeaderCheckIntervalMs()))
