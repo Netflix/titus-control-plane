@@ -20,7 +20,6 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.stream.Collectors;
@@ -199,13 +198,16 @@ public class ActivationProvisionListener implements ActivationLifecycle, Provisi
             activationTime = -1;
         }
 
+        /**
+         * Two service holders are considered equal if they are holding the same instance (based on object identity).
+         */
         @Override
         public boolean equals(Object obj) {
             if (!(obj instanceof ServiceHolder)) {
                 return false;
             }
             ServiceHolder other = (ServiceHolder) obj;
-            return Objects.equals(this.injectee, other.injectee);
+            return this.injectee == other.injectee;
         }
 
         @Override
