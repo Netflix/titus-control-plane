@@ -18,8 +18,6 @@ package com.netflix.titus.gateway.endpoint;
 
 import com.google.inject.AbstractModule;
 import com.netflix.governator.guice.jersey.GovernatorJerseySupportModule;
-import com.netflix.titus.common.network.reverseproxy.http.ReactorHttpClientFactory;
-import com.netflix.titus.gateway.endpoint.v3.ConfigurableReactorHttpClientFactory;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolveModule;
 import com.netflix.titus.runtime.endpoint.resolver.HostCallerIdResolver;
 import com.netflix.titus.runtime.endpoint.resolver.NoOpHostCallerIdResolver;
@@ -41,8 +39,6 @@ public class GatewayEndpointModule extends AbstractModule {
         if (enableREST) {
             install(new GovernatorJerseySupportModule());
             install(new GatewayJerseyModule());
-
-            bind(ReactorHttpClientFactory.class).to(ConfigurableReactorHttpClientFactory.class);
         }
 
         install(new GatewayGrpcModule());

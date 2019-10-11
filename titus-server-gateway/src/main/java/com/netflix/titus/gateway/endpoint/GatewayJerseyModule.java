@@ -24,7 +24,6 @@ import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.governator.guice.jersey.GovernatorServletContainer;
 import com.netflix.governator.providers.Advises;
-import com.netflix.titus.common.network.reverseproxy.http.ReverseProxyServletFilter;
 import com.netflix.titus.gateway.endpoint.v2.rest.TitusMasterProxyServlet;
 import com.netflix.titus.gateway.endpoint.v3.rest.AgentManagementResource;
 import com.netflix.titus.gateway.endpoint.v3.rest.SchedulerResource;
@@ -54,9 +53,6 @@ public final class GatewayJerseyModule extends JerseyServletModule {
 
         // Call metadata interceptor (see CallMetadataHeaders).
         filter("/api/v3/*").through(SimpleHttpCallMetadataResolver.CallMetadataInterceptorFilter.class);
-
-        // Forward requests to the supplementary components
-        filter("/api/v3/*").through(ReverseProxyServletFilter.class);
 
         // Configure servlet that proxies requests to master
         serve("/api/v2/*").with(TitusMasterProxyServlet.class);
