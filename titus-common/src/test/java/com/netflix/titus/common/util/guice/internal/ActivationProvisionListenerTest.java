@@ -67,6 +67,37 @@ public class ActivationProvisionListenerTest {
     }
 
     @Test
+    public void testActivateOnlyOnce() throws Exception {
+        LifecycleInjector injector = InjectorBuilder.fromModules(
+                new ContainerEventBusModule(),
+                new AbstractModule() {
+                    @Override
+                    protected void configure() {
+                        bind(TitusRuntime.class).toInstance(TitusRuntimes.internal());
+                        bind(ActivationProvisionListenerTest.class).toInstance(ActivationProvisionListenerTest.this);
+                        bind(ServiceA.class);
+                    }
+                }).createInjector();
+
+        ActivationLifecycle activationLifecycle = injector.getInstance(ActivationLifecycle.class);
+        ServiceA serviceA = injector.getInstance(ServiceA.class);
+        ServiceA otherServiceA = injector.getInstance(ServiceA.class);
+
+        assertThat(serviceA).isSameAs(otherServiceA);
+        assertThat(serviceA.state).isEqualTo("NOT_READY");
+
+        activationLifecycle.activate();
+        assertThat(activationLifecycle.isActive(serviceA)).isTrue();
+        assertThat(serviceA.state).isEqualTo("ACTIVATED");
+        assertThat(activationTrace).hasSize(1);
+
+        activationLifecycle.deactivate();
+        assertThat(activationLifecycle.isActive(serviceA)).isFalse();
+        assertThat(serviceA.state).isEqualTo("DEACTIVATED");
+        assertThat(activationTrace).hasSize(2);
+    }
+
+    @Test
     public void testServiceReordering() throws Exception {
         LifecycleInjector injector = InjectorBuilder.fromModules(
                 new ContainerEventBusModule(),
@@ -83,7 +114,37 @@ public class ActivationProvisionListenerTest {
         ActivationLifecycle activationLifecycle = injector.getInstance(ActivationLifecycle.class);
         activationLifecycle.activate();
 
-        assertThat(activationTrace).containsExactlyInAnyOrder(Pair.of("serviceA", "ACTIVATED"), Pair.of("serviceB", "ACTIVATED"));
+        assertThat(activationTrace).containsExactlyInAnyOrder(
+                Pair.of("serviceA", "ACTIVATED"),
+                Pair.of("serviceB", "ACTIVATED")
+        );
+    }
+
+    @Test
+    public void testDeactivationOrderIsReverseOfActivation() throws Exception {
+        LifecycleInjector injector = InjectorBuilder.fromModules(
+                new ContainerEventBusModule(),
+                new AbstractModule() {
+                    @Override
+                    protected void configure() {
+                        bind(TitusRuntime.class).toInstance(TitusRuntimes.internal());
+                        bind(ActivationProvisionListenerTest.class).toInstance(ActivationProvisionListenerTest.this);
+                        bind(ServiceB.class).asEagerSingleton();
+                        bind(ServiceA.class).asEagerSingleton();
+                    }
+                }).createInjector();
+
+        ActivationLifecycle activationLifecycle = injector.getInstance(ActivationLifecycle.class);
+        activationLifecycle.activate();
+        activationLifecycle.deactivate();
+
+        assertThat(activationTrace).hasSize(4);
+        String firstActivated = activationTrace.get(0).getLeft();
+        String secondActivated = activationTrace.get(1).getLeft();
+        assertThat(activationTrace.subList(2, 4)).containsExactly(
+                Pair.of(secondActivated, "DEACTIVATED"),
+                Pair.of(firstActivated, "DEACTIVATED")
+        );
     }
 
     @Singleton
@@ -91,7 +152,7 @@ public class ActivationProvisionListenerTest {
 
         private final ActivationProvisionListenerTest owner;
 
-        String state = "NOT_READY";
+        private volatile String state = "NOT_READY";
 
         @Inject
         public ServiceA(ActivationProvisionListenerTest owner) {
@@ -116,7 +177,7 @@ public class ActivationProvisionListenerTest {
 
         private final ActivationProvisionListenerTest owner;
 
-        String state = "NOT_READY";
+        private volatile String state = "NOT_READY";
 
         @Inject
         public ServiceB(ActivationProvisionListenerTest owner) {

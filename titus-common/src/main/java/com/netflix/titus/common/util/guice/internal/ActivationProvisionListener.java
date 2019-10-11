@@ -20,7 +20,8 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.stream.Collectors;
 import javax.inject.Singleton;
 
@@ -37,6 +38,8 @@ import org.slf4j.LoggerFactory;
 /**
  * Guice {@link ProvisionListener} that scans services for presence of {@link Activator} and {@link Deactivator}
  * annotations, and adds them to activation/deactivation lifecycle.
+ * <p>
+ * Deactivations happen in the reverse order of activations.
  */
 @Singleton
 @SuppressLifecycleUninitialized
@@ -44,7 +47,12 @@ public class ActivationProvisionListener implements ActivationLifecycle, Provisi
 
     private static final Logger logger = LoggerFactory.getLogger(ActivationProvisionListener.class);
 
-    private final List<ServiceHolder> services = new CopyOnWriteArrayList<>();
+    /**
+     * Keep all services that need activation/deactivation as a {@link Set} to avoid activating the same instance
+     * multiple times. <b>Note:</b> the {@link Set} implementation used <b>must</b> preserve insertion order, since
+     * deactivation needs to happen in the reverse order of activation.
+     */
+    private final Set<ServiceHolder> services = new CopyOnWriteArraySet<>();
 
     private long activationTime = -1;
 
@@ -113,8 +121,8 @@ public class ActivationProvisionListener implements ActivationLifecycle, Provisi
         private final List<Method> activateMethods;
         private final List<Method> deactivateMethods;
 
-        private boolean activated;
-        private long activationTime = -1;
+        private volatile boolean activated;
+        private volatile long activationTime = -1;
 
         ServiceHolder(Object injectee) {
             this.injectee = injectee;
@@ -188,6 +196,23 @@ public class ActivationProvisionListener implements ActivationLifecycle, Provisi
 
             activated = false;
             activationTime = -1;
+        }
+
+        /**
+         * Two service holders are considered equal if they are holding the same instance (based on object identity).
+         */
+        @Override
+        public boolean equals(Object obj) {
+            if (!(obj instanceof ServiceHolder)) {
+                return false;
+            }
+            ServiceHolder other = (ServiceHolder) obj;
+            return this.injectee == other.injectee;
+        }
+
+        @Override
+        public int hashCode() {
+            return injectee.hashCode();
         }
     }
 }
