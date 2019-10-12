@@ -16,6 +16,7 @@
 
 package com.netflix.titus.runtime.clustermembership.activation;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -29,6 +30,7 @@ import com.netflix.titus.runtime.clustermembership.endpoint.grpc.ClusterMembersh
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import reactor.core.publisher.Flux;
 
 import static com.jayway.awaitility.Awaitility.await;
 
@@ -78,6 +80,8 @@ public class LeaderActivationCoordinatorTest {
 
         @Override
         public void activate() {
+            // Make sure we can block in the activation process.
+            Flux.interval(Duration.ofMillis(1)).take(1).blockFirst();
             activationCount.getAndIncrement();
         }
 
