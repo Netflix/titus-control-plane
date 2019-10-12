@@ -637,12 +637,6 @@
                 "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
-                "com.netflix.titus:titus-server-runtime-spring"
-            ]
-        },
-        "com.netflix.titus:titus-server-runtime-spring": {
-            "project": true,
-            "transitive": [
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher"
             ]
         },
@@ -1818,7 +1812,6 @@
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
-                "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "com.netflix.titus:titus-testkit",
                 "com.thinkaurelius.thrift:thrift-server",
@@ -1862,7 +1855,6 @@
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
-                "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "com.netflix.titus:titus-testkit"
             ]
@@ -1870,7 +1862,6 @@
         "org.springframework.boot:spring-boot": {
             "locked": "2.1.2.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "org.springframework.boot:spring-boot-autoconfigure",
                 "org.springframework.boot:spring-boot-starter"
@@ -1985,7 +1976,6 @@
         "org.springframework:spring-web": {
             "locked": "5.1.4.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-web",
@@ -2696,12 +2686,6 @@
                 "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
-                "com.netflix.titus:titus-server-runtime-spring"
-            ]
-        },
-        "com.netflix.titus:titus-server-runtime-spring": {
-            "project": true,
-            "transitive": [
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher"
             ]
         },
@@ -3890,7 +3874,6 @@
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
-                "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "com.netflix.titus:titus-testkit",
                 "com.thinkaurelius.thrift:thrift-server",
@@ -3934,7 +3917,6 @@
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
-                "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "com.netflix.titus:titus-testkit"
             ]
@@ -3942,7 +3924,6 @@
         "org.springframework.boot:spring-boot": {
             "locked": "2.1.2.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "org.springframework.boot:spring-boot-actuator",
                 "org.springframework.boot:spring-boot-autoconfigure",
@@ -4077,7 +4058,6 @@
         "org.springframework:spring-web": {
             "locked": "5.1.4.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-web",
@@ -4788,12 +4768,6 @@
                 "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
-                "com.netflix.titus:titus-server-runtime-spring"
-            ]
-        },
-        "com.netflix.titus:titus-server-runtime-spring": {
-            "project": true,
-            "transitive": [
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher"
             ]
         },
@@ -5982,7 +5956,6 @@
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
-                "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "com.netflix.titus:titus-testkit",
                 "com.thinkaurelius.thrift:thrift-server",
@@ -6027,7 +6000,6 @@
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
-                "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "com.netflix.titus:titus-testkit"
             ]
@@ -6035,7 +6007,6 @@
         "org.springframework.boot:spring-boot": {
             "locked": "2.1.2.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "org.springframework.boot:spring-boot-actuator",
                 "org.springframework.boot:spring-boot-autoconfigure",
@@ -6170,7 +6141,6 @@
         "org.springframework:spring-web": {
             "locked": "5.1.4.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-web",
@@ -6942,12 +6912,6 @@
                 "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
-                "com.netflix.titus:titus-server-runtime-spring"
-            ]
-        },
-        "com.netflix.titus:titus-server-runtime-spring": {
-            "project": true,
-            "transitive": [
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher"
             ]
         },
@@ -8123,7 +8087,6 @@
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
-                "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "com.netflix.titus:titus-testkit",
                 "com.thinkaurelius.thrift:thrift-server",
@@ -8168,7 +8131,6 @@
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
-                "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "com.netflix.titus:titus-testkit"
             ]
@@ -8176,7 +8138,6 @@
         "org.springframework.boot:spring-boot": {
             "locked": "2.1.2.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "org.springframework.boot:spring-boot-autoconfigure",
                 "org.springframework.boot:spring-boot-starter"
@@ -8291,7 +8252,6 @@
         "org.springframework:spring-web": {
             "locked": "5.1.4.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-web",
@@ -9002,12 +8962,6 @@
                 "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
-                "com.netflix.titus:titus-server-runtime-spring"
-            ]
-        },
-        "com.netflix.titus:titus-server-runtime-spring": {
-            "project": true,
-            "transitive": [
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher"
             ]
         },
@@ -10196,7 +10150,6 @@
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
-                "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "com.netflix.titus:titus-testkit",
                 "com.thinkaurelius.thrift:thrift-server",
@@ -10241,7 +10194,6 @@
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
-                "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "com.netflix.titus:titus-testkit"
             ]
@@ -10249,7 +10201,6 @@
         "org.springframework.boot:spring-boot": {
             "locked": "2.1.2.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "org.springframework.boot:spring-boot-actuator",
                 "org.springframework.boot:spring-boot-autoconfigure",
@@ -10384,7 +10335,6 @@
         "org.springframework:spring-web": {
             "locked": "5.1.4.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-web",
@@ -11103,12 +11053,6 @@
                 "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
-                "com.netflix.titus:titus-server-runtime-spring"
-            ]
-        },
-        "com.netflix.titus:titus-server-runtime-spring": {
-            "project": true,
-            "transitive": [
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher"
             ]
         },
@@ -12296,7 +12240,6 @@
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
-                "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "com.netflix.titus:titus-testkit",
                 "com.thinkaurelius.thrift:thrift-server",
@@ -12340,7 +12283,6 @@
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
-                "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "com.netflix.titus:titus-testkit"
             ]
@@ -12348,7 +12290,6 @@
         "org.springframework.boot:spring-boot": {
             "locked": "2.1.2.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "org.springframework.boot:spring-boot-autoconfigure",
                 "org.springframework.boot:spring-boot-starter"
@@ -12463,7 +12404,6 @@
         "org.springframework:spring-web": {
             "locked": "5.1.4.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-web",
@@ -13184,12 +13124,6 @@
                 "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
-                "com.netflix.titus:titus-server-runtime-spring"
-            ]
-        },
-        "com.netflix.titus:titus-server-runtime-spring": {
-            "project": true,
-            "transitive": [
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher"
             ]
         },
@@ -14390,7 +14324,6 @@
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
-                "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "com.netflix.titus:titus-testkit",
                 "com.thinkaurelius.thrift:thrift-server",
@@ -14434,7 +14367,6 @@
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
-                "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "com.netflix.titus:titus-testkit"
             ]
@@ -14442,7 +14374,6 @@
         "org.springframework.boot:spring-boot": {
             "locked": "2.1.2.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "org.springframework.boot:spring-boot-actuator",
                 "org.springframework.boot:spring-boot-autoconfigure",
@@ -14577,7 +14508,6 @@
         "org.springframework:spring-web": {
             "locked": "5.1.4.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-web",
@@ -15296,12 +15226,6 @@
                 "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
-                "com.netflix.titus:titus-server-runtime-spring"
-            ]
-        },
-        "com.netflix.titus:titus-server-runtime-spring": {
-            "project": true,
-            "transitive": [
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher"
             ]
         },
@@ -16489,7 +16413,6 @@
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
-                "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "com.netflix.titus:titus-testkit",
                 "com.thinkaurelius.thrift:thrift-server",
@@ -16534,7 +16457,6 @@
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
-                "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "com.netflix.titus:titus-testkit"
             ]
@@ -16542,7 +16464,6 @@
         "org.springframework.boot:spring-boot": {
             "locked": "2.1.2.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "org.springframework.boot:spring-boot-autoconfigure",
                 "org.springframework.boot:spring-boot-starter"
@@ -16657,7 +16578,6 @@
         "org.springframework:spring-web": {
             "locked": "5.1.4.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-web",
@@ -17378,12 +17298,6 @@
                 "com.netflix.titus:titus-server-federation",
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
-                "com.netflix.titus:titus-server-runtime-spring"
-            ]
-        },
-        "com.netflix.titus:titus-server-runtime-spring": {
-            "project": true,
-            "transitive": [
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher"
             ]
         },
@@ -18584,7 +18498,6 @@
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
-                "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "com.netflix.titus:titus-testkit",
                 "com.thinkaurelius.thrift:thrift-server",
@@ -18629,7 +18542,6 @@
                 "com.netflix.titus:titus-server-gateway",
                 "com.netflix.titus:titus-server-master",
                 "com.netflix.titus:titus-server-runtime",
-                "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "com.netflix.titus:titus-testkit"
             ]
@@ -18637,7 +18549,6 @@
         "org.springframework.boot:spring-boot": {
             "locked": "2.1.2.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "org.springframework.boot:spring-boot-actuator",
                 "org.springframework.boot:spring-boot-autoconfigure",
@@ -18772,7 +18683,6 @@
         "org.springframework:spring-web": {
             "locked": "5.1.4.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-server-runtime-spring",
                 "com.netflix.titus:titus-supplementary-component-tasks-publisher",
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-web",
