@@ -19,6 +19,9 @@ package com.netflix.titus.master.scheduler.constraint;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -61,20 +64,19 @@ public class OpportunisticCpuConstraint implements SystemConstraint {
         }
     }
 
+    private static final Set<String> FAILURE_REASONS = Stream.of(Failure.values())
+            .map(f -> f.toResult().getFailureReason())
+            .collect(Collectors.toSet());
+
+    public static boolean isOpportunisticCpuConstraintReason(String reason) {
+        return reason != null && FAILURE_REASONS.contains(reason);
+    }
+
     private final SchedulerConfiguration configuration;
     private final FeatureActivationConfiguration featureConfiguration;
     private final TaskCache taskCache;
     private final OpportunisticCpuCache opportunisticCpuCache;
     private final TitusRuntime titusRuntime;
-
-    public static boolean isOpportunisticCpuConstraintReason(String reason) {
-        for (Failure failure : Failure.values()) {
-            if (failure.toResult().getFailureReason().equals(reason)) {
-                return true;
-            }
-        }
-        return false;
-    }
 
     @Inject
     public OpportunisticCpuConstraint(SchedulerConfiguration configuration,

@@ -531,7 +531,8 @@ public class DefaultSchedulingService implements SchedulingService<V3QueueableTa
      * are transient and should be retried on every iteration.
      */
     private void processTaskSchedulingFailureCallbacks(Map<FailureKind, Map<V3QueueableTask, List<TaskPlacementFailure>>> failuresByKind) {
-        for (V3QueueableTask failed : SchedulerUtils.collectFailedTasksIgnoring(failuresByKind, FailureKind.TRANSIENT)) {
+        for (V3QueueableTask failed : SchedulerUtils.collectFailedTasksIgnoring(failuresByKind,
+                FailureKind.IGNORED_FOR_OPPORTUNISTIC_SCHEDULING)) {
             ((TitusQueuableTask) failed).opportunisticSchedulingFailed();
         }
     }
