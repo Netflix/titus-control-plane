@@ -273,6 +273,44 @@ public class OpportunisticCpuSchedulingTest extends BaseIntegrationTest {
     }
 
     @Test(timeout = TEST_TIMEOUT_MS)
+    public void allAgentsNonSchedulableDoesNotPreventOpportunisticScheduling() throws Exception {
+        // all schedulable agents are deactivated, only GPU instances are remaining
+        instanceGroupsScenarioBuilder.template(InstanceGroupScenarioTemplates.deactivate("flex1", "critical1"));
+
+        String allocationId = UUID.randomUUID().toString();
+        Instant expiresAt = Instant.now().plus(Duration.ofHours(6));
+        OpportunisticCpuAvailability availability = new OpportunisticCpuAvailability(allocationId, expiresAt, 4);
+        instanceGroupsScenarioBuilder.apply("flex1",
+                group -> group.any(instance -> instance.addOpportunisticCpus(availability))
+        );
+
+        JobDescriptor<BatchJobExt> opportunisticJob = BATCH_JOB_WITH_RUNTIME_PREDICTION.but(j ->
+                j.getContainer().but(c -> c.getContainerResources().toBuilder().withCpu(4))
+        );
+
+        String opportunisticJobId = jobsScenarioBuilder.schedule(opportunisticJob, jobScenarioBuilder -> jobScenarioBuilder
+                .template(ScenarioTemplates.jobAccepted())
+                .expectAllTasksCreated()
+                .allTasks(taskScenarioBuilder -> taskScenarioBuilder
+                        .expectSchedulingFailed()
+                        .assertTask(task -> task.getStatus().getState().equals(TaskState.Accepted), "are still waiting for schedulable agents")
+                )
+        ).takeJobId(0);
+
+        // activate schedulable agents
+        instanceGroupsScenarioBuilder.template(InstanceGroupScenarioTemplates.activate("flex1"));
+
+        // opportunistic scheduling can now proceed without decrementing allocated opportunistic CPUs
+        jobsScenarioBuilder.takeJob(opportunisticJobId)
+                .allTasks(taskScenarioBuilder -> taskScenarioBuilder
+                        .expectStateUpdateSkipOther(TaskStatus.TaskState.Launched)
+                        .expectTaskContext(TASK_ATTRIBUTES_AGENT_ASG, "flex1")
+                        .expectTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION, allocationId)
+                        .expectTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT, "4")
+                );
+    }
+
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void opportunisticSchedulingCanBeDisabled() throws Exception {
         String allocationId = UUID.randomUUID().toString();
         Instant expiresAt = Instant.now().plus(Duration.ofHours(6));

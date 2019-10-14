@@ -20,8 +20,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 import com.netflix.titus.api.model.Tier;
+import com.netflix.titus.master.clusteroperations.ClusterAgentAutoScaler;
 
 public class TaskPlacementFailure {
 
@@ -71,15 +73,23 @@ public class TaskPlacementFailure {
 
         /**
          * Failures that are expected to go away, and should not be acted upon
-         *
-         * @see DefaultSchedulingService
          */
         public static final Set<FailureKind> TRANSIENT = Sets.immutableEnumSet(WaitingForInUseIpAllocation, LaunchGuard);
 
         /**
+         * <tt>TRANSIENT</tt> and <tt>NoActiveAgent</tt> (all agents are non-schedulable for a task) must never modify
+         * opportunistic scheduling behavior.
+         *
+         * @see DefaultSchedulingService
+         */
+        public static final Set<FailureKind> IGNORED_FOR_OPPORTUNISTIC_SCHEDULING = ImmutableSet.<FailureKind>builder()
+                .addAll(TRANSIENT)
+                .add(NoActiveAgents).build();
+
+        /**
          * Failures that should never trigger cluster autoscaling
          *
-         * @see com.netflix.titus.master.clusteroperations.ClusterAgentAutoScaler
+         * @see ClusterAgentAutoScaler
          */
         public static final Set<FailureKind> NEVER_TRIGGER_AUTOSCALING = Sets.immutableEnumSet(WaitingForInUseIpAllocation, OpportunisticResource);
     }
