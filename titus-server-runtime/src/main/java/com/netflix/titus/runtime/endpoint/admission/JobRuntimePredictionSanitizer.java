@@ -25,7 +25,9 @@ import javax.inject.Singleton;
 
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.common.util.FunctionExt;
 import com.netflix.titus.runtime.connector.prediction.JobRuntimePrediction;
 import com.netflix.titus.runtime.connector.prediction.JobRuntimePredictionClient;
 import com.netflix.titus.runtime.connector.prediction.JobRuntimePredictions;
@@ -53,10 +55,15 @@ public class JobRuntimePredictionSanitizer implements AdmissionSanitizer<JobDesc
     private final JobRuntimePredictionClient predictionsClient;
     private final JobRuntimePredictionSelector selector;
 
+    private final JobRuntimePredictionSanitizerMetrics metrics;
+
     @Inject
-    public JobRuntimePredictionSanitizer(JobRuntimePredictionClient predictionsClient, JobRuntimePredictionSelector selector) {
+    public JobRuntimePredictionSanitizer(JobRuntimePredictionClient predictionsClient,
+                                         JobRuntimePredictionSelector selector,
+                                         TitusRuntime runtime) {
         this.predictionsClient = predictionsClient;
         this.selector = selector;
+        this.metrics = new JobRuntimePredictionSanitizerMetrics(runtime.getRegistry());
     }
 
     @Override
@@ -65,18 +72,21 @@ public class JobRuntimePredictionSanitizer implements AdmissionSanitizer<JobDesc
             return Mono.empty();
         }
         if (isSkippedForJob(entity)) {
+            metrics.jobOptedOut();
             return Mono.just(JobRuntimePredictionSanitizer::skipSanitization);
         }
 
         return predictionsClient.getRuntimePredictions(entity)
                 .map(this::addPredictionToJob)
-                .doOnError(throwable ->
-                        logger.error("Error calling the job runtime prediction service, skipping prediction for {}: {}",
-                                entity.getApplicationName(), throwable.getMessage())
-                )
+                .doOnError(throwable -> {
+                    metrics.predictionServiceError();
+                    logger.error("Error calling the job runtime prediction service, skipping prediction for {}: {}",
+                            entity.getApplicationName(), throwable.getMessage());
+                })
                 .onErrorReturn(JobRuntimePredictionSanitizer::skipSanitization);
     }
 
+    @SuppressWarnings("unchecked")
     private UnaryOperator<JobDescriptor> addPredictionToJob(JobRuntimePredictions predictions) {
         return jobDescriptor -> {
             Map<String, String> metadata = new HashMap<>(((JobDescriptor<?>) jobDescriptor).getAttributes());
@@ -84,18 +94,25 @@ public class JobRuntimePredictionSanitizer implements AdmissionSanitizer<JobDesc
             metadata.put(JOB_ATTRIBUTES_RUNTIME_PREDICTION_VERSION, predictions.getVersion());
             metadata.put(JOB_ATTRIBUTES_RUNTIME_PREDICTION_AVAILABLE, predictions.toSimpleString());
 
-            Optional<JobRuntimePredictionSelection> selectionOpt = isValid(predictions) ? selector.apply(jobDescriptor, predictions) : Optional.empty();
+            Optional<JobRuntimePredictionSelection> selectionOpt;
+            if (isValid(predictions)) {
+                selectionOpt = FunctionExt.ifNotPresent(
+                        selector.apply(jobDescriptor, predictions),
+                        metrics::noPredictionSelected
+                );
+            } else {
+                selectionOpt = Optional.empty();
+                metrics.invalidPredictions();
+            }
 
-            // Make direct assignment here, otherwise the compiler type inference breaks.
-            //noinspection unchecked
-            Optional<JobDescriptor> resultOpt = selectionOpt
+            return selectionOpt
                     .map(selection -> {
                         metadata.putAll(selection.getMetadata());
                         metadata.put(JOB_ATTRIBUTES_RUNTIME_PREDICTION_SEC, Double.toString(selection.getPrediction().getRuntimeInSeconds()));
                         metadata.put(JOB_ATTRIBUTES_RUNTIME_PREDICTION_CONFIDENCE, Double.toString(selection.getPrediction().getConfidence()));
                         return appendJobDescriptorAttributes(jobDescriptor, metadata);
-                    });
-            return resultOpt.orElseGet(() -> skipSanitization(appendJobDescriptorAttributes(jobDescriptor, metadata)));
+                    })
+                    .orElseGet(() -> skipSanitization(appendJobDescriptorAttributes(jobDescriptor, metadata)));
         };
     }
 
