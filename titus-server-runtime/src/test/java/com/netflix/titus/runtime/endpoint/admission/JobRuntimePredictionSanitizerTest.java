@@ -23,6 +23,7 @@ import java.util.UUID;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.service.TitusServiceException;
+import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.runtime.connector.prediction.JobRuntimePrediction;
 import com.netflix.titus.runtime.connector.prediction.JobRuntimePredictionClient;
@@ -69,7 +70,7 @@ public class JobRuntimePredictionSanitizerTest {
     @Test
     public void predictionsAreAddedToJobs() {
         AdmissionSanitizer<JobDescriptor> sanitizer = new JobRuntimePredictionSanitizer(client,
-                JobRuntimePredictionSelectors.best());
+                JobRuntimePredictionSelectors.best(), TitusRuntimes.test());
 
         StepVerifier.create(sanitizer.sanitizeAndApply(jobDescriptor))
                 .assertNext(result -> assertThat(((JobDescriptor<?>) result).getAttributes())
@@ -88,7 +89,7 @@ public class JobRuntimePredictionSanitizerTest {
         when(errorClient.getRuntimePredictions(any())).thenReturn(Mono.error(TitusServiceException.internal("bad request")));
 
         AdmissionSanitizer<JobDescriptor> sanitizer = new JobRuntimePredictionSanitizer(errorClient,
-                JobRuntimePredictionSelectors.best());
+                JobRuntimePredictionSelectors.best(), TitusRuntimes.test());
 
         StepVerifier.create(sanitizer.sanitizeAndApply(jobDescriptor))
                 .assertNext(result -> assertThat(((JobDescriptor<?>) result).getAttributes())
@@ -110,7 +111,7 @@ public class JobRuntimePredictionSanitizerTest {
         when(client.getRuntimePredictions(any())).thenReturn(Mono.just(predictions));
 
         AdmissionSanitizer<JobDescriptor> sanitizer = new JobRuntimePredictionSanitizer(client,
-                JobRuntimePredictionSelectors.best());
+                JobRuntimePredictionSelectors.best(), TitusRuntimes.test());
 
         StepVerifier.create(sanitizer.sanitizeAndApply(jobDescriptor))
                 .assertNext(result -> assertThat(((JobDescriptor<?>) result).getAttributes())
@@ -134,7 +135,7 @@ public class JobRuntimePredictionSanitizerTest {
         when(client.getRuntimePredictions(any())).thenReturn(Mono.just(predictions));
 
         AdmissionSanitizer<JobDescriptor> sanitizer = new JobRuntimePredictionSanitizer(client,
-                JobRuntimePredictionSelectors.best());
+                JobRuntimePredictionSelectors.best(), TitusRuntimes.test());
 
         StepVerifier.create(sanitizer.sanitizeAndApply(jobDescriptor))
                 .assertNext(result -> assertThat(((JobDescriptor<?>) result).getAttributes())
@@ -159,7 +160,7 @@ public class JobRuntimePredictionSanitizerTest {
         when(client.getRuntimePredictions(any())).thenReturn(Mono.just(predictions));
 
         AdmissionSanitizer<JobDescriptor> sanitizer = new JobRuntimePredictionSanitizer(client,
-                JobRuntimePredictionSelectors.best());
+                JobRuntimePredictionSelectors.best(), TitusRuntimes.test());
 
         StepVerifier.create(sanitizer.sanitizeAndApply(jobDescriptor))
                 .assertNext(result -> assertThat(((JobDescriptor<?>) result).getAttributes())
@@ -179,7 +180,7 @@ public class JobRuntimePredictionSanitizerTest {
                         // can't override prediction attributes
                         JOB_ATTRIBUTES_RUNTIME_PREDICTION_SEC, "0.82",
                         JOB_ATTRIBUTES_RUNTIME_PREDICTION_CONFIDENCE, "1.0"
-                )));
+                )), TitusRuntimes.test());
 
         StepVerifier.create(sanitizer.sanitizeAndApply(jobDescriptor))
                 .assertNext(result -> assertThat(((JobDescriptor<?>) result).getAttributes())
@@ -198,7 +199,7 @@ public class JobRuntimePredictionSanitizerTest {
                 ))
                 .build();
         AdmissionSanitizer<JobDescriptor> sanitizer = new JobRuntimePredictionSanitizer(client,
-                JobRuntimePredictionSelectors.best());
+                JobRuntimePredictionSelectors.best(), TitusRuntimes.test());
 
         StepVerifier.create(sanitizer.sanitizeAndApply(optedOut))
                 .assertNext(result -> assertThat(((JobDescriptor<?>) result).getAttributes())

@@ -16,6 +16,7 @@
 
 package com.netflix.titus.common.util;
 
+import java.util.Optional;
 import java.util.function.Predicate;
 
 public final class FunctionExt {
@@ -28,5 +29,12 @@ public final class FunctionExt {
 
     public static <T> Predicate<T> alwaysFalse() {
         return FALSE_PREDICATE;
+    }
+
+    public static <T> Optional<T> ifNotPresent(Optional<T> opt, Runnable what) {
+        if (!opt.isPresent()) {
+            what.run();
+        }
+        return opt;
     }
 }
