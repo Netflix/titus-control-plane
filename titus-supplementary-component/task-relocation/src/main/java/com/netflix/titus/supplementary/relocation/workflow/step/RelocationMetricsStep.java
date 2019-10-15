@@ -215,7 +215,7 @@ public class RelocationMetricsStep {
             registry.gauge(jobsRemainingId.withTags(
                     "relocationRequired", "false",
                     "policy", policyType
-            )).set((totalToRelocate == 0 && noRelocation > 0) ? 1 : 0);
+            )).set((totalToRelocate == 0) ? 1 : 0);
             registry.gauge(jobsRemainingId.withTags(
                     "relocationRequired", "true",
                     "policy", policyType
