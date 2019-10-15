@@ -105,14 +105,15 @@ public class JobRuntimePredictionSanitizer implements AdmissionSanitizer<JobDesc
                 metrics.invalidPredictions();
             }
 
-            return selectionOpt
+            // extra local variable otherwise compiler type inference breaks
+            Optional<JobDescriptor> resultOpt = selectionOpt
                     .map(selection -> {
                         metadata.putAll(selection.getMetadata());
                         metadata.put(JOB_ATTRIBUTES_RUNTIME_PREDICTION_SEC, Double.toString(selection.getPrediction().getRuntimeInSeconds()));
                         metadata.put(JOB_ATTRIBUTES_RUNTIME_PREDICTION_CONFIDENCE, Double.toString(selection.getPrediction().getConfidence()));
                         return appendJobDescriptorAttributes(jobDescriptor, metadata);
-                    })
-                    .orElseGet(() -> skipSanitization(appendJobDescriptorAttributes(jobDescriptor, metadata)));
+                    });
+            return resultOpt.orElseGet(() -> skipSanitization(appendJobDescriptorAttributes(jobDescriptor, metadata)));
         };
     }
 
