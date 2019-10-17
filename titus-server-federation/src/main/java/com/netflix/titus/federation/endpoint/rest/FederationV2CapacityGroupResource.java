@@ -35,10 +35,6 @@ import com.netflix.titus.federation.service.CellWebClientConnectorUtil;
 import io.swagger.annotations.Api;
 import org.springframework.core.ParameterizedTypeReference;
 
-/**
- * Supports subset of operations provided by {@link com.netflix.titus.grpc.protogen.SchedulerServiceGrpc}, applicable
- * at the federation level.
- */
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 @Api(tags = "CapacityManagement")
@@ -58,13 +54,13 @@ public class FederationV2CapacityGroupResource {
             };
 
     private final EndpointConfiguration configuration;
-    private final CellWebClientConnector cellWebClientsSupplier;
+    private final CellWebClientConnector cellWebClientConnector;
 
     @Inject
     public FederationV2CapacityGroupResource(EndpointConfiguration configuration,
-                                             CellWebClientConnector cellWebClientsSupplier) {
+                                             CellWebClientConnector cellWebClientConnector) {
         this.configuration = configuration;
-        this.cellWebClientsSupplier = cellWebClientsSupplier;
+        this.cellWebClientConnector = cellWebClientConnector;
     }
 
     /**
@@ -75,7 +71,7 @@ public class FederationV2CapacityGroupResource {
     @GET
     public List<ApplicationSlaRepresentation> getApplicationSLAs() {
         Either<List<ApplicationSlaRepresentation>, WebApplicationException> result = CellWebClientConnectorUtil.doGetAndMerge(
-                cellWebClientsSupplier,
+                cellWebClientConnector,
                 API_PATH,
                 APPLICATION_SLA_LIST_TP,
                 configuration.getRestRequestTimeoutMs()
@@ -96,7 +92,7 @@ public class FederationV2CapacityGroupResource {
     @Path("/{applicationName}")
     public ApplicationSlaRepresentation getApplicationSLA(@PathParam("applicationName") String applicationName) {
         Either<ApplicationSlaRepresentation, WebApplicationException> result = CellWebClientConnectorUtil.doGetFromCell(
-                cellWebClientsSupplier,
+                cellWebClientConnector,
                 API_PATH
                         + '/' + applicationName,
                 APPLICATION_SLA_TP,

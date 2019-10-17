@@ -46,6 +46,8 @@ import com.netflix.titus.federation.service.DefaultCellInfoResolver;
 import com.netflix.titus.federation.service.DefaultCellRouter;
 import com.netflix.titus.federation.service.DefaultCellWebClientConnector;
 import com.netflix.titus.federation.service.ServiceModule;
+import com.netflix.titus.federation.service.SimpleWebClientFactory;
+import com.netflix.titus.federation.service.WebClientFactory;
 import com.netflix.titus.runtime.TitusEntitySanitizerModule;
 import com.netflix.titus.runtime.endpoint.resolver.HostCallerIdResolver;
 import com.netflix.titus.runtime.endpoint.resolver.NoOpHostCallerIdResolver;
@@ -67,6 +69,7 @@ public class TitusFederationModule extends AbstractModule {
         bind(HostCallerIdResolver.class).to(NoOpHostCallerIdResolver.class);
         bind(CellConnector.class).to(DefaultCellConnector.class);
         bind(CellWebClientConnector.class).to(DefaultCellWebClientConnector.class);
+        bind(WebClientFactory.class).toInstance(SimpleWebClientFactory.getInstance());
         bind(CellInfoResolver.class).to(DefaultCellInfoResolver.class);
         bind(CellRouter.class).to(DefaultCellRouter.class);
 

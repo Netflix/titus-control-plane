@@ -26,6 +26,8 @@ import javax.ws.rs.core.Response;
 
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.tuple.Either;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
@@ -34,10 +36,12 @@ import reactor.core.publisher.Mono;
 
 public class CellWebClientConnectorUtil {
 
+    private static final Logger logger = LoggerFactory.getLogger(CellWebClientConnectorUtil.class);
+
     /**
      * Run GET operation on all cells and merge the result.
      */
-    public static <T> Either<List<T>, WebApplicationException> doGetAndMerge(CellWebClientConnector cellWebClientsSupplier,
+    public static <T> Either<List<T>, WebApplicationException> doGetAndMerge(CellWebClientConnector cellWebClientConnector,
                                                                              String path,
                                                                              ParameterizedTypeReference<List<T>> type,
                                                                              long timeoutMs) {
@@ -45,7 +49,7 @@ public class CellWebClientConnectorUtil {
         try {
             partials = Flux
                     .merge(
-                            cellWebClientsSupplier.getWebClients().values().stream()
+                            cellWebClientConnector.getWebClients().values().stream()
                                     .map(c ->
                                             c.get().uri(path)
                                                     .retrieve()
@@ -58,10 +62,12 @@ public class CellWebClientConnectorUtil {
                     .onErrorResume(e -> Mono.just(Either.ofError(e)))
                     .block(Duration.ofMillis(timeoutMs));
         } catch (Exception e) {
+            logger.error("Unexpected error: path={}, type={}", path, type, e);
             return Either.ofError(new WebApplicationException(e, Response.Status.INTERNAL_SERVER_ERROR));
         }
 
         if (partials == null) {
+            logger.error("No result from any cell: path={}, type={}", path, type);
             return Either.ofError(new WebApplicationException(Response.Status.INTERNAL_SERVER_ERROR));
         }
         if (partials.hasError()) {
@@ -79,14 +85,14 @@ public class CellWebClientConnectorUtil {
     /**
      * Run GET operation on all cells, but only one is expected to return a result.
      */
-    public static <T> Either<T, WebApplicationException> doGetFromCell(CellWebClientConnector cellWebClientsSupplier,
+    public static <T> Either<T, WebApplicationException> doGetFromCell(CellWebClientConnector cellWebClientConnector,
                                                                        String path,
                                                                        ParameterizedTypeReference<T> type,
                                                                        long timeoutMs) {
         List<Either<T, Throwable>> partials;
         try {
             partials = Flux.merge(
-                    cellWebClientsSupplier.getWebClients().values().stream()
+                    cellWebClientConnector.getWebClients().values().stream()
                             .map(cell ->
                                     cell.get().uri(path)
                                             .retrieve()
@@ -97,10 +103,12 @@ public class CellWebClientConnectorUtil {
                             .collect(Collectors.toList())
             ).collectList().block(Duration.ofMillis(timeoutMs));
         } catch (Exception e) {
+            logger.error("Unexpected error: path={}, type={}", path, type, e);
             return Either.ofError(new WebApplicationException(e, Response.Status.INTERNAL_SERVER_ERROR));
         }
 
         if (CollectionsExt.isNullOrEmpty(partials)) {
+            logger.error("No result from any cell: path={}, type={}", path, type);
             throw new WebApplicationException(Response.Status.NOT_FOUND);
         }
 

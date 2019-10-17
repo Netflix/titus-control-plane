@@ -16,15 +16,10 @@
 
 package com.netflix.titus.federation.service;
 
-import java.util.Map;
-import java.util.Optional;
+import java.util.function.Function;
 
 import com.netflix.titus.api.federation.model.Cell;
 import org.springframework.web.reactive.function.client.WebClient;
 
-public interface CellWebClientConnector {
-
-    Map<Cell, WebClient> getWebClients();
-
-    Optional<WebClient> getWebClientForCell(Cell cell);
+public interface WebClientFactory extends Function<Cell, WebClient> {
 }
