@@ -17,12 +17,15 @@
 package com.netflix.titus.ext.eureka.spring;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.function.Function;
 import javax.ws.rs.core.UriBuilder;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.netflix.appinfo.InstanceInfo;
 import com.netflix.discovery.EurekaClient;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.ext.eureka.common.EurekaLoadBalancer;
 import com.netflix.titus.ext.eureka.common.EurekaUris;
 import org.slf4j.Logger;
@@ -34,9 +37,13 @@ import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.ExchangeFunction;
 import reactor.core.publisher.Mono;
 
+import static java.util.Arrays.asList;
+
 public class EurekaLoadBalancingExchangeFilterFunction implements ExchangeFilterFunction {
 
     private static final Logger logger = LoggerFactory.getLogger(EurekaLoadBalancingExchangeFilterFunction.class);
+
+    private static final String EUREKA_SCHEMA = "eureka";
 
     private final EurekaLoadBalancer loadBalancer;
 
@@ -89,7 +96,19 @@ public class EurekaLoadBalancingExchangeFilterFunction implements ExchangeFilter
         );
     }
 
-    private URI rewrite(URI original, InstanceInfo instance) {
-        return UriBuilder.fromUri(original).host(instance.getIPAddr()).build();
+    @VisibleForTesting
+    static URI rewrite(URI original, InstanceInfo instance) {
+        URI effectiveUri;
+        if (original.getScheme().equals(EUREKA_SCHEMA)) {
+            boolean secure = StringExt.isNotEmpty(original.getQuery()) && asList(original.getQuery().split("&")).contains("secure=true");
+            try {
+                effectiveUri = new URI((secure ? "https" : "http") + original.toString().substring(EUREKA_SCHEMA.length()));
+            } catch (URISyntaxException e) {
+                effectiveUri = original;
+            }
+        } else {
+            effectiveUri = original;
+        }
+        return UriBuilder.fromUri(effectiveUri).host(instance.getIPAddr()).build();
     }
 }

@@ -7,6 +7,7 @@ dependencies {
     compile project(':titus-server-runtime')
 
     testCompile project(':titus-testkit')
+    testCompile "com.squareup.okhttp3:mockwebserver:${okHttpVersion}"
     testCompile "com.netflix.governator:governator-test-junit:${governatorVersion}"
     testCompile "io.grpc:grpc-testing:${grpcVersion}"
 }
