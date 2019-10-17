@@ -17,11 +17,13 @@
 package com.netflix.titus.master.endpoint.v2.rest;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 
 import com.netflix.titus.api.endpoint.v2.rest.representation.ApplicationSlaRepresentation;
+import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import com.netflix.titus.runtime.endpoint.common.rest.ErrorResponse;
@@ -67,7 +69,12 @@ public class ApplicationSlaManagementResourceTest {
 
     private static final ApplicationSlaManagementService capacityManagementService = mock(ApplicationSlaManagementService.class);
 
-    private static final ApplicationSlaManagementResource restService = new ApplicationSlaManagementResource(capacityManagementService);
+    private static ReadOnlyJobOperations jobOperations = mock(ReadOnlyJobOperations.class);
+
+    private static final ApplicationSlaManagementResource restService = new ApplicationSlaManagementResource(
+            capacityManagementService,
+            new ReservationUsageCalculator(jobOperations, capacityManagementService)
+    );
 
     @ClassRule
     public static final JaxRsServerResource<ApplicationSlaManagementResource> jaxRsServer = JaxRsServerResource.newBuilder(restService)
@@ -79,6 +86,8 @@ public class ApplicationSlaManagementResourceTest {
 
     @BeforeClass
     public static void setUpClass() {
+        when(jobOperations.getJobsAndTasks()).thenReturn(Collections.emptyList());
+
         baseURI = jaxRsServer.getBaseURI() + ApplicationSlaManagementEndpoint.PATH_API_V2_MANAGEMENT_APPLICATIONS + '/';
         testClient = WebTestClient.bindToServer()
                 .baseUrl(baseURI)
@@ -122,7 +131,7 @@ public class ApplicationSlaManagementResourceTest {
                 ApplicationSlaSample.CriticalSmall.build(), ApplicationSlaSample.CriticalLarge.build()
         ));
 
-        testClient.get().uri("").exchange()
+        testClient.get().exchange()
                 .expectStatus().isOk()
                 .expectBody(APPLICATION_SLA_REP_LIST_TR).value(result -> assertThat(result).hasSize(2));
 

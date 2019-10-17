@@ -78,7 +78,9 @@ public class ApplicationSlaRepresentation {
      */
     @NotNull(message = "'instanceCount' is a required property")
     @Min(value = 1, message = "'instanceCount' must be at least 1")
-    private Integer instanceCount;
+    private final Integer instanceCount;
+
+    private final ReservationUsage reservationUsage;
 
     @JsonCreator
     public ApplicationSlaRepresentation(@JsonProperty("appName") String appName,
@@ -87,7 +89,8 @@ public class ApplicationSlaRepresentation {
                                         @JsonProperty("instanceMemoryMB") Long instanceMemoryMB,
                                         @JsonProperty("instanceDiskMB") Long instanceDiskMB,
                                         @JsonProperty("instanceNetworkMbs") Long instanceNetworkMbs,
-                                        @JsonProperty("instanceCount") Integer instanceCount) {
+                                        @JsonProperty("instanceCount") Integer instanceCount,
+                                        @JsonProperty("reservationUsage") ReservationUsage reservationUsage) {
         this.appName = appName;
         this.tier = tier;
         this.instanceCPU = instanceCPU;
@@ -95,6 +98,7 @@ public class ApplicationSlaRepresentation {
         this.instanceDiskMB = instanceDiskMB;
         this.instanceNetworkMbs = instanceNetworkMbs;
         this.instanceCount = instanceCount;
+        this.reservationUsage = reservationUsage;
     }
 
     public String getAppName() {
@@ -123,5 +127,9 @@ public class ApplicationSlaRepresentation {
 
     public Integer getInstanceCount() {
         return instanceCount;
+    }
+
+    public ReservationUsage getReservationUsage() {
+        return reservationUsage;
     }
 }

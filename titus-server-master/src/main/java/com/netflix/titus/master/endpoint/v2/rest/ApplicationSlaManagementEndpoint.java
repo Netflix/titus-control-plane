@@ -25,6 +25,8 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
@@ -55,7 +57,7 @@ public interface ApplicationSlaManagementEndpoint {
      * @return a collection of application SLAs or empty array if non present
      */
     @GET
-    List<ApplicationSlaRepresentation> getApplicationSLAs();
+    List<ApplicationSlaRepresentation> getApplicationSLAs(@QueryParam("includeUsage") boolean includeUsage);
 
     /**
      * Returns application SLA data for a given application.
@@ -65,7 +67,8 @@ public interface ApplicationSlaManagementEndpoint {
      */
     @GET
     @Path("/{applicationName}")
-    ApplicationSlaRepresentation getApplicationSLA(@PathParam("applicationName") String applicationName);
+    ApplicationSlaRepresentation getApplicationSLA(@PathParam("applicationName") String applicationName,
+                                                   @QueryParam("includeUsage") boolean includeUsage);
 
     /**
      * Adds a new SLA for an application. If SLA for the given application was already defined, it is overridden.

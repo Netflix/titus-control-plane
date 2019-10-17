@@ -16,6 +16,7 @@
 
 package com.netflix.titus.common.network.client;
 
+import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
@@ -29,7 +30,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
+import reactor.netty.http.HttpOperations;
 import reactor.netty.http.client.HttpClient;
+import reactor.netty.http.client.HttpClientResponse;
 
 /**
  * A collection of add-ons for Spring {@link WebClient}.
@@ -97,11 +100,32 @@ public final class TitusWebClientAddOns {
                         "%10s %10s %64s %8s %s", request.method(), "NOT_SENT", request.uri(), 0, error.getMessage()
                 )))
                 .doOnResponse((response, connection) -> requestLogger.info(String.format(
-                        "%10s %10s %64s", response.method(), response.status().reasonPhrase(), response.uri()
+                        "%10s %10s %64s", response.method(), response.status().reasonPhrase(), buildFullUri(response)
                 )))
                 .doOnResponseError((response, error) -> requestLogger.info(String.format(
-                        "%10s %10s %64s %s", response.method(), response.status().reasonPhrase(), response.uri(), error.getMessage()
+                        "%10s %10s %64s %s", response.method(), response.status().reasonPhrase(), buildFullUri(response), error.getMessage()
                 )));
+    }
+
+    private static String buildFullUri(HttpClientResponse response) {
+        if (response instanceof HttpOperations) {
+            HttpOperations httpOperations = (HttpOperations) response;
+
+            StringBuilder sb = new StringBuilder("http://");
+
+            InetSocketAddress address = httpOperations.address();
+            sb.append(address.getHostString());
+            sb.append(':').append(address.getPort());
+
+            String path = response.path();
+            if (!path.startsWith("/")) {
+                sb.append('/');
+            }
+            sb.append(path);
+
+            return sb.toString();
+        }
+        return response.path();
     }
 
     private static HttpClient addMetricCallbacks(HttpClient httpClient, WebClientMetric webClientMetric) {

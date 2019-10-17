@@ -91,14 +91,14 @@ public class FederationV2CapacityGroupResourceTest {
 
     @Test
     public void testGetCapacityGroup() {
-        ApplicationSlaRepresentation result = resource.getApplicationSLA(CELL_1_CAPACITY_GROUP.getAppName());
+        ApplicationSlaRepresentation result = resource.getApplicationSLA(CELL_1_CAPACITY_GROUP.getAppName(), false);
         assertThat(result).isNotNull();
     }
 
     @Test
     public void testGetCapacityGroupNotFound() {
         try {
-            resource.getApplicationSLA("myFakeCapacityGroup");
+            resource.getApplicationSLA("myFakeCapacityGroup", false);
         } catch (WebApplicationException e) {
             assertThat(e.getResponse().getStatus()).isEqualTo(404);
         }
@@ -108,7 +108,7 @@ public class FederationV2CapacityGroupResourceTest {
     public void testGetCapacityGroupSystemError() throws IOException {
         cell1Server.shutdown();
         try {
-            resource.getApplicationSLA("myFakeCapacityGroup");
+            resource.getApplicationSLA("myFakeCapacityGroup", false);
         } catch (WebApplicationException e) {
             assertThat(e.getResponse().getStatus()).isEqualTo(500);
         }
@@ -116,7 +116,7 @@ public class FederationV2CapacityGroupResourceTest {
 
     @Test
     public void testGetCapacityGroups() {
-        List<ApplicationSlaRepresentation> result = resource.getApplicationSLAs();
+        List<ApplicationSlaRepresentation> result = resource.getApplicationSLAs(false);
         assertThat(result).isNotNull();
         assertThat(result).hasSize(2);
     }
@@ -125,7 +125,7 @@ public class FederationV2CapacityGroupResourceTest {
     public void testGetCapacityGroupsSystemError() throws IOException {
         cell1Server.shutdown();
         try {
-            resource.getApplicationSLAs();
+            resource.getApplicationSLAs(false);
         } catch (WebApplicationException e) {
             assertThat(e.getResponse().getStatus()).isEqualTo(500);
         }
@@ -136,10 +136,10 @@ public class FederationV2CapacityGroupResourceTest {
 
             @Override
             public MockResponse dispatch(RecordedRequest request) throws InterruptedException {
-                if (request.getPath().equals(API_PATH)) {
+                if (request.getPath().equals(API_PATH + "?includeUsage=false")) {
                     return newMockGetResult(Collections.singletonList(capacityGroup));
                 }
-                if (request.getPath().equals(API_PATH + '/' + capacityGroup.getAppName())) {
+                if (request.getPath().equals(API_PATH + '/' + capacityGroup.getAppName() + "?includeUsage=false")) {
                     return newMockGetResult(capacityGroup);
                 }
                 return new MockResponse().setResponseCode(404);
