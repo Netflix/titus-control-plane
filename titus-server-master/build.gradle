@@ -33,6 +33,7 @@ dependencies {
     compile "org.webjars:swagger-ui:${swaggerUiVersion}"
     compile "org.json:json:${jsonVersion}"
     compile "javax.inject:javax.inject:${javaxInjectVersion}"
+    compile "com.netflix.frigga:frigga:${friggaVersion}"
 
     testCompile project(':titus-testkit')
     testCompile "org.springframework.boot:spring-boot-starter-test:${springBootVersion}"

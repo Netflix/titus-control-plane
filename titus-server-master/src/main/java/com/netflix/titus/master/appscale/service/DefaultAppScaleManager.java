@@ -62,6 +62,7 @@ import rx.functions.Action1;
 import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 import rx.subjects.SerializedSubject;
+import com.netflix.frigga.autoscaling.*;
 
 
 @Singleton
@@ -440,17 +441,13 @@ public class DefaultAppScaleManager implements AppScaleManager {
     static String buildAutoScalingGroupV3(JobDescriptor<?> jobDescriptor) {
         JobGroupInfo jobGroupInfo = jobDescriptor.getJobGroupInfo();
         String jobGroupSequence = jobGroupInfo.getSequence() != null ? jobGroupInfo.getSequence() : DEFAULT_JOB_GROUP_SEQ;
-        List<String> parameterList = Arrays.asList(jobDescriptor.getApplicationName(), jobGroupInfo.getStack(), jobGroupInfo.getDetail(), jobGroupSequence);
-        return buildAutoScalingGroupFromParameters(parameterList);
+        AutoScalingGroupNameBuilder autoScalingGroupNameBuilder = new AutoScalingGroupNameBuilder();
+        String asgWithNoSequence = autoScalingGroupNameBuilder.withAppName(jobDescriptor.getApplicationName())
+                .withStack(jobGroupInfo.getStack())
+                .withDetail(jobGroupInfo.getDetail())
+                .buildGroupName();
+        return String.format("%s-%s", asgWithNoSequence, jobGroupSequence);
     }
-
-    private static String buildAutoScalingGroupFromParameters(List<String> parameterList) {
-        return parameterList
-                .stream()
-                .filter(s -> s != null && !s.isEmpty())
-                .collect(Collectors.joining("-"));
-    }
-
 
     private void addScalableTargetIfNew(String jobId) {
         if (!scalableTargets.containsKey(jobId)) {

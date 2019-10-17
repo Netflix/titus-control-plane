@@ -200,7 +200,6 @@ public class DefaultAppScaleManagerTest {
                 .withStack("main")
                 .build();
 
-
         JobDescriptor<JobDescriptor.JobDescriptorExt> jobDescriptorTwo = JobDescriptor.newBuilder()
                 .withApplicationName("testapp")
                 .withJobGroupInfo(jobGroupInfoTwo).build();
@@ -215,16 +214,25 @@ public class DefaultAppScaleManagerTest {
                 .withApplicationName("testapp")
                 .withJobGroupInfo(jobGroupInfoThree).build();
         autoScalingGroup = DefaultAppScaleManager.buildAutoScalingGroupV3(jobDescriptorThree);
-        Assertions.assertThat(autoScalingGroup).isEqualTo("testapp-^1.0.0-v000");
-
+        Assertions.assertThat(autoScalingGroup).isEqualTo("testapp--^1.0.0-v000");
 
         JobGroupInfo jobGroupInfoFour = JobGroupInfo.newBuilder().build();
-
         JobDescriptor<JobDescriptor.JobDescriptorExt> jobDescriptorFour = JobDescriptor.newBuilder()
                 .withApplicationName("testapp")
                 .withJobGroupInfo(jobGroupInfoFour).build();
         autoScalingGroup = DefaultAppScaleManager.buildAutoScalingGroupV3(jobDescriptorFour);
         Assertions.assertThat(autoScalingGroup).isEqualTo("testapp-v000");
+
+        JobGroupInfo jobGroupInfoFive = JobGroupInfo.newBuilder()
+                .withDetail("titus")
+                .withSequence("v038")
+                .build();
+        JobDescriptor<JobDescriptor.JobDescriptorExt> jobDescriptorFive = JobDescriptor.newBuilder()
+                .withApplicationName("plexmember")
+                .withJobGroupInfo(jobGroupInfoFive)
+                .build();
+        autoScalingGroup = DefaultAppScaleManager.buildAutoScalingGroupV3(jobDescriptorFive);
+        Assertions.assertThat(autoScalingGroup).isEqualTo("plexmember--titus-v038");
     }
 
     @Test

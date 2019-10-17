@@ -93,6 +93,7 @@ subprojects {
         rxJavaInteropVersion = '0.13.+'
         kubernetesClientVersion = '6.0.1'
         commonsMath3Version = '3.6.1'
+        friggaVersion = '0.+'
 
         // Test
         junitVersion = '4.10'
