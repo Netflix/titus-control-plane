@@ -24,11 +24,13 @@ import java.util.Properties;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
+import com.google.inject.AbstractModule;
 import com.netflix.archaius.config.DefaultSettableConfig;
 import com.netflix.archaius.guice.ArchaiusModule;
 import com.netflix.governator.InjectorBuilder;
 import com.netflix.governator.LifecycleInjector;
 import com.netflix.titus.federation.endpoint.grpc.TitusFederationGrpcServer;
+import com.netflix.titus.federation.service.CellWebClientConnector;
 import com.netflix.titus.federation.startup.TitusFederationModule;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
@@ -49,6 +51,7 @@ import io.grpc.stub.AbstractStub;
 import io.grpc.stub.MetadataUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.web.reactive.function.client.WebClient;
 
 /**
  * Run embedded version of TitusFederation.
@@ -128,7 +131,18 @@ public class EmbeddedTitusFederation {
                         bindApplicationConfigurationOverride().toInstance(config);
                     }
                 },
-                new TitusFederationModule()
+                new TitusFederationModule(),
+                new AbstractModule() {
+                    @Override
+                    protected void configure() {
+                        // Due to Guice limitations we can run only single Jetty server, which means that for the
+                        // federated deployment it run on TitusFederation, and TitusGateway runs only GRPC endpoints.
+                        // The configuration below is fake, and not used.
+                        bind(CellWebClientConnector.WebClientFactory.class).toInstance(cell ->
+                                WebClient.builder().baseUrl("http://localhost:8080").build()
+                        );
+                    }
+                }
         ).createInjector();
         return this;
     }
