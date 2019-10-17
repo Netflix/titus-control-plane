@@ -17,6 +17,7 @@
 package com.netflix.titus.ext.eureka.spring;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 
 import com.netflix.appinfo.InstanceInfo;
 import com.netflix.titus.common.runtime.TitusRuntime;
@@ -34,6 +35,7 @@ import org.springframework.web.reactive.function.client.ExchangeFunction;
 import reactor.core.publisher.Mono;
 
 import static com.netflix.titus.ext.eureka.EurekaGenerator.newInstanceInfo;
+import static com.netflix.titus.ext.eureka.spring.EurekaLoadBalancingExchangeFilterFunction.rewrite;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -63,6 +65,14 @@ public class EurekaLoadBalancingExchangeFilterFunctionTest {
     public void testInterceptorForNonExistingService() {
         ClientResponse response = execute("eureka://wrongservice:7001");
         assertThat(response.statusCode().is5xxServerError()).isTrue();
+    }
+
+    @Test
+    public void testUriRewrite() throws URISyntaxException {
+        assertThat(rewrite(new URI("eureka://myservice:7001"), INSTANCE_1)).isEqualTo(new URI("http://1.0.0.1:7001"));
+        assertThat(rewrite(new URI("eureka://myservice:7001/mypath?k=v"), INSTANCE_1)).isEqualTo(new URI("http://1.0.0.1:7001/mypath?k=v"));
+        assertThat(rewrite(new URI("eureka://myservice:7001?secure=true"), INSTANCE_1)).isEqualTo(new URI("https://1.0.0.1:7001?secure=true"));
+        assertThat(rewrite(new URI("eureka://myservice:7001/mypath?k=v&secure=true"), INSTANCE_1)).isEqualTo(new URI("https://1.0.0.1:7001/mypath?k=v&secure=true"));
     }
 
     private ClientResponse execute(String eurekaUri) {

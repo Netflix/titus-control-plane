@@ -25,6 +25,9 @@ public interface EndpointConfiguration {
     @DefaultValue("7104")
     int getGrpcPort();
 
+    @DefaultValue("10000")
+    long getRestRequestTimeoutMs();
+
     /**
      * Graceful shutdown time for GRPC server. If zero, shutdown happens immediately, and all client connections are
      * terminated abruptly.
