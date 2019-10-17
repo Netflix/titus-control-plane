@@ -16,20 +16,18 @@
 
 package com.netflix.titus.master.appscale.service;
 
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.netflix.frigga.autoscaling.AutoScalingGroupNameBuilder;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.appscale.model.AutoScalableTarget;
 import com.netflix.titus.api.appscale.model.AutoScalingPolicy;
@@ -62,7 +60,6 @@ import rx.functions.Action1;
 import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
 import rx.subjects.SerializedSubject;
-import com.netflix.frigga.autoscaling.*;
 
 
 @Singleton
