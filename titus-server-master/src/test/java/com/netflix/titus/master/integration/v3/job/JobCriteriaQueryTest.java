@@ -23,6 +23,7 @@ import java.util.stream.Collectors;
 
 import com.google.common.collect.ImmutableMap;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.JobModel;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
@@ -43,6 +44,7 @@ import com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTem
 import com.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import com.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
 import com.netflix.titus.master.integration.v3.scenario.ScenarioTemplates;
+import com.netflix.titus.master.integration.v3.scenario.TaskScenarioBuilder;
 import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMaster;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import com.netflix.titus.testkit.junit.master.TitusStackResource;
@@ -228,6 +230,34 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
         testSearchByTaskState("StartInitiated", jobsScenarioBuilder.takeJobId(1), jobsScenarioBuilder.takeTaskId(1, 0));
         testSearchByTaskState("Started", jobsScenarioBuilder.takeJobId(2), jobsScenarioBuilder.takeTaskId(2, 0));
         testSearchByTaskState("KillInitiated", jobsScenarioBuilder.takeJobId(3), jobsScenarioBuilder.takeTaskId(3, 0));
+    }
+
+    @Test(timeout = 30_000)
+    public void testSearchByTaskReasonInFinishedJobV3() throws Exception {
+        JobDescriptor<BatchJobExt> jobDescriptor = JobFunctions.changeBatchJobSize(oneTaskBatchJobDescriptor(), 2);
+
+        jobsScenarioBuilder.schedule(jobDescriptor, 1, jobScenarioBuilder -> jobScenarioBuilder
+                .template(ScenarioTemplates.launchJob())
+                .inTask(0, TaskScenarioBuilder::failTaskExecution)
+                .inTask(1, taskScenarioBuilder -> taskScenarioBuilder.template(ScenarioTemplates.completeTask()))
+                .expectJobUpdateEvent(job -> job.getStatus().getState() == JobState.Finished, "Expected job to complete")
+                .findTasks(TaskQuery.newBuilder()
+                                .putFilteringCriteria("jobIds", jobsScenarioBuilder.takeJobId(0))
+                                .putFilteringCriteria("taskStates", TaskStatus.TaskState.Finished.name())
+                                .putFilteringCriteria("taskStateReasons", "normal")
+                                .setPage(PAGE)
+                                .build(),
+                        tasks -> tasks.size() == 1 && tasks.get(0).getStatus().getReasonCode().equals("normal")
+                )
+                .findTasks(TaskQuery.newBuilder()
+                                .putFilteringCriteria("jobIds", jobsScenarioBuilder.takeJobId(0))
+                                .putFilteringCriteria("taskStates", TaskStatus.TaskState.Finished.name())
+                                .putFilteringCriteria("taskStateReasons", "failed")
+                                .setPage(PAGE)
+                                .build(),
+                        tasks -> tasks.size() == 1 && tasks.get(0).getStatus().getReasonCode().equals("failed")
+                )
+        );
     }
 
     private void testSearchByTaskState(String taskState, String expectedJobId, String expectedTaskId) {

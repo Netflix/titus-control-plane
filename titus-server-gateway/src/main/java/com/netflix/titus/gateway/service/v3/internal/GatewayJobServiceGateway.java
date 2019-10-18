@@ -47,6 +47,7 @@ import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.Job;
+import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
 import com.netflix.titus.grpc.protogen.Page;
@@ -54,7 +55,9 @@ import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskId;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
+import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.runtime.connector.GrpcRequestConfiguration;
+import com.netflix.titus.runtime.endpoint.JobQueryCriteria;
 import com.netflix.titus.runtime.endpoint.admission.AdmissionSanitizer;
 import com.netflix.titus.runtime.endpoint.admission.AdmissionValidator;
 import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
@@ -78,6 +81,7 @@ import static com.netflix.titus.api.FeatureRolloutPlans.ENVIRONMENT_VARIABLE_NAM
 import static com.netflix.titus.api.FeatureRolloutPlans.SECURITY_GROUPS_REQUIRED_FEATURE;
 import static com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_STRICT_SANITIZER;
 import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toGrpcPagination;
+import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toJobQueryCriteria;
 import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toPage;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createRequestObservable;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createSimpleClientResponseObserver;
@@ -225,7 +229,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
                 }
 
                 observable = observable.flatMap(result ->
-                        retrieveArchivedTasksForJobs(v3JobIds).map(archivedTasks -> combineTaskResults(taskQuery, result, archivedTasks))
+                        retrieveArchivedTasksForJobs(v3JobIds, taskQuery).map(archivedTasks -> combineTaskResults(taskQuery, result, archivedTasks))
                 );
             }
         }
@@ -253,10 +257,23 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
                 }).map(V3GrpcModelConverters::toGrpcJob);
     }
 
-    private Observable<List<Task>> retrieveArchivedTasksForJobs(Set<String> jobIds) {
+    private Observable<List<Task>> retrieveArchivedTasksForJobs(Set<String> jobIds, TaskQuery taskQuery) {
+        JobQueryCriteria<TaskStatus.TaskState, JobDescriptor.JobSpecCase> taskQueryCriteria = toJobQueryCriteria(taskQuery);
+
         return Observable.fromCallable(() -> jobIds.stream().map(store::retrieveArchivedTasksForJob).collect(Collectors.toList()))
                 .flatMap(observables -> Observable.merge(observables, MAX_CONCURRENT_JOBS_TO_RETRIEVE))
-                //TODO add filtering here but need to decide how to do this because most criteria is based on the job and not the task
+                .filter(task -> {
+                    // We cannot use V3TaskQueryCriteriaEvaluator here as we do not have the job record, and requesting it
+                    // is expensive. To get here, a user has to provide job id(s) for which finished tasks are requested.
+                    // Because of that we do not need all the filtering criteria which mostly work at the job level to
+                    // exclude jobs from the query result. Instead we implement a few that make sense for task.
+                    Set<String> expectedStateReasons = taskQueryCriteria.getTaskStateReasons();
+                    if (!expectedStateReasons.isEmpty() && !expectedStateReasons.contains(task.getStatus().getReasonCode())) {
+                        return false;
+                    }
+
+                    return true;
+                })
                 .map(task -> {
                     com.netflix.titus.api.jobmanager.model.job.Task fixedTask = task.getStatus().getState() == TaskState.Finished
                             ? task
