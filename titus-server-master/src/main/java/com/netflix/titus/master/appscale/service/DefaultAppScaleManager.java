@@ -438,6 +438,8 @@ public class DefaultAppScaleManager implements AppScaleManager {
     static String buildAutoScalingGroupV3(JobDescriptor<?> jobDescriptor) {
         JobGroupInfo jobGroupInfo = jobDescriptor.getJobGroupInfo();
         String jobGroupSequence = jobGroupInfo.getSequence() != null ? jobGroupInfo.getSequence() : DEFAULT_JOB_GROUP_SEQ;
+        // Using frigga builder for auto scaling group name so that cloud watch alarm configuration
+        // is compatible with spinnaker generated auto scaling group name that is tagged with cloud watch metrics
         AutoScalingGroupNameBuilder autoScalingGroupNameBuilder = new AutoScalingGroupNameBuilder();
         String asgWithNoSequence = autoScalingGroupNameBuilder
                 .withAppName(jobDescriptor.getApplicationName())
