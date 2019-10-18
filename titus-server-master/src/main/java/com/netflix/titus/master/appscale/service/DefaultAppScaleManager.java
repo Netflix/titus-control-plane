@@ -16,20 +16,18 @@
 
 package com.netflix.titus.master.appscale.service;
 
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.netflix.frigga.autoscaling.AutoScalingGroupNameBuilder;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.appscale.model.AutoScalableTarget;
 import com.netflix.titus.api.appscale.model.AutoScalingPolicy;
@@ -440,17 +438,16 @@ public class DefaultAppScaleManager implements AppScaleManager {
     static String buildAutoScalingGroupV3(JobDescriptor<?> jobDescriptor) {
         JobGroupInfo jobGroupInfo = jobDescriptor.getJobGroupInfo();
         String jobGroupSequence = jobGroupInfo.getSequence() != null ? jobGroupInfo.getSequence() : DEFAULT_JOB_GROUP_SEQ;
-        List<String> parameterList = Arrays.asList(jobDescriptor.getApplicationName(), jobGroupInfo.getStack(), jobGroupInfo.getDetail(), jobGroupSequence);
-        return buildAutoScalingGroupFromParameters(parameterList);
+        // Using frigga builder for auto scaling group name so that cloud watch alarm configuration
+        // is compatible with spinnaker generated auto scaling group name that is tagged with cloud watch metrics
+        AutoScalingGroupNameBuilder autoScalingGroupNameBuilder = new AutoScalingGroupNameBuilder();
+        String asgWithNoSequence = autoScalingGroupNameBuilder
+                .withAppName(jobDescriptor.getApplicationName())
+                .withStack(jobGroupInfo.getStack())
+                .withDetail(jobGroupInfo.getDetail())
+                .buildGroupName();
+        return String.format("%s-%s", asgWithNoSequence, jobGroupSequence);
     }
-
-    private static String buildAutoScalingGroupFromParameters(List<String> parameterList) {
-        return parameterList
-                .stream()
-                .filter(s -> s != null && !s.isEmpty())
-                .collect(Collectors.joining("-"));
-    }
-
 
     private void addScalableTargetIfNew(String jobId) {
         if (!scalableTargets.containsKey(jobId)) {

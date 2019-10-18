@@ -31,7 +31,6 @@ import com.netflix.titus.api.appscale.model.AutoScalableTarget;
 import com.netflix.titus.api.appscale.model.AutoScalingPolicy;
 import com.netflix.titus.api.appscale.model.PolicyType;
 import com.netflix.titus.api.appscale.service.AutoScalePolicyException;
-import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -42,6 +41,7 @@ import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.runtime.store.v3.memory.InMemoryPolicyStore;
 import org.assertj.core.api.Assertions;
 import org.junit.Test;
@@ -200,7 +200,6 @@ public class DefaultAppScaleManagerTest {
                 .withStack("main")
                 .build();
 
-
         JobDescriptor<JobDescriptor.JobDescriptorExt> jobDescriptorTwo = JobDescriptor.newBuilder()
                 .withApplicationName("testapp")
                 .withJobGroupInfo(jobGroupInfoTwo).build();
@@ -215,16 +214,25 @@ public class DefaultAppScaleManagerTest {
                 .withApplicationName("testapp")
                 .withJobGroupInfo(jobGroupInfoThree).build();
         autoScalingGroup = DefaultAppScaleManager.buildAutoScalingGroupV3(jobDescriptorThree);
-        Assertions.assertThat(autoScalingGroup).isEqualTo("testapp-^1.0.0-v000");
-
+        Assertions.assertThat(autoScalingGroup).isEqualTo("testapp--^1.0.0-v000");
 
         JobGroupInfo jobGroupInfoFour = JobGroupInfo.newBuilder().build();
-
         JobDescriptor<JobDescriptor.JobDescriptorExt> jobDescriptorFour = JobDescriptor.newBuilder()
                 .withApplicationName("testapp")
                 .withJobGroupInfo(jobGroupInfoFour).build();
         autoScalingGroup = DefaultAppScaleManager.buildAutoScalingGroupV3(jobDescriptorFour);
         Assertions.assertThat(autoScalingGroup).isEqualTo("testapp-v000");
+
+        JobGroupInfo jobGroupInfoFive = JobGroupInfo.newBuilder()
+                .withDetail("titus")
+                .withSequence("v038")
+                .build();
+        JobDescriptor<JobDescriptor.JobDescriptorExt> jobDescriptorFive = JobDescriptor.newBuilder()
+                .withApplicationName("tbd")
+                .withJobGroupInfo(jobGroupInfoFive)
+                .build();
+        autoScalingGroup = DefaultAppScaleManager.buildAutoScalingGroupV3(jobDescriptorFive);
+        Assertions.assertThat(autoScalingGroup).isEqualTo("tbd--titus-v038");
     }
 
     @Test
@@ -358,6 +366,7 @@ public class DefaultAppScaleManagerTest {
             when(jobDescriptorOne.getExtensions()).thenReturn(serviceJobExtOne);
             when(job.getJobDescriptor()).thenReturn(jobDescriptorOne);
             when(jobDescriptorOne.getJobGroupInfo()).thenReturn(jobGroupInfoOne);
+            when(jobDescriptorOne.getApplicationName()).thenReturn("testApp");
 
             when(v3JobOperations.getJob(jobId)).thenReturn(Optional.of(job));
 
@@ -386,6 +395,7 @@ public class DefaultAppScaleManagerTest {
         when(jobDescriptorOne.getExtensions()).thenReturn(serviceJobExtOne);
         when(jobOne.getJobDescriptor()).thenReturn(jobDescriptorOne);
         when(jobDescriptorOne.getJobGroupInfo()).thenReturn(jobGroupInfoOne);
+        when(jobDescriptorOne.getApplicationName()).thenReturn("testApp1");
 
 
         Job jobTwo = mock(Job.class);
@@ -423,6 +433,7 @@ public class DefaultAppScaleManagerTest {
         when(serviceJobExtTwo.getCapacity()).thenReturn(capacityJobTwo);
         when(jobDescriptorTwo.getExtensions()).thenReturn(serviceJobExtTwo);
         when(jobDescriptorTwo.getJobGroupInfo()).thenReturn(jobGroupInfoOne);
+        when(jobDescriptorTwo.getApplicationName()).thenReturn("testApp2");
         when(jobTwo.getJobDescriptor()).thenReturn(jobDescriptorTwo);
         when(jobTwo.getStatus()).thenReturn(JobModel.newJobStatus().withState(JobState.Accepted).build());
 
