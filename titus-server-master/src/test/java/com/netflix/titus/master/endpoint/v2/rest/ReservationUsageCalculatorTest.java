@@ -64,6 +64,9 @@ public class ReservationUsageCalculatorTest {
                 ApplicationSLA.newBuilder().withAppName("cg1").build(),
                 ApplicationSLA.newBuilder().withAppName("cg2").build()
         ));
+        when(capacityManagementService.getApplicationSLA("cg1")).thenReturn(
+                ApplicationSLA.newBuilder().withAppName("cg1").build()
+        );
 
         addJobsInCapacityGroup("cg1", 2);
         addJobsInCapacityGroup("cg2", 4);
