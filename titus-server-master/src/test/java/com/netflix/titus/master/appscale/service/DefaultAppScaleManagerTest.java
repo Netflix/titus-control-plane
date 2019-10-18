@@ -228,11 +228,11 @@ public class DefaultAppScaleManagerTest {
                 .withSequence("v038")
                 .build();
         JobDescriptor<JobDescriptor.JobDescriptorExt> jobDescriptorFive = JobDescriptor.newBuilder()
-                .withApplicationName("plexmember")
+                .withApplicationName("tbd")
                 .withJobGroupInfo(jobGroupInfoFive)
                 .build();
         autoScalingGroup = DefaultAppScaleManager.buildAutoScalingGroupV3(jobDescriptorFive);
-        Assertions.assertThat(autoScalingGroup).isEqualTo("plexmember--titus-v038");
+        Assertions.assertThat(autoScalingGroup).isEqualTo("tbd--titus-v038");
     }
 
     @Test
