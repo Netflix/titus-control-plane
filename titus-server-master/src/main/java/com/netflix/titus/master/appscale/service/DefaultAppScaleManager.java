@@ -439,7 +439,8 @@ public class DefaultAppScaleManager implements AppScaleManager {
         JobGroupInfo jobGroupInfo = jobDescriptor.getJobGroupInfo();
         String jobGroupSequence = jobGroupInfo.getSequence() != null ? jobGroupInfo.getSequence() : DEFAULT_JOB_GROUP_SEQ;
         AutoScalingGroupNameBuilder autoScalingGroupNameBuilder = new AutoScalingGroupNameBuilder();
-        String asgWithNoSequence = autoScalingGroupNameBuilder.withAppName(jobDescriptor.getApplicationName())
+        String asgWithNoSequence = autoScalingGroupNameBuilder
+                .withAppName(jobDescriptor.getApplicationName())
                 .withStack(jobGroupInfo.getStack())
                 .withDetail(jobGroupInfo.getDetail())
                 .buildGroupName();

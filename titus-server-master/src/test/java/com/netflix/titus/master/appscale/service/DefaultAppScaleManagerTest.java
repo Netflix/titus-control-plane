@@ -366,6 +366,7 @@ public class DefaultAppScaleManagerTest {
             when(jobDescriptorOne.getExtensions()).thenReturn(serviceJobExtOne);
             when(job.getJobDescriptor()).thenReturn(jobDescriptorOne);
             when(jobDescriptorOne.getJobGroupInfo()).thenReturn(jobGroupInfoOne);
+            when(jobDescriptorOne.getApplicationName()).thenReturn("testApp");
 
             when(v3JobOperations.getJob(jobId)).thenReturn(Optional.of(job));
 
@@ -394,6 +395,7 @@ public class DefaultAppScaleManagerTest {
         when(jobDescriptorOne.getExtensions()).thenReturn(serviceJobExtOne);
         when(jobOne.getJobDescriptor()).thenReturn(jobDescriptorOne);
         when(jobDescriptorOne.getJobGroupInfo()).thenReturn(jobGroupInfoOne);
+        when(jobDescriptorOne.getApplicationName()).thenReturn("testApp1");
 
 
         Job jobTwo = mock(Job.class);
@@ -431,6 +433,7 @@ public class DefaultAppScaleManagerTest {
         when(serviceJobExtTwo.getCapacity()).thenReturn(capacityJobTwo);
         when(jobDescriptorTwo.getExtensions()).thenReturn(serviceJobExtTwo);
         when(jobDescriptorTwo.getJobGroupInfo()).thenReturn(jobGroupInfoOne);
+        when(jobDescriptorTwo.getApplicationName()).thenReturn("testApp2");
         when(jobTwo.getJobDescriptor()).thenReturn(jobDescriptorTwo);
         when(jobTwo.getStatus()).thenReturn(JobModel.newJobStatus().withState(JobState.Accepted).build());
 
