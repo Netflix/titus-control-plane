@@ -6833,6 +6833,12 @@
                 "com.netflix.titus:titus-server-master"
             ]
         },
+        "com.netflix.frigga:frigga": {
+            "locked": "0.20.0",
+            "transitive": [
+                "com.netflix.titus:titus-server-master"
+            ]
+        },
         "com.netflix.governator:governator": {
             "locked": "1.15.11",
             "transitive": [
@@ -7037,10 +7043,15 @@
                 "org.apache.cassandra:cassandra-all"
             ]
         },
+        "com.squareup.okhttp3:mockwebserver": {
+            "locked": "3.8.0",
+            "requested": "3.8.0"
+        },
         "com.squareup.okhttp3:okhttp": {
             "locked": "3.8.0",
             "transitive": [
-                "com.netflix.titus:titus-common"
+                "com.netflix.titus:titus-common",
+                "com.squareup.okhttp3:mockwebserver"
             ]
         },
         "com.squareup.okhttp:logging-interceptor": {
@@ -7676,6 +7687,7 @@
                 "com.google.truth:truth",
                 "com.netflix.archaius:archaius2-test",
                 "com.netflix.governator:governator-test-junit",
+                "com.squareup.okhttp3:mockwebserver",
                 "io.grpc:grpc-testing",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-netty"
@@ -7882,6 +7894,7 @@
         "org.bouncycastle:bcprov-jdk15on": {
             "locked": "1.50",
             "transitive": [
+                "com.squareup.okhttp3:mockwebserver",
                 "org.bouncycastle:bcmail-jdk15on",
                 "org.bouncycastle:bcpkix-jdk15on",
                 "org.mock-server:mockserver-core",
@@ -8948,6 +8961,12 @@
                 "com.netflix.titus:titus-server-master"
             ]
         },
+        "com.netflix.frigga:frigga": {
+            "locked": "0.20.0",
+            "transitive": [
+                "com.netflix.titus:titus-server-master"
+            ]
+        },
         "com.netflix.governator:governator": {
             "locked": "1.15.11",
             "transitive": [
@@ -9152,10 +9171,15 @@
                 "org.apache.cassandra:cassandra-all"
             ]
         },
+        "com.squareup.okhttp3:mockwebserver": {
+            "locked": "3.8.0",
+            "requested": "3.8.0"
+        },
         "com.squareup.okhttp3:okhttp": {
             "locked": "3.8.0",
             "transitive": [
-                "com.netflix.titus:titus-common"
+                "com.netflix.titus:titus-common",
+                "com.squareup.okhttp3:mockwebserver"
             ]
         },
         "com.squareup.okhttp:logging-interceptor": {
@@ -9791,6 +9815,7 @@
                 "com.google.truth:truth",
                 "com.netflix.archaius:archaius2-test",
                 "com.netflix.governator:governator-test-junit",
+                "com.squareup.okhttp3:mockwebserver",
                 "io.grpc:grpc-testing",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-netty"
@@ -9997,6 +10022,7 @@
         "org.bouncycastle:bcprov-jdk15on": {
             "locked": "1.50",
             "transitive": [
+                "com.squareup.okhttp3:mockwebserver",
                 "org.bouncycastle:bcmail-jdk15on",
                 "org.bouncycastle:bcpkix-jdk15on",
                 "org.mock-server:mockserver-core",
@@ -11063,6 +11089,12 @@
                 "com.netflix.titus:titus-server-master"
             ]
         },
+        "com.netflix.frigga:frigga": {
+            "locked": "0.20.0",
+            "transitive": [
+                "com.netflix.titus:titus-server-master"
+            ]
+        },
         "com.netflix.governator:governator": {
             "locked": "1.15.11",
             "transitive": [
@@ -11267,10 +11299,15 @@
                 "org.apache.cassandra:cassandra-all"
             ]
         },
+        "com.squareup.okhttp3:mockwebserver": {
+            "locked": "3.8.0",
+            "requested": "3.8.0"
+        },
         "com.squareup.okhttp3:okhttp": {
             "locked": "3.8.0",
             "transitive": [
-                "com.netflix.titus:titus-common"
+                "com.netflix.titus:titus-common",
+                "com.squareup.okhttp3:mockwebserver"
             ]
         },
         "com.squareup.okhttp:logging-interceptor": {
@@ -11906,6 +11943,7 @@
                 "com.google.truth:truth",
                 "com.netflix.archaius:archaius2-test",
                 "com.netflix.governator:governator-test-junit",
+                "com.squareup.okhttp3:mockwebserver",
                 "io.grpc:grpc-testing",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-netty"
@@ -12112,6 +12150,7 @@
         "org.bouncycastle:bcprov-jdk15on": {
             "locked": "1.50",
             "transitive": [
+                "com.squareup.okhttp3:mockwebserver",
                 "org.bouncycastle:bcmail-jdk15on",
                 "org.bouncycastle:bcpkix-jdk15on",
                 "org.mock-server:mockserver-core",
@@ -13179,6 +13218,12 @@
                 "com.netflix.titus:titus-server-master"
             ]
         },
+        "com.netflix.frigga:frigga": {
+            "locked": "0.20.0",
+            "transitive": [
+                "com.netflix.titus:titus-server-master"
+            ]
+        },
         "com.netflix.governator:governator": {
             "locked": "1.15.11",
             "transitive": [
@@ -13383,10 +13428,15 @@
                 "org.apache.cassandra:cassandra-all"
             ]
         },
+        "com.squareup.okhttp3:mockwebserver": {
+            "locked": "3.8.0",
+            "requested": "3.8.0"
+        },
         "com.squareup.okhttp3:okhttp": {
             "locked": "3.8.0",
             "transitive": [
-                "com.netflix.titus:titus-common"
+                "com.netflix.titus:titus-common",
+                "com.squareup.okhttp3:mockwebserver"
             ]
         },
         "com.squareup.okhttp:logging-interceptor": {
@@ -14022,6 +14072,7 @@
                 "com.google.truth:truth",
                 "com.netflix.archaius:archaius2-test",
                 "com.netflix.governator:governator-test-junit",
+                "com.squareup.okhttp3:mockwebserver",
                 "io.grpc:grpc-testing",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-netty"
@@ -14228,6 +14279,7 @@
         "org.bouncycastle:bcprov-jdk15on": {
             "locked": "1.50",
             "transitive": [
+                "com.squareup.okhttp3:mockwebserver",
                 "org.bouncycastle:bcmail-jdk15on",
                 "org.bouncycastle:bcpkix-jdk15on",
                 "org.mock-server:mockserver-core",

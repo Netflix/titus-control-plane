@@ -6905,6 +6905,12 @@
                 "com.netflix.titus:titus-server-master"
             ]
         },
+        "com.netflix.frigga:frigga": {
+            "locked": "0.20.0",
+            "transitive": [
+                "com.netflix.titus:titus-server-master"
+            ]
+        },
         "com.netflix.governator:governator": {
             "locked": "1.15.11",
             "transitive": [
@@ -9019,6 +9025,12 @@
         },
         "com.netflix.fenzo:fenzo-core": {
             "locked": "1.1.0-rc.6",
+            "transitive": [
+                "com.netflix.titus:titus-server-master"
+            ]
+        },
+        "com.netflix.frigga:frigga": {
+            "locked": "0.20.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -11141,6 +11153,12 @@
                 "com.netflix.titus:titus-server-master"
             ]
         },
+        "com.netflix.frigga:frigga": {
+            "locked": "0.20.0",
+            "transitive": [
+                "com.netflix.titus:titus-server-master"
+            ]
+        },
         "com.netflix.governator:governator": {
             "locked": "1.15.11",
             "transitive": [
@@ -13256,6 +13274,12 @@
         },
         "com.netflix.fenzo:fenzo-core": {
             "locked": "1.1.0-rc.6",
+            "transitive": [
+                "com.netflix.titus:titus-server-master"
+            ]
+        },
+        "com.netflix.frigga:frigga": {
+            "locked": "0.20.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
