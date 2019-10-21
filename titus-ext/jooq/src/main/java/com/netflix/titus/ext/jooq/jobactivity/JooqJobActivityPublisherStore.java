@@ -32,7 +32,7 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.spectator.DatabaseMetrics;
 import com.netflix.titus.ext.jooq.JooqUtils;
 import com.netflix.titus.ext.jooq.activity.schema.JActivity;
-import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
+import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
 import com.netflix.titus.runtime.jobactivity.JobActivityPublisherRecordUtils;
 import org.jooq.DSLContext;
 import org.jooq.Record1;

@@ -21,13 +21,14 @@ import javax.inject.Named;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
-import com.netflix.titus.grpc.protogen.EvictionServiceGrpc;
 import com.netflix.titus.common.util.grpc.reactor.GrpcToReactorClientFactory;
+import com.netflix.titus.grpc.protogen.EvictionServiceGrpc;
 import io.grpc.Channel;
 
-import static com.netflix.titus.runtime.connector.titusmaster.TitusMasterConnectorModule.MANAGED_CHANNEL_NAME;
-
 public class EvictionConnectorModule extends AbstractModule {
+
+    public static final String MANAGED_CHANNEL_NAME = "ManagedChannel";
+
     @Override
     protected void configure() {
         bind(EvictionServiceClient.class).to(RemoteEvictionServiceClient.class);

@@ -19,6 +19,8 @@ package com.netflix.titus.runtime.endpoint.common;
 import java.util.Optional;
 import javax.inject.Singleton;
 
+import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
+
 @Singleton
 public class EmptyLogStorageInfo<TASK> implements LogStorageInfo<TASK> {
 

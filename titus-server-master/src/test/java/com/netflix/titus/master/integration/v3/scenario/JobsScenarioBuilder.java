@@ -34,7 +34,7 @@ import com.netflix.titus.grpc.protogen.JobQuery;
 import com.netflix.titus.grpc.protogen.JobQueryResult;
 import com.netflix.titus.grpc.protogen.Page;
 import com.netflix.titus.master.scheduler.SchedulingService;
-import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
+import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
 import com.netflix.titus.testkit.grpc.TestStreamObserver;
 import com.netflix.titus.testkit.junit.master.TitusMasterResource;
@@ -112,7 +112,7 @@ public class JobsScenarioBuilder extends ExternalResource {
     public JobsScenarioBuilder schedule(JobDescriptor jobDescriptor,
                                         Function<JobScenarioBuilder, JobScenarioBuilder> jobScenario) throws Exception {
         TestStreamObserver<JobId> responseObserver = new TestStreamObserver<>();
-        client.createJob(V3GrpcModelConverters.toGrpcJobDescriptor(jobDescriptor), responseObserver);
+        client.createJob(GrpcJobManagementModelConverters.toGrpcJobDescriptor(jobDescriptor), responseObserver);
 
         JobId jobId = responseObserver.takeNext(TIMEOUT_MS, TimeUnit.MILLISECONDS);
         Preconditions.checkNotNull(jobId, "Job create operation not completed in time");

@@ -20,15 +20,15 @@ import com.google.protobuf.InvalidProtocolBufferException;
 import com.netflix.titus.api.jobactivity.store.JobActivityPublisherRecord;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
-import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
-import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
+import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
+import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 
 public class JobActivityPublisherRecordUtils {
 
     public static Job<?> getJobFromRecord(JobActivityPublisherRecord record)
             throws InvalidProtocolBufferException {
         com.netflix.titus.grpc.protogen.Job grpcJob = com.netflix.titus.grpc.protogen.Job.parseFrom(record.getSerializedEvent());
-        return V3GrpcModelConverters.toCoreJob(grpcJob);
+        return GrpcJobManagementModelConverters.toCoreJob(grpcJob);
     }
 
     // TODO(Andrew L): The consumer of the serialized task record will need the job to complete two level resources.
@@ -36,16 +36,16 @@ public class JobActivityPublisherRecordUtils {
     public static Task getTaskFromRecord(Job<?> job, JobActivityPublisherRecord record)
             throws InvalidProtocolBufferException {
         com.netflix.titus.grpc.protogen.Task grpcTask = com.netflix.titus.grpc.protogen.Task.parseFrom(record.getSerializedEvent());
-        return V3GrpcModelConverters.toCoreTask(job, grpcTask);
+        return GrpcJobManagementModelConverters.toCoreTask(job, grpcTask);
     }
 
     public static byte[] jobToByteArry(Job<?> job) {
-        com.netflix.titus.grpc.protogen.Job grpcJob = V3GrpcModelConverters.toGrpcJob(job);
+        com.netflix.titus.grpc.protogen.Job grpcJob = GrpcJobManagementModelConverters.toGrpcJob(job);
         return grpcJob.toByteArray();
     }
 
     public static byte[] taskToByteArray(Task task, LogStorageInfo<Task> logStorageInfo) {
-        com.netflix.titus.grpc.protogen.Task grpcTask = V3GrpcModelConverters.toGrpcTask(task, logStorageInfo);
+        com.netflix.titus.grpc.protogen.Task grpcTask = GrpcJobManagementModelConverters.toGrpcTask(task, logStorageInfo);
         return grpcTask.toByteArray();
     }
 }

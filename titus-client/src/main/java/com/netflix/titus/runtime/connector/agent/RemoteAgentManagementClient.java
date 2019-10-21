@@ -39,8 +39,7 @@ import com.netflix.titus.grpc.protogen.Id;
 import com.netflix.titus.grpc.protogen.InstanceGroupAttributesUpdate;
 import com.netflix.titus.grpc.protogen.InstanceGroupLifecycleStateUpdate;
 import com.netflix.titus.grpc.protogen.TierUpdate;
-import com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters;
-import com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters2;
+import com.netflix.titus.runtime.endpoint.common.grpc.CommonRuntimeGrpcModelConverters;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcAgentModelConverters;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -77,7 +76,7 @@ public class RemoteAgentManagementClient implements AgentManagementClient {
     @Override
     public Mono<PageResult<AgentInstance>> findAgentInstances(Map<String, String> filteringCriteria, Page page) {
         return stub.findAgentInstances(AgentQuery.newBuilder()
-                .setPage(CommonGrpcModelConverters.toGrpcPage(page))
+                .setPage(CommonRuntimeGrpcModelConverters.toGrpcPage(page))
                 .putAllFilteringCriteria(filteringCriteria)
                 .build()
         ).map(grpcResult -> PageResult.pageOf(

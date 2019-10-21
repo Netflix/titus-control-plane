@@ -31,7 +31,7 @@ import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.runtime.endpoint.common.EmptyLogStorageInfo;
-import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
+import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 
@@ -96,7 +96,7 @@ class ServiceDataGenerator {
         batchJobs = batchJobs.apply(job -> {
             List<Task> tasks = JobGenerator.batchTasks(job)
                     .limit(JobFunctions.getJobDesiredSize(job))
-                    .map(t -> V3GrpcModelConverters.toGrpcTask(t, new EmptyLogStorageInfo<>()))
+                    .map(t -> GrpcJobManagementModelConverters.toGrpcTask(t, new EmptyLogStorageInfo<>()))
                     .toList();
             generatedTasks.addAll(tasks);
         }, 1);
@@ -108,7 +108,7 @@ class ServiceDataGenerator {
         serviceJobs = serviceJobs.apply(job -> {
             List<Task> tasks = JobGenerator.serviceTasks(job)
                     .limit(JobFunctions.getJobDesiredSize(job))
-                    .map(t -> V3GrpcModelConverters.toGrpcTask(t, new EmptyLogStorageInfo<>()))
+                    .map(t -> GrpcJobManagementModelConverters.toGrpcTask(t, new EmptyLogStorageInfo<>()))
                     .toList();
             generatedTasks.addAll(tasks);
         }, 1);

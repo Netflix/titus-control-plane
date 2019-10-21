@@ -60,10 +60,10 @@ import com.netflix.titus.runtime.connector.GrpcRequestConfiguration;
 import com.netflix.titus.runtime.endpoint.JobQueryCriteria;
 import com.netflix.titus.runtime.endpoint.admission.AdmissionSanitizer;
 import com.netflix.titus.runtime.endpoint.admission.AdmissionValidator;
-import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
-import com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters;
+import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
+import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobQueryModelConverters;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
-import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
+import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import com.netflix.titus.runtime.jobmanager.JobManagerConfiguration;
 import com.netflix.titus.runtime.jobmanager.JobManagerCursors;
 import com.netflix.titus.runtime.jobmanager.gateway.GrpcJobServiceGateway;
@@ -80,9 +80,9 @@ import rx.Observable;
 import static com.netflix.titus.api.FeatureRolloutPlans.ENVIRONMENT_VARIABLE_NAMES_STRICT_VALIDATION_FEATURE;
 import static com.netflix.titus.api.FeatureRolloutPlans.SECURITY_GROUPS_REQUIRED_FEATURE;
 import static com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_STRICT_SANITIZER;
-import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toGrpcPagination;
-import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toJobQueryCriteria;
-import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toPage;
+import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobQueryModelConverters.toGrpcPagination;
+import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobQueryModelConverters.toJobQueryCriteria;
+import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobQueryModelConverters.toPage;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createRequestObservable;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createSimpleClientResponseObserver;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createWrappedStub;
@@ -196,7 +196,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
 
         // "needsMigration" query is served from the local job and relocation cache.
         if (needsMigrationFilter) {
-            PageResult<Task> pageResult = needsMigrationQueryHandler.findTasks(CommonGrpcModelConverters.toJobQueryCriteria(taskQuery), toPage(taskQuery.getPage()));
+            PageResult<Task> pageResult = needsMigrationQueryHandler.findTasks(GrpcJobQueryModelConverters.toJobQueryCriteria(taskQuery), toPage(taskQuery.getPage()));
             return Observable.just(TaskQueryResult.newBuilder()
                     .setPagination(toGrpcPagination(pageResult.getPagination()))
                     .addAllItems(pageResult.getItems())
@@ -254,7 +254,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
                         }
                     }
                     return Observable.error(TitusServiceException.unexpected("Not able to retrieve the job: %s (%s)", jobId, ExceptionExt.toMessageChain(e)));
-                }).map(V3GrpcModelConverters::toGrpcJob);
+                }).map(GrpcJobManagementModelConverters::toGrpcJob);
     }
 
     private Observable<List<Task>> retrieveArchivedTasksForJobs(Set<String> jobIds, TaskQuery taskQuery) {
@@ -278,7 +278,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
                     com.netflix.titus.api.jobmanager.model.job.Task fixedTask = task.getStatus().getState() == TaskState.Finished
                             ? task
                             : JobFunctions.fixArchivedTaskStatus(task, clock);
-                    return V3GrpcModelConverters.toGrpcTask(fixedTask, logStorageInfo);
+                    return GrpcJobManagementModelConverters.toGrpcTask(fixedTask, logStorageInfo);
                 })
                 .toSortedList((first, second) -> Long.compare(first.getStatus().getTimestamp(), second.getStatus().getTimestamp()));
     }
@@ -298,7 +298,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
                     com.netflix.titus.api.jobmanager.model.job.Task fixedTask = task.getStatus().getState() == TaskState.Finished
                             ? task
                             : JobFunctions.fixArchivedTaskStatus(task, clock);
-                    return V3GrpcModelConverters.toGrpcTask(fixedTask, logStorageInfo);
+                    return GrpcJobManagementModelConverters.toGrpcTask(fixedTask, logStorageInfo);
                 });
     }
 

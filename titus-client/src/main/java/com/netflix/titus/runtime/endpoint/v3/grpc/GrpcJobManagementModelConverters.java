@@ -36,6 +36,7 @@ import com.netflix.titus.api.jobmanager.model.job.JobGroupInfo;
 import com.netflix.titus.api.jobmanager.model.job.JobModel;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.JobStatus;
+import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
 import com.netflix.titus.api.jobmanager.model.job.Owner;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
@@ -91,7 +92,6 @@ import com.netflix.titus.grpc.protogen.MountPerm;
 import com.netflix.titus.grpc.protogen.SecurityProfile;
 import com.netflix.titus.grpc.protogen.ServiceJobSpec;
 import com.netflix.titus.grpc.protogen.SignedAddressAllocation;
-import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
 
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_EVICTION_RESUBMIT_NUMBER;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_INDEX;
@@ -112,9 +112,9 @@ import static com.netflix.titus.grpc.protogen.Day.Thursday;
 import static com.netflix.titus.grpc.protogen.Day.Tuesday;
 import static com.netflix.titus.grpc.protogen.Day.Wednesday;
 
-public final class V3GrpcModelConverters {
+public final class GrpcJobManagementModelConverters {
 
-    private V3GrpcModelConverters() {
+    private GrpcJobManagementModelConverters() {
     }
 
     public static Job toCoreJob(com.netflix.titus.grpc.protogen.Job grpcJob) {
@@ -122,7 +122,7 @@ public final class V3GrpcModelConverters {
                 .withId(grpcJob.getId())
                 .withJobDescriptor(toCoreJobDescriptor(grpcJob.getJobDescriptor()))
                 .withStatus(toCoreJobStatus(grpcJob.getStatus()))
-                .withStatusHistory(grpcJob.getStatusHistoryList().stream().map(V3GrpcModelConverters::toCoreJobStatus).collect(Collectors.toList()))
+                .withStatusHistory(grpcJob.getStatusHistoryList().stream().map(GrpcJobManagementModelConverters::toCoreJobStatus).collect(Collectors.toList()))
                 .build();
     }
 
@@ -219,11 +219,11 @@ public final class V3GrpcModelConverters {
     public static ContainerResources toCoreScalarResources(com.netflix.titus.grpc.protogen.ContainerResources grpcResources) {
         List<EfsMount> coreEfsMounts = grpcResources.getEfsMountsCount() == 0
                 ? Collections.emptyList()
-                : grpcResources.getEfsMountsList().stream().map(V3GrpcModelConverters::toCoreEfsMount).collect(Collectors.toList());
+                : grpcResources.getEfsMountsList().stream().map(GrpcJobManagementModelConverters::toCoreEfsMount).collect(Collectors.toList());
 
         List<SignedIpAddressAllocation> signedIpAddressAllocations = grpcResources.getSignedAddressAllocationsCount() == 0
                 ? Collections.emptyList()
-                : grpcResources.getSignedAddressAllocationsList().stream().map(V3GrpcModelConverters::toCoreSignedIpAddressAllocation)
+                : grpcResources.getSignedAddressAllocationsList().stream().map(GrpcJobManagementModelConverters::toCoreSignedIpAddressAllocation)
                 .collect(Collectors.toList());
         return JobModel.newContainerResources()
                 .withCpu(grpcResources.getCpu())
@@ -373,7 +373,7 @@ public final class V3GrpcModelConverters {
     }
 
     public static List<TimeWindow> toCoreTimeWindows(List<com.netflix.titus.grpc.protogen.TimeWindow> grpcTimeWindows) {
-        return grpcTimeWindows.stream().map(V3GrpcModelConverters::toCoreTimeWindow).collect(Collectors.toList());
+        return grpcTimeWindows.stream().map(GrpcJobManagementModelConverters::toCoreTimeWindow).collect(Collectors.toList());
     }
 
     public static TimeWindow toCoreTimeWindow(com.netflix.titus.grpc.protogen.TimeWindow grpcTimeWindow) {
@@ -385,7 +385,7 @@ public final class V3GrpcModelConverters {
     }
 
     public static List<Day> toCoreDays(List<com.netflix.titus.grpc.protogen.Day> grpcDays) {
-        return grpcDays.stream().map(V3GrpcModelConverters::toCoreDay).collect(Collectors.toList());
+        return grpcDays.stream().map(GrpcJobManagementModelConverters::toCoreDay).collect(Collectors.toList());
     }
 
     public static Day toCoreDay(com.netflix.titus.grpc.protogen.Day grpcDay) {
@@ -410,7 +410,7 @@ public final class V3GrpcModelConverters {
     }
 
     public static List<HourlyTimeWindow> toCoreHourlyTimeWindows(List<com.netflix.titus.grpc.protogen.TimeWindow.HourlyTimeWindow> grpcHourlyTimeWindows) {
-        return grpcHourlyTimeWindows.stream().map(V3GrpcModelConverters::toCoreHourlyTimeWindow).collect(Collectors.toList());
+        return grpcHourlyTimeWindows.stream().map(GrpcJobManagementModelConverters::toCoreHourlyTimeWindow).collect(Collectors.toList());
     }
 
     public static HourlyTimeWindow toCoreHourlyTimeWindow(com.netflix.titus.grpc.protogen.TimeWindow.HourlyTimeWindow grpcHourlyTimeWindow) {
@@ -421,7 +421,7 @@ public final class V3GrpcModelConverters {
     }
 
     public static List<ContainerHealthProvider> toCoreContainerHealthProviders(List<com.netflix.titus.grpc.protogen.ContainerHealthProvider> grpcContainerHealthProviders) {
-        return grpcContainerHealthProviders.stream().map(V3GrpcModelConverters::toCoreHourlyTimeWindow).collect(Collectors.toList());
+        return grpcContainerHealthProviders.stream().map(GrpcJobManagementModelConverters::toCoreHourlyTimeWindow).collect(Collectors.toList());
     }
 
     public static ContainerHealthProvider toCoreHourlyTimeWindow(com.netflix.titus.grpc.protogen.ContainerHealthProvider grpcContainerHealthProvider) {
@@ -494,7 +494,7 @@ public final class V3GrpcModelConverters {
         builder.withId(grpcTask.getId())
                 .withJobId(grpcTask.getJobId())
                 .withStatus(toCoreTaskStatus(grpcTask.getStatus()))
-                .withStatusHistory(grpcTask.getStatusHistoryList().stream().map(V3GrpcModelConverters::toCoreTaskStatus).collect(Collectors.toList()))
+                .withStatusHistory(grpcTask.getStatusHistoryList().stream().map(GrpcJobManagementModelConverters::toCoreTaskStatus).collect(Collectors.toList()))
                 .withResubmitNumber(taskResubmitNumber)
                 .withOriginalId(originalId)
                 .withResubmitOf(resubmitOf)
@@ -644,10 +644,10 @@ public final class V3GrpcModelConverters {
     public static com.netflix.titus.grpc.protogen.ContainerResources toGrpcResources(ContainerResources containerResources) {
         List<com.netflix.titus.grpc.protogen.ContainerResources.EfsMount> grpcEfsMounts = containerResources.getEfsMounts().isEmpty()
                 ? Collections.emptyList()
-                : containerResources.getEfsMounts().stream().map(V3GrpcModelConverters::toGrpcEfsMount).collect(Collectors.toList());
+                : containerResources.getEfsMounts().stream().map(GrpcJobManagementModelConverters::toGrpcEfsMount).collect(Collectors.toList());
         List<SignedAddressAllocation> grpcSignedAddressAllocation = containerResources.getSignedIpAddressAllocations().isEmpty()
                 ? Collections.emptyList()
-                : containerResources.getSignedIpAddressAllocations().stream().map(V3GrpcModelConverters::toGrpcSignedAddressAllocation)
+                : containerResources.getSignedIpAddressAllocations().stream().map(GrpcJobManagementModelConverters::toGrpcSignedAddressAllocation)
                 .collect(Collectors.toList());
         return com.netflix.titus.grpc.protogen.ContainerResources.newBuilder()
                 .setCpu(containerResources.getCpu())
@@ -801,7 +801,7 @@ public final class V3GrpcModelConverters {
     }
 
     public static List<com.netflix.titus.grpc.protogen.TimeWindow> toGrpcTimeWindows(List<TimeWindow> grpcTimeWindows) {
-        return grpcTimeWindows.stream().map(V3GrpcModelConverters::toGrpcTimeWindow).collect(Collectors.toList());
+        return grpcTimeWindows.stream().map(GrpcJobManagementModelConverters::toGrpcTimeWindow).collect(Collectors.toList());
     }
 
     public static com.netflix.titus.grpc.protogen.TimeWindow toGrpcTimeWindow(TimeWindow coreTimeWindow) {
@@ -813,7 +813,7 @@ public final class V3GrpcModelConverters {
     }
 
     public static List<com.netflix.titus.grpc.protogen.Day> toGrpcDays(List<Day> coreDays) {
-        return coreDays.stream().map(V3GrpcModelConverters::toGrpcDay).collect(Collectors.toList());
+        return coreDays.stream().map(GrpcJobManagementModelConverters::toGrpcDay).collect(Collectors.toList());
     }
 
     public static com.netflix.titus.grpc.protogen.Day toGrpcDay(Day coreDay) {
@@ -838,7 +838,7 @@ public final class V3GrpcModelConverters {
     }
 
     public static List<com.netflix.titus.grpc.protogen.TimeWindow.HourlyTimeWindow> toGrpcHourlyTimeWindows(List<HourlyTimeWindow> coreHourlyTimeWindows) {
-        return coreHourlyTimeWindows.stream().map(V3GrpcModelConverters::toGrpcHourlyTimeWindow).collect(Collectors.toList());
+        return coreHourlyTimeWindows.stream().map(GrpcJobManagementModelConverters::toGrpcHourlyTimeWindow).collect(Collectors.toList());
     }
 
     public static com.netflix.titus.grpc.protogen.TimeWindow.HourlyTimeWindow toGrpcHourlyTimeWindow(HourlyTimeWindow coreHourlyTimeWindow) {
@@ -849,7 +849,7 @@ public final class V3GrpcModelConverters {
     }
 
     public static List<com.netflix.titus.grpc.protogen.ContainerHealthProvider> toGrpcContainerHealthProviders(List<ContainerHealthProvider> grpcContainerHealthProviders) {
-        return grpcContainerHealthProviders.stream().map(V3GrpcModelConverters::toGrpcHourlyTimeWindow).collect(Collectors.toList());
+        return grpcContainerHealthProviders.stream().map(GrpcJobManagementModelConverters::toGrpcHourlyTimeWindow).collect(Collectors.toList());
     }
 
     public static com.netflix.titus.grpc.protogen.ContainerHealthProvider toGrpcHourlyTimeWindow(ContainerHealthProvider coreContainerHealthProvider) {
@@ -904,7 +904,7 @@ public final class V3GrpcModelConverters {
             return Collections.emptyList();
         }
         return statusHistory.stream()
-                .map(V3GrpcModelConverters::toGrpcJobStatus)
+                .map(GrpcJobManagementModelConverters::toGrpcJobStatus)
                 .collect(Collectors.toList());
     }
 
@@ -946,7 +946,7 @@ public final class V3GrpcModelConverters {
             return Collections.emptyList();
         }
         return statusHistory.stream()
-                .map(V3GrpcModelConverters::toGrpcTaskStatus)
+                .map(GrpcJobManagementModelConverters::toGrpcTaskStatus)
                 .collect(Collectors.toList());
     }
 

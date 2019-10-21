@@ -16,4 +16,5 @@
 
 dependencies {
     compile project(':titus-common-api')
+    compile project(':titus-common-grpc-api')
 }

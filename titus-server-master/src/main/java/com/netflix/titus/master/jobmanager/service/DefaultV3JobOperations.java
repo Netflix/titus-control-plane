@@ -85,7 +85,7 @@ import com.netflix.titus.master.jobmanager.service.service.action.MoveTaskBetwee
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.service.management.ManagementSubsystemInitializer;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataUtils;
-import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
+import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
@@ -488,8 +488,8 @@ public class DefaultV3JobOperations implements V3JobOperations {
             JobCompatibility compatibility = JobCompatibility.of(jobFrom, jobTo);
             if (featureActivationConfiguration.isMoveTaskValidationEnabled() && !compatibility.isCompatible()) {
                 Optional<String> diffReport = ProtobufExt.diffReport(
-                        V3GrpcModelConverters.toGrpcJobDescriptor(compatibility.getNormalizedDescriptorFrom()),
-                        V3GrpcModelConverters.toGrpcJobDescriptor(compatibility.getNormalizedDescriptorTo())
+                        GrpcJobManagementModelConverters.toGrpcJobDescriptor(compatibility.getNormalizedDescriptorFrom()),
+                        GrpcJobManagementModelConverters.toGrpcJobDescriptor(compatibility.getNormalizedDescriptorTo())
                 );
                 throw JobManagerException.notCompatible(jobFrom, jobTo, diffReport.orElse(""));
             }
