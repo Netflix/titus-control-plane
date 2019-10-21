@@ -107,6 +107,11 @@ public final class TitusWebClientAddOns {
                 )));
     }
 
+    /**
+     * {@link HttpClientResponse#uri()} is incomplete, and contains only URL path. We have to reconstruct full URL
+     * from pieces available. It is still not complete, as there is no way to find out if this is plain text or
+     * TLS connection.
+     */
     private static String buildFullUri(HttpClientResponse response) {
         if (response instanceof HttpOperations) {
             HttpOperations httpOperations = (HttpOperations) response;
