@@ -17,6 +17,7 @@
 package com.netflix.titus.master.endpoint.v2.rest;
 
 import com.netflix.titus.api.endpoint.v2.rest.representation.ApplicationSlaRepresentation;
+import com.netflix.titus.api.endpoint.v2.rest.representation.ReservationUsage;
 import com.netflix.titus.api.endpoint.v2.rest.representation.TierRepresentation;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.model.ResourceDimension;
@@ -54,6 +55,10 @@ public final class Representation2ModelConvertions {
     }
 
     public static ApplicationSlaRepresentation asRepresentation(ApplicationSLA coreEntity) {
+        return asRepresentation(coreEntity, null);
+    }
+
+    public static ApplicationSlaRepresentation asRepresentation(ApplicationSLA coreEntity, ReservationUsage reservationUsage) {
         ResourceDimension resourceDimension = coreEntity.getResourceDimension();
         return new ApplicationSlaRepresentation(
                 coreEntity.getAppName(),
@@ -62,7 +67,8 @@ public final class Representation2ModelConvertions {
                 resourceDimension.getMemoryMB(),
                 resourceDimension.getDiskMB(),
                 resourceDimension.getNetworkMbs(),
-                coreEntity.getInstanceCount()
+                coreEntity.getInstanceCount(),
+                reservationUsage
         );
     }
 }

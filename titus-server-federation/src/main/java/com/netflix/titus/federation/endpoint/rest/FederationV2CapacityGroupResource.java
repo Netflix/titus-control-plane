@@ -24,6 +24,7 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 
@@ -69,10 +70,10 @@ public class FederationV2CapacityGroupResource {
      * @return a collection of application SLAs or empty array if non present
      */
     @GET
-    public List<ApplicationSlaRepresentation> getApplicationSLAs() {
+    public List<ApplicationSlaRepresentation> getApplicationSLAs(@QueryParam("includeUsage") boolean includeUsage) {
         Either<List<ApplicationSlaRepresentation>, WebApplicationException> result = CellWebClientConnectorUtil.doGetAndMerge(
                 cellWebClientConnector,
-                API_PATH,
+                API_PATH + "?includeUsage=" + includeUsage,
                 APPLICATION_SLA_LIST_TP,
                 configuration.getRestRequestTimeoutMs()
         );
@@ -90,11 +91,12 @@ public class FederationV2CapacityGroupResource {
      */
     @GET
     @Path("/{applicationName}")
-    public ApplicationSlaRepresentation getApplicationSLA(@PathParam("applicationName") String applicationName) {
+    public ApplicationSlaRepresentation getApplicationSLA(@PathParam("applicationName") String applicationName,
+                                                          @QueryParam("includeUsage") boolean includeUsage) {
         Either<ApplicationSlaRepresentation, WebApplicationException> result = CellWebClientConnectorUtil.doGetFromCell(
                 cellWebClientConnector,
                 API_PATH
-                        + '/' + applicationName,
+                        + '/' + applicationName + "?includeUsage=" + includeUsage,
                 APPLICATION_SLA_TP,
                 configuration.getRestRequestTimeoutMs()
         );
