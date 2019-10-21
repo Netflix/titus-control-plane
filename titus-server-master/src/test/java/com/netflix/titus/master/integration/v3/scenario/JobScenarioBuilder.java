@@ -59,7 +59,7 @@ import com.netflix.titus.grpc.protogen.JobStatusUpdate;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.master.scheduler.SchedulingService;
-import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
+import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
 import com.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
 import com.netflix.titus.testkit.grpc.TestStreamObserver;
@@ -76,9 +76,9 @@ import rx.subjects.ReplaySubject;
 import static com.jayway.awaitility.Awaitility.await;
 import static com.netflix.titus.common.util.ExceptionExt.rethrow;
 import static com.netflix.titus.master.integration.v3.scenario.ScenarioBuilderUtil.discoverActiveTest;
-import static com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters.toCoreJob;
-import static com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters.toGrpcCapacity;
-import static com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters.toGrpcDisruptionBudget;
+import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters.toCoreJob;
+import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters.toGrpcCapacity;
+import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters.toGrpcDisruptionBudget;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -135,7 +135,7 @@ public class JobScenarioBuilder {
                 .map(event -> event.getTaskUpdate().getTask())
                 .subscribe(
                         grpcTask -> {
-                            Task coreTask = V3GrpcModelConverters.toCoreTask(getJob(), grpcTask);
+                            Task coreTask = GrpcJobManagementModelConverters.toCoreTask(getJob(), grpcTask);
                             String taskId = coreTask.getId();
                             TaskHolder taskHolder = taskHolders.get(taskId);
                             if (taskHolder == null) {

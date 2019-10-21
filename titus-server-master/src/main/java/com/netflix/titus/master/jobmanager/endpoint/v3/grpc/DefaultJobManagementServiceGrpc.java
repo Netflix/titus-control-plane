@@ -98,10 +98,10 @@ import com.netflix.titus.master.service.management.ApplicationSlaManagementServi
 import com.netflix.titus.runtime.endpoint.JobQueryCriteria;
 import com.netflix.titus.runtime.endpoint.authorization.AuthorizationService;
 import com.netflix.titus.runtime.endpoint.authorization.AuthorizationStatus;
-import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
+import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataUtils;
-import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
+import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import com.netflix.titus.runtime.endpoint.v3.grpc.query.V3JobQueryCriteriaEvaluator;
 import com.netflix.titus.runtime.endpoint.v3.grpc.query.V3TaskQueryCriteriaEvaluator;
 import com.netflix.titus.runtime.jobmanager.JobManagerCursors;
@@ -117,9 +117,9 @@ import rx.Subscription;
 import rx.schedulers.Schedulers;
 
 import static com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_STRICT_SANITIZER;
-import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toGrpcPagination;
-import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toJobQueryCriteria;
-import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toPage;
+import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobQueryModelConverters.toGrpcPagination;
+import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobQueryModelConverters.toJobQueryCriteria;
+import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobQueryModelConverters.toPage;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.safeOnError;
 import static com.netflix.titus.runtime.endpoint.metadata.CallMetadataUtils.execute;
 import static com.netflix.titus.runtime.endpoint.v3.grpc.TitusPaginationUtils.checkPageIsValid;
@@ -193,7 +193,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     private Optional<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> validateAndConvertJobDescriptorToCoreModel(JobDescriptor jobDescriptor, StreamObserver<JobId> responseObserver) {
         if (configuration.isJobSizeValidationEnabled()) {
-            com.netflix.titus.api.jobmanager.model.job.JobDescriptor coreJobDescriptor = V3GrpcModelConverters.toCoreJobDescriptor(jobDescriptor);
+            com.netflix.titus.api.jobmanager.model.job.JobDescriptor coreJobDescriptor = GrpcJobManagementModelConverters.toCoreJobDescriptor(jobDescriptor);
 
             Tier tier = findTier(coreJobDescriptor);
             ResourceDimension requestedResources = toResourceDimension(coreJobDescriptor.getContainer().getContainerResources());
@@ -209,7 +209,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
         com.netflix.titus.api.jobmanager.model.job.JobDescriptor coreJobDescriptor;
         try {
-            coreJobDescriptor = V3GrpcModelConverters.toCoreJobDescriptor(cellDecorator.ensureCellInfo(jobDescriptor));
+            coreJobDescriptor = GrpcJobManagementModelConverters.toCoreJobDescriptor(cellDecorator.ensureCellInfo(jobDescriptor));
         } catch (Exception e) {
             safeOnError(logger, TitusServiceException.invalidArgument(e), responseObserver);
             return Optional.empty();
@@ -257,7 +257,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
                     JobManagerCursors::coreJobIndexOf,
                     JobManagerCursors::newCoreCursorFrom
             );
-            List<Job> grpcJobs = queryResult.getLeft().stream().map(V3GrpcModelConverters::toGrpcJob).collect(Collectors.toList());
+            List<Job> grpcJobs = queryResult.getLeft().stream().map(GrpcJobManagementModelConverters::toGrpcJob).collect(Collectors.toList());
 
             JobQueryResult grpcQueryResult;
             if (jobQuery.getFieldsList().isEmpty()) {
@@ -281,7 +281,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
         try {
             jobOperations.getJob(id)
-                    .map(j -> Observable.just(V3GrpcModelConverters.toGrpcJob(j)))
+                    .map(j -> Observable.just(GrpcJobManagementModelConverters.toGrpcJob(j)))
                     .orElseGet(() -> Observable.error(JobManagerException.jobNotFound(id)))
                     .subscribe(
                             responseObserver::onNext,
@@ -316,7 +316,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
             );
 
             List<Task> grpcTasks = queryResult.getLeft().stream()
-                    .map(t -> V3GrpcModelConverters.toGrpcTask(t, logStorageInfo))
+                    .map(t -> GrpcJobManagementModelConverters.toGrpcTask(t, logStorageInfo))
                     .map(this::addTaskContextToTask)
                     .collect(Collectors.toList());
 
@@ -344,7 +344,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
             jobOperations.findTaskById(id)
                     .map(p -> {
                         com.netflix.titus.api.jobmanager.model.job.Task task = p.getRight();
-                        return Observable.just(V3GrpcModelConverters.toGrpcTask(task, logStorageInfo));
+                        return Observable.just(GrpcJobManagementModelConverters.toGrpcTask(task, logStorageInfo));
                     })
                     .orElseGet(() -> Observable.error(JobManagerException.taskNotFound(id)))
                     .map(this::addTaskContextToTask)
@@ -361,7 +361,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     @Override
     public void updateJobCapacity(JobCapacityUpdate request, StreamObserver<Empty> responseObserver) {
         execute(callMetadataResolver, responseObserver, callMetadata -> {
-            CapacityAttributes capacityAttributes = V3GrpcModelConverters.toCoreCapacityAttributes(request.getCapacity());
+            CapacityAttributes capacityAttributes = GrpcJobManagementModelConverters.toCoreCapacityAttributes(request.getCapacity());
             verifyServiceJob(request.getJobId(), capacityAttributes);
 
             authorizeJobUpdate(callMetadata, request.getJobId())
@@ -381,7 +381,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     @Override
     public void updateJobCapacityWithOptionalAttributes(JobCapacityUpdateWithOptionalAttributes request, StreamObserver<Empty> responseObserver) {
         execute(callMetadataResolver, responseObserver, callMetadata -> {
-            CapacityAttributes capacityAttributes = V3GrpcModelConverters.toCoreCapacityAttributes(request.getJobCapacityWithOptionalAttributes());
+            CapacityAttributes capacityAttributes = GrpcJobManagementModelConverters.toCoreCapacityAttributes(request.getJobCapacityWithOptionalAttributes());
             verifyServiceJob(request.getJobId(), capacityAttributes);
             logger.info("updateJobCapacityWithOptionalAttributes to {}", capacityAttributes);
 
@@ -402,7 +402,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     @Override
     public void updateJobProcesses(JobProcessesUpdate request, StreamObserver<Empty> responseObserver) {
         execute(callMetadataResolver, responseObserver, callMetadata -> {
-            ServiceJobProcesses serviceJobProcesses = V3GrpcModelConverters.toCoreServiceJobProcesses(request.getServiceJobProcesses());
+            ServiceJobProcesses serviceJobProcesses = GrpcJobManagementModelConverters.toCoreServiceJobProcesses(request.getServiceJobProcesses());
 
             authorizeJobUpdate(callMetadata, request.getJobId())
                     .concatWith(jobOperations.updateServiceJobProcessesReactor(request.getJobId(), serviceJobProcesses, callMetadata))
@@ -468,7 +468,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
         DisruptionBudget coreDisruptionBudget;
         try {
-            coreDisruptionBudget = V3GrpcModelConverters.toCoreDisruptionBudget(grpcDisruptionBudget);
+            coreDisruptionBudget = GrpcJobManagementModelConverters.toCoreDisruptionBudget(grpcDisruptionBudget);
         } catch (Exception e) {
             safeOnError(logger, TitusServiceException.invalidArgument(e), responseObserver);
             return Optional.empty();
@@ -614,7 +614,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
         Observable<JobChangeNotification> eventStream = jobOperations.observeJobs(jobsPredicate, tasksPredicate)
                 .observeOn(Schedulers.io())
-                .map(event -> V3GrpcModelConverters.toGrpcJobChangeNotification(event, logStorageInfo))
+                .map(event -> GrpcJobManagementModelConverters.toGrpcJobChangeNotification(event, logStorageInfo))
                 .compose(ObservableExt.head(() -> {
                     List<JobChangeNotification> snapshot = createJobsSnapshot(jobsPredicate, tasksPredicate);
                     snapshot.add(SNAPSHOT_END_MARKER);
@@ -642,7 +642,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
         String jobId = request.getId();
         Observable<JobChangeNotification> eventStream = jobOperations.observeJob(jobId)
                 .observeOn(Schedulers.io())
-                .map(event -> V3GrpcModelConverters.toGrpcJobChangeNotification(event, logStorageInfo))
+                .map(event -> GrpcJobManagementModelConverters.toGrpcJobChangeNotification(event, logStorageInfo))
                 .compose(ObservableExt.head(() -> {
                     List<JobChangeNotification> snapshot = createJobSnapshot(jobId);
                     snapshot.add(SNAPSHOT_END_MARKER);
@@ -798,14 +798,14 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     }
 
     private JobChangeNotification toJobChangeNotification(com.netflix.titus.api.jobmanager.model.job.Job<?> coreJob) {
-        Job grpcJob = V3GrpcModelConverters.toGrpcJob(coreJob);
+        Job grpcJob = GrpcJobManagementModelConverters.toGrpcJob(coreJob);
         return JobChangeNotification.newBuilder()
                 .setJobUpdate(JobChangeNotification.JobUpdate.newBuilder().setJob(grpcJob))
                 .build();
     }
 
     private JobChangeNotification toJobChangeNotification(com.netflix.titus.api.jobmanager.model.job.Task coreTask) {
-        com.netflix.titus.grpc.protogen.Task grpcTask = V3GrpcModelConverters.toGrpcTask(coreTask, logStorageInfo);
+        com.netflix.titus.grpc.protogen.Task grpcTask = GrpcJobManagementModelConverters.toGrpcTask(coreTask, logStorageInfo);
         return JobChangeNotification.newBuilder()
                 .setTaskUpdate(JobChangeNotification.TaskUpdate.newBuilder().setTask(grpcTask))
                 .build();

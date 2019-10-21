@@ -35,7 +35,7 @@ import reactor.core.publisher.Mono;
 import rx.Observable;
 import rx.Scheduler;
 
-import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toPage;
+import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobQueryModelConverters.toPage;
 
 public class JobExecutionPlanRunner extends ExecutionPlanRunner {
 

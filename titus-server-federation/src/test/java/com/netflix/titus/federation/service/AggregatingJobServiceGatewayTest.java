@@ -61,7 +61,7 @@ import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.runtime.endpoint.metadata.AnonymousCallMetadataResolver;
-import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
+import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import com.netflix.titus.runtime.jobmanager.JobManagerCursors;
 import com.netflix.titus.testkit.grpc.TestStreamObserver;
 import io.grpc.Status;
@@ -77,7 +77,7 @@ import rx.subjects.PublishSubject;
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_CELL;
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_STACK;
 import static com.netflix.titus.federation.service.ServiceTests.walkAllPages;
-import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toGrpcPage;
+import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobQueryModelConverters.toGrpcPage;
 import static io.grpc.Status.DEADLINE_EXCEEDED;
 import static io.grpc.Status.INTERNAL;
 import static io.grpc.Status.NOT_FOUND;
@@ -168,16 +168,16 @@ public class AggregatingJobServiceGatewayTest {
         final List<Job> cellTwoSnapshot = new ArrayList<>();
         for (int i = 0; i < 5; i++) {
             cellOneSnapshot.addAll(
-                    dataGenerator.newBatchJobs(random.nextInt(10), V3GrpcModelConverters::toGrpcJob)
+                    dataGenerator.newBatchJobs(random.nextInt(10), GrpcJobManagementModelConverters::toGrpcJob)
             );
             cellTwoSnapshot.addAll(
-                    dataGenerator.newBatchJobs(random.nextInt(10), V3GrpcModelConverters::toGrpcJob)
+                    dataGenerator.newBatchJobs(random.nextInt(10), GrpcJobManagementModelConverters::toGrpcJob)
             );
             cellOneSnapshot.addAll(
-                    dataGenerator.newServiceJobs(random.nextInt(10), V3GrpcModelConverters::toGrpcJob)
+                    dataGenerator.newServiceJobs(random.nextInt(10), GrpcJobManagementModelConverters::toGrpcJob)
             );
             cellTwoSnapshot.addAll(
-                    dataGenerator.newServiceJobs(random.nextInt(10), V3GrpcModelConverters::toGrpcJob)
+                    dataGenerator.newServiceJobs(random.nextInt(10), GrpcJobManagementModelConverters::toGrpcJob)
             );
             clock.advanceTime(1, TimeUnit.MINUTES);
         }
@@ -211,12 +211,12 @@ public class AggregatingJobServiceGatewayTest {
         final List<Job> cellTwoSnapshot = new ArrayList<>();
         for (int i = 0; i < 5; i++) {
             Iterables.addAll(cellOneSnapshot, Iterables.concat(
-                    dataGenerator.newBatchJobs(random.nextInt(10), V3GrpcModelConverters::toGrpcJob),
-                    dataGenerator.newServiceJobs(random.nextInt(10), V3GrpcModelConverters::toGrpcJob)
+                    dataGenerator.newBatchJobs(random.nextInt(10), GrpcJobManagementModelConverters::toGrpcJob),
+                    dataGenerator.newServiceJobs(random.nextInt(10), GrpcJobManagementModelConverters::toGrpcJob)
             ));
             Iterables.addAll(cellTwoSnapshot, Iterables.concat(
-                    dataGenerator.newBatchJobs(random.nextInt(10), V3GrpcModelConverters::toGrpcJob),
-                    dataGenerator.newServiceJobs(random.nextInt(10), V3GrpcModelConverters::toGrpcJob)
+                    dataGenerator.newBatchJobs(random.nextInt(10), GrpcJobManagementModelConverters::toGrpcJob),
+                    dataGenerator.newServiceJobs(random.nextInt(10), GrpcJobManagementModelConverters::toGrpcJob)
             ));
             clock.advanceTime(1, TimeUnit.MINUTES);
         }
@@ -262,13 +262,13 @@ public class AggregatingJobServiceGatewayTest {
         final List<Job> cellTwoSnapshot = new ArrayList<>();
         for (int i = 0; i < 5; i++) {
             clock.advanceTime(1, TimeUnit.SECONDS);
-            cellOneSnapshot.addAll(dataGenerator.newBatchJobs(5, V3GrpcModelConverters::toGrpcJob));
+            cellOneSnapshot.addAll(dataGenerator.newBatchJobs(5, GrpcJobManagementModelConverters::toGrpcJob));
             clock.advanceTime(1, TimeUnit.SECONDS);
-            cellTwoSnapshot.addAll(dataGenerator.newServiceJobs(5, V3GrpcModelConverters::toGrpcJob));
+            cellTwoSnapshot.addAll(dataGenerator.newServiceJobs(5, GrpcJobManagementModelConverters::toGrpcJob));
             clock.advanceTime(1, TimeUnit.SECONDS);
-            cellTwoSnapshot.addAll(dataGenerator.newBatchJobs(5, V3GrpcModelConverters::toGrpcJob));
+            cellTwoSnapshot.addAll(dataGenerator.newBatchJobs(5, GrpcJobManagementModelConverters::toGrpcJob));
             clock.advanceTime(1, TimeUnit.SECONDS);
-            cellTwoSnapshot.addAll(dataGenerator.newServiceJobs(5, V3GrpcModelConverters::toGrpcJob));
+            cellTwoSnapshot.addAll(dataGenerator.newServiceJobs(5, GrpcJobManagementModelConverters::toGrpcJob));
         }
         cellOne.getServiceRegistry().addService(new CellWithFixedJobsService(cellOneSnapshot, cellOneUpdates.serialize()));
         cellTwo.getServiceRegistry().addService(new CellWithFixedJobsService(cellTwoSnapshot, cellTwoUpdates.serialize()));
@@ -292,9 +292,9 @@ public class AggregatingJobServiceGatewayTest {
     public void findJobsWithEmptyCell() {
         final List<Job> cellTwoSnapshot = new ArrayList<>();
         for (int i = 0; i < 5; i++) {
-            cellTwoSnapshot.addAll(dataGenerator.newBatchJobs(5, V3GrpcModelConverters::toGrpcJob));
+            cellTwoSnapshot.addAll(dataGenerator.newBatchJobs(5, GrpcJobManagementModelConverters::toGrpcJob));
             clock.advanceTime(1, TimeUnit.SECONDS);
-            cellTwoSnapshot.addAll(dataGenerator.newServiceJobs(5, V3GrpcModelConverters::toGrpcJob));
+            cellTwoSnapshot.addAll(dataGenerator.newServiceJobs(5, GrpcJobManagementModelConverters::toGrpcJob));
             clock.advanceTime(1, TimeUnit.MINUTES);
         }
         cellOne.getServiceRegistry().addService(new CellWithFixedJobsService(Collections.emptyList(), cellOneUpdates.serialize()));
@@ -323,8 +323,8 @@ public class AggregatingJobServiceGatewayTest {
     public void findJobsWithFailingCell() {
         List<Job> cellTwoSnapshot = new ArrayList<>();
         for (int i = 0; i < 5; i++) {
-            cellTwoSnapshot.addAll(dataGenerator.newBatchJobs(5, V3GrpcModelConverters::toGrpcJob));
-            cellTwoSnapshot.addAll(dataGenerator.newServiceJobs(5, V3GrpcModelConverters::toGrpcJob));
+            cellTwoSnapshot.addAll(dataGenerator.newBatchJobs(5, GrpcJobManagementModelConverters::toGrpcJob));
+            cellTwoSnapshot.addAll(dataGenerator.newServiceJobs(5, GrpcJobManagementModelConverters::toGrpcJob));
             clock.advanceTime(1, TimeUnit.MINUTES);
         }
         cellOne.getServiceRegistry().addService(new CellWithFailingJobManagementService());
@@ -365,7 +365,7 @@ public class AggregatingJobServiceGatewayTest {
     @Test
     public void findJob() {
         Random random = new Random();
-        List<Job> cellOneSnapshot = new ArrayList<>(dataGenerator.newServiceJobs(10, V3GrpcModelConverters::toGrpcJob));
+        List<Job> cellOneSnapshot = new ArrayList<>(dataGenerator.newServiceJobs(10, GrpcJobManagementModelConverters::toGrpcJob));
         cellOne.getServiceRegistry().addService(new CellWithFixedJobsService(cellOneSnapshot, cellOneUpdates.serialize()));
         cellTwo.getServiceRegistry().addService(new CellWithFixedJobsService(Collections.emptyList(), cellTwoUpdates.serialize()));
 
@@ -380,7 +380,7 @@ public class AggregatingJobServiceGatewayTest {
     @Test
     public void findJobWithFailingCell() {
         Random random = new Random();
-        List<Job> cellOneSnapshot = new ArrayList<>(dataGenerator.newServiceJobs(10, V3GrpcModelConverters::toGrpcJob));
+        List<Job> cellOneSnapshot = new ArrayList<>(dataGenerator.newServiceJobs(10, GrpcJobManagementModelConverters::toGrpcJob));
         cellOne.getServiceRegistry().addService(new CellWithFixedJobsService(cellOneSnapshot, cellOneUpdates.serialize()));
         cellTwo.getServiceRegistry().addService(new CellWithFailingJobManagementService());
 
@@ -407,8 +407,8 @@ public class AggregatingJobServiceGatewayTest {
     @Test
     public void killJob() {
         Random random = new Random();
-        List<Job> cellOneSnapshot = new ArrayList<>(dataGenerator.newServiceJobs(12, V3GrpcModelConverters::toGrpcJob));
-        List<Job> cellTwoSnapshot = new ArrayList<>(dataGenerator.newBatchJobs(7, V3GrpcModelConverters::toGrpcJob));
+        List<Job> cellOneSnapshot = new ArrayList<>(dataGenerator.newServiceJobs(12, GrpcJobManagementModelConverters::toGrpcJob));
+        List<Job> cellTwoSnapshot = new ArrayList<>(dataGenerator.newBatchJobs(7, GrpcJobManagementModelConverters::toGrpcJob));
         CellWithFixedJobsService cellOneService = new CellWithFixedJobsService(cellOneSnapshot, cellOneUpdates.serialize());
         CellWithFixedJobsService cellTwoService = new CellWithFixedJobsService(cellTwoSnapshot, cellTwoUpdates.serialize());
         cellOne.getServiceRegistry().addService(cellOneService);
@@ -898,16 +898,16 @@ public class AggregatingJobServiceGatewayTest {
         for (int i = 0; i < 5; i++) {
             for (int j = 0; j < 5; j++) {
                 clock.advanceTime(1, TimeUnit.SECONDS);
-                cellOneSnapshot.add(dataGenerator.newBatchJob(V3GrpcModelConverters::toGrpcJob));
+                cellOneSnapshot.add(dataGenerator.newBatchJob(GrpcJobManagementModelConverters::toGrpcJob));
 
                 clock.advanceTime(1, TimeUnit.SECONDS);
-                cellTwoSnapshot.add(dataGenerator.newServiceJob(V3GrpcModelConverters::toGrpcJob));
+                cellTwoSnapshot.add(dataGenerator.newServiceJob(GrpcJobManagementModelConverters::toGrpcJob));
 
                 clock.advanceTime(1, TimeUnit.SECONDS);
-                cellOneSnapshot.add(dataGenerator.newServiceJob(V3GrpcModelConverters::toGrpcJob));
+                cellOneSnapshot.add(dataGenerator.newServiceJob(GrpcJobManagementModelConverters::toGrpcJob));
 
                 clock.advanceTime(1, TimeUnit.SECONDS);
-                cellTwoSnapshot.add(dataGenerator.newBatchJob(V3GrpcModelConverters::toGrpcJob));
+                cellTwoSnapshot.add(dataGenerator.newBatchJob(GrpcJobManagementModelConverters::toGrpcJob));
             }
             clock.advanceTime(9, TimeUnit.SECONDS);
         }

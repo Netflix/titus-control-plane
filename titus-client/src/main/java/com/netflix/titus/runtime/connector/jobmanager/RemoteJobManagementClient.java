@@ -54,8 +54,8 @@ import com.netflix.titus.grpc.protogen.TaskId;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskMoveRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
-import com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters;
-import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
+import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobQueryModelConverters;
+import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -71,7 +71,7 @@ public class RemoteJobManagementClient implements JobManagementClient {
 
     @Override
     public Mono<String> createJob(JobDescriptor jobDescriptor, CallMetadata callMetadata) {
-        return stub.createJob(V3GrpcModelConverters.toGrpcJobDescriptor(jobDescriptor), callMetadata).map(JobId::getId);
+        return stub.createJob(GrpcJobManagementModelConverters.toGrpcJobDescriptor(jobDescriptor), callMetadata).map(JobId::getId);
     }
 
     @Override
@@ -79,7 +79,7 @@ public class RemoteJobManagementClient implements JobManagementClient {
         return stub.updateJobCapacity(
                 JobCapacityUpdate.newBuilder()
                         .setJobId(jobId)
-                        .setCapacity(V3GrpcModelConverters.toGrpcCapacity(capacity))
+                        .setCapacity(GrpcJobManagementModelConverters.toGrpcCapacity(capacity))
                         .build(),
                 callMetadata
         );
@@ -101,7 +101,7 @@ public class RemoteJobManagementClient implements JobManagementClient {
         return stub.updateJobProcesses(
                 JobProcessesUpdate.newBuilder()
                         .setJobId(jobId)
-                        .setServiceJobProcesses(V3GrpcModelConverters.toGrpcServiceJobProcesses(serviceJobProcesses))
+                        .setServiceJobProcesses(GrpcJobManagementModelConverters.toGrpcServiceJobProcesses(serviceJobProcesses))
                         .build(),
                 callMetadata
         );
@@ -112,7 +112,7 @@ public class RemoteJobManagementClient implements JobManagementClient {
         return stub.updateJobDisruptionBudget(
                 JobDisruptionBudgetUpdate.newBuilder()
                         .setJobId(jobId)
-                        .setDisruptionBudget(V3GrpcModelConverters.toGrpcDisruptionBudget(disruptionBudget))
+                        .setDisruptionBudget(GrpcJobManagementModelConverters.toGrpcDisruptionBudget(disruptionBudget))
                         .build(),
                 callMetadata
         );
@@ -120,19 +120,19 @@ public class RemoteJobManagementClient implements JobManagementClient {
 
     @Override
     public Mono<Job> findJob(String jobId) {
-        return stub.findJob(JobId.newBuilder().setId(jobId).build()).map(V3GrpcModelConverters::toCoreJob);
+        return stub.findJob(JobId.newBuilder().setId(jobId).build()).map(GrpcJobManagementModelConverters::toCoreJob);
     }
 
     @Override
     public Mono<PageResult<Job<?>>> findJobs(Map<String, String> filteringCriteria, Page page) {
         return (Mono) stub.findJobs(
                 JobQuery.newBuilder()
-                        .setPage(CommonGrpcModelConverters.toGrpcPage(page))
+                        .setPage(GrpcJobQueryModelConverters.toGrpcPage(page))
                         .putAllFilteringCriteria(filteringCriteria)
                         .build()
         ).map(response -> PageResult.pageOf(
-                response.getItemsList().stream().map(V3GrpcModelConverters::toCoreJob).collect(Collectors.toList()),
-                CommonGrpcModelConverters.toPagination(response.getPagination())
+                response.getItemsList().stream().map(GrpcJobManagementModelConverters::toCoreJob).collect(Collectors.toList()),
+                GrpcJobQueryModelConverters.toPagination(response.getPagination())
         ));
     }
 
@@ -148,14 +148,14 @@ public class RemoteJobManagementClient implements JobManagementClient {
                     .map(event -> {
                         switch (event.getNotificationCase()) {
                             case JOBUPDATE:
-                                Job newJob = V3GrpcModelConverters.toCoreJob(event.getJobUpdate().getJob());
+                                Job newJob = GrpcJobManagementModelConverters.toCoreJob(event.getJobUpdate().getJob());
                                 Job oldJob = jobRef.get();
                                 jobRef.set(newJob);
                                 return oldJob == null
                                         ? JobUpdateEvent.newJob(newJob, JobManagerConstants.GRPC_REPLICATOR_CALL_METADATA)
                                         : JobUpdateEvent.jobChange(newJob, oldJob, JobManagerConstants.GRPC_REPLICATOR_CALL_METADATA);
                             case TASKUPDATE:
-                                Task newTask = V3GrpcModelConverters.toCoreTask(jobRef.get(), event.getTaskUpdate().getTask());
+                                Task newTask = GrpcJobManagementModelConverters.toCoreTask(jobRef.get(), event.getTaskUpdate().getTask());
                                 Task oldTask = taskMap.get(newTask.getId());
                                 taskMap.put(newTask.getId(), newTask);
 
@@ -186,7 +186,7 @@ public class RemoteJobManagementClient implements JobManagementClient {
                     .map(event -> {
                         switch (event.getNotificationCase()) {
                             case JOBUPDATE:
-                                Job newJob = V3GrpcModelConverters.toCoreJob(event.getJobUpdate().getJob());
+                                Job newJob = GrpcJobManagementModelConverters.toCoreJob(event.getJobUpdate().getJob());
                                 Job oldJob = jobMap.get(newJob.getId());
                                 jobMap.put(newJob.getId(), newJob);
                                 return oldJob == null
@@ -196,7 +196,7 @@ public class RemoteJobManagementClient implements JobManagementClient {
                                 com.netflix.titus.grpc.protogen.Task grpcTask = event.getTaskUpdate().getTask();
                                 Job job = jobMap.get(grpcTask.getJobId());
 
-                                Task newTask = V3GrpcModelConverters.toCoreTask(job, grpcTask);
+                                Task newTask = GrpcJobManagementModelConverters.toCoreTask(job, grpcTask);
                                 Task oldTask = taskMap.get(newTask.getId());
                                 taskMap.put(newTask.getId(), newTask);
 
@@ -248,19 +248,19 @@ public class RemoteJobManagementClient implements JobManagementClient {
 
     @Override
     public Mono<Task> findTask(String taskId) {
-        return stub.findTask(TaskId.newBuilder().setId(taskId).build()).map(V3GrpcModelConverters::toCoreTask);
+        return stub.findTask(TaskId.newBuilder().setId(taskId).build()).map(GrpcJobManagementModelConverters::toCoreTask);
     }
 
     @Override
     public Mono<PageResult<Task>> findTasks(Map<String, String> filteringCriteria, Page page) {
         return stub.findTasks(
                 TaskQuery.newBuilder()
-                        .setPage(CommonGrpcModelConverters.toGrpcPage(page))
+                        .setPage(GrpcJobQueryModelConverters.toGrpcPage(page))
                         .putAllFilteringCriteria(filteringCriteria)
                         .build()
         ).map(response -> PageResult.pageOf(
-                response.getItemsList().stream().map(V3GrpcModelConverters::toCoreTask).collect(Collectors.toList()),
-                CommonGrpcModelConverters.toPagination(response.getPagination())
+                response.getItemsList().stream().map(GrpcJobManagementModelConverters::toCoreTask).collect(Collectors.toList()),
+                GrpcJobQueryModelConverters.toPagination(response.getPagination())
         ));
     }
 

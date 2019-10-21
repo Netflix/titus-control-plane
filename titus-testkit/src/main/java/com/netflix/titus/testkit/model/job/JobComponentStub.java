@@ -45,7 +45,7 @@ import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.runtime.endpoint.common.EmptyLogStorageInfo;
-import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
+import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import rx.Observable;
 
 public class JobComponentStub {
@@ -211,7 +211,7 @@ public class JobComponentStub {
             if (coreEvent == JobManagerEvent.snapshotMarker()) {
                 return GRPC_SNAPSHOT_MARKER;
             }
-            return V3GrpcModelConverters.toGrpcJobChangeNotification(coreEvent, EmptyLogStorageInfo.empty());
+            return GrpcJobManagementModelConverters.toGrpcJobChangeNotification(coreEvent, EmptyLogStorageInfo.empty());
         });
     }
 }

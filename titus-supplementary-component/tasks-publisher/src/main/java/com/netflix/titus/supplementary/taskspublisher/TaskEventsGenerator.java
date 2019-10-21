@@ -22,7 +22,7 @@ import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.Task;
-import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
+import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import com.netflix.titus.supplementary.taskspublisher.es.ElasticSearchUtils;
 import reactor.core.publisher.ConnectableFlux;
 import reactor.core.publisher.Flux;
@@ -58,8 +58,8 @@ public class TaskEventsGenerator {
                     final Task task = taskMonoPair.getLeft();
                     return taskMonoPair.getRight()
                             .map(job -> {
-                                final com.netflix.titus.api.jobmanager.model.job.Job coreJob = V3GrpcModelConverters.toCoreJob(job);
-                                final com.netflix.titus.api.jobmanager.model.job.Task coreTask = V3GrpcModelConverters.toCoreTask(coreJob, task);
+                                final com.netflix.titus.api.jobmanager.model.job.Job coreJob = GrpcJobManagementModelConverters.toCoreJob(job);
+                                final com.netflix.titus.api.jobmanager.model.job.Task coreTask = GrpcJobManagementModelConverters.toCoreTask(coreJob, task);
                                 return TaskDocument.fromV3Task(coreTask, coreJob, ElasticSearchUtils.DATE_FORMAT, buildTaskContext(task));
                             }).flux();
                 })

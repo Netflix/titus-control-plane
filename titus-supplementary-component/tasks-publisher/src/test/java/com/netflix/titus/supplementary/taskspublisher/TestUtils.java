@@ -21,14 +21,14 @@ import java.util.stream.IntStream;
 
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.runtime.endpoint.common.EmptyLogStorageInfo;
-import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
+import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 
 public class TestUtils {
 
     static List<Task> generateSampleTasks(int numTasks) {
         return IntStream.range(0, numTasks)
-                .mapToObj(ignored -> V3GrpcModelConverters.toGrpcTask(JobGenerator.oneBatchTask(), new EmptyLogStorageInfo<>()))
+                .mapToObj(ignored -> GrpcJobManagementModelConverters.toGrpcTask(JobGenerator.oneBatchTask(), new EmptyLogStorageInfo<>()))
                 .collect(Collectors.toList());
     }
 }

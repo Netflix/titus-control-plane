@@ -21,7 +21,7 @@ import com.google.inject.TypeLiteral;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceImplBase;
 import com.netflix.titus.master.jobmanager.endpoint.v3.grpc.DefaultJobManagementServiceGrpc;
-import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
+import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
 
 public class V3EndpointModule extends AbstractModule {
 

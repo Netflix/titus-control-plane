@@ -8,6 +8,7 @@ include 'titus-common',\
         'titus-common-testkit',\
         'titus-api',\
         'titus-grpc-api',\
+        'titus-client',\
         'titus-server-gateway',\
         'titus-server-master',\
         'titus-server-federation',\

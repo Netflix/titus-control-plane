@@ -1,6 +1,7 @@
 dependencies {
     compile project(':titus-common')
     compile project(':titus-api')
+    compile project(':titus-client')
     compile project(':titus-grpc-api')
     compile project(':titus-common-server')
 

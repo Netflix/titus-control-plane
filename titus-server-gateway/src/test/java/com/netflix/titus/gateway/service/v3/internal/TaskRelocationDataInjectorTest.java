@@ -28,6 +28,7 @@ import com.netflix.titus.api.relocation.model.TaskRelocationPlan.TaskRelocationR
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.runtime.connector.relocation.RelocationDataReplicator;
+import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import com.netflix.titus.runtime.jobmanager.JobManagerConfiguration;
 import com.netflix.titus.grpc.protogen.MigrationDetails;
 import com.netflix.titus.grpc.protogen.Task;
@@ -45,7 +46,6 @@ import rx.schedulers.Schedulers;
 import rx.schedulers.TestScheduler;
 
 import static com.netflix.titus.common.util.CollectionsExt.asSet;
-import static com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters.toGrpcTask;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -59,8 +59,8 @@ public class TaskRelocationDataInjectorTest {
 
     private final TitusRuntime titusRuntime = TitusRuntimes.test(testScheduler);
 
-    private static final Task TASK1 = toGrpcTask(JobGenerator.oneBatchTask().toBuilder().withId("task1").build(), EmptyLogStorageInfo.empty());
-    private static final Task TASK2 = toGrpcTask(JobGenerator.oneBatchTask().toBuilder().withId("task2").build(), EmptyLogStorageInfo.empty());
+    private static final Task TASK1 = GrpcJobManagementModelConverters.toGrpcTask(JobGenerator.oneBatchTask().toBuilder().withId("task1").build(), EmptyLogStorageInfo.empty());
+    private static final Task TASK2 = GrpcJobManagementModelConverters.toGrpcTask(JobGenerator.oneBatchTask().toBuilder().withId("task2").build(), EmptyLogStorageInfo.empty());
 
     private final GrpcClientConfiguration grpcConfiguration = mock(GrpcClientConfiguration.class);
     private final JobManagerConfiguration jobManagerConfiguration = mock(JobManagerConfiguration.class);

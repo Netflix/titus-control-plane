@@ -44,8 +44,8 @@ import io.grpc.stub.StreamObserver;
 import rx.Observable;
 import rx.Subscription;
 
-import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toGrpcPagination;
-import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toPage;
+import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobQueryModelConverters.toGrpcPagination;
+import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobQueryModelConverters.toPage;
 import static io.grpc.Status.NOT_FOUND;
 
 class CellWithFixedJobsService extends JobManagementServiceGrpc.JobManagementServiceImplBase {

@@ -51,7 +51,7 @@ import com.netflix.titus.runtime.connector.relocation.RelocationDataReplicationM
 import com.netflix.titus.runtime.connector.relocation.noop.NoOpRelocationConnectorModule;
 import com.netflix.titus.runtime.connector.titusmaster.TitusMasterConnectorModule;
 import com.netflix.titus.runtime.endpoint.common.EmptyLogStorageInfo;
-import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
+import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
 import com.netflix.titus.runtime.endpoint.admission.JobSecurityValidatorModule;
 import com.netflix.titus.runtime.endpoint.admission.TitusAdmissionModule;
 

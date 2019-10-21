@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.titus.runtime.endpoint.common.EmptyLogStorageInfo;
-import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
+import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import com.netflix.titus.supplementary.taskspublisher.TitusClient.JobOrTaskUpdate;
 import com.netflix.titus.supplementary.taskspublisher.es.EsClient;
 import com.netflix.titus.supplementary.taskspublisher.es.EsPublisher;
@@ -48,8 +48,8 @@ public class TaskEventsGeneratorTest {
     private TitusClient mockTitusClient(int numTasks) {
         TitusClient titusClient = mock(TitusClient.class);
         when(titusClient.getJobAndTaskUpdates()).thenReturn(Flux.fromStream(TestUtils.generateSampleTasks(numTasks).stream().map(JobOrTaskUpdate::taskUpdate)));
-        when(titusClient.getTask(anyString())).thenReturn(Mono.just(V3GrpcModelConverters.toGrpcTask(JobGenerator.oneBatchTask(), new EmptyLogStorageInfo<>())));
-        when(titusClient.getJobById(anyString())).thenReturn(Mono.just(V3GrpcModelConverters.toGrpcJob(JobGenerator.oneBatchJob())));
+        when(titusClient.getTask(anyString())).thenReturn(Mono.just(GrpcJobManagementModelConverters.toGrpcTask(JobGenerator.oneBatchTask(), new EmptyLogStorageInfo<>())));
+        when(titusClient.getJobById(anyString())).thenReturn(Mono.just(GrpcJobManagementModelConverters.toGrpcJob(JobGenerator.oneBatchJob())));
         return titusClient;
     }
 

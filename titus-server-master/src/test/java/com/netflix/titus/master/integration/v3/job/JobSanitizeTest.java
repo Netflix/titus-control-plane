@@ -49,7 +49,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import reactor.core.publisher.Mono;
 
-import static com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters.toGrpcJobDescriptor;
+import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters.toGrpcJobDescriptor;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.batchJobDescriptors;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;

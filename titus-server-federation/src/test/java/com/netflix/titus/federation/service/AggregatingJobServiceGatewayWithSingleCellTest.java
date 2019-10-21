@@ -41,7 +41,7 @@ import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.runtime.endpoint.metadata.AnonymousCallMetadataResolver;
-import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
+import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import com.netflix.titus.runtime.jobmanager.JobManagerCursors;
 import io.grpc.testing.GrpcServerRule;
 import org.junit.Before;
@@ -50,7 +50,7 @@ import org.junit.Test;
 import rx.observers.AssertableSubscriber;
 import rx.subjects.PublishSubject;
 
-import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toGrpcPage;
+import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobQueryModelConverters.toGrpcPage;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
@@ -115,8 +115,8 @@ public class AggregatingJobServiceGatewayWithSingleCellTest {
         Random random = new Random();
         final List<Job> cellSnapshot = new ArrayList<>();
         for (int i = 0; i < 5; i++) {
-            cellSnapshot.addAll(dataGenerator.newBatchJobs(random.nextInt(10), V3GrpcModelConverters::toGrpcJob));
-            cellSnapshot.addAll(dataGenerator.newServiceJobs(random.nextInt(10), V3GrpcModelConverters::toGrpcJob));
+            cellSnapshot.addAll(dataGenerator.newBatchJobs(random.nextInt(10), GrpcJobManagementModelConverters::toGrpcJob));
+            cellSnapshot.addAll(dataGenerator.newServiceJobs(random.nextInt(10), GrpcJobManagementModelConverters::toGrpcJob));
             clock.advanceTime(1, TimeUnit.MINUTES);
         }
         cell.getServiceRegistry().addService(new CellWithFixedJobsService(cellSnapshot, PublishSubject.<JobChangeNotification>create()));
