@@ -28,7 +28,7 @@ import com.netflix.titus.grpc.protogen.LoadBalancerId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.toGrpcPagination;
+import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobQueryModelConverters.toGrpcPagination;
 
 /**
  * Collection of functions to convert load balancer models from internal to gRPC formats.

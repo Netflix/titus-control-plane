@@ -20,7 +20,7 @@ import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskId;
 import com.netflix.titus.runtime.endpoint.common.EmptyLogStorageInfo;
-import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
+import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import io.grpc.ManagedChannel;
 import io.grpc.Server;
@@ -49,14 +49,14 @@ public class TitusClientImplTest {
     public static class MockJobManagerService extends JobManagementServiceGrpc.JobManagementServiceImplBase {
         @Override
         public void findTask(TaskId request, StreamObserver<Task> responseObserver) {
-            final Task grpcTask = V3GrpcModelConverters.toGrpcTask(taskOne, new EmptyLogStorageInfo<>());
+            final Task grpcTask = GrpcJobManagementModelConverters.toGrpcTask(taskOne, new EmptyLogStorageInfo<>());
             responseObserver.onNext(grpcTask);
             responseObserver.onCompleted();
         }
 
         @Override
         public void findJob(JobId request, StreamObserver<com.netflix.titus.grpc.protogen.Job> responseObserver) {
-            final com.netflix.titus.grpc.protogen.Job grpcJob = V3GrpcModelConverters.toGrpcJob(jobOne);
+            final com.netflix.titus.grpc.protogen.Job grpcJob = GrpcJobManagementModelConverters.toGrpcJob(jobOne);
             responseObserver.onNext(grpcJob);
             responseObserver.onCompleted();
         }
@@ -65,7 +65,7 @@ public class TitusClientImplTest {
         public void observeJobs(ObserveJobsQuery request, StreamObserver<JobChangeNotification> responseObserver) {
             final List<BatchJobTask> batchJobTasks = Arrays.asList(taskOne, taskTwo, taskThree, taskFour, taskFive);
             batchJobTasks.forEach(task -> {
-                final Task grpcTask = V3GrpcModelConverters.toGrpcTask(task, new EmptyLogStorageInfo<>());
+                final Task grpcTask = GrpcJobManagementModelConverters.toGrpcTask(task, new EmptyLogStorageInfo<>());
                 responseObserver.onNext(buildJobChangeNotification(grpcTask));
             });
             responseObserver.onCompleted();

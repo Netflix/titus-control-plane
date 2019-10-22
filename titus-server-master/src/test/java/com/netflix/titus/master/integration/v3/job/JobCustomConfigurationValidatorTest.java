@@ -38,7 +38,7 @@ import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
 import static com.netflix.titus.runtime.TitusEntitySanitizerModule.CUSTOM_JOB_CONFIGURATION_ROOT;
-import static com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters.toGrpcJobDescriptor;
+import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters.toGrpcJobDescriptor;
 import static com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCells.basicCell;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskBatchJobDescriptor;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskServiceJobDescriptor;

@@ -86,7 +86,7 @@ import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_ST
 import static com.netflix.titus.federation.service.CellConnectorUtil.callToCell;
 import static com.netflix.titus.federation.service.PageAggregationUtil.combinePagination;
 import static com.netflix.titus.federation.service.PageAggregationUtil.takeCombinedPage;
-import static com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters.emptyGrpcPagination;
+import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobQueryModelConverters.emptyGrpcPagination;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createRequestObservable;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createWrappedStub;
 

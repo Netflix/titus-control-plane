@@ -31,7 +31,7 @@ import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.runtime.endpoint.common.EmptyLogStorageInfo;
-import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
+import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import org.junit.Test;
 
@@ -192,6 +192,6 @@ public class GatewayJobServiceGatewayTest {
                                 .withTimestamp(index)
                                 .build()
                 ).build();
-        return V3GrpcModelConverters.toGrpcTask(coreTask, EmptyLogStorageInfo.empty());
+        return GrpcJobManagementModelConverters.toGrpcTask(coreTask, EmptyLogStorageInfo.empty());
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2019 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.endpoint.common.grpc;
+package com.netflix.titus.runtime.endpoint.v3.grpc;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -22,17 +22,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.netflix.titus.api.model.Page;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.grpc.protogen.JobDescriptor.JobSpecCase;
 import com.netflix.titus.grpc.protogen.JobQuery;
 import com.netflix.titus.grpc.protogen.JobStatus;
 import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
-import com.netflix.titus.grpc.protogen.Pagination;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.runtime.endpoint.JobQueryCriteria;
+import com.netflix.titus.runtime.endpoint.common.grpc.CommonRuntimeGrpcModelConverters;
 
 import static com.netflix.titus.common.util.CollectionsExt.asSet;
 import static com.netflix.titus.common.util.CollectionsExt.copyAndRemove;
@@ -44,7 +43,7 @@ import static java.util.Arrays.asList;
 /**
  * Collection of functions to translate between GRPC and Titus common models.
  */
-public class CommonGrpcModelConverters {
+public class GrpcJobQueryModelConverters extends CommonRuntimeGrpcModelConverters {
 
     public static final List<TaskStatus.TaskState> ALL_TASK_STATES = asList(TaskStatus.TaskState.values());
 
@@ -54,51 +53,6 @@ public class CommonGrpcModelConverters {
             "jobType", "attributes", "attributes.op", "labels", "labels.op", "jobState", "taskStates", "taskStateReasons",
             "needsMigration"
     );
-
-    public static Page toPage(com.netflix.titus.grpc.protogen.Page grpcPage) {
-        return new Page(grpcPage.getPageNumber(), grpcPage.getPageSize(), grpcPage.getCursor());
-    }
-
-    public static com.netflix.titus.grpc.protogen.Page toGrpcPage(Page runtimePage) {
-        return com.netflix.titus.grpc.protogen.Page.newBuilder()
-                .setPageNumber(runtimePage.getPageNumber())
-                .setPageSize(runtimePage.getPageSize())
-                .setCursor(runtimePage.getCursor())
-                .build();
-    }
-
-    public static com.netflix.titus.api.model.Pagination toPagination(Pagination grpcPagination) {
-        return new com.netflix.titus.api.model.Pagination(
-                toPage(grpcPagination.getCurrentPage()),
-                grpcPagination.getHasMore(),
-                grpcPagination.getTotalPages(),
-                grpcPagination.getTotalItems(),
-                grpcPagination.getCursor(),
-                grpcPagination.getCursorPosition()
-        );
-    }
-
-    public static Pagination toGrpcPagination(com.netflix.titus.api.model.Pagination runtimePagination) {
-        return Pagination.newBuilder()
-                .setCurrentPage(toGrpcPage(runtimePagination.getCurrentPage()))
-                .setTotalItems(runtimePagination.getTotalItems())
-                .setTotalPages(runtimePagination.getTotalPages())
-                .setHasMore(runtimePagination.hasMore())
-                .setCursor(runtimePagination.getCursor())
-                .setCursorPosition(runtimePagination.getCursorPosition())
-                .build();
-    }
-
-    public static Pagination emptyGrpcPagination(com.netflix.titus.grpc.protogen.Page page) {
-        return Pagination.newBuilder()
-                .setCurrentPage(page)
-                .setTotalItems(0)
-                .setTotalPages(0)
-                .setHasMore(false)
-                .setCursor("")
-                .setCursorPosition(0)
-                .build();
-    }
 
     public static JobQueryCriteria<TaskStatus.TaskState, JobSpecCase> toJobQueryCriteria(ObserveJobsQuery query) {
         if (query.getFilteringCriteriaCount() == 0) {

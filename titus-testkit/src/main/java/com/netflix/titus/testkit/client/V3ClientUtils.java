@@ -28,7 +28,7 @@ import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
 import com.netflix.titus.common.util.rx.ObservableExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
-import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
+import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import rx.Observable;
 
 public class V3ClientUtils {
@@ -42,7 +42,7 @@ public class V3ClientUtils {
 
     private static Pair<JobManagerEvent<?>, Map<String, Object>> toCoreEvent(JobChangeNotification event, Map<String, Object> state) {
         if (event.getNotificationCase() == JobChangeNotification.NotificationCase.JOBUPDATE) {
-            Job<?> job = V3GrpcModelConverters.toCoreJob(event.getJobUpdate().getJob());
+            Job<?> job = GrpcJobManagementModelConverters.toCoreJob(event.getJobUpdate().getJob());
 
             Object previous = state.get(job.getId());
             state.put(job.getId(), job);
@@ -57,7 +57,7 @@ public class V3ClientUtils {
         com.netflix.titus.grpc.protogen.Task grpcTask = event.getTaskUpdate().getTask();
         Job<?> job = (Job<?>) state.get(grpcTask.getJobId());
 
-        Task task = V3GrpcModelConverters.toCoreTask(job, grpcTask);
+        Task task = GrpcJobManagementModelConverters.toCoreTask(job, grpcTask);
 
         Object previous = state.get(task.getId());
         state.put(task.getId(), task);

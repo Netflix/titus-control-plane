@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
-import com.netflix.titus.runtime.endpoint.common.grpc.CommonGrpcModelConverters2;
+import com.netflix.titus.runtime.endpoint.common.grpc.CommonRuntimeGrpcModelConverters;
 import io.grpc.Context;
 import io.grpc.Contexts;
 import io.grpc.Metadata;
@@ -94,7 +94,7 @@ public class V3HeaderInterceptor implements ServerInterceptor {
         if (callMetadataValue != null) {
             try {
                 com.netflix.titus.grpc.protogen.CallMetadata grpcCallMetadata = com.netflix.titus.grpc.protogen.CallMetadata.parseFrom((byte[]) callMetadataValue);
-                wrappedContext = wrappedContext.withValue(CALL_METADATA_CONTEXT_KEY, CommonGrpcModelConverters2.toCallMetadata(grpcCallMetadata));
+                wrappedContext = wrappedContext.withValue(CALL_METADATA_CONTEXT_KEY, CommonRuntimeGrpcModelConverters.toCallMetadata(grpcCallMetadata));
             } catch (Exception e) {
                 // Ignore bad header value.
                 logger.info("Invalid CallMetadata in a request header", e);
@@ -108,7 +108,7 @@ public class V3HeaderInterceptor implements ServerInterceptor {
 
     public static <STUB extends AbstractStub<STUB>> STUB attachCallMetadata(STUB serviceStub, CallMetadata callMetadata) {
         Metadata metadata = new Metadata();
-        metadata.put(CALL_METADATA_KEY, CommonGrpcModelConverters2.toGrpcCallMetadata(callMetadata).toByteArray());
+        metadata.put(CALL_METADATA_KEY, CommonRuntimeGrpcModelConverters.toGrpcCallMetadata(callMetadata).toByteArray());
         return serviceStub.withInterceptors(MetadataUtils.newAttachHeadersInterceptor(metadata));
     }
 

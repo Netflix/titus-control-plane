@@ -42,7 +42,7 @@ import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.grpc.protogen.TaskTerminateRequest;
 import com.netflix.titus.master.scheduler.SchedulingResultEvent;
 import com.netflix.titus.master.scheduler.SchedulingService;
-import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
+import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
 import com.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
 import com.netflix.titus.testkit.grpc.TestStreamObserver;
@@ -59,7 +59,7 @@ import static com.netflix.titus.common.util.ExceptionExt.rethrow;
 import static com.netflix.titus.master.integration.v3.scenario.ScenarioBuilderUtil.TIMEOUT_MS;
 import static com.netflix.titus.master.integration.v3.scenario.ScenarioBuilderUtil.discoverActiveTest;
 import static com.netflix.titus.master.integration.v3.scenario.ScenarioBuilderUtil.toMesosTaskState;
-import static com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters.toCoreTaskState;
+import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters.toCoreTaskState;
 import static java.util.Arrays.asList;
 import static java.util.Arrays.stream;
 
@@ -335,7 +335,7 @@ public class TaskScenarioBuilder {
     public TaskScenarioBuilder expectOneOfStateUpdates(TaskStatus.TaskState... taskStates) {
         logger.info("[{}] Expecting task state from set {}...", discoverActiveTest(), asList(taskStates));
 
-        Set<TaskState> coreTaskStates = stream(taskStates).map(V3GrpcModelConverters::toCoreTaskState).collect(Collectors.toSet());
+        Set<TaskState> coreTaskStates = stream(taskStates).map(GrpcJobManagementModelConverters::toCoreTaskState).collect(Collectors.toSet());
 
         Stopwatch stopWatch = Stopwatch.createStarted();
         Task receivedTask = expectTaskUpdate(task -> coreTaskStates.contains(task.getStatus().getState()), "Expecting one of task states " + coreTaskStates);

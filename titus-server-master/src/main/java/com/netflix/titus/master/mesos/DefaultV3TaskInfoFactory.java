@@ -47,7 +47,7 @@ import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.master.config.MasterConfiguration;
 import com.netflix.titus.master.model.job.TitusQueuableTask;
-import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
+import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import io.titanframework.messages.TitanProtos.ContainerInfo;
 import io.titanframework.messages.TitanProtos.ContainerInfo.EfsConfigInfo;
 import org.apache.mesos.Protos;
@@ -262,7 +262,7 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
             String addressAllocationId = task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_IP_ALLOCATION_ID);
             for (SignedIpAddressAllocation signedIpAddressAllocation : containerResources.getSignedIpAddressAllocations()) {
                 if (signedIpAddressAllocation.getIpAddressAllocation().getAllocationId().equals(addressAllocationId)) {
-                    containerInfoBuilder.setSignedAddressAllocation(V3GrpcModelConverters.toGrpcSignedAddressAllocation(signedIpAddressAllocation));
+                    containerInfoBuilder.setSignedAddressAllocation(GrpcJobManagementModelConverters.toGrpcSignedAddressAllocation(signedIpAddressAllocation));
                     break;
                 }
             }

@@ -40,9 +40,9 @@ import rx.Completable;
 import rx.Observable;
 import rx.Single;
 
-import static com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters.toCoreJob;
-import static com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters.toCoreTask;
-import static com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters.toGrpcJobDescriptor;
+import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters.toCoreJob;
+import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters.toCoreTask;
+import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters.toGrpcJobDescriptor;
 
 class JobPairTasksMover {
 

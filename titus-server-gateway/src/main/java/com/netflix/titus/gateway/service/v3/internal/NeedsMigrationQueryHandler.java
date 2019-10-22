@@ -36,12 +36,12 @@ import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.runtime.connector.jobmanager.JobDataReplicator;
 import com.netflix.titus.runtime.connector.relocation.RelocationDataReplicator;
 import com.netflix.titus.runtime.endpoint.JobQueryCriteria;
-import com.netflix.titus.runtime.endpoint.common.LogStorageInfo;
+import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
+import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import com.netflix.titus.runtime.endpoint.v3.grpc.query.V3TaskQueryCriteriaEvaluator;
 import com.netflix.titus.runtime.jobmanager.JobManagerCursors;
 
 import static com.netflix.titus.gateway.service.v3.internal.TaskRelocationDataInjector.newTaskWithRelocationPlan;
-import static com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters.toGrpcTask;
 
 @Singleton
 class NeedsMigrationQueryHandler {
@@ -80,11 +80,11 @@ class NeedsMigrationQueryHandler {
                 Pair<Job<?>, Task> jobTaskPair = Pair.of(job, task);
                 if (plan != null) {
                     if (queryFilterWithoutNeedsMigration.test(jobTaskPair)) {
-                        matchingTasks.add(newTaskWithRelocationPlan(toGrpcTask(task, logStorageInfo), plan));
+                        matchingTasks.add(newTaskWithRelocationPlan(GrpcJobManagementModelConverters.toGrpcTask(task, logStorageInfo), plan));
                     }
                 } else {
                     if (queryFilter.test(jobTaskPair)) {
-                        matchingTasks.add(toGrpcTask(task, logStorageInfo));
+                        matchingTasks.add(GrpcJobManagementModelConverters.toGrpcTask(task, logStorageInfo));
                     }
                 }
             });

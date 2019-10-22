@@ -32,7 +32,7 @@ import com.netflix.titus.grpc.protogen.JobCapacityWithOptionalAttributes;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.runtime.endpoint.admission.AdmissionSanitizer;
 import com.netflix.titus.runtime.endpoint.admission.AdmissionValidator;
-import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
+import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
@@ -61,7 +61,7 @@ public class SanitizingJobServiceGateway extends JobServiceGatewayDelegate {
     public Observable<String> createJob(JobDescriptor jobDescriptor, CallMetadata callMetadata) {
         com.netflix.titus.api.jobmanager.model.job.JobDescriptor coreJobDescriptor;
         try {
-            coreJobDescriptor = JobFunctions.filterOutSanitizationAttributes(V3GrpcModelConverters.toCoreJobDescriptor(jobDescriptor));
+            coreJobDescriptor = JobFunctions.filterOutSanitizationAttributes(GrpcJobManagementModelConverters.toCoreJobDescriptor(jobDescriptor));
         } catch (Exception e) {
             return Observable.error(TitusServiceException.invalidArgument(e));
         }
@@ -88,12 +88,12 @@ public class SanitizingJobServiceGateway extends JobServiceGatewayDelegate {
                             }
                         })
                 )
-                .flatMap(jd -> delegate.createJob(V3GrpcModelConverters.toGrpcJobDescriptor(jd), callMetadata));
+                .flatMap(jd -> delegate.createJob(GrpcJobManagementModelConverters.toGrpcJobDescriptor(jd), callMetadata));
     }
 
     @Override
     public Completable updateJobCapacity(JobCapacityUpdate jobCapacityUpdate) {
-        Capacity newCapacity = V3GrpcModelConverters.toCoreCapacity(jobCapacityUpdate.getCapacity());
+        Capacity newCapacity = GrpcJobManagementModelConverters.toCoreCapacity(jobCapacityUpdate.getCapacity());
         Set<ValidationError> violations = entitySanitizer.validate(newCapacity);
         if (!violations.isEmpty()) {
             return Completable.error(TitusServiceException.invalidArgument(violations));
@@ -104,7 +104,7 @@ public class SanitizingJobServiceGateway extends JobServiceGatewayDelegate {
     @Override
     public Completable updateJobCapacityWithOptionalAttributes(JobCapacityUpdateWithOptionalAttributes jobCapacityUpdateWithOptionalAttributes) {
         final JobCapacityWithOptionalAttributes jobCapacityWithOptionalAttributes = jobCapacityUpdateWithOptionalAttributes.getJobCapacityWithOptionalAttributes();
-        CapacityAttributes capacityAttributes = V3GrpcModelConverters.toCoreCapacityAttributes(jobCapacityWithOptionalAttributes);
+        CapacityAttributes capacityAttributes = GrpcJobManagementModelConverters.toCoreCapacityAttributes(jobCapacityWithOptionalAttributes);
         Set<ValidationError> violations = entitySanitizer.validate(capacityAttributes);
         if (!violations.isEmpty()) {
             return Completable.error(TitusServiceException.invalidArgument(violations));

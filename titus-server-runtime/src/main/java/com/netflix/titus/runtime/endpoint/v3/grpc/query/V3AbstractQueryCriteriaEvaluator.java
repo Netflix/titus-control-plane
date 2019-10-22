@@ -34,7 +34,7 @@ import com.netflix.titus.grpc.protogen.JobStatus;
 import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.runtime.endpoint.JobQueryCriteria;
 import com.netflix.titus.runtime.endpoint.common.QueryUtils;
-import com.netflix.titus.runtime.endpoint.v3.grpc.V3GrpcModelConverters;
+import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 
 public abstract class V3AbstractQueryCriteriaEvaluator<TASK_OR_SET> implements Predicate<Pair<Job<?>, TASK_OR_SET>> {
 
@@ -97,7 +97,7 @@ public abstract class V3AbstractQueryCriteriaEvaluator<TASK_OR_SET> implements P
 
     private Optional<Predicate<Pair<Job<?>, TASK_OR_SET>>> applyJobState(Optional<Object> jobStateOpt) {
         return jobStateOpt.map(jobStateObj -> {
-            JobState jobState = V3GrpcModelConverters.toCoreJobState((JobStatus.JobState) jobStateObj);
+            JobState jobState = GrpcJobManagementModelConverters.toCoreJobState((JobStatus.JobState) jobStateObj);
             return jobTaskPair -> jobTaskPair.getLeft().getStatus().getState().equals(jobState);
         });
     }
