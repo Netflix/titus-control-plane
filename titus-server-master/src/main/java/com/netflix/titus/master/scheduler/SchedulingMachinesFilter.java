@@ -57,49 +57,44 @@ public class SchedulingMachinesFilter {
     }
 
     public List<AssignableVirtualMachine> filter(List<AssignableVirtualMachine> machines) {
-        if (schedulerConfiguration.isSchedulingMachinesFilterEnabled()) {
-            Map<String, Task> tasksById = new HashMap<>();
-            for (Task task : v3JobOperations.getTasks()) {
-                tasksById.put(task.getId(), task);
-            }
-
-            int maxLaunchingTasksPerMachine = schedulerConfiguration.getMaxLaunchingTasksPerMachine();
-            List<AssignableVirtualMachine> filteredMachines = new ArrayList<>();
-
-            for (AssignableVirtualMachine machine : machines) {
-                VirtualMachineCurrentState vmCurrentState = machine.getVmCurrentState();
-                Optional<AgentInstance> instanceOpt = SchedulerUtils.findInstance(agentManagementService,
-                        schedulerConfiguration.getInstanceAttributeName(), vmCurrentState);
-
-                if (!instanceOpt.isPresent()) {
-                    continue;
-                }
-
-                AgentInstance instance = instanceOpt.get();
-
-                if (!isInstanceSchedulable(instance) ||
-                        isInstanceLaunchingTooManyTasks(tasksById, vmCurrentState, maxLaunchingTasksPerMachine)) {
-                    continue;
-                }
-
-                String instanceGroupId = instance.getInstanceGroupId();
-
-                Optional<AgentInstanceGroup> instanceGroupOpt = agentManagementService.findInstanceGroup(instanceGroupId);
-                if (!instanceGroupOpt.isPresent()) {
-                    continue;
-                }
-
-                AgentInstanceGroup instanceGroup = instanceGroupOpt.get();
-
-                if (!isInstanceGroupSchedulable(instanceGroup)) {
-                    continue;
-                }
-
-                filteredMachines.add(machine);
-            }
-            return filteredMachines;
+        if (!schedulerConfiguration.isSchedulingMachinesFilterEnabled()) {
+            return machines;
         }
-        return machines;
+
+        Map<String, Task> tasksById = new HashMap<>();
+        for (Task task : v3JobOperations.getTasks()) {
+            tasksById.put(task.getId(), task);
+        }
+
+        int maxLaunchingTasksPerMachine = schedulerConfiguration.getMaxLaunchingTasksPerMachine();
+        List<AssignableVirtualMachine> filteredMachines = new ArrayList<>();
+
+        for (AssignableVirtualMachine machine : machines) {
+            VirtualMachineCurrentState vmCurrentState = machine.getVmCurrentState();
+            Optional<AgentInstance> instanceOpt = SchedulerUtils.findInstance(agentManagementService,
+                    schedulerConfiguration.getInstanceAttributeName(), vmCurrentState);
+
+            if (!instanceOpt.isPresent()) {
+                continue;
+            }
+
+            AgentInstance instance = instanceOpt.get();
+
+            Optional<AgentInstanceGroup> instanceGroupOpt = agentManagementService.findInstanceGroup(instance.getInstanceGroupId());
+            if (!instanceGroupOpt.isPresent()) {
+                continue;
+            }
+
+            AgentInstanceGroup instanceGroup = instanceGroupOpt.get();
+
+            if (!isInstanceGroupSchedulable(instanceGroup) || !isInstanceSchedulable(instance) ||
+                    isInstanceLaunchingTooManyTasks(tasksById, vmCurrentState, maxLaunchingTasksPerMachine)) {
+                continue;
+            }
+
+            filteredMachines.add(machine);
+        }
+        return filteredMachines;
     }
 
     private boolean isInstanceGroupSchedulable(AgentInstanceGroup instanceGroup) {

@@ -58,7 +58,7 @@ public interface SchedulerConfiguration {
     boolean isSchedulingMachinesFilterEnabled();
 
     /**
-     * @return whether to enable filtering of machines before scheduling iteration.
+     * @return whether to turn off the constraint that prevents concurrent task launches.
      */
     @DefaultValue("true")
     boolean isGlobalTaskLaunchingConstraintEvaluatorEnabled();

@@ -127,12 +127,12 @@ public class SchedulerUtils {
 
     public static boolean isLaunchingLessThanNumberOfTasks(Map<String, Task> tasksById, VirtualMachineCurrentState targetVM,
                                                            int numberOfTasks) {
-        int runningTaskCount = 0;
+        int launchingTaskCount = 0;
         for (TaskRequest running : targetVM.getRunningTasks()) {
             if (isTaskLaunching(tasksById, running)) {
-                runningTaskCount++;
+                launchingTaskCount++;
             }
-            if (runningTaskCount >= numberOfTasks) {
+            if (launchingTaskCount >= numberOfTasks) {
                 return false;
             }
         }

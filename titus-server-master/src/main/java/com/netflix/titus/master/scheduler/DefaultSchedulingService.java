@@ -373,6 +373,13 @@ public class DefaultSchedulingService implements SchedulingService<V3QueueableTa
             }
             return result;
         });
+
+        //TODO remove this once we switch to fully using SchedulingMachinesFilter
+        titusRuntime.persistentStream(AgentManagementFunctions.observeActiveInstanceGroupIds(agentManagementService))
+                .subscribe(ids -> {
+                    taskScheduler.setActiveVmGroups(ids);
+                    logger.info("Updating Fenzo taskScheduler active instance group list to: {}", ids);
+                });
     }
 
     private TaskScheduler setupTaskScheduler(Observable<LeaseRescindedEvent> vmLeaseRescindedObservable,
