@@ -46,14 +46,28 @@ public interface SchedulerConfiguration {
     /**
      * @return the the amount of successful tasks that should be evaluated in the next scheduling iteration.
      */
-    @DefaultValue("300")
+    @DefaultValue("500")
     long getTaskBatchSize();
 
     /**
-     * @return whether or not to limit concurrent task launches on a node.
+     * An option to enable filtering of machines before scheduling iteration.
+     *
+     * @return whether to enable filtering of machines before scheduling iteration.
+     */
+    @DefaultValue("true")
+    boolean isSchedulingMachinesFilterEnabled();
+
+    /**
+     * @return whether to enable filtering of machines before scheduling iteration.
      */
     @DefaultValue("true")
     boolean isGlobalTaskLaunchingConstraintEvaluatorEnabled();
+
+    /**
+     * @return the maximum number of launching tasks per machine.
+     */
+    @DefaultValue("1")
+    int getMaxLaunchingTasksPerMachine();
 
     /**
      * Option used by component {@link TitusNetworkInterfaceFitnessEvaluator}.

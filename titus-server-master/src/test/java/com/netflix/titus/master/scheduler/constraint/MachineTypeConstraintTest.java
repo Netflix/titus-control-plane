@@ -27,6 +27,7 @@ import com.netflix.titus.testkit.model.agent.AgentGenerator;
 import org.junit.Before;
 import org.junit.Test;
 
+import static com.netflix.titus.master.scheduler.SchedulerTestUtils.TASK_ID;
 import static com.netflix.titus.master.scheduler.SchedulerTestUtils.createTaskRequest;
 import static com.netflix.titus.master.scheduler.SchedulerTestUtils.createTaskTrackerState;
 import static com.netflix.titus.master.scheduler.SchedulerTestUtils.createVirtualMachineCurrentStateMock;
@@ -53,7 +54,7 @@ public class MachineTypeConstraintTest {
     @Test
     public void machineDoesNotExist() {
         when(agentManagementService.findAgentInstance(MACHINE_ID)).thenReturn(Optional.empty());
-        Result result = constraint.evaluate(createTaskRequest(), createVirtualMachineCurrentStateMock(MACHINE_ID), createTaskTrackerState());
+        Result result = constraint.evaluate(createTaskRequest(TASK_ID), createVirtualMachineCurrentStateMock(MACHINE_ID), createTaskTrackerState());
         assertThat(result.isSuccessful()).isFalse();
         assertThat(result.getFailureReason()).isEqualToIgnoringCase("The machine does not exist");
     }
@@ -65,7 +66,7 @@ public class MachineTypeConstraintTest {
                 .withAttributes(Collections.singletonMap(MACHINE_TYPE_ATTRIBUTE_NAME, "noMatch"))
                 .build();
         when(agentManagementService.findAgentInstance(MACHINE_ID)).thenReturn(Optional.of(instance));
-        Result result = constraint.evaluate(createTaskRequest(), createVirtualMachineCurrentStateMock(MACHINE_ID), createTaskTrackerState());
+        Result result = constraint.evaluate(createTaskRequest(TASK_ID), createVirtualMachineCurrentStateMock(MACHINE_ID), createTaskTrackerState());
         assertThat(result.isSuccessful()).isFalse();
         assertThat(result.getFailureReason()).isEqualToIgnoringCase("The machine type does not match the specified machine type");
     }
@@ -77,7 +78,7 @@ public class MachineTypeConstraintTest {
                 .withAttributes(Collections.singletonMap(MACHINE_TYPE_ATTRIBUTE_NAME, MACHINE_TYPE))
                 .build();
         when(agentManagementService.findAgentInstance(MACHINE_ID)).thenReturn(Optional.of(instance));
-        Result result = constraint.evaluate(createTaskRequest(), createVirtualMachineCurrentStateMock(MACHINE_ID), createTaskTrackerState());
+        Result result = constraint.evaluate(createTaskRequest(TASK_ID), createVirtualMachineCurrentStateMock(MACHINE_ID), createTaskTrackerState());
         assertThat(result.isSuccessful()).isTrue();
     }
 }
