@@ -217,7 +217,7 @@ public class MesosSchedulerCallbackHandler implements Scheduler {
                 })
                 .map(VMLeaseObject::new)
                 .collect(Collectors.toList());
-        if (leaseObjects != null && !leaseObjects.isEmpty()) {
+        if (!leaseObjects.isEmpty()) {
             lastValidOfferReceivedAt.set(System.currentTimeMillis());
             if (offers.size() > leaseObjects.size()) {
                 numInvalidOffers.increment(offers.size() - leaseObjects.size());

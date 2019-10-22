@@ -178,6 +178,7 @@ public class DefaultSchedulingService implements SchedulingService<V3QueueableTa
     private final TaskMigrator taskMigrator;
     private final AgentManagementService agentManagementService;
     private final ApplicationSlaManagementService capacityGroupService;
+    private final SchedulingMachinesFilter schedulingMachinesFilter;
     private Subscription vmStateUpdateSubscription;
 
     private final AtomicReference<Map<String, List<TaskAssignmentResult>>> lastSchedulingResult = new AtomicReference<>();
@@ -204,12 +205,13 @@ public class DefaultSchedulingService implements SchedulingService<V3QueueableTa
                                     AgentResourceCache agentResourceCache,
                                     Config config,
                                     MesosConfiguration mesosConfiguration,
-                                    ApplicationSlaManagementService capacityGroupService) {
+                                    ApplicationSlaManagementService capacityGroupService,
+                                    SchedulingMachinesFilter schedulingMachinesFilter) {
         this(v3JobOperations, agentManagementService, v3TaskInfoFactory, vmOps, virtualMachineService,
                 masterConfiguration, schedulerConfiguration, systemHardConstraint, taskCache, opportunisticCpuCache,
                 Schedulers.computation(), tierSlaUpdater, registry, preferentialNamedConsumableResourceEvaluator,
                 agentManagementFitnessCalculator, taskMigrator, titusRuntime, agentResourceCache, config,
-                mesosConfiguration, capacityGroupService);
+                mesosConfiguration, capacityGroupService, schedulingMachinesFilter);
     }
 
     public DefaultSchedulingService(V3JobOperations v3JobOperations,
@@ -232,7 +234,8 @@ public class DefaultSchedulingService implements SchedulingService<V3QueueableTa
                                     AgentResourceCache agentResourceCache,
                                     Config config,
                                     MesosConfiguration mesosConfiguration,
-                                    ApplicationSlaManagementService capacityGroupService) {
+                                    ApplicationSlaManagementService capacityGroupService,
+                                    SchedulingMachinesFilter schedulingMachinesFilter) {
         this.v3JobOperations = v3JobOperations;
         this.agentManagementService = agentManagementService;
         this.vmOps = vmOps;
@@ -247,6 +250,7 @@ public class DefaultSchedulingService implements SchedulingService<V3QueueableTa
         this.agentResourceCache = agentResourceCache;
         this.systemHardConstraint = systemHardConstraint;
         this.capacityGroupService = capacityGroupService;
+        this.schedulingMachinesFilter = schedulingMachinesFilter;
         agentResourceCacheUpdater = new AgentResourceCacheUpdater(titusRuntime, agentResourceCache, v3JobOperations);
         kubeIntegrationEnabled = mesosConfiguration.isKubeApiServerIntegrationEnabled();
 
@@ -269,6 +273,7 @@ public class DefaultSchedulingService implements SchedulingService<V3QueueableTa
                 .withPreferentialNamedConsumableResourceEvaluator(preferentialNamedConsumableResourceEvaluator)
                 .withMaxConcurrent(schedulerConfiguration.getSchedulerMaxConcurrent())
                 .withTaskBatchSizeSupplier(schedulerConfiguration::getTaskBatchSize)
+                .withAssignableVMsEvaluator(schedulingMachinesFilter::filter)
                 .withSchedulingEventListener(new TaskCacheEventListener(taskCache, opportunisticCpuCache, titusRuntime));
 
         taskScheduler = setupTaskScheduler(virtualMachineService.getLeaseRescindedObservable(), schedulerBuilder);
@@ -369,6 +374,7 @@ public class DefaultSchedulingService implements SchedulingService<V3QueueableTa
             return result;
         });
 
+        //TODO remove this once we switch to fully using SchedulingMachinesFilter
         titusRuntime.persistentStream(AgentManagementFunctions.observeActiveInstanceGroupIds(agentManagementService))
                 .subscribe(ids -> {
                     taskScheduler.setActiveVmGroups(ids);

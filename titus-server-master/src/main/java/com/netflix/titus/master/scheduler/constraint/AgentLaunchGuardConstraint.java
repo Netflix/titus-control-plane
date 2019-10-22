@@ -27,9 +27,10 @@ import com.netflix.fenzo.TaskRequest;
 import com.netflix.fenzo.TaskTrackerState;
 import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.titus.api.jobmanager.model.job.Task;
-import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
+
+import static com.netflix.titus.master.scheduler.SchedulerUtils.isLaunchingLessThanNumberOfTasks;
 
 /**
  * A system constraint that prevents launching a task on an agent that already has a task launching.
@@ -40,7 +41,7 @@ public class AgentLaunchGuardConstraint implements SystemConstraint {
     public static final String NAME = "AgentLaunchGuardConstraint";
 
     private static final Result VALID = new Result(true, null);
-    private static final Result INVALID = new Result(false, "The agent has a task already launching");
+    private static final Result INVALID = new Result(false, "The agent has reached the launch guard limit");
 
     private final SchedulerConfiguration schedulerConfiguration;
     private final V3JobOperations v3JobOperations;
@@ -74,32 +75,18 @@ public class AgentLaunchGuardConstraint implements SystemConstraint {
             return VALID;
         }
 
-        if (!targetVM.getTasksCurrentlyAssigned().isEmpty()) {
+        int maxLaunchingTasksPerMachine = schedulerConfiguration.getMaxLaunchingTasksPerMachine();
+
+        int assigned = targetVM.getTasksCurrentlyAssigned().size();
+        if (assigned >= maxLaunchingTasksPerMachine) {
             return INVALID;
         }
+        int remaining = Math.max(maxLaunchingTasksPerMachine - assigned, 0);
 
-        return hasLaunchingTask(targetVM) ? INVALID : VALID;
+        return isLaunchingLessThanNumberOfTasks(taskIdMapRef.get(), targetVM, remaining) ? VALID : INVALID;
     }
 
     public static boolean isAgentLaunchGuardConstraintReason(String reason) {
         return reason != null && INVALID.getFailureReason().contains(reason);
-    }
-
-    private boolean hasLaunchingTask(VirtualMachineCurrentState targetVM) {
-        for (TaskRequest running : targetVM.getRunningTasks()) {
-            if (isTaskLaunching(running)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private boolean isTaskLaunching(TaskRequest request) {
-        Task current = taskIdMapRef.get().get(request.getId());
-        if (current == null) {
-            return false;
-        }
-        TaskState state = current.getStatus().getState();
-        return state == TaskState.Accepted || state == TaskState.Launched || state == TaskState.StartInitiated;
     }
 }

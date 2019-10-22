@@ -31,6 +31,8 @@ import com.netflix.fenzo.VirtualMachineLease;
 import com.netflix.fenzo.queues.QueuableTask;
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.service.AgentManagementService;
+import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
@@ -121,5 +123,28 @@ public class SchedulerUtils {
             failedTasks.addAll(entry.getValue().keySet());
         }
         return failedTasks;
+    }
+
+    public static boolean isLaunchingLessThanNumberOfTasks(Map<String, Task> tasksById, VirtualMachineCurrentState targetVM,
+                                                           int numberOfTasks) {
+        int launchingTaskCount = 0;
+        for (TaskRequest running : targetVM.getRunningTasks()) {
+            if (isTaskLaunching(tasksById, running)) {
+                launchingTaskCount++;
+            }
+            if (launchingTaskCount >= numberOfTasks) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static boolean isTaskLaunching(Map<String, Task> tasksById, TaskRequest request) {
+        Task current = tasksById.get(request.getId());
+        if (current == null) {
+            return false;
+        }
+        TaskState state = current.getStatus().getState();
+        return state == TaskState.Accepted || state == TaskState.Launched || state == TaskState.StartInitiated;
     }
 }
