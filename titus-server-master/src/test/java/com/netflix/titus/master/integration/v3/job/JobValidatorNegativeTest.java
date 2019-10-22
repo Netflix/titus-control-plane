@@ -35,12 +35,14 @@ import com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCell;
 import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMasters;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedClouds;
+import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import com.netflix.titus.testkit.junit.master.TitusStackResource;
 import io.grpc.StatusRuntimeException;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,6 +59,7 @@ import static org.mockito.Mockito.when;
  * the default AdmissionValidator is the {@link PassJobValidator}.  All
  * other test suites prove that it does not invalidate jobs inappropriately.
  */
+@Category(IntegrationTest.class)
 public class JobValidatorNegativeTest extends BaseIntegrationTest {
     private static final Logger logger = LoggerFactory.getLogger(JobValidatorNegativeTest.class);
 

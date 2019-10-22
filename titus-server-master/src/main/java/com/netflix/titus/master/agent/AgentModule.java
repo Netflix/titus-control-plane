@@ -23,6 +23,7 @@ import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.agent.service.AgentStatusMonitor;
+import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
 import com.netflix.titus.api.agent.store.AgentStore;
 import com.netflix.titus.api.connector.cloud.InstanceCloudConnector;
 import com.netflix.titus.master.agent.service.AgentManagementConfiguration;
@@ -46,6 +47,7 @@ public class AgentModule extends AbstractModule {
         bind(ServerInfoResolver.class).toInstance(ServerInfoResolvers.fromAwsInstanceTypes());
 
         bind(AgentManagementService.class).to(DefaultAgentManagementService.class);
+        bind(ReadOnlyAgentOperations.class).to(DefaultAgentManagementService.class);
         bind(AgentCache.class).to(DefaultAgentCache.class);
 
         bind(AgentStore.class).to(InMemoryAgentStore.class);

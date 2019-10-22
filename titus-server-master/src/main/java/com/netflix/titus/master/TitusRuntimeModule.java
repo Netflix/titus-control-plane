@@ -28,6 +28,8 @@ import com.netflix.archaius.api.Config;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.jobmanager.store.JobStoreFitAction;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
+import com.netflix.titus.api.model.callmetadata.CallMetadataConstants;
 import com.netflix.titus.api.supervisor.service.LeaderActivator;
 import com.netflix.titus.common.framework.fit.FitAction;
 import com.netflix.titus.common.framework.fit.FitComponent;
@@ -47,6 +49,8 @@ import com.netflix.titus.common.util.code.CodeInvariants;
 import com.netflix.titus.common.util.code.CompositeCodeInvariants;
 import com.netflix.titus.common.util.code.LoggingCodeInvariants;
 import com.netflix.titus.common.util.code.SpectatorCodeInvariants;
+import com.netflix.titus.common.util.grpc.reactor.GrpcToReactorServerFactory;
+import com.netflix.titus.common.util.grpc.reactor.server.DefaultGrpcToReactorServerFactory;
 import com.netflix.titus.common.util.guice.ContainerEventBusModule;
 import com.netflix.titus.common.util.rx.eventbus.RxEventBus;
 import com.netflix.titus.common.util.rx.eventbus.internal.DefaultRxEventBus;
@@ -54,6 +58,7 @@ import com.netflix.titus.master.mesos.MesosStatusOverrideFitAction;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.scheduler.SchedulingService;
 import com.netflix.titus.runtime.Fit;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -115,6 +120,15 @@ public class TitusRuntimeModule extends AbstractModule {
         }
 
         return titusRuntime;
+    }
+
+    @Provides
+    @Singleton
+    public GrpcToReactorServerFactory getGrpcToReactorServerFactory(CallMetadataResolver callMetadataResolver) {
+        return new DefaultGrpcToReactorServerFactory<>(
+                CallMetadata.class,
+                () -> callMetadataResolver.resolve().orElse(CallMetadataConstants.UNDEFINED_CALL_METADATA)
+        );
     }
 
     @Singleton
