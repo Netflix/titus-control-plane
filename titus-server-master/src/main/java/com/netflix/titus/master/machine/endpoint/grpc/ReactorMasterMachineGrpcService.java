@@ -38,10 +38,10 @@ import com.netflix.titus.grpc.protogen.v4.QueryRequest;
 import reactor.core.publisher.Mono;
 
 @Singleton
-public class ReactorMachineGrpcService {
+public class ReactorMasterMachineGrpcService {
 
     private static final ScheduleDescriptor SCHEDULE_DESCRIPTOR = ScheduleDescriptor.newBuilder()
-            .withName(ReactorMachineGrpcService.class.getSimpleName())
+            .withName(ReactorMasterMachineGrpcService.class.getSimpleName())
             .withDescription("Machine resources evaluator")
             .withInterval(Duration.ofSeconds(1))
             .withRetryerSupplier(Retryers::never)
@@ -56,7 +56,7 @@ public class ReactorMachineGrpcService {
     private ScheduleReference scheduleRef;
 
     @Inject
-    public ReactorMachineGrpcService(MachineResourcesEvaluator evaluator, TitusRuntime titusRuntime) {
+    public ReactorMasterMachineGrpcService(MachineResourcesEvaluator evaluator, TitusRuntime titusRuntime) {
         this.evaluator = evaluator;
         this.titusRuntime = titusRuntime;
     }

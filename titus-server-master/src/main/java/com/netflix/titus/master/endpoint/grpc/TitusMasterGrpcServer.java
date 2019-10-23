@@ -46,7 +46,7 @@ import com.netflix.titus.grpc.protogen.SupervisorServiceGrpc;
 import com.netflix.titus.grpc.protogen.SupervisorServiceGrpc.SupervisorServiceImplBase;
 import com.netflix.titus.grpc.protogen.v4.MachineServiceGrpc;
 import com.netflix.titus.master.endpoint.common.grpc.interceptor.LeaderServerInterceptor;
-import com.netflix.titus.master.machine.endpoint.grpc.ReactorMachineGrpcService;
+import com.netflix.titus.master.machine.endpoint.grpc.ReactorMasterMachineGrpcService;
 import com.netflix.titus.runtime.endpoint.common.grpc.interceptor.ErrorCatchingServerInterceptor;
 import com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor;
 import io.grpc.Server;
@@ -76,7 +76,7 @@ public class TitusMasterGrpcServer {
     private final GrpcMasterEndpointConfiguration config;
     private final LeaderServerInterceptor leaderServerInterceptor;
     private final LoadBalancerServiceImplBase loadBalancerService;
-    private final ReactorMachineGrpcService reactorMachineGrpcService;
+    private final ReactorMasterMachineGrpcService reactorMachineGrpcService;
     private final GrpcToReactorServerFactory reactorServerFactory;
     private final TitusRuntime titusRuntime;
 
@@ -96,7 +96,7 @@ public class TitusMasterGrpcServer {
             SchedulerServiceImplBase schedulerService,
             GrpcMasterEndpointConfiguration config,
             LeaderServerInterceptor leaderServerInterceptor,
-            ReactorMachineGrpcService reactorMachineGrpcService,
+            ReactorMasterMachineGrpcService reactorMachineGrpcService,
             GrpcToReactorServerFactory reactorServerFactory,
             TitusRuntime titusRuntime
     ) {

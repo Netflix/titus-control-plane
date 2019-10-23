@@ -24,6 +24,8 @@ import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.governator.guice.jersey.GovernatorJerseySupportModule;
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.spectator.api.Registry;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
+import com.netflix.titus.api.model.callmetadata.CallMetadataConstants;
 import com.netflix.titus.common.runtime.SystemAbortListener;
 import com.netflix.titus.common.runtime.SystemLogService;
 import com.netflix.titus.common.runtime.TitusRuntime;
@@ -35,6 +37,8 @@ import com.netflix.titus.common.util.code.CodeInvariants;
 import com.netflix.titus.common.util.code.CompositeCodeInvariants;
 import com.netflix.titus.common.util.code.LoggingCodeInvariants;
 import com.netflix.titus.common.util.code.SpectatorCodeInvariants;
+import com.netflix.titus.common.util.grpc.reactor.GrpcToReactorServerFactory;
+import com.netflix.titus.common.util.grpc.reactor.server.DefaultGrpcToReactorServerFactory;
 import com.netflix.titus.common.util.guice.ContainerEventBusModule;
 import com.netflix.titus.federation.endpoint.FederationEndpointModule;
 import com.netflix.titus.federation.service.CellConnector;
@@ -49,6 +53,7 @@ import com.netflix.titus.federation.service.ServiceModule;
 import com.netflix.titus.federation.service.SimpleWebClientFactory;
 import com.netflix.titus.federation.service.WebClientFactory;
 import com.netflix.titus.runtime.TitusEntitySanitizerModule;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.resolver.HostCallerIdResolver;
 import com.netflix.titus.runtime.endpoint.resolver.NoOpHostCallerIdResolver;
 
@@ -97,5 +102,14 @@ public class TitusFederationModule extends AbstractModule {
     @Singleton
     public GrpcConfiguration getGrpcConfiguration(ConfigProxyFactory factory) {
         return factory.newProxy(GrpcConfiguration.class);
+    }
+
+    @Provides
+    @Singleton
+    public GrpcToReactorServerFactory getGrpcToReactorServerFactory(CallMetadataResolver callMetadataResolver) {
+        return new DefaultGrpcToReactorServerFactory<>(
+                CallMetadata.class,
+                () -> callMetadataResolver.resolve().orElse(CallMetadataConstants.UNDEFINED_CALL_METADATA)
+        );
     }
 }

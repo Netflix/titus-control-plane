@@ -41,6 +41,7 @@ import com.netflix.titus.grpc.protogen.HealthGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
+import com.netflix.titus.grpc.protogen.v4.MachineServiceGrpc;
 import com.netflix.titus.master.TitusMaster;
 import com.netflix.titus.runtime.endpoint.admission.AdmissionSanitizer;
 import com.netflix.titus.runtime.endpoint.admission.AdmissionValidator;
@@ -222,6 +223,10 @@ public class EmbeddedTitusGateway {
 
     public EvictionServiceGrpc.EvictionServiceBlockingStub getBlockingGrpcEvictionClient() {
         return EvictionServiceGrpc.newBlockingStub(getOrCreateGrpcChannel());
+    }
+
+    public MachineServiceGrpc.MachineServiceBlockingStub getBlockingGrpcMachineClient() {
+        return MachineServiceGrpc.newBlockingStub(getOrCreateGrpcChannel());
     }
 
     public <I> I getInstance(Class<I> instanceType) {

@@ -17,6 +17,7 @@
 package com.netflix.titus.federation.service;
 
 import com.google.inject.AbstractModule;
+import com.netflix.titus.runtime.connector.machine.ReactorMachineServiceStub;
 import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway;
 import com.netflix.titus.runtime.service.AutoScalingService;
 import com.netflix.titus.runtime.service.HealthService;
@@ -30,5 +31,6 @@ public class ServiceModule extends AbstractModule {
         bind(JobServiceGateway.class).to(AggregatingJobServiceGateway.class);
         bind(AutoScalingService.class).to(AggregatingAutoScalingService.class);
         bind(LoadBalancerService.class).to(AggregatingLoadbalancerService.class);
+        bind(ReactorMachineServiceStub.class).to(AggregatingReactorMachineServiceStub.class);
     }
 }

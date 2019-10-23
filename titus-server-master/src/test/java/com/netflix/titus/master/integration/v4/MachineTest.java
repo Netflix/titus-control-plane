@@ -49,7 +49,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Category(IntegrationTest.class)
 public class MachineTest extends BaseIntegrationTest {
 
-    private final TitusStackResource titusStackResource = new TitusStackResource(basicCell(2));
+    private final TitusStackResource titusStackResource = new TitusStackResource(basicCell(2), true);
 
     private final JobsScenarioBuilder jobsScenarioBuilder = new JobsScenarioBuilder(titusStackResource);
 
@@ -64,7 +64,7 @@ public class MachineTest extends BaseIntegrationTest {
     public void setUp() throws Exception {
         instanceGroupsScenarioBuilder.synchronizeWithCloud().template(InstanceGroupScenarioTemplates.basicCloudActivation());
 
-        this.client = titusStackResource.getMaster().getBlockingGrpcMachineClient();
+        this.client = titusStackResource.getOperations().getBlockingGrpcMachineClient();
     }
 
     /**

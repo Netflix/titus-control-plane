@@ -24,7 +24,10 @@ import com.google.inject.TypeLiteral;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.spectator.api.Registry;
+import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
+import com.netflix.titus.api.model.callmetadata.CallMetadataConstants;
 import com.netflix.titus.common.runtime.SystemAbortListener;
 import com.netflix.titus.common.runtime.SystemLogService;
 import com.netflix.titus.common.runtime.TitusRuntime;
@@ -36,6 +39,8 @@ import com.netflix.titus.common.util.code.CodeInvariants;
 import com.netflix.titus.common.util.code.CompositeCodeInvariants;
 import com.netflix.titus.common.util.code.LoggingCodeInvariants;
 import com.netflix.titus.common.util.code.SpectatorCodeInvariants;
+import com.netflix.titus.common.util.grpc.reactor.GrpcToReactorServerFactory;
+import com.netflix.titus.common.util.grpc.reactor.server.DefaultGrpcToReactorServerFactory;
 import com.netflix.titus.common.util.guice.ContainerEventBusModule;
 import com.netflix.titus.gateway.endpoint.GatewayEndpointModule;
 import com.netflix.titus.gateway.service.v3.V3ServiceModule;
@@ -45,15 +50,16 @@ import com.netflix.titus.runtime.TitusEntitySanitizerModule;
 import com.netflix.titus.runtime.connector.eviction.EvictionConnectorModule;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagerConnectorModule;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagerDataReplicationModule;
+import com.netflix.titus.runtime.connector.machine.MachineConnectorModule;
 import com.netflix.titus.runtime.connector.registry.TitusContainerRegistryModule;
 import com.netflix.titus.runtime.connector.relocation.RelocationClientConnectorModule;
 import com.netflix.titus.runtime.connector.relocation.RelocationDataReplicationModule;
 import com.netflix.titus.runtime.connector.relocation.noop.NoOpRelocationConnectorModule;
 import com.netflix.titus.runtime.connector.titusmaster.TitusMasterConnectorModule;
-import com.netflix.titus.runtime.endpoint.common.EmptyLogStorageInfo;
-import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
 import com.netflix.titus.runtime.endpoint.admission.JobSecurityValidatorModule;
 import com.netflix.titus.runtime.endpoint.admission.TitusAdmissionModule;
+import com.netflix.titus.runtime.endpoint.common.EmptyLogStorageInfo;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 
 // Common module dependencies
 // Server dependencies
@@ -103,6 +109,7 @@ public final class TitusGatewayModule extends AbstractModule {
         install(new JobManagerConnectorModule());
         install(new JobManagerDataReplicationModule());
         install(new EvictionConnectorModule());
+        install(new MachineConnectorModule());
 
         // Integration with the task relocation service is required, as we have to inject a migration plan
         // into GRPC Task object context. This is needed to preserve the API compatibility with the legacy
@@ -134,5 +141,14 @@ public final class TitusGatewayModule extends AbstractModule {
                 new SpectatorCodeInvariants(registry.createId("titus.runtime.invariant.violations"), registry)
         );
         return new DefaultTitusRuntime(codeInvariants, systemLogService, systemAbortListener, registry);
+    }
+
+    @Provides
+    @Singleton
+    public GrpcToReactorServerFactory getGrpcToReactorServerFactory(CallMetadataResolver callMetadataResolver) {
+        return new DefaultGrpcToReactorServerFactory<>(
+                CallMetadata.class,
+                () -> callMetadataResolver.resolve().orElse(CallMetadataConstants.UNDEFINED_CALL_METADATA)
+        );
     }
 }

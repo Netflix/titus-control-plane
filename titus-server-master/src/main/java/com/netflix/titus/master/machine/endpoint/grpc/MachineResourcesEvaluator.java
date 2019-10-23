@@ -37,24 +37,30 @@ import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.v4.CategorizedMachineResources;
 import com.netflix.titus.grpc.protogen.v4.Machine;
 import com.netflix.titus.grpc.protogen.v4.MachineResources;
+import com.netflix.titus.master.config.MasterConfiguration;
 import com.netflix.titus.master.scheduler.opportunistic.OpportunisticCpuAvailability;
 import com.netflix.titus.master.scheduler.opportunistic.OpportunisticCpuAvailabilityProvider;
 
 @Singleton
 public class MachineResourcesEvaluator {
 
+    private static final String MACHINE_ATTRIBUTE_CELL_ID = "titus.cell";
+    
     public static String MACHINE_RESOURCE_PHYSICAL = "physical";
 
     public static String MACHINE_RESOURCE_OPPORTUNISTIC_ALLOCATED_UNUSED = "allocatedUnused";
 
+    private final MasterConfiguration masterConfiguration;
     private final ReadOnlyAgentOperations agentOperations;
     private final ReadOnlyJobOperations jobOperations;
     private final OpportunisticCpuAvailabilityProvider opportunisticCpuAvailabilityProvider;
 
     @Inject
-    public MachineResourcesEvaluator(ReadOnlyAgentOperations agentOperations,
+    public MachineResourcesEvaluator(MasterConfiguration masterConfiguration,
+                                     ReadOnlyAgentOperations agentOperations,
                                      ReadOnlyJobOperations jobOperations,
                                      OpportunisticCpuAvailabilityProvider opportunisticCpuAvailabilityProvider) {
+        this.masterConfiguration = masterConfiguration;
         this.agentOperations = agentOperations;
         this.jobOperations = jobOperations;
         this.opportunisticCpuAvailabilityProvider = opportunisticCpuAvailabilityProvider;
@@ -110,10 +116,10 @@ public class MachineResourcesEvaluator {
         return result;
     }
 
-    private static Machine toMachine(AgentInstanceGroup instanceGroup,
-                                     AgentInstance agentInstance,
-                                     OpportunisticCpuAvailability opportunisticCpuAvailability,
-                                     Map<String, JobTaskCounter> counters) {
+    private Machine toMachine(AgentInstanceGroup instanceGroup,
+                              AgentInstance agentInstance,
+                              OpportunisticCpuAvailability opportunisticCpuAvailability,
+                              Map<String, JobTaskCounter> counters) {
         int allocatedCpu = 0;
         int allocatedMemoryMb = 0;
         int allocatedDiskMb = 0;
@@ -143,6 +149,7 @@ public class MachineResourcesEvaluator {
                 .setId(agentInstance.getId())
                 .putAllAttributes(instanceGroup.getAttributes())
                 .putAllAttributes(agentInstance.getAttributes())
+                .putAttributes(MACHINE_ATTRIBUTE_CELL_ID, masterConfiguration.getCellName())
                 .setAllocatedResources(MachineResources.newBuilder()
                         .setCpu(allocatedCpu)
                         .setMemoryMB(allocatedMemoryMb)
