@@ -229,7 +229,8 @@
         "com.netflix.titus:titus-common-grpc-api": {
             "project": true,
             "transitive": [
-                "com.netflix.titus:titus-common-client"
+                "com.netflix.titus:titus-common-client",
+                "com.netflix.titus:titus-common-runtime"
             ]
         },
         "com.netflix.titus:titus-common-runtime": {
@@ -881,7 +882,8 @@
         "com.netflix.titus:titus-common-grpc-api": {
             "project": true,
             "transitive": [
-                "com.netflix.titus:titus-common-client"
+                "com.netflix.titus:titus-common-client",
+                "com.netflix.titus:titus-common-runtime"
             ]
         },
         "com.netflix.titus:titus-common-runtime": {
@@ -1533,7 +1535,8 @@
         "com.netflix.titus:titus-common-grpc-api": {
             "project": true,
             "transitive": [
-                "com.netflix.titus:titus-common-client"
+                "com.netflix.titus:titus-common-client",
+                "com.netflix.titus:titus-common-runtime"
             ]
         },
         "com.netflix.titus:titus-common-runtime": {
@@ -2249,7 +2252,8 @@
         "com.netflix.titus:titus-common-grpc-api": {
             "project": true,
             "transitive": [
-                "com.netflix.titus:titus-common-client"
+                "com.netflix.titus:titus-common-client",
+                "com.netflix.titus:titus-common-runtime"
             ]
         },
         "com.netflix.titus:titus-common-runtime": {
@@ -2902,7 +2906,8 @@
         "com.netflix.titus:titus-common-grpc-api": {
             "project": true,
             "transitive": [
-                "com.netflix.titus:titus-common-client"
+                "com.netflix.titus:titus-common-client",
+                "com.netflix.titus:titus-common-runtime"
             ]
         },
         "com.netflix.titus:titus-common-runtime": {
@@ -3570,7 +3575,8 @@
         "com.netflix.titus:titus-common-grpc-api": {
             "project": true,
             "transitive": [
-                "com.netflix.titus:titus-common-client"
+                "com.netflix.titus:titus-common-client",
+                "com.netflix.titus:titus-common-runtime"
             ]
         },
         "com.netflix.titus:titus-common-runtime": {
@@ -4318,7 +4324,8 @@
         "com.netflix.titus:titus-common-grpc-api": {
             "project": true,
             "transitive": [
-                "com.netflix.titus:titus-common-client"
+                "com.netflix.titus:titus-common-client",
+                "com.netflix.titus:titus-common-runtime"
             ]
         },
         "com.netflix.titus:titus-common-runtime": {
@@ -5066,7 +5073,8 @@
         "com.netflix.titus:titus-common-grpc-api": {
             "project": true,
             "transitive": [
-                "com.netflix.titus:titus-common-client"
+                "com.netflix.titus:titus-common-client",
+                "com.netflix.titus:titus-common-runtime"
             ]
         },
         "com.netflix.titus:titus-common-runtime": {
@@ -5815,7 +5823,8 @@
         "com.netflix.titus:titus-common-grpc-api": {
             "project": true,
             "transitive": [
-                "com.netflix.titus:titus-common-client"
+                "com.netflix.titus:titus-common-client",
+                "com.netflix.titus:titus-common-runtime"
             ]
         },
         "com.netflix.titus:titus-common-runtime": {
