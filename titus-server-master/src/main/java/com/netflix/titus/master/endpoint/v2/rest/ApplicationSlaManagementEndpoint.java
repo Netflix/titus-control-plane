@@ -57,7 +57,7 @@ public interface ApplicationSlaManagementEndpoint {
      * @return a collection of application SLAs or empty array if non present
      */
     @GET
-    List<ApplicationSlaRepresentation> getApplicationSLAs(@QueryParam("includeUsage") boolean includeUsage);
+    List<ApplicationSlaRepresentation> getApplicationSLAs(@QueryParam("extended") boolean extended);
 
     /**
      * Returns application SLA data for a given application.
@@ -68,7 +68,7 @@ public interface ApplicationSlaManagementEndpoint {
     @GET
     @Path("/{applicationName}")
     ApplicationSlaRepresentation getApplicationSLA(@PathParam("applicationName") String applicationName,
-                                                   @QueryParam("includeUsage") boolean includeUsage);
+                                                   @QueryParam("extended") boolean extended);
 
     /**
      * Adds a new SLA for an application. If SLA for the given application was already defined, it is overridden.

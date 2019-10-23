@@ -136,10 +136,10 @@ public class FederationV2CapacityGroupResourceTest {
 
             @Override
             public MockResponse dispatch(RecordedRequest request) throws InterruptedException {
-                if (request.getPath().equals(API_PATH + "?includeUsage=false")) {
+                if (request.getPath().equals(API_PATH + "?extended=false")) {
                     return newMockGetResult(Collections.singletonList(capacityGroup));
                 }
-                if (request.getPath().equals(API_PATH + '/' + capacityGroup.getAppName() + "?includeUsage=false")) {
+                if (request.getPath().equals(API_PATH + '/' + capacityGroup.getAppName() + "?extended=false")) {
                     return newMockGetResult(capacityGroup);
                 }
                 return new MockResponse().setResponseCode(404);

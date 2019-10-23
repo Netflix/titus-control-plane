@@ -80,10 +80,16 @@ public class ApplicationSlaRepresentation {
     @Min(value = 1, message = "'instanceCount' must be at least 1")
     private final Integer instanceCount;
 
+    // ----------------------------------------------------------------
+    // Fields of the extended model.
+
+    private final String cellId;
+
     private final ReservationUsage reservationUsage;
 
     @JsonCreator
     public ApplicationSlaRepresentation(@JsonProperty("appName") String appName,
+                                        @JsonProperty("cellId") String cellId,
                                         @JsonProperty("tier") TierRepresentation tier,
                                         @JsonProperty("instanceCPU") Double instanceCPU,
                                         @JsonProperty("instanceMemoryMB") Long instanceMemoryMB,
@@ -92,6 +98,7 @@ public class ApplicationSlaRepresentation {
                                         @JsonProperty("instanceCount") Integer instanceCount,
                                         @JsonProperty("reservationUsage") ReservationUsage reservationUsage) {
         this.appName = appName;
+        this.cellId = cellId;
         this.tier = tier;
         this.instanceCPU = instanceCPU;
         this.instanceMemoryMB = instanceMemoryMB;
@@ -103,6 +110,10 @@ public class ApplicationSlaRepresentation {
 
     public String getAppName() {
         return appName;
+    }
+
+    public String getCellId() {
+        return cellId;
     }
 
     public TierRepresentation getTier() {

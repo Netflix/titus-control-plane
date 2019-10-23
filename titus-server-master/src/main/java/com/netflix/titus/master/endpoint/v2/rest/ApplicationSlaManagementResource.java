@@ -39,11 +39,11 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
-import javax.ws.rs.core.UriInfo;
 
 import com.netflix.titus.api.endpoint.v2.rest.representation.ApplicationSlaRepresentation;
 import com.netflix.titus.api.endpoint.v2.rest.representation.ReservationUsage;
 import com.netflix.titus.api.model.ApplicationSLA;
+import com.netflix.titus.master.config.MasterConfiguration;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import io.swagger.annotations.Api;
 
@@ -57,6 +57,7 @@ import static com.netflix.titus.master.endpoint.v2.rest.Representation2ModelConv
 @Singleton
 public class ApplicationSlaManagementResource implements ApplicationSlaManagementEndpoint {
 
+    private final MasterConfiguration configuration;
     private final ApplicationSlaManagementService applicationSlaManagementService;
     private final ReservationUsageCalculator reservationUsageCalculator;
 
@@ -64,20 +65,23 @@ public class ApplicationSlaManagementResource implements ApplicationSlaManagemen
     private HttpServletRequest httpServletRequest;
 
     @Inject
-    public ApplicationSlaManagementResource(ApplicationSlaManagementService applicationSlaManagementService,
+    public ApplicationSlaManagementResource(MasterConfiguration configuration,
+                                            ApplicationSlaManagementService applicationSlaManagementService,
                                             ReservationUsageCalculator reservationUsageCalculator) {
+        this.configuration = configuration;
         this.applicationSlaManagementService = applicationSlaManagementService;
         this.reservationUsageCalculator = reservationUsageCalculator;
     }
 
     @GET
     @Override
-    public List<ApplicationSlaRepresentation> getApplicationSLAs(@QueryParam("includeUsage") boolean includeUsage) {
+    public List<ApplicationSlaRepresentation> getApplicationSLAs(@QueryParam("extended") boolean extended) {
         List<ApplicationSlaRepresentation> result = new ArrayList<>();
 
-        Map<String, ReservationUsage> usageMap = includeUsage ? reservationUsageCalculator.buildUsage() : Collections.emptyMap();
+        String cellId = extended ? configuration.getCellName() : null;
+        Map<String, ReservationUsage> usageMap = extended ? reservationUsageCalculator.buildUsage() : Collections.emptyMap();
 
-        applicationSlaManagementService.getApplicationSLAs().forEach(a -> result.add(asRepresentation(a, usageMap.get(a.getAppName()))));
+        applicationSlaManagementService.getApplicationSLAs().forEach(a -> result.add(asRepresentation(a, cellId, usageMap.get(a.getAppName()))));
         return result;
     }
 
@@ -85,14 +89,16 @@ public class ApplicationSlaManagementResource implements ApplicationSlaManagemen
     @Path("/{applicationName}")
     @Override
     public ApplicationSlaRepresentation getApplicationSLA(@PathParam("applicationName") String applicationName,
-                                                          @QueryParam("includeUsage") boolean includeUsage) {
+                                                          @QueryParam("extended") boolean extended) {
         ApplicationSLA applicationSLA = applicationSlaManagementService.getApplicationSLA(applicationName);
         if (applicationSLA == null) {
             throw new WebApplicationException(new IllegalArgumentException("SLA not defined for " + applicationName), Status.NOT_FOUND);
         }
 
-        ReservationUsage reservationUsage = includeUsage ? reservationUsageCalculator.buildCapacityGroupUsage(applicationName) : null;
-        return asRepresentation(applicationSLA, reservationUsage);
+        String cellId = extended ? configuration.getCellName() : null;
+        ReservationUsage reservationUsage = extended ? reservationUsageCalculator.buildCapacityGroupUsage(applicationName) : null;
+
+        return asRepresentation(applicationSLA, cellId, reservationUsage);
     }
 
     @POST
