@@ -25,6 +25,8 @@ import javax.ws.rs.core.MediaType;
 import com.netflix.titus.api.endpoint.v2.rest.representation.ApplicationSlaRepresentation;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.api.model.ApplicationSLA;
+import com.netflix.titus.common.util.archaius2.Archaius2Ext;
+import com.netflix.titus.master.config.MasterConfiguration;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import com.netflix.titus.runtime.endpoint.common.rest.ErrorResponse;
 import com.netflix.titus.runtime.endpoint.common.rest.JsonMessageReaderWriter;
@@ -72,6 +74,7 @@ public class ApplicationSlaManagementResourceTest {
     private static ReadOnlyJobOperations jobOperations = mock(ReadOnlyJobOperations.class);
 
     private static final ApplicationSlaManagementResource restService = new ApplicationSlaManagementResource(
+            Archaius2Ext.newConfiguration(MasterConfiguration.class),
             capacityManagementService,
             new ReservationUsageCalculator(jobOperations, capacityManagementService)
     );

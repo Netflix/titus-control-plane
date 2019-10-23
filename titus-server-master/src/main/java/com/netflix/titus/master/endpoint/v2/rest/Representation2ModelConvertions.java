@@ -55,13 +55,16 @@ public final class Representation2ModelConvertions {
     }
 
     public static ApplicationSlaRepresentation asRepresentation(ApplicationSLA coreEntity) {
-        return asRepresentation(coreEntity, null);
+        return asRepresentation(coreEntity, null, null);
     }
 
-    public static ApplicationSlaRepresentation asRepresentation(ApplicationSLA coreEntity, ReservationUsage reservationUsage) {
+    public static ApplicationSlaRepresentation asRepresentation(ApplicationSLA coreEntity,
+                                                                String cellId,
+                                                                ReservationUsage reservationUsage) {
         ResourceDimension resourceDimension = coreEntity.getResourceDimension();
         return new ApplicationSlaRepresentation(
                 coreEntity.getAppName(),
+                cellId,
                 TierRepresentation.valueOf(coreEntity.getTier().name()),
                 resourceDimension.getCpu(),
                 resourceDimension.getMemoryMB(),

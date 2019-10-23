@@ -70,10 +70,10 @@ public class FederationV2CapacityGroupResource {
      * @return a collection of application SLAs or empty array if non present
      */
     @GET
-    public List<ApplicationSlaRepresentation> getApplicationSLAs(@QueryParam("includeUsage") boolean includeUsage) {
+    public List<ApplicationSlaRepresentation> getApplicationSLAs(@QueryParam("extended") boolean extended) {
         Either<List<ApplicationSlaRepresentation>, WebApplicationException> result = CellWebClientConnectorUtil.doGetAndMerge(
                 cellWebClientConnector,
-                API_PATH + "?includeUsage=" + includeUsage,
+                API_PATH + "?extended=" + extended,
                 APPLICATION_SLA_LIST_TP,
                 configuration.getRestRequestTimeoutMs()
         );
@@ -92,11 +92,11 @@ public class FederationV2CapacityGroupResource {
     @GET
     @Path("/{applicationName}")
     public ApplicationSlaRepresentation getApplicationSLA(@PathParam("applicationName") String applicationName,
-                                                          @QueryParam("includeUsage") boolean includeUsage) {
+                                                          @QueryParam("extended") boolean extended) {
         Either<ApplicationSlaRepresentation, WebApplicationException> result = CellWebClientConnectorUtil.doGetFromCell(
                 cellWebClientConnector,
                 API_PATH
-                        + '/' + applicationName + "?includeUsage=" + includeUsage,
+                        + '/' + applicationName + "?extended=" + extended,
                 APPLICATION_SLA_TP,
                 configuration.getRestRequestTimeoutMs()
         );
