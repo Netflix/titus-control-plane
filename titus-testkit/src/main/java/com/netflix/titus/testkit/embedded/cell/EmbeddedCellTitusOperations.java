@@ -25,6 +25,7 @@ import com.netflix.titus.grpc.protogen.HealthGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
+import com.netflix.titus.grpc.protogen.v4.MachineServiceGrpc;
 import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
 import com.netflix.titus.testkit.embedded.cell.gateway.EmbeddedTitusGateway;
 import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMaster;
@@ -96,6 +97,11 @@ public class EmbeddedCellTitusOperations implements EmbeddedTitusOperations {
     @Override
     public EvictionServiceGrpc.EvictionServiceBlockingStub getBlockingGrpcEvictionClient() {
         return gateway.map(EmbeddedTitusGateway::getBlockingGrpcEvictionClient).orElse(master.getBlockingGrpcEvictionClient());
+    }
+
+    @Override
+    public MachineServiceGrpc.MachineServiceBlockingStub getBlockingGrpcMachineClient() {
+        return gateway.map(EmbeddedTitusGateway::getBlockingGrpcMachineClient).orElse(master.getBlockingGrpcMachineClient());
     }
 
     @Override

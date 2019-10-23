@@ -23,6 +23,7 @@ import com.netflix.titus.grpc.protogen.HealthGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
+import com.netflix.titus.grpc.protogen.v4.MachineServiceGrpc;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import com.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
 import rx.Observable;
@@ -51,4 +52,6 @@ public interface EmbeddedTitusOperations {
     Observable<TaskExecutorHolder> observeLaunchedTasks();
 
     Observable<TaskExecutorHolder> awaitTaskExecutorHolderOf(String taskId);
+
+    MachineServiceGrpc.MachineServiceBlockingStub getBlockingGrpcMachineClient();
 }

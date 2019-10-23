@@ -77,6 +77,7 @@ import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
 import com.netflix.titus.grpc.protogen.SupervisorServiceGrpc;
 import com.netflix.titus.grpc.protogen.SupervisorServiceGrpc.SupervisorServiceBlockingStub;
+import com.netflix.titus.grpc.protogen.v4.MachineServiceGrpc;
 import com.netflix.titus.master.TitusMaster;
 import com.netflix.titus.master.TitusMasterModule;
 import com.netflix.titus.master.TitusRuntimeModule;
@@ -372,6 +373,10 @@ public class EmbeddedTitusMaster {
 
     public EvictionServiceGrpc.EvictionServiceBlockingStub getBlockingGrpcEvictionClient() {
         return EvictionServiceGrpc.newBlockingStub(getOrCreateGrpcChannel());
+    }
+
+    public MachineServiceGrpc.MachineServiceBlockingStub getBlockingGrpcMachineClient() {
+        return MachineServiceGrpc.newBlockingStub(getOrCreateGrpcChannel());
     }
 
     private ManagedChannel getOrCreateGrpcChannel() {

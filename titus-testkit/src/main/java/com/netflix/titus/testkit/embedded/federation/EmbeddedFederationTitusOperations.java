@@ -26,6 +26,7 @@ import com.netflix.titus.grpc.protogen.HealthGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
+import com.netflix.titus.grpc.protogen.v4.MachineServiceGrpc;
 import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import com.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
@@ -96,6 +97,11 @@ class EmbeddedFederationTitusOperations implements EmbeddedTitusOperations {
     @Override
     public EvictionServiceGrpc.EvictionServiceBlockingStub getBlockingGrpcEvictionClient() {
         return federation.getBlockingGrpcEvictionClient();
+    }
+
+    @Override
+    public MachineServiceGrpc.MachineServiceBlockingStub getBlockingGrpcMachineClient() {
+        return federation.getBlockingGrpcMachineClient();
     }
 
     @Override

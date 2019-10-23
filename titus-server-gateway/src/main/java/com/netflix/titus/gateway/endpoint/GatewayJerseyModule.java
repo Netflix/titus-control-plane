@@ -28,6 +28,7 @@ import com.netflix.titus.gateway.endpoint.v2.rest.TitusMasterProxyServlet;
 import com.netflix.titus.gateway.endpoint.v3.rest.AgentManagementResource;
 import com.netflix.titus.gateway.endpoint.v3.rest.SchedulerResource;
 import com.netflix.titus.gateway.eviction.EvictionResource;
+import com.netflix.titus.runtime.machine.MachineResource;
 import com.netflix.titus.runtime.endpoint.common.rest.JsonMessageReaderWriter;
 import com.netflix.titus.runtime.endpoint.common.rest.RestServerConfiguration;
 import com.netflix.titus.runtime.endpoint.common.rest.TitusExceptionMapper;
@@ -85,6 +86,7 @@ public final class GatewayJerseyModule extends JerseyServletModule {
             config.getClasses().add(AutoScalingResource.class);
             config.getClasses().add(SchedulerResource.class);
             config.getClasses().add(LoadBalancerResource.class);
+            config.getClasses().add(MachineResource.class);
             return config;
         };
     }

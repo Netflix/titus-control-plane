@@ -27,6 +27,7 @@ import javax.inject.Singleton;
 
 import com.netflix.titus.common.framework.fit.adapter.GrpcFitInterceptor;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.grpc.reactor.GrpcToReactorServerFactory;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.AgentManagementServiceImplBase;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
@@ -43,7 +44,9 @@ import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc.SchedulerServiceImplBase;
 import com.netflix.titus.grpc.protogen.SupervisorServiceGrpc;
 import com.netflix.titus.grpc.protogen.SupervisorServiceGrpc.SupervisorServiceImplBase;
+import com.netflix.titus.grpc.protogen.v4.MachineServiceGrpc;
 import com.netflix.titus.master.endpoint.common.grpc.interceptor.LeaderServerInterceptor;
+import com.netflix.titus.master.machine.endpoint.grpc.ReactorMasterMachineGrpcService;
 import com.netflix.titus.runtime.endpoint.common.grpc.interceptor.ErrorCatchingServerInterceptor;
 import com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor;
 import io.grpc.Server;
@@ -72,8 +75,10 @@ public class TitusMasterGrpcServer {
     private final SchedulerServiceImplBase schedulerService;
     private final GrpcMasterEndpointConfiguration config;
     private final LeaderServerInterceptor leaderServerInterceptor;
-    private final TitusRuntime titusRuntime;
     private final LoadBalancerServiceImplBase loadBalancerService;
+    private final ReactorMasterMachineGrpcService reactorMachineGrpcService;
+    private final GrpcToReactorServerFactory reactorServerFactory;
+    private final TitusRuntime titusRuntime;
 
     private final AtomicBoolean started = new AtomicBoolean();
     private Server server;
@@ -91,6 +96,8 @@ public class TitusMasterGrpcServer {
             SchedulerServiceImplBase schedulerService,
             GrpcMasterEndpointConfiguration config,
             LeaderServerInterceptor leaderServerInterceptor,
+            ReactorMasterMachineGrpcService reactorMachineGrpcService,
+            GrpcToReactorServerFactory reactorServerFactory,
             TitusRuntime titusRuntime
     ) {
         this.healthService = healthService;
@@ -103,6 +110,8 @@ public class TitusMasterGrpcServer {
         this.schedulerService = schedulerService;
         this.config = config;
         this.leaderServerInterceptor = leaderServerInterceptor;
+        this.reactorMachineGrpcService = reactorMachineGrpcService;
+        this.reactorServerFactory = reactorServerFactory;
         this.titusRuntime = titusRuntime;
     }
 
@@ -136,7 +145,15 @@ public class TitusMasterGrpcServer {
             )).addService(ServerInterceptors.intercept(
                     schedulerService,
                     createInterceptors(SchedulerServiceGrpc.getServiceDescriptor())
-            ));
+            )).addService(
+                    ServerInterceptors.intercept(
+                            reactorServerFactory.apply(
+                                    MachineServiceGrpc.getServiceDescriptor(),
+                                    reactorMachineGrpcService
+                            ),
+                            createInterceptors(MachineServiceGrpc.getServiceDescriptor())
+                    )
+            );
             if (config.getLoadBalancerGrpcEnabled()) {
                 serverBuilder.addService(ServerInterceptors.intercept(
                         loadBalancerService,

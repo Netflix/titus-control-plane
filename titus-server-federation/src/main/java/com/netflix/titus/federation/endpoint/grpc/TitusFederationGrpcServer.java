@@ -26,6 +26,7 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.netflix.titus.common.util.grpc.reactor.GrpcToReactorServerFactory;
 import com.netflix.titus.federation.endpoint.EndpointConfiguration;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc.AutoScalingServiceImplBase;
@@ -37,8 +38,10 @@ import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc.LoadBalancerServiceImplBase;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc.SchedulerServiceImplBase;
+import com.netflix.titus.grpc.protogen.v4.MachineServiceGrpc;
 import com.netflix.titus.runtime.endpoint.common.grpc.interceptor.ErrorCatchingServerInterceptor;
 import com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor;
+import com.netflix.titus.runtime.machine.ReactorGatewayMachineGrpcService;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.ServerInterceptor;
@@ -58,6 +61,8 @@ public class TitusFederationGrpcServer {
     private final JobManagementServiceImplBase jobManagementService;
     private AutoScalingServiceImplBase autoScalingService;
     private LoadBalancerServiceImplBase loadBalancerService;
+    private final ReactorGatewayMachineGrpcService reactorMachineGrpcService;
+    private final GrpcToReactorServerFactory reactorServerFactory;
     private final EndpointConfiguration config;
 
     private final AtomicBoolean started = new AtomicBoolean();
@@ -71,12 +76,16 @@ public class TitusFederationGrpcServer {
             JobManagementServiceImplBase jobManagementService,
             AutoScalingServiceImplBase autoScalingService,
             LoadBalancerServiceImplBase loadBalancerService,
+            ReactorGatewayMachineGrpcService reactorMachineGrpcService,
+            GrpcToReactorServerFactory reactorServerFactory,
             EndpointConfiguration config) {
         this.healthService = healthService;
         this.schedulerService = schedulerService;
         this.jobManagementService = jobManagementService;
         this.autoScalingService = autoScalingService;
         this.loadBalancerService = loadBalancerService;
+        this.reactorMachineGrpcService = reactorMachineGrpcService;
+        this.reactorServerFactory = reactorServerFactory;
         this.config = config;
     }
 
@@ -108,6 +117,15 @@ public class TitusFederationGrpcServer {
                     .addService(ServerInterceptors.intercept(
                             loadBalancerService,
                             createInterceptors(LoadBalancerServiceGrpc.getServiceDescriptor())))
+                    .addService(
+                            ServerInterceptors.intercept(
+                                    reactorServerFactory.apply(
+                                            MachineServiceGrpc.getServiceDescriptor(),
+                                            reactorMachineGrpcService
+                                    ),
+                                    createInterceptors(MachineServiceGrpc.getServiceDescriptor())
+                            )
+                    )
                     .addService(ProtoReflectionService.newInstance())
                     .build();
 

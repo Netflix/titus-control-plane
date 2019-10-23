@@ -34,6 +34,7 @@ import com.netflix.titus.runtime.endpoint.v3.rest.AutoScalingResource;
 import com.netflix.titus.runtime.endpoint.v3.rest.HealthResource;
 import com.netflix.titus.runtime.endpoint.v3.rest.JobManagementResource;
 import com.netflix.titus.runtime.endpoint.v3.rest.LoadBalancerResource;
+import com.netflix.titus.runtime.machine.MachineResource;
 import com.sun.jersey.api.core.DefaultResourceConfig;
 import com.sun.jersey.guice.JerseyServletModule;
 
@@ -76,6 +77,7 @@ public final class JerseyModule extends JerseyServletModule {
             config.getClasses().add(AutoScalingResource.class);
             config.getClasses().add(LoadBalancerResource.class);
             config.getClasses().add(FederationV2CapacityGroupResource.class);
+            config.getClasses().add(MachineResource.class);
             return config;
         };
     }
