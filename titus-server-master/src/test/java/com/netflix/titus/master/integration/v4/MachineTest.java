@@ -78,12 +78,16 @@ public class MachineTest extends BaseIntegrationTest {
         jobsScenarioBuilder.schedule(jobDescriptor, jobScenarioBuilder -> jobScenarioBuilder
                 .template(ScenarioTemplates.startTasksInNewJob())
                 .andThen(() -> {
-                    List<Machine> machines = client.getMachines(QueryRequest.getDefaultInstance()).getItemsList();
-                    assertThat(machines).hasSize(6);
+                    List<Machine> flexMachines;
+                    do {
+                        List<Machine> machines = client.getMachines(QueryRequest.getDefaultInstance()).getItemsList();
+                        assertThat(machines).hasSize(6);
 
-                    // Find flex instances
-                    List<Machine> flexMachines = machines.stream().filter(m -> m.getId().contains("flex1")).collect(Collectors.toList());
-                    assertThat(flexMachines).hasSize(2);
+                        // Find flex instances
+                        flexMachines = machines.stream().filter(m -> m.getId().contains("flex1")).collect(Collectors.toList());
+                        assertThat(flexMachines).hasSize(2);
+
+                    } while (hasNoRunningTasks(flexMachines.get(0)) && hasNoRunningTasks(flexMachines.get(1)));
 
                     Machine used;
                     Machine unused;
@@ -111,5 +115,9 @@ public class MachineTest extends BaseIntegrationTest {
                     }
                 })
         );
+    }
+
+    private boolean hasNoRunningTasks(Machine machine) {
+        return machine.getAllocatedResources().equals(MachineResources.getDefaultInstance());
     }
 }
