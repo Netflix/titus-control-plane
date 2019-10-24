@@ -36,7 +36,6 @@ import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.StringExt;
-import org.apache.commons.codec.binary.Base64;
 
 import static com.netflix.titus.common.util.StringExt.isAsciiDigit;
 import static com.netflix.titus.common.util.StringExt.isAsciiLetter;
@@ -94,10 +93,6 @@ public class JobAssertions {
         int totalSize = entryPoint.stream().mapToInt(e -> StringExt.isEmpty(e) ? 0 : e.getBytes(UTF_8).length).sum();
 
         return totalSize <= MAX_ENTRY_POINT_SIZE_SIZE_BYTES;
-    }
-
-    public boolean isBase64(byte[] bytes) {
-        return Base64.isBase64(bytes);
     }
 
     public Map<String, String> validateEnvironmentVariableNames(Map<String, String> environment) {

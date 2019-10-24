@@ -22,7 +22,6 @@ dependencies {
     compile "com.github.ben-manes.caffeine:caffeine:${caffeineVersion}"
     compile "javax.servlet:javax.servlet-api:${servletVersion}"
     compile "javax.ws.rs:jsr311-api:1.1.1"
-    compile "commons-codec:commons-codec:${commonsCodecVersion}"
 
     // Java Bean validation/EL and SpEL
     compile "javax.el:javax.el-api:${javaxElVersion}"
