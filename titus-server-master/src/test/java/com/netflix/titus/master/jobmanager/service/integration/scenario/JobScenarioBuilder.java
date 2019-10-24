@@ -36,7 +36,6 @@ import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
-import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.CapacityAttributes;
@@ -55,6 +54,7 @@ import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.StringExt;
@@ -266,6 +266,12 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
 
         autoAdvanceUntilSuccessful(() -> checkOperationSubscriberAndThrowExceptionIfError(subscriber));
 
+        return this;
+    }
+
+    public JobScenarioBuilder<E> killTaskAndShrinkNoWait(Task task) {
+        TitusRxSubscriber<Void> subscriber = new TitusRxSubscriber<>();
+        jobOperations.killTask(task.getId(), true, false, Trigger.API, callMetadata).subscribe(subscriber);
         return this;
     }
 
@@ -596,6 +602,14 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         ).subscribe(() -> done.set(true));
         autoAdvanceUntil(done::get);
         assertThat(done.get()).isTrue();
+
+        return this;
+    }
+
+    public JobScenarioBuilder<E> modifyJobStoreRecord(Function<Job, Job> transformer) {
+        Job<?> storedJob = jobStore.retrieveJob(jobId).toBlocking().first();
+        Job updatedJob = transformer.apply(storedJob);
+        assertThat(jobStore.updateJob(updatedJob).get()).isNull();
 
         return this;
     }

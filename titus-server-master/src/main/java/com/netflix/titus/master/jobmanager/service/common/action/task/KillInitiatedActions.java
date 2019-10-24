@@ -239,7 +239,9 @@ public class KillInitiatedActions {
                     ServiceJobExt oldExt = serviceJob.getJobDescriptor().getExtensions();
 
                     Capacity oldCapacity = oldExt.getCapacity();
-                    int newDesired = oldCapacity.getDesired() - 1;
+                    // A job of size 0 may still have some tasks running just after job scale-down request.
+                    // We must make sure that we do not decrement the job size if it is already 0.
+                    int newDesired = Math.max(0, oldCapacity.getDesired() - 1);
                     Capacity newCapacity = oldCapacity.toBuilder()
                             .withMin(Math.min(oldCapacity.getMin(), newDesired))
                             .withDesired(newDesired)

@@ -18,12 +18,15 @@ package com.netflix.titus.master.jobmanager.service.integration;
 
 import java.util.concurrent.TimeUnit;
 
+import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
+import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.master.jobmanager.service.integration.scenario.JobsScenarioBuilder;
 import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 import org.junit.Test;
 
+import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.changeServiceJobCapacity;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class MasterBootstrapTest {
@@ -58,6 +61,27 @@ public class MasterBootstrapTest {
                         .advance(JobsScenarioBuilder.LAUNCHED_TIMEOUT_MS, TimeUnit.MILLISECONDS)
                         .advance()
                         .expectTaskInActiveState(0, 0, TaskState.KillInitiated)
+                );
+    }
+
+    /**
+     * This test passes because by default {@link com.netflix.titus.master.jobmanager.service.JobManagerConfiguration#isFailOnDataValidation}
+     * is turned off.
+     */
+    @Test
+    public void testRebootWithJobHavingNegativeDesiredSize() {
+        JobDescriptor<ServiceJobExt> emptyJob = changeServiceJobCapacity(JobDescriptorGenerator.oneTaskServiceJobDescriptor(), Capacity.newBuilder().build());
+
+        jobsScenarioBuilder.scheduleJob(emptyJob, jobScenario -> jobScenario
+                .expectJobEvent()
+                .modifyJobStoreRecord(jobStoreRecord -> {
+                    return changeServiceJobCapacity(jobStoreRecord, Capacity.newBuilder().withMin(-1).withDesired(-1).build());
+                })
+        ).reboot()
+                .inJob(0, jobScenario -> jobScenario
+                        .assertServiceJob(job -> {
+                            assertThat(job.getJobDescriptor().getExtensions().getCapacity().getDesired()).isEqualTo(-1);
+                        })
                 );
     }
 }
