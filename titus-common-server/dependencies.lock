@@ -251,12 +251,6 @@
                 "com.squareup.okhttp3:okhttp"
             ]
         },
-        "commons-codec:commons-codec": {
-            "locked": "1.13",
-            "transitive": [
-                "com.netflix.titus:titus-common"
-            ]
-        },
         "io.grpc:grpc-context": {
             "locked": "1.10.1",
             "transitive": [
@@ -904,12 +898,6 @@
                 "com.squareup.okhttp3:okhttp"
             ]
         },
-        "commons-codec:commons-codec": {
-            "locked": "1.13",
-            "transitive": [
-                "com.netflix.titus:titus-common"
-            ]
-        },
         "io.grpc:grpc-context": {
             "locked": "1.10.1",
             "transitive": [
@@ -1555,12 +1543,6 @@
             "locked": "1.13.0",
             "transitive": [
                 "com.squareup.okhttp3:okhttp"
-            ]
-        },
-        "commons-codec:commons-codec": {
-            "locked": "1.13",
-            "transitive": [
-                "com.netflix.titus:titus-common"
             ]
         },
         "io.grpc:grpc-context": {
@@ -2274,12 +2256,6 @@
                 "com.squareup.okhttp3:okhttp"
             ]
         },
-        "commons-codec:commons-codec": {
-            "locked": "1.13",
-            "transitive": [
-                "com.netflix.titus:titus-common"
-            ]
-        },
         "io.grpc:grpc-context": {
             "locked": "1.10.1",
             "transitive": [
@@ -2926,12 +2902,6 @@
             "locked": "1.13.0",
             "transitive": [
                 "com.squareup.okhttp3:okhttp"
-            ]
-        },
-        "commons-codec:commons-codec": {
-            "locked": "1.13",
-            "transitive": [
-                "com.netflix.titus:titus-common"
             ]
         },
         "io.grpc:grpc-context": {
@@ -3604,12 +3574,6 @@
             "locked": "1.13.0",
             "transitive": [
                 "com.squareup.okhttp3:okhttp"
-            ]
-        },
-        "commons-codec:commons-codec": {
-            "locked": "1.13",
-            "transitive": [
-                "com.netflix.titus:titus-common"
             ]
         },
         "io.grpc:grpc-context": {
@@ -4355,12 +4319,6 @@
                 "com.squareup.okhttp3:okhttp"
             ]
         },
-        "commons-codec:commons-codec": {
-            "locked": "1.13",
-            "transitive": [
-                "com.netflix.titus:titus-common"
-            ]
-        },
         "io.grpc:grpc-context": {
             "locked": "1.10.1",
             "transitive": [
@@ -5102,12 +5060,6 @@
             "locked": "1.13.0",
             "transitive": [
                 "com.squareup.okhttp3:okhttp"
-            ]
-        },
-        "commons-codec:commons-codec": {
-            "locked": "1.13",
-            "transitive": [
-                "com.netflix.titus:titus-common"
             ]
         },
         "io.grpc:grpc-context": {
@@ -5852,12 +5804,6 @@
             "locked": "1.13.0",
             "transitive": [
                 "com.squareup.okhttp3:okhttp"
-            ]
-        },
-        "commons-codec:commons-codec": {
-            "locked": "1.13",
-            "transitive": [
-                "com.netflix.titus:titus-common"
             ]
         },
         "io.grpc:grpc-context": {

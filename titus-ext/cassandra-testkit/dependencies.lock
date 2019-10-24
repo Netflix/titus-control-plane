@@ -363,9 +363,8 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.13",
+            "locked": "1.2",
             "transitive": [
-                "com.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
             ]
         },
@@ -1317,9 +1316,8 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.13",
+            "locked": "1.2",
             "transitive": [
-                "com.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
             ]
         },
@@ -2271,9 +2269,8 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.13",
+            "locked": "1.2",
             "transitive": [
-                "com.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
             ]
         },
@@ -3289,9 +3286,8 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.13",
+            "locked": "1.2",
             "transitive": [
-                "com.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
             ]
         },
@@ -4244,9 +4240,8 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.13",
+            "locked": "1.2",
             "transitive": [
-                "com.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
             ]
         },
@@ -5209,9 +5204,8 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.13",
+            "locked": "1.2",
             "transitive": [
-                "com.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
             ]
         },
@@ -6213,9 +6207,8 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.13",
+            "locked": "1.2",
             "transitive": [
-                "com.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
             ]
         },
@@ -7217,9 +7210,8 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.13",
+            "locked": "1.2",
             "transitive": [
-                "com.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
             ]
         },
@@ -8222,9 +8214,8 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.13",
+            "locked": "1.2",
             "transitive": [
-                "com.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
             ]
         },
