@@ -17,7 +17,6 @@
 package com.netflix.titus.master.integration.v3.job;
 
 import java.util.AbstractMap;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.function.Function;
@@ -239,24 +238,6 @@ public class JobIpAllocationsTest extends BaseIntegrationTest {
             }
         }
         assertThat(verified).isTrue();
-    }
-
-    /**
-     * Tests a job without a Base64 encoded signature is rejected.
-     */
-    @Test(timeout = 30_000)
-    public void testBase64Validation() throws Exception {
-        String invalidSignature = "!";
-        byte[] invalidSignatureBytes = invalidSignature.getBytes();
-        JobDescriptor<ServiceJobExt> invalidJobDescriptor = ONE_TASK_SERVICE_JOB
-                .but(j -> j.getContainer()
-                        .but(c -> c.getContainerResources().toBuilder().withSignedIpAddressAllocations(Collections.singletonList(
-                                c.getContainerResources().getSignedIpAddressAllocations().get(0).toBuilder().withHostPublicKeySignature(invalidSignatureBytes).build()
-                        )))
-                );
-        submitBadJob(client,
-                toGrpcJobDescriptor(invalidJobDescriptor),
-                "container.containerResources.ipSignedAddressAllocations[0].hostPublicKeySignature");
     }
 
     /**
