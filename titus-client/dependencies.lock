@@ -235,12 +235,6 @@
                 "com.squareup.okhttp3:okhttp"
             ]
         },
-        "commons-codec:commons-codec": {
-            "locked": "1.13",
-            "transitive": [
-                "com.netflix.titus:titus-common"
-            ]
-        },
         "io.grpc:grpc-context": {
             "locked": "1.10.1",
             "transitive": [
@@ -852,12 +846,6 @@
                 "com.squareup.okhttp3:okhttp"
             ]
         },
-        "commons-codec:commons-codec": {
-            "locked": "1.13",
-            "transitive": [
-                "com.netflix.titus:titus-common"
-            ]
-        },
         "io.grpc:grpc-context": {
             "locked": "1.10.1",
             "transitive": [
@@ -1467,12 +1455,6 @@
             "locked": "1.13.0",
             "transitive": [
                 "com.squareup.okhttp3:okhttp"
-            ]
-        },
-        "commons-codec:commons-codec": {
-            "locked": "1.13",
-            "transitive": [
-                "com.netflix.titus:titus-common"
             ]
         },
         "io.grpc:grpc-context": {
@@ -2150,12 +2132,6 @@
                 "com.squareup.okhttp3:okhttp"
             ]
         },
-        "commons-codec:commons-codec": {
-            "locked": "1.13",
-            "transitive": [
-                "com.netflix.titus:titus-common"
-            ]
-        },
         "io.grpc:grpc-context": {
             "locked": "1.10.1",
             "transitive": [
@@ -2766,12 +2742,6 @@
             "locked": "1.13.0",
             "transitive": [
                 "com.squareup.okhttp3:okhttp"
-            ]
-        },
-        "commons-codec:commons-codec": {
-            "locked": "1.13",
-            "transitive": [
-                "com.netflix.titus:titus-common"
             ]
         },
         "io.grpc:grpc-context": {
@@ -3614,7 +3584,7 @@
             ]
         },
         "com.netflix.fenzo:fenzo-core": {
-            "locked": "1.1.0-rc.6",
+            "locked": "1.1.0-rc.7",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -4011,9 +3981,8 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.13",
+            "locked": "1.11",
             "transitive": [
-                "com.netflix.titus:titus-common",
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:util-codec_2.11",
                 "io.kubernetes:client-java",
@@ -5711,7 +5680,7 @@
             ]
         },
         "com.netflix.fenzo:fenzo-core": {
-            "locked": "1.1.0-rc.6",
+            "locked": "1.1.0-rc.7",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -6108,9 +6077,8 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.13",
+            "locked": "1.11",
             "transitive": [
-                "com.netflix.titus:titus-common",
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:util-codec_2.11",
                 "io.kubernetes:client-java",
@@ -7808,7 +7776,7 @@
             ]
         },
         "com.netflix.fenzo:fenzo-core": {
-            "locked": "1.1.0-rc.6",
+            "locked": "1.1.0-rc.7",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -8205,9 +8173,8 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.13",
+            "locked": "1.11",
             "transitive": [
-                "com.netflix.titus:titus-common",
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:util-codec_2.11",
                 "io.kubernetes:client-java",
@@ -9906,7 +9873,7 @@
             ]
         },
         "com.netflix.fenzo:fenzo-core": {
-            "locked": "1.1.0-rc.6",
+            "locked": "1.1.0-rc.7",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -10303,9 +10270,8 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.13",
+            "locked": "1.11",
             "transitive": [
-                "com.netflix.titus:titus-common",
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:util-codec_2.11",
                 "io.kubernetes:client-java",

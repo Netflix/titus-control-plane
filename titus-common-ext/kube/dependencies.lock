@@ -254,9 +254,8 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.13",
+            "locked": "1.11",
             "transitive": [
-                "com.netflix.titus:titus-common",
                 "io.kubernetes:client-java"
             ]
         },
@@ -1012,9 +1011,8 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.13",
+            "locked": "1.11",
             "transitive": [
-                "com.netflix.titus:titus-common",
                 "io.kubernetes:client-java"
             ]
         },
@@ -1770,9 +1768,8 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.13",
+            "locked": "1.11",
             "transitive": [
-                "com.netflix.titus:titus-common",
                 "io.kubernetes:client-java"
             ]
         },
@@ -2592,9 +2589,8 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.13",
+            "locked": "1.11",
             "transitive": [
-                "com.netflix.titus:titus-common",
                 "io.kubernetes:client-java"
             ]
         },
@@ -3351,9 +3347,8 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.13",
+            "locked": "1.11",
             "transitive": [
-                "com.netflix.titus:titus-common",
                 "io.kubernetes:client-java"
             ]
         },
@@ -4171,9 +4166,8 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.13",
+            "locked": "1.11",
             "transitive": [
-                "com.netflix.titus:titus-common",
                 "io.kubernetes:client-java"
             ]
         },
@@ -5072,9 +5066,8 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.13",
+            "locked": "1.11",
             "transitive": [
-                "com.netflix.titus:titus-common",
                 "io.kubernetes:client-java"
             ]
         },
@@ -5973,9 +5966,8 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.13",
+            "locked": "1.11",
             "transitive": [
-                "com.netflix.titus:titus-common",
                 "io.kubernetes:client-java"
             ]
         },
@@ -6875,9 +6867,8 @@
             ]
         },
         "commons-codec:commons-codec": {
-            "locked": "1.13",
+            "locked": "1.11",
             "transitive": [
-                "com.netflix.titus:titus-common",
                 "io.kubernetes:client-java"
             ]
         },
