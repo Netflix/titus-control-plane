@@ -28,7 +28,6 @@ import com.netflix.fenzo.TaskRequest;
 import com.netflix.fenzo.TaskTrackerState;
 import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.titus.api.FeatureActivationConfiguration;
-import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor.JobDescriptorExt;
 import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
@@ -36,6 +35,7 @@ import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobAssertions;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder;
 import com.netflix.titus.api.model.ResourceDimension;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizerBuilder;
 import com.netflix.titus.common.model.sanitizer.VerifierMode;
@@ -87,6 +87,8 @@ public class JobsScenarioBuilder {
     private final StubbedVirtualMachineMasterService vmService = new StubbedVirtualMachineMasterService();
     private final StubbedJobStore jobStore = new StubbedJobStore();
 
+    private volatile int concurrentStoreUpdateLimit = CONCURRENT_STORE_UPDATE_LIMIT;
+
     private DefaultV3JobOperations jobOperations;
 
     private final ExtTestSubscriber<Pair<StoreEvent, ?>> storeEvents = new ExtTestSubscriber<>();
@@ -100,7 +102,7 @@ public class JobsScenarioBuilder {
         when(configuration.getReconcilerIdleTimeoutMs()).thenReturn(RECONCILER_IDLE_TIMEOUT_MS);
 
         when(configuration.getActiveNotStartedTasksLimit()).thenReturn(ACTIVE_NOT_STARTED_TASKS_LIMIT);
-        when(configuration.getConcurrentReconcilerStoreUpdateLimit()).thenReturn(CONCURRENT_STORE_UPDATE_LIMIT);
+        when(configuration.getConcurrentReconcilerStoreUpdateLimit()).thenAnswer(invocation -> concurrentStoreUpdateLimit);
         when(configuration.getTaskInLaunchedStateTimeoutMs()).thenReturn(LAUNCHED_TIMEOUT_MS);
         when(configuration.getBatchTaskInStartInitiatedStateTimeoutMs()).thenReturn(START_INITIATED_TIMEOUT_MS);
         when(configuration.getTaskInKillInitiatedStateTimeoutMs()).thenReturn(KILL_INITIATED_TIMEOUT_MS);
@@ -242,6 +244,11 @@ public class JobsScenarioBuilder {
             jobScenarioBuilders.add(jobScenarioBuilder);
         });
 
+        return this;
+    }
+
+    public JobsScenarioBuilder withConcurrentStoreUpdateLimit(int concurrentStoreUpdateLimit) {
+        this.concurrentStoreUpdateLimit = concurrentStoreUpdateLimit;
         return this;
     }
 

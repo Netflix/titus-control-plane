@@ -169,6 +169,28 @@ public class ServiceJobSchedulingTest {
     }
 
     @Test
+    public void testJobScaleDownWithParallelTerminateAndShrink() {
+        JobDescriptor<ServiceJobExt> twoTaskJob = changeServiceJobCapacity(oneTaskServiceJobDescriptor(), 2);
+        Capacity newCapacity = Capacity.newBuilder().withMin(0).withDesired(0).withMax(5).build();
+
+        jobsScenarioBuilder.withConcurrentStoreUpdateLimit(1)
+                .scheduleJob(twoTaskJob, jobScenario -> jobScenario
+                        .expectJobEvent()
+                        .advance()
+                        .inActiveTasks((taskIdx, resubmit) -> ScenarioTemplates.acceptTask(taskIdx, resubmit))
+                        .inActiveTasks((taskIdx, resubmit) -> ScenarioTemplates.startTask(taskIdx, resubmit, TaskState.Started))
+                        .changeCapacity(newCapacity)
+                        .allTasks(tasks -> tasks.forEach(jobScenario::killTaskAndShrinkNoWait))
+                        .advance().advance().advance()
+                        .assertServiceJob(job -> {
+                            Capacity capacity = job.getJobDescriptor().getExtensions().getCapacity();
+                            assertThat(capacity.getMin()).isEqualTo(0);
+                            assertThat(capacity.getDesired()).isEqualTo(0);
+                        })
+                );
+    }
+
+    @Test
     public void testTaskTerminateInAcceptedState() {
         jobsScenarioBuilder.scheduleJob(oneTaskServiceJobDescriptor(), jobScenario -> jobScenario
                 .expectJobEvent()
