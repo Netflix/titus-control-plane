@@ -26,17 +26,12 @@ import java.util.regex.Pattern;
 import com.netflix.titus.api.FeatureRolloutPlans;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
-import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
-import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
-import com.netflix.titus.api.jobmanager.model.job.migration.MigrationPolicy;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobAssertions;
-import com.netflix.titus.api.json.ObjectMappers;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.feature.FeatureCompliance;
 import com.netflix.titus.common.util.feature.FeatureCompliance.NonComplianceList;
 import com.netflix.titus.runtime.jobmanager.JobManagerConfiguration;
 
-import static com.netflix.titus.api.FeatureRolloutPlans.DISRUPTION_BUDGET_FEATURE;
 import static com.netflix.titus.api.FeatureRolloutPlans.ENTRY_POINT_STRICT_VALIDATION_FEATURE;
 import static com.netflix.titus.api.FeatureRolloutPlans.ENVIRONMENT_VARIABLE_NAMES_STRICT_VALIDATION_FEATURE;
 import static com.netflix.titus.api.FeatureRolloutPlans.IAM_ROLE_REQUIRED_FEATURE;
@@ -141,39 +136,5 @@ class JobFeatureComplianceChecks {
                     String.format("Job descriptor must declare disk size that is no less than %sMB", minDiskSize)
             ));
         };
-    }
-
-    /**
-     * See {@link FeatureRolloutPlans#DISRUPTION_BUDGET_FEATURE}.
-     */
-    static FeatureCompliance<JobDescriptor<?>> noDisruptionBudget() {
-        return jobDescriptor -> {
-            if (JobFunctions.hasDisruptionBudget(jobDescriptor)) {
-                return Optional.empty();
-            }
-
-            String legacyMigrationPolicyInfo;
-            if (JobFunctions.isBatchJob(jobDescriptor)) {
-                legacyMigrationPolicyInfo = "no migration policy (batch job)";
-            } else {
-                MigrationPolicy migrationPolicy = ((ServiceJobExt) jobDescriptor.getExtensions()).getMigrationPolicy();
-                legacyMigrationPolicyInfo = "service job with legacy migration policy: " + toString(migrationPolicy);
-            }
-
-            return Optional.of(NonComplianceList.of(
-                    DISRUPTION_BUDGET_FEATURE,
-                    jobDescriptor,
-                    Collections.singletonMap("legacyMigration", legacyMigrationPolicyInfo),
-                    "Job descriptor without disruption budget"
-            ));
-        };
-    }
-
-    private static String toString(MigrationPolicy migrationPolicy) {
-        try {
-            return (migrationPolicy == null ? "none" : ObjectMappers.storeMapper().writeValueAsString(migrationPolicy));
-        } catch (Exception e) {
-            return String.format("<%s>", e.getMessage());
-        }
     }
 }

@@ -26,9 +26,7 @@ import com.netflix.titus.api.FeatureRolloutPlans;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.SecurityProfile;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
-import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.SelfManagedDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
-import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobAssertions;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
 import com.netflix.titus.api.model.ResourceDimension;
@@ -45,7 +43,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static com.netflix.titus.api.FeatureRolloutPlans.ENVIRONMENT_VARIABLE_NAMES_STRICT_VALIDATION_FEATURE;
-import static com.netflix.titus.gateway.service.v3.internal.DisruptionBudgetSanitizer.BATCH_RUNTIME_LIMIT_FACTOR;
 import static com.netflix.titus.gateway.service.v3.internal.ExtendedJobSanitizer.TITUS_NON_COMPLIANT_FEATURES;
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -76,7 +73,6 @@ public class ExtendedJobSanitizerTest {
 
     private final JobConfiguration jobConfiguration = mock(JobConfiguration.class);
     private final EntitySanitizer entitySanitizer = mock(EntitySanitizer.class);
-    private final DisruptionBudgetSanitizer disruptionBudgetSanitizer = new DisruptionBudgetSanitizer(disruptionBudgetSanitizerConfiguration, titusRuntime);
     private final JobAssertions jobAssertions = new JobAssertions(jobConfiguration, instance -> ResourceDimension.empty());
 
     @Before
@@ -96,7 +92,7 @@ public class ExtendedJobSanitizerTest {
 
     private void testSecurityGrupValidation(boolean doNotAddIfMissing, List<String> expected) {
         JobDescriptor jobDescriptor = newJobDescriptorWithSecurityProfile(Collections.emptyList(), "myIamRole");
-        ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, disruptionBudgetSanitizer, jd -> doNotAddIfMissing, jd -> false, titusRuntime);
+        ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, jd -> doNotAddIfMissing, jd -> false, titusRuntime);
 
         when(configuration.getDefaultSecurityGroups()).thenReturn(asList("sg-1", "sg-2"));
 
@@ -118,7 +114,7 @@ public class ExtendedJobSanitizerTest {
 
     private void testIamRoleValidation(boolean doNotAddIfMissing, String expected) {
         JobDescriptor jobDescriptor = newJobDescriptorWithSecurityProfile(DEFAULT_SECURITY_GROUPS, "");
-        ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, disruptionBudgetSanitizer, jd -> doNotAddIfMissing, jd -> false, titusRuntime);
+        ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, jd -> doNotAddIfMissing, jd -> false, titusRuntime);
 
         when(configuration.getDefaultIamRole()).thenReturn(DEFAULT_IAM_ROLE);
 
@@ -135,7 +131,7 @@ public class ExtendedJobSanitizerTest {
         when(configuration.getMinDiskSizeMB()).thenReturn(MIN_DISK_SIZE);
         when(entitySanitizer.sanitize(any())).thenReturn(Optional.of(jobDescriptor));
 
-        ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, disruptionBudgetSanitizer, jd -> false, jd -> false, titusRuntime);
+        ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, jd -> false, jd -> false, titusRuntime);
         Optional<JobDescriptor> sanitizedJobDescriptorOpt = sanitizer.sanitize(jobDescriptor);
         JobDescriptor sanitizedJobDescriptor = sanitizedJobDescriptorOpt.get();
         assertThat(sanitizedJobDescriptor).isNotNull();
@@ -151,7 +147,7 @@ public class ExtendedJobSanitizerTest {
         when(configuration.getMinDiskSizeMB()).thenReturn(MIN_DISK_SIZE);
         when(entitySanitizer.sanitize(any())).thenReturn(Optional.of(jobDescriptor));
 
-        ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, disruptionBudgetSanitizer, jd -> false, jd -> false, titusRuntime);
+        ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, jd -> false, jd -> false, titusRuntime);
         Optional<JobDescriptor> sanitizedJobDescriptorOpt = sanitizer.sanitize(jobDescriptor);
         assertThat(sanitizedJobDescriptorOpt).isEmpty();
     }
@@ -164,7 +160,7 @@ public class ExtendedJobSanitizerTest {
                         .withCommand(null)))
                 .getValue();
 
-        ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, disruptionBudgetSanitizer, jd -> false, jd -> false, titusRuntime);
+        ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, jd -> false, jd -> false, titusRuntime);
         Optional<JobDescriptor<?>> sanitized = sanitizer.sanitize(jobDescriptor);
         assertThat(sanitized).isPresent();
         Map<String, String> attributes = sanitized.get().getAttributes();
@@ -180,7 +176,7 @@ public class ExtendedJobSanitizerTest {
                         .withEntryPoint(asList("/bin/sh", "-c", "sleep 10"))))
                 .getValue();
 
-        ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, disruptionBudgetSanitizer, jd -> false, jd -> false, titusRuntime);
+        ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, jd -> false, jd -> false, titusRuntime);
         Optional<JobDescriptor<?>> sanitized = sanitizer.sanitize(jobDescriptor);
         assertThat(sanitized).isNotPresent();
     }
@@ -195,7 +191,7 @@ public class ExtendedJobSanitizerTest {
                         .withCommand(asList("some", "arguments"))))
                 .getValue();
 
-        ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, disruptionBudgetSanitizer, jd -> false, jd -> false, titusRuntime);
+        ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, jd -> false, jd -> false, titusRuntime);
         Optional<JobDescriptor<?>> sanitized = sanitizer.sanitize(jobDescriptor);
         assertThat(sanitized).isNotPresent();
     }
@@ -203,7 +199,7 @@ public class ExtendedJobSanitizerTest {
     @Test
     public void testEnvironmentNamesWithInvalidCharactersAndNoValidationFailures() {
         JobDescriptor jobDescriptor = newJobDescriptorWithEnvironment(";;;", "value");
-        ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, disruptionBudgetSanitizer, jd -> false, jd -> false, titusRuntime);
+        ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, jd -> false, jd -> false, titusRuntime);
 
         Optional<JobDescriptor> sanitized = sanitizer.sanitize(jobDescriptor);
         assertThat(sanitized).isNotEmpty();
@@ -213,7 +209,7 @@ public class ExtendedJobSanitizerTest {
     @Test(expected = TitusServiceException.class)
     public void testEnvironmentNamesWithInvalidCharactersAndWithValidationFailures() {
         JobDescriptor jobDescriptor = newJobDescriptorWithEnvironment(";;;", "value");
-        ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, disruptionBudgetSanitizer, jd -> false, jd -> true, titusRuntime);
+        ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, jd -> false, jd -> true, titusRuntime);
 
         sanitizer.sanitize(jobDescriptor);
     }
@@ -228,59 +224,15 @@ public class ExtendedJobSanitizerTest {
                 )
                 .build();
 
-        ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, disruptionBudgetSanitizer, jd -> false, jd -> false, titusRuntime);
+        ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, jd -> false, jd -> false, titusRuntime);
 
         Optional<JobDescriptor> sanitized = sanitizer.sanitize(jobDescriptor);
         assertThat(sanitized).isNotEmpty();
         assertThat(sanitized.get().getAttributes()).containsOnlyKeys("myApp.a");
     }
 
-    @Test
-    public void testLegacyServiceJobDisruptionBudgetRewrite() {
-        JobDescriptor<ServiceJobExt> jobDescriptor = newServiceJob().getValue().toBuilder()
-                .withDisruptionBudget(DisruptionBudget.none())
-                .build();
-        ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, disruptionBudgetSanitizer, jd -> false, jd -> false, titusRuntime);
-
-        Optional<JobDescriptor> sanitizedOpt = sanitizer.sanitize(jobDescriptor);
-        assertThat(sanitizedOpt).isNotEmpty();
-        JobDescriptor sanitized = sanitizedOpt.get();
-
-        String nonCompliant = (String) sanitized.getAttributes().get(TITUS_NON_COMPLIANT_FEATURES);
-        assertThat(nonCompliant).contains(FeatureRolloutPlans.DISRUPTION_BUDGET_FEATURE);
-
-        SelfManagedDisruptionBudgetPolicy policy = (SelfManagedDisruptionBudgetPolicy) sanitized.getDisruptionBudget().getDisruptionBudgetPolicy();
-        assertThat(policy.getRelocationTimeMs()).isEqualTo(DisruptionBudgetSanitizer.DEFAULT_SERVICE_RELOCATION_TIME_MS);
-    }
-
-    @Test
-    public void testLegacyBatchJobDisruptionBudgetRewrite() {
-        JobDescriptor<BatchJobExt> jobDescriptor = newBatchJob().getValue().toBuilder()
-                .withDisruptionBudget(DisruptionBudget.none())
-                .build();
-        ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, disruptionBudgetSanitizer, jd -> false, jd -> false, titusRuntime);
-
-        Optional<JobDescriptor> sanitizedOpt = sanitizer.sanitize(jobDescriptor);
-        assertThat(sanitizedOpt).isNotEmpty();
-        JobDescriptor sanitized = sanitizedOpt.get();
-
-        String nonCompliant = (String) sanitized.getAttributes().get(TITUS_NON_COMPLIANT_FEATURES);
-        assertThat(nonCompliant).contains(FeatureRolloutPlans.DISRUPTION_BUDGET_FEATURE);
-
-        SelfManagedDisruptionBudgetPolicy policy = (SelfManagedDisruptionBudgetPolicy) sanitized.getDisruptionBudget().getDisruptionBudgetPolicy();
-        assertThat(policy.getRelocationTimeMs()).isEqualTo(
-                (long) ((jobDescriptor.getExtensions()).getRuntimeLimitMs() * BATCH_RUNTIME_LIMIT_FACTOR)
-        );
-    }
-
     private DataGenerator<JobDescriptor<BatchJobExt>> newBatchJob() {
         return JobDescriptorGenerator.batchJobDescriptors().map(jobDescriptor ->
-                jobDescriptor.toBuilder().withDisruptionBudget(SAMPLE_DISRUPTION_BUDGET).build()
-        );
-    }
-
-    private DataGenerator<JobDescriptor<ServiceJobExt>> newServiceJob() {
-        return JobDescriptorGenerator.serviceJobDescriptors().map(jobDescriptor ->
                 jobDescriptor.toBuilder().withDisruptionBudget(SAMPLE_DISRUPTION_BUDGET).build()
         );
     }

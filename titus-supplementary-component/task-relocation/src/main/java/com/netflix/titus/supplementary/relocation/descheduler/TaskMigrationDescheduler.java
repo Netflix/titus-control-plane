@@ -27,7 +27,6 @@ import java.util.Optional;
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
-import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudgetFunctions;
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.time.Clock;
@@ -218,7 +217,7 @@ class TaskMigrationDescheduler {
 
     private boolean canTerminate(Task task) {
         Job<?> job = jobsById.get(task.getJobId());
-        if (job == null || DisruptionBudgetFunctions.isLegacyJob(job)) {
+        if (job == null) {
             return false;
         }
 

@@ -20,8 +20,6 @@ import java.util.Objects;
 
 public class DeschedulingFailure {
 
-    private static final DeschedulingFailure LEGACY_JOB_DESCHEDULING_FAILURE = new DeschedulingFailure("Legacy job, with no disruption budget configured");
-
     private final String reasonMessage;
 
     public DeschedulingFailure(String reasonMessage) {
@@ -62,10 +60,6 @@ public class DeschedulingFailure {
 
     public static Builder newBuilder() {
         return new Builder();
-    }
-
-    public static DeschedulingFailure legacyJobDeschedulingFailure() {
-        return LEGACY_JOB_DESCHEDULING_FAILURE;
     }
 
     public static final class Builder {

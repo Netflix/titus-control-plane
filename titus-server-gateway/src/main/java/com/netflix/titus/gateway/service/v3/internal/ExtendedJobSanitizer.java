@@ -59,7 +59,6 @@ class ExtendedJobSanitizer implements EntitySanitizer {
 
     private final JobManagerConfiguration jobManagerConfiguration;
     private final EntitySanitizer entitySanitizer;
-    private final DisruptionBudgetSanitizer disruptionBudgetSanitizer;
     private final Predicate<JobDescriptor> securityGroupsRequiredPredicate;
     private final Predicate<JobDescriptor> environmentVariableNamesStrictValidationPredicate;
     private final FeatureCompliance<JobDescriptor<?>> jobComplianceChecker;
@@ -67,13 +66,11 @@ class ExtendedJobSanitizer implements EntitySanitizer {
     public ExtendedJobSanitizer(JobManagerConfiguration jobManagerConfiguration,
                                 JobAssertions jobAssertions,
                                 @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer,
-                                DisruptionBudgetSanitizer disruptionBudgetSanitizer,
                                 @Named(SECURITY_GROUPS_REQUIRED_FEATURE) Predicate<JobDescriptor> securityGroupsRequiredPredicate,
                                 @Named(ENVIRONMENT_VARIABLE_NAMES_STRICT_VALIDATION_FEATURE) Predicate<JobDescriptor> environmentVariableNamesStrictValidationPredicate,
                                 TitusRuntime titusRuntime) {
         this.jobManagerConfiguration = jobManagerConfiguration;
         this.entitySanitizer = entitySanitizer;
-        this.disruptionBudgetSanitizer = disruptionBudgetSanitizer;
         this.securityGroupsRequiredPredicate = securityGroupsRequiredPredicate;
         this.environmentVariableNamesStrictValidationPredicate = environmentVariableNamesStrictValidationPredicate;
 
@@ -83,8 +80,7 @@ class ExtendedJobSanitizer implements EntitySanitizer {
                         JobFeatureComplianceChecks.missingIamRole(),
                         JobFeatureComplianceChecks.environmentVariablesNames(jobAssertions),
                         JobFeatureComplianceChecks.entryPointViolations(),
-                        JobFeatureComplianceChecks.minDiskSize(jobManagerConfiguration),
-                        JobFeatureComplianceChecks.noDisruptionBudget()
+                        JobFeatureComplianceChecks.minDiskSize(jobManagerConfiguration)
                 ))
         );
     }
@@ -150,9 +146,6 @@ class ExtendedJobSanitizer implements EntitySanitizer {
                     throw TitusServiceException.invalidArgument(nonCompliance.toErrorMessage());
                 }
             });
-
-            // Set default disruption budget if not set
-            sanitized = disruptionBudgetSanitizer.sanitize(sanitized);
 
             return sanitized.toBuilder()
                     .withAttributes(CollectionsExt.merge(jobDescriptorWithAllowedAttributes.getAttributes(), buildNonComplianceJobAttributeMap(violations)))

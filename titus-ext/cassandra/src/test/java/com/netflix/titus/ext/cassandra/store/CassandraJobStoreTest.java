@@ -384,7 +384,7 @@ public class CassandraJobStoreTest {
         if (session == null) {
             session = cassandraCqlUnit.getSession();
         }
-        return new CassandraJobStore(CONFIGURATION, job -> true, session, TitusRuntimes.internal(),
+        return new CassandraJobStore(CONFIGURATION, session, TitusRuntimes.internal(),
                 ObjectMappers.storeMapper(), INITIAL_BUCKET_COUNT, MAX_BUCKET_SIZE);
     }
 

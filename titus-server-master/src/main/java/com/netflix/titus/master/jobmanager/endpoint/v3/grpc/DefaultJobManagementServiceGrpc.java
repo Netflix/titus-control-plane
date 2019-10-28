@@ -32,15 +32,14 @@ import javax.inject.Singleton;
 
 import com.google.protobuf.Empty;
 import com.netflix.fenzo.TaskRequest;
-import com.netflix.titus.api.FeatureRolloutPlans;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.CapacityAttributes;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
+import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
-import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudgetFunctions;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.CustomJobConfiguration;
@@ -98,7 +97,6 @@ import com.netflix.titus.master.service.management.ApplicationSlaManagementServi
 import com.netflix.titus.runtime.endpoint.JobQueryCriteria;
 import com.netflix.titus.runtime.endpoint.authorization.AuthorizationService;
 import com.netflix.titus.runtime.endpoint.authorization.AuthorizationStatus;
-import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataUtils;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
@@ -117,11 +115,11 @@ import rx.Subscription;
 import rx.schedulers.Schedulers;
 
 import static com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_STRICT_SANITIZER;
+import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.safeOnError;
+import static com.netflix.titus.runtime.endpoint.metadata.CallMetadataUtils.execute;
 import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobQueryModelConverters.toGrpcPagination;
 import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobQueryModelConverters.toJobQueryCriteria;
 import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobQueryModelConverters.toPage;
-import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.safeOnError;
-import static com.netflix.titus.runtime.endpoint.metadata.CallMetadataUtils.execute;
 import static com.netflix.titus.runtime.endpoint.v3.grpc.TitusPaginationUtils.checkPageIsValid;
 import static com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway.JOB_MINIMUM_FIELD_SET;
 import static com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway.TASK_MINIMUM_FIELD_SET;
@@ -142,7 +140,6 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     private final LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo;
     private final EntitySanitizer entitySanitizer;
     private final ObjectConfigurationResolver<com.netflix.titus.api.jobmanager.model.job.JobDescriptor, CustomJobConfiguration> customJobConfigurationResolver;
-    private final Predicate<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> disruptionBudgetEnabledPredicate;
     private final CallMetadataResolver callMetadataResolver;
     private final CellDecorator cellDecorator;
     private final AuthorizationService authorizationService;
@@ -157,7 +154,6 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
                                            LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo,
                                            @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer,
                                            ObjectConfigurationResolver<com.netflix.titus.api.jobmanager.model.job.JobDescriptor, CustomJobConfiguration> customJobConfigurationResolver,
-                                           @Named(FeatureRolloutPlans.DISRUPTION_BUDGET_FEATURE) Predicate<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> disruptionBudgetEnabledPredicate,
                                            CallMetadataResolver callMetadataResolver,
                                            CellInfoResolver cellInfoResolver,
                                            AuthorizationService authorizationService,
@@ -170,7 +166,6 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
         this.logStorageInfo = logStorageInfo;
         this.entitySanitizer = entitySanitizer;
         this.customJobConfigurationResolver = customJobConfigurationResolver;
-        this.disruptionBudgetEnabledPredicate = disruptionBudgetEnabledPredicate;
         this.callMetadataResolver = callMetadataResolver;
         this.cellDecorator = new CellDecorator(cellInfoResolver::getCellName);
         this.authorizationService = authorizationService;
@@ -224,13 +219,6 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
         if (!violations.isEmpty()) {
             safeOnError(logger, TitusServiceException.invalidArgument(violations), responseObserver);
             return Optional.empty();
-        }
-
-        if (!disruptionBudgetEnabledPredicate.test(sanitizedCoreJobDescriptor)) {
-            if (!DisruptionBudgetFunctions.isLegacyJobDescriptor(sanitizedCoreJobDescriptor)) {
-                safeOnError(logger, TitusServiceException.invalidArgument("Disruption budget not enabled for this application"), responseObserver);
-                return Optional.empty();
-            }
         }
 
         return Optional.of(sanitizedCoreJobDescriptor);
@@ -461,11 +449,6 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     private Optional<DisruptionBudget> validateAndConvertJobDisruptionBudgetToCoreModel(com.netflix.titus.api.jobmanager.model.job.Job<?> coreJob,
                                                                                         JobDisruptionBudget grpcDisruptionBudget,
                                                                                         StreamObserver<Empty> responseObserver) {
-        if (!disruptionBudgetEnabledPredicate.test(coreJob.getJobDescriptor())) {
-            safeOnError(logger, TitusServiceException.invalidArgument("Disruption budget not enabled for this application"), responseObserver);
-            return Optional.empty();
-        }
-
         DisruptionBudget coreDisruptionBudget;
         try {
             coreDisruptionBudget = GrpcJobManagementModelConverters.toCoreDisruptionBudget(grpcDisruptionBudget);

@@ -30,7 +30,6 @@ import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
-import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.api.model.Tier;
@@ -51,7 +50,6 @@ import org.junit.Test;
 import static com.netflix.titus.api.agent.model.AgentFunctions.withId;
 import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.ofServiceSize;
 import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.withDisruptionBudget;
-import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.withJobDisruptionBudget;
 import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.withJobId;
 import static com.netflix.titus.testkit.model.agent.AgentGenerator.agentServerGroups;
 import static com.netflix.titus.testkit.model.agent.AgentTestFunctions.inState;
@@ -190,17 +188,6 @@ public class TaskMigrationDeschedulerTest {
         dataGenerator.addInstanceAttribute(job1Task0.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID), RelocationAttributes.RELOCATION_REQUIRED, "true");
         Optional<Pair<AgentInstance, List<Task>>> results = newDescheduler(Collections.emptyMap()).nextBestMatch();
         assertThat(results).isNotEmpty();
-    }
-
-    @Test
-    public void testLegacyJobs() {
-        dataGenerator.addJob(jobGenerator.getValue().but(withJobId("jobLegacy"), withJobDisruptionBudget(DisruptionBudget.none())));
-        Task task0 = jobOperations.getTasks("jobLegacy").get(0);
-        dataGenerator.place("removable1", task0);
-        dataGenerator.setQuota("jobLegacy", 1);
-
-        Optional<Pair<AgentInstance, List<Task>>> results = newDescheduler(Collections.emptyMap()).nextBestMatch();
-        assertThat(results).isEmpty();
     }
 
     private TaskMigrationDescheduler newDescheduler(Map<String, TaskRelocationPlan> plannedAheadTaskRelocationPlans) {
