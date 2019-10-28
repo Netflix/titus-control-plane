@@ -137,7 +137,7 @@ public final class ReactorExt {
     }
 
     /**
-     * Creates multiple parallel subscriptions to the source observable. The first subscriptions happens immediately, while
+     * Creates multiple parallel subscriptions to the source observable. The first subscription happens immediately, while
      *  the remaining are delayed by the configured thresholds. The first one to complete successfully returns.
      *  Errors are ignored. If all subscriptions fail, emits a composite error.
      *
