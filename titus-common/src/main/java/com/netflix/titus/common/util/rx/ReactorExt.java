@@ -21,13 +21,14 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import com.netflix.spectator.api.Registry;
+import com.netflix.titus.common.util.tuple.Either;
 import com.netflix.titus.common.util.tuple.Pair;
 import hu.akarnokd.rxjava.interop.RxJavaInterop;
 import org.reactivestreams.Publisher;
@@ -49,6 +50,13 @@ import rx.Single;
 public final class ReactorExt {
 
     private ReactorExt() {
+    }
+
+    /**
+     * Wrap value or error into {@link Either}. The resulting stream never emits an error.
+     */
+    public static <T> Function<Mono<T>, Mono<Either<T, Throwable>>> either() {
+        return source -> source.map(Either::<T, Throwable>ofValue).onErrorResume(e -> Mono.just(Either.ofError(e)));
     }
 
     /**
@@ -126,6 +134,22 @@ public final class ReactorExt {
      */
     public static <T> Function<Flux<T>, Publisher<T>> head(Supplier<Collection<T>> headSupplier) {
         return new ReactorHeadTransformer<>(headSupplier);
+    }
+
+    /**
+     * Creates multiple parallel subscriptions to the source observable. The first subscriptions happens immediately, while
+     *  the remaining are delayed by the configured thresholds. The first one to complete successfully returns.
+     *  Errors are ignored. If all subscriptions fail, emits a composite error.
+     *
+     * @param thresholds list of thresholds
+     * @param context    context values used for logging and metrics
+     * @param scheduler  scheduler for all hedged subscriptions
+     */
+    public static <T> Function<Mono<T>, Mono<T>> hedged(List<Duration> thresholds, Map<String, String> context, Registry registry, Scheduler scheduler) {
+        if (thresholds.isEmpty()) {
+            return Function.identity();
+        }
+        return ReactorHedgedTransformer.newFromThresholds(thresholds, context, registry, scheduler);
     }
 
     /**

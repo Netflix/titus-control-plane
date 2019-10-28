@@ -18,7 +18,6 @@
 
 package com.netflix.titus.gateway.service.v3.internal;
 
-import java.util.Optional;
 import java.util.Set;
 
 import com.netflix.spectator.api.DefaultRegistry;

@@ -35,7 +35,6 @@ import com.netflix.titus.common.util.rx.batch.Batch;
 import com.netflix.titus.common.util.rx.batch.Batchable;
 import com.netflix.titus.common.util.rx.batch.RateLimitedBatcher;
 import com.netflix.titus.common.util.spectator.SpectatorExt;
-import com.netflix.titus.common.util.tuple.Either;
 import com.netflix.titus.common.util.tuple.Pair;
 import org.slf4j.Logger;
 import rx.BackpressureOverflow;
@@ -52,16 +51,6 @@ import rx.schedulers.Schedulers;
  * Supplementary Rx operators.
  */
 public class ObservableExt {
-
-    /**
-     * Wrap {@link Runnable} into observable.
-     */
-    public static <Void> Observable<Void> fromRunnable(Runnable runnable) {
-        return Observable.<Void>fromCallable(() -> {
-            runnable.run();
-            return null;
-        }).ignoreElements();
-    }
 
     /**
      * {@link Observable#fromCallable(Callable)} variant, which emits individual collection values.
@@ -158,14 +147,6 @@ public class ObservableExt {
     }
 
     /**
-     * Emit single {@link Either} value containing all source observable values, or an error which caused the
-     * stream to terminate.
-     */
-    public static <T> Single<Either<List<T>, Throwable>> toEither(Observable<T> source) {
-        return source.toList().toSingle().map(Either::<List<T>, Throwable>ofValue).onErrorReturn(Either::ofError);
-    }
-
-    /**
      * Ignore all elements, and emit empty {@link Optional} if stream completes normally or {@link Optional} with
      * the exception.
      */
@@ -217,20 +198,6 @@ public class ObservableExt {
      */
     public static <T> Observable<T> generatorFrom(Supplier<T> source) {
         return ValueGenerator.from(source, Schedulers.computation());
-    }
-
-    /**
-     * Back-pressure enabled infinite stream of data generator.
-     */
-    public static <T> Observable<T> generatorFrom(Function<Long, T> source) {
-        return ValueGenerator.from(source, Schedulers.computation());
-    }
-
-    /**
-     * Back-pressure enabled infinite stream of data generator.
-     */
-    public static <T> Observable<T> generatorFrom(Supplier<T> source, Scheduler scheduler) {
-        return ValueGenerator.from(source, scheduler);
     }
 
     /**
@@ -374,13 +341,6 @@ public class ObservableExt {
                 // Do nothing
             }
         };
-    }
-
-    /**
-     * Transform an optional observable into an observable that emits only present values
-     */
-    public static <T> Observable<T> fromOptionalObservable(Observable<Optional<T>> observable) {
-        return observable.filter(Optional::isPresent).map(Optional::get);
     }
 
     /**

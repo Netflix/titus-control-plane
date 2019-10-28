@@ -19,12 +19,16 @@ package com.netflix.titus.common.util;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 import com.google.common.base.Preconditions;
+import com.netflix.titus.common.util.tuple.Either;
+import com.netflix.titus.common.util.tuple.Pair;
 
 /**
  * A collection of higher order functions helping in conditional expression evaluations.
@@ -117,5 +121,40 @@ public final class Evaluators {
             }
         }
         return Optional.empty();
+    }
+
+    /**
+     * Remember last function execution result, and return the cached value on subsequent invocations, until the
+     * argument changes.
+     * <h1>
+     * For memoizing suppliers use {@link com.google.common.base.Suppliers#memoize(com.google.common.base.Supplier)}.
+     * </h1>
+     */
+    public static <T, R> Function<T, R> memoizeLast(Function<T, R> function) {
+        AtomicReference<Pair<T, Either<R, Throwable>>> lastRef = new AtomicReference<>();
+        return argument -> {
+            Pair<T, Either<R, Throwable>> last = lastRef.get();
+            if (last != null && Objects.equals(argument, last.getLeft())) {
+                if (last.getRight().hasValue()) {
+                    return last.getRight().getValue();
+                }
+                Throwable error = last.getRight().getError();
+                if (error instanceof RuntimeException) {
+                    throw (RuntimeException) error;
+                }
+                if (error instanceof Error) {
+                    throw (Error) error;
+                }
+                throw new IllegalStateException(error);
+            }
+            try {
+                R result = function.apply(argument);
+                lastRef.set(Pair.of(argument, Either.ofValue(result)));
+                return result;
+            } catch (Throwable e) {
+                lastRef.set(Pair.of(argument, Either.ofError(e)));
+                throw e;
+            }
+        };
     }
 }

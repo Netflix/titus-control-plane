@@ -16,6 +16,7 @@
 
 package com.netflix.titus.common.util;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -511,5 +512,28 @@ public final class StringExt {
         } catch (NumberFormatException e) {
             return Optional.empty();
         }
+    }
+
+    /**
+     * Parse string value like "1, 10, 1000" to an array of {@link Duration} values, assuming the values represent
+     * milliseconds.
+     *
+     * @returns {@link Optional#empty()} ()} if string is empty or cannot be parsed, and {@link Duration} list otherwise.
+     */
+    public static Optional<List<Duration>> parseDurationMsList(String s) {
+        String list = StringExt.safeTrim(s);
+        if (list.isEmpty()) {
+            return Optional.empty();
+        }
+        String[] parts = list.split(",");
+        List<Duration> result = new ArrayList<>(parts.length);
+        for (String part : parts) {
+            try {
+                result.add(Duration.ofMillis(Integer.parseInt(part.trim())));
+            } catch (Exception e) {
+                return Optional.empty();
+            }
+        }
+        return Optional.of(result);
     }
 }
