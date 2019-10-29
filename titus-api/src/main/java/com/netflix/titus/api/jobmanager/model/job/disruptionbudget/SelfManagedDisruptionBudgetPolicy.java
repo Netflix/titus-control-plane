@@ -21,7 +21,7 @@ import javax.validation.constraints.Min;
 
 public class SelfManagedDisruptionBudgetPolicy extends DisruptionBudgetPolicy {
 
-    @Min(0)
+    @Min(value = 1, message = "Relocation time must be at least 1ms")
     private final long relocationTimeMs;
 
     public SelfManagedDisruptionBudgetPolicy(long relocationTimeMs) {

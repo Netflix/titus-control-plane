@@ -108,6 +108,10 @@ public final class DisruptionBudgetGenerator {
                 .build();
     }
 
+    public static DisruptionBudget budgetSelfManagedBasic() {
+        return budget(selfManagedPolicy(60_000), unlimitedRate(), Collections.emptyList());
+    }
+
     public static JobDescriptor<BatchJobExt> newBatchJobDescriptor(int desired, DisruptionBudget budget) {
         return JobDescriptorGenerator.batchJobDescriptor(desired).toBuilder()
                 .withDisruptionBudget(budget)
