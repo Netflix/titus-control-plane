@@ -22,7 +22,6 @@ import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.netflix.titus.common.util.cache.MemoizedFunction;
 import org.slf4j.Logger;
 
 public final class RegExpExt {
@@ -50,7 +49,7 @@ public final class RegExpExt {
     }
 
     private static Function<String, Matcher> dynamicMatcherInternal(Supplier<String> regExpSource, int flags, Consumer<Throwable> onError) {
-        Function<String, Pattern> compilePattern = new MemoizedFunction<>((patternString, lastGoodPattern) -> {
+        Function<String, Pattern> compilePattern = Evaluators.memoizeLast((patternString, lastGoodPattern) -> {
             try {
                 return Pattern.compile(patternString, flags);
             } catch (Exception e) {

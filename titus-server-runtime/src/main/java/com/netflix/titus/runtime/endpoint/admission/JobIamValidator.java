@@ -86,6 +86,13 @@ public class JobIamValidator implements AdmissionValidator<JobDescriptor>, Admis
                                 return iamConnector.canAgentAssume(iamRoleName).compose(
                                         ReactorExt.hedged(
                                                 iamValidationHedgeThresholdsConfig.get(),
+                                                error -> {
+                                                    if (error instanceof IamConnectorException) {
+                                                        IamConnectorException iamError = (IamConnectorException) error;
+                                                        return iamError.isRetryable();
+                                                    }
+                                                    return true;
+                                                },
                                                 ImmutableMap.of(
                                                         "caller", "jobIamValidator",
                                                         "action", "iamConnector:canAgentAssume"

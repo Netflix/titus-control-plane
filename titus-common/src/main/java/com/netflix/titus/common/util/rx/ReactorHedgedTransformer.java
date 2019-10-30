@@ -22,16 +22,19 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 
 import com.netflix.spectator.api.BasicTag;
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.tuple.Either;
 import com.netflix.titus.common.util.tuple.Pair;
-import io.reactivex.exceptions.CompositeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -46,14 +49,20 @@ class ReactorHedgedTransformer<T> implements Function<Mono<T>, Mono<T>> {
 
     private final List<Pair<Duration, Long>> thresholdSteps;
 
+    private final Predicate<Throwable> retryableErrorPredicate;
     private final Map<String, String> context;
     private final Registry registry;
     private final Scheduler scheduler;
 
     private final Id metricsId;
 
-    private ReactorHedgedTransformer(List<Pair<Duration, Long>> thresholdSteps, Map<String, String> context, Registry registry, Scheduler scheduler) {
+    private ReactorHedgedTransformer(List<Pair<Duration, Long>> thresholdSteps,
+                                     Predicate<Throwable> retryableErrorPredicate,
+                                     Map<String, String> context,
+                                     Registry registry,
+                                     Scheduler scheduler) {
         this.thresholdSteps = thresholdSteps;
+        this.retryableErrorPredicate = retryableErrorPredicate;
         this.context = context;
         this.registry = registry;
         this.scheduler = scheduler;
@@ -70,42 +79,65 @@ class ReactorHedgedTransformer<T> implements Function<Mono<T>, Mono<T>> {
             return source;
         }
 
-        Flux<Either<T, Throwable>> fluxAction = source.compose(ReactorExt.either()).flux();
+        // Wrap results as optionals, to capture Mono<Void> sources, which do not provide any value.
+        Flux<Optional<Either<T, Throwable>>> fluxAction = source.compose(ReactorExt.either())
+                .map(Optional::of)
+                .switchIfEmpty(Mono.just(Optional.empty()))
+                .flux();
 
-        List<Flux<Either<T, Throwable>>> all = new ArrayList<>();
+        List<Flux<Optional<Either<T, Throwable>>>> all = new ArrayList<>();
         all.add(fluxAction);
 
         thresholdSteps.forEach(thresholdStep -> {
-            Flux<Either<T, Throwable>> action = fluxAction.delaySubscription(thresholdStep.getLeft(), scheduler);
+            Flux<Optional<Either<T, Throwable>>> action = fluxAction.delaySubscription(thresholdStep.getLeft(), scheduler);
             for (int i = 0; i < thresholdStep.getRight(); i++) {
                 all.add(action);
             }
         });
 
-        return Flux.merge(all).subscribeOn(scheduler).takeUntil(Either::hasValue).collectList().flatMap(results -> {
-            if (results.isEmpty()) {
-                IllegalStateException error = new IllegalStateException("No result or failure");
-                reportErrors(Collections.singletonList(error));
-                return Mono.error(error);
-            }
+        return Flux.merge(all).subscribeOn(scheduler)
+                .takeUntil(valueOrErrorOpt ->
+                        // Optional#empty is a success without a value
+                        valueOrErrorOpt
+                                .map(valueOrError -> valueOrError.hasValue() || !retryableErrorPredicate.test(valueOrError.getError()))
+                                .orElse(true)
+                )
+                .collectList()
+                .flatMap(results -> {
+                    if (results.isEmpty()) {
+                        IllegalStateException error = new IllegalStateException("No result or failure");
+                        reportErrors(Collections.singletonList(error));
+                        return Mono.error(error);
+                    }
 
-            List<Throwable> errors = results.stream().filter(Either::hasError).map(Either::getError).collect(Collectors.toList());
+                    List<Throwable> errors = results.stream()
+                            .filter(r -> r.map(Either::hasError).orElse(false))
+                            .map(r -> r.get().getError())
+                            .collect(Collectors.toList());
 
-            if (results.size() == errors.size()) {
-                reportErrors(errors);
-                return Mono.error(new CompositeException(errors));
-            }
+                    if (results.size() == errors.size()) {
+                        reportErrors(errors);
+                        // Return last error to a caller, as sending all of them in a composite exception
+                        // would require the user to do the exception remapping. Alternatively we could support here
+                        // exception aggregator.
+                        return Mono.error(CollectionsExt.last(errors));
+                    }
 
-            T value = CollectionsExt.last(results).getValue();
-            reportSuccess(value, errors);
-            return Mono.just(value);
-        });
+                    Optional<Either<T, Throwable>> lastResult = CollectionsExt.last(results);
+                    if (lastResult.isPresent()) {
+                        T value = lastResult.get().getValue();
+                        reportSuccess(value, errors);
+                        return Mono.just(value);
+                    }
+                    reportSuccess(null, errors);
+                    return Mono.empty();
+                });
     }
 
-    private void reportSuccess(T value, List<Throwable> errors) {
+    private void reportSuccess(@Nullable T value, List<Throwable> errors) {
         if (logger.isDebugEnabled()) {
             logger.debug("[{}] Request succeeded with {} failed attempts: result={}, errors={}",
-                    context, errors.size(), value, errors
+                    context, errors.size(), Evaluators.getOrDefault(value, "none"), errors
             );
         }
 
@@ -126,7 +158,11 @@ class ReactorHedgedTransformer<T> implements Function<Mono<T>, Mono<T>> {
         ).increment();
     }
 
-    static <T> ReactorHedgedTransformer<T> newFromThresholds(List<Duration> thresholds, Map<String, String> context, Registry registry, Scheduler scheduler) {
+    static <T> ReactorHedgedTransformer<T> newFromThresholds(List<Duration> thresholds,
+                                                             Predicate<Throwable> retryableErrorPredicate,
+                                                             Map<String, String> context,
+                                                             Registry registry,
+                                                             Scheduler scheduler) {
         List<Pair<Duration, Long>> thresholdSteps;
 
         if (thresholds.isEmpty()) {
@@ -141,6 +177,6 @@ class ReactorHedgedTransformer<T> implements Function<Mono<T>, Mono<T>> {
                     .map(e -> Pair.of(e.getKey(), e.getValue()))
                     .collect(Collectors.toList());
         }
-        return new ReactorHedgedTransformer<>(thresholdSteps, context, registry, scheduler);
+        return new ReactorHedgedTransformer<>(thresholdSteps, retryableErrorPredicate, context, registry, scheduler);
     }
 }

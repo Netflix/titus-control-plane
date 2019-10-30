@@ -33,22 +33,62 @@ import static java.util.Arrays.asList;
 
 public class ReactorHedgedTransformerTest {
 
+    enum Behavior {
+        Success,
+        RetryableError,
+        NotRetryableError
+    }
+
+    private static final RuntimeException SIMULATED_RETRYABLE_ERROR = new RuntimeException("simulated retryable error");
+
+    private static final RuntimeException SIMULATED_NOT_RETRYABLE_ERROR = new RuntimeException("simulated not retryable error");
+
     private static final List<Duration> THRESHOLDS = asList(Duration.ofMillis(1), Duration.ofMillis(10), Duration.ofMillis(100));
 
     private static final Map<String, String> CONTEXT = Collections.singletonMap("test", "123");
 
     @Test
     public void testSuccess() {
-        testSuccess(0, new boolean[]{true, false, false, false});
-        testSuccess(1, new boolean[]{false, true, false, false});
-        testSuccess(10, new boolean[]{false, false, true, false});
-        testSuccess(100, new boolean[]{false, false, false, true});
+        testSuccess(0, new Behavior[]{Behavior.Success, Behavior.RetryableError, Behavior.RetryableError, Behavior.RetryableError});
+        testSuccess(1, new Behavior[]{Behavior.RetryableError, Behavior.Success, Behavior.RetryableError, Behavior.RetryableError});
+        testSuccess(10, new Behavior[]{Behavior.RetryableError, Behavior.RetryableError, Behavior.Success, Behavior.RetryableError});
+        testSuccess(100, new Behavior[]{Behavior.RetryableError, Behavior.RetryableError, Behavior.RetryableError, Behavior.Success});
+    }
+
+    private void testSuccess(long awaitMs, Behavior[] behaviors) {
+        StepVerifier.withVirtualTime(() -> newSource(behaviors).compose(hedgeOf(THRESHOLDS)))
+                .thenAwait(Duration.ofMillis(awaitMs))
+                .expectNext(1L)
+                .verifyComplete();
+    }
+
+    @Test
+    public void testMonoVoidSuccess() {
+        StepVerifier.withVirtualTime(() ->
+                newVoidSource(new Behavior[]{Behavior.RetryableError, Behavior.Success, Behavior.RetryableError, Behavior.RetryableError})
+                        .compose(hedgeOf(THRESHOLDS))
+        )
+                .thenAwait(Duration.ofMillis(1))
+                .expectComplete()
+                .verify();
+    }
+
+    @Test
+    public void testFailureWithNonRetryableError() {
+        StepVerifier.withVirtualTime(() ->
+                newSource(new Behavior[]{Behavior.NotRetryableError, Behavior.Success, Behavior.Success, Behavior.Success})
+                        .compose(hedgeOf(THRESHOLDS))
+        )
+                .thenAwait(Duration.ofMillis(0))
+                .expectErrorMatches(error -> error == SIMULATED_NOT_RETRYABLE_ERROR)
+                .verify();
     }
 
     @Test
     public void testConcurrent() {
-        StepVerifier.withVirtualTime(() -> newSource(false, false, false, true)
-                .compose(hedgeOf(asList(Duration.ZERO, Duration.ZERO, Duration.ZERO)))
+        StepVerifier.withVirtualTime(() ->
+                newSource(Behavior.RetryableError, Behavior.RetryableError, Behavior.RetryableError, Behavior.Success)
+                        .compose(hedgeOf(asList(Duration.ZERO, Duration.ZERO, Duration.ZERO)))
         )
                 .thenAwait(Duration.ZERO)
                 .expectNext(1L)
@@ -57,35 +97,55 @@ public class ReactorHedgedTransformerTest {
 
     @Test
     public void testAllFailures() {
-        StepVerifier.withVirtualTime(() -> newSource(false, false, false, false).compose(hedgeOf(THRESHOLDS)))
+        StepVerifier.withVirtualTime(() ->
+                newSource(Behavior.RetryableError, Behavior.RetryableError, Behavior.RetryableError, Behavior.RetryableError)
+                        .compose(hedgeOf(THRESHOLDS))
+        )
                 .thenAwait(Duration.ofMillis(100))
-                .expectErrorMatches(error -> error.getMessage().contains("4 exceptions occurred"))
+                .expectErrorMatches(error -> error == SIMULATED_RETRYABLE_ERROR)
                 .verify();
     }
 
-    private void testSuccess(long awaitMs, boolean[] successFailurePattern) {
-        StepVerifier.withVirtualTime(() -> newSource(successFailurePattern).compose(hedgeOf(THRESHOLDS)))
-                .thenAwait(Duration.ofMillis(awaitMs))
-                .expectNext(1L)
-                .verifyComplete();
+    @Test
+    public void testAllMonoVoidFailures() {
+        StepVerifier.withVirtualTime(() ->
+                newVoidSource(Behavior.RetryableError, Behavior.RetryableError, Behavior.RetryableError, Behavior.RetryableError)
+                        .compose(hedgeOf(THRESHOLDS))
+        )
+                .thenAwait(Duration.ofMillis(100))
+                .expectErrorMatches(error -> error == SIMULATED_RETRYABLE_ERROR)
+                .verify();
     }
 
-    private Mono<Long> newSource(boolean... successFailureFlags) {
+    private Mono<Long> newSource(Behavior... behaviors) {
+        return newSource(1L, behaviors);
+    }
+
+    private Mono<Void> newVoidSource(Behavior... behaviors) {
+        return newSource(null, behaviors);
+    }
+
+    private <T> Mono<T> newSource(T value, Behavior[] behaviors) {
         AtomicInteger indexRef = new AtomicInteger();
         return Mono.defer(() ->
                 Mono.fromCallable(() -> {
-                    int index = indexRef.getAndIncrement() % successFailureFlags.length;
-                    if (!successFailureFlags[index]) {
-                        throw new RuntimeException("simulated error");
+                    int index = indexRef.getAndIncrement() % behaviors.length;
+                    switch (behaviors[index]) {
+                        case RetryableError:
+                            throw SIMULATED_RETRYABLE_ERROR;
+                        case NotRetryableError:
+                            throw SIMULATED_NOT_RETRYABLE_ERROR;
+                        case Success:
                     }
-                    return 1L;
+                    return value;
                 })
         );
     }
 
-    private Function<Mono<Long>, Mono<Long>> hedgeOf(List<Duration> thresholds) {
+    private <T> Function<Mono<T>, Mono<T>> hedgeOf(List<Duration> thresholds) {
         return ReactorExt.hedged(
                 thresholds,
+                error -> error == SIMULATED_RETRYABLE_ERROR,
                 CONTEXT,
                 new DefaultRegistry(),
                 Schedulers.parallel()

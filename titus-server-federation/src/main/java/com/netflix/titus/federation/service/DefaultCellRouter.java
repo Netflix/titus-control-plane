@@ -16,7 +16,6 @@
 
 package com.netflix.titus.federation.service;
 
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,8 +30,8 @@ import javax.inject.Singleton;
 import com.netflix.titus.api.federation.model.Cell;
 import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.StringExt;
-import com.netflix.titus.common.util.cache.MemoizedFunction;
 import com.netflix.titus.federation.startup.TitusFederationConfiguration;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import org.slf4j.Logger;
@@ -53,7 +52,7 @@ public class DefaultCellRouter implements CellRouter {
         this.cellInfoResolver = cellInfoResolver;
         this.federationConfiguration = federationConfiguration;
 
-        compileRoutingPatterns = new MemoizedFunction<>((spec, lastCompiledPatterns) -> {
+        compileRoutingPatterns = Evaluators.memoizeLast((spec, lastCompiledPatterns) -> {
             logger.info("Detected new routing rules, compiling them: {}", spec);
             List<Cell> cells = cellInfoResolver.resolve();
             Map<Cell, String> cellRoutingRules = CellInfoUtil.extractCellRoutingFromCellSpecification(cells, spec);

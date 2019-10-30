@@ -16,6 +16,7 @@
 
 package com.netflix.titus.common.util;
 
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 import org.junit.Test;
@@ -64,6 +65,22 @@ public class EvaluatorsTest {
 
         assertThat(evaluator.apply("a")).isEqualTo("A");
         assertThat(counter).isEqualTo(2);
+    }
+
+    @Test
+    public void testMemoizeLastWithBiFunction() {
+        AtomicInteger counter = new AtomicInteger(0);
+        Function<String, Integer> timesCalled = Evaluators.memoizeLast((input, lastResult) -> counter.incrementAndGet());
+        for (int i = 0; i < 5; i++) {
+            assertThat(timesCalled.apply("foo")).isEqualTo(1);
+        }
+        for (int i = 0; i < 5; i++) {
+            assertThat(timesCalled.apply("bar")).isEqualTo(2);
+        }
+
+        // no caching if inputs are different
+        assertThat(timesCalled.apply("foo")).isEqualTo(3);
+        assertThat(timesCalled.apply("bar")).isEqualTo(4);
     }
 
     private void applyWithErrorResult(Function<String, String> evaluator) {

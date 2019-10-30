@@ -25,6 +25,7 @@ import java.util.function.BiFunction;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import com.netflix.spectator.api.Registry;
@@ -142,14 +143,19 @@ public final class ReactorExt {
      *  Errors are ignored. If all subscriptions fail, emits a composite error.
      *
      * @param thresholds list of thresholds
+     * @param retryableErrorPredicate should return true if an error is retryable, and the parallel calls should not be interrupted
      * @param context    context values used for logging and metrics
      * @param scheduler  scheduler for all hedged subscriptions
      */
-    public static <T> Function<Mono<T>, Mono<T>> hedged(List<Duration> thresholds, Map<String, String> context, Registry registry, Scheduler scheduler) {
+    public static <T> Function<Mono<T>, Mono<T>> hedged(List<Duration> thresholds,
+                                                        Predicate<Throwable> retryableErrorPredicate,
+                                                        Map<String, String> context,
+                                                        Registry registry,
+                                                        Scheduler scheduler) {
         if (thresholds.isEmpty()) {
             return Function.identity();
         }
-        return ReactorHedgedTransformer.newFromThresholds(thresholds, context, registry, scheduler);
+        return ReactorHedgedTransformer.newFromThresholds(thresholds, retryableErrorPredicate, context, registry, scheduler);
     }
 
     /**

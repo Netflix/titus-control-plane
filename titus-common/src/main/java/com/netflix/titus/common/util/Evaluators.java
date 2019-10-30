@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -155,6 +156,29 @@ public final class Evaluators {
                 lastRef.set(Pair.of(argument, Either.ofError(e)));
                 throw e;
             }
+        };
+    }
+
+    /**
+     * Implementation of a {@link Function} that keeps a cache of its last computed result. Sequential calls to
+     * the memoized function with _the same input_ will not yield multiple computations and will return the
+     * cached result.
+     */
+    public static <T, R> Function<T, R> memoizeLast(BiFunction<T, Optional<R>, R> computation) {
+        AtomicReference<Pair<T, R>> cachedInputResultPair = new AtomicReference<>();
+        return argument -> {
+            Pair<T, R> lastPair = cachedInputResultPair.get();
+            final Optional<R> optionalLastResult = lastPair == null ? Optional.empty() : Optional.of(lastPair.getRight());
+            if (optionalLastResult.isPresent()) {
+                T lastArgument = lastPair.getLeft();
+                if (Objects.equals(argument, lastArgument)) {
+                    return optionalLastResult.get(); // cached
+                }
+            }
+            Pair<T, R> newPair = Pair.of(argument, computation.apply(argument, optionalLastResult));
+            cachedInputResultPair.set(newPair);
+
+            return newPair.getRight();
         };
     }
 }
