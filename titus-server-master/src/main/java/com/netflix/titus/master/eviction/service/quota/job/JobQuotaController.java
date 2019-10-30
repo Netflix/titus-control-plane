@@ -17,7 +17,6 @@
 package com.netflix.titus.master.eviction.service.quota.job;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -28,7 +27,6 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.AvailabilityPercentageLimitDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
-import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudgetFunctions;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.PercentagePerHourDisruptionBudgetRate;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.RatePerIntervalDisruptionBudgetRate;
@@ -66,13 +64,8 @@ public class JobQuotaController implements QuotaController<Job<?>> {
         this.containerHealthService = containerHealthService;
         this.titusRuntime = titusRuntime;
 
-        if (DisruptionBudgetFunctions.isLegacyJob(job)) {
-            this.quotaTrackers = Collections.emptyList();
-            this.quotaControllers = Collections.emptyList();
-        } else {
-            this.quotaTrackers = buildQuotaTrackers(job, jobOperations, effectiveDisruptionBudgetResolver, containerHealthService, titusRuntime);
-            this.quotaControllers = buildQuotaControllers(job, jobOperations, effectiveDisruptionBudgetResolver, titusRuntime);
-        }
+        this.quotaTrackers = buildQuotaTrackers(job, jobOperations, effectiveDisruptionBudgetResolver, containerHealthService, titusRuntime);
+        this.quotaControllers = buildQuotaControllers(job, jobOperations, effectiveDisruptionBudgetResolver, titusRuntime);
     }
 
     private JobQuotaController(Job<?> newJob,
@@ -87,13 +80,8 @@ public class JobQuotaController implements QuotaController<Job<?>> {
         this.containerHealthService = containerHealthService;
         this.titusRuntime = titusRuntime;
 
-        if (DisruptionBudgetFunctions.isLegacyJob(newJob)) {
-            this.quotaTrackers = Collections.emptyList();
-            this.quotaControllers = Collections.emptyList();
-        } else {
-            this.quotaTrackers = buildQuotaTrackers(job, jobOperations, effectiveDisruptionBudgetResolver, containerHealthService, titusRuntime);
-            this.quotaControllers = mergeQuotaControllers(previousJobQuotaController.quotaControllers, newJob, jobOperations, effectiveDisruptionBudgetResolver, titusRuntime);
-        }
+        this.quotaTrackers = buildQuotaTrackers(job, jobOperations, effectiveDisruptionBudgetResolver, containerHealthService, titusRuntime);
+        this.quotaControllers = mergeQuotaControllers(previousJobQuotaController.quotaControllers, newJob, jobOperations, effectiveDisruptionBudgetResolver, titusRuntime);
     }
 
     public Job<?> getJob() {
@@ -157,10 +145,6 @@ public class JobQuotaController implements QuotaController<Job<?>> {
 
     @Override
     public JobQuotaController update(Job<?> updatedJob) {
-        if (DisruptionBudgetFunctions.isLegacyJob(updatedJob) && isLegacy()) {
-            return this;
-        }
-
         int currentDesired = JobFunctions.getJobDesiredSize(job);
         int newDesired = JobFunctions.getJobDesiredSize(updatedJob);
 

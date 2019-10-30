@@ -28,7 +28,6 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
-import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.common.runtime.TitusRuntime;
@@ -242,17 +241,6 @@ public class JobQuotaControllerTest {
         jobComponentStub.moveTaskToState(replacement3, TaskState.Started);
 
         assertThat(updatedController.consume(replacement3.getId()).isApproved()).isFalse();
-    }
-
-    @Test
-    public void testJobWithNoDisruptionBudgetHasZeroQuota() {
-        Job<BatchJobExt> job = newBatchJob(10, DisruptionBudget.none());
-        com.netflix.titus.api.model.reference.Reference jobReference = com.netflix.titus.api.model.reference.Reference.job(job.getId());
-
-        scheduleJob(job, 10);
-        JobQuotaController jobController = new JobQuotaController(job, jobOperations, SelfJobDisruptionBudgetResolver.getInstance(), containerHealthService, titusRuntime);
-
-        assertThat(jobController.getQuota(jobReference).getQuota()).isEqualTo(0);
     }
 
     @Test

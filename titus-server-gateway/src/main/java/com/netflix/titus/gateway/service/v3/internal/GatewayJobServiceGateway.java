@@ -118,7 +118,6 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
                                     TaskRelocationDataInjector taskRelocationDataInjector,
                                     NeedsMigrationQueryHandler needsMigrationQueryHandler,
                                     @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer,
-                                    DisruptionBudgetSanitizer disruptionBudgetSanitizer,
                                     @Named(SECURITY_GROUPS_REQUIRED_FEATURE) Predicate<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> securityGroupsRequiredPredicate,
                                     @Named(ENVIRONMENT_VARIABLE_NAMES_STRICT_VALIDATION_FEATURE) Predicate<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> environmentVariableNamesStrictValidationPredicate,
                                     JobAssertions jobAssertions,
@@ -131,7 +130,6 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
                         jobManagerConfiguration,
                         jobAssertions,
                         entitySanitizer,
-                        disruptionBudgetSanitizer,
                         securityGroupsRequiredPredicate,
                         environmentVariableNamesStrictValidationPredicate,
                         titusRuntime

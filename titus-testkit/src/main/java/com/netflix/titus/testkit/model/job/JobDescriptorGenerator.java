@@ -38,6 +38,7 @@ import com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator;
 
 import static com.netflix.titus.common.data.generator.DataGenerator.items;
 import static com.netflix.titus.common.data.generator.DataGenerator.union;
+import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator.budgetSelfManagedBasic;
 
 public final class JobDescriptorGenerator {
     public static final String TEST_STACK_NAME = "embedded";
@@ -80,7 +81,7 @@ public final class JobDescriptorGenerator {
     @SafeVarargs
     public static DataGenerator<JobDescriptor<BatchJobExt>> batchJobDescriptors(Function<JobDescriptor<BatchJobExt>, JobDescriptor<BatchJobExt>>... modifiers) {
         DataGenerator<JobDescriptor.Builder<BatchJobExt>> withOwner = union(
-                items(JobModel.<BatchJobExt>newJobDescriptor()),
+                items(JobModel.<BatchJobExt>newJobDescriptor().withDisruptionBudget(budgetSelfManagedBasic())),
                 owners(),
                 (builder, owners) -> builder.but().withOwner(owners)
         );
@@ -127,7 +128,7 @@ public final class JobDescriptorGenerator {
 
     public static DataGenerator<JobDescriptor<ServiceJobExt>> serviceJobDescriptors(Function<JobDescriptor<ServiceJobExt>, JobDescriptor<ServiceJobExt>>... modifiers) {
         DataGenerator<JobDescriptor.Builder<ServiceJobExt>> withOwner = union(
-                items(JobModel.<ServiceJobExt>newJobDescriptor()),
+                items(JobModel.<ServiceJobExt>newJobDescriptor().withDisruptionBudget(budgetSelfManagedBasic())),
                 owners(),
                 (builder, owners) -> builder.but().withOwner(owners)
         );
@@ -200,6 +201,11 @@ public final class JobDescriptorGenerator {
         Image imageWithTag = JobModel.newImage().withName("titusops/alpine").withTag("latest").build();
         return JobModel.newJobDescriptor(jobDescriptor)
                 .withContainer(JobModel.newContainer(jobDescriptor.getContainer()).withImage(imageWithTag).build())
+                .withDisruptionBudget(DisruptionBudgetGenerator.budget(
+                        DisruptionBudgetGenerator.perTaskRelocationLimitPolicy(3),
+                        DisruptionBudgetGenerator.hourlyRatePercentage(50),
+                        Collections.singletonList(DisruptionBudgetGenerator.officeHourTimeWindow())
+                ))
                 .withExtensions(JobModel.newServiceJobExt(jobDescriptor.getExtensions())
                         .withCapacity(Capacity.newBuilder().withMin(0).withDesired(1).withMax(2).build())
                         .withRetryPolicy(JobModel.newImmediateRetryPolicy().withRetries(0).build())

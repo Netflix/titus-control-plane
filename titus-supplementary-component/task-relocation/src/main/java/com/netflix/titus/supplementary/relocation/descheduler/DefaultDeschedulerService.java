@@ -29,7 +29,6 @@ import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
 import com.netflix.titus.api.eviction.service.ReadOnlyEvictionOperations;
 import com.netflix.titus.api.jobmanager.model.job.Job;
-import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
@@ -115,18 +114,11 @@ public class DefaultDeschedulerService implements DeschedulerService {
             }
             if (evacuatedAgentsAllocationTracker.isEvacuated(task)) {
 
-                TaskRelocationPlan relocationPlan;
-                DeschedulingFailure failure;
+                DeschedulingFailure failure = taskMigrationDescheduler.getDeschedulingFailure(task);
+                TaskRelocationPlan relocationPlan = plannedAheadTaskRelocationPlans.get(task.getId());
 
-                if (isManagedByTaskRelocationService(task)) {
-                    failure = taskMigrationDescheduler.getDeschedulingFailure(task);
-                    relocationPlan = plannedAheadTaskRelocationPlans.get(task.getId());
-                    if (relocationPlan == null) {
-                        relocationPlan = newImmediateRelocationPlan(task);
-                    }
-                } else {
-                    failure = DeschedulingFailure.legacyJobDeschedulingFailure();
-                    relocationPlan = newLegacyRelocationPlan(task);
+                if (relocationPlan == null) {
+                    relocationPlan = newImmediateRelocationPlan(task);
                 }
 
                 AgentInstance agent = evacuatedAgentsAllocationTracker.getRemovableAgent(task);
@@ -145,27 +137,12 @@ public class DefaultDeschedulerService implements DeschedulerService {
         return CollectionsExt.merge(new ArrayList<>(allRequestedEvictions.values()), new ArrayList<>(regularEvictions.values()));
     }
 
-    private boolean isManagedByTaskRelocationService(Task task) {
-        return jobOperations.getJob(task.getJobId()).map(JobFunctions::hasDisruptionBudget).orElse(false);
-    }
-
     private TaskRelocationPlan newImmediateRelocationPlan(Task task) {
         long now = clock.wallTime();
         return TaskRelocationPlan.newBuilder()
                 .withTaskId(task.getId())
                 .withReason(TaskRelocationReason.TaskMigration)
                 .withReasonMessage("Immediate task migration, as no migration constraint defined for the job")
-                .withDecisionTime(now)
-                .withRelocationTime(now)
-                .build();
-    }
-
-    private TaskRelocationPlan newLegacyRelocationPlan(Task task) {
-        long now = clock.wallTime();
-        return TaskRelocationPlan.newBuilder()
-                .withTaskId(task.getId())
-                .withReason(TaskRelocationReason.TaskMigration)
-                .withReasonMessage("Attempted failed migration of a legacy job")
                 .withDecisionTime(now)
                 .withRelocationTime(now)
                 .build();

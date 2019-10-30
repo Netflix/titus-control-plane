@@ -95,7 +95,7 @@ public class EmbeddedCassandraStoreFactory {
     }
 
     public JobStore getJobStore() {
-        return new CassandraJobStore(CONFIGURATION, job -> true, session, titusRuntime);
+        return new CassandraJobStore(CONFIGURATION, session, titusRuntime);
     }
 
     public static Builder newBuilder() {

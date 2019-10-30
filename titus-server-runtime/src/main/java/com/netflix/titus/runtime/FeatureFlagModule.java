@@ -28,7 +28,6 @@ import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.common.util.feature.FeatureGuardWhiteListConfiguration;
 import com.netflix.titus.common.util.feature.FeatureGuards;
 
-import static com.netflix.titus.api.FeatureRolloutPlans.DISRUPTION_BUDGET_FEATURE;
 import static com.netflix.titus.api.FeatureRolloutPlans.ENVIRONMENT_VARIABLE_NAMES_STRICT_VALIDATION_FEATURE;
 import static com.netflix.titus.api.FeatureRolloutPlans.JOB_ACTIVITY_PUBLISH_FEATURE;
 import static com.netflix.titus.api.FeatureRolloutPlans.JOB_AUTHORIZATION_FEATURE;
@@ -44,31 +43,6 @@ public class FeatureFlagModule extends AbstractModule {
     @Singleton
     public FeatureActivationConfiguration getFeatureActivationConfiguration(ConfigProxyFactory factory) {
         return factory.newProxy(FeatureActivationConfiguration.class);
-    }
-
-    /* *************************************************************************************************************
-     * Disruption budget.
-     *
-     * This change was introduced in Q1/2019. The strict validation should be enforced on all clients by the end of Q1/2019.
-     */
-
-    @Provides
-    @Singleton
-    @Named(DISRUPTION_BUDGET_FEATURE)
-    public Predicate<JobDescriptor> getDisruptionBudgetEnabledPredicate(@Named(DISRUPTION_BUDGET_FEATURE) FeatureGuardWhiteListConfiguration configuration) {
-        return FeatureGuards.toPredicate(
-                FeatureGuards.fromField(
-                        JobDescriptor::getApplicationName,
-                        FeatureGuards.newWhiteListFromConfiguration(configuration).build()
-                )
-        );
-    }
-
-    @Provides
-    @Singleton
-    @Named(DISRUPTION_BUDGET_FEATURE)
-    public FeatureGuardWhiteListConfiguration getDisruptionBudgetFeatureGuardConfiguration(ConfigProxyFactory factory) {
-        return factory.newProxy(FeatureGuardWhiteListConfiguration.class, "titus.features.jobManager." + DISRUPTION_BUDGET_FEATURE);
     }
 
     /* *************************************************************************************************************

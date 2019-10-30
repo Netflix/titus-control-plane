@@ -21,13 +21,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Callable;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
-import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.datastax.driver.core.BatchStatement;
@@ -43,14 +41,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.netflix.titus.api.FeatureRolloutPlans;
 import com.netflix.titus.api.jobmanager.model.job.Job;
-import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
-import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudgetFunctions;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.model.job.migration.SystemDefaultMigrationPolicy;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
@@ -140,18 +135,14 @@ public class CassandraJobStore implements JobStore {
     private final Optional<FitInjection> fitDriverInjection;
     private final Optional<FitInjection> fitBadDataInjection;
 
-    private final Predicate<Job> disruptionBudgetEnabledPredicate;
-
     @Inject
     public CassandraJobStore(CassandraStoreConfiguration configuration,
-                             @Named(FeatureRolloutPlans.DISRUPTION_BUDGET_FEATURE) Predicate<JobDescriptor> disruptionBudgetEnabledPredicate,
                              Session session,
                              TitusRuntime titusRuntime) {
-        this(configuration, disruptionBudgetEnabledPredicate, session, titusRuntime, ObjectMappers.storeMapper(), INITIAL_BUCKET_COUNT, MAX_BUCKET_SIZE);
+        this(configuration, session, titusRuntime, ObjectMappers.storeMapper(), INITIAL_BUCKET_COUNT, MAX_BUCKET_SIZE);
     }
 
     CassandraJobStore(CassandraStoreConfiguration configuration,
-                      @Named(FeatureRolloutPlans.DISRUPTION_BUDGET_FEATURE) Predicate<JobDescriptor> disruptionBudgetEnabledPredicate,
                       Session session,
                       TitusRuntime titusRuntime,
                       ObjectMapper mapper,
@@ -160,7 +151,6 @@ public class CassandraJobStore implements JobStore {
         this.configuration = configuration;
         this.session = session;
         this.titusRuntime = titusRuntime;
-        this.disruptionBudgetEnabledPredicate = job -> disruptionBudgetEnabledPredicate.test(job.getJobDescriptor());
 
         FitFramework fit = titusRuntime.getFitFramework();
         if (fit.isActive()) {
@@ -274,14 +264,7 @@ public class CassandraJobStore implements JobStore {
                         }
 
                         if (job.getJobDescriptor().getDisruptionBudget() == null) {
-                            if (disruptionBudgetEnabledPredicate.test(job)) {
-                                titusRuntime.getCodeInvariants().inconsistent("jobWithNoDisruptionBudget: jobId=%s", job.getId());
-                            }
-                            job = JobFunctions.changeDisruptionBudget(job, DisruptionBudget.none());
-                        } else if (!disruptionBudgetEnabledPredicate.test(job)) {
-                            if (!DisruptionBudgetFunctions.isLegacyJob(job)) {
-                                logger.warn("Loaded job from store with disruption budget not enabled; resetting it to none: jobId={}", job.getId());
-                            }
+                            titusRuntime.getCodeInvariants().inconsistent("jobWithNoDisruptionBudget: jobId=%s", job.getId());
                             job = JobFunctions.changeDisruptionBudget(job, DisruptionBudget.none());
                         }
 
@@ -361,16 +344,7 @@ public class CassandraJobStore implements JobStore {
     }
 
     private String writeJobToString(Job job) {
-        if (disruptionBudgetEnabledPredicate.test(job)) {
-            return ObjectMappers.writeValueAsString(mapper, job);
-        }
-
-        if (!DisruptionBudgetFunctions.isLegacyJob(job)) {
-            logger.info("Persisting job with disruption budget not enabled; setting it to null: jobId={}", job.getId());
-        }
-
-        JobDescriptor jobWithDisruptionBudgetNull = job.getJobDescriptor().toBuilder().withDisruptionBudget(null).build();
-        return ObjectMappers.writeValueAsString(mapper, job.toBuilder().withJobDescriptor(jobWithDisruptionBudgetNull).build());
+        return ObjectMappers.writeValueAsString(mapper, job);
     }
 
     @Override

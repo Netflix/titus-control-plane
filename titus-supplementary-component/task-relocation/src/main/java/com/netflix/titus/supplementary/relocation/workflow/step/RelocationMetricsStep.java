@@ -32,10 +32,7 @@ import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
 import com.netflix.titus.api.jobmanager.model.job.Job;
-import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
-import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudgetFunctions;
-import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.Evaluators;
@@ -46,7 +43,7 @@ import com.netflix.titus.supplementary.relocation.util.RelocationPredicates.Relo
 import com.netflix.titus.supplementary.relocation.util.RelocationUtil;
 
 /**
- * Reports both the legacy and the current relocation needs.
+ * Reports current relocation needs.
  */
 public class RelocationMetricsStep {
 
@@ -90,9 +87,6 @@ public class RelocationMetricsStep {
 
     private class JobMetrics {
 
-        private final boolean legacy;
-        private final String legacyPolicyName;
-
         private Job<?> job;
         private List<Task> tasks;
 
@@ -101,14 +95,11 @@ public class RelocationMetricsStep {
 
         JobMetrics(Job<?> job) {
             this.job = job;
-            this.legacy = DisruptionBudgetFunctions.isLegacyJob(job);
-            this.legacyPolicyName = legacy ? getLegacyPolicy(job) : null;
 
             List<Tag> tags = Arrays.asList(
                     new BasicTag("jobId", job.getId()),
                     new BasicTag("application", job.getJobDescriptor().getApplicationName()),
-                    new BasicTag("capacityGroup", job.getJobDescriptor().getCapacityGroup()),
-                    new BasicTag("legacy", Boolean.toString(legacy))
+                    new BasicTag("capacityGroup", job.getJobDescriptor().getCapacityGroup())
             );
             this.jobsRemainingId = registry.createId(JOB_REMAINING_RELOCATION_METRICS, tags);
             this.tasksRemainingId = registry.createId(TASK_REMAINING_RELOCATION_METRICS, tags);
@@ -122,32 +113,7 @@ public class RelocationMetricsStep {
             this.job = latestJob;
             this.tasks = latestTasks;
 
-            if (legacy) {
-                updateLegacy(taskToInstanceMap);
-            } else {
-                updateJobWithDisruptionBudget(taskToInstanceMap);
-            }
-        }
-
-        private void updateLegacy(Map<String, AgentInstance> taskToInstanceMap) {
-            int noRelocation = 0;
-            int evacuatedAgentMatches = 0;
-
-            for (Task task : tasks) {
-                AgentInstance instance = taskToInstanceMap.get(task.getId());
-                AgentInstanceGroup instanceGroup = getInstanceGroupOf(instance);
-                if (instance == null || instanceGroup == null) {
-                    noRelocation++;
-                } else {
-                    if (RelocationPredicates.isRelocationRequired(instance) || RelocationPredicates.isRelocationRequired(instanceGroup)) {
-                        evacuatedAgentMatches++;
-                    } else {
-                        noRelocation++;
-                    }
-                }
-            }
-
-            update(noRelocation, evacuatedAgentMatches, 0, 0, 0);
+            updateJobWithDisruptionBudget(taskToInstanceMap);
         }
 
         private void updateJobWithDisruptionBudget(Map<String, AgentInstance> taskToInstanceMap) {
@@ -203,12 +169,7 @@ public class RelocationMetricsStep {
         }
 
         private void update(int noRelocation, int evacuatedAgentMatches, int jobRelocationRequestMatches, int taskRelocationRequestMatches, int taskRelocationUnrecognized) {
-            String policyType;
-            if (legacy) {
-                policyType = legacyPolicyName;
-            } else {
-                policyType = job.getJobDescriptor().getDisruptionBudget().getDisruptionBudgetPolicy().getClass().getSimpleName();
-            }
+            String policyType = job.getJobDescriptor().getDisruptionBudget().getDisruptionBudgetPolicy().getClass().getSimpleName();
 
             // Job level
             int totalToRelocate = evacuatedAgentMatches + jobRelocationRequestMatches + taskRelocationRequestMatches + taskRelocationUnrecognized;
@@ -255,13 +216,6 @@ public class RelocationMetricsStep {
 
         void remove() {
             update(0, 0, 0, 0, 0);
-        }
-
-        private String getLegacyPolicy(Job<?> job) {
-            if (JobFunctions.isServiceJob(job)) {
-                return ((ServiceJobExt) job.getJobDescriptor().getExtensions()).getMigrationPolicy().getClass().getSimpleName();
-            }
-            return "legacyBatch";
         }
 
         private AgentInstanceGroup getInstanceGroupOf(AgentInstance instance) {

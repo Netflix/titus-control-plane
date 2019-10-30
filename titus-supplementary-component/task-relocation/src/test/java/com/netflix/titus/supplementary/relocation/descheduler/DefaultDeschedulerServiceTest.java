@@ -72,8 +72,7 @@ public class DefaultDeschedulerServiceTest {
             .addInstanceGroup(flexInstanceGroupGenerator.getValue().but(withId("removable1"), inState(InstanceGroupLifecycleState.Removable)))
             .addJob(jobGenerator.getValue().but(withJobId("job1")))
             .addJob(jobGenerator.getValue().but(withJobId("job2")))
-            .addJob(jobGenerator.getValue().but(withJobId("jobImmediate")))
-            .addJob(jobGenerator.getValue().but(withJobId("jobLegacy"), withJobDisruptionBudget(DisruptionBudget.none())));
+            .addJob(jobGenerator.getValue().but(withJobId("jobImmediate")));
 
     private final ReadOnlyJobOperations jobOperations = dataGenerator.getJobOperations();
 
@@ -100,13 +99,8 @@ public class DefaultDeschedulerServiceTest {
         Task taskImmediate = jobOperations.getTasks("jobImmediate").get(0);
         dataGenerator.place("active1", taskImmediate);
 
-        List<Task> tasksOfLegacyJob = jobOperations.getTasks("jobLegacy");
-        dataGenerator.place("active1", tasksOfLegacyJob.get(0), tasksOfLegacyJob.get(1));
-        dataGenerator.place("removable1", tasksOfLegacyJob.get(2), tasksOfLegacyJob.get(3));
-        dataGenerator.setQuota("jobLegacy", 2);
-
         List<DeschedulingResult> results = deschedulerService.deschedule(Collections.emptyMap());
-        assertThat(results).hasSize(7);
+        assertThat(results).hasSize(5);
         for (DeschedulingResult result : results) {
             boolean isImmediateJobMigration = result.getTask().getId().equals(taskImmediate.getId());
             if (isImmediateJobMigration) {
@@ -118,8 +112,6 @@ public class DefaultDeschedulerServiceTest {
             assertThat(plan.getReason()).isEqualTo(TaskRelocationReason.TaskMigration);
             if (isImmediateJobMigration) {
                 assertThat(plan.getReasonMessage()).containsSequence("Job marked for immediate eviction");
-            } else if (plan.getTaskId().startsWith("jobLegacy")) {
-                assertThat(plan.getReasonMessage()).containsSequence("Attempted failed migration of a legacy job");
             } else {
                 assertThat(plan.getReasonMessage()).containsSequence("Immediate task migration");
             }
