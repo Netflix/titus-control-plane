@@ -16,11 +16,14 @@
 
 package com.netflix.titus.common.util.archaius2;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import com.google.common.base.Preconditions;
 import com.netflix.archaius.ConfigProxyFactory;
@@ -29,6 +32,8 @@ import com.netflix.archaius.api.Config;
 import com.netflix.archaius.api.Property;
 import com.netflix.archaius.api.PropertyRepository;
 import com.netflix.archaius.config.MapConfig;
+import com.netflix.titus.common.util.Evaluators;
+import com.netflix.titus.common.util.StringExt;
 import reactor.core.publisher.Flux;
 
 public final class Archaius2Ext {
@@ -40,6 +45,15 @@ public final class Archaius2Ext {
             EMPTY_CONFIG.getDecoder(),
             DefaultPropertyFactory.from(EMPTY_CONFIG)
     );
+
+    /**
+     * Parse string value like "1, 10, 1000" to an array of {@link Duration} values, assuming the values represent
+     * milliseconds.
+     */
+    public static Supplier<List<Duration>> asDurationList(Supplier<String> configSupplier) {
+        Function<String, List<Duration>> memoizedFunction = Evaluators.memoizeLast(v -> StringExt.parseDurationMsList(v).orElse(Collections.emptyList()));
+        return () -> memoizedFunction.apply(configSupplier.get());
+    }
 
     /**
      * Observe property value changes. Emits current value on subscriptions.

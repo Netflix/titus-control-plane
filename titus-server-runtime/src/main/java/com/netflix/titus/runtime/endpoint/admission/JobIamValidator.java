@@ -20,11 +20,14 @@ package com.netflix.titus.runtime.endpoint.admission;
 
 import java.time.Duration;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.google.common.collect.ImmutableMap;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.connector.cloud.IamConnector;
 import com.netflix.titus.api.iam.model.IamRole;
@@ -34,16 +37,23 @@ import com.netflix.titus.api.jobmanager.model.job.Container;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.common.model.sanitizer.ValidationError;
+import com.netflix.titus.common.util.archaius2.Archaius2Ext;
+import com.netflix.titus.common.util.rx.ReactorExt;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 /**
  * This {@link AdmissionValidator} implementation validates and sanitizes Job IAM information.
  */
 @Singleton
 public class JobIamValidator implements AdmissionValidator<JobDescriptor>, AdmissionSanitizer<JobDescriptor> {
+
     private final JobSecurityValidatorConfiguration configuration;
     private final IamConnector iamConnector;
     private final ValidatorMetrics validatorMetrics;
+    private final Registry registry;
+
+    private final Supplier<List<Duration>> iamValidationHedgeThresholdsConfig;
 
     @Inject
     public JobIamValidator(JobSecurityValidatorConfiguration configuration, IamConnector iamConnector, Registry registry) {
@@ -51,6 +61,9 @@ public class JobIamValidator implements AdmissionValidator<JobDescriptor>, Admis
         this.iamConnector = iamConnector;
 
         validatorMetrics = new ValidatorMetrics(this.getClass().getSimpleName(), registry);
+        this.registry = registry;
+
+        this.iamValidationHedgeThresholdsConfig = Archaius2Ext.asDurationList(configuration::getIamValidationHedgeThresholdsMs);
     }
 
     @Override
@@ -70,7 +83,25 @@ public class JobIamValidator implements AdmissionValidator<JobDescriptor>, Admis
         return Mono
                 .defer(() -> {
                             if (configuration.isIamRoleWithStsValidationEnabled()) {
-                                return iamConnector.canAgentAssume(iamRoleName);
+                                return iamConnector.canAgentAssume(iamRoleName).compose(
+                                        ReactorExt.hedged(
+                                                iamValidationHedgeThresholdsConfig.get(),
+                                                error -> {
+                                                    if (error instanceof IamConnectorException) {
+                                                        IamConnectorException iamError = (IamConnectorException) error;
+                                                        return iamError.isRetryable();
+                                                    }
+                                                    return true;
+                                                },
+                                                ImmutableMap.of(
+                                                        "caller", "jobIamValidator",
+                                                        "action", "iamConnector:canAgentAssume"
+                                                ),
+                                                registry,
+                                                Schedulers.parallel()
+                                        )
+                                );
+
                             }
 
                             // Skip any IAM that is not in "friendly" format. A non-friendly format is

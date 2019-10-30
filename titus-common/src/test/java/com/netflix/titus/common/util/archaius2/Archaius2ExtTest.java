@@ -16,6 +16,7 @@
 
 package com.netflix.titus.common.util.archaius2;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.Iterator;
 
@@ -29,6 +30,13 @@ import org.junit.Test;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class Archaius2ExtTest {
+
+    @Test
+    public void testAsDurationList() {
+        assertThat(Archaius2Ext.asDurationList(() -> "1, 2, 3").get()).contains(
+                Duration.ofMillis(1), Duration.ofMillis(2), Duration.ofMillis(3)
+        );
+    }
 
     @Test
     public void testPropertyUpdate() {

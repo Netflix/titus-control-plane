@@ -42,7 +42,21 @@ public class IamConnectorException extends RuntimeException {
         this.errorCode = errorCode;
     }
 
-    public ErrorCode getErrorCode() { return errorCode; }
+    public ErrorCode getErrorCode() {
+        return errorCode;
+    }
+
+    public boolean isRetryable() {
+        switch (errorCode) {
+            case INTERNAL:
+                return true;
+            case IAM_NOT_FOUND:
+            case INVALID:
+                return false;
+        }
+        // Safe default
+        return true;
+    }
 
     public static IamConnectorException iamRoleNotFound(String iamRoleName) {
         return new IamConnectorException(ErrorCode.IAM_NOT_FOUND, format("Could not find IAM %s", iamRoleName));

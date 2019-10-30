@@ -16,6 +16,8 @@
 
 package com.netflix.titus.common.util;
 
+import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -63,5 +65,20 @@ public class StringExtTest {
         assertThat(StringExt.removeSurroundingQuotes("\"abc")).isEqualTo("\"abc");
         assertThat(StringExt.removeSurroundingQuotes("\"abc\"")).isEqualTo("abc");
         assertThat(StringExt.removeSurroundingQuotes("abc\"")).isEqualTo("abc\"");
+    }
+
+    @Test
+    public void testParseDurationList() {
+        assertThat(StringExt.parseDurationMsList("abc")).isEmpty();
+
+        assertThat(StringExt.parseDurationMsList("1, ,")).isEmpty();
+
+        assertThat(StringExt.parseDurationMsList("1, 2  ").orElse(Collections.emptyList())).contains(
+                Duration.ofMillis(1), Duration.ofMillis(2)
+        );
+
+        assertThat(StringExt.parseDurationMsList("1,2,3").orElse(Collections.emptyList())).contains(
+                Duration.ofMillis(1), Duration.ofMillis(2), Duration.ofMillis(3)
+        );
     }
 }

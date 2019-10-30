@@ -43,4 +43,7 @@ public interface JobSecurityValidatorConfiguration extends AdmissionValidatorCon
      */
     @DefaultValue("4500")
     long getIamValidationTimeoutMs();
+
+    @DefaultValue("200,500,1000")
+    String getIamValidationHedgeThresholdsMs();
 }
