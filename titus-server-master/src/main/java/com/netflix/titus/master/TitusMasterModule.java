@@ -24,6 +24,7 @@ import com.google.inject.multibindings.Multibinder;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.governator.guice.jersey.GovernatorJerseySupportModule;
 import com.netflix.titus.api.containerhealth.service.ContainerHealthService;
+import com.netflix.titus.api.supervisor.service.MasterDescription;
 import com.netflix.titus.master.agent.AgentModule;
 import com.netflix.titus.master.agent.endpoint.AgentEndpointModule;
 import com.netflix.titus.master.appscale.endpoint.v3.AutoScalingModule;
@@ -48,9 +49,7 @@ import com.netflix.titus.master.scheduler.SchedulerModule;
 import com.netflix.titus.master.service.management.ManagementModule;
 import com.netflix.titus.master.store.StoreModule;
 import com.netflix.titus.master.supervisor.endpoint.SupervisorEndpointModule;
-import com.netflix.titus.api.supervisor.service.MasterDescription;
 import com.netflix.titus.master.supervisor.service.SupervisorServiceModule;
-import com.netflix.titus.master.taskmigration.TaskMigratorModule;
 import com.netflix.titus.runtime.FeatureFlagModule;
 import com.netflix.titus.runtime.TitusEntitySanitizerModule;
 import com.netflix.titus.runtime.containerhealth.service.AlwaysHealthyContainerHealthService;
@@ -131,8 +130,6 @@ public class TitusMasterModule extends AbstractModule {
 
         install(new EvictionServiceModule());
         install(new EvictionEndpointModule());
-
-        install(new TaskMigratorModule());
     }
 
     @Provides

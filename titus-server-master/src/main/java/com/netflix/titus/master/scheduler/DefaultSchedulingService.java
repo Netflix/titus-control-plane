@@ -29,7 +29,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -63,7 +62,6 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
-import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudgetFunctions;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.framework.fit.FitFramework;
@@ -93,7 +91,6 @@ import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheUpdate
 import com.netflix.titus.master.scheduler.resourcecache.OpportunisticCpuCache;
 import com.netflix.titus.master.scheduler.resourcecache.TaskCache;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
-import com.netflix.titus.master.taskmigration.TaskMigrator;
 import org.apache.mesos.Protos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -175,7 +172,6 @@ public class DefaultSchedulingService implements SchedulingService<V3QueueableTa
     private final AgentResourceCacheUpdater agentResourceCacheUpdater;
     private final TierSlaUpdater tierSlaUpdater;
     private final Registry registry;
-    private final TaskMigrator taskMigrator;
     private final AgentManagementService agentManagementService;
     private final ApplicationSlaManagementService capacityGroupService;
     private final SchedulingMachinesFilter schedulingMachinesFilter;
@@ -200,7 +196,6 @@ public class DefaultSchedulingService implements SchedulingService<V3QueueableTa
                                     Registry registry,
                                     PreferentialNamedConsumableResourceEvaluator preferentialNamedConsumableResourceEvaluator,
                                     AgentManagementFitnessCalculator agentManagementFitnessCalculator,
-                                    TaskMigrator taskMigrator,
                                     TitusRuntime titusRuntime,
                                     AgentResourceCache agentResourceCache,
                                     Config config,
@@ -210,7 +205,7 @@ public class DefaultSchedulingService implements SchedulingService<V3QueueableTa
         this(v3JobOperations, agentManagementService, v3TaskInfoFactory, vmOps, virtualMachineService,
                 masterConfiguration, schedulerConfiguration, systemHardConstraint, taskCache, opportunisticCpuCache,
                 Schedulers.computation(), tierSlaUpdater, registry, preferentialNamedConsumableResourceEvaluator,
-                agentManagementFitnessCalculator, taskMigrator, titusRuntime, agentResourceCache, config,
+                agentManagementFitnessCalculator, titusRuntime, agentResourceCache, config,
                 mesosConfiguration, capacityGroupService, schedulingMachinesFilter);
     }
 
@@ -229,7 +224,6 @@ public class DefaultSchedulingService implements SchedulingService<V3QueueableTa
                                     Registry registry,
                                     PreferentialNamedConsumableResourceEvaluator preferentialNamedConsumableResourceEvaluator,
                                     AgentManagementFitnessCalculator agentManagementFitnessCalculator,
-                                    TaskMigrator taskMigrator,
                                     TitusRuntime titusRuntime,
                                     AgentResourceCache agentResourceCache,
                                     Config config,
@@ -245,7 +239,6 @@ public class DefaultSchedulingService implements SchedulingService<V3QueueableTa
         this.threadScheduler = threadScheduler;
         this.tierSlaUpdater = tierSlaUpdater;
         this.registry = registry;
-        this.taskMigrator = taskMigrator;
         this.titusRuntime = titusRuntime;
         this.agentResourceCache = agentResourceCache;
         this.systemHardConstraint = systemHardConstraint;
@@ -787,15 +780,6 @@ public class DefaultSchedulingService implements SchedulingService<V3QueueableTa
         List<VirtualMachineCurrentState> inactiveVmStates = VMStateMgr.getInactiveVMs(schedulerConfiguration.getInstanceAttributeName(),
                 agentManagementService, vmCurrentStates);
 
-        // get all running tasks on the inactive vms
-        Collection<TaskRequest> tasksToBeMigrated = inactiveVmStates.stream()
-                .flatMap(ivm -> ivm.getRunningTasks().stream())
-                .filter(this::isLegacyJob)
-                .collect(Collectors.toList());
-
-        // schedule the inactive tasks for migration
-        taskMigrator.migrate(tasksToBeMigrated);
-
         // expire all leases on inactive vms
         for (VirtualMachineCurrentState inactiveVmState : inactiveVmStates) {
             VirtualMachineLease lease = inactiveVmState.getCurrAvailableResources();
@@ -803,12 +787,6 @@ public class DefaultSchedulingService implements SchedulingService<V3QueueableTa
             logger.debug("expiring all leases of inactive vm {}", vmHost);
             taskScheduler.expireAllLeases(vmHost);
         }
-    }
-
-    private boolean isLegacyJob(TaskRequest taskRequest) {
-        return v3JobOperations.findTaskById(taskRequest.getId())
-                .filter(p -> DisruptionBudgetFunctions.isLegacyJob(p.getLeft()))
-                .isPresent();
     }
 
     @PreDestroy
