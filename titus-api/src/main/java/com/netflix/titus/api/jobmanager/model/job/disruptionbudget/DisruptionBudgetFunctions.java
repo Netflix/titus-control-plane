@@ -24,7 +24,7 @@ public final class DisruptionBudgetFunctions {
     private DisruptionBudgetFunctions() {
     }
 
-    private static boolean isLegacyJobDescriptor(JobDescriptor<?> jobDescriptor) {
+    public static boolean isLegacyJobDescriptor(JobDescriptor<?> jobDescriptor) {
         DisruptionBudget budget = jobDescriptor.getDisruptionBudget();
         if (budget == null) {
             return true;

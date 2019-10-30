@@ -23,10 +23,15 @@ import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.netflix.titus.api.FeatureRolloutPlans;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
+import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import com.netflix.titus.api.jobmanager.model.job.migration.MigrationPolicy;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobAssertions;
+import com.netflix.titus.api.json.ObjectMappers;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.feature.FeatureCompliance;
 import com.netflix.titus.common.util.feature.FeatureCompliance.NonComplianceList;
@@ -39,6 +44,9 @@ import static com.netflix.titus.api.FeatureRolloutPlans.MIN_DISK_SIZE_STRICT_VAL
 import static com.netflix.titus.api.FeatureRolloutPlans.SECURITY_GROUPS_REQUIRED_FEATURE;
 
 class JobFeatureComplianceChecks {
+
+    @VisibleForTesting
+    static final String DISRUPTION_BUDGET_FEATURE = "disruptionBudget";
 
     private static final Map<String, String> NO_IAM_ROLE_CONTEXT = Collections.singletonMap("noIamRole", "IAM role not set");
     private static final Map<String, String> NO_SECURITY_GROUPS_CONTEXT = Collections.singletonMap("noSecurityGroups", "Security groups not set");
@@ -136,5 +144,39 @@ class JobFeatureComplianceChecks {
                     String.format("Job descriptor must declare disk size that is no less than %sMB", minDiskSize)
             ));
         };
+    }
+
+    /**
+     * Disruption budget is not required to be set by clients.
+     */
+    static FeatureCompliance<JobDescriptor<?>> noDisruptionBudget() {
+        return jobDescriptor -> {
+            if (JobFunctions.hasDisruptionBudget(jobDescriptor)) {
+                return Optional.empty();
+            }
+
+            String legacyMigrationPolicyInfo;
+            if (JobFunctions.isBatchJob(jobDescriptor)) {
+                legacyMigrationPolicyInfo = "no migration policy (batch job)";
+            } else {
+                MigrationPolicy migrationPolicy = ((ServiceJobExt) jobDescriptor.getExtensions()).getMigrationPolicy();
+                legacyMigrationPolicyInfo = "service job with legacy migration policy: " + toString(migrationPolicy);
+            }
+
+            return Optional.of(NonComplianceList.of(
+                    DISRUPTION_BUDGET_FEATURE,
+                    jobDescriptor,
+                    Collections.singletonMap("legacyMigration", legacyMigrationPolicyInfo),
+                    "Job descriptor without disruption budget"
+            ));
+        };
+    }
+
+    private static String toString(MigrationPolicy migrationPolicy) {
+        try {
+            return (migrationPolicy == null ? "none" : ObjectMappers.storeMapper().writeValueAsString(migrationPolicy));
+        } catch (Exception e) {
+            return String.format("<%s>", e.getMessage());
+        }
     }
 }

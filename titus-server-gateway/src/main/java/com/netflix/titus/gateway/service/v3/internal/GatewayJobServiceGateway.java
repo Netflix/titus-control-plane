@@ -32,6 +32,7 @@ import javax.inject.Singleton;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
+import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobAssertions;
 import com.netflix.titus.api.jobmanager.store.JobStore;
@@ -60,10 +61,9 @@ import com.netflix.titus.runtime.connector.GrpcRequestConfiguration;
 import com.netflix.titus.runtime.endpoint.JobQueryCriteria;
 import com.netflix.titus.runtime.endpoint.admission.AdmissionSanitizer;
 import com.netflix.titus.runtime.endpoint.admission.AdmissionValidator;
-import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
-import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobQueryModelConverters;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
+import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobQueryModelConverters;
 import com.netflix.titus.runtime.jobmanager.JobManagerConfiguration;
 import com.netflix.titus.runtime.jobmanager.JobManagerCursors;
 import com.netflix.titus.runtime.jobmanager.gateway.GrpcJobServiceGateway;
@@ -80,12 +80,12 @@ import rx.Observable;
 import static com.netflix.titus.api.FeatureRolloutPlans.ENVIRONMENT_VARIABLE_NAMES_STRICT_VALIDATION_FEATURE;
 import static com.netflix.titus.api.FeatureRolloutPlans.SECURITY_GROUPS_REQUIRED_FEATURE;
 import static com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_STRICT_SANITIZER;
-import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobQueryModelConverters.toGrpcPagination;
-import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobQueryModelConverters.toJobQueryCriteria;
-import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobQueryModelConverters.toPage;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createRequestObservable;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createSimpleClientResponseObserver;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createWrappedStub;
+import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobQueryModelConverters.toGrpcPagination;
+import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobQueryModelConverters.toJobQueryCriteria;
+import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobQueryModelConverters.toPage;
 
 /**
  * {@link JobServiceGateway} implementation merging the active and the archived data sets with extra validation rules.
@@ -118,6 +118,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
                                     TaskRelocationDataInjector taskRelocationDataInjector,
                                     NeedsMigrationQueryHandler needsMigrationQueryHandler,
                                     @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer,
+                                    DisruptionBudgetSanitizer disruptionBudgetSanitizer,
                                     @Named(SECURITY_GROUPS_REQUIRED_FEATURE) Predicate<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> securityGroupsRequiredPredicate,
                                     @Named(ENVIRONMENT_VARIABLE_NAMES_STRICT_VALIDATION_FEATURE) Predicate<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> environmentVariableNamesStrictValidationPredicate,
                                     JobAssertions jobAssertions,
@@ -130,6 +131,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
                         jobManagerConfiguration,
                         jobAssertions,
                         entitySanitizer,
+                        disruptionBudgetSanitizer,
                         securityGroupsRequiredPredicate,
                         environmentVariableNamesStrictValidationPredicate,
                         titusRuntime

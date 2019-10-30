@@ -43,13 +43,6 @@ public interface FeatureRolloutPlans {
     String ENTRY_POINT_STRICT_VALIDATION_FEATURE = "entryPointStrictValidation";
 
     @FeatureRollout(
-            featureId = "disruptionBudget",
-            deadline = "03/30/2019",
-            description = "Controls the job disruption budget rollout process."
-    )
-    String DISRUPTION_BUDGET_FEATURE = "disruptionBudget";
-
-    @FeatureRollout(
             featureId = "environmentVariableNamesStrictValidation",
             deadline = "06/30/2019",
             description = "Restricts the environment variables names to ASCII letters, digits and '_', according to the http://pubs.opengroup.org/onlinepubs/9699919799 spec"
