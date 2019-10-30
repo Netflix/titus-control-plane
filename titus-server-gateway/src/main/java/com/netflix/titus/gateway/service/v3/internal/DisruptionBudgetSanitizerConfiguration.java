@@ -24,12 +24,6 @@ public interface DisruptionBudgetSanitizerConfiguration {
 
     long TIME_7DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
-    /**
-     * If set to true, jobs that do not define disruption budget, will get one assigned.
-     */
-    @DefaultValue("false")
-    boolean isEnabled();
-
     @DefaultValue("" + TIME_7DAYS_MS)
     long getServiceSelfManagedRelocationTimeMs();
 }

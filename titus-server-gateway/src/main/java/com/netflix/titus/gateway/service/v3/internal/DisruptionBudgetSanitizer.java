@@ -35,13 +35,9 @@ import com.netflix.titus.api.jobmanager.model.job.migration.MigrationPolicy;
 import com.netflix.titus.api.jobmanager.model.job.migration.SelfManagedMigrationPolicy;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.gateway.MetricConstants;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Singleton
 public class DisruptionBudgetSanitizer {
-
-    private static final Logger logger = LoggerFactory.getLogger(DisruptionBudgetSanitizer.class);
 
     private static final String METRICS_ROOT = MetricConstants.METRIC_JOB_MANAGEMENT + "disruptionBudget.";
 
@@ -74,13 +70,7 @@ public class DisruptionBudgetSanitizer {
             return original;
         }
 
-        if (!configuration.isEnabled()) {
-            logger.info("Creating job without a disruption budget (rewrite is off): application={}", original.getApplicationName());
-            record(original, false);
-            return original;
-        }
-
-        record(original, true);
+        record(original);
 
         return JobFunctions.isServiceJob(original)
                 ? injectDefaultServiceDisruptionBudget(original)
@@ -128,9 +118,8 @@ public class DisruptionBudgetSanitizer {
         return original.toBuilder().withDisruptionBudget(budgetBuilder.build()).build();
     }
 
-    private void record(JobDescriptor original, boolean rewritten) {
+    private void record(JobDescriptor original) {
         registry.counter(nonCompliantId.withTags(
-                "rewritten", "" + rewritten,
                 "capacityGroup", original.getCapacityGroup(),
                 "application", original.getApplicationName(),
                 "jobType", JobFunctions.isServiceJob(original) ? "service" : "batch"
