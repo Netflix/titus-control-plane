@@ -90,12 +90,19 @@ public class CapacityGuaranteeTest extends BaseIntegrationTest {
         v2Client = titusMasterResource.getMaster().getClient();
 
         // Setup capacity guarantees for tiers
-        v2Client.addApplicationSLA(
-                asRepresentation(CRITICAL1_GUARANTEE)).
-                toBlocking().
-                first();
+        // We configure capacity groups in the reverse order of their usage in the test below, to make sure
+        // both are set before placement happens. If the capacity group is not defined for the first job, the job will
+        // not be scheduled as the flex tier has no agents. If it is defined, it may be only if both capacity groups are
+        // configured (due to the creation order).
+        // The initialization is not atomic, as Fenzo configuration is updated periodically, not immediately when the
+        // change is registered.
         v2Client.addApplicationSLA(
                 asRepresentation(CRITICAL2_GUARANTEE)).
+                toBlocking().
+                first();
+
+        v2Client.addApplicationSLA(
+                asRepresentation(CRITICAL1_GUARANTEE)).
                 toBlocking().
                 first();
     }
