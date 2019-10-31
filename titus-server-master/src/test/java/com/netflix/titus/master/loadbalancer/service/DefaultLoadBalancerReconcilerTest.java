@@ -137,7 +137,6 @@ public class DefaultLoadBalancerReconcilerTest {
             assertThat(update.getPriority()).isEqualTo(Priority.Low);
             assertThat(update.getLoadBalancerId()).isEqualTo(loadBalancerId);
             assertThat(update.getIdentifier().getTaskId()).isEqualTo("UNKNOWN-TASK");
-            assertThat(update.getIdentifier().getJobId()).isEqualTo("UNKNOWN-JOB");
         });
     }
 
@@ -155,7 +154,7 @@ public class DefaultLoadBalancerReconcilerTest {
 
         for (Task task : tasks) {
             final String ipAddress = task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP);
-            final LoadBalancerTarget target = new LoadBalancerTarget(jobLoadBalancer, task.getId(), ipAddress);
+            final LoadBalancerTarget target = new LoadBalancerTarget(loadBalancerId, task.getId(), ipAddress);
             reconciler.activateCooldownFor(target, cooldownPeriodMs, TimeUnit.MILLISECONDS);
         }
 

@@ -42,7 +42,7 @@ import com.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import com.netflix.titus.api.loadbalancer.model.JobLoadBalancerState;
 import com.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
 import com.netflix.titus.api.loadbalancer.model.LoadBalancerTarget.State;
-import com.netflix.titus.api.loadbalancer.model.TargetState;
+import com.netflix.titus.api.loadbalancer.model.LoadBalancerTargetState;
 import com.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.rx.ObservableExt;
@@ -293,12 +293,12 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
      * the <tt>ipAddress</tt> for deregistrations.
      */
     private LoadBalancerTarget updateForUnknownTask(String loadBalancerId, String ip) {
-        return new LoadBalancerTarget(new JobLoadBalancer(UNKNOWN_JOB, loadBalancerId), UNKNOWN_TASK, ip);
+        return new LoadBalancerTarget(loadBalancerId, UNKNOWN_TASK, ip);
     }
 
     private List<TargetStateBatchable> withState(Instant instant, Collection<LoadBalancerTarget> targets, State state) {
         return targets.stream()
-                .map(target -> new TargetStateBatchable(Priority.Low, instant, new TargetState(target, state)))
+                .map(target -> new TargetStateBatchable(Priority.Low, instant, new LoadBalancerTargetState(target, state)))
                 .collect(Collectors.toList());
     }
 

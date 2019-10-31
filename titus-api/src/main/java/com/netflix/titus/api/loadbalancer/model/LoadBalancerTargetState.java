@@ -16,11 +16,11 @@
 
 package com.netflix.titus.api.loadbalancer.model;
 
-public class TargetState {
+public class LoadBalancerTargetState {
     private final LoadBalancerTarget loadBalancerTarget;
     private final LoadBalancerTarget.State state;
 
-    public TargetState(LoadBalancerTarget loadBalancerTarget, LoadBalancerTarget.State state) {
+    public LoadBalancerTargetState(LoadBalancerTarget loadBalancerTarget, LoadBalancerTarget.State state) {
         this.loadBalancerTarget = loadBalancerTarget;
         this.state = state;
     }
@@ -50,7 +50,7 @@ public class TargetState {
             return false;
         }
 
-        TargetState that = (TargetState) o;
+        LoadBalancerTargetState that = (LoadBalancerTargetState) o;
 
         if (!loadBalancerTarget.equals(that.loadBalancerTarget)) {
             return false;

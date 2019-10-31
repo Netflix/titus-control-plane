@@ -33,7 +33,7 @@ import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
 import com.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import com.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
 import com.netflix.titus.api.loadbalancer.model.LoadBalancerTarget.State;
-import com.netflix.titus.api.loadbalancer.model.TargetState;
+import com.netflix.titus.api.loadbalancer.model.LoadBalancerTargetState;
 import com.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
@@ -237,7 +237,7 @@ class LoadBalancerEngine {
     private List<TargetStateBatchable> updatesForLoadBalancers(Collection<JobLoadBalancer> loadBalancers, Task task, State desired) {
         return loadBalancers.stream()
                 .map(association -> toLoadBalancerTarget(association, task))
-                .map(target -> new TargetStateBatchable(Priority.High, now(), new TargetState(target, desired)))
+                .map(target -> new TargetStateBatchable(Priority.High, now(), new LoadBalancerTargetState(target, desired)))
                 .collect(Collectors.toList());
     }
 
@@ -247,13 +247,13 @@ class LoadBalancerEngine {
                 .flatMap(jobLoadBalancer -> Observable.from(jobOperations.targetsForJob(jobLoadBalancer))
                         .doOnError(e -> logger.error("Error loading targets for jobId {}", jobLoadBalancer.getJobId(), e))
                         .onErrorResumeNext(Observable.empty()))
-                .map(target -> new TargetStateBatchable(Priority.High, now(), new TargetState(target, state)))
+                .map(target -> new TargetStateBatchable(Priority.High, now(), new LoadBalancerTargetState(target, state)))
                 .doOnError(e -> logger.error("Error fetching targets to {}", state, e))
                 .retry();
     }
 
     private static LoadBalancerTarget toLoadBalancerTarget(JobLoadBalancer association, Task task) {
-        return new LoadBalancerTarget(association, task.getId(),
+        return new LoadBalancerTarget(association.getLoadBalancerId(), task.getId(),
                 task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP));
     }
 

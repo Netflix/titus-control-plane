@@ -27,7 +27,6 @@ import java.util.concurrent.TimeUnit;
 import com.netflix.titus.api.connector.cloud.LoadBalancer;
 import com.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
-import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
@@ -42,6 +41,7 @@ import com.netflix.titus.api.loadbalancer.model.sanitizer.DefaultLoadBalancerJob
 import com.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerJobValidator;
 import com.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerValidationConfiguration;
 import com.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.CollectionsExt;
@@ -84,7 +84,7 @@ public class DefaultLoadBalancerServiceTest {
     private PublishSubject<TargetStateBatchable> reconcilerEvents;
     private LoadBalancerJobValidator validator;
     private TestScheduler testScheduler;
-    private CallMetadata  callMetadata = CallMetadata.newBuilder().withCallerId("Load Balancer test").build();
+    private CallMetadata callMetadata = CallMetadata.newBuilder().withCallerId("Load Balancer test").build();
 
     private void defaultStubs() {
         when(client.registerAll(any(), any())).thenReturn(Completable.complete());
@@ -141,7 +141,7 @@ public class DefaultLoadBalancerServiceTest {
         testSubscriber.assertNoErrors().assertValueCount(1);
         verify(client).registerAll(eq(loadBalancerId), argThat(targets -> targets != null && targets.size() == tasks.size()));
         verify(client, never()).deregisterAll(eq(loadBalancerId), any());
-        verifyReconcilerIgnore(jobId, loadBalancerId, LoadBalancerTests.ipAddresses(tasks));
+        verifyReconcilerIgnore(loadBalancerId, LoadBalancerTests.ipAddresses(tasks));
     }
 
     @Test
@@ -173,7 +173,7 @@ public class DefaultLoadBalancerServiceTest {
         verify(client, never()).registerAll(any(), any());
         verify(client, never()).deregisterAll(any(), any());
         // targets are ignored before batching happens
-        verifyReconcilerIgnore(jobId, loadBalancerId, LoadBalancerTests.ipAddresses(tasks));
+        verifyReconcilerIgnore(loadBalancerId, LoadBalancerTests.ipAddresses(tasks));
 
         testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
 
@@ -246,8 +246,7 @@ public class DefaultLoadBalancerServiceTest {
         verify(v3JobOperations).getTasks(secondJobId);
         verify(client).registerAll(eq(loadBalancerId), argThat(targets -> targets != null && targets.size() == tasks.size()));
         verify(client, never()).deregisterAll(eq(loadBalancerId), any());
-        verifyNoReconcilerIgnore(firstJobId, loadBalancerId);
-        verifyReconcilerIgnore(secondJobId, loadBalancerId, LoadBalancerTests.ipAddresses(tasks));
+        verifyReconcilerIgnore(loadBalancerId, LoadBalancerTests.ipAddresses(tasks));
     }
 
     @Test
@@ -293,8 +292,8 @@ public class DefaultLoadBalancerServiceTest {
         verify(client).registerAll(eq(secondLoadBalancerId), argThat(targets -> targets != null && targets.size() == numberOfStartedTasks));
         verify(client, never()).deregisterAll(eq(firstLoadBalancerId), any());
         verify(client, never()).deregisterAll(eq(secondLoadBalancerId), any());
-        verifyReconcilerIgnore(jobId, firstLoadBalancerId, LoadBalancerTests.ipAddresses(tasks));
-        verifyReconcilerIgnore(jobId, secondLoadBalancerId, LoadBalancerTests.ipAddresses(tasks));
+        verifyReconcilerIgnore(firstLoadBalancerId, LoadBalancerTests.ipAddresses(tasks));
+        verifyReconcilerIgnore(secondLoadBalancerId, LoadBalancerTests.ipAddresses(tasks));
 
         // now some more tasks are added to the job, check if both load balancers get updated
 
@@ -324,8 +323,8 @@ public class DefaultLoadBalancerServiceTest {
         verify(client, times(2)).registerAll(eq(secondLoadBalancerId), argThat(targets -> targets != null && targets.size() == numberOfStartedTasks));
         verify(client, never()).deregisterAll(eq(firstLoadBalancerId), any());
         verify(client, never()).deregisterAll(eq(secondLoadBalancerId), any());
-        verifyReconcilerIgnore(jobId, firstLoadBalancerId, LoadBalancerTests.ipAddresses(newTasks));
-        verifyReconcilerIgnore(jobId, secondLoadBalancerId, LoadBalancerTests.ipAddresses(newTasks));
+        verifyReconcilerIgnore(firstLoadBalancerId, LoadBalancerTests.ipAddresses(newTasks));
+        verifyReconcilerIgnore(secondLoadBalancerId, LoadBalancerTests.ipAddresses(newTasks));
     }
 
     @Test
@@ -354,7 +353,7 @@ public class DefaultLoadBalancerServiceTest {
         testSubscriber.assertNoErrors().assertValueCount(1);
         verify(client).registerAll(eq(loadBalancerId), argThat(targets -> targets != null && targets.size() == batchSize));
         verify(client, never()).deregisterAll(eq(loadBalancerId), any());
-        verifyReconcilerIgnore(jobId, loadBalancerId, LoadBalancerTests.ipAddresses(tasks));
+        verifyReconcilerIgnore(loadBalancerId, LoadBalancerTests.ipAddresses(tasks));
     }
 
     @Test
@@ -392,8 +391,8 @@ public class DefaultLoadBalancerServiceTest {
         verify(client).registerAll(eq(secondLoadBalancerId), argThat(targets -> targets != null && targets.size() == batchSize));
         verify(client, never()).deregisterAll(any(), any());
         // we still ignore reconciliation because the failure happens later in the connector
-        verifyReconcilerIgnore(jobId, firstLoadBalancerId, LoadBalancerTests.ipAddresses(tasks));
-        verifyReconcilerIgnore(jobId, secondLoadBalancerId, LoadBalancerTests.ipAddresses(tasks));
+        verifyReconcilerIgnore(firstLoadBalancerId, LoadBalancerTests.ipAddresses(tasks));
+        verifyReconcilerIgnore(secondLoadBalancerId, LoadBalancerTests.ipAddresses(tasks));
     }
 
     @Test
@@ -427,7 +426,7 @@ public class DefaultLoadBalancerServiceTest {
         testSubscriber.assertNoErrors().assertValueCount(1);
         verify(client).registerAll(eq(loadBalancerId), argThat(targets -> targets != null && targets.size() == batchSize));
         verify(client, never()).deregisterAll(any(), any());
-        verifyReconcilerIgnore(jobId, loadBalancerId, LoadBalancerTests.ipAddresses(tasks));
+        verifyReconcilerIgnore(loadBalancerId, LoadBalancerTests.ipAddresses(tasks));
     }
 
     @Test
@@ -466,7 +465,7 @@ public class DefaultLoadBalancerServiceTest {
         testSubscriber.assertNoErrors().assertValueCount(1);
         verify(client, never()).registerAll(eq(loadBalancerId), any());
         verify(client).deregisterAll(eq(loadBalancerId), argThat(targets -> targets != null && targets.size() == tasks.size()));
-        verifyReconcilerIgnore(jobId, loadBalancerId, LoadBalancerTests.ipAddresses(tasks));
+        verifyReconcilerIgnore(loadBalancerId, LoadBalancerTests.ipAddresses(tasks));
 
     }
 
@@ -515,7 +514,7 @@ public class DefaultLoadBalancerServiceTest {
         testSubscriber.assertNoErrors().assertValueCount(1);
         verify(client, never()).registerAll(eq(loadBalancerId), any());
         verify(client).deregisterAll(eq(loadBalancerId), argThat(targets -> targets != null && targets.size() == tasks.size()));
-        verifyReconcilerIgnore(secondJobId, loadBalancerId, LoadBalancerTests.ipAddresses(tasks));
+        verifyReconcilerIgnore(loadBalancerId, LoadBalancerTests.ipAddresses(tasks));
     }
 
     @Test
@@ -616,7 +615,7 @@ public class DefaultLoadBalancerServiceTest {
         testSubscriber.assertNoErrors().assertValueCount(1);
         verify(client).registerAll(eq(loadBalancerId), argThat(set -> set.contains("1.2.3.4")));
         verify(client, never()).deregisterAll(eq(loadBalancerId), any());
-        verifyReconcilerIgnore(jobId, loadBalancerId, "1.2.3.4");
+        verifyReconcilerIgnore(loadBalancerId, "1.2.3.4");
     }
 
     @Test
@@ -683,7 +682,7 @@ public class DefaultLoadBalancerServiceTest {
         testSubscriber.assertNoErrors().assertValueCount(1);
         verify(client, never()).registerAll(eq(loadBalancerId), any());
         verify(client).deregisterAll(eq(loadBalancerId), argThat(set -> set.contains("1.1.1.1")));
-        verifyReconcilerIgnore(jobId, loadBalancerId, "1.1.1.1");
+        verifyReconcilerIgnore(loadBalancerId, "1.1.1.1");
 
         Task second = first.toBuilder()
                 .withId(UUID.randomUUID().toString())
@@ -700,7 +699,7 @@ public class DefaultLoadBalancerServiceTest {
         testSubscriber.assertNoErrors().assertValueCount(2);
         verify(client, never()).registerAll(eq(loadBalancerId), any());
         verify(client).deregisterAll(eq(loadBalancerId), argThat(set -> set.contains("2.2.2.2")));
-        verifyReconcilerIgnore(jobId, loadBalancerId, "2.2.2.2");
+        verifyReconcilerIgnore(loadBalancerId, "2.2.2.2");
 
         Task third = first.toBuilder()
                 .withId(UUID.randomUUID().toString())
@@ -717,7 +716,7 @@ public class DefaultLoadBalancerServiceTest {
         testSubscriber.assertNoErrors().assertValueCount(3);
         verify(client, never()).registerAll(eq(loadBalancerId), any());
         verify(client).deregisterAll(eq(loadBalancerId), argThat(set -> set.contains("3.3.3.3")));
-        verifyReconcilerIgnore(jobId, loadBalancerId, "3.3.3.3");
+        verifyReconcilerIgnore(loadBalancerId, "3.3.3.3");
     }
 
     @Test
@@ -775,14 +774,14 @@ public class DefaultLoadBalancerServiceTest {
         testSubscriber.assertNoErrors().assertValueCount(2);
         verify(client).registerAll(eq(targetLoadBalancerId), argThat(set -> set.contains("1.2.3.4")));
         verify(client).deregisterAll(eq(sourceLoadBalancerId), argThat(set -> set.contains("1.2.3.4")));
-        verifyReconcilerIgnore(targetJobId, targetLoadBalancerId, "1.2.3.4");
-        verifyReconcilerIgnore(sourceJobId, sourceLoadBalancerId, "1.2.3.4");
+        verifyReconcilerIgnore(targetLoadBalancerId, "1.2.3.4");
+        verifyReconcilerIgnore(sourceLoadBalancerId, "1.2.3.4");
 
         // load balancers associated with both source and target jobs are not changed
         verify(client, never()).registerAll(eq(commonLoadBalancerId), any());
         verify(client, never()).deregisterAll(eq(commonLoadBalancerId), any());
-        verifyNoReconcilerIgnore(targetJobId, commonLoadBalancerId);
-        verifyNoReconcilerIgnore(sourceJobId, commonLoadBalancerId);
+        verifyNoReconcilerIgnore(commonLoadBalancerId);
+        verifyNoReconcilerIgnore(commonLoadBalancerId);
     }
 
     @Test
@@ -834,7 +833,7 @@ public class DefaultLoadBalancerServiceTest {
         testSubscriber.assertNoErrors().assertValueCount(1);
         verify(client).registerAll(eq(targetLoadBalancerId), argThat(set -> set.contains("1.2.3.4")));
         verify(client, never()).deregisterAll(any(), any());
-        verifyReconcilerIgnore(targetJobId, targetLoadBalancerId, "1.2.3.4");
+        verifyReconcilerIgnore(targetLoadBalancerId, "1.2.3.4");
     }
 
     @Test
@@ -886,26 +885,29 @@ public class DefaultLoadBalancerServiceTest {
         testSubscriber.assertNoErrors().assertValueCount(1);
         verify(client).deregisterAll(eq(sourceLoadBalancerId), argThat(set -> set.contains("1.2.3.4")));
         verify(client, never()).registerAll(any(), any());
-        verifyReconcilerIgnore(sourceJobId, sourceLoadBalancerId, "1.2.3.4");
+        verifyReconcilerIgnore(sourceLoadBalancerId, "1.2.3.4");
     }
 
-    private void verifyReconcilerIgnore(String jobId, String loadBalancerId, String... ipAddresses) {
+    private void verifyReconcilerIgnore(String loadBalancerId, String... ipAddresses) {
         final Set<String> ipSet = CollectionsExt.asSet(ipAddresses);
-        verify(reconciler, times(ipAddresses.length)).activateCooldownFor(argThat(target ->
-                jobId.equals(target.getJobId())
-                        && loadBalancerId.equals(target.getLoadBalancerId())
-                        && ipSet.contains(target.getIpAddress())
-        ), anyLong(), any());
+        verify(reconciler, times(ipAddresses.length)).activateCooldownFor(
+                argThat(target -> loadBalancerId.equals(target.getLoadBalancerId())
+                        && ipSet.contains(target.getIpAddress())),
+                anyLong(),
+                any()
+        );
     }
 
     private void verifyNoReconcilerIgnore() {
         verify(reconciler, never()).activateCooldownFor(any(), anyLong(), any());
     }
 
-    private void verifyNoReconcilerIgnore(String jobId, String loadBalancerId) {
-        verify(reconciler, never()).activateCooldownFor(argThat(target ->
-                jobId.equals(target.getJobId()) && loadBalancerId.equals(target.getLoadBalancerId())
-        ), anyLong(), any());
+    private void verifyNoReconcilerIgnore(String loadBalancerId) {
+        verify(reconciler, never()).activateCooldownFor(
+                argThat(target -> loadBalancerId.equals(target.getLoadBalancerId())),
+                anyLong(),
+                any()
+        );
     }
 
 }

@@ -19,7 +19,7 @@ package com.netflix.titus.master.loadbalancer.service;
 import java.time.Instant;
 
 import com.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
-import com.netflix.titus.api.loadbalancer.model.TargetState;
+import com.netflix.titus.api.loadbalancer.model.LoadBalancerTargetState;
 import com.netflix.titus.common.util.rx.batch.Batchable;
 import com.netflix.titus.common.util.rx.batch.Priority;
 
@@ -27,9 +27,9 @@ class TargetStateBatchable implements Batchable<LoadBalancerTarget> {
     private final Priority priority;
     private final Instant timestamp;
 
-    private final TargetState targetState;
+    private final LoadBalancerTargetState targetState;
 
-    TargetStateBatchable(Priority priority, Instant timestamp, TargetState targetState) {
+    TargetStateBatchable(Priority priority, Instant timestamp, LoadBalancerTargetState targetState) {
         this.priority = priority;
         this.timestamp = timestamp;
         this.targetState = targetState;
@@ -62,7 +62,7 @@ class TargetStateBatchable implements Batchable<LoadBalancerTarget> {
         return targetState.getState();
     }
 
-    TargetState getTargetState() {
+    LoadBalancerTargetState getTargetState() {
         return targetState;
     }
 

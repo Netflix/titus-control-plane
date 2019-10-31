@@ -16,10 +16,14 @@
 
 package com.netflix.titus.api.loadbalancer.model;
 
+import java.util.Objects;
+import javax.validation.constraints.Size;
+
 public class LoadBalancerTarget {
     public enum State {Registered, Deregistered}
 
-    private final JobLoadBalancer jobLoadBalancer;
+    @Size(min = 1, max = 1024)
+    private final String loadBalancerId;
     private final String ipAddress;
 
     /**
@@ -27,22 +31,14 @@ public class LoadBalancerTarget {
      */
     private final String taskId;
 
-    public LoadBalancerTarget(JobLoadBalancer jobLoadBalancer, String taskId, String ipAddress) {
-        this.jobLoadBalancer = jobLoadBalancer;
+    public LoadBalancerTarget(String loadBalancerId, String taskId, String ipAddress) {
+        this.loadBalancerId = loadBalancerId;
         this.ipAddress = ipAddress;
         this.taskId = taskId;
     }
 
-    public JobLoadBalancer getJobLoadBalancer() {
-        return jobLoadBalancer;
-    }
-
     public String getLoadBalancerId() {
-        return jobLoadBalancer.getLoadBalancerId();
-    }
-
-    public String getJobId() {
-        return jobLoadBalancer.getJobId();
+        return loadBalancerId;
     }
 
     public String getTaskId() {
@@ -54,15 +50,6 @@ public class LoadBalancerTarget {
     }
 
     @Override
-    public String toString() {
-        return "LoadBalancerTarget{" +
-                "jobLoadBalancer=" + jobLoadBalancer +
-                ", taskId='" + taskId + '\'' +
-                ", ipAddress='" + ipAddress + '\'' +
-                '}';
-    }
-
-    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -70,19 +57,23 @@ public class LoadBalancerTarget {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
         LoadBalancerTarget that = (LoadBalancerTarget) o;
-
-        if (!jobLoadBalancer.getLoadBalancerId().equals(that.jobLoadBalancer.getLoadBalancerId())) {
-            return false;
-        }
-        return ipAddress.equals(that.ipAddress);
+        return loadBalancerId.equals(that.loadBalancerId) &&
+                ipAddress.equals(that.ipAddress);
     }
 
     @Override
     public int hashCode() {
-        int result = jobLoadBalancer.getLoadBalancerId().hashCode();
-        result = 31 * result + ipAddress.hashCode();
-        return result;
+        return Objects.hash(loadBalancerId, ipAddress);
     }
+
+    @Override
+    public String toString() {
+        return "LoadBalancerTarget{" +
+                "loadBalancerId='" + loadBalancerId + '\'' +
+                ", ipAddress='" + ipAddress + '\'' +
+                ", taskId='" + taskId + '\'' +
+                '}';
+    }
+
 }

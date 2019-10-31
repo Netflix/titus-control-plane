@@ -30,9 +30,8 @@ import com.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
 import rx.Observable;
 
 /**
- * Wrapper for the V2 and V3 engines with some load balancer specific logic.
+ * Wrapper for the V3 engines with some load balancer specific logic.
  */
-// TODO: add V2 support
 class LoadBalancerJobOperations {
     private final V3JobOperations v3JobOperations;
 
@@ -50,7 +49,7 @@ class LoadBalancerJobOperations {
         return v3JobOperations.getTasks(jobLoadBalancer.getJobId()).stream()
                 .filter(TaskHelpers::isStartedWithIp)
                 .map(task -> new LoadBalancerTarget(
-                        jobLoadBalancer,
+                        jobLoadBalancer.getLoadBalancerId(),
                         task.getId(),
                         task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP)
                 ))
