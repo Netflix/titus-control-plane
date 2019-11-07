@@ -108,7 +108,6 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     private static final String ATTRIBUTE_PREFIX = "com.netflix.titus.agent.attribute/";
     private static final String KUBERNETES_NAMESPACE = "default";
     private static final String CLIENT_METRICS_PREFIX = "titusMaster.mesos.kubeApiServerIntegration";
-    private static final int RESYNC_PERIOD_MS = 300_000;
     private static final long POD_TERMINATION_GRACE_PERIOD_SECONDS = 600L;
     private static final int POD_TERMINATION_GC_TIMEOUT_MS = 1_800_000;
     private static final int DELETE_GRACE_PERIOD_SECONDS = 300;
@@ -178,7 +177,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         v3JobOperations = injector.getInstance(V3JobOperations.class);
 
         ApiClient informerApiClient = createApiClient(mesosConfiguration.getKubeApiServerUrl(), CLIENT_METRICS_PREFIX,
-                titusRuntime, RESYNC_PERIOD_MS);
+                titusRuntime, mesosConfiguration.getKubeApiServerIntegratorRefreshIntervalMs());
         CoreV1Api informerApi = new CoreV1Api(informerApiClient);
 
         sharedInformerFactory = createSharedInformerFactory(
@@ -214,7 +213,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                         null),
                 V1Node.class,
                 V1NodeList.class,
-                RESYNC_PERIOD_MS
+                mesosConfiguration.getKubeApiServerIntegratorRefreshIntervalMs()
         );
 
         nodeInformer.addEventHandler(
@@ -279,7 +278,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                         ),
                         V1Pod.class,
                         V1PodList.class,
-                        RESYNC_PERIOD_MS
+                        mesosConfiguration.getKubeApiServerIntegratorRefreshIntervalMs()
                 );
 
         podInformer.addEventHandler(
@@ -640,7 +639,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                 .filter(p -> {
                     DateTime deletionTimestamp = p.getMetadata().getDeletionTimestamp();
                     return deletionTimestamp != null &&
-                            clock.isPast(deletionTimestamp.getMillis() + POD_TERMINATION_GC_TIMEOUT_MS);
+                            clock.isPast(deletionTimestamp.getMillis() + DELETE_GRACE_PERIOD_SECONDS + POD_TERMINATION_GC_TIMEOUT_MS);
                 })
                 .collect(Collectors.toList());
 
