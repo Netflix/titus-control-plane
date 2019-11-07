@@ -69,7 +69,7 @@ public class DefaultDockerRegistryClient implements RegistryClient {
     DefaultDockerRegistryClient(TitusRegistryClientConfiguration configuration, TitusRuntime titusRuntime) {
         this.titusRuntime = titusRuntime;
         this.titusRegistryClientConfiguration = configuration;
-        this.webClientMetrics = new WebClientMetric(DefaultDockerRegistryClient.class.getSimpleName(), titusRuntime.getRegistry(), titusRuntime.getClock());
+        this.webClientMetrics = new WebClientMetric(DefaultDockerRegistryClient.class.getSimpleName(), titusRuntime.getRegistry());
 
         this.restClient = WebClient.builder()
                 .baseUrl(configuration.getRegistryUri())

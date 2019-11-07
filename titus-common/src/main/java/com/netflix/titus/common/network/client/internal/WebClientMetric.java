@@ -20,7 +20,6 @@ import java.time.Duration;
 
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.common.network.client.ClientMetrics;
-import com.netflix.titus.common.util.time.Clock;
 import org.springframework.http.HttpMethod;
 import reactor.netty.Connection;
 import reactor.netty.http.client.HttpClientResponse;
@@ -30,8 +29,8 @@ public class WebClientMetric {
 
     private final ClientMetrics delegate;
 
-    public WebClientMetric(String endpointName, Registry registry, Clock clock) {
-        delegate = new ClientMetrics(WEB_CLIENT_METRICS, endpointName, registry, clock);
+    public WebClientMetric(String endpointName, Registry registry) {
+        delegate = new ClientMetrics(WEB_CLIENT_METRICS, endpointName, registry);
     }
 
     public void registerOnSuccessLatency(HttpMethod method, Duration elapsed) {

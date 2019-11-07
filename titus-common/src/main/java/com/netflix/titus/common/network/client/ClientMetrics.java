@@ -22,7 +22,6 @@ import java.util.concurrent.TimeUnit;
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.common.util.StringExt;
-import com.netflix.titus.common.util.time.Clock;
 
 public class ClientMetrics {
     private static final String CLIENT_REQUEST = "request";
@@ -35,13 +34,11 @@ public class ClientMetrics {
     private static final String CLIENT_RESPONSE_STATUS_FAILURE = "failure";
 
     private final Registry registry;
-    private final Clock clock;
 
     private final Id requestId;
     private final Id latencyId;
 
-    public ClientMetrics(String metricNamePrefix, String endpointName, Registry registry, Clock clock) {
-        this.clock = clock;
+    public ClientMetrics(String metricNamePrefix, String endpointName, Registry registry) {
         String updatedMetricNamePrefix = StringExt.appendToEndIfMissing(metricNamePrefix, ".");
         this.registry = registry;
 
