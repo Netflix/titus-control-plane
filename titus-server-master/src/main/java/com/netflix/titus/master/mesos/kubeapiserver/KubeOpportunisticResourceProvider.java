@@ -21,8 +21,6 @@ import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
@@ -49,14 +47,17 @@ import io.kubernetes.client.informer.ResourceEventHandler;
 import io.kubernetes.client.informer.SharedIndexInformer;
 import io.kubernetes.client.informer.SharedInformerFactory;
 import io.kubernetes.client.util.CallGeneratorParams;
-import io.kubernetes.client.util.Config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.netflix.titus.master.mesos.kubeapiserver.KubeUtil.createApiClient;
+import static com.netflix.titus.master.mesos.kubeapiserver.KubeUtil.createSharedInformerFactory;
 
 @Experimental(detail = "Informer-pattern based integration with Kubernetes for opportunistic resources", deadline = "12/1/2019")
 @Singleton
 public class KubeOpportunisticResourceProvider implements OpportunisticCpuAvailabilityProvider {
     private static final Logger logger = LoggerFactory.getLogger(KubeOpportunisticResourceProvider.class);
+    private static final String CLIENT_METRICS_PREFIX = "titusMaster.mesos.kubeOpportunisticResourceProvider";
 
     private static final String OPPORTUNISTIC_RESOURCE_GROUP = "titus.netflix.com";
     private static final String OPPORTUNISTIC_RESOURCE_VERSION = "v1";
@@ -82,6 +83,8 @@ public class KubeOpportunisticResourceProvider implements OpportunisticCpuAvaila
         this.titusRuntime = titusRuntime;
         cpuSupplyId = titusRuntime.getRegistry().createId("titusMaster.opportunistic.supply.cpu");
 
+        long refreshIntervalMs = configuration.getKubeOpportunisticRefreshIntervalMs();
+
         ThreadFactory threadFactory = new ThreadFactoryBuilder()
                 .setNameFormat("kube-opportunistic-cpu-metrics-poller")
                 .setDaemon(true)
@@ -92,22 +95,20 @@ public class KubeOpportunisticResourceProvider implements OpportunisticCpuAvaila
                 .scheduleOn(metricsPollerExecutor)
                 .monitorValue(this, KubeOpportunisticResourceProvider::currentOpportunisticCpuCount);
 
-        ApiClient apiClient = Config.fromUrl(configuration.getKubeApiServerUrl());
-        apiClient.getHttpClient().setReadTimeout(0, TimeUnit.SECONDS); // infinite timeout for watch calls
-        this.api = new CustomObjectsApi(apiClient);
+        ApiClient apiClient = createApiClient(configuration.getKubeApiServerUrl(), CLIENT_METRICS_PREFIX,
+                titusRuntime, 0L);
+        api = new CustomObjectsApi(apiClient);
 
-        AtomicLong nextThreadNum = new AtomicLong(0);
-        informerFactory = new SharedInformerFactory(apiClient, Executors.newCachedThreadPool(runnable -> {
-            Thread thread = new Thread(runnable, KubeOpportunisticResourceProvider.class.getSimpleName() + "-" + nextThreadNum.getAndIncrement());
-            thread.setDaemon(true);
-            return thread;
-        }));
+        informerFactory = createSharedInformerFactory(
+                KubeOpportunisticResourceProvider.class.getSimpleName() + "-",
+                apiClient
+        );
         // TODO(fabio): enhance the kube client to support custom JSON deserialization options
         informer = informerFactory.sharedIndexInformerFor(
                 this::listOpportunisticResourcesCall,
                 V1OpportunisticResource.class,
                 V1OpportunisticResourceList.class,
-                configuration.getKubeOpportunisticRefreshIntervalMs()
+                refreshIntervalMs
         );
 
         // TODO(fabio): metrics on available opportunistic resources
