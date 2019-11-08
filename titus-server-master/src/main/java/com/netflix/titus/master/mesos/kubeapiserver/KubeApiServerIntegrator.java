@@ -177,7 +177,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         v3JobOperations = injector.getInstance(V3JobOperations.class);
 
         ApiClient informerApiClient = createApiClient(mesosConfiguration.getKubeApiServerUrl(), CLIENT_METRICS_PREFIX,
-                titusRuntime, mesosConfiguration.getKubeApiServerIntegratorRefreshIntervalMs());
+                titusRuntime, 0L);
         CoreV1Api informerApi = new CoreV1Api(informerApiClient);
 
         sharedInformerFactory = createSharedInformerFactory(

@@ -96,7 +96,7 @@ public class KubeOpportunisticResourceProvider implements OpportunisticCpuAvaila
                 .monitorValue(this, KubeOpportunisticResourceProvider::currentOpportunisticCpuCount);
 
         ApiClient apiClient = createApiClient(configuration.getKubeApiServerUrl(), CLIENT_METRICS_PREFIX,
-                titusRuntime, refreshIntervalMs);
+                titusRuntime, 0L);
         api = new CustomObjectsApi(apiClient);
 
         informerFactory = createSharedInformerFactory(
