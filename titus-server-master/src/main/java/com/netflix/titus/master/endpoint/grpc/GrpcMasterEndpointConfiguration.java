@@ -43,6 +43,9 @@ public interface GrpcMasterEndpointConfiguration {
     @DefaultValue("false")
     boolean isJobSizeValidationEnabled();
 
+    @DefaultValue("true")
+    boolean isAdmissionControllerEnabled();
+
     /**
      * Max number of threads used to handle expensive server streaming calls. 2 threads per available CPU is usually a
      * good start, tweak as necessary.
