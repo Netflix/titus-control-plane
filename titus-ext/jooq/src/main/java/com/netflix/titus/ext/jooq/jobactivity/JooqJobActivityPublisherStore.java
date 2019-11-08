@@ -82,7 +82,7 @@ public class JooqJobActivityPublisherStore implements JobActivityPublisherStore 
     public JooqJobActivityPublisherStore(DSLContext dslContext, TitusRuntime runtime, LogStorageInfo<Task> logStorageInfo, boolean createIfNotExist) {
         this.logStorageInfo = logStorageInfo;
         this.dslContext = dslContext;
-        this.databaseMetrics = new DatabaseMetrics(runtime.getRegistry(), JOOQ_METRICS_DATABASE_NAME);
+        this.databaseMetrics = new DatabaseMetrics(runtime.getRegistry(), "titus", JOOQ_METRICS_DATABASE_NAME);
 
         if (createIfNotExist) {
             createSchemaIfNotExist();
@@ -115,7 +115,7 @@ public class JooqJobActivityPublisherStore implements JobActivityPublisherStore 
                 .select(max(ACTIVITY_QUEUE.QUEUE_INDEX))
                 .from(ACTIVITY_QUEUE)
                 .fetchOne();
-        databaseMetrics.registerSelectLatency(startTimeMs, Collections.emptyList());
+        databaseMetrics.registerSelectLatency(startTimeMs, ACTIVITY_QUEUE.getName(), Collections.emptyList());
 
         // No record is present, start index at 0
         if (null == record.value1()) {
@@ -161,7 +161,7 @@ public class JooqJobActivityPublisherStore implements JobActivityPublisherStore 
                             (short) recordType.ordinal(),
                             serializedRecord)
                     .execute();
-            databaseMetrics.registerInsertLatency(startTimeMs, 1, Collections.emptyList());
+            databaseMetrics.registerInsertLatency(startTimeMs, 1, ACTIVITY_QUEUE.getName(), Collections.emptyList());
             return numInserts;
         }, dslContext)
                 .onErrorMap(e -> JobActivityStoreException.jobActivityUpdateRecordException(recordId, e))
@@ -176,7 +176,7 @@ public class JooqJobActivityPublisherStore implements JobActivityPublisherStore 
                     .selectFrom(ACTIVITY_QUEUE)
                     .orderBy(ACTIVITY_QUEUE.QUEUE_INDEX)
                     .fetchInto(JobActivityPublisherRecord.class);
-            databaseMetrics.registerScanLatency(startTimeMs, Collections.emptyList());
+            databaseMetrics.registerScanLatency(startTimeMs, ACTIVITY_QUEUE.getName(), Collections.emptyList());
             return records;
         }, dslContext)
                 .flatMapIterable(jobActivityPublisherRecords -> jobActivityPublisherRecords);

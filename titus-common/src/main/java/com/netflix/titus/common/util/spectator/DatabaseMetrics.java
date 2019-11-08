@@ -33,51 +33,88 @@ import com.netflix.spectator.api.Tag;
  */
 public class DatabaseMetrics {
 
-    private static final String ROOT_NAME = "titus.jooq.";
+    private static final String ROOT_NAME = ".jooq.";
     private static final String OPERATION_LATENCY = "latency";
+    private static final String OPERATION_ERROR = "error";
 
     private static final String RECORD_OP_TAG = "operation";
     private static final String RECORD_COUNT_TAG = "count";
+    private static final String RECORD_TABLE_TAG = "table";
+    private static final String RECORD_ERROR_CLASS = "class";
 
     private final Id operationLatency;
+    private final Id errorCounter;
 
     private enum Operations {
         INSERT,
         SELECT,
         SCAN,
+        DELETE,
     }
 
     private final Registry registry;
 
-    public DatabaseMetrics(Registry registry, String databaseName) {
+    public DatabaseMetrics(Registry registry, String metricsNamespace, String databaseName) {
         List<Tag> commonTags = Collections.emptyList();
 
         this.registry = registry;
 
-        this.operationLatency = registry.createId(ROOT_NAME + databaseName + "." + OPERATION_LATENCY, commonTags);
+        String metricsRoot = metricsNamespace + ROOT_NAME;
+        this.operationLatency = registry.createId(metricsRoot + databaseName + "." + OPERATION_LATENCY, commonTags);
+        this.errorCounter = registry.createId(metricsRoot + databaseName + "." + OPERATION_ERROR, commonTags);
     }
 
-    public void registerInsertLatency(long startTimeMs, int numRecordsInserted, List<Tag> additionalTags) {
+    public void registerInsertLatency(long startTimeMs, int numRecordsInserted, String tableName, List<Tag> additionalTags) {
         List<Tag> tags = new ArrayList<>();
         tags.add(new BasicTag(RECORD_COUNT_TAG, Integer.toString(numRecordsInserted)));
 
-        registerLatency(Operations.INSERT, Stream.concat(tags.stream(),
+        registerLatency(Operations.INSERT, tableName, Stream.concat(tags.stream(),
                 additionalTags.stream()).collect(Collectors.toList()),
                 System.currentTimeMillis() - startTimeMs);
     }
 
-    public void registerScanLatency(long startTimeMs, List<Tag> additionalTags) {
-        registerLatency(Operations.SCAN, additionalTags, System.currentTimeMillis() - startTimeMs);
+    public void registerScanLatency(long startTimeMs, String tableName, List<Tag> additionalTags) {
+        registerLatency(Operations.SCAN, tableName, additionalTags, System.currentTimeMillis() - startTimeMs);
     }
 
-    public void registerSelectLatency(long startTimeMs, List<Tag> additionalTags) {
-        registerLatency(Operations.SELECT, additionalTags, System.currentTimeMillis() - startTimeMs);
+    public void registerSelectLatency(long startTimeMs, String tableName, List<Tag> additionalTags) {
+        registerLatency(Operations.SELECT, tableName, additionalTags, System.currentTimeMillis() - startTimeMs);
     }
 
-    private void registerLatency(Operations op, List<Tag> additionalTags, long latencyMs) {
+    public void registerDeleteLatency(long startTimeMs, int numRecordsDeleted, String tableName, List<Tag> additionalTags) {
+        List<Tag> tags = new ArrayList<>();
+        tags.add(new BasicTag(RECORD_COUNT_TAG, Integer.toString(numRecordsDeleted)));
+
+        registerLatency(Operations.DELETE, tableName, Stream.concat(tags.stream(),
+                additionalTags.stream()).collect(Collectors.toList()),
+                System.currentTimeMillis() - startTimeMs);
+    }
+
+    public void registerInsertError(String tableName, Throwable throwable, Iterable<Tag> additionalTags) {
+        registerError(Operations.INSERT, tableName, throwable, additionalTags);
+    }
+
+    public void registerSelectError(String tableName, Throwable throwable, Iterable<Tag> additionalTags) {
+        registerError(Operations.SELECT, tableName, throwable, additionalTags);
+    }
+
+    public void registerDeleteError(String tableName, Throwable throwable, Iterable<Tag> additionalTags) {
+        registerError(Operations.DELETE, tableName, throwable, additionalTags);
+    }
+
+    private void registerLatency(Operations op, String tableName, List<Tag> additionalTags, long latencyMs) {
         Id delayId = operationLatency
+                .withTags(RECORD_TABLE_TAG, tableName)
                 .withTag(RECORD_OP_TAG, op.name())
                 .withTags(additionalTags);
         registry.timer(delayId).record(latencyMs, TimeUnit.MILLISECONDS);
+    }
+
+    private void registerError(Operations op, String tableName, Throwable throwable, Iterable<Tag> additionalTags) {
+        registry.counter(errorCounter
+                .withTag(RECORD_OP_TAG, op.name())
+                .withTag(RECORD_TABLE_TAG, tableName)
+                .withTags(RECORD_ERROR_CLASS, throwable.getClass().getSimpleName())
+                .withTags(additionalTags));
     }
 }
