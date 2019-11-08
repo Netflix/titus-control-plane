@@ -21,7 +21,7 @@ import java.util.function.Supplier;
 import com.netflix.archaius.api.Config;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.loadshedding.tokenbucket.ArchaiusTokenBucketAdmissionController;
-import com.netflix.titus.common.util.loadshedding.tokenbucket.TokenBucketAdmissionConfigurationParser;
+import com.netflix.titus.common.util.loadshedding.tokenbucket.ArchaiusTokenBucketAdmissionConfigurationParser;
 
 /**
  * {@link AdmissionController} factory.
@@ -37,6 +37,6 @@ public final class AdmissionControllers {
     }
 
     public static AdmissionController tokenBucketsFromArchaius(Config config, TitusRuntime titusRuntime) {
-        return new ArchaiusTokenBucketAdmissionController(new TokenBucketAdmissionConfigurationParser(config), titusRuntime);
+        return new ArchaiusTokenBucketAdmissionController(new ArchaiusTokenBucketAdmissionConfigurationParser(config), titusRuntime);
     }
 }

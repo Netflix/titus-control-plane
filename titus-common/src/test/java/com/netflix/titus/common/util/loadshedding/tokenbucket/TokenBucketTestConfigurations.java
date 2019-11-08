@@ -24,7 +24,7 @@ class TokenBucketTestConfigurations {
 
     static Map<String, String> NOT_SHARED_PROPERTIES = CollectionsExt.asMap(
             "notShared.order", "10",
-            "notShared.shared", "false",
+            "notShared.sharedByCallers", "false",
             "notShared.callerPattern", "myUser.*",
             "notShared.endpointPattern", ".*",
             "notShared.capacity", "10",
@@ -37,32 +37,42 @@ class TokenBucketTestConfigurations {
             false,
             "myUser.*",
             ".*",
-            10,
-            2
+            5,
+            1
     );
 
     static Map<String, String> NOT_SHARED_BAD_PROPERTIES = CollectionsExt.asMap("notShared.order", "abc");
 
-    static Map<String, String> DEFAULT_SHARED_PROPERTIES = CollectionsExt.asMap(
-            "default.order", "100",
-            "default.shared", "true",
-            "default.callerPattern", ".*",
-            "default.endpointPattern", ".*",
-            "default.capacity", "100",
-            "default.refillRateInSec", "20"
+    static Map<String, String> SHARED_ANY_PROPERTIES = CollectionsExt.asMap(
+            "sharedAny.order", "100",
+            "sharedAny.sharedByCallers", "true",
+            "sharedAny.callerPattern", ".*",
+            "sharedAny.endpointPattern", ".*",
+            "sharedAny.capacity", "100",
+            "sharedAny.refillRateInSec", "20"
     );
 
-    static TokenBucketConfiguration DEFAULT_SHARED_CONFIGURATION = new TokenBucketConfiguration(
-            "default",
+    static TokenBucketConfiguration SHARED_ANY_CONFIGURATION = new TokenBucketConfiguration(
+            "sharedAny",
             100,
             true,
             ".*",
             ".*",
-            100,
-            20
+            10,
+            2
     );
 
-    static Map<String, String> DEFAULT_SHARED_BAD_PROPERTIES = CollectionsExt.asMap(
-            "default.order", "100"
+    static TokenBucketConfiguration SHARED_GETTERS_CONFIGURATION = new TokenBucketConfiguration(
+            "sharedGetters",
+            90,
+            true,
+            ".*",
+            "get.*",
+            10,
+            2
+    );
+
+    static Map<String, String> SHARED_ANY_BAD_PROPERTIES = CollectionsExt.asMap(
+            "sharedAny.order", "100"
     );
 }

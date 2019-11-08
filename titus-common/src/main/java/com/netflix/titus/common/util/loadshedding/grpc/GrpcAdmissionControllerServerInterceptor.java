@@ -33,6 +33,9 @@ public class GrpcAdmissionControllerServerInterceptor implements ServerIntercept
 
     private static final Logger logger = LoggerFactory.getLogger(GrpcAdmissionControllerServerInterceptor.class);
 
+    private static final ServerCall.Listener<Object> NO_OP_LISTENER = new ServerCall.Listener<Object>() {
+    };
+
     private final AdmissionController admissionController;
     private final Supplier<String> callerIdResolver;
 
@@ -63,7 +66,6 @@ public class GrpcAdmissionControllerServerInterceptor implements ServerIntercept
         }
 
         call.close(Status.RESOURCE_EXHAUSTED.withDescription(result.getReasonMessage()), new Metadata());
-        return new ServerCall.Listener<ReqT>() {
-        };
+        return (ServerCall.Listener<ReqT>) NO_OP_LISTENER;
     }
 }

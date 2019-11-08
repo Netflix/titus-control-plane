@@ -34,7 +34,7 @@ public class TokenBucketConfiguration {
     /**
      * If true, token bucket is shared by all matching callers. If false, a new bucket is created for each caller name.
      */
-    private final boolean shared;
+    private final boolean sharedByCallers;
 
     /**
      * Caller pattern.
@@ -61,14 +61,14 @@ public class TokenBucketConfiguration {
 
     public TokenBucketConfiguration(String name,
                                     int order,
-                                    boolean shared,
+                                    boolean sharedByCallers,
                                     String callerPatternString,
                                     String endpointPatternString,
                                     int capacity,
                                     int refillRateInSec) {
         this.name = name;
         this.order = order;
-        this.shared = shared;
+        this.sharedByCallers = sharedByCallers;
         this.callerPatternString = callerPatternString;
         this.endpointPatternString = endpointPatternString;
         this.capacity = capacity;
@@ -86,8 +86,8 @@ public class TokenBucketConfiguration {
         return order;
     }
 
-    public boolean isShared() {
-        return shared;
+    public boolean isSharedByCallers() {
+        return sharedByCallers;
     }
 
     public String getCallerPatternString() {
@@ -124,7 +124,7 @@ public class TokenBucketConfiguration {
         }
         TokenBucketConfiguration that = (TokenBucketConfiguration) o;
         return order == that.order &&
-                shared == that.shared &&
+                sharedByCallers == that.sharedByCallers &&
                 capacity == that.capacity &&
                 refillRateInSec == that.refillRateInSec &&
                 Objects.equals(name, that.name) &&
@@ -134,7 +134,7 @@ public class TokenBucketConfiguration {
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, order, shared, callerPatternString, endpointPatternString, capacity, refillRateInSec, callerPattern, endpointPattern);
+        return Objects.hash(name, order, sharedByCallers, callerPatternString, endpointPatternString, capacity, refillRateInSec, callerPattern, endpointPattern);
     }
 
     @Override
@@ -142,7 +142,7 @@ public class TokenBucketConfiguration {
         return "TokenBucketConfiguration{" +
                 "name='" + name + '\'' +
                 ", order=" + order +
-                ", shared=" + shared +
+                ", sharedByCallers=" + sharedByCallers +
                 ", callerPatternString='" + callerPatternString + '\'' +
                 ", endpointPatternString='" + endpointPatternString + '\'' +
                 ", capacity=" + capacity +

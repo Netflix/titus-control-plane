@@ -25,12 +25,12 @@ import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class TokenBucketAdmissionConfigurationParserTest {
+public class ArchaiusTokenBucketAdmissionConfigurationParserTest {
 
     @Test
     public void testNoConfiguration() {
         MapConfig config = new MapConfig(new HashMap<>());
-        TokenBucketAdmissionConfigurationParser parser = new TokenBucketAdmissionConfigurationParser(config);
+        ArchaiusTokenBucketAdmissionConfigurationParser parser = new ArchaiusTokenBucketAdmissionConfigurationParser(config);
         assertThat(parser.parse()).isEmpty();
     }
 
@@ -38,23 +38,23 @@ public class TokenBucketAdmissionConfigurationParserTest {
     public void testValidConfiguration() {
         MapConfig config = new MapConfig(CollectionsExt.merge(
                 TokenBucketTestConfigurations.NOT_SHARED_PROPERTIES,
-                TokenBucketTestConfigurations.DEFAULT_SHARED_PROPERTIES
+                TokenBucketTestConfigurations.SHARED_ANY_PROPERTIES
         ));
-        TokenBucketAdmissionConfigurationParser parser = new TokenBucketAdmissionConfigurationParser(config);
+        ArchaiusTokenBucketAdmissionConfigurationParser parser = new ArchaiusTokenBucketAdmissionConfigurationParser(config);
 
         List<TokenBucketConfiguration> configuration = parser.parse();
         assertThat(configuration).hasSize(2);
         assertThat(configuration.get(0)).isEqualTo(TokenBucketTestConfigurations.NOT_SHARED_CONFIGURATION);
-        assertThat(configuration.get(1)).isEqualTo(TokenBucketTestConfigurations.DEFAULT_SHARED_CONFIGURATION);
+        assertThat(configuration.get(1)).isEqualTo(TokenBucketTestConfigurations.SHARED_ANY_CONFIGURATION);
     }
 
     @Test
     public void testPartiallyInvalid() {
         MapConfig config = new MapConfig(CollectionsExt.merge(
                 TokenBucketTestConfigurations.NOT_SHARED_BAD_PROPERTIES,
-                TokenBucketTestConfigurations.DEFAULT_SHARED_PROPERTIES
+                TokenBucketTestConfigurations.SHARED_ANY_PROPERTIES
         ));
-        TokenBucketAdmissionConfigurationParser parser = new TokenBucketAdmissionConfigurationParser(config);
+        ArchaiusTokenBucketAdmissionConfigurationParser parser = new ArchaiusTokenBucketAdmissionConfigurationParser(config);
 
         List<TokenBucketConfiguration> configuration = parser.parse();
         assertThat(configuration).hasSize(1);
@@ -65,9 +65,9 @@ public class TokenBucketAdmissionConfigurationParserTest {
     public void testAllInvalid() {
         MapConfig config = new MapConfig(CollectionsExt.merge(
                 TokenBucketTestConfigurations.NOT_SHARED_BAD_PROPERTIES,
-                TokenBucketTestConfigurations.DEFAULT_SHARED_BAD_PROPERTIES
+                TokenBucketTestConfigurations.SHARED_ANY_BAD_PROPERTIES
         ));
-        TokenBucketAdmissionConfigurationParser parser = new TokenBucketAdmissionConfigurationParser(config);
+        ArchaiusTokenBucketAdmissionConfigurationParser parser = new ArchaiusTokenBucketAdmissionConfigurationParser(config);
         assertThat(parser.parse()).isEmpty();
     }
 }

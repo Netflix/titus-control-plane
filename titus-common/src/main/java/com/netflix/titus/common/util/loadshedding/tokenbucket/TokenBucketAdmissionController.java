@@ -29,6 +29,7 @@ import com.netflix.titus.common.util.limiter.tokenbucket.TokenBucket;
 import com.netflix.titus.common.util.loadshedding.AdmissionController;
 import com.netflix.titus.common.util.loadshedding.AdmissionControllerRequest;
 import com.netflix.titus.common.util.loadshedding.AdmissionControllerResponse;
+import com.netflix.titus.common.util.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,6 +37,35 @@ import org.slf4j.LoggerFactory;
  * Admission controller with multiple token buckets. A token bucket is selected by evaluating matching criteria in
  * declaration order until first match is found. The selected bucket is tried, and either success or failure is
  * returned to the caller.
+ * <p/>
+ * <h1>Example: shared caller bucket</h1>
+ * slowMethods.sharedByCallers=true<br/>
+ * slowMethods.callerPattern=.*<br/>
+ * slowMethods.endpointPattern=create.*<br/>
+ * ...</br>
+ * <p/>
+ * fastMethods.sharedByCallers=true<br/>
+ * fastMethods.callerPattern=.*<br/>
+ * fastMethods.endpointPattern=get.*<br/>
+ * ...</br>
+ * <p/>
+ * Caller Alice and Bob making a call to createJob method will share a single bucket with id (.*, create.*), and
+ * a single bucket for methods getJob/getTask/etc with id (.*, get.*).
+ * <p/>
+ * <h1>Example: per caller bucket</h1>
+ * slowMethods.sharedByCallers=false<br/>
+ * slowMethods.callerPattern=.*<br/>
+ * slowMethods.endpointPattern=create.*<br/>
+ * ...</br>
+ * <p/>
+ * fastMethods.sharedByCallers=false<br/>
+ * fastMethods.callerPattern=.*<br/>
+ * fastMethods.endpointPattern=get.*<br/>
+ * ...</br>
+ * <p/>
+ * Caller Alice and Bob making a call to createJob method will have own buckets with ids (Alice, create.*) and
+ * (Bob, create.*). Similarly, for methods getJob/getTask/etc there will be two buckets (Alice, get.*) and
+ * (Bob, get.*) respectively.
  */
 public class TokenBucketAdmissionController implements AdmissionController {
 
@@ -50,7 +80,11 @@ public class TokenBucketAdmissionController implements AdmissionController {
     private static final Duration CACHE_ITEM_TIMEOUT = Duration.ofSeconds(60);
 
     private final List<TokenBucketConfiguration> tokenBucketConfigurations;
-    private final Cache<String, TokenBucketInstance> bucketsById;
+
+    /**
+     * Bucket id consists of a caller id (or caller pattern), and endpoint pattern.
+     */
+    private final Cache<Pair<String, String>, TokenBucketInstance> bucketsById;
 
     public TokenBucketAdmissionController(List<TokenBucketConfiguration> tokenBucketConfigurations,
                                           TitusRuntime titusRuntime) {
@@ -75,11 +109,13 @@ public class TokenBucketAdmissionController implements AdmissionController {
                 .findFirst()
                 .map(tokenBucketConfiguration -> {
                     // If shared, use pattern name as key, otherwise use caller id
-                    String id = tokenBucketConfiguration.isShared()
+                    String effectiveCallerId = tokenBucketConfiguration.isSharedByCallers()
                             ? tokenBucketConfiguration.getCallerPatternString()
                             : request.getCallerId();
 
-                    return bucketsById.get(id, i -> new TokenBucketInstance(tokenBucketConfiguration));
+                    Pair<String, String> bucketId = Pair.of(effectiveCallerId, tokenBucketConfiguration.getEndpointPatternString());
+
+                    return bucketsById.get(bucketId, i -> new TokenBucketInstance(tokenBucketConfiguration));
                 });
     }
 

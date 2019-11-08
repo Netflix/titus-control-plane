@@ -18,26 +18,29 @@ package com.netflix.titus.common.util.loadshedding;
 
 import java.util.function.Supplier;
 
+/**
+ * {@link CircuitBreakerAdmissionController} short circuits the admission process if 'enabled' returns false.
+ */
 public class CircuitBreakerAdmissionController implements AdmissionController {
 
-    private static final AdmissionControllerResponse OK_DISABLED = AdmissionControllerResponse.newBuilder()
+    private static final AdmissionControllerResponse OK_FROM_CIRCUIT_BREAKER = AdmissionControllerResponse.newBuilder()
             .withAllowed(true)
             .withReasonMessage("Enforced by circuit breaker")
             .build();
 
     private final AdmissionController delegate;
-    private final Supplier<Boolean> condition;
+    private final Supplier<Boolean> enabled;
 
-    public CircuitBreakerAdmissionController(AdmissionController delegate, Supplier<Boolean> condition) {
+    public CircuitBreakerAdmissionController(AdmissionController delegate, Supplier<Boolean> enabled) {
         this.delegate = delegate;
-        this.condition = condition;
+        this.enabled = enabled;
     }
 
     @Override
     public AdmissionControllerResponse apply(AdmissionControllerRequest request) {
-        if (condition.get()) {
+        if (enabled.get()) {
             return delegate.apply(request);
         }
-        return OK_DISABLED;
+        return OK_FROM_CIRCUIT_BREAKER;
     }
 }

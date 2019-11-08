@@ -16,6 +16,7 @@
 
 package com.netflix.titus.common.util.loadshedding.tokenbucket;
 
+import java.util.Arrays;
 import java.util.Collections;
 
 import com.netflix.titus.common.runtime.TitusRuntime;
@@ -24,8 +25,9 @@ import com.netflix.titus.common.util.loadshedding.AdmissionControllerRequest;
 import com.netflix.titus.common.util.loadshedding.AdmissionControllerResponse;
 import org.junit.Test;
 
-import static com.netflix.titus.common.util.loadshedding.tokenbucket.TokenBucketTestConfigurations.DEFAULT_SHARED_CONFIGURATION;
 import static com.netflix.titus.common.util.loadshedding.tokenbucket.TokenBucketTestConfigurations.NOT_SHARED_CONFIGURATION;
+import static com.netflix.titus.common.util.loadshedding.tokenbucket.TokenBucketTestConfigurations.SHARED_ANY_CONFIGURATION;
+import static com.netflix.titus.common.util.loadshedding.tokenbucket.TokenBucketTestConfigurations.SHARED_GETTERS_CONFIGURATION;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class TokenBucketAdmissionControllerTest {
@@ -35,7 +37,7 @@ public class TokenBucketAdmissionControllerTest {
     @Test
     public void testSharedBucket() {
         TokenBucketAdmissionController controller = new TokenBucketAdmissionController(
-                Collections.singletonList(DEFAULT_SHARED_CONFIGURATION),
+                Collections.singletonList(SHARED_ANY_CONFIGURATION),
                 titusRuntime
         );
 
@@ -45,7 +47,7 @@ public class TokenBucketAdmissionControllerTest {
                 .build();
 
         // We assume the loop below will complete in a sec so we account for single refill only.
-        int limit = DEFAULT_SHARED_CONFIGURATION.getCapacity() + DEFAULT_SHARED_CONFIGURATION.getRefillRateInSec() + 1;
+        int limit = SHARED_ANY_CONFIGURATION.getCapacity() + SHARED_ANY_CONFIGURATION.getRefillRateInSec() + 1;
 
         int stoppedAt = 0;
         while (stoppedAt < limit) {
@@ -56,7 +58,7 @@ public class TokenBucketAdmissionControllerTest {
             stoppedAt++;
         }
 
-        assertThat(stoppedAt).isGreaterThanOrEqualTo(DEFAULT_SHARED_CONFIGURATION.getCapacity());
+        assertThat(stoppedAt).isGreaterThanOrEqualTo(SHARED_ANY_CONFIGURATION.getCapacity());
         assertThat(stoppedAt).isLessThan(limit);
     }
 
@@ -93,6 +95,30 @@ public class TokenBucketAdmissionControllerTest {
 
         assertThat(stoppedAt).isGreaterThanOrEqualTo(NOT_SHARED_CONFIGURATION.getCapacity());
         assertThat(stoppedAt).isLessThan(limit);
+    }
+
+    @Test
+    public void testOverlappingCallerIdButDifferentEndpointBuckets() {
+        TokenBucketAdmissionController controller = new TokenBucketAdmissionController(
+                Arrays.asList(SHARED_GETTERS_CONFIGURATION, SHARED_ANY_CONFIGURATION),
+                titusRuntime
+        );
+
+        AdmissionControllerRequest createRequest = AdmissionControllerRequest.newBuilder()
+                .withCallerId("myUser")
+                .withEndpointName("createX")
+                .build();
+
+        AdmissionControllerRequest getRequest = AdmissionControllerRequest.newBuilder()
+                .withCallerId("myUser")
+                .withEndpointName("getX")
+                .build();
+
+        AdmissionControllerResponse createResponse = controller.apply(createRequest);
+        assertThat(createResponse.getReasonMessage()).contains(SHARED_ANY_CONFIGURATION.getName());
+
+        AdmissionControllerResponse getResponse = controller.apply(getRequest);
+        assertThat(getResponse.getReasonMessage()).contains(SHARED_GETTERS_CONFIGURATION.getName());
     }
 
     @Test

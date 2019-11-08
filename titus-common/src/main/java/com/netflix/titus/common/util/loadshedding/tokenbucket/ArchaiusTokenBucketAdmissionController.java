@@ -63,7 +63,7 @@ public class ArchaiusTokenBucketAdmissionController implements AdmissionControll
             .withReasonMessage("Admission controller configuration not found")
             .build();
 
-    private final TokenBucketAdmissionConfigurationParser configurationParser;
+    private final ArchaiusTokenBucketAdmissionConfigurationParser configurationParser;
     private final Function<List<TokenBucketConfiguration>, AdmissionController> delegateFactory;
 
     private final ScheduleReference ref;
@@ -71,7 +71,7 @@ public class ArchaiusTokenBucketAdmissionController implements AdmissionControll
     private volatile List<TokenBucketConfiguration> activeConfiguration = Collections.emptyList();
     private volatile AdmissionController delegate = any -> ALL_ALLOWED;
 
-    public ArchaiusTokenBucketAdmissionController(TokenBucketAdmissionConfigurationParser configurationParser,
+    public ArchaiusTokenBucketAdmissionController(ArchaiusTokenBucketAdmissionConfigurationParser configurationParser,
                                                   TitusRuntime titusRuntime) {
         this(configurationParser,
                 tokenBucketConfigurations -> new TokenBucketAdmissionController(tokenBucketConfigurations, titusRuntime),
@@ -81,7 +81,7 @@ public class ArchaiusTokenBucketAdmissionController implements AdmissionControll
     }
 
     @VisibleForTesting
-    ArchaiusTokenBucketAdmissionController(TokenBucketAdmissionConfigurationParser configurationParser,
+    ArchaiusTokenBucketAdmissionController(ArchaiusTokenBucketAdmissionConfigurationParser configurationParser,
                                            Function<List<TokenBucketConfiguration>, AdmissionController> delegateFactory,
                                            ScheduleDescriptor scheduleDescriptor,
                                            TitusRuntime titusRuntime) {
@@ -103,7 +103,7 @@ public class ArchaiusTokenBucketAdmissionController implements AdmissionControll
 
     private void reload(ExecutionContext context) {
         List<TokenBucketConfiguration> current = configurationParser.parse();
-        if (current != activeConfiguration) {
+        if (!current.equals(activeConfiguration)) {
             this.delegate = delegateFactory.apply(current);
             this.activeConfiguration = current;
 

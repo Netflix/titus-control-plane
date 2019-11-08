@@ -38,14 +38,14 @@ import org.slf4j.LoggerFactory;
  * default.capacity=100
  * default.refillRateInSec=20
  */
-public class TokenBucketAdmissionConfigurationParser {
+public class ArchaiusTokenBucketAdmissionConfigurationParser {
 
-    private static final Logger logger = LoggerFactory.getLogger(TokenBucketAdmissionConfigurationParser.class);
+    private static final Logger logger = LoggerFactory.getLogger(ArchaiusTokenBucketAdmissionConfigurationParser.class);
 
     private final Config config;
     private volatile List<TokenBucketConfiguration> bucketConfigurations = Collections.emptyList();
 
-    public TokenBucketAdmissionConfigurationParser(Config config) {
+    public ArchaiusTokenBucketAdmissionConfigurationParser(Config config) {
         this.config = config;
     }
 
@@ -71,7 +71,7 @@ public class TokenBucketAdmissionConfigurationParser {
                 currentBucketConfigurations.add(new TokenBucketConfiguration(
                         name,
                         Integer.parseInt(bucketConfiguration.get("order")),
-                        Boolean.parseBoolean(bucketConfiguration.get("shared")),
+                        Boolean.parseBoolean(bucketConfiguration.get("sharedByCallers")),
                         Preconditions.checkNotNull(bucketConfiguration.get("callerPattern"), "Caller pattern is null"),
                         Preconditions.checkNotNull(bucketConfiguration.get("endpointPattern"), "Endpoint pattern is null"),
                         Integer.parseInt(bucketConfiguration.get("capacity")),

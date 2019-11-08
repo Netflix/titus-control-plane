@@ -20,8 +20,9 @@ import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementSer
 import com.netflix.titus.grpc.protogen.Page;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.master.integration.BaseIntegrationTest;
+import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
-import com.netflix.titus.testkit.junit.master.TitusStackResource;
+import com.netflix.titus.testkit.junit.master.TitusMasterResource;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import org.junit.Before;
@@ -30,7 +31,7 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
 import static com.netflix.titus.master.endpoint.MasterEndpointModule.GRPC_ADMISSION_CONTROLLER_CONFIGURATION_PREFIX;
-import static com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCells.basicCell;
+import static com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMasters.basicMaster;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
@@ -38,21 +39,22 @@ import static org.assertj.core.api.Assertions.fail;
 public class JobLoadSheddingTest extends BaseIntegrationTest {
 
     @Rule
-    public final TitusStackResource titusStackResource = new TitusStackResource(basicCell(1)
-            .toMaster(master -> master
-                    .withProperty(GRPC_ADMISSION_CONTROLLER_CONFIGURATION_PREFIX + ".default.order", "1")
-                    .withProperty(GRPC_ADMISSION_CONTROLLER_CONFIGURATION_PREFIX + ".default.shared", "true")
-                    .withProperty(GRPC_ADMISSION_CONTROLLER_CONFIGURATION_PREFIX + ".default.callerPattern", ".*")
-                    .withProperty(GRPC_ADMISSION_CONTROLLER_CONFIGURATION_PREFIX + ".default.endpointPattern", ".*")
-                    .withProperty(GRPC_ADMISSION_CONTROLLER_CONFIGURATION_PREFIX + ".default.capacity", "1")
-                    .withProperty(GRPC_ADMISSION_CONTROLLER_CONFIGURATION_PREFIX + ".default.refillRateInSec", "1")
-            ));
+    public final TitusMasterResource titusMasterResource = new TitusMasterResource(basicMaster(new SimulatedCloud())
+            .toBuilder()
+            .withProperty(GRPC_ADMISSION_CONTROLLER_CONFIGURATION_PREFIX + ".default.order", "1")
+            .withProperty(GRPC_ADMISSION_CONTROLLER_CONFIGURATION_PREFIX + ".default.shared", "true")
+            .withProperty(GRPC_ADMISSION_CONTROLLER_CONFIGURATION_PREFIX + ".default.callerPattern", ".*")
+            .withProperty(GRPC_ADMISSION_CONTROLLER_CONFIGURATION_PREFIX + ".default.endpointPattern", ".*")
+            .withProperty(GRPC_ADMISSION_CONTROLLER_CONFIGURATION_PREFIX + ".default.capacity", "1")
+            .withProperty(GRPC_ADMISSION_CONTROLLER_CONFIGURATION_PREFIX + ".default.refillRateInSec", "1")
+            .build()
+    );
 
     private JobManagementServiceBlockingStub client;
 
     @Before
     public void setUp() throws Exception {
-        client = titusStackResource.getMaster().getV3BlockingGrpcClient();
+        client = titusMasterResource.getMaster().getV3BlockingGrpcClient();
     }
 
     @Test

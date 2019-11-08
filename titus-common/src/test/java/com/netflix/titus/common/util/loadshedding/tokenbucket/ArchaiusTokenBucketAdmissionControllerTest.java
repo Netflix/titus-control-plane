@@ -51,7 +51,7 @@ public class ArchaiusTokenBucketAdmissionControllerTest {
     @Before
     public void setUp() {
         this.controller = new ArchaiusTokenBucketAdmissionController(
-                new TokenBucketAdmissionConfigurationParser(config),
+                new ArchaiusTokenBucketAdmissionConfigurationParser(config),
                 configuration -> currentDelegate = new AdmissionControllerDelegateMock(configuration),
                 TEST_SCHEDULE_DESCRIPTOR,
                 titusRuntime
@@ -66,7 +66,7 @@ public class ArchaiusTokenBucketAdmissionControllerTest {
     @Test
     public void testRefresh() {
         // Single configuration
-        TokenBucketTestConfigurations.DEFAULT_SHARED_PROPERTIES.forEach(config::setProperty);
+        TokenBucketTestConfigurations.SHARED_ANY_PROPERTIES.forEach(config::setProperty);
         await().until(() -> currentDelegate != null);
 
         AdmissionControllerDelegateMock firstDelegate = currentDelegate;
