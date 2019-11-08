@@ -16,6 +16,8 @@
 
 package com.netflix.titus.api.loadbalancer.model;
 
+import java.util.Map;
+
 public class LoadBalancerTargetState {
     private final LoadBalancerTarget loadBalancerTarget;
     private final LoadBalancerTarget.State state;
@@ -63,5 +65,9 @@ public class LoadBalancerTargetState {
         int result = loadBalancerTarget.hashCode();
         result = 31 * result + state.hashCode();
         return result;
+    }
+
+    public static LoadBalancerTargetState from(Map.Entry<LoadBalancerTarget, LoadBalancerTarget.State> entry) {
+        return new LoadBalancerTargetState(entry.getKey(), entry.getValue());
     }
 }

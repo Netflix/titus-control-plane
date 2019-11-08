@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import com.netflix.titus.api.connector.cloud.LoadBalancer;
 import com.netflix.titus.api.connector.cloud.LoadBalancerConnector;
@@ -455,7 +456,12 @@ public class DefaultLoadBalancerServiceTest {
         assertTrue(loadBalancerStore.addOrUpdateLoadBalancer(jobLoadBalancer, JobLoadBalancer.State.Associated)
                 .await(100, TimeUnit.MILLISECONDS));
         assertTrue(service.removeLoadBalancer(jobId, loadBalancerId).await(100, TimeUnit.MILLISECONDS));
-        final JobLoadBalancerState jobLoadBalancerState = loadBalancerStore.getLoadBalancersForJob(jobId).toBlocking().first();
+        List<JobLoadBalancerState> jobLoadBalancers = loadBalancerStore.getAssociations().stream()
+                .filter(association -> jobId.equals(association.getJobId()))
+                .collect(Collectors.toList());
+        assertThat(jobLoadBalancers).isNotEmpty();
+        assertThat(jobLoadBalancers).hasSize(1);
+        JobLoadBalancerState jobLoadBalancerState = jobLoadBalancers.iterator().next();
         assertEquals(loadBalancerId, jobLoadBalancerState.getLoadBalancerId());
         assertEquals(JobLoadBalancer.State.Dissociated, jobLoadBalancerState.getState());
         assertFalse(service.getJobLoadBalancers(jobId).toBlocking().getIterator().hasNext());

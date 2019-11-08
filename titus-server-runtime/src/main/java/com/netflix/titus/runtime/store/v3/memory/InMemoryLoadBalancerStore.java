@@ -16,6 +16,7 @@
 
 package com.netflix.titus.runtime.store.v3.memory;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -25,10 +26,13 @@ import java.util.stream.Collectors;
 
 import com.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import com.netflix.titus.api.loadbalancer.model.JobLoadBalancerState;
+import com.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
+import com.netflix.titus.api.loadbalancer.model.LoadBalancerTargetState;
 import com.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import com.netflix.titus.runtime.loadbalancer.LoadBalancerCursors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
 
@@ -39,13 +43,7 @@ public class InMemoryLoadBalancerStore implements LoadBalancerStore {
     private static Logger logger = LoggerFactory.getLogger(InMemoryLoadBalancerStore.class);
 
     private final ConcurrentMap<JobLoadBalancer, JobLoadBalancer.State> associations = new ConcurrentHashMap<>();
-
-    @Override
-    public Observable<JobLoadBalancerState> getLoadBalancersForJob(String jobId) {
-        return Observable.defer(() -> Observable.from(associations.entrySet())
-                .filter(entry -> entry.getKey().getJobId().equals(jobId))
-                .map(JobLoadBalancerState::from));
-    }
+    private final ConcurrentMap<LoadBalancerTarget, LoadBalancerTarget.State> targets = new ConcurrentHashMap<>();
 
     @Override
     public Observable<JobLoadBalancer> getAssociatedLoadBalancersForJob(String jobId) {
@@ -96,6 +94,23 @@ public class InMemoryLoadBalancerStore implements LoadBalancerStore {
                 .sorted(LoadBalancerCursors.loadBalancerComparator())
                 .skip(offset)
                 .limit(limit)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public Mono<Void> addOrUpdateTarget(LoadBalancerTarget target, LoadBalancerTarget.State state) {
+        return Mono.fromRunnable(() -> targets.put(target, state));
+    }
+
+    @Override
+    public Mono<Void> removeTargets(Collection<LoadBalancerTarget> toRemove) {
+        return Mono.fromRunnable(() -> toRemove.forEach(targets::remove));
+    }
+
+    @Override
+    public List<LoadBalancerTargetState> getTargets() {
+        return targets.entrySet().stream()
+                .map(LoadBalancerTargetState::from)
                 .collect(Collectors.toList());
     }
 }

@@ -25,12 +25,14 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import com.datastax.driver.core.BoundStatement;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
 import com.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
+import com.netflix.titus.api.loadbalancer.model.JobLoadBalancerState;
 import com.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerSanitizerBuilder;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.testkit.junit.category.IntegrationNotParallelizableTest;
@@ -42,7 +44,7 @@ import org.junit.experimental.categories.Category;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 @Category(IntegrationNotParallelizableTest.class)
@@ -123,8 +125,10 @@ public class CassandraLoadBalancerStoreTest {
             assertThat(store.removeLoadBalancer(jobLoadBalancer).await(TIMEOUT_MS, TimeUnit.MILLISECONDS)).isTrue();
         });
 
+        Map<String, List<JobLoadBalancerState>> byJobId = store.getAssociations().stream()
+                .collect(Collectors.groupingBy(JobLoadBalancerState::getJobId));
         testData.forEach((jobLoadBalancer, state) -> {
-            assertThat(store.getLoadBalancersForJob(jobLoadBalancer.getJobId()).toBlocking().getIterator().hasNext()).isFalse();
+            assertThat(byJobId.get(jobLoadBalancer.getJobId())).isNullOrEmpty();
         });
     }
 
@@ -141,13 +145,14 @@ public class CassandraLoadBalancerStoreTest {
             assertThat(store.addOrUpdateLoadBalancer(jobLoadBalancer, JobLoadBalancer.State.Dissociated).await(TIMEOUT_MS, TimeUnit.MILLISECONDS)).isTrue();
         });
 
-        testData.forEach((jobLoadBalancer, state) -> {
-            store.getLoadBalancersForJob(jobLoadBalancer.getJobId()).subscribe(
-                    loadBalancerState -> {
-                        assertThat(testData.containsKey(new JobLoadBalancer(jobLoadBalancer.getJobId(), loadBalancerState.getLoadBalancerId()))).isTrue();
-                        assertThat(loadBalancerState.getState()).isEqualTo(JobLoadBalancer.State.Dissociated);
-                    });
-        });
+        Map<String, List<JobLoadBalancerState>> byJobId = store.getAssociations().stream()
+                .collect(Collectors.groupingBy(JobLoadBalancerState::getJobId));
+        testData.forEach((jobLoadBalancer, state) ->
+                byJobId.get(jobLoadBalancer.getJobId()).forEach(loadBalancerState -> {
+                    assertThat(testData).containsKey(new JobLoadBalancer(jobLoadBalancer.getJobId(), loadBalancerState.getLoadBalancerId()));
+                    assertThat(loadBalancerState.getState()).isEqualTo(JobLoadBalancer.State.Dissociated);
+                })
+        );
     }
 
     public class UpdateThread implements Runnable {
@@ -334,10 +339,12 @@ public class CassandraLoadBalancerStoreTest {
         Set<JobLoadBalancer> listVerificationSet = new HashSet<>(observableVerificationSet);
         Set<String> jobIdSet = getJobIdsFromTestData(testData);
 
+        Map<String, List<JobLoadBalancerState>> byJobId = store.getAssociations().stream()
+                .collect(Collectors.groupingBy(JobLoadBalancerState::getJobId));
         jobIdSet.forEach(jobId -> {
             // Verify we get the correct load balancers in the correct state
-            store.getLoadBalancersForJob(jobId).subscribe(
-                    loadBalancerState -> {
+            byJobId.get(jobId)
+                    .forEach(loadBalancerState -> {
                         // Verify that all of the returned data was in the test data.
                         JobLoadBalancer jobLoadBalancer = loadBalancerState.getJobLoadBalancer();
                         assertThat(jobLoadBalancer.getJobId().equals(jobId)).isTrue();

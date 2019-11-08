@@ -145,6 +145,19 @@ CREATE TABLE "load_balancer_jobs" (
   AND gc_grace_seconds = 21600
   AND speculative_retry = 'NONE';
 
+CREATE TABLE "load_balancer_targets" (
+    load_balancer_id text,
+    ip_address       text,
+    task_id          text,
+    state            text,
+    PRIMARY KEY (load_balancer_id, ip_address)
+) WITH
+  comment ='Load balancer targets managed by this instance of Titus Master'
+  AND compression ={}
+  AND compaction ={'min_threshold': '2', 'class': 'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy'}
+  AND gc_grace_seconds = 21600
+  AND speculative_retry = 'NONE';
+
 // ------------------------------------------------------------------
 // Scheduler schema
 
