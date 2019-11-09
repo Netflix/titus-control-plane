@@ -23,6 +23,8 @@ import com.netflix.archaius.config.MapConfig;
 import com.netflix.titus.common.util.CollectionsExt;
 import org.junit.Test;
 
+import static com.netflix.titus.common.util.loadshedding.tokenbucket.TokenBucketTestConfigurations.SHARED_ANY_CONFIGURATION;
+import static com.netflix.titus.common.util.loadshedding.tokenbucket.TokenBucketTestConfigurations.SHARED_ANY_PROPERTIES;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class ArchaiusTokenBucketAdmissionConfigurationParserTest {
@@ -38,7 +40,7 @@ public class ArchaiusTokenBucketAdmissionConfigurationParserTest {
     public void testValidConfiguration() {
         MapConfig config = new MapConfig(CollectionsExt.merge(
                 TokenBucketTestConfigurations.NOT_SHARED_PROPERTIES,
-                TokenBucketTestConfigurations.SHARED_ANY_PROPERTIES
+                SHARED_ANY_PROPERTIES
         ));
         ArchaiusTokenBucketAdmissionConfigurationParser parser = new ArchaiusTokenBucketAdmissionConfigurationParser(config);
 
@@ -52,13 +54,13 @@ public class ArchaiusTokenBucketAdmissionConfigurationParserTest {
     public void testPartiallyInvalid() {
         MapConfig config = new MapConfig(CollectionsExt.merge(
                 TokenBucketTestConfigurations.NOT_SHARED_BAD_PROPERTIES,
-                TokenBucketTestConfigurations.SHARED_ANY_PROPERTIES
+                SHARED_ANY_PROPERTIES
         ));
         ArchaiusTokenBucketAdmissionConfigurationParser parser = new ArchaiusTokenBucketAdmissionConfigurationParser(config);
 
         List<TokenBucketConfiguration> configuration = parser.parse();
         assertThat(configuration).hasSize(1);
-        assertThat(configuration.get(0).getName()).isEqualTo("default");
+        assertThat(configuration.get(0).getName()).isEqualTo(SHARED_ANY_CONFIGURATION.getName());
     }
 
     @Test

@@ -27,8 +27,8 @@ class TokenBucketTestConfigurations {
             "notShared.sharedByCallers", "false",
             "notShared.callerPattern", "myUser.*",
             "notShared.endpointPattern", ".*",
-            "notShared.capacity", "10",
-            "notShared.refillRateInSec", "2"
+            "notShared.capacity", "5",
+            "notShared.refillRateInSec", "1"
     );
 
     static TokenBucketConfiguration NOT_SHARED_CONFIGURATION = new TokenBucketConfiguration(
@@ -48,8 +48,8 @@ class TokenBucketTestConfigurations {
             "sharedAny.sharedByCallers", "true",
             "sharedAny.callerPattern", ".*",
             "sharedAny.endpointPattern", ".*",
-            "sharedAny.capacity", "100",
-            "sharedAny.refillRateInSec", "20"
+            "sharedAny.capacity", "10",
+            "sharedAny.refillRateInSec", "2"
     );
 
     static TokenBucketConfiguration SHARED_ANY_CONFIGURATION = new TokenBucketConfiguration(
