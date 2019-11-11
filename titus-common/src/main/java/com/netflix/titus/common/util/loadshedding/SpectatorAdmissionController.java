@@ -44,7 +44,9 @@ public class SpectatorAdmissionController implements AdmissionController {
             registry.counter(METRIC_NAME,
                     "callerId", request.getCallerId(),
                     "endpointName", request.getEndpointName(),
-                    "allowed", "" + result.isAllowed()
+                    "allowed", "" + result.isAllowed(),
+                    "decisionPoint", result.getDecisionPoint(),
+                    "equivalenceGroup", result.getEquivalenceGroup()
             ).increment();
 
             return result;

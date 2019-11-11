@@ -61,6 +61,8 @@ public class ArchaiusTokenBucketAdmissionController implements AdmissionControll
     private static final AdmissionControllerResponse ALL_ALLOWED = AdmissionControllerResponse.newBuilder()
             .withAllowed(true)
             .withReasonMessage("Admission controller configuration not found")
+            .withDecisionPoint(ArchaiusTokenBucketAdmissionController.class.getSimpleName())
+            .withEquivalenceGroup("all")
             .build();
 
     private final ArchaiusTokenBucketAdmissionConfigurationParser configurationParser;

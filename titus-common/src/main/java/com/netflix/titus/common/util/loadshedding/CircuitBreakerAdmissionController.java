@@ -26,6 +26,8 @@ public class CircuitBreakerAdmissionController implements AdmissionController {
     private static final AdmissionControllerResponse OK_FROM_CIRCUIT_BREAKER = AdmissionControllerResponse.newBuilder()
             .withAllowed(true)
             .withReasonMessage("Enforced by circuit breaker")
+            .withDecisionPoint(CircuitBreakerAdmissionController.class.getSimpleName())
+            .withEquivalenceGroup("all")
             .build();
 
     private final AdmissionController delegate;

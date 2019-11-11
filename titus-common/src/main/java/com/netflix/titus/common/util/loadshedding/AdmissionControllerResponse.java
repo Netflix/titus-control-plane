@@ -18,14 +18,38 @@ package com.netflix.titus.common.util.loadshedding;
 
 import java.util.Objects;
 
+import com.netflix.titus.common.util.Evaluators;
+
 public class AdmissionControllerResponse {
 
+    /**
+     * Set to true, if request can be executed, and false if it should be discarded.
+     */
     private final boolean allowed;
+
+    /**
+     * Human readable explanation of the result.
+     */
     private final String reasonMessage;
 
-    public AdmissionControllerResponse(boolean allowed, String reasonMessage) {
+    /**
+     * The name of a {@link AdmissionController} making the final decision.
+     */
+    private final String decisionPoint;
+
+    /**
+     * All requests within the equivalence group are regarded as identical, and share the rate limits.
+     */
+    private final String equivalenceGroup;
+
+    public AdmissionControllerResponse(boolean allowed,
+                                       String reasonMessage,
+                                       String decisionPoint,
+                                       String equivalenceGroup) {
         this.allowed = allowed;
-        this.reasonMessage = reasonMessage;
+        this.reasonMessage = Evaluators.getOrDefault(reasonMessage, "");
+        this.decisionPoint = Evaluators.getOrDefault(decisionPoint, "");
+        this.equivalenceGroup = Evaluators.getOrDefault(equivalenceGroup, "");
     }
 
     public boolean isAllowed() {
@@ -34,6 +58,14 @@ public class AdmissionControllerResponse {
 
     public String getReasonMessage() {
         return reasonMessage;
+    }
+
+    public String getDecisionPoint() {
+        return decisionPoint;
+    }
+
+    public String getEquivalenceGroup() {
+        return equivalenceGroup;
     }
 
     @Override
@@ -46,12 +78,14 @@ public class AdmissionControllerResponse {
         }
         AdmissionControllerResponse that = (AdmissionControllerResponse) o;
         return allowed == that.allowed &&
-                Objects.equals(reasonMessage, that.reasonMessage);
+                Objects.equals(reasonMessage, that.reasonMessage) &&
+                Objects.equals(decisionPoint, that.decisionPoint) &&
+                Objects.equals(equivalenceGroup, that.equivalenceGroup);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(allowed, reasonMessage);
+        return Objects.hash(allowed, reasonMessage, decisionPoint, equivalenceGroup);
     }
 
     @Override
@@ -59,7 +93,13 @@ public class AdmissionControllerResponse {
         return "AdmissionControllerResponse{" +
                 "allowed=" + allowed +
                 ", reasonMessage='" + reasonMessage + '\'' +
+                ", decisionPoint='" + decisionPoint + '\'' +
+                ", equivalenceGroup='" + equivalenceGroup + '\'' +
                 '}';
+    }
+
+    public Builder toBuilder() {
+        return newBuilder().withAllowed(allowed).withReasonMessage(reasonMessage).withDecisionPoint(decisionPoint).withEquivalenceGroup(equivalenceGroup);
     }
 
     public static Builder newBuilder() {
@@ -69,6 +109,8 @@ public class AdmissionControllerResponse {
     public static final class Builder {
         private boolean allowed;
         private String reasonMessage;
+        private String decisionPoint;
+        private String equivalenceGroup;
 
         private Builder() {
         }
@@ -83,12 +125,18 @@ public class AdmissionControllerResponse {
             return this;
         }
 
-        public Builder but() {
-            return newBuilder().withAllowed(allowed).withReasonMessage(reasonMessage);
+        public Builder withDecisionPoint(String decisionPoint) {
+            this.decisionPoint = decisionPoint;
+            return this;
+        }
+
+        public Builder withEquivalenceGroup(String equivalenceGroup) {
+            this.equivalenceGroup = equivalenceGroup;
+            return this;
         }
 
         public AdmissionControllerResponse build() {
-            return new AdmissionControllerResponse(allowed, reasonMessage);
+            return new AdmissionControllerResponse(allowed, reasonMessage, decisionPoint, equivalenceGroup);
         }
     }
 }

@@ -115,7 +115,7 @@ public class TokenBucketAdmissionController implements AdmissionController {
 
                     Pair<String, String> bucketId = Pair.of(effectiveCallerId, tokenBucketConfiguration.getEndpointPatternString());
 
-                    return bucketsById.get(bucketId, i -> new TokenBucketInstance(tokenBucketConfiguration));
+                    return bucketsById.get(bucketId, i -> new TokenBucketInstance(effectiveCallerId, tokenBucketConfiguration));
                 });
     }
 
@@ -135,31 +135,37 @@ public class TokenBucketAdmissionController implements AdmissionController {
     }
 
     private AdmissionControllerResponse consume(TokenBucketInstance tokenBucketInstance) {
+        AdmissionControllerResponse.Builder builder = AdmissionControllerResponse.newBuilder();
+
         TokenBucket tokenBucket = tokenBucketInstance.getTokenBucket();
         if (tokenBucket.tryTake()) {
-            return AdmissionControllerResponse.newBuilder()
-                    .withAllowed(true)
+            builder.withAllowed(true)
                     .withReasonMessage(String.format(
                             "Consumed token of: bucketName=%s, remainingTokens=%s",
                             tokenBucketInstance.getConfiguration().getName(),
                             tokenBucket.getNumberOfTokens()
-                    )).build();
+                    ));
+        } else {
+            builder.withAllowed(false)
+                    .withReasonMessage(String.format(
+                            "No more tokens: bucketName=%s, remainingTokens=%s",
+                            tokenBucketInstance.getConfiguration().getName(),
+                            tokenBucket.getNumberOfTokens())
+                    );
         }
-        return AdmissionControllerResponse.newBuilder()
-                .withAllowed(false)
-                .withReasonMessage(String.format(
-                        "No more tokens: bucketName=%s, remainingTokens=%s",
-                        tokenBucketInstance.getConfiguration().getName(),
-                        tokenBucket.getNumberOfTokens()
-                )).build();
+
+        return builder.withDecisionPoint(TokenBucketAdmissionController.class.getSimpleName())
+                .withEquivalenceGroup(tokenBucketInstance.getId())
+                .build();
     }
 
     private static class TokenBucketInstance {
 
         private final TokenBucketConfiguration configuration;
         private final TokenBucket tokenBucket;
+        private final String id;
 
-        private TokenBucketInstance(TokenBucketConfiguration configuration) {
+        private TokenBucketInstance(String effectiveCallerId, TokenBucketConfiguration configuration) {
             this.configuration = configuration;
             this.tokenBucket = Limiters.createFixedIntervalTokenBucket(
                     configuration.getName(),
@@ -169,10 +175,16 @@ public class TokenBucketAdmissionController implements AdmissionController {
                     1,
                     TimeUnit.SECONDS
             );
+
+            this.id = String.format("%s/%s", configuration.getName(), effectiveCallerId);
         }
 
         public TokenBucketConfiguration getConfiguration() {
             return configuration;
+        }
+
+        public String getId() {
+            return id;
         }
 
         public TokenBucket getTokenBucket() {
