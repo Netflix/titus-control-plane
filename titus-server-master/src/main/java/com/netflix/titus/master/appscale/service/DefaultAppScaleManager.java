@@ -46,6 +46,7 @@ import com.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExecutorsExt;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.rx.ObservableExt;
@@ -79,6 +80,7 @@ public class DefaultAppScaleManager implements AppScaleManager {
     private final AppAutoScalingClient appAutoScalingClient;
     private final V3JobOperations v3JobOperations;
     private final AppScaleManagerConfiguration appScaleManagerConfiguration;
+    private TitusRuntime titusRuntime;
 
     private volatile Map<String, AutoScalableTarget> scalableTargets;
     private volatile Subscription reconcileFinishedJobsSub;
@@ -93,10 +95,11 @@ public class DefaultAppScaleManager implements AppScaleManager {
                                   AppAutoScalingClient applicationAutoScalingClient,
                                   V3JobOperations v3JobOperations,
                                   Registry registry,
-                                  AppScaleManagerConfiguration appScaleManagerConfiguration) {
+                                  AppScaleManagerConfiguration appScaleManagerConfiguration,
+                                  TitusRuntime titusRuntime) {
         this(appScalePolicyStore, cloudAlarmClient, applicationAutoScalingClient, v3JobOperations,
                 registry, appScaleManagerConfiguration,
-                ExecutorsExt.namedSingleThreadExecutor("DefaultAppScaleManager"));
+                ExecutorsExt.namedSingleThreadExecutor("DefaultAppScaleManager"), titusRuntime);
     }
 
 
@@ -105,9 +108,10 @@ public class DefaultAppScaleManager implements AppScaleManager {
                                    V3JobOperations v3JobOperations,
                                    Registry registry,
                                    AppScaleManagerConfiguration appScaleManagerConfiguration,
-                                   ExecutorService awsInteractionExecutor) {
+                                   ExecutorService awsInteractionExecutor,
+                                   TitusRuntime titusRuntime) {
         this(appScalePolicyStore, cloudAlarmClient, applicationAutoScalingClient, v3JobOperations,
-                registry, appScaleManagerConfiguration, Schedulers.from(awsInteractionExecutor));
+                registry, appScaleManagerConfiguration, Schedulers.from(awsInteractionExecutor), titusRuntime);
         this.awsInteractionExecutor = awsInteractionExecutor;
     }
 
@@ -117,12 +121,14 @@ public class DefaultAppScaleManager implements AppScaleManager {
                                   V3JobOperations v3JobOperations,
                                   Registry registry,
                                   AppScaleManagerConfiguration appScaleManagerConfiguration,
-                                  Scheduler awsInteractionScheduler) {
+                                  Scheduler awsInteractionScheduler,
+                                  TitusRuntime titusRuntime) {
         this.appScalePolicyStore = appScalePolicyStore;
         this.cloudAlarmClient = cloudAlarmClient;
         this.appAutoScalingClient = applicationAutoScalingClient;
         this.v3JobOperations = v3JobOperations;
         this.appScaleManagerConfiguration = appScaleManagerConfiguration;
+        this.titusRuntime = titusRuntime;
         this.scalableTargets = new ConcurrentHashMap<>();
         this.metrics = new AppScaleManagerMetrics(registry);
         this.appScaleActionsSubject = PublishSubject.<AppScaleAction>create().toSerialized();
@@ -167,31 +173,31 @@ public class DefaultAppScaleManager implements AppScaleManager {
         reconcileAllPendingRequests = Observable.interval(
                 appScaleManagerConfiguration.getReconcileAllPendingAndDeletingRequestsIntervalMins(), TimeUnit.MINUTES,
                 Schedulers.io())
-                .flatMap(ignored -> checkForScalingPolicyActions())
+                .flatMap(ignored -> titusRuntime.persistentStream(checkForScalingPolicyActions()))
                 .subscribe(policy -> logger.info("Reconciliation - policy request processed : {}.", policy.getPolicyId()),
                         e -> logger.error("error in reconciliation (ReconcileAllPendingRequests) stream", e),
                         () -> logger.info("reconciliation (ReconcileAllPendingRequests) stream closed"));
 
         reconcileFinishedJobsSub = Observable.interval(appScaleManagerConfiguration.getReconcileFinishedJobsIntervalMins(), TimeUnit.MINUTES)
                 .observeOn(Schedulers.io())
-                .flatMap(ignored -> reconcileFinishedJobs())
+                .flatMap(ignored -> titusRuntime.persistentStream(reconcileFinishedJobs()))
                 .subscribe(jobId -> logger.info("reconciliation for FinishedJob : {} policies cleaned up.", jobId),
                         e -> logger.error("error in reconciliation (FinishedJob) stream", e),
                         () -> logger.info("reconciliation (FinishedJob) stream closed"));
 
         reconcileScalableTargetsSub = Observable.interval(appScaleManagerConfiguration.getReconcileTargetsIntervalMins(), TimeUnit.MINUTES)
                 .observeOn(Schedulers.io())
-                .flatMap(ignored -> reconcileScalableTargets())
+                .flatMap(ignored -> titusRuntime.persistentStream(reconcileScalableTargets()))
                 .subscribe(jobId -> logger.info("Reconciliation (TargetUpdated) : {} target updated", jobId),
                         e -> logger.error("Error in reconciliation (TargetUpdated) stream", e),
                         () -> logger.info("Reconciliation (TargetUpdated) stream closed"));
 
-        v3LiveStreamTargetUpdates()
+        titusRuntime.persistentStream(v3LiveStreamTargetUpdates())
                 .subscribe(jobId -> logger.info("(V3) Job {} scalable target updated.", jobId),
                         e -> logger.error("Error in V3 job state change event stream", e),
                         () -> logger.info("V3 job event stream closed"));
 
-        v3LiveStreamPolicyCleanup()
+        titusRuntime.persistentStream(v3LiveStreamPolicyCleanup())
                 .subscribe(jobId -> logger.info("(V3) Job {} policies clean up.", jobId),
                         e -> logger.error("Error in V3 job state change event stream", e),
                         () -> logger.info("V3 job event stream closed"));
