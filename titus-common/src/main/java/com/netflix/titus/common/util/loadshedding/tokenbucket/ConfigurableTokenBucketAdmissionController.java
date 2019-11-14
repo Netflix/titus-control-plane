@@ -21,6 +21,7 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.netflix.titus.common.framework.scheduler.ExecutionContext;
@@ -35,18 +36,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * A wrapper around {@link TokenBucketAdmissionController} which dynamically loads configuration from Archaius.
+ * A wrapper around {@link TokenBucketAdmissionController} which is created from the dynamically loaded configuration.
  * When configuration changes, the current {@link TokenBucketAdmissionController} instance is discarded, a new one
  * is created. As a result token buckets state is reset, which is fine as long as changes do not happen too
  * frequently.
  */
-public class ArchaiusTokenBucketAdmissionController implements AdmissionController, Closeable {
+public class ConfigurableTokenBucketAdmissionController implements AdmissionController, Closeable {
 
-    private static final Logger logger = LoggerFactory.getLogger(ArchaiusTokenBucketAdmissionController.class);
+    private static final Logger logger = LoggerFactory.getLogger(ConfigurableTokenBucketAdmissionController.class);
 
     @VisibleForTesting
     static final ScheduleDescriptor SCHEDULE_DESCRIPTOR = ScheduleDescriptor.newBuilder()
-            .withName(ArchaiusTokenBucketAdmissionController.class.getSimpleName())
+            .withName(ConfigurableTokenBucketAdmissionController.class.getSimpleName())
             .withDescription("Configuration re-loader")
             .withInitialDelay(Duration.ZERO)
             .withInterval(Duration.ofSeconds(1))
@@ -61,11 +62,11 @@ public class ArchaiusTokenBucketAdmissionController implements AdmissionControll
     private static final AdmissionControllerResponse ALL_ALLOWED = AdmissionControllerResponse.newBuilder()
             .withAllowed(true)
             .withReasonMessage("Admission controller configuration not found")
-            .withDecisionPoint(ArchaiusTokenBucketAdmissionController.class.getSimpleName())
+            .withDecisionPoint(ConfigurableTokenBucketAdmissionController.class.getSimpleName())
             .withEquivalenceGroup("all")
             .build();
 
-    private final ArchaiusTokenBucketAdmissionConfigurationParser configurationParser;
+    private final Supplier<List<TokenBucketConfiguration>> configurationSupplier;
     private final Function<List<TokenBucketConfiguration>, AdmissionController> delegateFactory;
 
     private final ScheduleReference ref;
@@ -73,9 +74,9 @@ public class ArchaiusTokenBucketAdmissionController implements AdmissionControll
     private volatile List<TokenBucketConfiguration> activeConfiguration = Collections.emptyList();
     private volatile AdmissionController delegate = any -> ALL_ALLOWED;
 
-    public ArchaiusTokenBucketAdmissionController(ArchaiusTokenBucketAdmissionConfigurationParser configurationParser,
-                                                  TitusRuntime titusRuntime) {
-        this(configurationParser,
+    public ConfigurableTokenBucketAdmissionController(Supplier<List<TokenBucketConfiguration>> configurationSupplier,
+                                                      TitusRuntime titusRuntime) {
+        this(configurationSupplier,
                 tokenBucketConfigurations -> new TokenBucketAdmissionController(tokenBucketConfigurations, titusRuntime),
                 SCHEDULE_DESCRIPTOR,
                 titusRuntime
@@ -83,11 +84,11 @@ public class ArchaiusTokenBucketAdmissionController implements AdmissionControll
     }
 
     @VisibleForTesting
-    ArchaiusTokenBucketAdmissionController(ArchaiusTokenBucketAdmissionConfigurationParser configurationParser,
-                                           Function<List<TokenBucketConfiguration>, AdmissionController> delegateFactory,
-                                           ScheduleDescriptor scheduleDescriptor,
-                                           TitusRuntime titusRuntime) {
-        this.configurationParser = configurationParser;
+    ConfigurableTokenBucketAdmissionController(Supplier<List<TokenBucketConfiguration>> configurationSupplier,
+                                               Function<List<TokenBucketConfiguration>, AdmissionController> delegateFactory,
+                                               ScheduleDescriptor scheduleDescriptor,
+                                               TitusRuntime titusRuntime) {
+        this.configurationSupplier = configurationSupplier;
         this.delegateFactory = delegateFactory;
         this.ref = titusRuntime.getLocalScheduler().schedule(scheduleDescriptor, this::reload, false);
     }
@@ -104,7 +105,7 @@ public class ArchaiusTokenBucketAdmissionController implements AdmissionControll
     }
 
     private void reload(ExecutionContext context) {
-        List<TokenBucketConfiguration> current = configurationParser.parse();
+        List<TokenBucketConfiguration> current = configurationSupplier.get();
         if (!current.equals(activeConfiguration)) {
             this.delegate = delegateFactory.apply(current);
             this.activeConfiguration = current;

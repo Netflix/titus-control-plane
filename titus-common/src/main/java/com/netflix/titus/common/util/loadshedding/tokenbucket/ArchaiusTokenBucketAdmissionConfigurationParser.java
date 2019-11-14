@@ -22,6 +22,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import com.google.common.base.Preconditions;
 import com.netflix.archaius.api.Config;
@@ -38,7 +39,7 @@ import org.slf4j.LoggerFactory;
  * default.capacity=100
  * default.refillRateInSec=20
  */
-public class ArchaiusTokenBucketAdmissionConfigurationParser {
+public class ArchaiusTokenBucketAdmissionConfigurationParser implements Supplier<List<TokenBucketConfiguration>> {
 
     private static final Logger logger = LoggerFactory.getLogger(ArchaiusTokenBucketAdmissionConfigurationParser.class);
 
@@ -49,7 +50,7 @@ public class ArchaiusTokenBucketAdmissionConfigurationParser {
         this.config = config;
     }
 
-    public List<TokenBucketConfiguration> parse() {
+    public List<TokenBucketConfiguration> get() {
         List<TokenBucketConfiguration> currentConfiguration = parseToBucketConfiguration();
         currentConfiguration.sort(Comparator.comparingInt(TokenBucketConfiguration::getOrder));
 

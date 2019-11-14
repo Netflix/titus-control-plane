@@ -77,7 +77,7 @@ public class TokenBucketAdmissionController implements AdmissionController {
             .build();
 
     private static final int MAX_CACHE_SIZE = 10_000;
-    private static final Duration CACHE_ITEM_TIMEOUT = Duration.ofSeconds(60);
+    private static final Duration CACHE_ITEM_TIMEOUT = Duration.ofSeconds(600);
 
     private final List<TokenBucketConfiguration> tokenBucketConfigurations;
 
@@ -85,6 +85,12 @@ public class TokenBucketAdmissionController implements AdmissionController {
      * Bucket id consists of a caller id (or caller pattern), and endpoint pattern.
      */
     private final Cache<Pair<String, String>, TokenBucketInstance> bucketsById;
+
+    /**
+     * Maps requests to its assigned bucket ids. We cannot map to the {@link TokenBucketInstance} directly, as its
+     * lifecycle is managed by {@link #bucketsById} cache, and we would not know when it was recreated.
+     */
+    private final Cache<AdmissionControllerRequest, Pair<String, String>> requestToBucketIdCache;
 
     public TokenBucketAdmissionController(List<TokenBucketConfiguration> tokenBucketConfigurations,
                                           TitusRuntime titusRuntime) {
@@ -96,6 +102,12 @@ public class TokenBucketAdmissionController implements AdmissionController {
                 "titus.tokenBucketAdmissionController.cache",
                 titusRuntime.getRegistry()
         );
+        this.requestToBucketIdCache = Caches.instrumentedCacheWithMaxSize(
+                MAX_CACHE_SIZE,
+                CACHE_ITEM_TIMEOUT,
+                "titus.tokenBucketAdmissionController.requestCache",
+                titusRuntime.getRegistry()
+        );
     }
 
     @Override
@@ -104,7 +116,15 @@ public class TokenBucketAdmissionController implements AdmissionController {
     }
 
     private Optional<TokenBucketInstance> findTokenBucket(AdmissionControllerRequest request) {
-        return tokenBucketConfigurations.stream()
+        Pair<String, String> bucketId = requestToBucketIdCache.getIfPresent(request);
+        if (bucketId != null) {
+            TokenBucketInstance instance = bucketsById.getIfPresent(bucketId);
+            if (instance != null) {
+                return Optional.of(instance);
+            }
+        }
+
+        TokenBucketInstance instance = tokenBucketConfigurations.stream()
                 .filter(tokenBucketConfiguration -> matches(tokenBucketConfiguration, request))
                 .findFirst()
                 .map(tokenBucketConfiguration -> {
@@ -113,10 +133,14 @@ public class TokenBucketAdmissionController implements AdmissionController {
                             ? tokenBucketConfiguration.getCallerPatternString()
                             : request.getCallerId();
 
-                    Pair<String, String> bucketId = Pair.of(effectiveCallerId, tokenBucketConfiguration.getEndpointPatternString());
+                    Pair<String, String> newBucketId = Pair.of(effectiveCallerId, tokenBucketConfiguration.getEndpointPatternString());
+                    requestToBucketIdCache.put(request, newBucketId);
 
-                    return bucketsById.get(bucketId, i -> new TokenBucketInstance(effectiveCallerId, tokenBucketConfiguration));
-                });
+                    return bucketsById.get(newBucketId, i -> new TokenBucketInstance(effectiveCallerId, tokenBucketConfiguration));
+                })
+                .orElse(null);
+
+        return Optional.ofNullable(instance);
     }
 
     private boolean matches(TokenBucketConfiguration configuration, AdmissionControllerRequest request) {

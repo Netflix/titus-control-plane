@@ -33,7 +33,7 @@ public class ArchaiusTokenBucketAdmissionConfigurationParserTest {
     public void testNoConfiguration() {
         MapConfig config = new MapConfig(new HashMap<>());
         ArchaiusTokenBucketAdmissionConfigurationParser parser = new ArchaiusTokenBucketAdmissionConfigurationParser(config);
-        assertThat(parser.parse()).isEmpty();
+        assertThat(parser.get()).isEmpty();
     }
 
     @Test
@@ -44,7 +44,7 @@ public class ArchaiusTokenBucketAdmissionConfigurationParserTest {
         ));
         ArchaiusTokenBucketAdmissionConfigurationParser parser = new ArchaiusTokenBucketAdmissionConfigurationParser(config);
 
-        List<TokenBucketConfiguration> configuration = parser.parse();
+        List<TokenBucketConfiguration> configuration = parser.get();
         assertThat(configuration).hasSize(2);
         assertThat(configuration.get(0)).isEqualTo(TokenBucketTestConfigurations.NOT_SHARED_CONFIGURATION);
         assertThat(configuration.get(1)).isEqualTo(TokenBucketTestConfigurations.SHARED_ANY_CONFIGURATION);
@@ -58,7 +58,7 @@ public class ArchaiusTokenBucketAdmissionConfigurationParserTest {
         ));
         ArchaiusTokenBucketAdmissionConfigurationParser parser = new ArchaiusTokenBucketAdmissionConfigurationParser(config);
 
-        List<TokenBucketConfiguration> configuration = parser.parse();
+        List<TokenBucketConfiguration> configuration = parser.get();
         assertThat(configuration).hasSize(1);
         assertThat(configuration.get(0).getName()).isEqualTo(SHARED_ANY_CONFIGURATION.getName());
     }
@@ -70,6 +70,6 @@ public class ArchaiusTokenBucketAdmissionConfigurationParserTest {
                 TokenBucketTestConfigurations.SHARED_ANY_BAD_PROPERTIES
         ));
         ArchaiusTokenBucketAdmissionConfigurationParser parser = new ArchaiusTokenBucketAdmissionConfigurationParser(config);
-        assertThat(parser.parse()).isEmpty();
+        assertThat(parser.get()).isEmpty();
     }
 }

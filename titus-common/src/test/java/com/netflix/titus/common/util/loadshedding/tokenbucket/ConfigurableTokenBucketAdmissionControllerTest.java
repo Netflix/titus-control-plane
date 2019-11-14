@@ -34,9 +34,9 @@ import org.junit.Test;
 import static com.jayway.awaitility.Awaitility.await;
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class ArchaiusTokenBucketAdmissionControllerTest {
+public class ConfigurableTokenBucketAdmissionControllerTest {
 
-    private static final ScheduleDescriptor TEST_SCHEDULE_DESCRIPTOR = ArchaiusTokenBucketAdmissionController.SCHEDULE_DESCRIPTOR.toBuilder()
+    private static final ScheduleDescriptor TEST_SCHEDULE_DESCRIPTOR = ConfigurableTokenBucketAdmissionController.SCHEDULE_DESCRIPTOR.toBuilder()
             .withInterval(Duration.ofMillis(1))
             .build();
 
@@ -44,13 +44,13 @@ public class ArchaiusTokenBucketAdmissionControllerTest {
 
     private final DefaultSettableConfig config = new DefaultSettableConfig();
 
-    private ArchaiusTokenBucketAdmissionController controller;
+    private ConfigurableTokenBucketAdmissionController controller;
 
     private volatile AdmissionControllerDelegateMock currentDelegate;
 
     @Before
     public void setUp() {
-        this.controller = new ArchaiusTokenBucketAdmissionController(
+        this.controller = new ConfigurableTokenBucketAdmissionController(
                 new ArchaiusTokenBucketAdmissionConfigurationParser(config),
                 configuration -> currentDelegate = new AdmissionControllerDelegateMock(configuration),
                 TEST_SCHEDULE_DESCRIPTOR,
@@ -60,7 +60,7 @@ public class ArchaiusTokenBucketAdmissionControllerTest {
 
     @After
     public void tearDown() {
-        Evaluators.acceptNotNull(controller, ArchaiusTokenBucketAdmissionController::close);
+        Evaluators.acceptNotNull(controller, ConfigurableTokenBucketAdmissionController::close);
     }
 
     @Test
