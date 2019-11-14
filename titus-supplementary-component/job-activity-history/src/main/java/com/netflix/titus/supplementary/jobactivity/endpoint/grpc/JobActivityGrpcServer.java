@@ -19,6 +19,7 @@ package com.netflix.titus.supplementary.jobactivity.endpoint.grpc;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.runtime.endpoint.common.grpc.AbstractTitusGrpcServer;
 import com.netflix.titus.runtime.endpoint.common.grpc.GrpcEndpointConfiguration;
 
@@ -27,7 +28,8 @@ public class JobActivityGrpcServer extends AbstractTitusGrpcServer {
 
     @Inject
     public JobActivityGrpcServer(GrpcEndpointConfiguration configuration,
-                                 JobActivityGrpcService jobActivityGrpcService) {
-        super(configuration, jobActivityGrpcService);
+                                 JobActivityGrpcService jobActivityGrpcService,
+                                 TitusRuntime runtime) {
+        super(configuration, jobActivityGrpcService, runtime);
     }
 }

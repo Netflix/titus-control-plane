@@ -27,6 +27,7 @@ import javax.inject.Singleton;
 
 import com.netflix.titus.common.framework.fit.adapter.GrpcFitInterceptor;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.ExecutorsExt;
 import com.netflix.titus.common.util.grpc.reactor.GrpcToReactorServerFactory;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.AgentManagementServiceImplBase;
@@ -123,7 +124,9 @@ public class TitusMasterGrpcServer {
     public void start() {
         if (!started.getAndSet(true)) {
             this.port = config.getPort();
-            ServerBuilder serverBuilder = configure(ServerBuilder.forPort(port));
+            ServerBuilder<?> initial = ServerBuilder.forPort(port);
+            initial.executor(ExecutorsExt.instrumentedCachedThreadPool(titusRuntime.getRegistry(), "grpcCallbackExecutor"));
+            ServerBuilder<?> serverBuilder = configure(initial);
             serverBuilder.addService(ServerInterceptors.intercept(
                     healthService,
                     createInterceptors(HealthGrpc.getServiceDescriptor())

@@ -26,6 +26,8 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.ExecutorsExt;
 import com.netflix.titus.common.util.grpc.reactor.GrpcToReactorServerFactory;
 import com.netflix.titus.federation.endpoint.EndpointConfiguration;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
@@ -64,6 +66,7 @@ public class TitusFederationGrpcServer {
     private final ReactorGatewayMachineGrpcService reactorMachineGrpcService;
     private final GrpcToReactorServerFactory reactorServerFactory;
     private final EndpointConfiguration config;
+    private final TitusRuntime runtime;
 
     private final AtomicBoolean started = new AtomicBoolean();
     private Server server;
@@ -78,7 +81,8 @@ public class TitusFederationGrpcServer {
             LoadBalancerServiceImplBase loadBalancerService,
             ReactorGatewayMachineGrpcService reactorMachineGrpcService,
             GrpcToReactorServerFactory reactorServerFactory,
-            EndpointConfiguration config) {
+            EndpointConfiguration config,
+            TitusRuntime runtime) {
         this.healthService = healthService;
         this.schedulerService = schedulerService;
         this.jobManagementService = jobManagementService;
@@ -87,6 +91,7 @@ public class TitusFederationGrpcServer {
         this.reactorMachineGrpcService = reactorMachineGrpcService;
         this.reactorServerFactory = reactorServerFactory;
         this.config = config;
+        this.runtime = runtime;
     }
 
     public int getGrpcPort() {
@@ -97,7 +102,9 @@ public class TitusFederationGrpcServer {
     public void start() {
         if (!started.getAndSet(true)) {
             this.port = config.getGrpcPort();
-            this.server = configure(ServerBuilder.forPort(port))
+            ServerBuilder<?> initial = ServerBuilder.forPort(port);
+            initial.executor(ExecutorsExt.instrumentedCachedThreadPool(runtime.getRegistry(), "grpcCallbackExecutor"));
+            this.server = configure(initial)
                     .addService(ServerInterceptors.intercept(
                             healthService,
                             createInterceptors(HealthGrpc.getServiceDescriptor())

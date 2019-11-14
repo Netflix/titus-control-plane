@@ -20,8 +20,6 @@ import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
 import com.netflix.archaius.api.annotations.PropertyName;
 
-/**
- */
 @Configuration(prefix = "titus.master.grpcServer")
 public interface GrpcMasterEndpointConfiguration {
 
@@ -44,4 +42,11 @@ public interface GrpcMasterEndpointConfiguration {
      */
     @DefaultValue("false")
     boolean isJobSizeValidationEnabled();
+
+    /**
+     * Max number of threads used to handle expensive server streaming calls. 2 threads per available CPU is usually a
+     * good start, tweak as necessary.
+     */
+    @DefaultValue("256")
+    int getServerStreamsThreadPoolSize();
 }

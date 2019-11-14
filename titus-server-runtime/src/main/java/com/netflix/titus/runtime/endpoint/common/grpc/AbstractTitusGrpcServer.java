@@ -24,6 +24,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.ExecutorsExt;
 import com.netflix.titus.grpc.protogen.HealthGrpc;
 import com.netflix.titus.runtime.endpoint.common.grpc.interceptor.ErrorCatchingServerInterceptor;
 import com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor;
@@ -43,6 +45,7 @@ public abstract class AbstractTitusGrpcServer {
 
     private final GrpcEndpointConfiguration configuration;
     private final ServerServiceDefinition serviceDefinition;
+    private final TitusRuntime runtime;
 
     private final AtomicBoolean started = new AtomicBoolean();
     private Server server;
@@ -53,15 +56,18 @@ public abstract class AbstractTitusGrpcServer {
     private int port;
 
     protected AbstractTitusGrpcServer(GrpcEndpointConfiguration configuration,
-                                      BindableService bindableService) {
+                                      BindableService bindableService,
+                                      TitusRuntime runtime) {
         this.configuration = configuration;
         this.serviceDefinition = bindableService.bindService();
+        this.runtime = runtime;
     }
 
     protected AbstractTitusGrpcServer(GrpcEndpointConfiguration configuration,
-                                      ServerServiceDefinition serviceDefinition) {
+                                      ServerServiceDefinition serviceDefinition, TitusRuntime runtime) {
         this.configuration = configuration;
         this.serviceDefinition = serviceDefinition;
+        this.runtime = runtime;
     }
 
     public int getPort() {
@@ -71,7 +77,9 @@ public abstract class AbstractTitusGrpcServer {
     @PostConstruct
     public void start() {
         if (!started.getAndSet(true)) {
-            ServerBuilder serverBuilder = configure(ServerBuilder.forPort(configuration.getPort()));
+            ServerBuilder<?> initial = ServerBuilder.forPort(port);
+            initial.executor(ExecutorsExt.instrumentedCachedThreadPool(runtime.getRegistry(), "grpcCallbackExecutor"));
+            ServerBuilder<?> serverBuilder = configure(initial);
             serverBuilder.addService(ServerInterceptors.intercept(
                     serviceDefinition,
                     createInterceptors(HealthGrpc.getServiceDescriptor())
