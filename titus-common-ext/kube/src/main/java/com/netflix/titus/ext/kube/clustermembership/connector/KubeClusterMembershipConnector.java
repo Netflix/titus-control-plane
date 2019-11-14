@@ -31,9 +31,8 @@ import com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision;
 import com.netflix.titus.api.clustermembership.model.event.ClusterMembershipChangeEvent;
 import com.netflix.titus.api.clustermembership.model.event.ClusterMembershipEvent;
 import com.netflix.titus.api.clustermembership.model.event.LeaderElectionChangeEvent;
-import com.netflix.titus.common.framework.simplereconciler.SimpleReconciliationEngine;
+import com.netflix.titus.common.framework.simplereconciler.OneOffReconciler;
 import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.common.util.IOExt;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.ext.kube.clustermembership.connector.action.KubeLeaderElectionActions;
 import com.netflix.titus.ext.kube.clustermembership.connector.action.KubeRegistrationActions;
@@ -50,9 +49,11 @@ public class KubeClusterMembershipConnector implements ClusterMembershipConnecto
 
     private static final Logger logger = LoggerFactory.getLogger(KubeClusterMembershipConnector.class);
 
+    private static final Duration SHUTDOWN_TIMEOUT = Duration.ofMillis(500000);
+
     private final Scheduler scheduler;
 
-    private final SimpleReconciliationEngine<KubeClusterState> reconciler;
+    private final OneOffReconciler<KubeClusterState> reconciler;
     private final KubeContext context;
 
     private final Disposable membershipSubscription;
@@ -67,7 +68,7 @@ public class KubeClusterMembershipConnector implements ClusterMembershipConnecto
         this.scheduler = Schedulers.newSingle("ClusterMembershipReconciler");
 
         this.context = new KubeContext(kubeMembershipExecutor, kubeLeaderElectionExecutor, titusRuntime);
-        this.reconciler = SimpleReconciliationEngine.<KubeClusterState>newBuilder("LeaderElection")
+        this.reconciler = OneOffReconciler.<KubeClusterState>newBuilder("LeaderElection")
                 .withInitial(new KubeClusterState(initial, configuration, titusRuntime.getClock()))
                 .withReconcilerActionsProvider(new KubeClusterMembershipStateReconciler(context, configuration))
                 .withQuickCycle(Duration.ofMillis(configuration.getReconcilerQuickCycleMs()))
@@ -88,7 +89,7 @@ public class KubeClusterMembershipConnector implements ClusterMembershipConnecto
                 .subscribe(
                         event -> {
                             if (event instanceof ClusterMembershipChangeEvent) {
-                                reconciler.apply(Mono.just(currentState -> currentState.processMembershipEventStreamEvent((ClusterMembershipChangeEvent) event)))
+                                reconciler.apply(currentState -> Mono.just(currentState.processMembershipEventStreamEvent((ClusterMembershipChangeEvent) event)))
                                         .subscribe(
                                                 next -> logger.info("Processed Kubernetes event: {}", event),
                                                 e -> logger.warn("Kubernetes event processing failure", e)
@@ -109,7 +110,7 @@ public class KubeClusterMembershipConnector implements ClusterMembershipConnecto
                 .subscribe(
                         event -> {
                             if (event instanceof LeaderElectionChangeEvent) {
-                                reconciler.apply(Mono.just(currentState -> currentState.processLeaderElectionEventStreamEvent((LeaderElectionChangeEvent) event)))
+                                reconciler.apply(currentState -> Mono.just(currentState.processLeaderElectionEventStreamEvent((LeaderElectionChangeEvent) event)))
                                         .subscribe(
                                                 next -> logger.debug("Processed Kubernetes event: {}", event),
                                                 e -> logger.warn("Kubernetes event processing failure", e)
@@ -129,7 +130,7 @@ public class KubeClusterMembershipConnector implements ClusterMembershipConnecto
 
     @PreDestroy
     public void shutdown() {
-        IOExt.closeSilently(reconciler);
+        reconciler.close().block(SHUTDOWN_TIMEOUT);
         ReactorExt.safeDispose(scheduler, membershipSubscription, leaderElectionSubscription, reconcilerEventsSubscription);
     }
 
@@ -155,27 +156,30 @@ public class KubeClusterMembershipConnector implements ClusterMembershipConnecto
 
     @Override
     public Mono<ClusterMembershipRevision<ClusterMember>> register(Function<ClusterMember, ClusterMembershipRevision<ClusterMember>> selfUpdate) {
-        return reconciler.apply(Mono.defer(() ->
-                KubeRegistrationActions.registerLocal(context, reconciler.getCurrent(), selfUpdate))
-        ).map(KubeClusterState::getLocalMemberRevision);
+        return reconciler.apply(current ->
+                KubeRegistrationActions.registerLocal(context, current, selfUpdate).map(f -> f.apply(current)))
+                .map(KubeClusterState::getLocalMemberRevision);
     }
 
     @Override
     public Mono<ClusterMembershipRevision<ClusterMember>> unregister(Function<ClusterMember, ClusterMembershipRevision<ClusterMember>> selfUpdate) {
-        return reconciler.apply(Mono.defer(() ->
-                KubeRegistrationActions.unregisterLocal(context, reconciler.getCurrent(), selfUpdate))
+        return reconciler.apply(current ->
+                KubeRegistrationActions.unregisterLocal(context, current, selfUpdate).map(f -> f.apply(current))
         ).map(KubeClusterState::getLocalMemberRevision);
     }
 
     @Override
     public Mono<Void> joinLeadershipGroup() {
-        return reconciler.apply(KubeLeaderElectionActions.createJoinLeadershipGroupAction(context)).ignoreElement().cast(Void.class);
+        return reconciler.apply(clusterState ->
+                KubeLeaderElectionActions.createJoinLeadershipGroupAction(context).map(f -> f.apply(clusterState))
+        ).ignoreElement().cast(Void.class);
     }
 
     @Override
     public Mono<Boolean> leaveLeadershipGroup(boolean onlyNonLeader) {
-        return reconciler.apply(KubeLeaderElectionActions.createLeaveLeadershipGroupAction(context, onlyNonLeader))
-                .map(currentState -> !currentState.isInLeaderElectionProcess());
+        return reconciler.apply(clusterState ->
+                KubeLeaderElectionActions.createLeaveLeadershipGroupAction(context, onlyNonLeader).map(f -> f.apply(clusterState))
+        ).map(currentState -> !currentState.isInLeaderElectionProcess());
     }
 
     @Override

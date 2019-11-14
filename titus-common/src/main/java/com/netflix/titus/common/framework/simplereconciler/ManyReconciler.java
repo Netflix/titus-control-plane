@@ -16,50 +16,54 @@
 
 package com.netflix.titus.common.framework.simplereconciler;
 
-import java.io.Closeable;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 
-import com.netflix.titus.common.framework.simplereconciler.internal.DefaultSimpleReconciliationEngine;
+import com.netflix.titus.common.annotation.Experimental;
+import com.netflix.titus.common.framework.simplereconciler.internal.DefaultManyReconciler;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 
 /**
- * A simple reconciliation engine, which serializes client and internal/reconciler actions that work over the same
- * data item.
+ * A simple reconciliation framework that manages multiple data items. Each individual data item is processed
+ * independently, with no concurrency constraints.
  */
-public interface SimpleReconciliationEngine<DATA> extends Closeable {
+@Experimental(deadline = "12/31/2019")
+public interface ManyReconciler<DATA> {
 
-    DATA getCurrent();
+    Mono<Void> add(String id, DATA initial);
 
-    Mono<DATA> apply(Mono<Function<DATA, DATA>> action);
+    Mono<Void> remove(String id);
 
-    Flux<DATA> changes();
+    Mono<Void> close();
 
-    static <DATA> Builder<DATA> newBuilder(String name) {
-        return new Builder<>(name);
+    Map<String, DATA> getAll();
+
+    Optional<DATA> findById(String id);
+
+    Mono<DATA> apply(String id, Function<DATA, Mono<DATA>> action);
+
+    Flux<List<SimpleReconcilerEvent<DATA>>> changes();
+
+    static <DATA> Builder<DATA> newBuilder() {
+        return new Builder<>();
     }
 
     class Builder<DATA> {
 
-        private final String name;
-        private DATA initial;
         private Duration quickCycle;
         private Duration longCycle;
         private Function<DATA, List<Mono<Function<DATA, DATA>>>> reconcilerActionsProvider;
-        private Scheduler scheduler;
+        private Scheduler reconcilerScheduler;
+        private Scheduler notificationScheduler;
         private TitusRuntime titusRuntime;
 
-        private Builder(String name) {
-            this.name = name;
-        }
-
-        public Builder<DATA> withInitial(DATA initial) {
-            this.initial = initial;
-            return this;
+        private Builder() {
         }
 
         /**
@@ -84,8 +88,13 @@ public interface SimpleReconciliationEngine<DATA> extends Closeable {
             return this;
         }
 
-        public Builder<DATA> withScheduler(Scheduler scheduler) {
-            this.scheduler = scheduler;
+        public Builder<DATA> withReconcilerScheduler(Scheduler reconcilerScheduler) {
+            this.reconcilerScheduler = reconcilerScheduler;
+            return this;
+        }
+
+        public Builder<DATA> withNotificationScheduler(Scheduler notificationScheduler) {
+            this.notificationScheduler = notificationScheduler;
             return this;
         }
 
@@ -94,8 +103,15 @@ public interface SimpleReconciliationEngine<DATA> extends Closeable {
             return this;
         }
 
-        public SimpleReconciliationEngine<DATA> build() {
-            return new DefaultSimpleReconciliationEngine<>(name, initial, quickCycle, longCycle, reconcilerActionsProvider, scheduler, titusRuntime);
+        public ManyReconciler<DATA> build() {
+            return new DefaultManyReconciler<>(
+                    quickCycle,
+                    longCycle,
+                    reconcilerActionsProvider,
+                    reconcilerScheduler,
+                    notificationScheduler,
+                    titusRuntime
+            );
         }
     }
 }

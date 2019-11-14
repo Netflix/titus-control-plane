@@ -16,16 +16,20 @@
 
 package com.netflix.titus.common.framework.simplereconciler.internal;
 
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.netflix.spectator.api.Gauge;
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.patterns.PolledMeter;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.time.Clock;
 
-class SimpleReconciliationEngineMetrics {
+public class ReconcilerExecutorMetrics {
 
     private static final String ROOT_NAME = "titus.simpleReconciliation.engine.";
     private static final String EVALUATIONS = ROOT_NAME + "evaluations";
@@ -34,21 +38,23 @@ class SimpleReconciliationEngineMetrics {
 
     private final Id evaluationId;
 
-    private final AtomicLong externalActionsQueueSizeRef = new AtomicLong();
+    private final ConcurrentMap<String, Gauge> externalActionsQueueSizes = new ConcurrentHashMap<>();
     private final AtomicLong lastEvaluationTimestamp = new AtomicLong();
 
     private final Registry registry;
     private final Clock clock;
 
-    SimpleReconciliationEngineMetrics(TitusRuntime titusRuntime) {
+    public ReconcilerExecutorMetrics(TitusRuntime titusRuntime) {
         this.registry = titusRuntime.getRegistry();
         this.clock = titusRuntime.getClock();
 
         this.evaluationId = registry.createId(EVALUATIONS);
         Clock clockFinal = clock;
         PolledMeter.using(registry).withName(SINCE_LAST_EVALUATION).monitorValue(lastEvaluationTimestamp, v -> clockFinal.wallTime() - v.get());
+    }
 
-        PolledMeter.using(registry).withName(EXTERNAL_ACTIONS_QUEUE_SIZE).monitorValue(externalActionsQueueSizeRef);
+    void close(String id) {
+        Evaluators.acceptNotNull(externalActionsQueueSizes.remove(id), g -> g.set(0.0));
     }
 
     void evaluated(long executionTimeNs) {
@@ -60,7 +66,9 @@ class SimpleReconciliationEngineMetrics {
         registry.timer(evaluationId.withTag("error", error.getClass().getSimpleName())).record(executionTimeNs, TimeUnit.NANOSECONDS);
     }
 
-    void updateExternalActionQueueSize(int size) {
-        externalActionsQueueSizeRef.set(size);
+    void updateExternalActionQueueSize(String id, int size) {
+        externalActionsQueueSizes.computeIfAbsent(id, i -> registry.gauge(
+                EXTERNAL_ACTIONS_QUEUE_SIZE, "executorId", id
+        )).set(size);
     }
 }

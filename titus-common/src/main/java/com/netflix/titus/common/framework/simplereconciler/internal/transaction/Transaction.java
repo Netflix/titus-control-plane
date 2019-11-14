@@ -14,24 +14,17 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.common.framework.simplereconciler.internal;
+package com.netflix.titus.common.framework.simplereconciler.internal.transaction;
 
-import com.netflix.titus.common.util.tuple.Either;
+import com.netflix.titus.common.framework.simplereconciler.internal.ChangeActionHolder;
 
 public interface Transaction<DATA> {
 
-    enum State {
-        Running,
-        ResultReady,
-        Cancelled,
-        SubscriberNotified
-    }
+    ChangeActionHolder<DATA> getActionHolder();
 
-    void close();
+    TransactionStatus<DATA> getStatus();
 
-    State getState();
+    void cancel();
 
-    Either<DATA, Throwable> applyDataChanges(DATA current);
-
-    void complete();
+    void readyToClose(DATA currentValue);
 }

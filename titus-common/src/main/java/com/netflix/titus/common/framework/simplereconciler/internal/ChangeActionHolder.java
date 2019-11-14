@@ -27,9 +27,9 @@ import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoSink;
 
-final class ChangeActionHolder<DATA> {
+public final class ChangeActionHolder<DATA> {
 
-    private final Mono<Function<DATA, DATA>> action;
+    private final Function<DATA, Mono<Function<DATA, DATA>>> action;
     private final String transactionId;
     private final long createTimestamp;
     private final MonoSink<DATA> subscriberSink;
@@ -37,10 +37,10 @@ final class ChangeActionHolder<DATA> {
     private AtomicBoolean cancelledRef = new AtomicBoolean();
     private final Queue<Disposable> cancelCallbacks = new ConcurrentLinkedQueue<>();
 
-    ChangeActionHolder(Mono<Function<DATA, DATA>> action,
-                       String transactionId,
-                       long createTimestamp,
-                       @Nullable MonoSink<DATA> subscriberSink) {
+    public ChangeActionHolder(Function<DATA, Mono<Function<DATA, DATA>>> action,
+                              String transactionId,
+                              long createTimestamp,
+                              @Nullable MonoSink<DATA> subscriberSink) {
         this.action = action;
         this.transactionId = transactionId;
         this.createTimestamp = createTimestamp;
@@ -58,31 +58,31 @@ final class ChangeActionHolder<DATA> {
         }
     }
 
-    Mono<Function<DATA, DATA>> getAction() {
+    public Function<DATA, Mono<Function<DATA, DATA>>> getAction() {
         return action;
     }
 
-    String getTransactionId() {
+    public String getTransactionId() {
         return transactionId;
     }
 
-    long getCreateTimestamp() {
+    public long getCreateTimestamp() {
         return createTimestamp;
     }
 
-    boolean isCancelled() {
+    public boolean isCancelled() {
         return cancelledRef.get();
     }
 
     @Nullable
-    MonoSink<DATA> getSubscriberSink() {
+    public MonoSink<DATA> getSubscriberSink() {
         return subscriberSink;
     }
 
     /**
      * All callbacks should obey the {@link Disposable#dispose()} idempotence contract.
      */
-    void addCancelCallback(Disposable cancelCallback) {
+    public void addCancelCallback(Disposable cancelCallback) {
         cancelCallbacks.add(cancelCallback);
         if (cancelledRef.get()) {
             ReactorExt.safeDispose(cancelCallback);
