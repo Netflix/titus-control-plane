@@ -605,7 +605,6 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
                 .observeOn(observeJobsScheduler)
                 .subscribeOn(observeJobsScheduler, false)
                 .map(event -> GrpcJobManagementModelConverters.toGrpcJobChangeNotification(event, logStorageInfo))
-                // TODO(fabio): move only snapshot generation to the observeJobsScheduler instead of the entire stream
                 .compose(ObservableExt.head(() -> {
                     List<JobChangeNotification> snapshot = createJobsSnapshot(jobsPredicate, tasksPredicate);
                     snapshot.add(SNAPSHOT_END_MARKER);
@@ -636,7 +635,6 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
                 .observeOn(observeJobsScheduler)
                 .subscribeOn(observeJobsScheduler, false)
                 .map(event -> GrpcJobManagementModelConverters.toGrpcJobChangeNotification(event, logStorageInfo))
-                // TODO(fabio): move only snapshot generation to the observeJobsScheduler instead of the entire stream
                 .compose(ObservableExt.head(() -> {
                     List<JobChangeNotification> snapshot = createJobSnapshot(jobId);
                     snapshot.add(SNAPSHOT_END_MARKER);
