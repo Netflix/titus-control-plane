@@ -19,6 +19,7 @@ package com.netflix.titus.supplementary.jobactivity;
 import javax.inject.Named;
 
 import com.netflix.titus.common.runtime.InternalRuntimeComponent;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorClientFactoryComponent;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementDataReplicationComponent;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagerConnectorComponent;
@@ -59,8 +60,9 @@ public class JobActivityMain {
 
     @Bean
     public JobActivityGrpcServer getJobActivityHistoryGrpcServer(GrpcEndpointConfiguration configuration,
-                                                                 JobActivityGrpcService jobActivityGrpcService) {
-        return new JobActivityGrpcServer(configuration, jobActivityGrpcService);
+                                                                 JobActivityGrpcService jobActivityGrpcService,
+                                                                 TitusRuntime runtime) {
+        return new JobActivityGrpcServer(configuration, jobActivityGrpcService, runtime);
     }
 
     public static void main(String[] args) {

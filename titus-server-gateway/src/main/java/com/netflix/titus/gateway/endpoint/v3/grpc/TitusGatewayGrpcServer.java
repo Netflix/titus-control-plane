@@ -27,8 +27,8 @@ import javax.inject.Singleton;
 
 import com.netflix.titus.common.framework.fit.adapter.GrpcFitInterceptor;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.ExecutorsExt;
 import com.netflix.titus.common.util.grpc.reactor.GrpcToReactorServerFactory;
-import com.netflix.titus.runtime.machine.ReactorGatewayMachineGrpcService;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.AgentManagementServiceGrpc.AgentManagementServiceImplBase;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
@@ -46,6 +46,7 @@ import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc.SchedulerServiceImpl
 import com.netflix.titus.grpc.protogen.v4.MachineServiceGrpc;
 import com.netflix.titus.runtime.endpoint.common.grpc.interceptor.ErrorCatchingServerInterceptor;
 import com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor;
+import com.netflix.titus.runtime.machine.ReactorGatewayMachineGrpcService;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;
 import io.grpc.ServerInterceptor;
@@ -113,7 +114,9 @@ public class TitusGatewayGrpcServer {
     public void start() {
         if (!started.getAndSet(true)) {
             this.port = config.getPort();
-            ServerBuilder serverBuilder = configure(ServerBuilder.forPort(port))
+            ServerBuilder<?> initial = ServerBuilder.forPort(port);
+            initial.executor(ExecutorsExt.instrumentedCachedThreadPool(titusRuntime.getRegistry(), "grpcCallbackExecutor"));
+            ServerBuilder<?> serverBuilder = configure(initial)
                     .addService(ServerInterceptors.intercept(
                             healthService,
                             createInterceptors(HealthGrpc.getServiceDescriptor())

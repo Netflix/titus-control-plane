@@ -56,6 +56,7 @@ import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.model.sanitizer.ValidationError;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.common.util.ExecutorsExt;
 import com.netflix.titus.common.util.ProtobufExt;
 import com.netflix.titus.common.util.archaius2.ObjectConfigurationResolver;
 import com.netflix.titus.common.util.rx.ObservableExt;
@@ -111,6 +112,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 import rx.Observable;
+import rx.Scheduler;
 import rx.Subscription;
 import rx.schedulers.Schedulers;
 
@@ -145,6 +147,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     private final AuthorizationService authorizationService;
     private final TitusRuntime titusRuntime;
     private final SchedulingService<? extends TaskRequest> schedulingService;
+    private final Scheduler observeJobsScheduler;
 
     @Inject
     public DefaultJobManagementServiceGrpc(GrpcMasterEndpointConfiguration configuration,
@@ -171,6 +174,8 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
         this.authorizationService = authorizationService;
         this.titusRuntime = titusRuntime;
         this.schedulingService = schedulingService;
+        this.observeJobsScheduler = Schedulers.from(ExecutorsExt.instrumentedFixedSizeThreadPool(
+                titusRuntime.getRegistry(), "observeJobs", configuration.getServerStreamsThreadPoolSize()));
     }
 
     @Override
@@ -596,8 +601,11 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
         V3TaskQueryCriteriaEvaluator tasksPredicate = new V3TaskQueryCriteriaEvaluator(criteria, titusRuntime);
 
         Observable<JobChangeNotification> eventStream = jobOperations.observeJobs(jobsPredicate, tasksPredicate)
-                .observeOn(Schedulers.io())
+                // avoid clogging the computation scheduler
+                .observeOn(observeJobsScheduler)
+                .subscribeOn(observeJobsScheduler, false)
                 .map(event -> GrpcJobManagementModelConverters.toGrpcJobChangeNotification(event, logStorageInfo))
+                // TODO(fabio): move only snapshot generation to the observeJobsScheduler instead of the entire stream
                 .compose(ObservableExt.head(() -> {
                     List<JobChangeNotification> snapshot = createJobsSnapshot(jobsPredicate, tasksPredicate);
                     snapshot.add(SNAPSHOT_END_MARKER);
@@ -624,8 +632,11 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     public void observeJob(JobId request, StreamObserver<JobChangeNotification> responseObserver) {
         String jobId = request.getId();
         Observable<JobChangeNotification> eventStream = jobOperations.observeJob(jobId)
-                .observeOn(Schedulers.io())
+                // avoid clogging the computation scheduler
+                .observeOn(observeJobsScheduler)
+                .subscribeOn(observeJobsScheduler, false)
                 .map(event -> GrpcJobManagementModelConverters.toGrpcJobChangeNotification(event, logStorageInfo))
+                // TODO(fabio): move only snapshot generation to the observeJobsScheduler instead of the entire stream
                 .compose(ObservableExt.head(() -> {
                     List<JobChangeNotification> snapshot = createJobSnapshot(jobId);
                     snapshot.add(SNAPSHOT_END_MARKER);
