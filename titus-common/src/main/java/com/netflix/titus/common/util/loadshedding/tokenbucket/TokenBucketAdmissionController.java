@@ -124,23 +124,26 @@ public class TokenBucketAdmissionController implements AdmissionController {
             }
         }
 
-        TokenBucketInstance instance = tokenBucketConfigurations.stream()
-                .filter(tokenBucketConfiguration -> matches(tokenBucketConfiguration, request))
+        TokenBucketConfiguration tokenBucketConfiguration = tokenBucketConfigurations.stream()
+                .filter(configuration -> matches(configuration, request))
                 .findFirst()
-                .map(tokenBucketConfiguration -> {
-                    // If shared, use pattern name as key, otherwise use caller id
-                    String effectiveCallerId = tokenBucketConfiguration.isSharedByCallers()
-                            ? tokenBucketConfiguration.getCallerPatternString()
-                            : request.getCallerId();
-
-                    Pair<String, String> newBucketId = Pair.of(effectiveCallerId, tokenBucketConfiguration.getEndpointPatternString());
-                    requestToBucketIdCache.put(request, newBucketId);
-
-                    return bucketsById.get(newBucketId, i -> new TokenBucketInstance(effectiveCallerId, tokenBucketConfiguration));
-                })
                 .orElse(null);
 
-        return Optional.ofNullable(instance);
+        if (tokenBucketConfiguration == null) {
+            return Optional.empty();
+        }
+
+        // If shared, use pattern name as key, otherwise use caller id
+        String effectiveCallerId = tokenBucketConfiguration.isSharedByCallers()
+                ? tokenBucketConfiguration.getCallerPatternString()
+                : request.getCallerId();
+
+        if (bucketId == null) {
+            bucketId = Pair.of(effectiveCallerId, tokenBucketConfiguration.getEndpointPatternString());
+            requestToBucketIdCache.put(request, bucketId);
+        }
+
+        return Optional.ofNullable(bucketsById.get(bucketId, i -> new TokenBucketInstance(effectiveCallerId, tokenBucketConfiguration)));
     }
 
     private boolean matches(TokenBucketConfiguration configuration, AdmissionControllerRequest request) {
