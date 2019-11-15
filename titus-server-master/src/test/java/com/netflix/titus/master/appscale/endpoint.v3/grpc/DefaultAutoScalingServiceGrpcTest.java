@@ -26,6 +26,7 @@ import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.titus.api.appscale.model.PolicyType;
 import com.netflix.titus.api.appscale.service.AppScaleManager;
 import com.netflix.titus.api.appscale.store.AppScalePolicyStore;
+import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.grpc.protogen.DeletePolicyRequest;
 import com.netflix.titus.grpc.protogen.GetPolicyResult;
 import com.netflix.titus.grpc.protogen.JobId;
@@ -55,7 +56,9 @@ public class DefaultAutoScalingServiceGrpcTest {
             new AutoScalingPolicyTests.MockAlarmClient(),
             new AutoScalingPolicyTests.MockAppAutoScalingClient(), null,
             new DefaultRegistry(),
-            AutoScalingPolicyTests.mockAppScaleManagerConfiguration(), Schedulers.immediate());
+            AutoScalingPolicyTests.mockAppScaleManagerConfiguration(),
+            Schedulers.immediate(),
+            TitusRuntimes.test());
     private final DefaultAutoScalingServiceGrpc service = new DefaultAutoScalingServiceGrpc(appScaleManager);
 
     @Before

@@ -42,6 +42,7 @@ import com.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.runtime.store.v3.memory.InMemoryPolicyStore;
 import org.assertj.core.api.Assertions;
 import org.junit.Test;
@@ -82,9 +83,13 @@ public class DefaultAppScaleManagerTest {
         String jobIdTwo = UUID.randomUUID().toString();
         V3JobOperations v3JobOperations = mockV3Operations(jobIdOne, jobIdTwo);
 
-        DefaultAppScaleManager appScaleManager = new DefaultAppScaleManager(policyStore, mockAlarmClient, mockAppAutoScalingClient,
-                v3JobOperations, new DefaultRegistry(),
-                AutoScalingPolicyTests.mockAppScaleManagerConfiguration(), Schedulers.immediate());
+        DefaultAppScaleManager appScaleManager = new DefaultAppScaleManager(policyStore, mockAlarmClient,
+                mockAppAutoScalingClient,
+                v3JobOperations,
+                new DefaultRegistry(),
+                AutoScalingPolicyTests.mockAppScaleManagerConfiguration(),
+                Schedulers.immediate(),
+                mock(TitusRuntime.class));
 
         AutoScalingPolicy autoScalingPolicyOne;
         AutoScalingPolicy autoScalingPolicyTwo;
@@ -145,8 +150,11 @@ public class DefaultAppScaleManagerTest {
         DefaultAppScaleManager appScaleManager = new DefaultAppScaleManager(policyStore,
                 new AutoScalingPolicyTests.MockAlarmClient(),
                 appScalingClient,
-                v3JobOperations, new DefaultRegistry(),
-                AutoScalingPolicyTests.mockAppScaleManagerConfiguration(), Schedulers.immediate());
+                v3JobOperations,
+                new DefaultRegistry(),
+                AutoScalingPolicyTests.mockAppScaleManagerConfiguration(),
+                Schedulers.immediate(),
+                mock(TitusRuntime.class));
 
         List<String> refIds = submitTwoJobs(appScaleManager, jobIdOne, jobIdTwo, policyStore);
         Assertions.assertThat(refIds.size()).isEqualTo(2);
@@ -271,8 +279,11 @@ public class DefaultAppScaleManagerTest {
         V3JobOperations v3JobOperations = mockV3OperationsForJobs(jobIds);
         DefaultAppScaleManager appScaleManager = new DefaultAppScaleManager(policyStore, mockAlarmClient,
                 mockAppAutoScalingClient,
-                v3JobOperations, new DefaultRegistry(), AutoScalingPolicyTests.mockAppScaleManagerConfiguration(),
-                Schedulers.computation());
+                v3JobOperations,
+                new DefaultRegistry(),
+                AutoScalingPolicyTests.mockAppScaleManagerConfiguration(),
+                Schedulers.computation(),
+                mock(TitusRuntime.class));
 
         final CountDownLatch latch = new CountDownLatch(totalJobs);
         for (int i = 0; i < totalJobs; i++) {
