@@ -115,6 +115,7 @@ public class DatabaseMetrics {
                 .withTag(RECORD_OP_TAG, op.name())
                 .withTag(RECORD_TABLE_TAG, tableName)
                 .withTags(RECORD_ERROR_CLASS, throwable.getClass().getSimpleName())
-                .withTags(additionalTags));
+                .withTags(additionalTags))
+                .increment();
     }
 }
