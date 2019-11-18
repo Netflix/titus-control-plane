@@ -34,4 +34,7 @@ public interface EndpointConfiguration {
      */
     @DefaultValue("30000")
     long getGrpcServerShutdownTimeoutMs();
+
+    @DefaultValue("true")
+    boolean isAdmissionControllerEnabled();
 }
