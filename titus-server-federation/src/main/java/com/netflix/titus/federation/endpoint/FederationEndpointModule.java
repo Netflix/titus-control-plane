@@ -21,11 +21,21 @@ import javax.inject.Singleton;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
+import com.netflix.archaius.api.Config;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.common.util.loadshedding.AdmissionController;
+import com.netflix.titus.common.util.loadshedding.AdmissionControllers;
+import com.netflix.titus.common.util.loadshedding.grpc.GrpcAdmissionControllerServerInterceptor;
 import com.netflix.titus.federation.endpoint.grpc.FederationGrpcModule;
 import com.netflix.titus.federation.endpoint.rest.JerseyModule;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolveModule;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 
 public class FederationEndpointModule extends AbstractModule {
+    private static final String ADMISSION_CONTROLLER_CONFIGURATION_PREFIX = "titus.federation.admissionController.buckets";
+    private static final String UNIDENTIFIED = "unidentified";
+
     @Override
     protected void configure() {
         install(new CallMetadataResolveModule());
@@ -37,5 +47,32 @@ public class FederationEndpointModule extends AbstractModule {
     @Singleton
     public EndpointConfiguration getGrpcEndpointConfiguration(ConfigProxyFactory factory) {
         return factory.newProxy(EndpointConfiguration.class);
+    }
+
+    @Provides
+    @Singleton
+    public GrpcAdmissionControllerServerInterceptor getGrpcAdmissionControllerServerInterceptor(Config config,
+                                                                                                EndpointConfiguration configuration,
+                                                                                                CallMetadataResolver callMetadataResolver,
+                                                                                                TitusRuntime titusRuntime) {
+        AdmissionController mainController = AdmissionControllers.tokenBucketsFromArchaius(
+                config.getPrefixedView(ADMISSION_CONTROLLER_CONFIGURATION_PREFIX),
+                titusRuntime
+        );
+        AdmissionController circuitBreaker = AdmissionControllers.circuitBreaker(
+                mainController,
+                configuration::isAdmissionControllerEnabled
+        );
+        AdmissionController spectator = AdmissionControllers.spectator(circuitBreaker, titusRuntime);
+
+        return new GrpcAdmissionControllerServerInterceptor(
+                spectator,
+                () -> callMetadataResolver.resolve().map(c -> {
+                    if (CollectionsExt.isNullOrEmpty(c.getCallers())) {
+                        return UNIDENTIFIED;
+                    }
+                    return c.getCallers().get(0).getId();
+                }).orElse(UNIDENTIFIED)
+        );
     }
 }

@@ -29,6 +29,7 @@ import javax.inject.Singleton;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExecutorsExt;
 import com.netflix.titus.common.util.grpc.reactor.GrpcToReactorServerFactory;
+import com.netflix.titus.common.util.loadshedding.grpc.GrpcAdmissionControllerServerInterceptor;
 import com.netflix.titus.federation.endpoint.EndpointConfiguration;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc.AutoScalingServiceImplBase;
@@ -58,6 +59,7 @@ import org.slf4j.LoggerFactory;
 public class TitusFederationGrpcServer {
     private static final Logger LOG = LoggerFactory.getLogger(TitusFederationGrpcServer.class);
 
+    private final GrpcAdmissionControllerServerInterceptor admissionController;
     private final HealthImplBase healthService;
     private final SchedulerServiceImplBase schedulerService;
     private final JobManagementServiceImplBase jobManagementService;
@@ -74,6 +76,7 @@ public class TitusFederationGrpcServer {
 
     @Inject
     public TitusFederationGrpcServer(
+            GrpcAdmissionControllerServerInterceptor admissionController,
             HealthImplBase healthService,
             SchedulerServiceImplBase schedulerService,
             JobManagementServiceImplBase jobManagementService,
@@ -83,6 +86,7 @@ public class TitusFederationGrpcServer {
             GrpcToReactorServerFactory reactorServerFactory,
             EndpointConfiguration config,
             TitusRuntime runtime) {
+        this.admissionController = admissionController;
         this.healthService = healthService;
         this.schedulerService = schedulerService;
         this.jobManagementService = jobManagementService;
@@ -177,6 +181,10 @@ public class TitusFederationGrpcServer {
      * Override to add server side interceptors.
      */
     protected List<ServerInterceptor> createInterceptors(ServiceDescriptor serviceDescriptor) {
-        return Arrays.asList(new ErrorCatchingServerInterceptor(), new V3HeaderInterceptor());
+        return Arrays.asList(
+                new ErrorCatchingServerInterceptor(),
+                new V3HeaderInterceptor(),
+                admissionController
+        );
     }
 }
