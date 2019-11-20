@@ -75,7 +75,7 @@ public class KubeClusterMembershipConnectorTest {
     }
 
     @After
-    public void tearDown() {
+    public void tearDown() throws InterruptedException {
         connector.shutdown();
     }
 

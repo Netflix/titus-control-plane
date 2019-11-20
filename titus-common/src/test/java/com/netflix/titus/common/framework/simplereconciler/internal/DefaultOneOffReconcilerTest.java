@@ -26,6 +26,7 @@ import java.util.function.Function;
 
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
+import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.testkit.rx.TitusRxSubscriber;
 import org.junit.After;
@@ -38,7 +39,7 @@ import static com.jayway.awaitility.Awaitility.await;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
-public class DefaultSimpleReconciliationEngineTest {
+public class DefaultOneOffReconcilerTest {
 
     private static final Duration QUICK_CYCLE = Duration.ofMillis(1);
     private static final Duration LONG_CYCLE = Duration.ofMillis(2);
@@ -50,22 +51,20 @@ public class DefaultSimpleReconciliationEngineTest {
 
     private final TitusRuntime titusRuntime = TitusRuntimes.internal();
 
-    private DefaultSimpleReconciliationEngine<String> reconciliationEngine;
+    private DefaultOneOffReconciler<String> reconciler;
     private TitusRxSubscriber<String> changesSubscriber;
 
     @After
     public void tearDown() {
         ReactorExt.safeDispose(changesSubscriber);
-        if (reconciliationEngine != null) {
-            reconciliationEngine.close();
-        }
+        Evaluators.acceptNotNull(reconciler, r -> r.close().block(TIMEOUT));
     }
 
     @Test(timeout = 30_000)
     public void testExternalAction() {
         newReconciler(current -> Collections.emptyList());
 
-        assertThat(reconciliationEngine.apply(Mono.just(c -> "update")).block()).isEqualTo("update");
+        assertThat(reconciler.apply(c -> Mono.just("update")).block()).isEqualTo("update");
         assertThat(changesSubscriber.takeNext()).isEqualTo("update");
         assertThat(changesSubscriber.takeNext()).isNull();
     }
@@ -76,11 +75,11 @@ public class DefaultSimpleReconciliationEngineTest {
 
         CountDownLatch latch = new CountDownLatch(1);
         AtomicBoolean canceled = new AtomicBoolean();
-        Mono<Function<String, String>> action = Mono.<Function<String, String>>never()
+        Mono<String> action = Mono.<String>never()
                 .doOnSubscribe(s -> latch.countDown())
                 .doOnCancel(() -> canceled.set(true));
 
-        Disposable disposable = reconciliationEngine.apply(action).subscribe();
+        Disposable disposable = reconciler.apply(c -> action).subscribe();
         latch.await();
 
         assertThat(disposable.isDisposed()).isFalse();
@@ -92,7 +91,7 @@ public class DefaultSimpleReconciliationEngineTest {
         assertThat(changesSubscriber.takeNext()).isNull();
 
         // Now run regular action
-        assertThat(reconciliationEngine.apply(Mono.just(anything -> "Regular")).block(TIMEOUT)).isEqualTo("Regular");
+        assertThat(reconciler.apply(anything -> Mono.just("Regular")).block(TIMEOUT)).isEqualTo("Regular");
     }
 
     @Test(timeout = 30_000)
@@ -100,7 +99,7 @@ public class DefaultSimpleReconciliationEngineTest {
         newReconciler(current -> Collections.emptyList());
 
         try {
-            reconciliationEngine.apply(Mono.error(new RuntimeException("simulated error"))).block();
+            reconciler.apply(anything -> Mono.error(new RuntimeException("simulated error"))).block();
             fail("Expected error");
         } catch (Exception e) {
             assertThat(e).isInstanceOf(RuntimeException.class);
@@ -115,9 +114,9 @@ public class DefaultSimpleReconciliationEngineTest {
         newReconciler(current -> Collections.emptyList());
 
         try {
-            reconciliationEngine.apply(Mono.just(c -> {
+            reconciler.apply(c -> {
                 throw new RuntimeException("simulated error");
-            })).block();
+            }).block();
             fail("Expected error");
         } catch (Exception e) {
             assertThat(e).isInstanceOf(RuntimeException.class);
@@ -163,20 +162,20 @@ public class DefaultSimpleReconciliationEngineTest {
 
         TitusRxSubscriber<String> subscriber1 = new TitusRxSubscriber<>();
         TitusRxSubscriber<String> subscriber2 = new TitusRxSubscriber<>();
-        reconciliationEngine.apply(Mono.never()).subscribe(subscriber1);
-        reconciliationEngine.apply(Mono.never()).subscribe(subscriber2);
+        reconciler.apply(c -> Mono.never()).subscribe(subscriber1);
+        reconciler.apply(c -> Mono.never()).subscribe(subscriber2);
 
         assertThat(subscriber1.isOpen()).isTrue();
         assertThat(subscriber2.isOpen()).isTrue();
 
-        reconciliationEngine.close();
+        reconciler.close().subscribe();
 
         await().until(() -> !subscriber1.isOpen());
         await().until(() -> !subscriber2.isOpen());
-        assertThat(subscriber1.getError().getMessage()).isEqualTo("Reconciliation engine closed");
-        assertThat(subscriber2.getError().getMessage()).isEqualTo("Reconciliation engine closed");
+        assertThat(subscriber1.getError().getMessage()).isEqualTo("cancelled");
+        assertThat(subscriber2.getError().getMessage()).isEqualTo("cancelled");
 
-        assertThat(changesSubscriber.isOpen()).isFalse();
+        await().until(() -> !changesSubscriber.isOpen());
     }
 
     @Test(timeout = 30_000)
@@ -192,19 +191,19 @@ public class DefaultSimpleReconciliationEngineTest {
         ready.await();
 
         TitusRxSubscriber<String> subscriber = new TitusRxSubscriber<>();
-        reconciliationEngine.apply(Mono.never()).subscribe(subscriber);
+        reconciler.apply(c -> Mono.never()).subscribe(subscriber);
         assertThat(subscriber.isOpen()).isTrue();
 
-        reconciliationEngine.close();
+        reconciler.close().subscribe();
 
         await().until(() -> cancelled.get() && !subscriber.isOpen());
-        assertThat(subscriber.getError().getMessage()).isEqualTo("Reconciliation engine closed");
+        assertThat(subscriber.getError().getMessage()).isEqualTo("cancelled");
 
-        assertThat(changesSubscriber.isOpen()).isFalse();
+        await().until(() -> !changesSubscriber.isOpen());
     }
 
     private void newReconciler(Function<String, List<Mono<Function<String, String>>>> reconcilerActionsProvider) {
-        this.reconciliationEngine = new DefaultSimpleReconciliationEngine<>(
+        this.reconciler = new DefaultOneOffReconciler<>(
                 "junit",
                 INITIAL,
                 QUICK_CYCLE,
@@ -215,7 +214,7 @@ public class DefaultSimpleReconciliationEngineTest {
         );
 
         this.changesSubscriber = new TitusRxSubscriber<>();
-        reconciliationEngine.changes().subscribe(changesSubscriber);
+        reconciler.changes().subscribe(changesSubscriber);
 
         String event = changesSubscriber.takeNext();
         if (!event.equals(INITIAL) && !event.startsWith(RECONCILED)) {

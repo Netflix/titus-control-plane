@@ -42,7 +42,13 @@ public final class Evaluators {
     /**
      * Do nothing consumer.
      */
-    public static <T> void doNothing(T value) {
+    public static <T> void consumeNothing(T value) {
+    }
+
+    /**
+     * Do nothing runnable.
+     */
+    public static void doNothing() {
     }
 
     /**
