@@ -187,6 +187,7 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
 
         containerInfoBuilder.putTitusProvidedEnv("TITUS_JOB_ID", task.getJobId());
         containerInfoBuilder.putTitusProvidedEnv("TITUS_TASK_ID", task.getId());
+        containerInfoBuilder.putTitusProvidedEnv("NETFLIX_EXECUTOR", "titus");
         containerInfoBuilder.putTitusProvidedEnv("NETFLIX_INSTANCE_ID", task.getId());
         containerInfoBuilder.putTitusProvidedEnv("TITUS_TASK_INSTANCE_ID", task.getId());
         containerInfoBuilder.putTitusProvidedEnv("TITUS_TASK_ORIGINAL_ID", task.getOriginalId());
