@@ -23,25 +23,34 @@ import com.google.common.base.Preconditions;
 import com.netflix.titus.common.framework.simplereconciler.internal.ChangeActionHolder;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import reactor.core.Disposable;
+import reactor.core.Disposables;
 
 public class SingleTransaction<DATA> implements Transaction<DATA> {
 
     private final ChangeActionHolder<DATA> actionHolder;
-    private final Disposable subscription;
 
+    private volatile Disposable subscription;
     private volatile TransactionStatus<DATA> transactionStatus;
 
     public SingleTransaction(DATA current, ChangeActionHolder<DATA> actionHolder) {
-        this.transactionStatus = TransactionStatus.started();
-        this.subscription = actionHolder.getAction().apply(current)
-                .doOnCancel(() -> transitionIfRunning(TransactionStatus::cancelled))
-                .subscribe(
-                        newValue -> transitionIfRunning(() -> transactionStatus.resultReady(newValue)),
-                        error -> transitionIfRunning(() -> TransactionStatus.failed(error)),
-                        () -> transitionIfRunning(() -> transactionStatus.resultReady(Function.identity()))
-                );
-        actionHolder.addCancelCallback(subscription);
         this.actionHolder = actionHolder;
+
+        this.transactionStatus = TransactionStatus.started();
+        try {
+            this.subscription = actionHolder.getAction().apply(current)
+                    .doOnCancel(() -> transitionIfRunning(TransactionStatus::cancelled))
+                    .subscribe(
+                            newValue -> transitionIfRunning(() -> transactionStatus.resultReady(newValue)),
+                            error -> transitionIfRunning(() -> TransactionStatus.failed(error)),
+                            () -> transitionIfRunning(() -> transactionStatus.resultReady(Function.identity()))
+                    );
+        } catch (Exception e) {
+            this.subscription = Disposables.disposed();
+            this.transactionStatus = TransactionStatus.failed(e);
+            return;
+        }
+
+        actionHolder.addCancelCallback(subscription);
     }
 
     @Override

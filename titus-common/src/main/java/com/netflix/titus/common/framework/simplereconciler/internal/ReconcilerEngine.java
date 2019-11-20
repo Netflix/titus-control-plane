@@ -176,6 +176,7 @@ class ReconcilerEngine<DATA> {
             // Failed
             if (state == TransactionStatus.State.Failed) {
                 if (sink == null) {
+                    logger.warn("Reconciler action failure: {}", pendingTransaction.getStatus().getError().getMessage());
                     return Optional.empty();
                 }
                 return Optional.of(Pair.of(Optional.empty(), () -> ExceptionExt.silent(() -> sink.error(status.getError()))));
