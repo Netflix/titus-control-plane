@@ -17,6 +17,8 @@
 package com.netflix.titus.runtime.connector.jobmanager.replicator;
 
 import java.time.Duration;
+import java.util.Collections;
+import java.util.Map;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Provider;
@@ -49,8 +51,12 @@ public class JobDataReplicatorProvider implements Provider<JobDataReplicator> {
 
     @Inject
     public JobDataReplicatorProvider(JobManagementClient client, TitusRuntime titusRuntime) {
+        this(client, Collections.emptyMap(), titusRuntime);
+    }
+
+    public JobDataReplicatorProvider(JobManagementClient client, Map<String, String> filteringCriteria, TitusRuntime titusRuntime) {
         StreamDataReplicator<JobSnapshot, JobManagerEvent<?>> original = StreamDataReplicator.newStreamDataReplicator(
-                newReplicatorEventStream(client, titusRuntime),
+                newReplicatorEventStream(client, filteringCriteria, titusRuntime),
                 new JobDataReplicatorMetrics(JOB_REPLICATOR, titusRuntime),
                 titusRuntime
         ).blockFirst(Duration.ofMillis(JOB_BOOTSTRAP_TIMEOUT_MS));
@@ -68,9 +74,12 @@ public class JobDataReplicatorProvider implements Provider<JobDataReplicator> {
         return replicator;
     }
 
-    private static RetryableReplicatorEventStream<JobSnapshot, JobManagerEvent<?>> newReplicatorEventStream(JobManagementClient client, TitusRuntime titusRuntime) {
+    private static RetryableReplicatorEventStream<JobSnapshot, JobManagerEvent<?>> newReplicatorEventStream(JobManagementClient client,
+                                                                                                            Map<String, String> filteringCriteria,
+                                                                                                            TitusRuntime titusRuntime) {
         GrpcJobReplicatorEventStream grpcEventStream = new GrpcJobReplicatorEventStream(
                 client,
+                filteringCriteria,
                 new JobDataReplicatorMetrics(JOB_REPLICATOR_GRPC_STREAM, titusRuntime),
                 titusRuntime,
                 Schedulers.parallel()

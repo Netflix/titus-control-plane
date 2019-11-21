@@ -19,6 +19,7 @@ package com.netflix.titus.runtime.connector.jobmanager.replicator;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
@@ -47,21 +48,31 @@ public class GrpcJobReplicatorEventStream extends AbstractReplicatorEventStream<
     private static final Logger logger = LoggerFactory.getLogger(GrpcJobReplicatorEventStream.class);
 
     private final JobManagementClient client;
+    private final Map<String, String> filteringCriteria;
 
     public GrpcJobReplicatorEventStream(JobManagementClient client,
                                         DataReplicatorMetrics metrics,
                                         TitusRuntime titusRuntime,
                                         Scheduler scheduler) {
+        this(client, Collections.emptyMap(), metrics, titusRuntime, scheduler);
+    }
+
+    public GrpcJobReplicatorEventStream(JobManagementClient client,
+                                        Map<String, String> filteringCriteria,
+                                        DataReplicatorMetrics metrics,
+                                        TitusRuntime titusRuntime,
+                                        Scheduler scheduler) {
         super(metrics, titusRuntime, scheduler);
         this.client = client;
+        this.filteringCriteria = filteringCriteria;
     }
 
     @Override
     protected Flux<ReplicatorEvent<JobSnapshot, JobManagerEvent<?>>> newConnection() {
         return Flux.defer(() -> {
             CacheUpdater cacheUpdater = new CacheUpdater();
-            logger.info("Connecting to the job event stream...");
-            return client.observeJobs(Collections.emptyMap()).flatMap(cacheUpdater::onEvent);
+            logger.info("Connecting to the job event stream (filteringCriteria={})...", filteringCriteria);
+            return client.observeJobs(filteringCriteria).flatMap(cacheUpdater::onEvent);
         });
     }
 
