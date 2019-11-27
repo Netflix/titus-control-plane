@@ -19,6 +19,7 @@ package com.netflix.titus.runtime.endpoint.common.grpc;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.annotation.PostConstruct;
@@ -46,6 +47,7 @@ public abstract class AbstractTitusGrpcServer {
     private final GrpcEndpointConfiguration configuration;
     private final ServerServiceDefinition serviceDefinition;
     private final TitusRuntime runtime;
+    private final ExecutorService grpcCallbackExecutor;
 
     private final AtomicBoolean started = new AtomicBoolean();
     private Server server;
@@ -61,6 +63,7 @@ public abstract class AbstractTitusGrpcServer {
         this.configuration = configuration;
         this.serviceDefinition = bindableService.bindService();
         this.runtime = runtime;
+        this.grpcCallbackExecutor = ExecutorsExt.instrumentedCachedThreadPool(runtime.getRegistry(), "grpcCallbackExecutor");
     }
 
     protected AbstractTitusGrpcServer(GrpcEndpointConfiguration configuration,
@@ -68,6 +71,7 @@ public abstract class AbstractTitusGrpcServer {
         this.configuration = configuration;
         this.serviceDefinition = serviceDefinition;
         this.runtime = runtime;
+        this.grpcCallbackExecutor = ExecutorsExt.instrumentedCachedThreadPool(runtime.getRegistry(), "grpcCallbackExecutor");
     }
 
     public int getPort() {
@@ -76,31 +80,33 @@ public abstract class AbstractTitusGrpcServer {
 
     @PostConstruct
     public void start() {
-        if (!started.getAndSet(true)) {
-            ServerBuilder<?> initial = ServerBuilder.forPort(port);
-            initial.executor(ExecutorsExt.instrumentedCachedThreadPool(runtime.getRegistry(), "grpcCallbackExecutor"));
-            ServerBuilder<?> serverBuilder = configure(initial);
-            serverBuilder.addService(ServerInterceptors.intercept(
-                    serviceDefinition,
-                    createInterceptors(HealthGrpc.getServiceDescriptor())
-            ));
-            this.server = serverBuilder.build();
-
-            logger.info("Starting {} on port {}.", getClass().getSimpleName(), configuration.getPort());
-            try {
-                this.server.start();
-                this.port = server.getPort();
-            } catch (final IOException e) {
-                throw new RuntimeException(e);
-            }
-            logger.info("Started {} on port {}.", getClass().getSimpleName(), port);
+        if (started.getAndSet(true)) {
+            return;
         }
+        this.server = configure(ServerBuilder.forPort(port).executor(grpcCallbackExecutor))
+                .addService(ServerInterceptors.intercept(
+                        serviceDefinition,
+                        createInterceptors(HealthGrpc.getServiceDescriptor())
+                ))
+                .build();
+
+        logger.info("Starting {} on port {}.", getClass().getSimpleName(), configuration.getPort());
+        try {
+            this.server.start();
+            this.port = server.getPort();
+        } catch (final IOException e) {
+            throw new RuntimeException(e);
+        }
+        logger.info("Started {} on port {}.", getClass().getSimpleName(), port);
     }
 
     @PreDestroy
     public void shutdown() {
-        if (!server.isShutdown()) {
-            long timeoutMs = configuration.getShutdownTimeoutMs();
+        if (server.isShutdown()) {
+            return;
+        }
+        long timeoutMs = configuration.getShutdownTimeoutMs();
+        try {
             if (timeoutMs <= 0) {
                 server.shutdownNow();
             } else {
@@ -111,6 +117,14 @@ public abstract class AbstractTitusGrpcServer {
                 }
                 if (!server.isShutdown()) {
                     server.shutdownNow();
+                }
+            }
+        } finally {
+            grpcCallbackExecutor.shutdown();
+            if (timeoutMs > 0) {
+                try {
+                    grpcCallbackExecutor.awaitTermination(timeoutMs, TimeUnit.MILLISECONDS);
+                } catch (InterruptedException ignore) {
                 }
             }
         }
