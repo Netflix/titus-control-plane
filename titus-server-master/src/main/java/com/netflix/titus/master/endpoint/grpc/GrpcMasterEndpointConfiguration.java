@@ -26,10 +26,6 @@ public interface GrpcMasterEndpointConfiguration {
     @DefaultValue("7104")
     int getPort();
 
-    @PropertyName(name = "loadbalancer.enabled")
-    @DefaultValue("true")
-    boolean getLoadBalancerGrpcEnabled();
-
     /**
      * Graceful shutdown time for GRPC server. If zero, shutdown happens immediately, and all client connections are
      * terminated abruptly.

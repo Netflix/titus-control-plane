@@ -132,29 +132,36 @@ public class TitusMasterGrpcServer {
             return;
         }
         this.port = config.getPort();
-        ServerBuilder<?> serverBuilder = configure(ServerBuilder.forPort(port).executor(grpcCallbackExecutor))
+        this.server = configure(ServerBuilder.forPort(port).executor(grpcCallbackExecutor))
                 .addService(ServerInterceptors.intercept(
                         healthService,
                         createInterceptors(HealthGrpc.getServiceDescriptor())
-                )).addService(ServerInterceptors.intercept(
+                ))
+                .addService(ServerInterceptors.intercept(
                         titusSupervisorService,
                         createInterceptors(SupervisorServiceGrpc.getServiceDescriptor())
-                )).addService(ServerInterceptors.intercept(
+                ))
+                .addService(ServerInterceptors.intercept(
                         jobManagementService,
                         createInterceptors(JobManagementServiceGrpc.getServiceDescriptor())
-                )).addService(ServerInterceptors.intercept(
+                ))
+                .addService(ServerInterceptors.intercept(
                         agentManagementService,
                         createInterceptors(AgentManagementServiceGrpc.getServiceDescriptor())
-                )).addService(ServerInterceptors.intercept(
+                ))
+                .addService(ServerInterceptors.intercept(
                         evictionService,
                         createInterceptors(EvictionServiceGrpc.getServiceDescriptor())
-                )).addService(ServerInterceptors.intercept(
+                ))
+                .addService(ServerInterceptors.intercept(
                         appAutoScalingService,
                         createInterceptors(AutoScalingServiceGrpc.getServiceDescriptor())
-                )).addService(ServerInterceptors.intercept(
+                ))
+                .addService(ServerInterceptors.intercept(
                         schedulerService,
                         createInterceptors(SchedulerServiceGrpc.getServiceDescriptor())
-                )).addService(
+                ))
+                .addService(
                         ServerInterceptors.intercept(
                                 reactorServerFactory.apply(
                                         MachineServiceGrpc.getServiceDescriptor(),
@@ -162,14 +169,12 @@ public class TitusMasterGrpcServer {
                                 ),
                                 createInterceptors(MachineServiceGrpc.getServiceDescriptor())
                         )
-                );
-        if (config.getLoadBalancerGrpcEnabled()) {
-            serverBuilder.addService(ServerInterceptors.intercept(
-                    loadBalancerService,
-                    createInterceptors(LoadBalancerServiceGrpc.getServiceDescriptor())
-            ));
-        }
-        this.server = serverBuilder.build();
+                )
+                .addService(ServerInterceptors.intercept(
+                        loadBalancerService,
+                        createInterceptors(LoadBalancerServiceGrpc.getServiceDescriptor())
+                ))
+                .build();
 
         LOG.info("Starting gRPC server on port {}.", port);
         try {
