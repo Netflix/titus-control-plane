@@ -119,7 +119,7 @@ public class TitusGatewayGrpcServer {
             return;
         }
         this.port = config.getPort();
-        ServerBuilder<?> serverBuilder = configure(ServerBuilder.forPort(port).executor(grpcCallbackExecutor))
+        this.server = configure(ServerBuilder.forPort(port).executor(grpcCallbackExecutor))
                 .addService(ServerInterceptors.intercept(
                         healthService,
                         createInterceptors(HealthGrpc.getServiceDescriptor())
@@ -143,23 +143,20 @@ public class TitusGatewayGrpcServer {
                 .addService(ServerInterceptors.intercept(
                         schedulerService,
                         createInterceptors(SchedulerServiceGrpc.getServiceDescriptor())
-                )).addService(
-                        ServerInterceptors.intercept(
-                                reactorServerFactory.apply(
-                                        MachineServiceGrpc.getServiceDescriptor(),
-                                        reactorMachineGrpcService
-                                ),
-                                createInterceptors(MachineServiceGrpc.getServiceDescriptor())
-                        )
-                )
-                .addService(ProtoReflectionService.newInstance());
-
-        if (config.getLoadBalancerGrpcEnabled()) {
-            serverBuilder.addService(ServerInterceptors.intercept(
-                    loadBalancerService,
-                    createInterceptors(LoadBalancerServiceGrpc.getServiceDescriptor())));
-        }
-        this.server = serverBuilder.build();
+                ))
+                .addService(ServerInterceptors.intercept(
+                        reactorServerFactory.apply(
+                                MachineServiceGrpc.getServiceDescriptor(),
+                                reactorMachineGrpcService
+                        ),
+                        createInterceptors(MachineServiceGrpc.getServiceDescriptor())
+                ))
+                .addService(ServerInterceptors.intercept(
+                        loadBalancerService,
+                        createInterceptors(LoadBalancerServiceGrpc.getServiceDescriptor())
+                ))
+                .addService(ProtoReflectionService.newInstance())
+                .build();
 
         LOG.info("Starting gRPC server on port {}.", port);
         try {
