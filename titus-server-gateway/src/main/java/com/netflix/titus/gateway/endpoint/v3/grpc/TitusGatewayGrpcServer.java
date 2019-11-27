@@ -18,6 +18,7 @@ package com.netflix.titus.gateway.endpoint.v3.grpc;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.annotation.PostConstruct;
@@ -74,6 +75,7 @@ public class TitusGatewayGrpcServer {
     private final GrpcToReactorServerFactory reactorServerFactory;
     private final GrpcEndpointConfiguration config;
     private final TitusRuntime titusRuntime;
+    private final ExecutorService grpcCallbackExecutor;
 
     private final AtomicBoolean started = new AtomicBoolean();
     private Server server;
@@ -104,6 +106,7 @@ public class TitusGatewayGrpcServer {
         this.reactorServerFactory = reactorServerFactory;
         this.config = config;
         this.titusRuntime = titusRuntime;
+        this.grpcCallbackExecutor = ExecutorsExt.instrumentedCachedThreadPool(titusRuntime.getRegistry(), "grpcCallbackExecutor");
     }
 
     public int getPort() {
@@ -112,67 +115,69 @@ public class TitusGatewayGrpcServer {
 
     @PostConstruct
     public void start() {
-        if (!started.getAndSet(true)) {
-            this.port = config.getPort();
-            ServerBuilder<?> initial = ServerBuilder.forPort(port);
-            initial.executor(ExecutorsExt.instrumentedCachedThreadPool(titusRuntime.getRegistry(), "grpcCallbackExecutor"));
-            ServerBuilder<?> serverBuilder = configure(initial)
-                    .addService(ServerInterceptors.intercept(
-                            healthService,
-                            createInterceptors(HealthGrpc.getServiceDescriptor())
-                    ))
-                    .addService(ServerInterceptors.intercept(
-                            jobManagementService,
-                            createInterceptors(JobManagementServiceGrpc.getServiceDescriptor())
-                    ))
-                    .addService(ServerInterceptors.intercept(
-                            evictionService,
-                            createInterceptors(EvictionServiceGrpc.getServiceDescriptor())
-                    ))
-                    .addService(ServerInterceptors.intercept(
-                            agentManagementService,
-                            createInterceptors(AgentManagementServiceGrpc.getServiceDescriptor())
-                    ))
-                    .addService(ServerInterceptors.intercept(
-                            appAutoScalingService,
-                            createInterceptors(AutoScalingServiceGrpc.getServiceDescriptor())
-                    ))
-                    .addService(ServerInterceptors.intercept(
-                            schedulerService,
-                            createInterceptors(SchedulerServiceGrpc.getServiceDescriptor())
-                    )).addService(
-                            ServerInterceptors.intercept(
-                                    reactorServerFactory.apply(
-                                            MachineServiceGrpc.getServiceDescriptor(),
-                                            reactorMachineGrpcService
-                                    ),
-                                    createInterceptors(MachineServiceGrpc.getServiceDescriptor())
-                            )
-                    )
-                    .addService(ProtoReflectionService.newInstance());
-
-            if (config.getLoadBalancerGrpcEnabled()) {
-                serverBuilder.addService(ServerInterceptors.intercept(
-                        loadBalancerService,
-                        createInterceptors(LoadBalancerServiceGrpc.getServiceDescriptor())));
-            }
-            this.server = serverBuilder.build();
-
-            LOG.info("Starting gRPC server on port {}.", port);
-            try {
-                this.server.start();
-                this.port = server.getPort();
-            } catch (final IOException e) {
-                throw new RuntimeException(e);
-            }
-            LOG.info("Started gRPC server on port {}.", port);
+        if (started.getAndSet(true)) {
+            return;
         }
+        this.port = config.getPort();
+        ServerBuilder<?> serverBuilder = configure(ServerBuilder.forPort(port).executor(grpcCallbackExecutor))
+                .addService(ServerInterceptors.intercept(
+                        healthService,
+                        createInterceptors(HealthGrpc.getServiceDescriptor())
+                ))
+                .addService(ServerInterceptors.intercept(
+                        jobManagementService,
+                        createInterceptors(JobManagementServiceGrpc.getServiceDescriptor())
+                ))
+                .addService(ServerInterceptors.intercept(
+                        evictionService,
+                        createInterceptors(EvictionServiceGrpc.getServiceDescriptor())
+                ))
+                .addService(ServerInterceptors.intercept(
+                        agentManagementService,
+                        createInterceptors(AgentManagementServiceGrpc.getServiceDescriptor())
+                ))
+                .addService(ServerInterceptors.intercept(
+                        appAutoScalingService,
+                        createInterceptors(AutoScalingServiceGrpc.getServiceDescriptor())
+                ))
+                .addService(ServerInterceptors.intercept(
+                        schedulerService,
+                        createInterceptors(SchedulerServiceGrpc.getServiceDescriptor())
+                )).addService(
+                        ServerInterceptors.intercept(
+                                reactorServerFactory.apply(
+                                        MachineServiceGrpc.getServiceDescriptor(),
+                                        reactorMachineGrpcService
+                                ),
+                                createInterceptors(MachineServiceGrpc.getServiceDescriptor())
+                        )
+                )
+                .addService(ProtoReflectionService.newInstance());
+
+        if (config.getLoadBalancerGrpcEnabled()) {
+            serverBuilder.addService(ServerInterceptors.intercept(
+                    loadBalancerService,
+                    createInterceptors(LoadBalancerServiceGrpc.getServiceDescriptor())));
+        }
+        this.server = serverBuilder.build();
+
+        LOG.info("Starting gRPC server on port {}.", port);
+        try {
+            this.server.start();
+            this.port = server.getPort();
+        } catch (final IOException e) {
+            throw new RuntimeException(e);
+        }
+        LOG.info("Started gRPC server on port {}.", port);
     }
 
     @PreDestroy
     public void shutdown() {
-        if (!server.isShutdown()) {
-            long timeoutMs = config.getShutdownTimeoutMs();
+        if (server.isShutdown()) {
+            return;
+        }
+        long timeoutMs = config.getShutdownTimeoutMs();
+        try {
             if (timeoutMs <= 0) {
                 server.shutdownNow();
             } else {
@@ -183,6 +188,14 @@ public class TitusGatewayGrpcServer {
                 }
                 if (!server.isShutdown()) {
                     server.shutdownNow();
+                }
+            }
+        } finally {
+            grpcCallbackExecutor.shutdown();
+            if (timeoutMs > 0) {
+                try {
+                    grpcCallbackExecutor.awaitTermination(timeoutMs, TimeUnit.MILLISECONDS);
+                } catch (InterruptedException ignore) {
                 }
             }
         }
