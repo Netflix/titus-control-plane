@@ -18,6 +18,7 @@ package com.netflix.titus.runtime.endpoint;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -49,6 +50,7 @@ public class JobQueryCriteria<TASK_STATE, JOB_TYPE extends Enum<JOB_TYPE>> {
     private final Optional<String> jobGroupDetail;
     private final Optional<String> jobGroupSequence;
     private final boolean needsMigration;
+    private final boolean skipSystemFailures;
     private final int limit;
 
     private JobQueryCriteria(Set<String> jobIds,
@@ -69,6 +71,7 @@ public class JobQueryCriteria<TASK_STATE, JOB_TYPE extends Enum<JOB_TYPE>> {
                              String jobGroupDetail,
                              String jobGroupSequence,
                              boolean needsMigration,
+                             boolean skipSystemFailures,
                              int limit) {
         this.jobIds = nonNull(jobIds);
         this.taskIds = nonNull(taskIds);
@@ -88,6 +91,7 @@ public class JobQueryCriteria<TASK_STATE, JOB_TYPE extends Enum<JOB_TYPE>> {
         this.jobGroupDetail = Optional.ofNullable(jobGroupDetail);
         this.jobGroupSequence = Optional.ofNullable(jobGroupSequence);
         this.needsMigration = needsMigration;
+        this.skipSystemFailures = skipSystemFailures;
         this.limit = limit;
     }
 
@@ -167,6 +171,10 @@ public class JobQueryCriteria<TASK_STATE, JOB_TYPE extends Enum<JOB_TYPE>> {
         return needsMigration;
     }
 
+    public boolean isSkipSystemFailures() {
+        return skipSystemFailures;
+    }
+
     public int getLimit() {
         return limit;
     }
@@ -219,88 +227,32 @@ public class JobQueryCriteria<TASK_STATE, JOB_TYPE extends Enum<JOB_TYPE>> {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
         JobQueryCriteria<?, ?> that = (JobQueryCriteria<?, ?>) o;
-
-        if (includeArchived != that.includeArchived) {
-            return false;
-        }
-        if (labelsAndOp != that.labelsAndOp) {
-            return false;
-        }
-        if (needsMigration != that.needsMigration) {
-            return false;
-        }
-        if (limit != that.limit) {
-            return false;
-        }
-        if (jobIds != null ? !jobIds.equals(that.jobIds) : that.jobIds != null) {
-            return false;
-        }
-        if (taskIds != null ? !taskIds.equals(that.taskIds) : that.taskIds != null) {
-            return false;
-        }
-        if (jobState != null ? !jobState.equals(that.jobState) : that.jobState != null) {
-            return false;
-        }
-        if (taskStates != null ? !taskStates.equals(that.taskStates) : that.taskStates != null) {
-            return false;
-        }
-        if (taskStateReasons != null ? !taskStateReasons.equals(that.taskStateReasons) : that.taskStateReasons != null) {
-            return false;
-        }
-        if (owner != null ? !owner.equals(that.owner) : that.owner != null) {
-            return false;
-        }
-        if (labels != null ? !labels.equals(that.labels) : that.labels != null) {
-            return false;
-        }
-        if (imageName != null ? !imageName.equals(that.imageName) : that.imageName != null) {
-            return false;
-        }
-        if (imageTag != null ? !imageTag.equals(that.imageTag) : that.imageTag != null) {
-            return false;
-        }
-        if (appName != null ? !appName.equals(that.appName) : that.appName != null) {
-            return false;
-        }
-        if (capacityGroup != null ? !capacityGroup.equals(that.capacityGroup) : that.capacityGroup != null) {
-            return false;
-        }
-        if (jobType != null ? !jobType.equals(that.jobType) : that.jobType != null) {
-            return false;
-        }
-        if (jobGroupStack != null ? !jobGroupStack.equals(that.jobGroupStack) : that.jobGroupStack != null) {
-            return false;
-        }
-        if (jobGroupDetail != null ? !jobGroupDetail.equals(that.jobGroupDetail) : that.jobGroupDetail != null) {
-            return false;
-        }
-        return jobGroupSequence != null ? jobGroupSequence.equals(that.jobGroupSequence) : that.jobGroupSequence == null;
+        return includeArchived == that.includeArchived &&
+                labelsAndOp == that.labelsAndOp &&
+                needsMigration == that.needsMigration &&
+                skipSystemFailures == that.skipSystemFailures &&
+                limit == that.limit &&
+                Objects.equals(jobIds, that.jobIds) &&
+                Objects.equals(taskIds, that.taskIds) &&
+                Objects.equals(jobState, that.jobState) &&
+                Objects.equals(taskStates, that.taskStates) &&
+                Objects.equals(taskStateReasons, that.taskStateReasons) &&
+                Objects.equals(owner, that.owner) &&
+                Objects.equals(labels, that.labels) &&
+                Objects.equals(imageName, that.imageName) &&
+                Objects.equals(imageTag, that.imageTag) &&
+                Objects.equals(appName, that.appName) &&
+                Objects.equals(capacityGroup, that.capacityGroup) &&
+                Objects.equals(jobType, that.jobType) &&
+                Objects.equals(jobGroupStack, that.jobGroupStack) &&
+                Objects.equals(jobGroupDetail, that.jobGroupDetail) &&
+                Objects.equals(jobGroupSequence, that.jobGroupSequence);
     }
 
     @Override
     public int hashCode() {
-        int result = jobIds != null ? jobIds.hashCode() : 0;
-        result = 31 * result + (taskIds != null ? taskIds.hashCode() : 0);
-        result = 31 * result + (includeArchived ? 1 : 0);
-        result = 31 * result + (jobState != null ? jobState.hashCode() : 0);
-        result = 31 * result + (taskStates != null ? taskStates.hashCode() : 0);
-        result = 31 * result + (taskStateReasons != null ? taskStateReasons.hashCode() : 0);
-        result = 31 * result + (owner != null ? owner.hashCode() : 0);
-        result = 31 * result + (labels != null ? labels.hashCode() : 0);
-        result = 31 * result + (labelsAndOp ? 1 : 0);
-        result = 31 * result + (imageName != null ? imageName.hashCode() : 0);
-        result = 31 * result + (imageTag != null ? imageTag.hashCode() : 0);
-        result = 31 * result + (appName != null ? appName.hashCode() : 0);
-        result = 31 * result + (capacityGroup != null ? capacityGroup.hashCode() : 0);
-        result = 31 * result + (jobType != null ? jobType.hashCode() : 0);
-        result = 31 * result + (jobGroupStack != null ? jobGroupStack.hashCode() : 0);
-        result = 31 * result + (jobGroupDetail != null ? jobGroupDetail.hashCode() : 0);
-        result = 31 * result + (jobGroupSequence != null ? jobGroupSequence.hashCode() : 0);
-        result = 31 * result + (needsMigration ? 1 : 0);
-        result = 31 * result + limit;
-        return result;
+        return Objects.hash(jobIds, taskIds, includeArchived, jobState, taskStates, taskStateReasons, owner, labels, labelsAndOp, imageName, imageTag, appName, capacityGroup, jobType, jobGroupStack, jobGroupDetail, jobGroupSequence, needsMigration, skipSystemFailures, limit);
     }
 
     @Override
@@ -324,6 +276,7 @@ public class JobQueryCriteria<TASK_STATE, JOB_TYPE extends Enum<JOB_TYPE>> {
                 ", jobGroupDetail=" + jobGroupDetail +
                 ", jobGroupSequence=" + jobGroupSequence +
                 ", needsMigration=" + needsMigration +
+                ", skipSystemFailures=" + skipSystemFailures +
                 ", limit=" + limit +
                 '}';
     }
@@ -347,6 +300,7 @@ public class JobQueryCriteria<TASK_STATE, JOB_TYPE extends Enum<JOB_TYPE>> {
         private String jobGroupDetail;
         private String jobGroupSequence;
         private boolean needsMigration;
+        private boolean skipSystemFailures;
         private int limit;
 
         private Builder() {
@@ -442,6 +396,11 @@ public class JobQueryCriteria<TASK_STATE, JOB_TYPE extends Enum<JOB_TYPE>> {
             return this;
         }
 
+        public Builder<TASK_STATE, JOB_TYPE> withSkipSystemFailures(boolean skipSystemFailures) {
+            this.skipSystemFailures = skipSystemFailures;
+            return this;
+        }
+
         public Builder<TASK_STATE, JOB_TYPE> withLimit(int limit) {
             this.limit = limit;
             return this;
@@ -460,13 +419,14 @@ public class JobQueryCriteria<TASK_STATE, JOB_TYPE extends Enum<JOB_TYPE>> {
                     .withAppName(appName)
                     .withJobType(jobType)
                     .withNeedsMigration(needsMigration)
+                    .withSkipSystemFailures(skipSystemFailures)
                     .withLimit(limit);
         }
 
         public JobQueryCriteria<TASK_STATE, JOB_TYPE> build() {
             return new JobQueryCriteria<>(jobIds, taskIds, includeArchived, jobState, taskStates, taskStateReasons, owner, labels,
                     labelsAndOp, imageName, imageTag, appName, capacityGroup, jobType, jobGroupStack, jobGroupDetail, jobGroupSequence,
-                    needsMigration, limit);
+                    needsMigration, skipSystemFailures, limit);
         }
     }
 }
