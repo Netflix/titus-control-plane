@@ -779,13 +779,13 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.13.RELEASE",
+            "locked": "0.8.14.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.2.12.RELEASE",
+            "locked": "3.2.13.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
@@ -2048,13 +2048,13 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.13.RELEASE",
+            "locked": "0.8.14.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.2.12.RELEASE",
+            "locked": "3.2.13.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
@@ -3317,13 +3317,13 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.13.RELEASE",
+            "locked": "0.8.14.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.2.12.RELEASE",
+            "locked": "3.2.13.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
@@ -4650,13 +4650,13 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.13.RELEASE",
+            "locked": "0.8.14.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.2.12.RELEASE",
+            "locked": "3.2.13.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
@@ -5920,13 +5920,13 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.13.RELEASE",
+            "locked": "0.8.14.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.2.12.RELEASE",
+            "locked": "3.2.13.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
@@ -7572,14 +7572,14 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.13.RELEASE",
+            "locked": "0.8.14.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-reactor-netty"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.2.12.RELEASE",
+            "locked": "3.2.13.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-testkit",
@@ -9711,14 +9711,14 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.13.RELEASE",
+            "locked": "0.8.14.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-reactor-netty"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.2.12.RELEASE",
+            "locked": "3.2.13.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-testkit",
@@ -11850,14 +11850,14 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.13.RELEASE",
+            "locked": "0.8.14.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-reactor-netty"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.2.12.RELEASE",
+            "locked": "3.2.13.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-testkit",
@@ -13990,14 +13990,14 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.13.RELEASE",
+            "locked": "0.8.14.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-reactor-netty"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.2.12.RELEASE",
+            "locked": "3.2.13.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-testkit",
