@@ -41,12 +41,14 @@ import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.code.CodeInvariants;
 import com.netflix.titus.common.util.limiter.tokenbucket.TokenBucket;
 import com.netflix.titus.common.util.rx.ObservableExt;
+import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.rx.batch.Batch;
 import com.netflix.titus.common.util.rx.batch.LargestPerTimeBucket;
 import com.netflix.titus.common.util.rx.batch.Priority;
 import com.netflix.titus.common.util.rx.batch.RateLimitedBatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
 import rx.Scheduler;
@@ -151,24 +153,36 @@ class LoadBalancerEngine {
     }
 
     private Observable<Batch<TargetStateBatchable, String>> applyUpdates(Batch<TargetStateBatchable, String> batch) {
-        final String loadBalancerId = batch.getIndex();
-        final Map<State, List<TargetStateBatchable>> byState = batch.getItems().stream()
+        String loadBalancerId = batch.getIndex();
+        Map<State, List<TargetStateBatchable>> byState = batch.getItems().stream()
                 .collect(Collectors.groupingBy(TargetStateBatchable::getState));
 
-        final Completable registerAll = CollectionsExt.optionalOfNotEmpty(byState.get(State.REGISTERED))
-                .map(TaskHelpers::ipAddresses)
-                .map(ipAddresses -> connector.registerAll(loadBalancerId, ipAddresses))
-                .orElse(Completable.complete());
+        Mono<Void> registerAll = CollectionsExt.optionalOfNotEmpty(byState.get(State.REGISTERED))
+                .map(targets -> updateTargetsInStore(targets).then(ReactorExt.toMono(
+                        connector.registerAll(loadBalancerId, TaskHelpers.ipAddresses(targets))
+                )))
+                .orElse(Mono.empty());
 
-        final Completable deregisterAll = CollectionsExt.optionalOfNotEmpty(byState.get(State.DEREGISTERED))
-                .map(TaskHelpers::ipAddresses)
-                .map(ipAddresses -> connector.deregisterAll(loadBalancerId, ipAddresses))
-                .orElse(Completable.complete());
+        Mono<Void> deregisterAll = CollectionsExt.optionalOfNotEmpty(byState.get(State.DEREGISTERED))
+                .map(targets -> updateTargetsInStore(targets).then(ReactorExt.toMono(
+                        connector.deregisterAll(loadBalancerId, TaskHelpers.ipAddresses(targets))
+                )))
+                .orElse(Mono.empty());
 
-        return Completable.mergeDelayError(registerAll, deregisterAll)
-                .andThen(Observable.just(batch))
-                .doOnError(e -> logger.error("Error processing batch {}", batch, e))
-                .onErrorResumeNext(Observable.empty());
+        return ReactorExt.toObservable(
+                Mono.whenDelayError(registerAll, deregisterAll)
+                        .thenReturn(batch)
+                        .onErrorContinue((e, problem) -> logger.error("Error processing batch {}", problem, e))
+        );
+    }
+
+    private Mono<Void> updateTargetsInStore(Collection<TargetStateBatchable> targets) {
+        return Mono.whenDelayError(targets.stream()
+                .map(TargetStateBatchable::getTargetState)
+                .map(targetState -> store.addOrUpdateTarget(
+                        targetState.getLoadBalancerTarget(), targetState.getState()
+                ))
+                .collect(Collectors.toList()));
     }
 
     private Observable<TargetStateBatchable> registerFromEvents(Observable<TaskUpdateEvent> events) {

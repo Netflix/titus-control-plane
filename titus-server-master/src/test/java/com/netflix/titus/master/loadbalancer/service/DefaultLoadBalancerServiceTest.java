@@ -17,6 +17,7 @@
 package com.netflix.titus.master.loadbalancer.service;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -24,6 +25,7 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.netflix.titus.api.connector.cloud.LoadBalancer;
 import com.netflix.titus.api.connector.cloud.LoadBalancerConnector;
@@ -38,6 +40,8 @@ import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import com.netflix.titus.api.loadbalancer.model.JobLoadBalancerState;
+import com.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
+import com.netflix.titus.api.loadbalancer.model.LoadBalancerTargetState;
 import com.netflix.titus.api.loadbalancer.model.sanitizer.DefaultLoadBalancerJobValidator;
 import com.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerJobValidator;
 import com.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerValidationConfiguration;
@@ -57,6 +61,8 @@ import rx.schedulers.Schedulers;
 import rx.schedulers.TestScheduler;
 import rx.subjects.PublishSubject;
 
+import static com.netflix.titus.api.loadbalancer.model.LoadBalancerTarget.State.DEREGISTERED;
+import static com.netflix.titus.api.loadbalancer.model.LoadBalancerTarget.State.REGISTERED;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -113,12 +119,19 @@ public class DefaultLoadBalancerServiceTest {
 
     @Test
     public void addLoadBalancerRegistersTasks() {
-        final String jobId = UUID.randomUUID().toString();
-        final String loadBalancerId = "lb-" + UUID.randomUUID().toString();
+        String jobId = UUID.randomUUID().toString();
+        String loadBalancerId = "lb-" + UUID.randomUUID().toString();
 
         defaultStubs();
         LoadBalancerTests.applyValidGetJobMock(v3JobOperations, jobId);
-        final List<Task> tasks = LoadBalancerTests.buildTasksStarted(5, jobId);
+        List<Task> tasks = LoadBalancerTests.buildTasksStarted(5, jobId);
+        Collection<LoadBalancerTargetState> expectedTargets = tasks.stream()
+                .map(task -> new LoadBalancerTargetState(
+                        new LoadBalancerTarget(loadBalancerId, task.getId(), task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP)),
+                        REGISTERED
+                ))
+                .collect(Collectors.toList());
+
         when(v3JobOperations.getTasks(jobId)).thenReturn(CollectionsExt.merge(
                 tasks,
                 LoadBalancerTests.buildTasks(2, jobId, TaskState.StartInitiated),
@@ -140,6 +153,7 @@ public class DefaultLoadBalancerServiceTest {
         testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
 
         testSubscriber.assertNoErrors().assertValueCount(1);
+        assertThat(loadBalancerStore.getTargets()).containsAll(expectedTargets);
         verify(client).registerAll(eq(loadBalancerId), argThat(targets -> targets != null && targets.size() == tasks.size()));
         verify(client, never()).deregisterAll(eq(loadBalancerId), any());
         verifyReconcilerIgnore(loadBalancerId, LoadBalancerTests.ipAddresses(tasks));
@@ -263,6 +277,19 @@ public class DefaultLoadBalancerServiceTest {
         when(v3JobOperations.observeJobs()).thenReturn(taskEvents);
         LoadBalancerTests.applyValidGetJobMock(v3JobOperations, jobId);
         final List<Task> tasks = LoadBalancerTests.buildTasksStarted(numberOfStartedTasks, jobId);
+        Collection<LoadBalancerTargetState> expectedTargets = tasks.stream()
+                .flatMap(task -> Stream.of(
+                        new LoadBalancerTargetState(
+                                new LoadBalancerTarget(firstLoadBalancerId, task.getId(), task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP)),
+                                REGISTERED
+                        ),
+                        new LoadBalancerTargetState(
+                                new LoadBalancerTarget(secondLoadBalancerId, task.getId(), task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP)),
+                                REGISTERED
+                        ))
+                )
+                .collect(Collectors.toList());
+
         when(v3JobOperations.getTasks(jobId)).thenReturn(CollectionsExt.merge(
                 tasks,
                 LoadBalancerTests.buildTasks(2, jobId, TaskState.StartInitiated),
@@ -289,6 +316,7 @@ public class DefaultLoadBalancerServiceTest {
 
         // 1 batch per loadbalancer
         testSubscriber.assertNoErrors().assertValueCount(2);
+        assertThat(loadBalancerStore.getTargets()).containsAll(expectedTargets);
         verify(client).registerAll(eq(firstLoadBalancerId), argThat(targets -> targets != null && targets.size() == numberOfStartedTasks));
         verify(client).registerAll(eq(secondLoadBalancerId), argThat(targets -> targets != null && targets.size() == numberOfStartedTasks));
         verify(client, never()).deregisterAll(eq(firstLoadBalancerId), any());
@@ -439,6 +467,12 @@ public class DefaultLoadBalancerServiceTest {
         defaultStubs();
         LoadBalancerTests.applyValidGetJobMock(v3JobOperations, jobId);
         final List<Task> tasks = LoadBalancerTests.buildTasksStarted(5, jobId);
+        Collection<LoadBalancerTargetState> expectedTargets = tasks.stream()
+                .map(task -> new LoadBalancerTargetState(
+                        new LoadBalancerTarget(loadBalancerId, task.getId(), task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP)),
+                        DEREGISTERED
+                ))
+                .collect(Collectors.toList());
         when(v3JobOperations.getTasks(jobId)).thenReturn(CollectionsExt.merge(
                 tasks,
                 LoadBalancerTests.buildTasks(2, jobId, TaskState.StartInitiated),
@@ -469,6 +503,7 @@ public class DefaultLoadBalancerServiceTest {
         testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
 
         testSubscriber.assertNoErrors().assertValueCount(1);
+        assertThat(loadBalancerStore.getTargets()).containsAll(expectedTargets);
         verify(client, never()).registerAll(eq(loadBalancerId), any());
         verify(client).deregisterAll(eq(loadBalancerId), argThat(targets -> targets != null && targets.size() == tasks.size()));
         verifyReconcilerIgnore(loadBalancerId, LoadBalancerTests.ipAddresses(tasks));
@@ -595,6 +630,10 @@ public class DefaultLoadBalancerServiceTest {
         Task started = startingWithIp.toBuilder()
                 .withStatus(TaskStatus.newBuilder().withState(TaskState.Started).build())
                 .build();
+        LoadBalancerTargetState expectedTarget = new LoadBalancerTargetState(
+                new LoadBalancerTarget(loadBalancerId, started.getId(), "1.2.3.4"),
+                REGISTERED
+        );
 
         // events with no state transition gets ignored
         taskEvents.onNext(TaskUpdateEvent.newTask(null, launched, callMetadata));
@@ -619,6 +658,7 @@ public class DefaultLoadBalancerServiceTest {
         testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
 
         testSubscriber.assertNoErrors().assertValueCount(1);
+        assertThat(loadBalancerStore.getTargets()).contains(expectedTarget);
         verify(client).registerAll(eq(loadBalancerId), argThat(set -> set.contains("1.2.3.4")));
         verify(client, never()).deregisterAll(eq(loadBalancerId), any());
         verifyReconcilerIgnore(loadBalancerId, "1.2.3.4");
@@ -681,11 +721,17 @@ public class DefaultLoadBalancerServiceTest {
         Task firstFinished = first.toBuilder()
                 .withStatus(TaskStatus.newBuilder().withState(TaskState.Finished).build())
                 .build();
+        LoadBalancerTargetState expectedFirstTarget = new LoadBalancerTargetState(
+                new LoadBalancerTarget(loadBalancerId, firstFinished.getId(), "1.1.1.1"),
+                DEREGISTERED
+        );
+        assertThat(loadBalancerStore.getTargets()).doesNotContain(expectedFirstTarget);
 
         taskEvents.onNext(TaskUpdateEvent.taskChange(null, firstFinished, first, callMetadata));
         testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
 
         testSubscriber.assertNoErrors().assertValueCount(1);
+        assertThat(loadBalancerStore.getTargets()).contains(expectedFirstTarget);
         verify(client, never()).registerAll(eq(loadBalancerId), any());
         verify(client).deregisterAll(eq(loadBalancerId), argThat(set -> set.contains("1.1.1.1")));
         verifyReconcilerIgnore(loadBalancerId, "1.1.1.1");
@@ -698,11 +744,17 @@ public class DefaultLoadBalancerServiceTest {
         Task secondKilling = second.toBuilder()
                 .withStatus(TaskStatus.newBuilder().withState(TaskState.KillInitiated).build())
                 .build();
+        LoadBalancerTargetState expectedSecondTarget = new LoadBalancerTargetState(
+                new LoadBalancerTarget(loadBalancerId, secondKilling.getId(), "2.2.2.2"),
+                DEREGISTERED
+        );
+        assertThat(loadBalancerStore.getTargets()).doesNotContain(expectedSecondTarget);
 
         taskEvents.onNext(TaskUpdateEvent.taskChange(null, secondKilling, second, callMetadata));
         testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
 
         testSubscriber.assertNoErrors().assertValueCount(2);
+        assertThat(loadBalancerStore.getTargets()).contains(expectedSecondTarget);
         verify(client, never()).registerAll(eq(loadBalancerId), any());
         verify(client).deregisterAll(eq(loadBalancerId), argThat(set -> set.contains("2.2.2.2")));
         verifyReconcilerIgnore(loadBalancerId, "2.2.2.2");
@@ -715,11 +767,17 @@ public class DefaultLoadBalancerServiceTest {
         Task thirdDisconnected = third.toBuilder()
                 .withStatus(TaskStatus.newBuilder().withState(TaskState.Disconnected).build())
                 .build();
+        LoadBalancerTargetState expectedThirdTarget = new LoadBalancerTargetState(
+                new LoadBalancerTarget(loadBalancerId, thirdDisconnected.getId(), "3.3.3.3"),
+                DEREGISTERED
+        );
+        assertThat(loadBalancerStore.getTargets()).doesNotContain(expectedThirdTarget);
 
         taskEvents.onNext(TaskUpdateEvent.taskChange(null, thirdDisconnected, third, callMetadata));
         testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
 
         testSubscriber.assertNoErrors().assertValueCount(3);
+        assertThat(loadBalancerStore.getTargets()).contains(expectedThirdTarget);
         verify(client, never()).registerAll(eq(loadBalancerId), any());
         verify(client).deregisterAll(eq(loadBalancerId), argThat(set -> set.contains("3.3.3.3")));
         verifyReconcilerIgnore(loadBalancerId, "3.3.3.3");

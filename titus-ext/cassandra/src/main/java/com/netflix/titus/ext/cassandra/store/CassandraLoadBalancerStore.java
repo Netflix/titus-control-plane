@@ -17,6 +17,7 @@
 package com.netflix.titus.ext.cassandra.store;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -362,7 +363,7 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
     @Override
     public Mono<Void> addOrUpdateTarget(LoadBalancerTarget target, LoadBalancerTarget.State state) {
         logger.debug("Inserting/updating target {} : {}", target, state);
-        Completable insertAsync = storeHelper.execute(insertTarget.bind(target.getLoadBalancerId(), target.getIpAddress(), target.getTaskId(), state))
+        Completable insertAsync = storeHelper.execute(insertTarget.bind(target.getLoadBalancerId(), target.getIpAddress(), target.getTaskId(), state.name()))
                 .toCompletable()
                 .doOnCompleted(() -> targets.put(target, new LoadBalancerTargetState(target, state)));
         return ReactorExt.toMono(insertAsync);
@@ -385,7 +386,8 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
 
     @Override
     public Collection<LoadBalancerTargetState> getTargets() {
-        return targets.values();
+        // return a copy to make sure it is a point in time snapshot
+        return Collections.unmodifiableList(new ArrayList<>(targets.values()));
     }
 
     /**
@@ -435,7 +437,10 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
     private Mono<Void> removeTargetsInLoadBalancer(Map.Entry<String, List<LoadBalancerTarget>> entry) {
         String loadBalancerId = entry.getKey();
         List<LoadBalancerTarget> loadBalancerTargets = entry.getValue();
-        Completable completable = storeHelper.execute(deleteTargets.bind(loadBalancerId, loadBalancerTargets))
+        List<String> ipAddresses = loadBalancerTargets.stream()
+                .map(LoadBalancerTarget::getIpAddress)
+                .collect(Collectors.toList());
+        Completable completable = storeHelper.execute(deleteTargets.bind(loadBalancerId, ipAddresses))
                 .toCompletable()
                 .doOnCompleted(() -> loadBalancerTargets.forEach(targets::remove));
         return ReactorExt.toMono(completable);
