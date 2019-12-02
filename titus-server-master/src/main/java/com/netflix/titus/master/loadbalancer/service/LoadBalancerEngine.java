@@ -117,8 +117,8 @@ class LoadBalancerEngine {
 
         final Observable<TargetStateBatchable> updates = Observable.merge(
                 reconcilerEvents,
-                pendingAssociations.compose(targetsForJobLoadBalancers(State.Registered)),
-                pendingDissociations.compose(targetsForJobLoadBalancers(State.Deregistered)),
+                pendingAssociations.compose(targetsForJobLoadBalancers(State.REGISTERED)),
+                pendingDissociations.compose(targetsForJobLoadBalancers(State.DEREGISTERED)),
                 registerFromEvents(stateTransitions),
                 deregisterFromEvents(stateTransitions),
                 moveFromEvents(tasksMoved)
@@ -155,12 +155,12 @@ class LoadBalancerEngine {
         final Map<State, List<TargetStateBatchable>> byState = batch.getItems().stream()
                 .collect(Collectors.groupingBy(TargetStateBatchable::getState));
 
-        final Completable registerAll = CollectionsExt.optionalOfNotEmpty(byState.get(State.Registered))
+        final Completable registerAll = CollectionsExt.optionalOfNotEmpty(byState.get(State.REGISTERED))
                 .map(TaskHelpers::ipAddresses)
                 .map(ipAddresses -> connector.registerAll(loadBalancerId, ipAddresses))
                 .orElse(Completable.complete());
 
-        final Completable deregisterAll = CollectionsExt.optionalOfNotEmpty(byState.get(State.Deregistered))
+        final Completable deregisterAll = CollectionsExt.optionalOfNotEmpty(byState.get(State.DEREGISTERED))
                 .map(TaskHelpers::ipAddresses)
                 .map(ipAddresses -> connector.deregisterAll(loadBalancerId, ipAddresses))
                 .orElse(Completable.complete());
@@ -180,7 +180,7 @@ class LoadBalancerEngine {
                         logger.info("Task update in job associated to one or more load balancers, registering {} load balancer targets: {}",
                                 loadBalancers.size(), task.getJobId());
                     }
-                    return updatesForLoadBalancers(loadBalancers, task, State.Registered);
+                    return updatesForLoadBalancers(loadBalancers, task, State.REGISTERED);
                 });
     }
 
@@ -193,7 +193,7 @@ class LoadBalancerEngine {
                         logger.info("Task update in job associated to one or more load balancers, deregistering {} load balancer targets: {}",
                                 loadBalancers.size(), task.getJobId());
                     }
-                    return updatesForLoadBalancers(loadBalancers, task, State.Deregistered);
+                    return updatesForLoadBalancers(loadBalancers, task, State.DEREGISTERED);
                 });
     }
 
@@ -218,13 +218,13 @@ class LoadBalancerEngine {
                 Collection<JobLoadBalancer> toRegister = CollectionsExt.difference(
                         targetJobLoadBalancers, sourceJobLoadBalancers, JobLoadBalancer::byLoadBalancerId
                 );
-                changes.addAll(updatesForLoadBalancers(toRegister, task, State.Registered));
+                changes.addAll(updatesForLoadBalancers(toRegister, task, State.REGISTERED));
             }
             // deregister from load balancers associated with the source job
             Collection<JobLoadBalancer> toDeregister = CollectionsExt.difference(
                     sourceJobLoadBalancers, targetJobLoadBalancers, JobLoadBalancer::byLoadBalancerId
             );
-            changes.addAll(updatesForLoadBalancers(toDeregister, task, State.Deregistered));
+            changes.addAll(updatesForLoadBalancers(toDeregister, task, State.DEREGISTERED));
 
             if (!changes.isEmpty()) {
                 logger.info("Task moved to {} from {}. Jobs are associated with one or more load balancers, generating {} load balancer updates",

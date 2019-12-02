@@ -22,7 +22,7 @@ import javax.validation.constraints.Size;
  * Association between a Job and a LoadBalancer
  */
 public class JobLoadBalancer implements Comparable<JobLoadBalancer> {
-    public enum State {Associated, Dissociated}
+    public enum State {ASSOCIATED, DISSOCIATED}
 
     @Size(min = 1, max = 50)
     private final String jobId;

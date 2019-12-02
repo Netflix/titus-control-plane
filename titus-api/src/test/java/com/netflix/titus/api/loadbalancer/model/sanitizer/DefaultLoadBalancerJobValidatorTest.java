@@ -123,7 +123,7 @@ public class DefaultLoadBalancerJobValidatorTest {
         when(loadBalancerValidationConfiguration.getMaxLoadBalancersPerJob()).thenReturn(30);
 
         for (int i = 0; i < loadBalancerValidationConfiguration.getMaxLoadBalancersPerJob() + 1; i++) {
-            loadBalancerStore.addOrUpdateLoadBalancer(new JobLoadBalancer(JOB_ID, "LoadBalancer-" + i), JobLoadBalancer.State.Associated).await(TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            loadBalancerStore.addOrUpdateLoadBalancer(new JobLoadBalancer(JOB_ID, "LoadBalancer-" + i), JobLoadBalancer.State.ASSOCIATED).await(TIMEOUT_MS, TimeUnit.MILLISECONDS);
         }
 
         Throwable thrown = catchThrowable(() -> loadBalancerValidator.validateJobId(JOB_ID));

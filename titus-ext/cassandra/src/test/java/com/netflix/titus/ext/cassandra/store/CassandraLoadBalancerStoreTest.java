@@ -138,11 +138,11 @@ public class CassandraLoadBalancerStoreTest {
         CassandraLoadBalancerStore store = getInitdStore();
 
         testData.forEach((jobLoadBalancer, state) -> {
-            assertThat(store.addOrUpdateLoadBalancer(jobLoadBalancer, JobLoadBalancer.State.Associated).await(TIMEOUT_MS, TimeUnit.MILLISECONDS)).isTrue();
+            assertThat(store.addOrUpdateLoadBalancer(jobLoadBalancer, JobLoadBalancer.State.ASSOCIATED).await(TIMEOUT_MS, TimeUnit.MILLISECONDS)).isTrue();
         });
 
         testData.forEach((jobLoadBalancer, state) -> {
-            assertThat(store.addOrUpdateLoadBalancer(jobLoadBalancer, JobLoadBalancer.State.Dissociated).await(TIMEOUT_MS, TimeUnit.MILLISECONDS)).isTrue();
+            assertThat(store.addOrUpdateLoadBalancer(jobLoadBalancer, JobLoadBalancer.State.DISSOCIATED).await(TIMEOUT_MS, TimeUnit.MILLISECONDS)).isTrue();
         });
 
         Map<String, List<JobLoadBalancerState>> byJobId = store.getAssociations().stream()
@@ -150,7 +150,7 @@ public class CassandraLoadBalancerStoreTest {
         testData.forEach((jobLoadBalancer, state) ->
                 byJobId.get(jobLoadBalancer.getJobId()).forEach(loadBalancerState -> {
                     assertThat(testData).containsKey(new JobLoadBalancer(jobLoadBalancer.getJobId(), loadBalancerState.getLoadBalancerId()));
-                    assertThat(loadBalancerState.getState()).isEqualTo(JobLoadBalancer.State.Dissociated);
+                    assertThat(loadBalancerState.getState()).isEqualTo(JobLoadBalancer.State.DISSOCIATED);
                 })
         );
     }
@@ -271,7 +271,7 @@ public class CassandraLoadBalancerStoreTest {
                 while (testData.containsKey(jobLoadBalancer)) {
                     jobLoadBalancer = new JobLoadBalancer(jobId, jobId + "-" + "TestLoadBalancer-" + random.nextInt(1000));
                 }
-                assertThat(testData.put(jobLoadBalancer, JobLoadBalancer.State.Associated)).isNull();
+                assertThat(testData.put(jobLoadBalancer, JobLoadBalancer.State.ASSOCIATED)).isNull();
             }
         }
 
@@ -368,7 +368,7 @@ public class CassandraLoadBalancerStoreTest {
                         assertThat(jobLoadBalancer.getJobId().equals(jobId)).isTrue();
                         assertThat(testData.containsKey(jobLoadBalancer)).isTrue();
                         assertThat(testData.get(jobLoadBalancer))
-                                .isEqualTo(JobLoadBalancer.State.Associated);
+                                .isEqualTo(JobLoadBalancer.State.ASSOCIATED);
 
                         // Mark that this job/load balancer was checked
                         assertThat(listVerificationSet.contains(jobLoadBalancer)).isTrue();

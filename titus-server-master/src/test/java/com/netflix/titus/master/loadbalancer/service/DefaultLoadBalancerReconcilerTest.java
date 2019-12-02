@@ -92,7 +92,7 @@ public class DefaultLoadBalancerReconcilerTest {
     public void registerMissingTargets() {
         final List<Task> tasks = LoadBalancerTests.buildTasksStarted(5, jobId);
         final JobLoadBalancer jobLoadBalancer = new JobLoadBalancer(jobId, loadBalancerId);
-        final JobLoadBalancerState association = new JobLoadBalancerState(jobLoadBalancer, JobLoadBalancer.State.Associated);
+        final JobLoadBalancerState association = new JobLoadBalancerState(jobLoadBalancer, JobLoadBalancer.State.ASSOCIATED);
         when(v3JobOperations.getTasks(jobId)).thenReturn(tasks);
         when(store.getAssociations()).thenReturn(Collections.singletonList(association));
 
@@ -104,7 +104,7 @@ public class DefaultLoadBalancerReconcilerTest {
         testScheduler.advanceTimeBy(delayMs, TimeUnit.MILLISECONDS);
         subscriber.assertNotCompleted().assertValueCount(5);
         subscriber.getOnNextEvents().forEach(update -> {
-            assertThat(update.getState()).isEqualTo(LoadBalancerTarget.State.Registered);
+            assertThat(update.getState()).isEqualTo(LoadBalancerTarget.State.REGISTERED);
             // reconciliation always generates Priority.Low events that can be replaced by higher priority reactive updates
             assertThat(update.getPriority()).isEqualTo(Priority.Low);
             assertThat(update.getLoadBalancerId()).isEqualTo(loadBalancerId);
@@ -115,7 +115,7 @@ public class DefaultLoadBalancerReconcilerTest {
     public void deregisterExtraTargets() {
         final List<Task> tasks = LoadBalancerTests.buildTasksStarted(3, jobId);
         final JobLoadBalancer jobLoadBalancer = new JobLoadBalancer(jobId, loadBalancerId);
-        final JobLoadBalancerState association = new JobLoadBalancerState(jobLoadBalancer, JobLoadBalancer.State.Associated);
+        final JobLoadBalancerState association = new JobLoadBalancerState(jobLoadBalancer, JobLoadBalancer.State.ASSOCIATED);
         when(v3JobOperations.getTasks(jobId)).thenReturn(tasks);
         reset(connector);
         when(connector.getLoadBalancer(loadBalancerId)).thenReturn(Single.just(new LoadBalancer(
@@ -133,7 +133,7 @@ public class DefaultLoadBalancerReconcilerTest {
         testScheduler.advanceTimeBy(delayMs, TimeUnit.MILLISECONDS);
         subscriber.assertNotCompleted().assertValueCount(2);
         subscriber.getOnNextEvents().forEach(update -> {
-            assertThat(update.getState()).isEqualTo(LoadBalancerTarget.State.Deregistered);
+            assertThat(update.getState()).isEqualTo(LoadBalancerTarget.State.DEREGISTERED);
             assertThat(update.getPriority()).isEqualTo(Priority.Low);
             assertThat(update.getLoadBalancerId()).isEqualTo(loadBalancerId);
             assertThat(update.getIdentifier().getTaskId()).isEqualTo("UNKNOWN-TASK");
@@ -146,7 +146,7 @@ public class DefaultLoadBalancerReconcilerTest {
 
         final List<Task> tasks = LoadBalancerTests.buildTasksStarted(5, jobId);
         final JobLoadBalancer jobLoadBalancer = new JobLoadBalancer(jobId, loadBalancerId);
-        final JobLoadBalancerState association = new JobLoadBalancerState(jobLoadBalancer, JobLoadBalancer.State.Associated);
+        final JobLoadBalancerState association = new JobLoadBalancerState(jobLoadBalancer, JobLoadBalancer.State.ASSOCIATED);
         when(v3JobOperations.getTasks(jobId)).thenReturn(tasks);
         when(store.getAssociations()).thenReturn(Collections.singletonList(association));
 
@@ -167,7 +167,7 @@ public class DefaultLoadBalancerReconcilerTest {
         testScheduler.advanceTimeBy(4 * delayMs, TimeUnit.MILLISECONDS);
         subscriber.assertNotCompleted().assertValueCount(5);
         subscriber.getOnNextEvents().forEach(update -> {
-            assertThat(update.getState()).isEqualTo(LoadBalancerTarget.State.Registered);
+            assertThat(update.getState()).isEqualTo(LoadBalancerTarget.State.REGISTERED);
             assertThat(update.getPriority()).isEqualTo(Priority.Low);
             assertThat(update.getLoadBalancerId()).isEqualTo(loadBalancerId);
         });
@@ -181,7 +181,7 @@ public class DefaultLoadBalancerReconcilerTest {
     public void jobsWithErrorsAreIgnored() {
         final List<Task> tasks = LoadBalancerTests.buildTasksStarted(5, jobId);
         final JobLoadBalancer jobLoadBalancer = new JobLoadBalancer(jobId, loadBalancerId);
-        final JobLoadBalancerState association = new JobLoadBalancerState(jobLoadBalancer, JobLoadBalancer.State.Associated);
+        final JobLoadBalancerState association = new JobLoadBalancerState(jobLoadBalancer, JobLoadBalancer.State.ASSOCIATED);
         when(v3JobOperations.getTasks(jobId))
                 .thenThrow(JobManagerException.class) // first fails
                 .thenReturn(tasks);
@@ -200,7 +200,7 @@ public class DefaultLoadBalancerReconcilerTest {
         testScheduler.triggerActions();
         subscriber.assertNotCompleted().assertValueCount(5);
         subscriber.getOnNextEvents().forEach(update -> {
-            assertThat(update.getState()).isEqualTo(LoadBalancerTarget.State.Registered);
+            assertThat(update.getState()).isEqualTo(LoadBalancerTarget.State.REGISTERED);
             assertThat(update.getPriority()).isEqualTo(Priority.Low);
             assertThat(update.getLoadBalancerId()).isEqualTo(loadBalancerId);
         });
@@ -211,9 +211,9 @@ public class DefaultLoadBalancerReconcilerTest {
         final String failingLoadBalancerId = UUID.randomUUID().toString();
         final List<Task> tasks = LoadBalancerTests.buildTasksStarted(5, jobId);
         final JobLoadBalancer jobLoadBalancer = new JobLoadBalancer(jobId, loadBalancerId);
-        final JobLoadBalancerState association = new JobLoadBalancerState(jobLoadBalancer, JobLoadBalancer.State.Associated);
+        final JobLoadBalancerState association = new JobLoadBalancerState(jobLoadBalancer, JobLoadBalancer.State.ASSOCIATED);
         final JobLoadBalancer failingJobLoadBalancer = new JobLoadBalancer(jobId, failingLoadBalancerId);
-        final JobLoadBalancerState failingAssociation = new JobLoadBalancerState(failingJobLoadBalancer, JobLoadBalancer.State.Associated);
+        final JobLoadBalancerState failingAssociation = new JobLoadBalancerState(failingJobLoadBalancer, JobLoadBalancer.State.ASSOCIATED);
         when(v3JobOperations.getTasks(jobId)).thenReturn(tasks);
         when(connector.getLoadBalancer(failingLoadBalancerId)).thenReturn(Single.error(new RuntimeException("rate limit")));
         when(store.getAssociations()).thenReturn(Arrays.asList(failingAssociation, association));
@@ -227,7 +227,7 @@ public class DefaultLoadBalancerReconcilerTest {
         // failingLoadBalancerId gets ignored
         subscriber.assertNoErrors().assertNotCompleted().assertValueCount(5);
         subscriber.getOnNextEvents().forEach(update -> {
-            assertThat(update.getState()).isEqualTo(LoadBalancerTarget.State.Registered);
+            assertThat(update.getState()).isEqualTo(LoadBalancerTarget.State.REGISTERED);
             assertThat(update.getPriority()).isEqualTo(Priority.Low);
             assertThat(update.getLoadBalancerId()).isEqualTo(loadBalancerId);
         });
@@ -239,7 +239,7 @@ public class DefaultLoadBalancerReconcilerTest {
         when(v3JobOperations.getTasks(jobId)).thenThrow(JobManagerException.jobNotFound(jobId));
         when(v3JobOperations.getJob(jobId)).thenReturn(Optional.empty());
         store = new InMemoryLoadBalancerStore();
-        assertThat(store.addOrUpdateLoadBalancer(jobLoadBalancer, JobLoadBalancer.State.Associated)
+        assertThat(store.addOrUpdateLoadBalancer(jobLoadBalancer, JobLoadBalancer.State.ASSOCIATED)
                 .await(5, TimeUnit.SECONDS)).isTrue();
 
         reconciler = buildReconciler(store);
@@ -274,7 +274,7 @@ public class DefaultLoadBalancerReconcilerTest {
                 )));
 
         store = new InMemoryLoadBalancerStore();
-        assertThat(store.addOrUpdateLoadBalancer(jobLoadBalancer, JobLoadBalancer.State.Associated)
+        assertThat(store.addOrUpdateLoadBalancer(jobLoadBalancer, JobLoadBalancer.State.ASSOCIATED)
                 .await(5, TimeUnit.SECONDS)).isTrue();
 
         reconciler = buildReconciler(store);
@@ -315,7 +315,7 @@ public class DefaultLoadBalancerReconcilerTest {
                 new LoadBalancer(loadBalancerId, LoadBalancer.State.ACTIVE, Collections.singleton("1.2.3.4"))
         ));
         store = new InMemoryLoadBalancerStore();
-        assertThat(store.addOrUpdateLoadBalancer(jobLoadBalancer, JobLoadBalancer.State.Dissociated)
+        assertThat(store.addOrUpdateLoadBalancer(jobLoadBalancer, JobLoadBalancer.State.DISSOCIATED)
                 .await(5, TimeUnit.SECONDS)).isTrue();
 
         reconciler = buildReconciler(store);

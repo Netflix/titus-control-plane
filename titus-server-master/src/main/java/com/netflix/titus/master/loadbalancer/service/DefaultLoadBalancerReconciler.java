@@ -224,8 +224,8 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
         reportUpdates(toRegister, toDeregister);
 
         final Observable<TargetStateBatchable> updatesForLoadBalancer = Observable.from(CollectionsExt.merge(
-                withState(now, toRegister, State.Registered),
-                withState(now, toDeregister, State.Deregistered)
+                withState(now, toRegister, State.REGISTERED),
+                withState(now, toDeregister, State.DEREGISTERED)
         )).filter(this::isNotIgnored);
 
         // clean up Dissociated entries when all their targets have been deregistered
@@ -337,7 +337,7 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
                 logger.warn("Not updating an association that was previously marked as orphan, but now contains an existing job: {}", marked);
                 return Completable.complete();
             }
-            return store.addOrUpdateLoadBalancer(marked, JobLoadBalancer.State.Dissociated)
+            return store.addOrUpdateLoadBalancer(marked, JobLoadBalancer.State.DISSOCIATED)
                     .doOnSubscribe(ignored -> logger.info("Setting orphan association as Dissociated: {}", marked))
                     .doOnError(e -> logger.error("Failed to update to Dissociated {}", marked, e));
         });

@@ -55,7 +55,7 @@ public class InMemoryLoadBalancerStore implements LoadBalancerStore {
     @Override
     public Set<JobLoadBalancer> getAssociatedLoadBalancersSetForJob(String jobId) {
         return associations.entrySet().stream()
-                .filter(pair -> pair.getKey().getJobId().equals(jobId) && (pair.getValue() == JobLoadBalancer.State.Associated))
+                .filter(pair -> pair.getKey().getJobId().equals(jobId) && (pair.getValue() == JobLoadBalancer.State.ASSOCIATED))
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toSet());
     }

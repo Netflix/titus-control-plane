@@ -38,6 +38,8 @@ import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
+import com.google.common.base.CaseFormat;
+import com.google.common.base.Converter;
 import com.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import com.netflix.titus.api.loadbalancer.model.JobLoadBalancerState;
 import com.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
@@ -67,6 +69,9 @@ import static com.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerSan
 @Singleton
 public class CassandraLoadBalancerStore implements LoadBalancerStore {
     private static Logger logger = LoggerFactory.getLogger(CassandraLoadBalancerStore.class);
+
+    private static final Converter<String, String> TO_UPPER_UNDERSCORE =
+            CaseFormat.UPPER_CAMEL.converterTo(CaseFormat.UPPER_UNDERSCORE);
 
     private static final String TABLE_LOAD_BALANCER_ASSOCIATIONS = "load_balancer_jobs";
     private static final String TABLE_LOAD_BALANCER_TARGETS = "load_balancer_targets";
@@ -130,8 +135,11 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
                     COLUMN_LOAD_BALANCER);
 
     private static Pair<JobLoadBalancer, JobLoadBalancer.State> buildLoadBalancerStatePairFromRow(Row row) {
-        return Pair.of(new JobLoadBalancer(row.getString(COLUMN_JOB_ID), row.getString(COLUMN_LOAD_BALANCER)),
-                JobLoadBalancer.State.valueOf(row.getString(COLUMN_STATE)));
+        String state = row.getString(COLUMN_STATE);
+        return Pair.of(
+                new JobLoadBalancer(row.getString(COLUMN_JOB_ID), row.getString(COLUMN_LOAD_BALANCER)),
+                state == null ? JobLoadBalancer.State.DISSOCIATED : JobLoadBalancer.State.valueOf(state.toUpperCase())
+        );
     }
 
     private static Pair<LoadBalancerTarget, LoadBalancerTarget.State> buildTargetStatePairFromRow(Row row) {
@@ -308,9 +316,9 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
                 BoundStatement stmt = insertAssociation.bind(jobLoadBalancer.getJobId(), jobLoadBalancer.getLoadBalancerId(), state.name());
                 ResultSet rs = session.execute(stmt);
                 loadBalancerStateMap.put(jobLoadBalancer, state);
-                if (JobLoadBalancer.State.Associated == state) {
+                if (JobLoadBalancer.State.ASSOCIATED == state) {
                     addJobLoadBalancerAssociation(jobLoadBalancer);
-                } else if (JobLoadBalancer.State.Dissociated == state) {
+                } else if (JobLoadBalancer.State.DISSOCIATED == state) {
                     removeJobLoadBalancerAssociation(jobLoadBalancer);
                 }
             }

@@ -453,7 +453,7 @@ public class DefaultLoadBalancerServiceTest {
 
         final AssertableSubscriber<Batch<TargetStateBatchable, String>> testSubscriber = service.events().test();
 
-        assertTrue(loadBalancerStore.addOrUpdateLoadBalancer(jobLoadBalancer, JobLoadBalancer.State.Associated)
+        assertTrue(loadBalancerStore.addOrUpdateLoadBalancer(jobLoadBalancer, JobLoadBalancer.State.ASSOCIATED)
                 .await(100, TimeUnit.MILLISECONDS));
         assertTrue(service.removeLoadBalancer(jobId, loadBalancerId).await(100, TimeUnit.MILLISECONDS));
         List<JobLoadBalancerState> jobLoadBalancers = loadBalancerStore.getAssociations().stream()
@@ -463,7 +463,7 @@ public class DefaultLoadBalancerServiceTest {
         assertThat(jobLoadBalancers).hasSize(1);
         JobLoadBalancerState jobLoadBalancerState = jobLoadBalancers.iterator().next();
         assertEquals(loadBalancerId, jobLoadBalancerState.getLoadBalancerId());
-        assertEquals(JobLoadBalancer.State.Dissociated, jobLoadBalancerState.getState());
+        assertEquals(JobLoadBalancer.State.DISSOCIATED, jobLoadBalancerState.getState());
         assertFalse(service.getJobLoadBalancers(jobId).toBlocking().getIterator().hasNext());
 
         testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
@@ -489,9 +489,9 @@ public class DefaultLoadBalancerServiceTest {
         when(v3JobOperations.getTasks(firstJobId)).thenThrow(new RuntimeException());
         final List<Task> tasks = LoadBalancerTests.buildTasksStarted(5, secondJobId);
         when(v3JobOperations.getTasks(secondJobId)).thenReturn(tasks);
-        assertTrue(loadBalancerStore.addOrUpdateLoadBalancer(firstLoadBalancer, JobLoadBalancer.State.Associated)
+        assertTrue(loadBalancerStore.addOrUpdateLoadBalancer(firstLoadBalancer, JobLoadBalancer.State.ASSOCIATED)
                 .await(100, TimeUnit.MILLISECONDS));
-        assertTrue(loadBalancerStore.addOrUpdateLoadBalancer(secondLoadBalancer, JobLoadBalancer.State.Associated)
+        assertTrue(loadBalancerStore.addOrUpdateLoadBalancer(secondLoadBalancer, JobLoadBalancer.State.ASSOCIATED)
                 .await(100, TimeUnit.MILLISECONDS));
 
         LoadBalancerConfiguration configuration = LoadBalancerTests.mockConfiguration(MIN_TIME_IN_QUEUE_MS);

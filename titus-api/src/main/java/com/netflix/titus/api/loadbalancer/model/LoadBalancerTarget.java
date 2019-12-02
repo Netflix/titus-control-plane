@@ -20,7 +20,7 @@ import java.util.Objects;
 import javax.validation.constraints.Size;
 
 public class LoadBalancerTarget {
-    public enum State {Registered, Deregistered}
+    public enum State {REGISTERED, DEREGISTERED}
 
     @Size(min = 1, max = 1024)
     private final String loadBalancerId;

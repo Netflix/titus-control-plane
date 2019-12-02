@@ -152,14 +152,14 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
         }
 
         final JobLoadBalancer jobLoadBalancer = new JobLoadBalancer(jobId, loadBalancerId);
-        return loadBalancerStore.addOrUpdateLoadBalancer(jobLoadBalancer, JobLoadBalancer.State.Associated)
+        return loadBalancerStore.addOrUpdateLoadBalancer(jobLoadBalancer, JobLoadBalancer.State.ASSOCIATED)
                 .andThen(engine.add(jobLoadBalancer));
     }
 
     @Override
     public Completable removeLoadBalancer(String jobId, String loadBalancerId) {
         final JobLoadBalancer jobLoadBalancer = new JobLoadBalancer(jobId, loadBalancerId);
-        return loadBalancerStore.addOrUpdateLoadBalancer(jobLoadBalancer, JobLoadBalancer.State.Dissociated)
+        return loadBalancerStore.addOrUpdateLoadBalancer(jobLoadBalancer, JobLoadBalancer.State.DISSOCIATED)
                 .andThen(engine.remove(jobLoadBalancer));
     }
 
@@ -182,8 +182,8 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
         final String loadBalancerId = batch.getIndex();
         final Map<LoadBalancerTarget.State, List<TargetStateBatchable>> byState = batch.getItems().stream()
                 .collect(Collectors.groupingBy(TargetStateBatchable::getState));
-        final int registered = byState.getOrDefault(LoadBalancerTarget.State.Registered, Collections.emptyList()).size();
-        final int deregistered = byState.getOrDefault(LoadBalancerTarget.State.Deregistered, Collections.emptyList()).size();
+        final int registered = byState.getOrDefault(LoadBalancerTarget.State.REGISTERED, Collections.emptyList()).size();
+        final int deregistered = byState.getOrDefault(LoadBalancerTarget.State.DEREGISTERED, Collections.emptyList()).size();
         logger.info("Load balancer {} batch completed. To be registered: {}, to be deregistered: {}", loadBalancerId, registered, deregistered);
     }
 
