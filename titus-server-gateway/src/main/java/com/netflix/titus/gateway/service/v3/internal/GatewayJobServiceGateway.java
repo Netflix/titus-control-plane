@@ -271,6 +271,11 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
                     if (!expectedStateReasons.isEmpty() && !expectedStateReasons.contains(task.getStatus().getReasonCode())) {
                         return false;
                     }
+                    if(taskQueryCriteria.isSkipSystemFailures()) {
+                        if(com.netflix.titus.api.jobmanager.model.job.TaskStatus.isSystemError(task.getStatus())) {
+                            return false;
+                        }
+                    }
 
                     return true;
                 })

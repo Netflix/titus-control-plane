@@ -51,7 +51,7 @@ public class GrpcJobQueryModelConverters extends CommonRuntimeGrpcModelConverter
             "jobIds", "taskIds", "owner", "appName", "applicationName", "imageName", "imageTag", "capacityGroup",
             "jobGroupStack", "jobGroupDetail", "jobGroupSequence",
             "jobType", "attributes", "attributes.op", "labels", "labels.op", "jobState", "taskStates", "taskStateReasons",
-            "needsMigration"
+            "needsMigration", "skipSystemFailures"
     );
 
     public static JobQueryCriteria<TaskStatus.TaskState, JobSpecCase> toJobQueryCriteria(ObserveJobsQuery query) {
@@ -108,6 +108,7 @@ public class GrpcJobQueryModelConverters extends CommonRuntimeGrpcModelConverter
         trimAndApplyIfNonEmpty(criteriaMap.get("jobGroupSequence"), criteriaBuilder::withJobGroupSequence);
 
         criteriaBuilder.withNeedsMigration(criteriaMap.getOrDefault("needsMigration", "false").equalsIgnoreCase("true"));
+        criteriaBuilder.withSkipSystemFailures(criteriaMap.getOrDefault("skipSystemFailures", "false").equalsIgnoreCase("true"));
 
         // Job state
         String jobStateStr = criteriaMap.get("jobState");
