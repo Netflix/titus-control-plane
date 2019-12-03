@@ -57,7 +57,11 @@ class ReconcilerEngine<DATA> {
     private AtomicReference<ReconcilerState> state = new AtomicReference<>(ReconcilerState.Running);
 
     private volatile DATA current;
-    private final AtomicLong nextTransactionId = new AtomicLong();
+
+    /**
+     * We start the transaction numbering from 1, as 0 is reserved for the initial engine creation step.
+     */
+    private final AtomicLong nextTransactionId = new AtomicLong(1);
 
     private volatile Transaction<DATA> pendingTransaction;
 
@@ -86,6 +90,10 @@ class ReconcilerEngine<DATA> {
 
     DATA getCurrent() {
         return current;
+    }
+
+    long getNextTransactionId() {
+        return nextTransactionId.get();
     }
 
     public ReconcilerState getState() {

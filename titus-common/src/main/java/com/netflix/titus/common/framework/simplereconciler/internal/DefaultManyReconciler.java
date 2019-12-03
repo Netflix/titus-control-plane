@@ -259,13 +259,17 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
         }
 
         List<SimpleReconcilerEvent<DATA>> allState = new ArrayList<>();
-        executors.forEach((id, executor) -> allState.add(
-                new SimpleReconcilerEvent<>(
-                        SimpleReconcilerEvent.Kind.Added,
-                        executor.getId(),
-                        executor.getCurrent()
-                )
-        ));
+        executors.forEach((id, executor) -> {
+            // We emit event with the id of the last completed transaction.
+            String transactionId = "" + (executor.getNextTransactionId() - 1);
+            SimpleReconcilerEvent<DATA> event = new SimpleReconcilerEvent<>(
+                    SimpleReconcilerEvent.Kind.Added,
+                    executor.getId(),
+                    executor.getCurrent(),
+                    transactionId
+            );
+            allState.add(event);
+        });
 
         for (EventListenerHolder holder; (holder = eventListenerHolders.poll()) != null; ) {
             FluxSink<List<SimpleReconcilerEvent<DATA>>> sink = holder.getSink();
@@ -296,7 +300,8 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
                             Collections.singletonList(new SimpleReconcilerEvent<>(
                                     SimpleReconcilerEvent.Kind.Updated,
                                     executor.getId(),
-                                    t
+                                    t,
+                                    transactionBefore.getActionHolder().getTransactionId()
                             ))
                     ));
                     action.run();
@@ -315,8 +320,10 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
                 if (executor.getState() == ReconcilerState.Closed) {
                     it.remove();
 
+                    // This is the very last action, so we can take safely the next transaction id without progressing it.
+                    String transactionId = "" + executor.getNextTransactionId();
                     eventProcessor.onNext(Collections.singletonList(
-                            new SimpleReconcilerEvent<>(SimpleReconcilerEvent.Kind.Removed, executor.getId(), executor.getCurrent())
+                            new SimpleReconcilerEvent<>(SimpleReconcilerEvent.Kind.Removed, executor.getId(), executor.getCurrent(), transactionId)
                     ));
 
                     runnable.ifPresent(Runnable::run);
@@ -332,8 +339,9 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
             holder.getSink().success();
             justChanged.add(holder.getId());
 
+            // We set transaction id "0" for the newly added executors.
             eventProcessor.onNext(Collections.singletonList(
-                    new SimpleReconcilerEvent<>(SimpleReconcilerEvent.Kind.Added, executor.getId(), executor.getCurrent())
+                    new SimpleReconcilerEvent<>(SimpleReconcilerEvent.Kind.Added, executor.getId(), executor.getCurrent(), "0")
             ));
         }
 
