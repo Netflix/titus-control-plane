@@ -48,6 +48,7 @@ public class V3TaskQueryCriteriaEvaluator extends V3AbstractQueryCriteriaEvaluat
         applyTaskStates(criteria.getTaskStates()).ifPresent(predicates::add);
         applyTaskStateReasons(criteria.getTaskStateReasons()).ifPresent(predicates::add);
         applyNeedsMigration(criteria.isNeedsMigration(), titusRuntime).ifPresent(predicates::add);
+        applySkipSystemFailures(criteria.isSkipSystemFailures()).ifPresent(predicates::add);
         return predicates;
     }
 
@@ -100,5 +101,15 @@ public class V3TaskQueryCriteriaEvaluator extends V3AbstractQueryCriteriaEvaluat
                     return serviceTask.getMigrationDetails() != null && serviceTask.getMigrationDetails().isNeedsMigration();
                 }
         );
+    }
+
+    private static Optional<Predicate<Pair<Job<?>, Task>>> applySkipSystemFailures(boolean skipSystemFailures) {
+        if (!skipSystemFailures) {
+            return Optional.empty();
+        }
+        return Optional.of(jobAndTask -> {
+            Task task = jobAndTask.getRight();
+            return !com.netflix.titus.api.jobmanager.model.job.TaskStatus.isSystemError(task.getStatus());
+        });
     }
 }
