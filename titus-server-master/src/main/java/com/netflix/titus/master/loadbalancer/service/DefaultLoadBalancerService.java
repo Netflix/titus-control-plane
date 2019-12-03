@@ -151,16 +151,16 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
             return Completable.error(TitusServiceException.invalidArgument(e.getMessage()));
         }
 
-        final JobLoadBalancer jobLoadBalancer = new JobLoadBalancer(jobId, loadBalancerId);
+        JobLoadBalancer jobLoadBalancer = new JobLoadBalancer(jobId, loadBalancerId);
         return loadBalancerStore.addOrUpdateLoadBalancer(jobLoadBalancer, JobLoadBalancer.State.ASSOCIATED)
-                .andThen(engine.add(jobLoadBalancer));
+                .doOnCompleted(() -> engine.add(jobLoadBalancer));
     }
 
     @Override
     public Completable removeLoadBalancer(String jobId, String loadBalancerId) {
-        final JobLoadBalancer jobLoadBalancer = new JobLoadBalancer(jobId, loadBalancerId);
+        JobLoadBalancer jobLoadBalancer = new JobLoadBalancer(jobId, loadBalancerId);
         return loadBalancerStore.addOrUpdateLoadBalancer(jobLoadBalancer, JobLoadBalancer.State.DISSOCIATED)
-                .andThen(engine.remove(jobLoadBalancer));
+                .doOnCompleted(() -> engine.remove(jobLoadBalancer));
     }
 
     @Activator

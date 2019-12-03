@@ -95,14 +95,12 @@ class LoadBalancerEngine {
         this.scheduler = scheduler;
     }
 
-    // TODO(Andrew L): Method does not need to be Rx.
-    public Completable add(JobLoadBalancer jobLoadBalancer) {
-        return Completable.fromAction(() -> pendingAssociations.onNext(jobLoadBalancer));
+    public void add(JobLoadBalancer jobLoadBalancer) {
+        pendingAssociations.onNext(jobLoadBalancer);
     }
 
-    // TODO(Andrew L): Method does not need to be Rx.
-    public Completable remove(JobLoadBalancer jobLoadBalancer) {
-        return Completable.fromAction(() -> pendingDissociations.onNext(jobLoadBalancer));
+    public void remove(JobLoadBalancer jobLoadBalancer) {
+        pendingDissociations.onNext(jobLoadBalancer);
     }
 
     Observable<Batch<TargetStateBatchable, String>> events() {
