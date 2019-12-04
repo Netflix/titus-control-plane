@@ -49,7 +49,6 @@ import com.netflix.titus.common.util.rx.batch.RateLimitedBatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
-import rx.Completable;
 import rx.Observable;
 import rx.Scheduler;
 import rx.subjects.PublishSubject;

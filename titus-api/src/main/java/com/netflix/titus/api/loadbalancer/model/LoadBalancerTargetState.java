@@ -35,6 +35,10 @@ public class LoadBalancerTargetState {
         return state;
     }
 
+    public String getIpAddress() {
+        return loadBalancerTarget.getIpAddress();
+    }
+
     @Override
     public String toString() {
         return "TargetState{" +

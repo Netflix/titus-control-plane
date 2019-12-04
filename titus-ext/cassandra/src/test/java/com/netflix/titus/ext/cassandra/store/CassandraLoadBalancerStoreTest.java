@@ -17,7 +17,6 @@
 package com.netflix.titus.ext.cassandra.store;
 
 import java.time.Duration;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -35,6 +34,7 @@ import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
+import com.google.common.collect.ImmutableMap;
 import com.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import com.netflix.titus.api.loadbalancer.model.JobLoadBalancerState;
 import com.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
@@ -56,6 +56,7 @@ import static com.netflix.titus.api.loadbalancer.model.JobLoadBalancer.State.ASS
 import static com.netflix.titus.api.loadbalancer.model.JobLoadBalancer.State.DISSOCIATED;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @Category(IntegrationNotParallelizableTest.class)
 public class CassandraLoadBalancerStoreTest {
@@ -91,13 +92,12 @@ public class CassandraLoadBalancerStoreTest {
      */
     @Test
     public void testRetrieveLoadBalancers() throws Exception {
-        Pair<Map<JobLoadBalancer, JobLoadBalancer.State>, Map<LoadBalancerTarget, LoadBalancerTarget.State>> data =
-                generateTestData(10, 20, 1);
+        TestData data = generateTestData(10, 20, 1);
         loadTestData(data);
         CassandraLoadBalancerStore store = getInitdStore();
 
         // Check that all expected data was loaded
-        checkDataSetExists(store, data.getLeft());
+        checkDataSetExists(store, data.getAssociations());
     }
 
     /**
@@ -107,7 +107,7 @@ public class CassandraLoadBalancerStoreTest {
      */
     @Test
     public void testAddLoadBalancers() throws Exception {
-        Map<JobLoadBalancer, JobLoadBalancer.State> testData = generateTestData(10, 20, 1).getLeft();
+        Map<JobLoadBalancer, JobLoadBalancer.State> testData = generateTestData(10, 20, 1).getAssociations();
         CassandraLoadBalancerStore store = getInitdStore();
 
         // Apply the testData to the store
@@ -146,16 +146,16 @@ public class CassandraLoadBalancerStoreTest {
 
     @Test
     public void testRemoveLoadBalancer() throws Exception {
-        Map<JobLoadBalancer, JobLoadBalancer.State> testData = generateTestData(10, 20, 1).getLeft();
+        Map<JobLoadBalancer, JobLoadBalancer.State> testData = generateTestData(10, 20, 1).getAssociations();
         CassandraLoadBalancerStore store = getInitdStore();
 
-        testData.forEach((jobLoadBalancer, state) -> {
-            assertThat(store.addOrUpdateLoadBalancer(jobLoadBalancer, state).await(TIMEOUT_MS, TimeUnit.MILLISECONDS)).isTrue();
-        });
+        testData.forEach((jobLoadBalancer, state) ->
+                assertThat(store.addOrUpdateLoadBalancer(jobLoadBalancer, state).await(TIMEOUT_MS, TimeUnit.MILLISECONDS)).isTrue()
+        );
 
-        testData.forEach((jobLoadBalancer, state) -> {
-            assertThat(store.removeLoadBalancer(jobLoadBalancer).await(TIMEOUT_MS, TimeUnit.MILLISECONDS)).isTrue();
-        });
+        testData.forEach((jobLoadBalancer, state) ->
+                assertThat(store.removeLoadBalancer(jobLoadBalancer).await(TIMEOUT_MS, TimeUnit.MILLISECONDS)).isTrue()
+        );
 
         Map<String, List<JobLoadBalancerState>> byJobId = store.getAssociations().stream()
                 .collect(Collectors.groupingBy(JobLoadBalancerState::getJobId));
@@ -166,7 +166,7 @@ public class CassandraLoadBalancerStoreTest {
 
     @Test
     public void testDissociateLoadBalancer() throws Exception {
-        Map<JobLoadBalancer, JobLoadBalancer.State> testData = generateTestData(10, 20, 1).getLeft();
+        Map<JobLoadBalancer, JobLoadBalancer.State> testData = generateTestData(10, 20, 1).getAssociations();
         CassandraLoadBalancerStore store = getInitdStore();
 
         testData.forEach((jobLoadBalancer, state) -> {
@@ -174,7 +174,7 @@ public class CassandraLoadBalancerStoreTest {
         });
 
         testData.forEach((jobLoadBalancer, state) -> {
-            assertThat(store.addOrUpdateLoadBalancer(jobLoadBalancer, JobLoadBalancer.State.DISSOCIATED).await(TIMEOUT_MS, TimeUnit.MILLISECONDS)).isTrue();
+            assertThat(store.addOrUpdateLoadBalancer(jobLoadBalancer, DISSOCIATED).await(TIMEOUT_MS, TimeUnit.MILLISECONDS)).isTrue();
         });
 
         Map<String, List<JobLoadBalancerState>> byJobId = store.getAssociations().stream()
@@ -182,24 +182,28 @@ public class CassandraLoadBalancerStoreTest {
         testData.forEach((jobLoadBalancer, state) ->
                 byJobId.get(jobLoadBalancer.getJobId()).forEach(loadBalancerState -> {
                     assertThat(testData).containsKey(new JobLoadBalancer(jobLoadBalancer.getJobId(), loadBalancerState.getLoadBalancerId()));
-                    assertThat(loadBalancerState.getState()).isEqualTo(JobLoadBalancer.State.DISSOCIATED);
+                    assertThat(loadBalancerState.getState()).isEqualTo(DISSOCIATED);
                 })
         );
     }
 
     @Test
     public void testAddTargets() throws Exception {
-        Map<LoadBalancerTarget, LoadBalancerTarget.State> testData = generateTestData(10, 20, 1).getRight();
-        Collection<LoadBalancerTargetState> expectedTargets = testData.entrySet().stream()
+        Map<LoadBalancerTarget, LoadBalancerTarget.State> testData = generateTestData(10, 20, 1).getTargets();
+        Map<String, List<LoadBalancerTargetState>> expectedTargetsByLoadBalancer = testData.entrySet().stream()
                 .map(entry -> new LoadBalancerTargetState(entry.getKey(), entry.getValue()))
-                .collect(Collectors.toList());
+                .collect(Collectors.groupingBy(t -> t.getLoadBalancerTarget().getLoadBalancerId()));
         CassandraLoadBalancerStore store = getInitdStore();
         testData.forEach((target, state) -> store.addOrUpdateTarget(target, state).block(Duration.ofMillis(TIMEOUT_MS)));
-        assertThat(store.getTargets()).containsExactlyInAnyOrder(IterableUtil.toArray(expectedTargets));
+        expectedTargetsByLoadBalancer.forEach((loadBalancerId, expectedTargets) ->
+                assertThat(store.getLoadBalancerTargets(loadBalancerId).collectList().block(Duration.ofSeconds(5)))
+                        .containsExactlyInAnyOrder(IterableUtil.toArray(expectedTargets))
+        );
 
+        int totalCount = expectedTargetsByLoadBalancer.values().stream().mapToInt(List::size).sum();
         Session session = cassandraCQLUnit.getSession();
         ResultSet resultSet = session.execute("SELECT COUNT(*) FROM load_balancer_targets;");
-        assertThat(resultSet.one().getLong(0)).isEqualTo(expectedTargets.size());
+        assertThat(resultSet.one().getLong(0)).isEqualTo(totalCount);
     }
 
     @Test
@@ -224,57 +228,37 @@ public class CassandraLoadBalancerStoreTest {
     }
 
     @Test
-    public void testRemoveTargets() throws Exception {
-        Session session = cassandraCQLUnit.getSession();
-        BoundStatement countStmt = session.prepare("SELECT COUNT(*) FROM load_balancer_targets;").bind();
-
-        loadTestData(generateTestData(20, 5, 10));
+    public void testOnlyDeregisteredTargetsAreRemoved() throws Exception {
+        TestData testData = new TestData(
+                Collections.emptyMap(),
+                ImmutableMap.of(
+                        new LoadBalancerTarget("lb-1", "task1", "1.1.1.1"), LoadBalancerTarget.State.REGISTERED,
+                        new LoadBalancerTarget("lb-1", "task2", "2.2.2.2"), LoadBalancerTarget.State.DEREGISTERED,
+                        new LoadBalancerTarget("lb-2", "task1", "1.1.1.1"), LoadBalancerTarget.State.DEREGISTERED,
+                        new LoadBalancerTarget("lb-2", "task3", "3.3.3.3"), LoadBalancerTarget.State.DEREGISTERED
+                )
+        );
+        loadTestData(testData);
         CassandraLoadBalancerStore store = getInitdStore();
-        Collection<LoadBalancerTargetState> targets = store.getTargets();
-        assertThat(session.execute(countStmt).one().getLong(0)).isEqualTo(targets.size());
-
-        List<LoadBalancerTarget> toRemove = targets.stream()
-                .map(LoadBalancerTargetState::getLoadBalancerTarget)
-                .collect(Collectors.toList());
-        Collections.shuffle(toRemove);
-        toRemove = toRemove.subList(0, targets.size() / 2);
-
-        store.removeTargets(toRemove).block(Duration.ofMillis(TIMEOUT_MS));
-        assertThat(session.execute(countStmt).one().getLong(0)).isEqualTo(targets.size() - toRemove.size());
-
-    }
-
-    private static class UpdateThread implements Runnable {
-        private final JobLoadBalancer jobLoadBalancer;
-        private final JobLoadBalancer.State state;
-        private final CassandraLoadBalancerStore store;
-
-        private UpdateThread(JobLoadBalancer jobLoadBalancer, JobLoadBalancer.State state, CassandraLoadBalancerStore store) {
-            this.jobLoadBalancer = jobLoadBalancer;
-            this.state = state;
-            this.store = store;
-        }
-
-        @Override
-        public void run() {
-            store.addOrUpdateLoadBalancer(jobLoadBalancer, state).await(TIMEOUT_MS, TimeUnit.MILLISECONDS);
-        }
-
+        store.removeDeregisteredTargets(testData.getTargets().keySet()).block(Duration.ofSeconds(10));
+        List<LoadBalancerTargetState> targets1 = store.getLoadBalancerTargets("lb-1").collectList().block(Duration.ofSeconds(5));
+        assertThat(targets1).hasSize(1);
+        assertThat(targets1.get(0).getIpAddress()).isEqualTo("1.1.1.1");
+        List<LoadBalancerTargetState> targets2 = store.getLoadBalancerTargets("lb-2").collectList().block(Duration.ofSeconds(5));
+        assertThat(targets2).isEmpty();
     }
 
     @Test
     public void testParallelUpdates() throws Exception {
-        Map<JobLoadBalancer, JobLoadBalancer.State> testData = generateTestData(100, 20, 1).getLeft();
+        Map<JobLoadBalancer, JobLoadBalancer.State> testData = generateTestData(100, 20, 1).getAssociations();
 
         CassandraLoadBalancerStore store = getInitdStore();
 
         // Create an thread pool to generate concurrent updates
         ExecutorService executorService = Executors.newFixedThreadPool(10);
-        testData.forEach(
-                (jobLoadBalancer, state) -> {
-                    Runnable anUpdate = new UpdateThread(jobLoadBalancer, state, store);
-                    executorService.execute(anUpdate);
-                }
+        testData.forEach((jobLoadBalancer, state) ->
+                executorService.execute(() -> store.addOrUpdateLoadBalancer(jobLoadBalancer, state)
+                        .await(TIMEOUT_MS, TimeUnit.MILLISECONDS))
         );
         // Wait till all jobs were submitted
         executorService.shutdown();
@@ -293,9 +277,8 @@ public class CassandraLoadBalancerStoreTest {
     public void testGetPage() throws Exception {
         int numTestJobs = 100;
         int numTestLbs = 20;
-        Pair<Map<JobLoadBalancer, JobLoadBalancer.State>, Map<LoadBalancerTarget, LoadBalancerTarget.State>> testData =
-                generateTestData(numTestJobs, numTestLbs, 1);
-        Map<JobLoadBalancer, JobLoadBalancer.State> associations = testData.getLeft();
+        TestData testData = generateTestData(numTestJobs, numTestLbs, 1);
+        Map<JobLoadBalancer, JobLoadBalancer.State> associations = testData.getAssociations();
         HashSet<JobLoadBalancer> unverifiedData = new HashSet<>(associations.keySet());
 
         // Load data on init
@@ -342,13 +325,8 @@ public class CassandraLoadBalancerStoreTest {
 
     /**
      * Returns a map of data to be inserted that can be used for later verification.
-     *
-     * @param numJobs
-     * @param numLoadBalancersPerJob
-     * @throws Exception
      */
-    private Pair<Map<JobLoadBalancer, JobLoadBalancer.State>, Map<LoadBalancerTarget, LoadBalancerTarget.State>>
-    generateTestData(int numJobs, int numLoadBalancersPerJob, int numTasksPerJob) throws Exception {
+    private TestData generateTestData(int numJobs, int numLoadBalancersPerJob, int numTasksPerJob) {
         Map<JobLoadBalancer, JobLoadBalancer.State> associations = new HashMap<>();
         Map<LoadBalancerTarget, LoadBalancerTarget.State> targets = new HashMap<>();
 
@@ -368,7 +346,7 @@ public class CassandraLoadBalancerStoreTest {
 
         assertThat(associations.size()).isEqualTo(numJobs * numLoadBalancersPerJob);
         assertThat(targets.size()).isEqualTo(numJobs * numLoadBalancersPerJob * numTasksPerJob);
-        return Pair.of(associations, targets);
+        return new TestData(associations, targets);
     }
 
     private void loadTestData(Pair<Map<JobLoadBalancer, JobLoadBalancer.State>, Map<LoadBalancerTarget, LoadBalancerTarget.State>> data) {
@@ -408,13 +386,11 @@ public class CassandraLoadBalancerStoreTest {
 
     /**
      * Creates, loads, and returns a store instance based on what was already in Cassandra.
-     *
-     * @return
-     * @throws Exception
      */
     private CassandraLoadBalancerStore getInitdStore() throws Exception {
         Session session = cassandraCQLUnit.getSession();
         CassandraStoreConfiguration configuration = mock(CassandraStoreConfiguration.class);
+        when(configuration.getConcurrencyLimit()).thenReturn(10);
         EntitySanitizer entitySanitizer = new LoadBalancerSanitizerBuilder().build();
         CassandraLoadBalancerStore store = new CassandraLoadBalancerStore(configuration, entitySanitizer, session);
         store.init();
@@ -486,5 +462,22 @@ public class CassandraLoadBalancerStoreTest {
         // Verify that all of the test data was checked.
         assertThat(observableVerificationSet.isEmpty()).isTrue();
         assertThat(listVerificationSet.isEmpty()).isTrue();
+    }
+
+    /**
+     * Generics sanity
+     */
+    private static class TestData extends Pair<Map<JobLoadBalancer, JobLoadBalancer.State>, Map<LoadBalancerTarget, LoadBalancerTarget.State>> {
+        public TestData(Map<JobLoadBalancer, JobLoadBalancer.State> associations, Map<LoadBalancerTarget, LoadBalancerTarget.State> targets) {
+            super(associations, targets);
+        }
+
+        public Map<JobLoadBalancer, JobLoadBalancer.State> getAssociations() {
+            return getLeft();
+        }
+
+        public Map<LoadBalancerTarget, LoadBalancerTarget.State> getTargets() {
+            return getRight();
+        }
     }
 }

@@ -30,8 +30,7 @@ import com.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
 import com.netflix.titus.api.loadbalancer.model.LoadBalancerTargetState;
 import com.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import com.netflix.titus.runtime.loadbalancer.LoadBalancerCursors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
@@ -40,8 +39,6 @@ import rx.Observable;
  * Operations are not being indexed yet for simplicity.
  */
 public class InMemoryLoadBalancerStore implements LoadBalancerStore {
-    private static Logger logger = LoggerFactory.getLogger(InMemoryLoadBalancerStore.class);
-
     private final ConcurrentMap<JobLoadBalancer, JobLoadBalancer.State> associations = new ConcurrentHashMap<>();
     private final ConcurrentMap<LoadBalancerTarget, LoadBalancerTarget.State> targets = new ConcurrentHashMap<>();
 
@@ -103,14 +100,16 @@ public class InMemoryLoadBalancerStore implements LoadBalancerStore {
     }
 
     @Override
-    public Mono<Void> removeTargets(Collection<LoadBalancerTarget> toRemove) {
+    public Mono<Void> removeDeregisteredTargets(Collection<LoadBalancerTarget> toRemove) {
         return Mono.fromRunnable(() -> toRemove.forEach(targets::remove));
     }
 
     @Override
-    public List<LoadBalancerTargetState> getTargets() {
-        return targets.entrySet().stream()
-                .map(LoadBalancerTargetState::from)
-                .collect(Collectors.toList());
+    public Flux<LoadBalancerTargetState> getLoadBalancerTargets(String loadBalancerId) {
+        return Flux.fromStream(
+                targets.entrySet().stream()
+                        .filter(entry -> entry.getKey().getLoadBalancerId().equals(loadBalancerId))
+                        .map(LoadBalancerTargetState::from)
+        );
     }
 }

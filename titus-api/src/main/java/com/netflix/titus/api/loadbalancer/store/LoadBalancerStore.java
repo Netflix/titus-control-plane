@@ -18,13 +18,13 @@ package com.netflix.titus.api.loadbalancer.store;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import com.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import com.netflix.titus.api.loadbalancer.model.JobLoadBalancerState;
 import com.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
 import com.netflix.titus.api.loadbalancer.model.LoadBalancerTargetState;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
@@ -78,13 +78,13 @@ public interface LoadBalancerStore {
     Mono<Void> addOrUpdateTarget(LoadBalancerTarget target, LoadBalancerTarget.State state);
 
     /**
-     * Removes one or more targets associated with a load balancer
+     * Removes one or more deregistered targets associated with a load balancer. Targets that currently do not have
+     * their state as {@link LoadBalancerTarget.State#DEREGISTERED} in the store are ignored
      */
-    Mono<Void> removeTargets(Collection<LoadBalancerTarget> targets);
+    Mono<Void> removeDeregisteredTargets(Collection<LoadBalancerTarget> targets);
 
     /**
-     * Blocking call that returns a (snapshot) view of the existing load balancer targets, indexed by load balancer id.
-     * It must work out of cached data in-memory only, and avoid doing external calls.
+     * Known (seen before) targets for a particular load balancer
      */
-    Collection<LoadBalancerTargetState> getTargets();
+    Flux<LoadBalancerTargetState> getLoadBalancerTargets(String loadBalancerId);
 }
