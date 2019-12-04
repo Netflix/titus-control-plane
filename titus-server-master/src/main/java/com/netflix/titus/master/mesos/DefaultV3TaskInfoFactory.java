@@ -37,7 +37,9 @@ import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.JobGroupInfo;
+import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.SecurityProfile;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.vpc.SignedIpAddressAllocation;
@@ -230,6 +232,9 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
         // Configure IP address allocation
         setSignedAddressAllocation(containerInfoBuilder, task, containerResources);
 
+        // Configure job accepted timestamp
+        setJobAcceptedTimestamp(containerInfoBuilder, job);
+
         return containerInfoBuilder;
     }
 
@@ -268,6 +273,10 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
                 }
             }
         }
+    }
+
+    private void setJobAcceptedTimestamp(ContainerInfo.Builder containerInfoBuilder, Job<?> job) {
+        JobFunctions.findJobStatus(job, JobState.Accepted).ifPresent(jobStatus -> containerInfoBuilder.setJobAcceptedTimestamp(jobStatus.getTimestamp()));
     }
 
     private Protos.TaskInfo.Builder newTaskInfoBuilder(Protos.TaskID taskId,
