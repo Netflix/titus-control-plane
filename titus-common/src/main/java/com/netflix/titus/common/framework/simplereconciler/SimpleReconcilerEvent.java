@@ -69,10 +69,10 @@ public class SimpleReconcilerEvent<DATA> {
             return false;
         }
         SimpleReconcilerEvent<?> that = (SimpleReconcilerEvent<?>) o;
-        return kind == that.kind &&
+        return transactionId == that.transactionId &&
+                kind == that.kind &&
                 Objects.equals(id, that.id) &&
-                Objects.equals(data, that.data) &&
-                Objects.equals(transactionId, that.transactionId);
+                Objects.equals(data, that.data);
     }
 
     @Override
