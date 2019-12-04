@@ -29,9 +29,15 @@ public class SimpleReconcilerEvent<DATA> {
     private final Kind kind;
     private final String id;
     private final DATA data;
-    private final String transactionId;
 
-    public SimpleReconcilerEvent(Kind kind, String id, DATA data, String transactionId) {
+    /**
+     * A unique identifier associated with each reconciler action and data element version. Consecutive transaction ids
+     * are strictly increasing numbers, but they do not have to be continuous. Each managed data has its own transaction
+     * id sequence. A client may use the transaction id, to chose the latest data version.
+     */
+    private final long transactionId;
+
+    public SimpleReconcilerEvent(Kind kind, String id, DATA data, long transactionId) {
         this.kind = kind;
         this.id = id;
         this.data = data;
@@ -50,7 +56,7 @@ public class SimpleReconcilerEvent<DATA> {
         return data;
     }
 
-    public String getTransactionId() {
+    public long getTransactionId() {
         return transactionId;
     }
 

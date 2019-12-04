@@ -98,7 +98,12 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
         this.metrics = new ReconcilerExecutorMetrics(titusRuntime);
 
         eventProcessor = DirectProcessor.create();
-        eventStream = eventProcessor.compose(ReactorExt.badSubscriberHandler(logger))
+
+        // We build snapshot only after the subscription to 'eventStream' happens, otherwise we might lose events
+        // due to fact that subscription happening on the 'notification' thread may take some time.
+        eventStream = eventProcessor
+                .compose(ReactorExt.head(() -> Collections.singleton(buildSnapshot())))
+                .compose(ReactorExt.badSubscriberHandler(logger))
                 .subscribeOn(notificationScheduler)
                 .publishOn(notificationScheduler);
 
@@ -260,15 +265,7 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
 
         for (EventListenerHolder holder; (holder = eventListenerHolders.poll()) != null; ) {
             FluxSink<List<SimpleReconcilerEvent<DATA>>> sink = holder.getSink();
-
-            // We build snapshot only after the subscription to 'eventStream' happens, otherwise we might loose events
-            // due to fact that subscription happening on the 'notification' thread may take some time.
-            Disposable disposable = eventStream
-                    .compose(ReactorExt.head(() -> Collections.singleton(buildSnapshot())))
-                    .subscribe(
-                            sink::next,
-                            sink::error
-                    );
+            Disposable disposable = eventStream.subscribe(sink::next, sink::error);
             sink.onCancel(disposable);
         }
     }
@@ -277,7 +274,7 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
         List<SimpleReconcilerEvent<DATA>> allState = new ArrayList<>();
         executors.forEach((id, executor) -> {
             // We emit event with the id of the last completed transaction.
-            String transactionId = "" + (executor.getNextTransactionId() - 1);
+            long transactionId = executor.getNextTransactionId() - 1;
             SimpleReconcilerEvent<DATA> event = new SimpleReconcilerEvent<>(
                     SimpleReconcilerEvent.Kind.Added,
                     executor.getId(),
@@ -328,9 +325,8 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
                     it.remove();
 
                     // This is the very last action, so we can take safely the next transaction id without progressing it.
-                    String transactionId = "" + executor.getNextTransactionId();
                     eventProcessor.onNext(Collections.singletonList(
-                            new SimpleReconcilerEvent<>(SimpleReconcilerEvent.Kind.Removed, executor.getId(), executor.getCurrent(), transactionId)
+                            new SimpleReconcilerEvent<>(SimpleReconcilerEvent.Kind.Removed, executor.getId(), executor.getCurrent(), executor.getNextTransactionId())
                     ));
 
                     runnable.ifPresent(Runnable::run);
@@ -345,7 +341,7 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
 
             // We set transaction id "0" for the newly added executors.
             eventProcessor.onNext(Collections.singletonList(
-                    new SimpleReconcilerEvent<>(SimpleReconcilerEvent.Kind.Added, executor.getId(), executor.getCurrent(), "0")
+                    new SimpleReconcilerEvent<>(SimpleReconcilerEvent.Kind.Added, executor.getId(), executor.getCurrent(), 0)
             ));
 
             holder.getSink().success();

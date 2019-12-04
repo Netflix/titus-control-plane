@@ -111,7 +111,7 @@ class ReconcilerEngine<DATA> {
                 return;
             }
 
-            String transactionId = "" + nextTransactionId.getAndIncrement();
+            long transactionId = nextTransactionId.getAndIncrement();
             Function<DATA, Mono<Function<DATA, DATA>>> internalAction = data -> action.apply(data).map(d -> dd -> d);
             referenceChangeActions.add(new ChangeActionHolder<>(internalAction, transactionId, clock.wallTime(), sink));
 
@@ -259,7 +259,7 @@ class ReconcilerEngine<DATA> {
         Mono<Function<DATA, DATA>> action = reconcilerActions.get(0);
         Function<DATA, Mono<Function<DATA, DATA>>> internalAction = data -> action;
 
-        String transactionId = "" + nextTransactionId.getAndIncrement();
+        long transactionId = nextTransactionId.getAndIncrement();
         ChangeActionHolder<DATA> actionHolder = new ChangeActionHolder<>(
                 internalAction,
                 transactionId,

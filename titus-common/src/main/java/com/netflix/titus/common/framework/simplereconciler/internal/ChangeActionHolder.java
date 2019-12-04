@@ -30,7 +30,7 @@ import reactor.core.publisher.MonoSink;
 public final class ChangeActionHolder<DATA> {
 
     private final Function<DATA, Mono<Function<DATA, DATA>>> action;
-    private final String transactionId;
+    private final long transactionId;
     private final long createTimestamp;
     private final MonoSink<DATA> subscriberSink;
 
@@ -38,7 +38,7 @@ public final class ChangeActionHolder<DATA> {
     private final Queue<Disposable> cancelCallbacks = new ConcurrentLinkedQueue<>();
 
     public ChangeActionHolder(Function<DATA, Mono<Function<DATA, DATA>>> action,
-                              String transactionId,
+                              long transactionId,
                               long createTimestamp,
                               @Nullable MonoSink<DATA> subscriberSink) {
         this.action = action;
@@ -62,7 +62,7 @@ public final class ChangeActionHolder<DATA> {
         return action;
     }
 
-    public String getTransactionId() {
+    public long getTransactionId() {
         return transactionId;
     }
 
