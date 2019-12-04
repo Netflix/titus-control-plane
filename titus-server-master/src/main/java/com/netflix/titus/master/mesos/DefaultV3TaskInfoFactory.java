@@ -276,7 +276,7 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
     }
 
     private void setJobAcceptedTimestamp(ContainerInfo.Builder containerInfoBuilder, Job<?> job) {
-        JobFunctions.findJobStatus(job, JobState.Accepted).ifPresent(jobStatus -> containerInfoBuilder.setJobAcceptedTimestamp(jobStatus.getTimestamp()));
+        JobFunctions.findJobStatus(job, JobState.Accepted).ifPresent(jobStatus -> containerInfoBuilder.setJobAcceptedTimestampMs(jobStatus.getTimestamp()));
     }
 
     private Protos.TaskInfo.Builder newTaskInfoBuilder(Protos.TaskID taskId,
