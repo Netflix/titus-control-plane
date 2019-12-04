@@ -259,6 +259,7 @@ public class DefaultManyReconcilerTest {
 
     private void expectEvent(String id, String data, SimpleReconcilerEvent.Kind kind) throws InterruptedException {
         List<SimpleReconcilerEvent<String>> addEvent = changesSubscriber.takeNext(TIMEOUT);
+        assertThat(addEvent).hasSize(1);
         assertThat(addEvent.get(0).getKind()).isEqualTo(kind);
         assertThat(addEvent.get(0).getId()).isEqualTo(id);
         assertThat(addEvent.get(0).getData()).isEqualTo(data);

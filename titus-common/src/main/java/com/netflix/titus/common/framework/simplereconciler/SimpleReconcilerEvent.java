@@ -30,10 +30,18 @@ public class SimpleReconcilerEvent<DATA> {
     private final String id;
     private final DATA data;
 
-    public SimpleReconcilerEvent(Kind kind, String id, DATA data) {
+    /**
+     * A unique identifier associated with each reconciler action and data element version. Consecutive transaction ids
+     * are strictly increasing numbers, but they do not have to be continuous. Each managed data has its own transaction
+     * id sequence. A client may use the transaction id, to chose the latest data version.
+     */
+    private final long transactionId;
+
+    public SimpleReconcilerEvent(Kind kind, String id, DATA data, long transactionId) {
         this.kind = kind;
         this.id = id;
         this.data = data;
+        this.transactionId = transactionId;
     }
 
     public Kind getKind() {
@@ -48,6 +56,10 @@ public class SimpleReconcilerEvent<DATA> {
         return data;
     }
 
+    public long getTransactionId() {
+        return transactionId;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -57,14 +69,15 @@ public class SimpleReconcilerEvent<DATA> {
             return false;
         }
         SimpleReconcilerEvent<?> that = (SimpleReconcilerEvent<?>) o;
-        return kind == that.kind &&
+        return transactionId == that.transactionId &&
+                kind == that.kind &&
                 Objects.equals(id, that.id) &&
                 Objects.equals(data, that.data);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(kind, id, data);
+        return Objects.hash(kind, id, data, transactionId);
     }
 
     @Override
@@ -73,6 +86,7 @@ public class SimpleReconcilerEvent<DATA> {
                 "kind=" + kind +
                 ", id='" + id + '\'' +
                 ", data=" + data +
+                ", transactionId='" + transactionId + '\'' +
                 '}';
     }
 }
