@@ -38,9 +38,11 @@ import com.google.inject.Injector;
 import com.netflix.fenzo.VirtualMachineLease;
 import com.netflix.fenzo.functions.Action1;
 import com.netflix.fenzo.plugins.VMLeaseObject;
+import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
+import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.common.framework.scheduler.LocalScheduler;
 import com.netflix.titus.common.framework.scheduler.model.ScheduleDescriptor;
@@ -51,6 +53,7 @@ import com.netflix.titus.common.util.RegExpExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.guice.annotation.Deactivator;
 import com.netflix.titus.common.util.time.Clock;
+import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.mesos.ContainerEvent;
 import com.netflix.titus.master.mesos.LeaseRescindedEvent;
 import com.netflix.titus.master.mesos.MesosConfiguration;
@@ -65,6 +68,9 @@ import io.kubernetes.client.informer.ResourceEventHandler;
 import io.kubernetes.client.informer.SharedIndexInformer;
 import io.kubernetes.client.informer.SharedInformerFactory;
 import io.kubernetes.client.models.V1Container;
+import io.kubernetes.client.models.V1ContainerState;
+import io.kubernetes.client.models.V1ContainerStateTerminated;
+import io.kubernetes.client.models.V1ContainerStatus;
 import io.kubernetes.client.models.V1Node;
 import io.kubernetes.client.models.V1NodeAddress;
 import io.kubernetes.client.models.V1NodeCondition;
@@ -285,16 +291,19 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                 new ResourceEventHandler<V1Pod>() {
                     @Override
                     public void onAdd(V1Pod pod) {
+                        logger.debug("Pod Added: {}", pod);
                         podUpdated(pod);
                     }
 
                     @Override
                     public void onUpdate(V1Pod oldPod, V1Pod newPod) {
+                        logger.debug("Pod Updated Old: {}, New: {}", oldPod, newPod);
                         podUpdated(newPod);
                     }
 
                     @Override
                     public void onDelete(V1Pod pod, boolean deletedFinalStateUnknown) {
+                        logger.debug("Pod Deleted: {}, deletedFinalStateUnknown={}", pod, deletedFinalStateUnknown);
                         podUpdated(pod);
                     }
                 });
@@ -519,6 +528,12 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
             V1ObjectMeta metadata = pod.getMetadata();
             String podName = metadata.getName();
 
+            Optional<Pair<Job<?>, Task>> taskJobOpt = v3JobOperations.findTaskById(podName);
+            if (!taskJobOpt.isPresent()) {
+                // updates for tasks not in job management can be ignored
+                return;
+            }
+
             V1PodStatus status = pod.getStatus();
             String phase = status.getPhase();
             String reason = status.getReason();
@@ -526,30 +541,84 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
             boolean hasDeletionTimestamp = metadata.getDeletionTimestamp() != null;
 
             Optional<TitusExecutorDetails> executorDetails = getTitusExecutorDetails(pod);
+            Task task = taskJobOpt.get().getRight();
+
+            TaskState state;
+            String reasonCode = REASON_NORMAL;
 
             if (phase.equalsIgnoreCase(PENDING)) {
                 // inspect pod status reason to differentiate between Launched and StartInitiated (this is not standard Kubernetes)
                 if (reason != null && reason.equalsIgnoreCase(TASK_STARTING)) {
-                    publishContainerEvent(podName, StartInitiated, REASON_NORMAL, reasonMessage, executorDetails);
+                    state = StartInitiated;
                 } else {
-                    publishContainerEvent(podName, Launched, REASON_NORMAL, reasonMessage, executorDetails);
+                    state = Launched;
                 }
             } else if (phase.equalsIgnoreCase(RUNNING) && !hasDeletionTimestamp) {
-                publishContainerEvent(podName, Started, REASON_NORMAL, reasonMessage, executorDetails);
+                state = Started;
             } else if (phase.equalsIgnoreCase(SUCCEEDED)) {
-                String reasonCode = hasDeletionTimestamp ? REASON_TASK_KILLED : REASON_NORMAL;
-                publishContainerEvent(podName, Finished, reasonCode, reasonMessage, executorDetails);
+                state = Finished;
+                if (hasDeletionTimestamp) {
+                    reasonCode = REASON_TASK_KILLED;
+                }
             } else if (phase.equalsIgnoreCase(FAILED)) {
-                publishContainerEvent(podName, Finished, REASON_FAILED, reasonMessage, executorDetails);
+                state = Finished;
+                reasonCode = REASON_FAILED;
+            } else {
+                titusRuntime.getCodeInvariants().inconsistent("Pod: %s has unknown phase mapping: %s", podName, phase);
+                return;
             }
+
+            // if the new state is Finished and the pod had a container that ran then make sure that the StartInitiated
+            // and Started states were populated in the task state machine due to apiserver sending the latest event.
+            if (state == Finished) {
+                Optional<V1ContainerStateTerminated> terminatedContainerStatusOpt = findTerminatedContainerStatus(pod);
+                if (terminatedContainerStatusOpt.isPresent()) {
+                    V1ContainerStateTerminated containerStateTerminated = terminatedContainerStatusOpt.get();
+                    DateTime startedAt = containerStateTerminated.getStartedAt();
+                    if (startedAt != null) {
+                        long timestamp = startedAt.getMillis();
+                        Optional<TaskStatus> startInitiatedOpt = JobFunctions.findTaskStatus(task, StartInitiated);
+                        if (!startInitiatedOpt.isPresent()) {
+                            logger.debug("Publishing missing task status: StartInitiated for task: {}", task.getId());
+                            publishContainerEvent(podName, StartInitiated, TaskStatus.REASON_NORMAL, "",
+                                    Optional.empty(), timestamp);
+                        }
+                        Optional<TaskStatus> startedOpt = JobFunctions.findTaskStatus(task, Started);
+                        if (!startedOpt.isPresent()) {
+                            logger.debug("Publishing missing task status: Started for task: {}", task.getId());
+                            publishContainerEvent(podName, Started, TaskStatus.REASON_NORMAL, "",
+                                    Optional.empty(), timestamp);
+                        }
+                    }
+                }
+            }
+
+            publishContainerEvent(podName, state, reasonCode, reasonMessage, executorDetails);
         } catch (Exception e) {
             logger.error("Unable to handle pod update: {} with error:", pod, e);
         }
     }
 
+    private Optional<V1ContainerStateTerminated> findTerminatedContainerStatus(V1Pod pod) {
+        List<V1ContainerStatus> containerStatuses = pod.getStatus().getContainerStatuses();
+        if (containerStatuses != null) {
+            for (V1ContainerStatus status : containerStatuses) {
+                V1ContainerState state = status.getState();
+                if (state != null) {
+                    return Optional.ofNullable(state.getTerminated());
+                }
+            }
+        }
+        return Optional.empty();
+    }
+
     private void publishContainerEvent(String taskId, TaskState taskState, String reasonCode, String reasonMessage,
                                        Optional<TitusExecutorDetails> executorDetails) {
+        publishContainerEvent(taskId, taskState, reasonCode, reasonMessage, executorDetails, 0);
+    }
 
+    private void publishContainerEvent(String taskId, TaskState taskState, String reasonCode, String reasonMessage,
+                                       Optional<TitusExecutorDetails> executorDetails, long timestamp) {
         if (taskState == com.netflix.titus.api.jobmanager.model.job.TaskState.Finished && !StringExt.isEmpty(reasonMessage)) {
             if (invalidRequestMessageMatcherFactory.apply(reasonMessage).matches()) {
                 reasonCode = com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_INVALID_REQUEST;
@@ -569,9 +638,10 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                 taskState,
                 reasonCode,
                 reasonMessage,
-                titusRuntime.getClock().wallTime(),
+                timestamp <= 0 ? titusRuntime.getClock().wallTime() : timestamp,
                 executorDetails
         );
+
         logger.debug("Publishing task status: {}", event);
         vmTaskStatusObserver.onNext(event);
     }
@@ -590,7 +660,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                 .collect(Collectors.toList());
 
         // GC nodes that have timed out due to not publishing a heartbeat
-        logger.info("Attempting to GC nodes: {}", nodesToGc);
+        logger.info("Attempting to GC {} nodes: {}", nodesToGc.size(), nodesToGc);
         for (V1Node node : nodesToGc) {
             gcNode(node);
         }
@@ -614,7 +684,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                 .collect(Collectors.toList());
 
         // GC pods that have been persisted in Titus and are in a terminal state
-        logger.info("Attempting to GC terminal pods: {}", terminalPodsToGc);
+        logger.info("Attempting to GC {} terminal pods: {}", terminalPodsToGc.size(), terminalPodsToGc);
         for (V1Pod pod : terminalPodsToGc) {
             gcPod(pod);
         }
@@ -629,7 +699,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                 .collect(Collectors.toList());
 
         // GC orphaned pods on nodes that are no longer available
-        logger.info("Attempting to GC orphaned pods: {} without valid nodes", orphanedPodsToGc);
+        logger.info("Attempting to GC {} orphaned pods: {} without valid nodes", orphanedPodsToGc.size(), orphanedPodsToGc);
         for (V1Pod pod : orphanedPodsToGc) {
             gcPod(pod);
         }
@@ -644,7 +714,8 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                 .collect(Collectors.toList());
 
         // GC pods past deletion timestamp timeout
-        logger.info("Attempting to GC pods: {} past deletion timestamp timeout", podsPastDeletionTimestampTimeout);
+        logger.info("Attempting to GC {} pods: {} past deletion timestamp timeout", podsPastDeletionTimestampTimeout.size(),
+                podsPastDeletionTimestampTimeout);
         for (V1Pod pod : podsPastDeletionTimestampTimeout) {
             gcPod(pod);
         }
@@ -658,7 +729,8 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                 .collect(Collectors.toList());
 
         // GC pods in accepted with a deletion timestamp
-        logger.info("Attempting to GC accepted pods: {} with deletion timestamp", pendingPodsWithDeletionTimestamp);
+        logger.info("Attempting to GC {} accepted pods: {} with deletion timestamp", pendingPodsWithDeletionTimestamp.size(),
+                pendingPodsWithDeletionTimestamp);
         for (V1Pod pod : pendingPodsWithDeletionTimestamp) {
             gcPod(pod);
             publishContainerEvent(pod.getMetadata().getName(), Finished, REASON_TASK_KILLED, "", Optional.empty());
@@ -671,7 +743,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                 .collect(Collectors.toList());
 
         // Transition orphaned tasks to Finished that don't exist in Kubernetes
-        logger.info("Attempting to transition orphaned tasks: {}", tasksNotInApiServer);
+        logger.info("Attempting to transition {} orphaned tasks: {}", tasksNotInApiServer.size(), tasksNotInApiServer);
         for (Task task : tasksNotInApiServer) {
             if (task.getStatus().getState().equals(KillInitiated)) {
                 // if the last task status was KillInitiated and the system missed the last event then the assumption
