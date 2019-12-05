@@ -17,6 +17,7 @@
 package com.netflix.titus.master.scheduler;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -94,6 +95,11 @@ public class SchedulingMachinesFilter {
 
             filteredMachines.add(machine);
         }
+
+        if (schedulerConfiguration.isSchedulingMachinesFilterShuffleEnabled()) {
+            Collections.shuffle(filteredMachines);
+        }
+
         return filteredMachines;
     }
 

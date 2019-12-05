@@ -58,6 +58,14 @@ public interface SchedulerConfiguration {
     boolean isSchedulingMachinesFilterEnabled();
 
     /**
+     * An option to enable shuffle the machines list from the machines filter.
+     *
+     * @return whether to enable filtering of machines before scheduling iteration.
+     */
+    @DefaultValue("true")
+    boolean isSchedulingMachinesFilterShuffleEnabled();
+
+    /**
      * @return whether to turn off the constraint that prevents concurrent task launches.
      */
     @DefaultValue("true")
@@ -113,7 +121,7 @@ public interface SchedulerConfiguration {
     /**
      * Amount of time to keep information about task execution failures on an agent.
      */
-    @DefaultValue("300000")
+    @DefaultValue("900000")
     long getContainerFailureTrackingRetentionMs();
 
     /**
