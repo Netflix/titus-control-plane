@@ -531,6 +531,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
             Optional<Pair<Job<?>, Task>> taskJobOpt = v3JobOperations.findTaskById(podName);
             if (!taskJobOpt.isPresent()) {
                 // updates for tasks not in job management can be ignored
+                logger.warn("Ignoring pod update with name: {} as the task does not exist in job management", podName);
                 return;
             }
 
@@ -543,59 +544,69 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
             Optional<TitusExecutorDetails> executorDetails = getTitusExecutorDetails(pod);
             Task task = taskJobOpt.get().getRight();
 
-            TaskState state;
+            TaskState newState;
             String reasonCode = REASON_NORMAL;
 
             if (phase.equalsIgnoreCase(PENDING)) {
                 // inspect pod status reason to differentiate between Launched and StartInitiated (this is not standard Kubernetes)
                 if (reason != null && reason.equalsIgnoreCase(TASK_STARTING)) {
-                    state = StartInitiated;
+                    newState = StartInitiated;
                 } else {
-                    state = Launched;
+                    newState = Launched;
                 }
             } else if (phase.equalsIgnoreCase(RUNNING) && !hasDeletionTimestamp) {
-                state = Started;
+                newState = Started;
             } else if (phase.equalsIgnoreCase(SUCCEEDED)) {
-                state = Finished;
+                newState = Finished;
                 if (hasDeletionTimestamp) {
                     reasonCode = REASON_TASK_KILLED;
                 }
             } else if (phase.equalsIgnoreCase(FAILED)) {
-                state = Finished;
+                newState = Finished;
                 reasonCode = REASON_FAILED;
             } else {
                 titusRuntime.getCodeInvariants().inconsistent("Pod: %s has unknown phase mapping: %s", podName, phase);
                 return;
             }
 
-            // if the new state is Finished and the pod had a container that ran then make sure that the StartInitiated
-            // and Started states were populated in the task state machine due to apiserver sending the latest event.
-            if (state == Finished) {
-                Optional<V1ContainerStateTerminated> terminatedContainerStatusOpt = findTerminatedContainerStatus(pod);
-                if (terminatedContainerStatusOpt.isPresent()) {
-                    V1ContainerStateTerminated containerStateTerminated = terminatedContainerStatusOpt.get();
-                    DateTime startedAt = containerStateTerminated.getStartedAt();
-                    if (startedAt != null) {
-                        long timestamp = startedAt.getMillis();
-                        Optional<TaskStatus> startInitiatedOpt = JobFunctions.findTaskStatus(task, StartInitiated);
-                        if (!startInitiatedOpt.isPresent()) {
-                            logger.debug("Publishing missing task status: StartInitiated for task: {}", task.getId());
-                            publishContainerEvent(podName, StartInitiated, TaskStatus.REASON_NORMAL, "",
-                                    Optional.empty(), timestamp);
-                        }
-                        Optional<TaskStatus> startedOpt = JobFunctions.findTaskStatus(task, Started);
-                        if (!startedOpt.isPresent()) {
-                            logger.debug("Publishing missing task status: Started for task: {}", task.getId());
-                            publishContainerEvent(podName, Started, TaskStatus.REASON_NORMAL, "",
-                                    Optional.empty(), timestamp);
-                        }
-                    }
-                }
-            }
-
-            publishContainerEvent(podName, state, reasonCode, reasonMessage, executorDetails);
+            fillInMissingTaskStatusesIfNeeded(newState, pod, task);
+            publishContainerEvent(podName, newState, reasonCode, reasonMessage, executorDetails);
         } catch (Exception e) {
             logger.error("Unable to handle pod update: {} with error:", pod, e);
+        }
+    }
+
+    /**
+     * If the new state is Finished and the pod had a container that ran then make sure that the StartInitiated
+     * and Started states were populated in the task state machine due to apiserver sending the latest event.
+     */
+    private void fillInMissingTaskStatusesIfNeeded(TaskState state, V1Pod pod, Task task) {
+        if (state != Finished) {
+            return;
+        }
+
+        Optional<V1ContainerStateTerminated> terminatedContainerStatusOpt = findTerminatedContainerStatus(pod);
+        if (!terminatedContainerStatusOpt.isPresent()) {
+            return;
+        }
+
+        String taskId = task.getId();
+        V1ContainerStateTerminated containerStateTerminated = terminatedContainerStatusOpt.get();
+        DateTime startedAt = containerStateTerminated.getStartedAt();
+        if (startedAt != null) {
+            Optional<Long> timestampOpt = Optional.of(startedAt.getMillis());
+            Optional<TaskStatus> startInitiatedOpt = JobFunctions.findTaskStatus(task, StartInitiated);
+            if (!startInitiatedOpt.isPresent()) {
+                logger.debug("Publishing missing task status: StartInitiated for task: {}", taskId);
+                publishContainerEvent(taskId, StartInitiated, TaskStatus.REASON_NORMAL, "",
+                        Optional.empty(), timestampOpt);
+            }
+            Optional<TaskStatus> startedOpt = JobFunctions.findTaskStatus(task, Started);
+            if (!startedOpt.isPresent()) {
+                logger.debug("Publishing missing task status: Started for task: {}", taskId);
+                publishContainerEvent(taskId, Started, TaskStatus.REASON_NORMAL, "",
+                        Optional.empty(), timestampOpt);
+            }
         }
     }
 
@@ -614,11 +625,11 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
 
     private void publishContainerEvent(String taskId, TaskState taskState, String reasonCode, String reasonMessage,
                                        Optional<TitusExecutorDetails> executorDetails) {
-        publishContainerEvent(taskId, taskState, reasonCode, reasonMessage, executorDetails, 0);
+        publishContainerEvent(taskId, taskState, reasonCode, reasonMessage, executorDetails, Optional.empty());
     }
 
     private void publishContainerEvent(String taskId, TaskState taskState, String reasonCode, String reasonMessage,
-                                       Optional<TitusExecutorDetails> executorDetails, long timestamp) {
+                                       Optional<TitusExecutorDetails> executorDetails, Optional<Long> timestampOpt) {
         if (taskState == com.netflix.titus.api.jobmanager.model.job.TaskState.Finished && !StringExt.isEmpty(reasonMessage)) {
             if (invalidRequestMessageMatcherFactory.apply(reasonMessage).matches()) {
                 reasonCode = com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_INVALID_REQUEST;
@@ -638,7 +649,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                 taskState,
                 reasonCode,
                 reasonMessage,
-                timestamp <= 0 ? titusRuntime.getClock().wallTime() : timestamp,
+                timestampOpt.orElseGet(() -> titusRuntime.getClock().wallTime()),
                 executorDetails
         );
 

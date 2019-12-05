@@ -58,9 +58,9 @@ public interface SchedulerConfiguration {
     boolean isSchedulingMachinesFilterEnabled();
 
     /**
-     * An option to enable shuffle the machines list from the machines filter.
+     * An option to enable shuffling the machines list from the machines filter.
      *
-     * @return whether to enable filtering of machines before scheduling iteration.
+     * @return whether to enable shuffling the machines list from the machines filter.
      */
     @DefaultValue("true")
     boolean isSchedulingMachinesFilterShuffleEnabled();
