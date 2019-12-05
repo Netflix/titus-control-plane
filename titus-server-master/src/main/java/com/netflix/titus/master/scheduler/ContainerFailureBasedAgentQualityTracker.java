@@ -16,6 +16,7 @@
 
 package com.netflix.titus.master.scheduler;
 
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import javax.annotation.PreDestroy;
@@ -189,6 +190,12 @@ public class ContainerFailureBasedAgentQualityTracker implements AgentQualityTra
         if (reasonCode == null) {
             invariants.inconsistent("Task with status without reason code: taskId={}, status={}", task.getId(), task.getStatus());
             return;
+        }
+
+        // replace the reason code with the KillInitiated reason code if it exists
+        Optional<TaskStatus> killInitiatedTaskStatusOpt = JobFunctions.findTaskStatus(task, TaskState.KillInitiated);
+        if (killInitiatedTaskStatusOpt.isPresent()) {
+            reasonCode = killInitiatedTaskStatusOpt.get().getReasonCode();
         }
 
         ErrorKind errorKind;
