@@ -530,8 +530,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
 
             Optional<Pair<Job<?>, Task>> taskJobOpt = v3JobOperations.findTaskById(podName);
             if (!taskJobOpt.isPresent()) {
-                // updates for tasks not in job management can be ignored
-                logger.warn("Ignoring pod update with name: {} as the task does not exist in job management", podName);
+                logger.debug("Ignoring pod update with name: {} as the task does not exist in job management", podName);
                 return;
             }
 
@@ -569,7 +568,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                 return;
             }
 
-            fillInMissingTaskStatusesIfNeeded(newState, pod, task);
+            fillInMissingTaskStatusesIfNeeded(newState, pod, task, executorDetails);
             publishContainerEvent(podName, newState, reasonCode, reasonMessage, executorDetails);
         } catch (Exception e) {
             logger.error("Unable to handle pod update: {} with error:", pod, e);
@@ -580,7 +579,8 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
      * If the new state is Finished and the pod had a container that ran then make sure that the StartInitiated
      * and Started states were populated in the task state machine due to apiserver sending the latest event.
      */
-    private void fillInMissingTaskStatusesIfNeeded(TaskState state, V1Pod pod, Task task) {
+    private void fillInMissingTaskStatusesIfNeeded(TaskState state, V1Pod pod, Task task,
+                                                   Optional<TitusExecutorDetails> executorDetailsOpt) {
         if (state != Finished) {
             return;
         }
@@ -599,13 +599,13 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
             if (!startInitiatedOpt.isPresent()) {
                 logger.debug("Publishing missing task status: StartInitiated for task: {}", taskId);
                 publishContainerEvent(taskId, StartInitiated, TaskStatus.REASON_NORMAL, "",
-                        Optional.empty(), timestampOpt);
+                        executorDetailsOpt, timestampOpt);
             }
             Optional<TaskStatus> startedOpt = JobFunctions.findTaskStatus(task, Started);
             if (!startedOpt.isPresent()) {
                 logger.debug("Publishing missing task status: Started for task: {}", taskId);
                 publishContainerEvent(taskId, Started, TaskStatus.REASON_NORMAL, "",
-                        Optional.empty(), timestampOpt);
+                        executorDetailsOpt, timestampOpt);
             }
         }
     }
