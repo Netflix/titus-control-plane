@@ -152,12 +152,11 @@ CREATE TABLE "load_balancer_targets" (
     state            text,
     PRIMARY KEY (load_balancer_id, ip_address)
 ) WITH
-  comment ='Load balancer targets managed by this instance of Titus Master'
+  comment ='Load balancer targets managed by us'
   AND compression ={}
   AND compaction ={'min_threshold': '2', 'class': 'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy'}
   AND gc_grace_seconds = 21600
-  AND speculative_retry = 'NONE'
-  AND default_time_to_live = 2592000; // 30 days
+  AND speculative_retry = 'NONE';
 
 // ------------------------------------------------------------------
 // Scheduler schema
