@@ -319,7 +319,7 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
 
     private List<TargetStateBatchable> withState(Instant instant, Collection<LoadBalancerTarget> targets, State state) {
         return targets.stream()
-                .map(target -> new TargetStateBatchable(Priority.Low, instant, new LoadBalancerTargetState(target, state)))
+                .map(target -> new TargetStateBatchable(Priority.LOW, instant, new LoadBalancerTargetState(target, state)))
                 .collect(Collectors.toList());
     }
 

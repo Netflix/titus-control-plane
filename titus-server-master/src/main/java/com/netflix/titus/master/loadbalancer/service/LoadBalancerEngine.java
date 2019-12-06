@@ -248,7 +248,7 @@ class LoadBalancerEngine {
     private List<TargetStateBatchable> updatesForLoadBalancers(Collection<JobLoadBalancer> loadBalancers, Task task, State desired) {
         return loadBalancers.stream()
                 .map(association -> toLoadBalancerTarget(association, task))
-                .map(target -> new TargetStateBatchable(Priority.High, now(), new LoadBalancerTargetState(target, desired)))
+                .map(target -> new TargetStateBatchable(Priority.HIGH, now(), new LoadBalancerTargetState(target, desired)))
                 .collect(Collectors.toList());
     }
 
@@ -258,7 +258,7 @@ class LoadBalancerEngine {
                 .flatMap(jobLoadBalancer -> Observable.from(jobOperations.targetsForJob(jobLoadBalancer))
                         .doOnError(e -> logger.error("Error loading targets for jobId {}", jobLoadBalancer.getJobId(), e))
                         .onErrorResumeNext(Observable.empty()))
-                .map(target -> new TargetStateBatchable(Priority.High, now(), new LoadBalancerTargetState(target, state)))
+                .map(target -> new TargetStateBatchable(Priority.HIGH, now(), new LoadBalancerTargetState(target, state)))
                 .doOnError(e -> logger.error("Error fetching targets to {}", state, e))
                 .retry();
     }

@@ -26,8 +26,8 @@ import org.junit.Test;
 import rx.schedulers.Schedulers;
 import rx.schedulers.TestScheduler;
 
-import static com.netflix.titus.common.util.rx.batch.Priority.High;
-import static com.netflix.titus.common.util.rx.batch.Priority.Low;
+import static com.netflix.titus.common.util.rx.batch.Priority.HIGH;
+import static com.netflix.titus.common.util.rx.batch.Priority.LOW;
 import static java.time.Duration.ofMillis;
 import static java.time.Duration.ofMinutes;
 import static java.time.Duration.ofSeconds;
@@ -50,17 +50,17 @@ public class LargestPerTimeBucketTest {
         final Stream<Batch<BatchableOperationMock, String>> batches = Stream.of(
                 Batch.of("first",
                         // only has recent items
-                        new BatchableOperationMock(Low, now, "first", "sub1", "some"),
-                        new BatchableOperationMock(High, now, "first", "sub2", "some"),
-                        new BatchableOperationMock(Low, now, "first", "sub3", "some")
+                        new BatchableOperationMock(LOW, now, "first", "sub1", "some"),
+                        new BatchableOperationMock(HIGH, now, "first", "sub2", "some"),
+                        new BatchableOperationMock(LOW, now, "first", "sub3", "some")
                 ),
                 Batch.of("second",
-                        new BatchableOperationMock(Low, now, "second", "sub1", "some"),
-                        new BatchableOperationMock(Low, now, "second", "sub2", "some"),
-                        new BatchableOperationMock(High, past, "second", "sub3", "some")
+                        new BatchableOperationMock(LOW, now, "second", "sub1", "some"),
+                        new BatchableOperationMock(LOW, now, "second", "sub2", "some"),
+                        new BatchableOperationMock(HIGH, past, "second", "sub3", "some")
                 ),
                 Batch.of("third",
-                        new BatchableOperationMock(Low, past, "third", "sub1", "someState")
+                        new BatchableOperationMock(LOW, past, "third", "sub1", "someState")
                 )
         );
 
@@ -78,24 +78,24 @@ public class LargestPerTimeBucketTest {
         final Instant now = Instant.ofEpochMilli(testScheduler.now());
         final Stream<Batch<BatchableOperationMock, String>> batches = Stream.of(
                 Batch.of("first",
-                        new BatchableOperationMock(Low, now, "first", "sub1", "foo"),
-                        new BatchableOperationMock(Low, now.minus(ofSeconds(1)), "first", "sub2", "foo")
+                        new BatchableOperationMock(LOW, now, "first", "sub1", "foo"),
+                        new BatchableOperationMock(LOW, now.minus(ofSeconds(1)), "first", "sub2", "foo")
                 ),
                 Batch.of("second",
-                        new BatchableOperationMock(High, now.minus(ofSeconds(2)), "second", "sub1", "foo"),
-                        new BatchableOperationMock(Low, now, "second", "sub2", "foo")
+                        new BatchableOperationMock(HIGH, now.minus(ofSeconds(2)), "second", "sub1", "foo"),
+                        new BatchableOperationMock(LOW, now, "second", "sub2", "foo")
                 ),
                 Batch.of("third",
-                        new BatchableOperationMock(Low, now.minus(ofMillis(2_001)), "third", "sub1", "foo"),
-                        new BatchableOperationMock(Low, now, "third", "sub2", "foo")
+                        new BatchableOperationMock(LOW, now.minus(ofMillis(2_001)), "third", "sub1", "foo"),
+                        new BatchableOperationMock(LOW, now, "third", "sub2", "foo")
                 ),
                 Batch.of("fourth",
-                        new BatchableOperationMock(Low, now.minus(ofMinutes(1)), "fourth", "sub1", "foo"),
-                        new BatchableOperationMock(High, now, "third", "sub2", "foo")
+                        new BatchableOperationMock(LOW, now.minus(ofMinutes(1)), "fourth", "sub1", "foo"),
+                        new BatchableOperationMock(HIGH, now, "third", "sub2", "foo")
                 ),
                 Batch.of("fifth",
-                        new BatchableOperationMock(Low, now.minus(ofMillis(1)), "fifth", "sub1", "foo"),
-                        new BatchableOperationMock(Low, now, "third", "sub2", "foo")
+                        new BatchableOperationMock(LOW, now.minus(ofMillis(1)), "fifth", "sub1", "foo"),
+                        new BatchableOperationMock(LOW, now, "third", "sub2", "foo")
                 )
         );
 
@@ -117,20 +117,20 @@ public class LargestPerTimeBucketTest {
         final Stream<Batch<BatchableOperationMock, String>> batches = Stream.of(
                 // 1-3 are in the same minute
                 Batch.of("smaller",
-                        new BatchableOperationMock(Low, now, "smaller", "sub1", "foo"),
-                        new BatchableOperationMock(Low, past.minus(ofSeconds(10)), "smaller", "sub2", "foo")
+                        new BatchableOperationMock(LOW, now, "smaller", "sub1", "foo"),
+                        new BatchableOperationMock(LOW, past.minus(ofSeconds(10)), "smaller", "sub2", "foo")
                 ),
                 Batch.of("bigger",
-                        new BatchableOperationMock(Low, past, "bigger", "sub1", "foo"),
-                        new BatchableOperationMock(High, now.minus(ofMinutes(5)), "bigger", "sub2", "foo"),
-                        new BatchableOperationMock(Low, now, "bigger", "sub3", "foo")
+                        new BatchableOperationMock(LOW, past, "bigger", "sub1", "foo"),
+                        new BatchableOperationMock(HIGH, now.minus(ofMinutes(5)), "bigger", "sub2", "foo"),
+                        new BatchableOperationMock(LOW, now, "bigger", "sub3", "foo")
                 ),
                 Batch.of("slightlyOlder",
-                        new BatchableOperationMock(Low, now, "slightlyOlder", "sub1", "foo"),
-                        new BatchableOperationMock(Low, past.minus(ofSeconds(11)), "slightlyOlder", "sub2", "foo")
+                        new BatchableOperationMock(LOW, now, "slightlyOlder", "sub1", "foo"),
+                        new BatchableOperationMock(LOW, past.minus(ofSeconds(11)), "slightlyOlder", "sub2", "foo")
                 ),
                 Batch.of("older",
-                        new BatchableOperationMock(Low, past.minus(ofMinutes(5)), "older", "sub1", "foo")
+                        new BatchableOperationMock(LOW, past.minus(ofMinutes(5)), "older", "sub1", "foo")
                 )
         );
 

@@ -111,7 +111,7 @@ public class DefaultLoadBalancerReconcilerTest {
         subscriber.getOnNextEvents().forEach(update -> {
             assertThat(update.getState()).isEqualTo(LoadBalancerTarget.State.REGISTERED);
             // reconciliation always generates Priority.Low events that can be replaced by higher priority reactive updates
-            assertThat(update.getPriority()).isEqualTo(Priority.Low);
+            assertThat(update.getPriority()).isEqualTo(Priority.LOW);
             assertThat(update.getLoadBalancerId()).isEqualTo(loadBalancerId);
         });
     }
@@ -149,7 +149,7 @@ public class DefaultLoadBalancerReconcilerTest {
         subscriber.assertNotCompleted().assertValueCount(2);
         subscriber.getOnNextEvents().forEach(update -> {
             assertThat(update.getState()).isEqualTo(LoadBalancerTarget.State.DEREGISTERED);
-            assertThat(update.getPriority()).isEqualTo(Priority.Low);
+            assertThat(update.getPriority()).isEqualTo(Priority.LOW);
             assertThat(update.getLoadBalancerId()).isEqualTo(loadBalancerId);
             assertThat(update.getIdentifier().getTaskId()).isIn("some-dead-task", "another-dead-task");
             assertThat(update.getIdentifier().getIpAddress()).isIn("4.4.4.4", "5.5.5.5");
@@ -183,7 +183,7 @@ public class DefaultLoadBalancerReconcilerTest {
         subscriber.assertNotCompleted().assertValueCount(5);
         subscriber.getOnNextEvents().forEach(update -> {
             assertThat(update.getState()).isEqualTo(LoadBalancerTarget.State.REGISTERED);
-            assertThat(update.getPriority()).isEqualTo(Priority.Low);
+            assertThat(update.getPriority()).isEqualTo(Priority.LOW);
             assertThat(update.getLoadBalancerId()).isEqualTo(loadBalancerId);
         });
 
@@ -246,7 +246,7 @@ public class DefaultLoadBalancerReconcilerTest {
         subscriber.assertNoErrors().assertNotCompleted().assertValueCount(5);
         subscriber.getOnNextEvents().forEach(update -> {
             assertThat(update.getState()).isEqualTo(LoadBalancerTarget.State.REGISTERED);
-            assertThat(update.getPriority()).isEqualTo(Priority.Low);
+            assertThat(update.getPriority()).isEqualTo(Priority.LOW);
             assertThat(update.getLoadBalancerId()).isEqualTo(loadBalancerId);
         });
     }
