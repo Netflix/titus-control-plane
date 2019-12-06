@@ -54,7 +54,7 @@ public interface CassandraStoreConfiguration {
      *
      * @see CassandraLoadBalancerStore
      */
-    @DefaultValue("100")
+    @DefaultValue("10")
     int getLoadBalancerConcurrencyLimit();
 
     /**

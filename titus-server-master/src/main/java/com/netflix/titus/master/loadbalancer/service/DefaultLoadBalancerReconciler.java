@@ -56,6 +56,7 @@ import org.slf4j.LoggerFactory;
 import rx.Completable;
 import rx.Observable;
 import rx.Scheduler;
+import rx.schedulers.Schedulers;
 
 import static com.netflix.titus.api.jobmanager.service.JobManagerException.ErrorCode.JobNotFound;
 import static com.netflix.titus.master.MetricConstants.METRIC_LOADBALANCER;
@@ -202,6 +203,8 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
 
         Completable cleanupTargets = (!updates.toRemove.isEmpty()) ?
                 ReactorExt.toCompletable(store.removeDeregisteredTargets(updates.toRemove))
+                        // bring processing back the the Rx threads, otherwise it happens in the C* driver threadpool
+                        .observeOn(Schedulers.computation())
                         .doOnSubscribe(ignored -> logger.info("Cleaning up {} deregistered targets for load balancer {}",
                                 updates.toRemove.size(), loadBalancer.current.getId()))
                         .compose(removeTargetsMetrics.asCompletable())
@@ -212,7 +215,7 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
         // clean up dissociated entries only it is safe: all targets have been deregistered and there is nothing to be removed
         Completable cleanupDissociated = (updates.toDeregister.isEmpty() && updates.toRemove.isEmpty()) ?
                 Completable.mergeDelayError(removeAllDissociated(associations), MAX_ORPHAN_CLEANUP_CONCURRENCY)
-                        .doOnSubscribe(ignored -> logger.info("Cleaning up dissociated jobs for load balancer {}", loadBalancer.current.getId()))
+                        .doOnSubscribe(ignored -> logger.debug("Cleaning up dissociated jobs for load balancer {}", loadBalancer.current.getId()))
                         .compose(removeMetrics.asCompletable())
                         .doOnError(e -> logger.error("Error while cleaning up associations for " + loadBalancer.current.getId(), e))
                         .onErrorComplete()
@@ -306,6 +309,8 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
                 .map(JobLoadBalancerState::getJobLoadBalancer)
                 .map(association ->
                         store.removeLoadBalancer(association)
+                                // bring processing back the the Rx threads, otherwise it happens in the C* driver threadpool
+                                .observeOn(Schedulers.computation())
                                 .doOnSubscribe(ignored -> logger.info("Removing dissociated {}", association))
                                 .doOnError(e -> logger.error("Failed to remove {}", association, e))
                                 .onErrorComplete()
@@ -355,6 +360,8 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
                 return Completable.complete();
             }
             return store.addOrUpdateLoadBalancer(marked, JobLoadBalancer.State.DISSOCIATED)
+                    // bring processing back the the Rx threads, otherwise it happens in the C* driver threadpool
+                    .observeOn(Schedulers.computation())
                     .doOnSubscribe(ignored -> logger.info("Setting orphan association as Dissociated: {}", marked))
                     .doOnError(e -> logger.error("Failed to update to Dissociated {}", marked, e));
         });

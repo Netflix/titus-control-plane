@@ -337,7 +337,7 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
                             target -> target.getLoadBalancerTarget().getLoadBalancerId(),
                             Collectors.counting()
                     ));
-                    logger.warn("Inserting/updating targets: {}", countPerLoadBalancer);
+                    logger.info("Inserting/updating targets: {}", countPerLoadBalancer);
                     logger.debug("Inserting/updating {} targets. Details: {}", targets.size(), targets);
                 });
     }
