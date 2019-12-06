@@ -419,7 +419,7 @@ public class DefaultLoadBalancerServiceTest {
         assertThat(service.getJobLoadBalancers(jobId).toBlocking().toIterable())
                 .containsExactlyInAnyOrder(firstLoadBalancerId, secondLoadBalancerId);
 
-        testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
+        testScheduler.advanceTimeBy(2 * FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
 
         // first errored and got skipped
         testSubscriber.assertNoErrors().assertValueCount(1);
