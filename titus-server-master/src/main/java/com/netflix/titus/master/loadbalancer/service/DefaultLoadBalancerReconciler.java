@@ -228,7 +228,6 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
     }
 
     private ReconciliationUpdates updatesForActiveLoadBalancer(LoadBalancerWithKnownTargets loadBalancer, List<JobLoadBalancerState> associations) {
-        ReconciliationUpdates updates;
         Set<LoadBalancerTarget> shouldBeRegistered = associations.stream()
                 .filter(JobLoadBalancerState::isStateAssociated)
                 .flatMap(association -> targetsForJobSafe(association).stream())
@@ -265,12 +264,10 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
                 ));
         Set<LoadBalancerTarget> toDeregister = Sets.union(toDeregisterCurrentInLoadBalancer.get(true), inconsistentStoredState);
         Set<LoadBalancerTarget> toRemove = toDeregisterCurrentInLoadBalancer.get(false);
-        updates = new ReconciliationUpdates(loadBalancer.current.getId(), toRegister, toDeregister, toRemove);
-        return updates;
+        return new ReconciliationUpdates(loadBalancer.current.getId(), toRegister, toDeregister, toRemove);
     }
 
     private ReconciliationUpdates updatesForRemovedLoadBalancer(LoadBalancerWithKnownTargets loadBalancer, List<JobLoadBalancerState> associations) {
-        ReconciliationUpdates updates;
         logger.warn("Load balancer is gone, ignoring its associations (marking them to be GCed later), and removing known state for its targets: {}",
                 loadBalancer.current.getId());
         for (JobLoadBalancerState association : associations) {
@@ -282,8 +279,7 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
         Set<LoadBalancerTarget> toRemove = loadBalancer.knownTargets.stream()
                 .map(LoadBalancerTargetState::getLoadBalancerTarget)
                 .collect(Collectors.toSet());
-        updates = new ReconciliationUpdates(loadBalancer.current.getId(), Collections.emptySet(), Collections.emptySet(), toRemove);
-        return updates;
+        return new ReconciliationUpdates(loadBalancer.current.getId(), Collections.emptySet(), Collections.emptySet(), toRemove);
     }
 
     private boolean isNotIgnored(TargetStateBatchable update) {

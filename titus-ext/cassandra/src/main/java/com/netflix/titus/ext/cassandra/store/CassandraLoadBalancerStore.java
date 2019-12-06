@@ -189,8 +189,7 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
     }
 
     private Mono<Void> loadAllAssociations(boolean failOnError) {
-        return ReactorExt
-                .toFlux(storeHelper.execute(selectAssociations.bind().setFetchSize(FETCH_SIZE)))
+        return ReactorExt.toFlux(storeHelper.execute(selectAssociations.bind().setFetchSize(FETCH_SIZE)))
                 .timeout(Duration.ofMillis(FETCH_TIMEOUT_MS))
                 .next()
                 .flatMapMany(Flux::fromIterable)
