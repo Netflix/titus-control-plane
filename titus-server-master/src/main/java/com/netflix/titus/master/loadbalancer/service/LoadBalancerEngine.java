@@ -128,7 +128,10 @@ class LoadBalancerEngine {
                 .filter(batch -> !batch.getItems().isEmpty())
                 .onBackpressureDrop(batch -> logger.warn("Backpressure! Dropping batch for {} size {}", batch.getIndex(), batch.size()))
                 .doOnNext(batch -> logger.debug("Processing batch for {} size {}", batch.getIndex(), batch.size()))
-                .flatMap(this::applyUpdates)
+                .flatMap(batch -> applyUpdates(batch).onErrorResumeNext(e -> {
+                    logger.error("Could not apply batch for load balancer " + batch.getIndex(), e);
+                    return Observable.empty();
+                }))
                 .doOnNext(batch -> logger.info("Processed {} load balancer updates for {}", batch.size(), batch.getIndex()))
                 .doOnError(e -> logger.error("Error batching load balancer calls", e))
                 .retry();

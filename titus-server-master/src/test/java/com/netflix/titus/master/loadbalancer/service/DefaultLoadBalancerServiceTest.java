@@ -397,8 +397,7 @@ public class DefaultLoadBalancerServiceTest {
         String jobId = UUID.randomUUID().toString();
         String firstLoadBalancerId = "lb-" + UUID.randomUUID().toString();
         String secondLoadBalancerId = "lb-" + UUID.randomUUID().toString();
-        ThreadLocalRandom random = ThreadLocalRandom.current();
-        int batchSize = random.nextInt(3, 10);
+        int batchSize = 1024;
 
         when(client.registerAll(eq(firstLoadBalancerId), any())).thenReturn(Completable.error(new RuntimeException()));
         when(client.registerAll(eq(secondLoadBalancerId), any())).thenReturn(Completable.complete());
@@ -419,10 +418,11 @@ public class DefaultLoadBalancerServiceTest {
         assertThat(service.getJobLoadBalancers(jobId).toBlocking().toIterable())
                 .containsExactlyInAnyOrder(firstLoadBalancerId, secondLoadBalancerId);
 
-        testScheduler.advanceTimeBy(2 * FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
-
+        testScheduler.advanceTimeBy(FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS);
         // first errored and got skipped
-        testSubscriber.assertNoErrors().assertValueCount(1);
+        testSubscriber.awaitValueCount(1, 2 * FLUSH_WAIT_TIME_MS, TimeUnit.MILLISECONDS)
+                .assertNoErrors()
+                .assertValueCount(1);
         verify(client).registerAll(eq(firstLoadBalancerId), argThat(targets -> targets != null && targets.size() == batchSize));
         verify(client).registerAll(eq(secondLoadBalancerId), argThat(targets -> targets != null && targets.size() == batchSize));
         verify(client, never()).deregisterAll(any(), any());
