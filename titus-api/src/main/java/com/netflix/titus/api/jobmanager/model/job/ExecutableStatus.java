@@ -16,8 +16,6 @@
 
 package com.netflix.titus.api.jobmanager.model.job;
 
-import com.netflix.titus.common.util.DateTimeExt;
-
 /**
  */
 public abstract class ExecutableStatus<STATE extends Enum<STATE>> {
@@ -139,12 +137,7 @@ public abstract class ExecutableStatus<STATE extends Enum<STATE>> {
         }
 
         protected String toCompleteReasonMessage() {
-            StringBuilder messageBuilder = new StringBuilder("Changed state to ")
-                    .append(state).append(" on ").append(DateTimeExt.toUtcDateTimeString(timestamp)).append('.');
-            if (reasonMessage != null) {
-                messageBuilder.append(' ').append(reasonMessage);
-            }
-            return messageBuilder.toString();
+            return reasonMessage == null ? "<not_given>" : reasonMessage;
         }
     }
 }
