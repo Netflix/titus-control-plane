@@ -75,7 +75,7 @@ docker-compose exec agent bash
 (agent) $ journalctl
 
 # Note: some warnings and errors are to be expected on those logs
-# Not all systemd units will work when not on an EC2 VM
+# Not all system units will work when not on an EC2 VM
 
 # list nested docker containers launched by Titus
 (agent) $ docker ps
