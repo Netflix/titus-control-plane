@@ -177,12 +177,10 @@ class LoadBalancerEngine {
     }
 
     private Mono<Void> updateTargetsInStore(Collection<TargetStateBatchable> targets) {
-        return Mono.whenDelayError(targets.stream()
+        List<LoadBalancerTargetState> targetStates = targets.stream()
                 .map(TargetStateBatchable::getTargetState)
-                .map(targetState -> store.addOrUpdateTarget(
-                        targetState.getLoadBalancerTarget(), targetState.getState()
-                ))
-                .collect(Collectors.toList()));
+                .collect(Collectors.toList());
+        return store.addOrUpdateTargets(targetStates);
     }
 
     private Observable<TargetStateBatchable> registerFromEvents(Observable<TaskUpdateEvent> events) {

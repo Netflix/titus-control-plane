@@ -16,6 +16,7 @@
 
 package com.netflix.titus.api.loadbalancer.store;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
@@ -73,9 +74,16 @@ public interface LoadBalancerStore {
     List<JobLoadBalancer> getAssociationsPage(int offset, int limit);
 
     /**
-     * Adds a or updates target with the provided state.
+     * Adds a or updates targets with the provided states.
      */
-    Mono<Void> addOrUpdateTarget(LoadBalancerTarget target, LoadBalancerTarget.State state);
+    Mono<Void> addOrUpdateTargets(Collection<LoadBalancerTargetState> targets);
+
+    /**
+     * Adds a or updates targets with the provided states.
+     */
+    default Mono<Void> addOrUpdateTargets(LoadBalancerTargetState... targetStates) {
+        return addOrUpdateTargets(Arrays.asList(targetStates));
+    }
 
     /**
      * Removes one or more deregistered targets associated with a load balancer. Targets that currently do not have

@@ -187,16 +187,19 @@ public class CassandraLoadBalancerStoreTest {
         );
     }
 
-    @Test
+    @Test(timeout = TIMEOUT_MS)
     public void testAddTargets() throws Exception {
         Map<LoadBalancerTarget, LoadBalancerTarget.State> testData = generateTestData(10, 20, 1).getTargets();
         Map<String, List<LoadBalancerTargetState>> expectedTargetsByLoadBalancer = testData.entrySet().stream()
                 .map(entry -> new LoadBalancerTargetState(entry.getKey(), entry.getValue()))
                 .collect(Collectors.groupingBy(t -> t.getLoadBalancerTarget().getLoadBalancerId()));
         CassandraLoadBalancerStore store = getInitdStore();
-        testData.forEach((target, state) -> store.addOrUpdateTarget(target, state).block(Duration.ofMillis(TIMEOUT_MS)));
+        store.addOrUpdateTargets(testData.entrySet().stream()
+                .map(LoadBalancerTargetState::from)
+                .collect(Collectors.toList())
+        ).block();
         expectedTargetsByLoadBalancer.forEach((loadBalancerId, expectedTargets) ->
-                assertThat(store.getLoadBalancerTargets(loadBalancerId).collectList().block(Duration.ofSeconds(5)))
+                assertThat(store.getLoadBalancerTargets(loadBalancerId).collectList().block())
                         .containsExactlyInAnyOrder(IterableUtil.toArray(expectedTargets))
         );
 
@@ -206,7 +209,7 @@ public class CassandraLoadBalancerStoreTest {
         assertThat(resultSet.one().getLong(0)).isEqualTo(totalCount);
     }
 
-    @Test
+    @Test(timeout = TIMEOUT_MS)
     public void testUpdateTarget() throws Exception {
         Session session = cassandraCQLUnit.getSession();
         BoundStatement countStmt = session.prepare("SELECT COUNT(*) FROM load_balancer_targets;").bind();
@@ -216,12 +219,12 @@ public class CassandraLoadBalancerStoreTest {
 
         LoadBalancerTarget target = new LoadBalancerTarget("lb-1", "task-1", "1.1.1.1");
         CassandraLoadBalancerStore store = getInitdStore();
-        store.addOrUpdateTarget(target, LoadBalancerTarget.State.REGISTERED).block(Duration.ofMillis(TIMEOUT_MS));
+        store.addOrUpdateTargets(target.withState(LoadBalancerTarget.State.REGISTERED)).block();
         assertThat(session.execute(countStmt).one().getLong(0)).isEqualTo(1);
         Row registered = session.execute(stateStmt.bind("lb-1", "1.1.1.1")).one();
         assertThat(registered.getString("state")).isEqualTo("REGISTERED");
 
-        store.addOrUpdateTarget(target, LoadBalancerTarget.State.DEREGISTERED).block(Duration.ofMillis(TIMEOUT_MS));
+        store.addOrUpdateTargets(target.withState(LoadBalancerTarget.State.DEREGISTERED)).block();
         assertThat(session.execute(countStmt).one().getLong(0)).isEqualTo(1);
         Row deregistered = session.execute(stateStmt.bind("lb-1", "1.1.1.1")).one();
         assertThat(deregistered.getString("state")).isEqualTo("DEREGISTERED");
@@ -229,18 +232,15 @@ public class CassandraLoadBalancerStoreTest {
 
     @Test
     public void testOnlyDeregisteredTargetsAreRemoved() throws Exception {
-        TestData testData = new TestData(
-                Collections.emptyMap(),
-                ImmutableMap.of(
-                        new LoadBalancerTarget("lb-1", "task1", "1.1.1.1"), LoadBalancerTarget.State.REGISTERED,
-                        new LoadBalancerTarget("lb-1", "task2", "2.2.2.2"), LoadBalancerTarget.State.DEREGISTERED,
-                        new LoadBalancerTarget("lb-2", "task1", "1.1.1.1"), LoadBalancerTarget.State.DEREGISTERED,
-                        new LoadBalancerTarget("lb-2", "task3", "3.3.3.3"), LoadBalancerTarget.State.DEREGISTERED
-                )
+        Map<LoadBalancerTarget, LoadBalancerTarget.State> targets = ImmutableMap.of(
+                new LoadBalancerTarget("lb-1", "task1", "1.1.1.1"), LoadBalancerTarget.State.REGISTERED,
+                new LoadBalancerTarget("lb-1", "task2", "2.2.2.2"), LoadBalancerTarget.State.DEREGISTERED,
+                new LoadBalancerTarget("lb-2", "task1", "1.1.1.1"), LoadBalancerTarget.State.DEREGISTERED,
+                new LoadBalancerTarget("lb-2", "task3", "3.3.3.3"), LoadBalancerTarget.State.DEREGISTERED
         );
-        loadTestData(testData);
+        loadTestData(new TestData(Collections.emptyMap(), targets));
         CassandraLoadBalancerStore store = getInitdStore();
-        store.removeDeregisteredTargets(testData.getTargets().keySet()).block(Duration.ofSeconds(10));
+        store.removeDeregisteredTargets(targets.keySet()).block(Duration.ofSeconds(10));
         List<LoadBalancerTargetState> targets1 = store.getLoadBalancerTargets("lb-1").collectList().block(Duration.ofSeconds(5));
         assertThat(targets1).hasSize(1);
         assertThat(targets1.get(0).getIpAddress()).isEqualTo("1.1.1.1");
@@ -387,10 +387,10 @@ public class CassandraLoadBalancerStoreTest {
     /**
      * Creates, loads, and returns a store instance based on what was already in Cassandra.
      */
-    private CassandraLoadBalancerStore getInitdStore() throws Exception {
+    private CassandraLoadBalancerStore getInitdStore() {
         Session session = cassandraCQLUnit.getSession();
         CassandraStoreConfiguration configuration = mock(CassandraStoreConfiguration.class);
-        when(configuration.getConcurrencyLimit()).thenReturn(10);
+        when(configuration.getLoadBalancerConcurrencyLimit()).thenReturn(10);
         EntitySanitizer entitySanitizer = new LoadBalancerSanitizerBuilder().build();
         CassandraLoadBalancerStore store = new CassandraLoadBalancerStore(configuration, entitySanitizer, session);
         store.init();

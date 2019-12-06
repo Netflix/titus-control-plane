@@ -42,7 +42,6 @@ import com.netflix.titus.runtime.store.v3.memory.InMemoryLoadBalancerStore;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.stubbing.OngoingStubbing;
-import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Single;
 import rx.observers.AssertableSubscriber;
@@ -129,14 +128,29 @@ public class DefaultLoadBalancerReconcilerTest {
                 CollectionsExt.asSet("1.1.1.1", "2.2.2.2", "3.3.3.3", "4.4.4.4", "5.5.5.5", "6.6.6.6")
         )));
         store.addOrUpdateLoadBalancer(association.getJobLoadBalancer(), association.getState()).await();
-        Mono.when(
+        store.addOrUpdateTargets(
                 // 3 running tasks were previously registered by us and are in the load balancer
-                store.addOrUpdateTarget(new LoadBalancerTarget(loadBalancerId, tasks.get(0).getId(), "1.1.1.1"), LoadBalancerTarget.State.REGISTERED),
-                store.addOrUpdateTarget(new LoadBalancerTarget(loadBalancerId, tasks.get(1).getId(), "2.2.2.2"), LoadBalancerTarget.State.REGISTERED),
-                store.addOrUpdateTarget(new LoadBalancerTarget(loadBalancerId, tasks.get(2).getId(), "3.3.3.3"), LoadBalancerTarget.State.REGISTERED),
+                new LoadBalancerTargetState(
+                        new LoadBalancerTarget(loadBalancerId, tasks.get(0).getId(), "1.1.1.1"),
+                        LoadBalancerTarget.State.REGISTERED
+                ),
+                new LoadBalancerTargetState(
+                        new LoadBalancerTarget(loadBalancerId, tasks.get(1).getId(), "2.2.2.2"),
+                        LoadBalancerTarget.State.REGISTERED
+                ),
+                new LoadBalancerTargetState(
+                        new LoadBalancerTarget(loadBalancerId, tasks.get(2).getId(), "3.3.3.3"),
+                        LoadBalancerTarget.State.REGISTERED
+                ),
                 // Next two ips were previously registered by us, but their tasks do not exist anymore
-                store.addOrUpdateTarget(new LoadBalancerTarget(loadBalancerId, "some-dead-task", "4.4.4.4"), LoadBalancerTarget.State.REGISTERED),
-                store.addOrUpdateTarget(new LoadBalancerTarget(loadBalancerId, "another-dead-task", "5.5.5.5"), LoadBalancerTarget.State.DEREGISTERED)
+                new LoadBalancerTargetState(
+                        new LoadBalancerTarget(loadBalancerId, "some-dead-task", "4.4.4.4"),
+                        LoadBalancerTarget.State.REGISTERED
+                ),
+                new LoadBalancerTargetState(
+                        new LoadBalancerTarget(loadBalancerId, "another-dead-task", "5.5.5.5"),
+                        LoadBalancerTarget.State.DEREGISTERED
+                )
                 // no record for 6.6.6.6, that ip address was not registered by us, and won't be touched
         ).block();
 
@@ -294,12 +308,11 @@ public class DefaultLoadBalancerReconcilerTest {
                 .await(5, TimeUnit.SECONDS)).isTrue();
 
         // all targets were previously registered by us
-        Mono.when(tasks.stream()
-                .map(task -> store.addOrUpdateTarget(
+        store.addOrUpdateTargets(tasks.stream()
+                .map(task -> new LoadBalancerTargetState(
                         new LoadBalancerTarget(loadBalancerId, task.getId(),
                                 task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP)),
-                        LoadBalancerTarget.State.REGISTERED)
-                )
+                        LoadBalancerTarget.State.REGISTERED))
                 .collect(Collectors.toList())
         ).block();
 
@@ -343,10 +356,10 @@ public class DefaultLoadBalancerReconcilerTest {
         when(connector.getLoadBalancer(loadBalancerId)).thenReturn(Single.just(
                 new LoadBalancer(loadBalancerId, LoadBalancer.State.ACTIVE, Collections.singleton("1.2.3.4"))
         ));
-        store.addOrUpdateTarget(
+        store.addOrUpdateTargets(new LoadBalancerTargetState(
                 new LoadBalancerTarget(loadBalancerId, "some-task", "1.2.3.4"),
                 LoadBalancerTarget.State.DEREGISTERED
-        ).block();
+        )).block();
         assertThat(store.addOrUpdateLoadBalancer(jobLoadBalancer, JobLoadBalancer.State.DISSOCIATED)
                 .await(5, TimeUnit.SECONDS)).isTrue();
 
@@ -388,12 +401,21 @@ public class DefaultLoadBalancerReconcilerTest {
                 CollectionsExt.asSet("1.1.1.1", "10.10.10.10")
         )));
         store.addOrUpdateLoadBalancer(association.getJobLoadBalancer(), association.getState()).await();
-        Mono.when(
+        store.addOrUpdateTargets(
                 // running tasks was previously registered by us and are in the load balancer
-                store.addOrUpdateTarget(new LoadBalancerTarget(loadBalancerId, tasks.get(0).getId(), "1.1.1.1"), LoadBalancerTarget.State.REGISTERED),
+                new LoadBalancerTargetState(
+                        new LoadBalancerTarget(loadBalancerId, tasks.get(0).getId(), "1.1.1.1"),
+                        LoadBalancerTarget.State.REGISTERED
+                ),
                 // Next three ips were previously registered by us, but their tasks do not exist anymore and are not in the load balancer anymore
-                store.addOrUpdateTarget(new LoadBalancerTarget(loadBalancerId, "target-inconsistent", "2.2.2.2"), LoadBalancerTarget.State.REGISTERED),
-                store.addOrUpdateTarget(new LoadBalancerTarget(loadBalancerId, "target-not-in-lb", "3.3.3.3"), LoadBalancerTarget.State.DEREGISTERED)
+                new LoadBalancerTargetState(
+                        new LoadBalancerTarget(loadBalancerId, "target-inconsistent", "2.2.2.2"),
+                        LoadBalancerTarget.State.REGISTERED
+                ),
+                new LoadBalancerTargetState(
+                        new LoadBalancerTarget(loadBalancerId, "target-not-in-lb", "3.3.3.3"),
+                        LoadBalancerTarget.State.DEREGISTERED
+                )
                 // no record for 10.10.10.10, that ip address was not registered by us, and won't be touched
         ).block();
 
@@ -428,10 +450,10 @@ public class DefaultLoadBalancerReconcilerTest {
         assertThat(store.getLoadBalancerTargets(loadBalancerId).collectList().block()).hasSize(2);
 
         // simulate the update with the fix above being applied
-        store.addOrUpdateTarget(
+        store.addOrUpdateTargets(new LoadBalancerTargetState(
                 new LoadBalancerTarget(loadBalancerId, "target-inconsistent", "2.2.2.2"),
                 LoadBalancerTarget.State.DEREGISTERED
-        ).block();
+        )).block();
 
         // finally, corrected record is now cleaned up
         testScheduler.advanceTimeBy(delayMs, TimeUnit.MILLISECONDS);

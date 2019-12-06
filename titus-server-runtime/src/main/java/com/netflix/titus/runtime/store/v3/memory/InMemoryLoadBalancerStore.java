@@ -95,8 +95,8 @@ public class InMemoryLoadBalancerStore implements LoadBalancerStore {
     }
 
     @Override
-    public Mono<Void> addOrUpdateTarget(LoadBalancerTarget target, LoadBalancerTarget.State state) {
-        return Mono.fromRunnable(() -> targets.put(target, state));
+    public Mono<Void> addOrUpdateTargets(Collection<LoadBalancerTargetState> toAdd) {
+        return Mono.fromRunnable(() -> toAdd.forEach(t -> targets.put(t.getLoadBalancerTarget(), t.getState())));
     }
 
     @Override

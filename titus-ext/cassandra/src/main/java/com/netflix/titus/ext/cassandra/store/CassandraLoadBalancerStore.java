@@ -323,19 +323,41 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
     }
 
     @Override
-    public Mono<Void> addOrUpdateTarget(LoadBalancerTarget target, LoadBalancerTarget.State state) {
-        logger.debug("Inserting/updating target {} : {}", target, state);
+    public Mono<Void> addOrUpdateTargets(Collection<LoadBalancerTargetState> targets) {
+        List<Mono<Void>> insertOperations = targets.stream()
+                .map(this::addOrUpdateTarget)
+                .collect(Collectors.toList());
+
+        int limit = configuration.getLoadBalancerConcurrencyLimit();
+        // prefetch does not matter here because operations don't produce any result (they are Mono<Void>)
+        return Flux.mergeSequentialDelayError(insertOperations, limit, limit)
+                .ignoreElements()
+                .doOnSubscribe(ignored -> {
+                    Map<String, Long> countPerLoadBalancer = targets.stream().collect(Collectors.groupingBy(
+                            target -> target.getLoadBalancerTarget().getLoadBalancerId(),
+                            Collectors.counting()
+                    ));
+                    logger.warn("Inserting/updating targets: {}", countPerLoadBalancer);
+                    logger.debug("Inserting/updating {} targets. Details: {}", targets.size(), targets);
+                });
+    }
+
+    private Mono<Void> addOrUpdateTarget(LoadBalancerTargetState target) {
         Set<ValidationError> violations = entitySanitizer.validate(target);
         if (!violations.isEmpty()) {
             if (configuration.isFailOnInconsistentLoadBalancerData()) {
-                throw LoadBalancerStoreException.badData(target, violations);
+                return Mono.error(LoadBalancerStoreException.badData(target, violations));
             }
             logger.warn("Ignoring bad target record of {} due to validation constraint violations: violations={}", target, violations);
             return Mono.empty();
         }
 
-        BoundStatement statement = insertTarget.bind(target.getLoadBalancerId(), target.getIpAddress(),
-                target.getTaskId(), state.name());
+        BoundStatement statement = insertTarget.bind(
+                target.getLoadBalancerTarget().getLoadBalancerId(),
+                target.getIpAddress(),
+                target.getLoadBalancerTarget().getTaskId(),
+                target.getState().name()
+        );
         return ReactorExt.toMono(storeHelper.execute(statement).toCompletable());
     }
 
@@ -348,8 +370,9 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
                 .map(ReactorExt::toMono)
                 .collect(Collectors.toList());
 
-        // note: prefetch here shouldn't matter, since we are merging Mono<Void> that produce no output
-        return Flux.mergeSequentialDelayError(deleteOperations, configuration.getConcurrencyLimit(), configuration.getConcurrencyLimit())
+        int limit = configuration.getLoadBalancerConcurrencyLimit();
+        // prefetch does not matter here because operations don't produce any result (they are Mono<Void>)
+        return Flux.mergeSequentialDelayError(deleteOperations, limit, limit)
                 .ignoreElements()
                 .doOnSubscribe(ignored -> logger.debug("Removing targets {}", toRemove));
     }
@@ -405,20 +428,6 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
                     }
                     return Collections.unmodifiableSortedSet(copy);
                 }
-        );
-    }
-
-    private Mono<Void> removeDeregisteredTargetsInLoadBalancer(Map.Entry<String, List<LoadBalancerTarget>> entry) {
-        String loadBalancerId = entry.getKey();
-        List<LoadBalancerTarget> loadBalancerTargets = entry.getValue();
-        List<String> ipAddresses = loadBalancerTargets.stream()
-                .map(LoadBalancerTarget::getIpAddress)
-                .collect(Collectors.toList());
-
-        return ReactorExt.toMono(
-                storeHelper.execute(deleteDeregisteredTarget.bind(loadBalancerId, ipAddresses)).toCompletable()
-        ).doOnSubscribe(ignored ->
-                logger.info("Removing {} targets in load balancer: {}", loadBalancerTargets.size(), loadBalancerId)
         );
     }
 }

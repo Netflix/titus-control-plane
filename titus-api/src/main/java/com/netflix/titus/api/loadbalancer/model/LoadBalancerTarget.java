@@ -49,6 +49,10 @@ public class LoadBalancerTarget {
         return ipAddress;
     }
 
+    public LoadBalancerTargetState withState(State state) {
+        return new LoadBalancerTargetState(this, state);
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {

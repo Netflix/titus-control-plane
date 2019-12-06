@@ -48,6 +48,11 @@ public class TestCassandraStoreConfiguration implements CassandraStoreConfigurat
     }
 
     @Override
+    public int getLoadBalancerConcurrencyLimit() {
+        return 100;
+    }
+
+    @Override
     public boolean isTracingEnabled() {
         return false;
     }

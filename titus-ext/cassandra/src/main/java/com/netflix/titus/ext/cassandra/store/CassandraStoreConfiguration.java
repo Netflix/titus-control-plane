@@ -49,8 +49,18 @@ public interface CassandraStoreConfiguration {
     int getConcurrencyLimit();
 
     /**
+     * Concurrency limit for load balancer operations (bulk inserts and deletes), in number of concurrent queries that
+     * can be running per method invocation in {@link CassandraLoadBalancerStore}.
+     *
+     * @see CassandraLoadBalancerStore
+     */
+    @DefaultValue("100")
+    int getLoadBalancerConcurrencyLimit();
+
+    /**
      * @return whether or not each query should have tracing enabled.
      */
     @DefaultValue("false")
     boolean isTracingEnabled();
+
 }
