@@ -60,17 +60,19 @@ import rx.schedulers.Schedulers;
 
 import static com.netflix.titus.api.jobmanager.service.JobManagerException.ErrorCode.JobNotFound;
 import static com.netflix.titus.master.MetricConstants.METRIC_LOADBALANCER;
+import static java.util.stream.Collectors.mapping;
+import static java.util.stream.Collectors.partitioningBy;
 
 public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
     private static final Logger logger = LoggerFactory.getLogger(DefaultLoadBalancerReconciler.class);
 
+    private static final String METRIC_RECONCILER = METRIC_LOADBALANCER + "reconciliation";
+    private static final Runnable NOOP = () -> {
+    };
     /**
      * how many store calls (both updates and deletes) are allowed concurrently during cleanup (GC)
      */
     private static final int MAX_ORPHAN_CLEANUP_CONCURRENCY = 100;
-
-    private static final String METRIC_RECONCILER = METRIC_LOADBALANCER + "reconciliation";
-    private static final String UNKNOWN_TASK = "UNKNOWN-TASK";
 
     private final ConcurrentMap<LoadBalancerTarget, Instant> ignored = new ConcurrentHashMap<>();
 
@@ -84,6 +86,7 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
     // TODO: make dynamic and switch to a Supplier<Long>
     private final long delayMs;
     private final Supplier<Long> timeoutMs;
+    private final Runnable afterReconciliation;
     private final Registry registry;
     private final Scheduler scheduler;
 
@@ -104,11 +107,23 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
                                   LoadBalancerJobOperations loadBalancerJobOperations,
                                   Registry registry,
                                   Scheduler scheduler) {
+        this(configuration, store, connector, loadBalancerJobOperations, NOOP, registry, scheduler);
+
+    }
+
+    DefaultLoadBalancerReconciler(LoadBalancerConfiguration configuration,
+                                  LoadBalancerStore store,
+                                  LoadBalancerConnector connector,
+                                  LoadBalancerJobOperations loadBalancerJobOperations,
+                                  Runnable afterReconciliation,
+                                  Registry registry,
+                                  Scheduler scheduler) {
         this.store = store;
         this.connector = connector;
         this.jobOperations = loadBalancerJobOperations;
         this.delayMs = configuration.getReconciliationDelayMs();
         this.timeoutMs = configuration::getReconciliationTimeoutMs;
+        this.afterReconciliation = afterReconciliation;
         this.registry = registry;
         this.scheduler = scheduler;
 
@@ -161,7 +176,8 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
         // schedule periodic full reconciliations
         return ObservableExt.periodicGenerator(updatesForAll, delayMs, delayMs, TimeUnit.MILLISECONDS, scheduler)
                 .compose(SpectatorExt.subscriptionMetrics(METRIC_RECONCILER, DefaultLoadBalancerReconciler.class, registry))
-                .flatMap(Observable::from, 1);
+                .flatMap(iterable -> Observable.from(iterable)
+                        .doOnTerminate(afterReconciliation::run), 1);
     }
 
     private Observable<TargetStateBatchable> reconcile(String loadBalancerId, List<JobLoadBalancerState> associations) {
@@ -261,7 +277,7 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
         // 1. what needs to be deregistered (and is still registered in the loadbalancer)
         // 2. what state can be GCed because it has been already deregistered
         Map<Boolean, Set<LoadBalancerTarget>> toDeregisterCurrentInLoadBalancer = shouldBeDeregisteredFromStoredState.stream()
-                .collect(Collectors.partitioningBy(
+                .collect(partitioningBy(
                         target -> loadBalancer.current.getRegisteredIps().contains(target.getIpAddress()),
                         Collectors.toSet()
                 ));
@@ -279,10 +295,15 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
                 markedAsOrphan.add(association.getJobLoadBalancer());
             }
         }
-        Set<LoadBalancerTarget> toRemove = loadBalancer.knownTargets.stream()
-                .map(LoadBalancerTargetState::getLoadBalancerTarget)
-                .collect(Collectors.toSet());
-        return new ReconciliationUpdates(loadBalancer.current.getId(), Collections.emptySet(), Collections.emptySet(), toRemove);
+        // we will force deregistration of everything that was marked as REGISTERED to force its state to be updated
+        Map<Boolean, Set<LoadBalancerTarget>> registeredOrNot = loadBalancer.knownTargets.stream()
+                .collect(partitioningBy(
+                        target -> target.getState().equals(State.REGISTERED),
+                        mapping(LoadBalancerTargetState::getLoadBalancerTarget, Collectors.toSet())
+                ));
+        Set<LoadBalancerTarget> toDeregister = registeredOrNot.get(true); // all REGISTERED
+        Set<LoadBalancerTarget> toRemove = registeredOrNot.get(false); // all DEREGISTERED
+        return new ReconciliationUpdates(loadBalancer.current.getId(), Collections.emptySet(), toDeregister, toRemove);
     }
 
     private boolean isNotIgnored(TargetStateBatchable update) {

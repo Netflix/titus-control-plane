@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 import com.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import com.netflix.titus.api.loadbalancer.model.JobLoadBalancerState;
 import com.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
+import com.netflix.titus.api.loadbalancer.model.LoadBalancerTarget.State;
 import com.netflix.titus.api.loadbalancer.model.LoadBalancerTargetState;
 import com.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import com.netflix.titus.runtime.loadbalancer.LoadBalancerCursors;
@@ -40,7 +41,7 @@ import rx.Observable;
  */
 public class InMemoryLoadBalancerStore implements LoadBalancerStore {
     private final ConcurrentMap<JobLoadBalancer, JobLoadBalancer.State> associations = new ConcurrentHashMap<>();
-    private final ConcurrentMap<LoadBalancerTarget, LoadBalancerTarget.State> targets = new ConcurrentHashMap<>();
+    private final ConcurrentMap<LoadBalancerTarget, State> targets = new ConcurrentHashMap<>();
 
     @Override
     public Observable<JobLoadBalancer> getAssociatedLoadBalancersForJob(String jobId) {
@@ -101,7 +102,7 @@ public class InMemoryLoadBalancerStore implements LoadBalancerStore {
 
     @Override
     public Mono<Void> removeDeregisteredTargets(Collection<LoadBalancerTarget> toRemove) {
-        return Mono.fromRunnable(() -> toRemove.forEach(targets::remove));
+        return Mono.fromRunnable(() -> toRemove.forEach(target -> targets.remove(target, State.DEREGISTERED)));
     }
 
     @Override
