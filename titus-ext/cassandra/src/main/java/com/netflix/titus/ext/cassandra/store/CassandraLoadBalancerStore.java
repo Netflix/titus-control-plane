@@ -39,7 +39,6 @@ import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
-import com.datastax.driver.core.Statement;
 import com.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import com.netflix.titus.api.loadbalancer.model.JobLoadBalancerState;
 import com.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
@@ -352,23 +351,24 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
             return Mono.empty();
         }
 
-        BoundStatement statement = insertTarget.bind(
+        // bind asynchronously to avoid sharing the same BoundStatement across all subscriptions
+        return Mono.fromCallable(() -> insertTarget.bind(
                 target.getLoadBalancerTarget().getLoadBalancerId(),
                 target.getIpAddress(),
                 target.getLoadBalancerTarget().getTaskId(),
                 target.getState().name()
-        );
-        return ReactorExt.toMono(storeHelper.execute(statement).toCompletable());
+        )).flatMap(statement -> ReactorExt.toMono(storeHelper.execute(statement).toCompletable()));
     }
 
     @Override
     public Mono<Void> removeDeregisteredTargets(Collection<LoadBalancerTarget> toRemove) {
-        List<Mono<Void>> deleteOperations = toRemove.stream()
+        // bind asynchronously to avoid sharing the same BoundStatement across all subscriptions
+        Flux<Mono<Void>> deleteOperations = Flux.fromIterable(toRemove)
                 .map(target -> storeHelper.execute(
                         deleteDeregisteredTarget.bind(target.getLoadBalancerId(), target.getIpAddress())
                 ).toCompletable())
-                .map(ReactorExt::toMono)
-                .collect(Collectors.toList());
+                .map(ReactorExt::toMono);
+
 
         int limit = configuration.getLoadBalancerConcurrencyLimit();
         // prefetch does not matter here because operations don't produce any result (they are Mono<Void>)
@@ -379,12 +379,15 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
 
     @Override
     public Flux<LoadBalancerTargetState> getLoadBalancerTargets(String loadBalancerId) {
-        Statement selectStmt = selectTargetsForLoadBalancer.bind(loadBalancerId).setFetchSize(FETCH_SIZE);
-        return ReactorExt.toFlux(storeHelper.execute(selectStmt))
-                .timeout(Duration.ofMillis(FETCH_TIMEOUT_MS))
-                .next()
-                .flatMapMany(Flux::fromIterable)
-                .map(CassandraLoadBalancerStore::buildLoadBalancerTargetStateFromRow);
+        // bind asynchronously to avoid sharing the same BoundStatement across all subscriptions
+        return Mono.fromCallable(() -> selectTargetsForLoadBalancer.bind(loadBalancerId).setFetchSize(FETCH_SIZE))
+                .flatMapMany(selectStmt ->
+                        ReactorExt.toFlux(storeHelper.execute(selectStmt))
+                                .timeout(Duration.ofMillis(FETCH_TIMEOUT_MS))
+                                .next()
+                                .flatMapMany(Flux::fromIterable)
+                                .map(CassandraLoadBalancerStore::buildLoadBalancerTargetStateFromRow)
+                );
     }
 
     /**
