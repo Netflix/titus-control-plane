@@ -86,8 +86,9 @@ public interface LoadBalancerStore {
     }
 
     /**
-     * Removes one or more deregistered targets associated with a load balancer. Targets that currently do not have
-     * their state as {@link LoadBalancerTarget.State#DEREGISTERED} in the store are ignored
+     * Removes deregistered targets associated with a load balancer. Targets that currently do not have their state as
+     * {@link LoadBalancerTarget.State#DEREGISTERED} in the store are ignored. The state check must be atomic within
+     * the whole <tt>DELETE</tt> operation, so this method can be used for optimistic concurrency control.
      */
     Mono<Void> removeDeregisteredTargets(Collection<LoadBalancerTarget> targets);
 
