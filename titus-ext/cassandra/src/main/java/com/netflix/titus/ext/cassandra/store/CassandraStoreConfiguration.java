@@ -16,6 +16,8 @@
 
 package com.netflix.titus.ext.cassandra.store;
 
+import java.util.Collection;
+
 import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
 
@@ -49,13 +51,28 @@ public interface CassandraStoreConfiguration {
     int getConcurrencyLimit();
 
     /**
-     * Concurrency limit for load balancer operations (bulk inserts and deletes), in number of concurrent queries that
-     * can be running per method invocation in {@link CassandraLoadBalancerStore}.
+     * Concurrency limit for load balancer target write operations (bulk INSERTs), in number of concurrent queries that
+     * can be running per method invocation in {@link CassandraLoadBalancerStore#addOrUpdateTargets(Collection)}.
      *
      * @see CassandraLoadBalancerStore
      */
     @DefaultValue("10")
-    int getLoadBalancerConcurrencyLimit();
+    int getLoadBalancerWriteConcurrencyLimit();
+
+    /**
+     * Concurrency limit for load balancer target DELETEs (bulk CQL lightweight transactions), in number of concurrent
+     * queries that can be running per {@link CassandraLoadBalancerStore#removeDeregisteredTargets(Collection)}
+     * invocation.
+     * <p>
+     * Empirical data has shown that there are no benefits in running concurrent LWT DELETEs on the same partition key,
+     * so the default is <tt>1</tt> (no concurrency: all LWT DELETEs are serialized). In fact, concurrent LWTs on the
+     * same partition key (<tt>load_balancer_id</tt> in this case) has shown to put pressure on C* coordinators and to
+     * be overall slower than serializing all calls.
+     *
+     * @see CassandraLoadBalancerStore
+     */
+    @DefaultValue("1")
+    int getLoadBalancerDeleteConcurrencyLimit();
 
     /**
      * @return whether or not each query should have tracing enabled.

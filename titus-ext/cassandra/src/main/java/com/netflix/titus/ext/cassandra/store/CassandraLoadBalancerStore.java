@@ -327,7 +327,7 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
                 .map(this::addOrUpdateTarget)
                 .collect(Collectors.toList());
 
-        int limit = configuration.getLoadBalancerConcurrencyLimit();
+        int limit = configuration.getLoadBalancerWriteConcurrencyLimit();
         // prefetch does not matter here because operations don't produce any result (they are Mono<Void>)
         return Flux.mergeSequentialDelayError(insertOperations, limit, limit)
                 .ignoreElements()
@@ -370,7 +370,7 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
                 .map(ReactorExt::toMono);
 
 
-        int limit = configuration.getLoadBalancerConcurrencyLimit();
+        int limit = configuration.getLoadBalancerDeleteConcurrencyLimit();
         // prefetch does not matter here because operations don't produce any result (they are Mono<Void>)
         return Flux.mergeSequentialDelayError(deleteOperations, limit, limit)
                 .ignoreElements()

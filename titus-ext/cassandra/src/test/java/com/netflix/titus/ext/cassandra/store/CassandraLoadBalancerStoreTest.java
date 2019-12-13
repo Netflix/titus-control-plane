@@ -390,7 +390,8 @@ public class CassandraLoadBalancerStoreTest {
     private CassandraLoadBalancerStore getInitdStore() {
         Session session = cassandraCQLUnit.getSession();
         CassandraStoreConfiguration configuration = mock(CassandraStoreConfiguration.class);
-        when(configuration.getLoadBalancerConcurrencyLimit()).thenReturn(10);
+        when(configuration.getLoadBalancerWriteConcurrencyLimit()).thenReturn(10);
+        when(configuration.getLoadBalancerDeleteConcurrencyLimit()).thenReturn(1);
         EntitySanitizer entitySanitizer = new LoadBalancerSanitizerBuilder().build();
         CassandraLoadBalancerStore store = new CassandraLoadBalancerStore(configuration, entitySanitizer, session);
         store.init();

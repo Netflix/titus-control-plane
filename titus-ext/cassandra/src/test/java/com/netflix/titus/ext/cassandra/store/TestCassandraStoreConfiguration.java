@@ -48,8 +48,13 @@ public class TestCassandraStoreConfiguration implements CassandraStoreConfigurat
     }
 
     @Override
-    public int getLoadBalancerConcurrencyLimit() {
+    public int getLoadBalancerWriteConcurrencyLimit() {
         return 100;
+    }
+
+    @Override
+    public int getLoadBalancerDeleteConcurrencyLimit() {
+        return 10;
     }
 
     @Override

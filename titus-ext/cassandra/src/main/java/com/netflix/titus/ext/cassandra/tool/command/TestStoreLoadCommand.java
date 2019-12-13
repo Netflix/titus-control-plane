@@ -80,8 +80,13 @@ public class TestStoreLoadCommand implements Command {
         }
 
         @Override
-        public int getLoadBalancerConcurrencyLimit() {
+        public int getLoadBalancerWriteConcurrencyLimit() {
             return MAX_RETRIEVE_TASK_CONCURRENCY;
+        }
+
+        @Override
+        public int getLoadBalancerDeleteConcurrencyLimit() {
+            return 1;
         }
 
         @Override
