@@ -967,6 +967,78 @@ public class DefaultLoadBalancerServiceTest {
         verifyReconcilerIgnore(sourceLoadBalancerId, "1.2.3.4");
     }
 
+    @Test(timeout = 30_000)
+    public void backfillsCurrentTargetsToStore() {
+        String jobId = UUID.randomUUID().toString();
+        String associatedId = "lb-" + UUID.randomUUID().toString();
+        String dissociatedId = "lb-" + UUID.randomUUID().toString();
+        String removedId = "lb-" + UUID.randomUUID().toString();
+
+        LoadBalancerConfiguration configuration = LoadBalancerTests.mockConfiguration(MIN_TIME_IN_QUEUE_MS);
+        when(configuration.isTargetsToStoreBackfillEnabled()).thenReturn(true);
+        when(configuration.getStoreBackfillConcurrencyLimit()).thenReturn(10);
+        when(configuration.getStoreBackfillTimeoutMs()).thenReturn(5000L);
+
+        // current load balancer state (targets)
+        when(client.getLoadBalancer(associatedId)).thenReturn(Single.just(
+                new LoadBalancer(associatedId, LoadBalancer.State.ACTIVE, CollectionsExt.asSet(
+                        "1.1.1.1", "2.2.2.2", "3.3.3.3"
+                ))
+        ));
+        when(client.getLoadBalancer(dissociatedId)).thenReturn(Single.just(
+                new LoadBalancer(dissociatedId, LoadBalancer.State.ACTIVE, CollectionsExt.asSet(
+                        "4.4.4.4", "5.5.5.5", "6.6.6.6"
+                ))
+        ));
+        when(client.getLoadBalancer(removedId)).thenReturn(Single.just(
+                new LoadBalancer(removedId, LoadBalancer.State.REMOVED, Collections.emptySet())
+        ));
+
+        // current load balancers we are managing
+        loadBalancerStore.addOrUpdateLoadBalancer(
+                new JobLoadBalancer(jobId, associatedId), JobLoadBalancer.State.ASSOCIATED
+        ).await();
+        loadBalancerStore.addOrUpdateLoadBalancer(
+                new JobLoadBalancer(jobId, dissociatedId), JobLoadBalancer.State.DISSOCIATED
+        ).await();
+        loadBalancerStore.addOrUpdateLoadBalancer(
+                new JobLoadBalancer(jobId, removedId), JobLoadBalancer.State.ASSOCIATED
+        ).await();
+
+        DefaultLoadBalancerService service = new DefaultLoadBalancerService(runtime, configuration, client,
+                loadBalancerStore, loadBalancerJobOperations, reconciler, validator, testScheduler);
+
+        service.backfillTargetsToStore();
+
+        assertThat(loadBalancerStore.getLoadBalancerTargets(associatedId).collectList().block())
+                .containsExactlyInAnyOrder(
+                        new LoadBalancerTargetState(
+                                new LoadBalancerTarget(associatedId, "BACKFILLED", "1.1.1.1"), REGISTERED
+                        ),
+                        new LoadBalancerTargetState(
+                                new LoadBalancerTarget(associatedId, "BACKFILLED", "2.2.2.2"), REGISTERED
+                        ),
+                        new LoadBalancerTargetState(
+                                new LoadBalancerTarget(associatedId, "BACKFILLED", "3.3.3.3"), REGISTERED
+                        )
+                );
+
+        assertThat(loadBalancerStore.getLoadBalancerTargets(dissociatedId).collectList().block())
+                .containsExactlyInAnyOrder(
+                        new LoadBalancerTargetState(
+                                new LoadBalancerTarget(dissociatedId, "BACKFILLED", "4.4.4.4"), REGISTERED
+                        ),
+                        new LoadBalancerTargetState(
+                                new LoadBalancerTarget(dissociatedId, "BACKFILLED", "5.5.5.5"), REGISTERED
+                        ),
+                        new LoadBalancerTargetState(
+                                new LoadBalancerTarget(dissociatedId, "BACKFILLED", "6.6.6.6"), REGISTERED
+                        )
+                );
+
+        assertThat(loadBalancerStore.getLoadBalancerTargets(removedId).collectList().block()).isEmpty();
+    }
+
     private void verifyReconcilerIgnore(String loadBalancerId, String... ipAddresses) {
         Set<String> ipSet = CollectionsExt.asSet(ipAddresses);
         verify(reconciler, times(ipAddresses.length)).activateCooldownFor(

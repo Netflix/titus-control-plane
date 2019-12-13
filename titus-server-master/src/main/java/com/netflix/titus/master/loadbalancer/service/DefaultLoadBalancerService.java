@@ -16,20 +16,25 @@
 
 package com.netflix.titus.master.loadbalancer.service;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.netflix.spectator.api.Registry;
+import com.netflix.titus.api.connector.cloud.LoadBalancer;
 import com.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import com.netflix.titus.api.loadbalancer.model.JobLoadBalancerState;
 import com.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
+import com.netflix.titus.api.loadbalancer.model.LoadBalancerTargetState;
 import com.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerJobValidator;
 import com.netflix.titus.api.loadbalancer.service.LoadBalancerService;
 import com.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
@@ -44,14 +49,18 @@ import com.netflix.titus.common.util.guice.annotation.Deactivator;
 import com.netflix.titus.common.util.limiter.Limiters;
 import com.netflix.titus.common.util.limiter.tokenbucket.TokenBucket;
 import com.netflix.titus.common.util.rx.ObservableExt;
+import com.netflix.titus.common.util.rx.ReactorExt;
+import com.netflix.titus.common.util.rx.RetryHandlerBuilder;
 import com.netflix.titus.common.util.rx.batch.Batch;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.runtime.loadbalancer.LoadBalancerCursors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
 import rx.Scheduler;
+import rx.Single;
 import rx.Subscription;
 import rx.schedulers.Schedulers;
 
@@ -61,6 +70,7 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
 
     private final TitusRuntime runtime;
     private final LoadBalancerConfiguration configuration;
+    private final LoadBalancerConnector loadBalancerConnector;
     private final LoadBalancerStore loadBalancerStore;
     private final LoadBalancerJobValidator validator;
     private final LoadBalancerReconciler reconciler;
@@ -96,6 +106,7 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
                                Scheduler scheduler) {
         this.runtime = runtime;
         this.configuration = configuration;
+        this.loadBalancerConnector = loadBalancerConnector;
         this.loadBalancerStore = loadBalancerStore;
         this.reconciler = reconciler;
         this.validator = validator;
@@ -168,6 +179,9 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
         if (!configuration.isEngineEnabled()) {
             return; // noop
         }
+        if (configuration.isTargetsToStoreBackfillEnabled()) {
+            backfillTargetsToStore();
+        }
 
         loadBalancerBatches = runtime.persistentStream(events())
                 .subscribeOn(scheduler)
@@ -197,5 +211,61 @@ public class DefaultLoadBalancerService implements LoadBalancerService {
     @VisibleForTesting
     Observable<Batch<TargetStateBatchable, String>> events() {
         return engine.events();
+    }
+
+    /**
+     * Temporary utility to backfill all targets from registered load balancers to the store, since targets were not
+     * being persisted before.
+     * <p>
+     * Once all current state has been backfilled (i.e.: this runs successfully at least once), this is not needed
+     * anymore and can be disabled/removed.
+     */
+    @VisibleForTesting
+    void backfillTargetsToStore() {
+        Observable<Single<LoadBalancer>> fetchLoadBalancerOperations = loadBalancerStore.getAssociations().stream()
+                .map(a -> a.getJobLoadBalancer().getLoadBalancerId())
+                .map(loadBalancerId -> loadBalancerConnector.getLoadBalancer(loadBalancerId)
+                        // 404s will not error, and just return a LoadBalancer with state=REMOVED and no registered targets
+                        .retryWhen(RetryHandlerBuilder.retryHandler()
+                                .withRetryDelay(10, TimeUnit.MILLISECONDS)
+                                .withRetryCount(10)
+                                .buildExponentialBackoff()
+                        )
+                )
+                .collect(Collectors.collectingAndThen(Collectors.toList(), Observable::from));
+
+        try {
+            int concurrency = configuration.getStoreBackfillConcurrencyLimit();
+            ReactorExt.toFlux(Single.mergeDelayError(fetchLoadBalancerOperations, concurrency))
+                    .flatMap(this::backfillTargetsToStore)
+                    .ignoreElements()
+                    .block(Duration.ofMillis(configuration.getStoreBackfillTimeoutMs()));
+        } catch (Exception e) {
+            Registry registry = runtime.getRegistry();
+            registry.counter(registry.createId("titus.loadbalancer.service.backfillErrors",
+                    "error", e.getClass().getSimpleName()
+            )).increment();
+
+            // swallow the error so we do not prevent activation of the leader
+            // regular operations will not be affected by the incomplete backfill, but targets may leak until remaining
+            // targets get backfilled during the next run
+            logger.error("Backfill did not complete successfully, missing targets may be orphaned and leak on load balancers (i.e. never deregistered)", e);
+        }
+    }
+
+    private Mono<Void> backfillTargetsToStore(LoadBalancer loadBalancer) {
+        if (!loadBalancer.getState().equals(LoadBalancer.State.ACTIVE) ||
+                loadBalancer.getRegisteredIps().isEmpty()) {
+            return Mono.empty();
+        }
+
+        Set<LoadBalancerTargetState> targets = loadBalancer.getRegisteredIps().stream()
+                .map(ip -> new LoadBalancerTargetState(
+                        new LoadBalancerTarget(loadBalancer.getId(), "BACKFILLED", ip),
+                        LoadBalancerTarget.State.REGISTERED
+                ))
+                .collect(Collectors.toSet());
+
+        return loadBalancerStore.addOrUpdateTargets(targets);
     }
 }
