@@ -116,8 +116,8 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
 
     private ContainerInfo.Builder newContainerInfoBuilder(Job job, Task task, TitusQueuableTask<Job, Task> fenzoTask,
                                                           Map<String, String> passthroughAttributes) {
-        JobDescriptor jobDescriptor = job.getJobDescriptor();
-        Map<String, String> jobAttributes = ((JobDescriptor<?>) jobDescriptor).getAttributes();
+        JobDescriptor<?> jobDescriptor = job.getJobDescriptor();
+        Map<String, String> jobAttributes = jobDescriptor.getAttributes();
         ContainerInfo.Builder containerInfoBuilder = ContainerInfo.newBuilder();
         Container container = jobDescriptor.getContainer();
         Map<String, String> containerAttributes = container.getAttributes();
@@ -126,7 +126,7 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
 
         // Docker Values (Image, entrypoint, and command)
         setImage(containerInfoBuilder, container.getImage());
-        setEntryPointCommand(containerInfoBuilder, container);
+        setEntryPointCommand(containerInfoBuilder, container, jobAttributes);
 
         // Netflix Values
         // Configure Netflix Metadata
@@ -250,8 +250,8 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
         applyNotNull(image.getTag(), containerInfoBuilder::setVersion);
     }
 
-    private void setEntryPointCommand(ContainerInfo.Builder containerInfoBuilder, Container container) {
-        if (CollectionsExt.isNullOrEmpty(container.getCommand())) {
+    private void setEntryPointCommand(ContainerInfo.Builder containerInfoBuilder, Container container, Map<String, String> jobAttributes) {
+        if (CollectionsExt.isNullOrEmpty(container.getCommand()) && !shouldSkipEntryPointJoin(jobAttributes)) {
             // fallback to the old behavior when no command is set to avoid breaking existing jobs relying on shell
             // parsing and word splitting being done by the executor for flat string entrypoints
             containerInfoBuilder.setEntrypointStr(StringExt.concatenate(container.getEntryPoint(), " "));
@@ -261,6 +261,12 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
                 .addAllEntrypoint(container.getEntryPoint())
                 .addAllCommand(container.getCommand())
         );
+    }
+
+    private boolean shouldSkipEntryPointJoin(Map<String, String> jobAttributes) {
+        return Boolean.parseBoolean(jobAttributes.getOrDefault(JobAttributes.JOB_PARAMETER_ATTRIBUTES_ENTRY_POINT_SKIP_JOIN,
+                "false").trim());
+
     }
 
     private void setSignedAddressAllocation(ContainerInfo.Builder containerInfoBuilder, Task task, ContainerResources containerResources) {

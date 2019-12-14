@@ -99,6 +99,11 @@ public final class JobAttributes {
     public static final String JOB_ATTRIBUTES_RUNTIME_PREDICTION_AB_TEST = PREDICTION_ATTRIBUTE_PREFIX + "abTest";
 
     /**
+     * Do not concatenate entry point into a single string
+     */
+    public static final String JOB_PARAMETER_ATTRIBUTES_ENTRY_POINT_SKIP_JOIN = TITUS_PARAMETER_ATTRIBUTE_PREFIX + "entryPoint.skipJoin";
+
+    /**
      * Allow jobs to completely opt-out of having their runtime automatically predicted during admission
      */
     public static final String JOB_PARAMETER_SKIP_RUNTIME_PREDICTION = TITUS_PARAMETER_ATTRIBUTE_PREFIX + "runtimePrediction.skip";
