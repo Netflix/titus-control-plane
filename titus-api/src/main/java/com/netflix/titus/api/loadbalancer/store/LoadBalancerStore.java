@@ -68,7 +68,7 @@ public interface LoadBalancerStore {
     List<JobLoadBalancerState> getAssociations();
 
     /**
-     * Blocking call the returns the current snapshot page of the given offset/size of * all load balancers. As a
+     * Blocking call that returns the current snapshot page of the given offset/size of times all load balancers. As a
      * blocking call, data must be served from cached/in-memory data and avoid doing external calls.
      */
     List<JobLoadBalancer> getAssociationsPage(int offset, int limit);
@@ -79,7 +79,7 @@ public interface LoadBalancerStore {
     Mono<Void> addOrUpdateTargets(Collection<LoadBalancerTargetState> targets);
 
     /**
-     * Adds a or updates targets with the provided states.
+     * Adds or updates targets with the provided states.
      */
     default Mono<Void> addOrUpdateTargets(LoadBalancerTargetState... targetStates) {
         return addOrUpdateTargets(Arrays.asList(targetStates));

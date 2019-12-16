@@ -200,13 +200,13 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
 
     /**
      * Generates a stream of necessary updates based on what jobs are currently associated with a load balancer, the
-     * ip addresses currently registered on it, and what ips were previously registered by us.
+     * ip addresses currently registered on it, and what ips were previously registered with the load balancer.
      * <p>
      * {@link JobLoadBalancer} associations in the <tt>Dissociated</tt> state will be removed when it is safe to do so,
      * i.e.: when there is no more stored state to be cleaned up, and nothing to be deregistered on the load balancer.
      *
      * @param loadBalancer tuple with ip addresses currently registered on the load balancer, and ip addresses
-     *                     previously registered by us
+     *                     previously registered with the load balancer
      * @param associations jobs currently associated to the load balancer
      */
     private Observable<TargetStateBatchable> updatesFor(LoadBalancerWithKnownTargets loadBalancer,
@@ -228,7 +228,7 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
                         .onErrorComplete()
                 : Completable.complete();
 
-        // clean up dissociated entries only it is safe: all targets have been deregistered and there is nothing to be removed
+        // clean up dissociated entries only if it is safe: all targets have been deregistered and there is nothing to be removed
         Completable cleanupDissociated = (updates.toDeregister.isEmpty() && updates.toRemove.isEmpty()) ?
                 Completable.mergeDelayError(removeAllDissociated(associations), MAX_ORPHAN_CLEANUP_CONCURRENCY)
                         .doOnSubscribe(ignored -> logger.debug("Cleaning up dissociated jobs for load balancer {}", loadBalancer.current.getId()))
