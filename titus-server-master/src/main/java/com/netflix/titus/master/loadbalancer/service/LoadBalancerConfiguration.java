@@ -71,4 +71,26 @@ public interface LoadBalancerConfiguration {
      */
     @DefaultValue("5000")
     long getBucketSizeMs();
+
+    /**
+     * Since state for load balancer targets has not always been stored, backfill needs to run at least once on every
+     * deployment that managed one or more load balancers. Backfill should be disabled after being executed once (e.g.:
+     * by enabling this flag once during a deploy and making sure backfill completes successfully).
+     */
+    @DefaultValue("false")
+    boolean isTargetsToStoreBackfillEnabled();
+
+    /**
+     * Max execution time for backfilling
+     */
+    @DefaultValue("60000")
+    long getStoreBackfillTimeoutMs();
+
+    /**
+     * How many load balancers to fetch in parallel when backfilling targets to the store. The max number of concurrent
+     * store write operations will be this times concurrency configured for write operations on the Store.
+     */
+    @DefaultValue("10")
+    int getStoreBackfillConcurrencyLimit();
+
 }

@@ -77,6 +77,16 @@ public class EmbeddedCassandraStoreFactory {
         }
 
         @Override
+        public int getLoadBalancerWriteConcurrencyLimit() {
+            return 100;
+        }
+
+        @Override
+        public int getLoadBalancerDeleteConcurrencyLimit() {
+            return 10;
+        }
+
+        @Override
         public boolean isTracingEnabled() {
             return false;
         }

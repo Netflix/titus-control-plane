@@ -16,6 +16,9 @@
 
 package com.netflix.titus.ext.cassandra.store;
 
+import java.time.Duration;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -24,7 +27,6 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
@@ -32,40 +34,58 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.datastax.driver.core.BoundStatement;
+import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import com.netflix.titus.api.loadbalancer.model.JobLoadBalancerState;
+import com.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
+import com.netflix.titus.api.loadbalancer.model.LoadBalancerTargetState;
 import com.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import com.netflix.titus.api.loadbalancer.store.LoadBalancerStoreException;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.model.sanitizer.ValidationError;
 import com.netflix.titus.common.util.guice.annotation.Activator;
+import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
 
+import static com.datastax.driver.core.querybuilder.QueryBuilder.bindMarker;
+import static com.datastax.driver.core.querybuilder.QueryBuilder.delete;
+import static com.datastax.driver.core.querybuilder.QueryBuilder.eq;
+import static com.datastax.driver.core.querybuilder.QueryBuilder.insertInto;
+import static com.datastax.driver.core.querybuilder.QueryBuilder.select;
 import static com.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerSanitizerBuilder.LOAD_BALANCER_SANITIZER;
 
 @Singleton
 public class CassandraLoadBalancerStore implements LoadBalancerStore {
     private static Logger logger = LoggerFactory.getLogger(CassandraLoadBalancerStore.class);
 
-    private static final String TABLE_LOAD_BALANCER = "load_balancer_jobs";
+    private static final String TABLE_LOAD_BALANCER_ASSOCIATIONS = "load_balancer_jobs";
+    private static final String TABLE_LOAD_BALANCER_TARGETS = "load_balancer_targets";
+
     private static final String COLUMN_JOB_ID = "job_id";
+    private static final String COLUMN_TASK_ID = "task_id";
     private static final String COLUMN_LOAD_BALANCER = "load_balancer_id";
+    private static final String COLUMN_IP_ADDRESS = "ip_address";
     private static final String COLUMN_STATE = "state";
 
     private static final Integer FETCH_SIZE = Integer.MAX_VALUE;
     private static final long FETCH_TIMEOUT_MS = 120_000;
 
-    private final PreparedStatement getAllJobIdsStmt;
-    private final PreparedStatement insertLoadBalancerStmt;
-    private final PreparedStatement deleteLoadBalancerStmt;
+    private final PreparedStatement selectAssociations;
+    private final PreparedStatement insertAssociation;
+    private final PreparedStatement deleteAssociation;
+    private final PreparedStatement selectTargetsForLoadBalancer;
+    private final PreparedStatement insertTarget;
+    private final PreparedStatement deleteDeregisteredTarget;
 
     private final CassandraStoreConfiguration configuration;
 
@@ -86,29 +106,48 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
      */
     private final ConcurrentMap<String, SortedSet<JobLoadBalancer>> jobToAssociatedLoadBalancersMap;
 
-    private static final String GET_ALL_JOB_IDS = String
+    private static final String GET_ALL_ASSOCIATIONS = String
             .format("SELECT %s, %s, %s FROM %s;",
                     COLUMN_JOB_ID,
                     COLUMN_LOAD_BALANCER,
                     COLUMN_STATE,
-                    TABLE_LOAD_BALANCER);
-    private static final String INSERT_JOB_LOAD_BALANCER = String
+                    TABLE_LOAD_BALANCER_ASSOCIATIONS);
+    private static final String INSERT_ASSOCIATION = String
             .format("INSERT INTO %s(%s, %s, %s) VALUES (?, ?, ?);",
-                    TABLE_LOAD_BALANCER,
+                    TABLE_LOAD_BALANCER_ASSOCIATIONS,
                     COLUMN_JOB_ID,
                     COLUMN_LOAD_BALANCER,
                     COLUMN_STATE);
-    private static final String UPDATE_JOB_LOAD_BALANCER_STATE = String
-            .format("UPDATE %s SET %s = ? WHERE %s = ? AND %s = ?;",
-                    TABLE_LOAD_BALANCER,
-                    COLUMN_STATE,
-                    COLUMN_JOB_ID,
-                    COLUMN_LOAD_BALANCER);
-    private static final String DELETE_JOB_LOAD_BALANCER = String
+    private static final String DELETE_ASSOCIATION = String
             .format("DELETE FROM %s WHERE %s = ? AND %s = ?",
-                    TABLE_LOAD_BALANCER,
+                    TABLE_LOAD_BALANCER_ASSOCIATIONS,
                     COLUMN_JOB_ID,
                     COLUMN_LOAD_BALANCER);
+
+    private static Pair<JobLoadBalancer, JobLoadBalancer.State> buildLoadBalancerStatePairFromRow(Row row) {
+        String jobId = row.getString(COLUMN_JOB_ID);
+        String loadBalancerId = row.getString(COLUMN_LOAD_BALANCER);
+        String state = row.getString(COLUMN_STATE);
+        JobLoadBalancer.State parsedState;
+        if (state == null) {
+            logger.warn("Unexpected null state for association {}:{}", jobId, loadBalancerId);
+            parsedState = JobLoadBalancer.State.DISSOCIATED;
+        } else {
+            parsedState = JobLoadBalancer.State.valueOf(state.toUpperCase());
+        }
+        return Pair.of(new JobLoadBalancer(jobId, loadBalancerId), parsedState);
+    }
+
+    private static LoadBalancerTargetState buildLoadBalancerTargetStateFromRow(Row row) {
+        return new LoadBalancerTargetState(
+                new LoadBalancerTarget(
+                        row.getString(COLUMN_LOAD_BALANCER),
+                        row.getString(COLUMN_TASK_ID),
+                        row.getString(COLUMN_IP_ADDRESS)
+                ),
+                LoadBalancerTarget.State.valueOf(row.getString(COLUMN_STATE))
+        );
+    }
 
     @Inject
     public CassandraLoadBalancerStore(CassandraStoreConfiguration configuration,
@@ -122,9 +161,27 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
         this.loadBalancerStateMap = new ConcurrentHashMap<>();
         this.jobToAssociatedLoadBalancersMap = new ConcurrentHashMap<>();
 
-        this.getAllJobIdsStmt = session.prepare(GET_ALL_JOB_IDS);
-        this.insertLoadBalancerStmt = session.prepare(INSERT_JOB_LOAD_BALANCER);
-        this.deleteLoadBalancerStmt = session.prepare(DELETE_JOB_LOAD_BALANCER);
+        this.selectAssociations = session.prepare(GET_ALL_ASSOCIATIONS).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
+        this.insertAssociation = session.prepare(INSERT_ASSOCIATION).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
+        this.deleteAssociation = session.prepare(DELETE_ASSOCIATION).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
+
+        this.selectTargetsForLoadBalancer = session.prepare(
+                select(COLUMN_LOAD_BALANCER, COLUMN_IP_ADDRESS, COLUMN_TASK_ID, COLUMN_STATE)
+                        .from(TABLE_LOAD_BALANCER_TARGETS)
+                        .where(eq(COLUMN_LOAD_BALANCER, bindMarker()))
+        ).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
+        this.insertTarget = session.prepare(
+                insertInto(TABLE_LOAD_BALANCER_TARGETS).values(
+                        Arrays.asList(COLUMN_LOAD_BALANCER, COLUMN_IP_ADDRESS, COLUMN_TASK_ID, COLUMN_STATE),
+                        Arrays.asList(bindMarker(), bindMarker(), bindMarker(), bindMarker())
+                )
+        ).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
+        this.deleteDeregisteredTarget = session.prepare(
+                delete().from(TABLE_LOAD_BALANCER_TARGETS)
+                        .where(eq(COLUMN_LOAD_BALANCER, bindMarker()))
+                        .and(eq(COLUMN_IP_ADDRESS, bindMarker()))
+                        .onlyIf(eq(COLUMN_STATE, "DEREGISTERED"))
+        ).setConsistencyLevel(ConsistencyLevel.LOCAL_QUORUM);
     }
 
     /**
@@ -133,13 +190,16 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
     @Activator
     public void init() {
         boolean failOnError = configuration.isFailOnInconsistentLoadBalancerData();
+        loadAllAssociations(failOnError).block();
+    }
 
-        storeHelper.execute(getAllJobIdsStmt.bind().setFetchSize(FETCH_SIZE))
-                .timeout(FETCH_TIMEOUT_MS, TimeUnit.MILLISECONDS)
-                .flatMap(rows -> Observable.from(rows.all()))
-                .map(this::buildLoadBalancerStatePairFromRow)
-                .toBlocking()
-                .forEach(loadBalancerStatePair -> {
+    private Mono<Void> loadAllAssociations(boolean failOnError) {
+        return ReactorExt.toFlux(storeHelper.execute(selectAssociations.bind().setFetchSize(FETCH_SIZE)))
+                .timeout(Duration.ofMillis(FETCH_TIMEOUT_MS))
+                .next()
+                .flatMapMany(Flux::fromIterable)
+                .map(CassandraLoadBalancerStore::buildLoadBalancerStatePairFromRow)
+                .collect(Object::new, (ignored, loadBalancerStatePair) -> {
                     JobLoadBalancer jobLoadBalancer = loadBalancerStatePair.getLeft();
                     JobLoadBalancer.State state = loadBalancerStatePair.getRight();
                     Set<ValidationError> violations = entitySanitizer.validate(jobLoadBalancer);
@@ -152,17 +212,10 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
                         if (failOnError) {
                             throw LoadBalancerStoreException.badData(jobLoadBalancer, violations);
                         }
-                        logger.warn("Ignoring bad record of {} due to validation constraint violations: violations={}", jobLoadBalancer, violations);
+                        logger.warn("Ignoring bad association record of {} due to validation constraint violations: violations={}", jobLoadBalancer, violations);
                     }
-                });
-    }
-
-    @Override
-    public Observable<JobLoadBalancerState> getLoadBalancersForJob(String jobId) {
-        logger.debug("Getting all load balancer states for job {}", jobId);
-        return Observable.from(loadBalancerStateMap.entrySet())
-                .filter(entry -> entry.getKey().getJobId().equals(jobId))
-                .map(JobLoadBalancerState::from);
+                })
+                .then();
     }
 
     /**
@@ -218,7 +271,6 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
                 .collect(Collectors.toList());
     }
 
-
     /**
      * Marks the persisted and in-memory state as Dissociated and removes from association in-memory map.
      *
@@ -231,12 +283,12 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
         logger.debug("Updating load balancer {} to state {}", jobLoadBalancer, state);
         return Completable.fromAction(() -> {
             synchronized (this) {
-                BoundStatement stmt = insertLoadBalancerStmt.bind(jobLoadBalancer.getJobId(), jobLoadBalancer.getLoadBalancerId(), state.name());
+                BoundStatement stmt = insertAssociation.bind(jobLoadBalancer.getJobId(), jobLoadBalancer.getLoadBalancerId(), state.name());
                 ResultSet rs = session.execute(stmt);
                 loadBalancerStateMap.put(jobLoadBalancer, state);
-                if (JobLoadBalancer.State.Associated == state) {
+                if (JobLoadBalancer.State.ASSOCIATED == state) {
                     addJobLoadBalancerAssociation(jobLoadBalancer);
-                } else if (JobLoadBalancer.State.Dissociated == state) {
+                } else if (JobLoadBalancer.State.DISSOCIATED == state) {
                     removeJobLoadBalancerAssociation(jobLoadBalancer);
                 }
             }
@@ -252,7 +304,7 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
     @Override
     public Completable removeLoadBalancer(JobLoadBalancer jobLoadBalancer) {
         logger.debug("Removing load balancer {}", jobLoadBalancer);
-        BoundStatement stmt = deleteLoadBalancerStmt.bind(jobLoadBalancer.getJobId(), jobLoadBalancer.getLoadBalancerId());
+        BoundStatement stmt = deleteAssociation.bind(jobLoadBalancer.getJobId(), jobLoadBalancer.getLoadBalancerId());
         return storeHelper.execute(stmt)
                 // Note: If the C* entry doesn't exist, it'll fail here and not remove from the map.
                 .map(rs -> {
@@ -274,9 +326,73 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
         return loadBalancerCount;
     }
 
-    private Pair<JobLoadBalancer, JobLoadBalancer.State> buildLoadBalancerStatePairFromRow(Row row) {
-        return Pair.of(new JobLoadBalancer(row.getString(COLUMN_JOB_ID), row.getString(COLUMN_LOAD_BALANCER)),
-                JobLoadBalancer.State.valueOf(row.getString(COLUMN_STATE)));
+    @Override
+    public Mono<Void> addOrUpdateTargets(Collection<LoadBalancerTargetState> targets) {
+        List<Mono<Void>> insertOperations = targets.stream()
+                .map(this::addOrUpdateTarget)
+                .collect(Collectors.toList());
+
+        int limit = configuration.getLoadBalancerWriteConcurrencyLimit();
+        // prefetch does not matter here because operations don't produce any result (they are Mono<Void>)
+        return Flux.mergeSequentialDelayError(insertOperations, limit, limit)
+                .ignoreElements()
+                .doOnSubscribe(ignored -> {
+                    Map<String, Long> countPerLoadBalancer = targets.stream().collect(Collectors.groupingBy(
+                            target -> target.getLoadBalancerTarget().getLoadBalancerId(),
+                            Collectors.counting()
+                    ));
+                    logger.info("Inserting/updating targets: {}", countPerLoadBalancer);
+                    logger.debug("Inserting/updating {} targets. Details: {}", targets.size(), targets);
+                });
+    }
+
+    private Mono<Void> addOrUpdateTarget(LoadBalancerTargetState target) {
+        Set<ValidationError> violations = entitySanitizer.validate(target);
+        if (!violations.isEmpty()) {
+            if (configuration.isFailOnInconsistentLoadBalancerData()) {
+                return Mono.error(LoadBalancerStoreException.badData(target, violations));
+            }
+            logger.warn("Ignoring bad target record of {} due to validation constraint violations: violations={}", target, violations);
+            return Mono.empty();
+        }
+
+        // bind asynchronously to avoid sharing the same BoundStatement across all subscriptions
+        return Mono.fromCallable(() -> insertTarget.bind(
+                target.getLoadBalancerTarget().getLoadBalancerId(),
+                target.getIpAddress(),
+                target.getLoadBalancerTarget().getTaskId(),
+                target.getState().name()
+        )).flatMap(statement -> ReactorExt.toMono(storeHelper.execute(statement).toCompletable()));
+    }
+
+    @Override
+    public Mono<Void> removeDeregisteredTargets(Collection<LoadBalancerTarget> toRemove) {
+        // bind asynchronously to avoid sharing the same BoundStatement across all subscriptions
+        Flux<Mono<Void>> deleteOperations = Flux.fromIterable(toRemove)
+                .map(target -> storeHelper.execute(
+                        deleteDeregisteredTarget.bind(target.getLoadBalancerId(), target.getIpAddress())
+                ).toCompletable())
+                .map(ReactorExt::toMono);
+
+
+        int limit = configuration.getLoadBalancerDeleteConcurrencyLimit();
+        // prefetch does not matter here because operations don't produce any result (they are Mono<Void>)
+        return Flux.mergeSequentialDelayError(deleteOperations, limit, limit)
+                .ignoreElements()
+                .doOnSubscribe(ignored -> logger.debug("Removing targets {}", toRemove));
+    }
+
+    @Override
+    public Flux<LoadBalancerTargetState> getLoadBalancerTargets(String loadBalancerId) {
+        // bind asynchronously to avoid sharing the same BoundStatement across all subscriptions
+        return Mono.fromCallable(() -> selectTargetsForLoadBalancer.bind(loadBalancerId).setFetchSize(FETCH_SIZE))
+                .flatMapMany(selectStmt ->
+                        ReactorExt.toFlux(storeHelper.execute(selectStmt))
+                                .timeout(Duration.ofMillis(FETCH_TIMEOUT_MS))
+                                .next()
+                                .flatMapMany(Flux::fromIterable)
+                                .map(CassandraLoadBalancerStore::buildLoadBalancerTargetStateFromRow)
+                );
     }
 
     /**

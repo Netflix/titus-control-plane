@@ -16,56 +16,40 @@
 
 package com.netflix.titus.api.loadbalancer.store;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 
 import com.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import com.netflix.titus.api.loadbalancer.model.JobLoadBalancerState;
+import com.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
+import com.netflix.titus.api.loadbalancer.model.LoadBalancerTargetState;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
 
 public interface LoadBalancerStore {
 
     /**
-     * Returns all load balancers and their state for a job.
-     * TODO(Andrew L): This method can be removed if/when the store no longer tracks Dissociated states.
-     *
-     * @param jobId
-     * @return
-     */
-    Observable<JobLoadBalancerState> getLoadBalancersForJob(String jobId);
-
-    /**
      * Returns an observable stream of load balancers in associated state for a Job.
-     *
-     * @param jobId
-     * @return
      */
     Observable<JobLoadBalancer> getAssociatedLoadBalancersForJob(String jobId);
 
     /**
      * Adds a new or updates an existing load balancer with the provided state.
-     *
-     * @param jobLoadBalancer
-     * @param state
-     * @return
      */
     Completable addOrUpdateLoadBalancer(JobLoadBalancer jobLoadBalancer, JobLoadBalancer.State state);
 
     /**
      * Removes a load balancer associated with a job.
-     *
-     * @param jobLoadBalancer
-     * @return
      */
     Completable removeLoadBalancer(JobLoadBalancer jobLoadBalancer);
 
     /**
      * Blocking call that returns the current snapshot set of load balancers associated with for a Job.
      * As a blocking call, data must be served from cached/in-memory data and avoid doing external calls.
-     *
-     * @param jobId
-     * @return
      */
     Set<JobLoadBalancer> getAssociatedLoadBalancersSetForJob(String jobId);
 
@@ -73,7 +57,6 @@ public interface LoadBalancerStore {
      * Blocking call that returns the number of load balancers associated with a job.
      * As a blocking call, data must be served from cached/in-memory data and avoid doing external calls.
      *
-     * @param jobId
      * @return Returns 0 even if jobId does not exist.
      */
     int getNumLoadBalancersForJob(String jobId);
@@ -85,13 +68,32 @@ public interface LoadBalancerStore {
     List<JobLoadBalancerState> getAssociations();
 
     /**
-     * Blocking call the returns the current snapshot page of the given offset/size of
-     * all load balancers.
-     * As a blocking call, data must be served from cached/in-memory data and avoid doing external calls.
-     *
-     * @param offset
-     * @param limit
-     * @return
+     * Blocking call that returns the current snapshot page of the given offset/size of times all load balancers. As a
+     * blocking call, data must be served from cached/in-memory data and avoid doing external calls.
      */
     List<JobLoadBalancer> getAssociationsPage(int offset, int limit);
+
+    /**
+     * Adds or updates targets with the provided states.
+     */
+    Mono<Void> addOrUpdateTargets(Collection<LoadBalancerTargetState> targets);
+
+    /**
+     * Adds or updates targets with the provided states.
+     */
+    default Mono<Void> addOrUpdateTargets(LoadBalancerTargetState... targetStates) {
+        return addOrUpdateTargets(Arrays.asList(targetStates));
+    }
+
+    /**
+     * Removes deregistered targets associated with a load balancer. Targets that currently do not have their state as
+     * {@link LoadBalancerTarget.State#DEREGISTERED} in the store are ignored. The state check must be atomic within
+     * the whole <tt>DELETE</tt> operation, so this method can be used for optimistic concurrency control.
+     */
+    Mono<Void> removeDeregisteredTargets(Collection<LoadBalancerTarget> targets);
+
+    /**
+     * Known (seen before) targets for a particular load balancer
+     */
+    Flux<LoadBalancerTargetState> getLoadBalancerTargets(String loadBalancerId);
 }

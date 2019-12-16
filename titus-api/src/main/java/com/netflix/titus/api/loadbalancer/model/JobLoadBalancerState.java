@@ -47,11 +47,11 @@ public class JobLoadBalancerState {
     }
 
     public boolean isStateAssociated() {
-        return JobLoadBalancer.State.Associated.equals(state);
+        return JobLoadBalancer.State.ASSOCIATED.equals(state);
     }
 
     public boolean isStateDissociated() {
-        return JobLoadBalancer.State.Dissociated.equals(state);
+        return JobLoadBalancer.State.DISSOCIATED.equals(state);
     }
 
     @Override

@@ -33,7 +33,7 @@ import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
 import com.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import com.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
 import com.netflix.titus.api.loadbalancer.model.LoadBalancerTarget.State;
-import com.netflix.titus.api.loadbalancer.model.TargetState;
+import com.netflix.titus.api.loadbalancer.model.LoadBalancerTargetState;
 import com.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
@@ -41,13 +41,14 @@ import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.code.CodeInvariants;
 import com.netflix.titus.common.util.limiter.tokenbucket.TokenBucket;
 import com.netflix.titus.common.util.rx.ObservableExt;
+import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.rx.batch.Batch;
 import com.netflix.titus.common.util.rx.batch.LargestPerTimeBucket;
 import com.netflix.titus.common.util.rx.batch.Priority;
 import com.netflix.titus.common.util.rx.batch.RateLimitedBatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import rx.Completable;
+import reactor.core.publisher.Mono;
 import rx.Observable;
 import rx.Scheduler;
 import rx.subjects.PublishSubject;
@@ -93,14 +94,12 @@ class LoadBalancerEngine {
         this.scheduler = scheduler;
     }
 
-    // TODO(Andrew L): Method does not need to be Rx.
-    public Completable add(JobLoadBalancer jobLoadBalancer) {
-        return Completable.fromAction(() -> pendingAssociations.onNext(jobLoadBalancer));
+    public void add(JobLoadBalancer jobLoadBalancer) {
+        pendingAssociations.onNext(jobLoadBalancer);
     }
 
-    // TODO(Andrew L): Method does not need to be Rx.
-    public Completable remove(JobLoadBalancer jobLoadBalancer) {
-        return Completable.fromAction(() -> pendingDissociations.onNext(jobLoadBalancer));
+    public void remove(JobLoadBalancer jobLoadBalancer) {
+        pendingDissociations.onNext(jobLoadBalancer);
     }
 
     Observable<Batch<TargetStateBatchable, String>> events() {
@@ -117,8 +116,8 @@ class LoadBalancerEngine {
 
         final Observable<TargetStateBatchable> updates = Observable.merge(
                 reconcilerEvents,
-                pendingAssociations.compose(targetsForJobLoadBalancers(State.Registered)),
-                pendingDissociations.compose(targetsForJobLoadBalancers(State.Deregistered)),
+                pendingAssociations.compose(targetsForJobLoadBalancers(State.REGISTERED)),
+                pendingDissociations.compose(targetsForJobLoadBalancers(State.DEREGISTERED)),
                 registerFromEvents(stateTransitions),
                 deregisterFromEvents(stateTransitions),
                 moveFromEvents(tasksMoved)
@@ -129,7 +128,10 @@ class LoadBalancerEngine {
                 .filter(batch -> !batch.getItems().isEmpty())
                 .onBackpressureDrop(batch -> logger.warn("Backpressure! Dropping batch for {} size {}", batch.getIndex(), batch.size()))
                 .doOnNext(batch -> logger.debug("Processing batch for {} size {}", batch.getIndex(), batch.size()))
-                .flatMap(this::applyUpdates)
+                .flatMap(batch -> applyUpdates(batch).onErrorResumeNext(e -> {
+                    logger.error("Could not apply batch for load balancer " + batch.getIndex(), e);
+                    return Observable.empty();
+                }))
                 .doOnNext(batch -> logger.info("Processed {} load balancer updates for {}", batch.size(), batch.getIndex()))
                 .doOnError(e -> logger.error("Error batching load balancer calls", e))
                 .retry();
@@ -151,24 +153,34 @@ class LoadBalancerEngine {
     }
 
     private Observable<Batch<TargetStateBatchable, String>> applyUpdates(Batch<TargetStateBatchable, String> batch) {
-        final String loadBalancerId = batch.getIndex();
-        final Map<State, List<TargetStateBatchable>> byState = batch.getItems().stream()
+        String loadBalancerId = batch.getIndex();
+        Map<State, List<TargetStateBatchable>> byState = batch.getItems().stream()
                 .collect(Collectors.groupingBy(TargetStateBatchable::getState));
 
-        final Completable registerAll = CollectionsExt.optionalOfNotEmpty(byState.get(State.Registered))
-                .map(TaskHelpers::ipAddresses)
-                .map(ipAddresses -> connector.registerAll(loadBalancerId, ipAddresses))
-                .orElse(Completable.complete());
+        Mono<Void> registerAll = CollectionsExt.optionalOfNotEmpty(byState.get(State.REGISTERED))
+                .map(targets -> updateTargetsInStore(targets).then(ReactorExt.toMono(
+                        connector.registerAll(loadBalancerId, TaskHelpers.ipAddresses(targets))
+                )))
+                .orElse(Mono.empty());
 
-        final Completable deregisterAll = CollectionsExt.optionalOfNotEmpty(byState.get(State.Deregistered))
-                .map(TaskHelpers::ipAddresses)
-                .map(ipAddresses -> connector.deregisterAll(loadBalancerId, ipAddresses))
-                .orElse(Completable.complete());
+        Mono<Void> deregisterAll = CollectionsExt.optionalOfNotEmpty(byState.get(State.DEREGISTERED))
+                .map(targets -> updateTargetsInStore(targets).then(ReactorExt.toMono(
+                        connector.deregisterAll(loadBalancerId, TaskHelpers.ipAddresses(targets))
+                )))
+                .orElse(Mono.empty());
 
-        return Completable.mergeDelayError(registerAll, deregisterAll)
-                .andThen(Observable.just(batch))
-                .doOnError(e -> logger.error("Error processing batch {}", batch, e))
-                .onErrorResumeNext(Observable.empty());
+        return ReactorExt.toObservable(
+                Mono.whenDelayError(registerAll, deregisterAll)
+                        .thenReturn(batch)
+                        .onErrorContinue((e, problem) -> logger.error("Error processing batch {}", problem, e))
+        );
+    }
+
+    private Mono<Void> updateTargetsInStore(Collection<TargetStateBatchable> targets) {
+        List<LoadBalancerTargetState> targetStates = targets.stream()
+                .map(TargetStateBatchable::getTargetState)
+                .collect(Collectors.toList());
+        return store.addOrUpdateTargets(targetStates);
     }
 
     private Observable<TargetStateBatchable> registerFromEvents(Observable<TaskUpdateEvent> events) {
@@ -180,7 +192,7 @@ class LoadBalancerEngine {
                         logger.info("Task update in job associated to one or more load balancers, registering {} load balancer targets: {}",
                                 loadBalancers.size(), task.getJobId());
                     }
-                    return updatesForLoadBalancers(loadBalancers, task, State.Registered);
+                    return updatesForLoadBalancers(loadBalancers, task, State.REGISTERED);
                 });
     }
 
@@ -193,7 +205,7 @@ class LoadBalancerEngine {
                         logger.info("Task update in job associated to one or more load balancers, deregistering {} load balancer targets: {}",
                                 loadBalancers.size(), task.getJobId());
                     }
-                    return updatesForLoadBalancers(loadBalancers, task, State.Deregistered);
+                    return updatesForLoadBalancers(loadBalancers, task, State.DEREGISTERED);
                 });
     }
 
@@ -218,13 +230,13 @@ class LoadBalancerEngine {
                 Collection<JobLoadBalancer> toRegister = CollectionsExt.difference(
                         targetJobLoadBalancers, sourceJobLoadBalancers, JobLoadBalancer::byLoadBalancerId
                 );
-                changes.addAll(updatesForLoadBalancers(toRegister, task, State.Registered));
+                changes.addAll(updatesForLoadBalancers(toRegister, task, State.REGISTERED));
             }
             // deregister from load balancers associated with the source job
             Collection<JobLoadBalancer> toDeregister = CollectionsExt.difference(
                     sourceJobLoadBalancers, targetJobLoadBalancers, JobLoadBalancer::byLoadBalancerId
             );
-            changes.addAll(updatesForLoadBalancers(toDeregister, task, State.Deregistered));
+            changes.addAll(updatesForLoadBalancers(toDeregister, task, State.DEREGISTERED));
 
             if (!changes.isEmpty()) {
                 logger.info("Task moved to {} from {}. Jobs are associated with one or more load balancers, generating {} load balancer updates",
@@ -237,7 +249,7 @@ class LoadBalancerEngine {
     private List<TargetStateBatchable> updatesForLoadBalancers(Collection<JobLoadBalancer> loadBalancers, Task task, State desired) {
         return loadBalancers.stream()
                 .map(association -> toLoadBalancerTarget(association, task))
-                .map(target -> new TargetStateBatchable(Priority.High, now(), new TargetState(target, desired)))
+                .map(target -> new TargetStateBatchable(Priority.HIGH, now(), new LoadBalancerTargetState(target, desired)))
                 .collect(Collectors.toList());
     }
 
@@ -247,13 +259,13 @@ class LoadBalancerEngine {
                 .flatMap(jobLoadBalancer -> Observable.from(jobOperations.targetsForJob(jobLoadBalancer))
                         .doOnError(e -> logger.error("Error loading targets for jobId {}", jobLoadBalancer.getJobId(), e))
                         .onErrorResumeNext(Observable.empty()))
-                .map(target -> new TargetStateBatchable(Priority.High, now(), new TargetState(target, state)))
+                .map(target -> new TargetStateBatchable(Priority.HIGH, now(), new LoadBalancerTargetState(target, state)))
                 .doOnError(e -> logger.error("Error fetching targets to {}", state, e))
                 .retry();
     }
 
     private static LoadBalancerTarget toLoadBalancerTarget(JobLoadBalancer association, Task task) {
-        return new LoadBalancerTarget(association, task.getId(),
+        return new LoadBalancerTarget(association.getLoadBalancerId(), task.getId(),
                 task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP));
     }
 

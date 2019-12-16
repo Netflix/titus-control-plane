@@ -52,7 +52,7 @@ CREATE TABLE "archived_jobs" (
 ) WITH
   comment='The archived jobs'
   AND compression={}
-  AND default_time_to_live = 2592000;
+  AND default_time_to_live = 2592000; // 30 days
 
 CREATE TABLE "archived_task_ids" (
   job_id text,
@@ -64,7 +64,7 @@ CREATE TABLE "archived_task_ids" (
   AND compaction={'min_threshold': '2', 'class': 'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy'}
   AND gc_grace_seconds = 21600
   AND speculative_retry = 'NONE'
-  AND default_time_to_live = 2592000;
+  AND default_time_to_live = 2592000; // 30 days
 
 CREATE TABLE "archived_tasks" (
   task_id text,
@@ -142,6 +142,19 @@ CREATE TABLE "load_balancer_jobs" (
   comment='The jobs with load balancers'
   AND compression={}
   AND compaction={'min_threshold': '2', 'class': 'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy'}
+  AND gc_grace_seconds = 21600
+  AND speculative_retry = 'NONE';
+
+CREATE TABLE "load_balancer_targets" (
+    load_balancer_id text,
+    ip_address       text,
+    task_id          text,
+    state            text,
+    PRIMARY KEY (load_balancer_id, ip_address)
+) WITH
+  comment ='Load balancer targets managed by us'
+  AND compression ={}
+  AND compaction ={'min_threshold': '2', 'class': 'org.apache.cassandra.db.compaction.SizeTieredCompactionStrategy'}
   AND gc_grace_seconds = 21600
   AND speculative_retry = 'NONE';
 

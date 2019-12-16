@@ -29,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.Sets;
 import com.netflix.spectator.api.BasicTag;
 import com.netflix.spectator.api.Counter;
 import com.netflix.spectator.api.Id;
@@ -42,10 +43,11 @@ import com.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
 import com.netflix.titus.api.loadbalancer.model.JobLoadBalancerState;
 import com.netflix.titus.api.loadbalancer.model.LoadBalancerTarget;
 import com.netflix.titus.api.loadbalancer.model.LoadBalancerTarget.State;
-import com.netflix.titus.api.loadbalancer.model.TargetState;
+import com.netflix.titus.api.loadbalancer.model.LoadBalancerTargetState;
 import com.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.rx.ObservableExt;
+import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.rx.batch.Priority;
 import com.netflix.titus.common.util.spectator.ContinuousSubscriptionMetrics;
 import com.netflix.titus.common.util.spectator.SpectatorExt;
@@ -54,29 +56,23 @@ import org.slf4j.LoggerFactory;
 import rx.Completable;
 import rx.Observable;
 import rx.Scheduler;
+import rx.schedulers.Schedulers;
 
 import static com.netflix.titus.api.jobmanager.service.JobManagerException.ErrorCode.JobNotFound;
 import static com.netflix.titus.master.MetricConstants.METRIC_LOADBALANCER;
+import static java.util.stream.Collectors.mapping;
+import static java.util.stream.Collectors.partitioningBy;
 
-/**
- * This implementation assumes that it "owns" a LoadBalancer once jobs are associated with it, so no other systems can
- * be sharing the same LoadBalancer. All targets that are registered by external systems will be deregistered by this
- * reconciliation implementation.
- * <p>
- * This was a simple way to get a first version out of the door, but it will likely be changed in the future once we
- * have a good way to track which targets should be managed by this reconciler.
- */
 public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
     private static final Logger logger = LoggerFactory.getLogger(DefaultLoadBalancerReconciler.class);
 
+    private static final String METRIC_RECONCILER = METRIC_LOADBALANCER + "reconciliation";
+    private static final Runnable NOOP = () -> {
+    };
     /**
      * how many store calls (both updates and deletes) are allowed concurrently during cleanup (GC)
      */
     private static final int MAX_ORPHAN_CLEANUP_CONCURRENCY = 100;
-
-    private static final String METRIC_RECONCILER = METRIC_LOADBALANCER + "reconciliation";
-    private static final String UNKNOWN_JOB = "UNKNOWN-JOB";
-    private static final String UNKNOWN_TASK = "UNKNOWN-TASK";
 
     private final ConcurrentMap<LoadBalancerTarget, Instant> ignored = new ConcurrentHashMap<>();
 
@@ -90,14 +86,17 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
     // TODO: make dynamic and switch to a Supplier<Long>
     private final long delayMs;
     private final Supplier<Long> timeoutMs;
+    private final Runnable afterReconciliation;
     private final Registry registry;
     private final Scheduler scheduler;
 
     private final Counter registerCounter;
     private final Counter deregisterCounter;
+    private final Counter removeCounter;
     private final ContinuousSubscriptionMetrics fullReconciliationMetrics;
     private final ContinuousSubscriptionMetrics orphanUpdateMetrics;
     private final ContinuousSubscriptionMetrics removeMetrics;
+    private final ContinuousSubscriptionMetrics removeTargetsMetrics;
     private final ContinuousSubscriptionMetrics registeredIpsMetrics;
     private final Id ignoredMetricsId;
     private final Id orphanMetricsId;
@@ -108,11 +107,23 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
                                   LoadBalancerJobOperations loadBalancerJobOperations,
                                   Registry registry,
                                   Scheduler scheduler) {
+        this(configuration, store, connector, loadBalancerJobOperations, NOOP, registry, scheduler);
+
+    }
+
+    DefaultLoadBalancerReconciler(LoadBalancerConfiguration configuration,
+                                  LoadBalancerStore store,
+                                  LoadBalancerConnector connector,
+                                  LoadBalancerJobOperations loadBalancerJobOperations,
+                                  Runnable afterReconciliation,
+                                  Registry registry,
+                                  Scheduler scheduler) {
         this.store = store;
         this.connector = connector;
         this.jobOperations = loadBalancerJobOperations;
         this.delayMs = configuration.getReconciliationDelayMs();
         this.timeoutMs = configuration::getReconciliationTimeoutMs;
+        this.afterReconciliation = afterReconciliation;
         this.registry = registry;
         this.scheduler = scheduler;
 
@@ -120,9 +131,11 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
         final Id updatesCounterId = registry.createId(METRIC_RECONCILER + ".updates", tags);
         this.registerCounter = registry.counter(updatesCounterId.withTag("operation", "register"));
         this.deregisterCounter = registry.counter(updatesCounterId.withTag("operation", "deregister"));
+        this.removeCounter = registry.counter(updatesCounterId.withTag("operation", "remove"));
         this.fullReconciliationMetrics = SpectatorExt.continuousSubscriptionMetrics(METRIC_RECONCILER + ".full", tags, registry);
         this.orphanUpdateMetrics = SpectatorExt.continuousSubscriptionMetrics(METRIC_RECONCILER + ".orphanUpdates", tags, registry);
         this.removeMetrics = SpectatorExt.continuousSubscriptionMetrics(METRIC_RECONCILER + ".remove", tags, registry);
+        this.removeTargetsMetrics = SpectatorExt.continuousSubscriptionMetrics(METRIC_RECONCILER + ".removeTargets", tags, registry);
         this.registeredIpsMetrics = SpectatorExt.continuousSubscriptionMetrics(METRIC_RECONCILER + ".getRegisteredIps", tags, registry);
         this.ignoredMetricsId = registry.createId(METRIC_RECONCILER + ".ignored", tags);
         this.orphanMetricsId = registry.createId(METRIC_RECONCILER + ".orphan", tags);
@@ -149,11 +162,11 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
 
     @Override
     public Observable<TargetStateBatchable> events() {
-        final Observable<Map.Entry<String, List<JobLoadBalancerState>>> cleanupOrphansAndSnapshot = updateOrphanAssociations()
+        Observable<Map.Entry<String, List<JobLoadBalancerState>>> cleanupOrphansAndSnapshot = updateOrphanAssociations()
                 .andThen(snapshotAssociationsByLoadBalancer());
 
         // full reconciliation run
-        final Observable<TargetStateBatchable> updatesForAll = cleanupOrphansAndSnapshot
+        Observable<TargetStateBatchable> updatesForAll = cleanupOrphansAndSnapshot
                 .flatMap(entry -> reconcile(entry.getKey(), entry.getValue()), 1)
                 .compose(ObservableExt.subscriptionTimeout(timeoutMs, TimeUnit.MILLISECONDS, scheduler))
                 .compose(fullReconciliationMetrics.asObservable())
@@ -163,15 +176,22 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
         // schedule periodic full reconciliations
         return ObservableExt.periodicGenerator(updatesForAll, delayMs, delayMs, TimeUnit.MILLISECONDS, scheduler)
                 .compose(SpectatorExt.subscriptionMetrics(METRIC_RECONCILER, DefaultLoadBalancerReconciler.class, registry))
-                .flatMap(Observable::from, 1);
+                .flatMap(iterable -> Observable.from(iterable)
+                        .doOnTerminate(afterReconciliation::run), 1);
     }
 
     private Observable<TargetStateBatchable> reconcile(String loadBalancerId, List<JobLoadBalancerState> associations) {
-        final Observable<TargetStateBatchable> updatesForLoadBalancer = connector.getLoadBalancer(loadBalancerId)
+        Observable<TargetStateBatchable> updatesForLoadBalancer = connector.getLoadBalancer(loadBalancerId)
+                // merge known targets
+                .flatMap(loadBalancer -> ReactorExt.toSingle(
+                        store.getLoadBalancerTargets(loadBalancer.getId())
+                                .collect(Collectors.toSet())
+                                .map(knownTargets -> new LoadBalancerWithKnownTargets(loadBalancer, knownTargets))
+                ))
                 // the same metrics transformer can be used for all subscriptions only because they are all being
                 // serialized with flatMap(maxConcurrent: 1)
                 .compose(registeredIpsMetrics.asSingle())
-                .flatMapObservable(loadBalancer -> updatesFor(loadBalancer, associations));
+                .flatMapObservable(loadBalancerTargets -> updatesFor(loadBalancerTargets, associations));
 
         return updatesForLoadBalancer
                 .doOnError(e -> logger.error("Error while reconciling load balancer {}", loadBalancerId, e))
@@ -179,81 +199,111 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
     }
 
     /**
-     * Generates a stream of necessary updates based on what jobs are currently associated with a load balancer, and the
-     * ip addresses currently registered on it.
+     * Generates a stream of necessary updates based on what jobs are currently associated with a load balancer, the
+     * ip addresses currently registered on it, and what ips were previously registered with the load balancer.
      * <p>
      * {@link JobLoadBalancer} associations in the <tt>Dissociated</tt> state will be removed when it is safe to do so,
-     * i.e.: when there is nothing from them to be deregistered on the load balancer anymore.
+     * i.e.: when there is no more stored state to be cleaned up, and nothing to be deregistered on the load balancer.
      *
-     * @param loadBalancer id, state, and ip addresses currently registered on the load balancer
+     * @param loadBalancer tuple with ip addresses currently registered on the load balancer, and ip addresses
+     *                     previously registered with the load balancer
      * @param associations jobs currently associated to the load balancer
      */
-    private Observable<TargetStateBatchable> updatesFor(LoadBalancer loadBalancer, List<JobLoadBalancerState> associations) {
+    private Observable<TargetStateBatchable> updatesFor(LoadBalancerWithKnownTargets loadBalancer,
+                                                        List<JobLoadBalancerState> associations) {
         Instant now = now();
 
-        Set<LoadBalancerTarget> toRegister;
-        Set<LoadBalancerTarget> toDeregister;
-        switch (loadBalancer.getState()) {
-            case ACTIVE:
-                Set<LoadBalancerTarget> shouldBeRegistered = associations.stream()
-                        .filter(JobLoadBalancerState::isStateAssociated)
-                        .flatMap(association -> targetsForJobSafe(association).stream())
-                        .collect(Collectors.toSet());
-                Set<String> shouldBeRegisteredIps = shouldBeRegistered.stream()
-                        .map(LoadBalancerTarget::getIpAddress)
-                        .collect(Collectors.toSet());
+        ReconciliationUpdates updates = (loadBalancer.current.getState().equals(LoadBalancer.State.ACTIVE)) ?
+                updatesForActiveLoadBalancer(loadBalancer, associations)
+                : updatesForRemovedLoadBalancer(loadBalancer, associations);
 
-                toRegister = shouldBeRegistered.stream()
-                        .filter(target -> !loadBalancer.getRegisteredIps().contains(target.getIpAddress()))
-                        .collect(Collectors.toSet());
-                toDeregister = CollectionsExt.copyAndRemove(loadBalancer.getRegisteredIps(), shouldBeRegisteredIps).stream()
-                        .map(ip -> updateForUnknownTask(loadBalancer.getId(), ip))
-                        .collect(Collectors.toSet());
-                break;
-            default:
-                logger.warn("Load balancer is gone, ignoring its associations and marking them to be GCed later {}", loadBalancer.getId());
-                for (JobLoadBalancerState association : associations) {
-                    if (association.isStateAssociated()) {
-                        logger.info("Marking association as orphan: {}", association.getJobLoadBalancer());
-                        markedAsOrphan.add(association.getJobLoadBalancer());
-                    }
-                }
-                toRegister = Collections.emptySet();
-                toDeregister = Collections.emptySet();
-        }
-        reportUpdates(toRegister, toDeregister);
+        Completable cleanupTargets = (!updates.toRemove.isEmpty()) ?
+                ReactorExt.toCompletable(store.removeDeregisteredTargets(updates.toRemove))
+                        // bring processing back the the Rx threads, otherwise it happens in the C* driver threadpool
+                        .observeOn(Schedulers.computation())
+                        .doOnSubscribe(ignored -> logger.info("Cleaning up {} deregistered targets for load balancer {}",
+                                updates.toRemove.size(), loadBalancer.current.getId()))
+                        .compose(removeTargetsMetrics.asCompletable())
+                        .doOnError(e -> logger.error("Error while cleaning up targets for " + loadBalancer.current.getId(), e))
+                        .onErrorComplete()
+                : Completable.complete();
 
-        final Observable<TargetStateBatchable> updatesForLoadBalancer = Observable.from(CollectionsExt.merge(
-                withState(now, toRegister, State.Registered),
-                withState(now, toDeregister, State.Deregistered)
+        // clean up dissociated entries only if it is safe: all targets have been deregistered and there is nothing to be removed
+        Completable cleanupDissociated = (updates.toDeregister.isEmpty() && updates.toRemove.isEmpty()) ?
+                Completable.mergeDelayError(removeAllDissociated(associations), MAX_ORPHAN_CLEANUP_CONCURRENCY)
+                        .doOnSubscribe(ignored -> logger.debug("Cleaning up dissociated jobs for load balancer {}", loadBalancer.current.getId()))
+                        .compose(removeMetrics.asCompletable())
+                        .doOnError(e -> logger.error("Error while cleaning up associations for " + loadBalancer.current.getId(), e))
+                        .onErrorComplete()
+                : Completable.complete();
+
+        Observable<TargetStateBatchable> updatesForLoadBalancer = Observable.from(CollectionsExt.merge(
+                withState(now, updates.toRegister, State.REGISTERED),
+                withState(now, updates.toDeregister, State.DEREGISTERED)
         )).filter(this::isNotIgnored);
 
-        // clean up Dissociated entries when all their targets have been deregistered
-        final Completable removeOperations = toDeregister.isEmpty() ?
-                Completable.mergeDelayError(removeAllDissociated(associations), MAX_ORPHAN_CLEANUP_CONCURRENCY)
-                        .doOnSubscribe(ignored -> logger.debug("Cleaning up dissociated jobs for load balancer {}", loadBalancer.getId()))
-                        .compose(removeMetrics.asCompletable())
-                        .doOnError(e -> logger.error("Error while cleaning up associations", e))
-                        .onErrorComplete()
-                : Completable.complete() /* don't remove anything when there still are targets to be deregistered */;
-
-        return removeOperations.andThen(updatesForLoadBalancer);
+        return Completable.merge(cleanupTargets, cleanupDissociated)
+                .andThen(updatesForLoadBalancer);
     }
 
-    private void reportUpdates(Set<LoadBalancerTarget> toRegister, Set<LoadBalancerTarget> toDeregister) {
-        boolean found = false;
-        if (!toRegister.isEmpty()) {
-            found = true;
-            registerCounter.increment(toRegister.size());
+    private ReconciliationUpdates updatesForActiveLoadBalancer(LoadBalancerWithKnownTargets loadBalancer, List<JobLoadBalancerState> associations) {
+        Set<LoadBalancerTarget> shouldBeRegistered = associations.stream()
+                .filter(JobLoadBalancerState::isStateAssociated)
+                .flatMap(association -> targetsForJobSafe(association).stream())
+                .collect(Collectors.toSet());
+
+        Set<LoadBalancerTarget> toRegister = shouldBeRegistered.stream()
+                .filter(target -> !loadBalancer.current.getRegisteredIps().contains(target.getIpAddress()))
+                .collect(Collectors.toSet());
+
+        // we will force deregistration of inconsistent entries to force their state to be updated
+        Set<LoadBalancerTarget> inconsistentStoredState = loadBalancer.knownTargets.stream()
+                .filter(target -> target.getState().equals(State.REGISTERED) &&
+                        !shouldBeRegistered.contains(target.getLoadBalancerTarget())
+                )
+                .map(LoadBalancerTargetState::getLoadBalancerTarget)
+                .collect(Collectors.toSet());
+
+        Set<LoadBalancerTarget> shouldBeDeregisteredFromStoredState = loadBalancer.knownTargets.stream()
+                .filter(target -> target.getState().equals(State.DEREGISTERED) &&
+                        // filter out cases where job state hasn't fully propagated yet
+                        !shouldBeRegistered.contains(target.getLoadBalancerTarget())
+                )
+                .map(LoadBalancerTargetState::getLoadBalancerTarget)
+                .collect(Collectors.toSet());
+
+
+        // Split what should be deregistered in:
+        // 1. what needs to be deregistered (and is still registered in the loadbalancer)
+        // 2. what state can be GCed because it has been already deregistered
+        Map<Boolean, Set<LoadBalancerTarget>> toDeregisterCurrentInLoadBalancer = shouldBeDeregisteredFromStoredState.stream()
+                .collect(partitioningBy(
+                        target -> loadBalancer.current.getRegisteredIps().contains(target.getIpAddress()),
+                        Collectors.toSet()
+                ));
+        Set<LoadBalancerTarget> toDeregister = Sets.union(toDeregisterCurrentInLoadBalancer.get(true), inconsistentStoredState);
+        Set<LoadBalancerTarget> toRemove = toDeregisterCurrentInLoadBalancer.get(false);
+        return new ReconciliationUpdates(loadBalancer.current.getId(), toRegister, toDeregister, toRemove);
+    }
+
+    private ReconciliationUpdates updatesForRemovedLoadBalancer(LoadBalancerWithKnownTargets loadBalancer, List<JobLoadBalancerState> associations) {
+        logger.warn("Load balancer is gone, ignoring its associations (marking them to be GCed later), and removing known state for its targets: {}",
+                loadBalancer.current.getId());
+        for (JobLoadBalancerState association : associations) {
+            if (association.isStateAssociated()) {
+                logger.info("Marking association as orphan: {}", association.getJobLoadBalancer());
+                markedAsOrphan.add(association.getJobLoadBalancer());
+            }
         }
-        if (!toDeregister.isEmpty()) {
-            found = true;
-            deregisterCounter.increment(toDeregister.size());
-        }
-        if (found) {
-            logger.info("Reconciliation found targets to to be registered: {}, to be deregistered: {}",
-                    toRegister.size(), toDeregister.size());
-        }
+        // we will force deregistration of everything that was marked as REGISTERED to force its state to be updated
+        Map<Boolean, Set<LoadBalancerTarget>> registeredOrNot = loadBalancer.knownTargets.stream()
+                .collect(partitioningBy(
+                        target -> target.getState().equals(State.REGISTERED),
+                        mapping(LoadBalancerTargetState::getLoadBalancerTarget, Collectors.toSet())
+                ));
+        Set<LoadBalancerTarget> toDeregister = registeredOrNot.get(true); // all REGISTERED
+        Set<LoadBalancerTarget> toRemove = registeredOrNot.get(false); // all DEREGISTERED
+        return new ReconciliationUpdates(loadBalancer.current.getId(), Collections.emptySet(), toDeregister, toRemove);
     }
 
     private boolean isNotIgnored(TargetStateBatchable update) {
@@ -280,25 +330,18 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
                 .map(JobLoadBalancerState::getJobLoadBalancer)
                 .map(association ->
                         store.removeLoadBalancer(association)
-                                .doOnSubscribe(ignored -> logger.debug("Removing dissociated {}", association))
+                                // bring processing back the the Rx threads, otherwise it happens in the C* driver threadpool
+                                .observeOn(Schedulers.computation())
+                                .doOnSubscribe(ignored -> logger.info("Removing dissociated {}", association))
                                 .doOnError(e -> logger.error("Failed to remove {}", association, e))
                                 .onErrorComplete()
                 ).collect(Collectors.toList());
         return Observable.from(removeOperations);
     }
 
-    /**
-     * Hack until we start keeping track of everything that was registered on a load balancer. For now, we generate
-     * <tt>State.Deregistered</tt> updates for dummy tasks since we only care about the <tt>loadBalancerId</tt> and
-     * the <tt>ipAddress</tt> for deregistrations.
-     */
-    private LoadBalancerTarget updateForUnknownTask(String loadBalancerId, String ip) {
-        return new LoadBalancerTarget(new JobLoadBalancer(UNKNOWN_JOB, loadBalancerId), UNKNOWN_TASK, ip);
-    }
-
     private List<TargetStateBatchable> withState(Instant instant, Collection<LoadBalancerTarget> targets, State state) {
         return targets.stream()
-                .map(target -> new TargetStateBatchable(Priority.Low, instant, new TargetState(target, state)))
+                .map(target -> new TargetStateBatchable(Priority.LOW, instant, new LoadBalancerTargetState(target, state)))
                 .collect(Collectors.toList());
     }
 
@@ -309,7 +352,7 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
         return Observable.defer(() -> {
             cleanupExpiredIgnored();
             logger.debug("Snapshotting current associations");
-            final Set<Map.Entry<String, List<JobLoadBalancerState>>> pairs = store.getAssociations().stream()
+            Set<Map.Entry<String, List<JobLoadBalancerState>>> pairs = store.getAssociations().stream()
                     .collect(Collectors.groupingBy(JobLoadBalancerState::getLoadBalancerId))
                     .entrySet();
             return Observable.from(pairs);
@@ -332,12 +375,14 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
      * set previously marked orphan associations (their jobs are gone) as <tt>Dissociated</tt>.
      */
     private Completable updateOrphanAssociations() {
-        final Observable<Completable> updateOperations = Observable.from(markedAsOrphan).map(marked -> {
+        Observable<Completable> updateOperations = Observable.from(markedAsOrphan).map(marked -> {
             if (jobOperations.getJob(marked.getJobId()).isPresent()) {
                 logger.warn("Not updating an association that was previously marked as orphan, but now contains an existing job: {}", marked);
                 return Completable.complete();
             }
-            return store.addOrUpdateLoadBalancer(marked, JobLoadBalancer.State.Dissociated)
+            return store.addOrUpdateLoadBalancer(marked, JobLoadBalancer.State.DISSOCIATED)
+                    // bring processing back the the Rx threads, otherwise it happens in the C* driver threadpool
+                    .observeOn(Schedulers.computation())
                     .doOnSubscribe(ignored -> logger.info("Setting orphan association as Dissociated: {}", marked))
                     .doOnError(e -> logger.error("Failed to update to Dissociated {}", marked, e));
         });
@@ -352,5 +397,56 @@ public class DefaultLoadBalancerReconciler implements LoadBalancerReconciler {
 
     private Instant now() {
         return Instant.ofEpochMilli(scheduler.now());
+    }
+
+    private static class LoadBalancerWithKnownTargets {
+        private final LoadBalancer current;
+        /**
+         * Targets that have been previously registered by us.
+         */
+        private final Set<LoadBalancerTargetState> knownTargets;
+
+        private LoadBalancerWithKnownTargets(LoadBalancer current, Set<LoadBalancerTargetState> knownTargets) {
+            this.current = current;
+            this.knownTargets = knownTargets;
+        }
+    }
+
+    private class ReconciliationUpdates {
+        private final String loadBalancerId;
+        private final Set<LoadBalancerTarget> toRegister;
+        private final Set<LoadBalancerTarget> toDeregister;
+        private final Set<LoadBalancerTarget> toRemove;
+
+        private ReconciliationUpdates(String loadBalancerId, Set<LoadBalancerTarget> toRegister,
+                                      Set<LoadBalancerTarget> toDeregister, Set<LoadBalancerTarget> toRemove) {
+            this.loadBalancerId = loadBalancerId;
+            this.toRegister = toRegister;
+            this.toDeregister = toDeregister;
+            this.toRemove = toRemove;
+
+            report();
+        }
+
+        private void report() {
+            boolean found = false;
+            if (!toRegister.isEmpty()) {
+                found = true;
+                registerCounter.increment(toRegister.size());
+            }
+            if (!toDeregister.isEmpty()) {
+                found = true;
+                deregisterCounter.increment(toDeregister.size());
+            }
+            if (!toRemove.isEmpty()) {
+                found = true;
+                removeCounter.increment(toRemove.size());
+            }
+            if (found) {
+                logger.info("Reconciliation for load balancer {} found targets to to be registered: {}, to be deregistered: {}, to be removed: {}",
+                        loadBalancerId, toRegister.size(), toDeregister.size(), toRemove.size());
+            }
+        }
+
     }
 }

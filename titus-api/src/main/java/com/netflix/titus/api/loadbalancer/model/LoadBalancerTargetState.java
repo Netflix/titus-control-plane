@@ -16,11 +16,13 @@
 
 package com.netflix.titus.api.loadbalancer.model;
 
-public class TargetState {
+import java.util.Map;
+
+public class LoadBalancerTargetState {
     private final LoadBalancerTarget loadBalancerTarget;
     private final LoadBalancerTarget.State state;
 
-    public TargetState(LoadBalancerTarget loadBalancerTarget, LoadBalancerTarget.State state) {
+    public LoadBalancerTargetState(LoadBalancerTarget loadBalancerTarget, LoadBalancerTarget.State state) {
         this.loadBalancerTarget = loadBalancerTarget;
         this.state = state;
     }
@@ -31,6 +33,10 @@ public class TargetState {
 
     public LoadBalancerTarget.State getState() {
         return state;
+    }
+
+    public String getIpAddress() {
+        return loadBalancerTarget.getIpAddress();
     }
 
     @Override
@@ -50,7 +56,7 @@ public class TargetState {
             return false;
         }
 
-        TargetState that = (TargetState) o;
+        LoadBalancerTargetState that = (LoadBalancerTargetState) o;
 
         if (!loadBalancerTarget.equals(that.loadBalancerTarget)) {
             return false;
@@ -63,5 +69,9 @@ public class TargetState {
         int result = loadBalancerTarget.hashCode();
         result = 31 * result + state.hashCode();
         return result;
+    }
+
+    public static LoadBalancerTargetState from(Map.Entry<LoadBalancerTarget, LoadBalancerTarget.State> entry) {
+        return new LoadBalancerTargetState(entry.getKey(), entry.getValue());
     }
 }
