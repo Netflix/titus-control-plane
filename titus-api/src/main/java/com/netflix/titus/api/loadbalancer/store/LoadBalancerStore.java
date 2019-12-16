@@ -74,7 +74,7 @@ public interface LoadBalancerStore {
     List<JobLoadBalancer> getAssociationsPage(int offset, int limit);
 
     /**
-     * Adds a or updates targets with the provided states.
+     * Adds or updates targets with the provided states.
      */
     Mono<Void> addOrUpdateTargets(Collection<LoadBalancerTargetState> targets);
 

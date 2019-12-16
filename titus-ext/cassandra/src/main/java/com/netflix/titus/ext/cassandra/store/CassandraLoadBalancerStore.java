@@ -125,11 +125,17 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
                     COLUMN_LOAD_BALANCER);
 
     private static Pair<JobLoadBalancer, JobLoadBalancer.State> buildLoadBalancerStatePairFromRow(Row row) {
+        String jobId = row.getString(COLUMN_JOB_ID);
+        String loadBalancerId = row.getString(COLUMN_LOAD_BALANCER);
         String state = row.getString(COLUMN_STATE);
-        return Pair.of(
-                new JobLoadBalancer(row.getString(COLUMN_JOB_ID), row.getString(COLUMN_LOAD_BALANCER)),
-                state == null ? JobLoadBalancer.State.DISSOCIATED : JobLoadBalancer.State.valueOf(state.toUpperCase())
-        );
+        JobLoadBalancer.State parsedState;
+        if (state == null) {
+            logger.warn("Unexpected null state for association {}:{}", jobId, loadBalancerId);
+            parsedState = JobLoadBalancer.State.DISSOCIATED;
+        } else {
+            parsedState = JobLoadBalancer.State.valueOf(state.toUpperCase());
+        }
+        return Pair.of(new JobLoadBalancer(jobId, loadBalancerId), parsedState);
     }
 
     private static LoadBalancerTargetState buildLoadBalancerTargetStateFromRow(Row row) {
@@ -209,8 +215,7 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
                         logger.warn("Ignoring bad association record of {} due to validation constraint violations: violations={}", jobLoadBalancer, violations);
                     }
                 })
-                .ignoreElement()
-                .cast(Void.class);
+                .then();
     }
 
     /**
