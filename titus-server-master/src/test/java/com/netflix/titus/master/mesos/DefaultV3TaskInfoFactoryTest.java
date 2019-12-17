@@ -19,6 +19,7 @@ package com.netflix.titus.master.mesos;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -136,6 +137,26 @@ public class DefaultV3TaskInfoFactoryTest {
         assertThat(containerInfo.getProcess().getEntrypointList()).containsExactly("some", "entrypoint");
         assertThat(containerInfo.getProcess().getCommandList()).containsExactly("some", "command");
     }
+
+    @Test
+    public void jobsAttributeDisablesShellParsingForEntryPoint() throws InvalidProtocolBufferException {
+        DefaultV3TaskInfoFactory factory = new DefaultV3TaskInfoFactory(masterConfiguration, mock(MesosConfiguration.class));
+        JobDescriptor<BatchJobExt> jobDescriptor = JobDescriptorGenerator.oneTaskBatchJobDescriptor();
+        Map<String, String> jobAttributesMap = new HashMap<>();
+        jobAttributesMap.put(JobAttributes.JOB_PARAMETER_ATTRIBUTES_ENTRY_POINT_SKIP_SHELL_PARSING, "true");
+        jobDescriptor = jobDescriptor.toBuilder().withContainer(jobDescriptor.getContainer().toBuilder()
+                .withEntryPoint(Arrays.asList("some", "entrypoint"))
+                .withCommand(Collections.emptyList())
+                .build())
+                .withAttributes(jobAttributesMap)
+                .build();
+
+        Protos.TaskInfo taskInfo = buildTaskInfo(factory, jobDescriptor);
+        TitanProtos.ContainerInfo containerInfo = TitanProtos.ContainerInfo.parseFrom(taskInfo.getData());
+        assertThat(containerInfo.hasEntrypointStr()).isFalse();
+        assertThat(containerInfo.getProcess().getEntrypointList()).containsExactly("some", "entrypoint");
+    }
+
 
     private Protos.TaskInfo buildTaskInfo(DefaultV3TaskInfoFactory factory, JobDescriptor<BatchJobExt> jobDescriptor) {
         return buildTaskInfo(factory, jobDescriptor, Collections.emptyMap(), Optional.empty());

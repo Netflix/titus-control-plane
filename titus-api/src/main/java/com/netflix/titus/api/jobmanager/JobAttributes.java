@@ -99,6 +99,11 @@ public final class JobAttributes {
     public static final String JOB_ATTRIBUTES_RUNTIME_PREDICTION_AB_TEST = PREDICTION_ATTRIBUTE_PREFIX + "abTest";
 
     /**
+     * Do not parse entry point into shell command, argument list
+     */
+    public static final String JOB_PARAMETER_ATTRIBUTES_ENTRY_POINT_SKIP_SHELL_PARSING = TITUS_PARAMETER_ATTRIBUTE_PREFIX + "entryPoint.skipShellParsing";
+
+    /**
      * Allow jobs to completely opt-out of having their runtime automatically predicted during admission
      */
     public static final String JOB_PARAMETER_SKIP_RUNTIME_PREDICTION = TITUS_PARAMETER_ATTRIBUTE_PREFIX + "runtimePrediction.skip";
