@@ -554,6 +554,43 @@ public final class CollectionsExt {
                 .collect(Collectors.toSet());
     }
 
+    /**
+     * Binary search for cases where the searched for item is not materialized into an object, but instead it is embedded
+     * into 'targetComparator'. Building a value of type T is not possible in a generic way, and requiring a client
+     * to provide it may be inconvenient. This could be circumvented by using an intermediate object that wraps the
+     * state we compare against, but this would create too much garbage on the heap.
+     *
+     * @param items            an ordered list
+     * @param targetComparator a function with an embedded searched for element, equivalent to Comparator.compare(targetItem, items.get(pos))
+     * @return see {@link Collections#binarySearch(List, Object)}
+     */
+    public static <T> int binarySearchLeftMost(List<T> items, Function<T, Integer> targetComparator) {
+        if (items.isEmpty()) {
+            return -1;
+        }
+
+        int from = 0;
+        int to = items.size();
+        while (from < to) {
+            int pos = (from + to) / 2;
+            int result = targetComparator.apply(items.get(pos));
+            if (result > 0) {
+                from = pos + 1;
+            } else {
+                to = pos;
+            }
+        }
+
+        if (from >= items.size()) {
+            return -items.size() - 1;
+        }
+        if (targetComparator.apply(items.get(from)) == 0) {
+            return from;
+        }
+
+        return -from - 1;
+    }
+
     public static class MapBuilder<K, V> {
 
         private final Map<K, V> out;
