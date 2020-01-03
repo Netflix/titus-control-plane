@@ -69,7 +69,7 @@ public class JobModelSanitizationTest {
             "titusMaster.job.configuration.containerHealthProviders", "eureka,healthCheckPoller"
     ));
 
-    private final JobConfiguration constraints = new ConfigProxyFactory(CONFIG, new DefaultDecoder(), new DefaultPropertyFactory(CONFIG))
+    private final JobConfiguration constraints = new ConfigProxyFactory(CONFIG, DefaultDecoder.INSTANCE, new DefaultPropertyFactory(CONFIG))
             .newProxy(JobConfiguration.class);
 
     private EntitySanitizer entitySanitizer;

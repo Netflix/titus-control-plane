@@ -16,14 +16,22 @@
 
 package com.netflix.titus.common.util;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Random;
+import java.util.Set;
 
 import org.junit.Test;
 
 import static com.netflix.titus.common.util.CollectionsExt.asSet;
 import static com.netflix.titus.common.util.CollectionsExt.xor;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 public class CollectionsExtTest {
 
@@ -40,5 +48,52 @@ public class CollectionsExtTest {
         assertThat(CollectionsExt.containsAnyKeys(map, "a", "c")).isTrue();
         assertThat(CollectionsExt.containsAnyKeys(map, "c", "a")).isTrue();
         assertThat(CollectionsExt.containsAnyKeys(map, "c", "d")).isFalse();
+    }
+
+    @Test
+    public void testBinarySearchLeftMostCornerCases() {
+        testBinarySearchLeftMost(Collections.emptyList(), 1);
+        testBinarySearchLeftMost(Collections.singletonList(1), -100);
+        testBinarySearchLeftMost(Collections.singletonList(1), 100);
+    }
+
+    @Test
+    public void testBinarySearchLeftMostNoDuplicates() {
+        Random random = new Random(123);
+        Set<Integer> numbers = new HashSet<>();
+        while (numbers.size() < 100) {
+            numbers.add(2 * random.nextInt(1_000));
+        }
+        List<Integer> orderedNumbers = new ArrayList<>(numbers);
+        orderedNumbers.sort(Integer::compare);
+
+        for (int i = 0; i < numbers.size(); i++) {
+            for (int delta = -1; delta <= 1; delta++) {
+                testBinarySearchLeftMost(orderedNumbers, orderedNumbers.get(i) + delta);
+            }
+        }
+    }
+
+    @Test
+    public void testBinarySearchLeftMostWithDuplicates() {
+        List<Integer> orderedNumbers = Arrays.asList(1, 2, 3, 3, 3, 5);
+        int result = CollectionsExt.binarySearchLeftMost(
+                orderedNumbers,
+                item -> Integer.compare(3, item)
+        );
+        assertThat(result).isEqualTo(2);
+    }
+
+    private void testBinarySearchLeftMost(List<Integer> orderedNumbers, int target) {
+        int result = CollectionsExt.binarySearchLeftMost(
+                orderedNumbers,
+                item -> Integer.compare(target, item)
+        );
+        int stdResult = Collections.binarySearch(orderedNumbers, target);
+        if (result != stdResult) {
+            fail("Result different from returned by JDK binarySearch function: list=%s, our=%s, std=%s",
+                    orderedNumbers, result, stdResult
+            );
+        }
     }
 }

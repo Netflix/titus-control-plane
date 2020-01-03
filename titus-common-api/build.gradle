@@ -16,4 +16,6 @@
 
 dependencies {
     compile project(':titus-common')
+
+    testCompile project(':titus-testkit')
 }
