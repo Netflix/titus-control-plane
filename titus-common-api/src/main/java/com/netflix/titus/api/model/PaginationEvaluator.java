@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Netflix, Inc.
+ * Copyright 2020 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.StringExt;
@@ -59,6 +60,12 @@ public class PaginationEvaluator<T> {
     }
 
     public PageResult<T> takePage(Page page, List<T> items) {
+        Preconditions.checkArgument(page.getPageSize() >= 0, "Page size must be >= 0");
+
+        if (page.getPageSize() == 0) {
+            return takeEmptyPage(page, items);
+        }
+
         List<T> itemsCopy = new ArrayList<>(items);
         itemsCopy.sort(dataComparator);
 
@@ -68,6 +75,18 @@ public class PaginationEvaluator<T> {
 
         Pair<String, Long> decodedCursor = decode(page.getCursor());
         return takePageWithCursor(page, itemsCopy, decodedCursor.getLeft(), decodedCursor.getRight());
+    }
+
+    private PageResult<T> takeEmptyPage(Page page, List<T> items) {
+        return PageResult.pageOf(
+                Collections.emptyList(),
+                Pagination.newBuilder()
+                        .withCurrentPage(page)
+                        .withTotalItems(items.size())
+                        .withTotalPages(1)
+                        .withHasMore(false)
+                        .build()
+        );
     }
 
     /**

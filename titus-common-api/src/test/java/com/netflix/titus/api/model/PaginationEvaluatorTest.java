@@ -52,6 +52,13 @@ public class PaginationEvaluatorTest {
     }
 
     @Test
+    public void testPaginationWithPageSizeZero() {
+        PageResult<PaginableItem> pageResult = PAGINATION_EVALUATOR.takePage(Page.empty(), PaginableItems.items(2));
+        assertThat(pageResult.getPagination().getTotalItems()).isEqualTo(2);
+        assertThat(pageResult.getItems()).isEmpty();
+    }
+
+    @Test
     public void testPaginationWithCursor() {
         List<PaginableItem> items = PaginableItems.items(100);
         PaginableItem removed = items.remove(50);
@@ -60,8 +67,13 @@ public class PaginationEvaluatorTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
+    public void testPaginationWithBadPageSize() {
+        PAGINATION_EVALUATOR.takePage(FIRST_PAGE.toBuilder().withPageSize(-1).build(), PaginableItems.items(2));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
     public void testPaginationWithBadCursor() {
-        PAGINATION_EVALUATOR.takePage(FIRST_PAGE.toBuilder().withCursor("badCursor").build(), PaginableItems.items(100));
+        PAGINATION_EVALUATOR.takePage(FIRST_PAGE.toBuilder().withCursor("badCursor").build(), PaginableItems.items(2));
     }
 
     private List<PaginableItem> paginateThroughAllRemainingPages(Page page, List<PaginableItem> items) {
