@@ -20,6 +20,7 @@ import com.google.common.base.Preconditions;
 import com.netflix.titus.common.util.proxy.annotation.NoIntercept;
 import com.netflix.titus.common.util.proxy.annotation.ObservableResult;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
 
@@ -43,6 +44,12 @@ public interface MyApi {
     Completable okCompletable();
 
     Completable failingCompletable();
+
+    Mono<String> okMonoString();
+
+    Mono<String> failingMonoString();
+
+    Mono<Void> okMonoVoid();
 
     class MyApiImpl implements MyApi {
         @Override
@@ -88,6 +95,23 @@ public interface MyApi {
             return Completable.fromAction(() -> {
                 throw new RuntimeException("simulated completable error");
             });
+        }
+
+        @Override
+        public Mono<String> okMonoString() {
+            return Mono.just("Hello");
+        }
+
+        @Override
+        public Mono<String> failingMonoString() {
+            return Mono.fromRunnable(() -> {
+                throw new RuntimeException("simulated completable error");
+            });
+        }
+
+        @Override
+        public Mono<Void> okMonoVoid() {
+            return Mono.empty();
         }
 
         String buildReply(String message) {

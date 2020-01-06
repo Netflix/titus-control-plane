@@ -21,6 +21,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.netflix.spectator.api.BasicTag;
 import com.netflix.spectator.api.Id;
@@ -30,6 +31,7 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.time.Clock;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
 import rx.Subscription;
@@ -52,6 +54,7 @@ public class SpectatorInvocationHandler<API, NATIVE> extends InterceptingInvocat
 
     private static final Tag TAG_CALL_STAGE_ON_METHOD_EXIT = new BasicTag("callStage", "onMethodExit");
     private static final Tag TAG_CALL_STAGE_ON_COMPLETED = new BasicTag("callStage", "onCompleted");
+    private static final Tag TAG_CALL_STAGE_ON_MONO_SUCCESS = new BasicTag("callStage", "onSuccess");
 
     private final Registry registry;
     private final Clock clock;
@@ -284,6 +287,81 @@ public class SpectatorInvocationHandler<API, NATIVE> extends InterceptingInvocat
                     );
 
             subscriber.onSubscribe(subscription);
+        });
+    }
+
+    @Override
+    protected Mono<Object> afterMono(Method method, Mono<Object> result, Long aLong) {
+        long methodExitTime = clock.wallTime();
+
+        return Mono.create(sink -> {
+            long subscriptionTime = clock.wallTime();
+
+            registry.counter(
+                    RESULT_SUBSCRIPTION_COUNT_METRIC_NAME,
+                    tags(
+                            "method", method.getName(),
+                            "subscriptionStage", "subscribed"
+                    )
+            ).increment();
+            reportSubscriptionExecutionTime(method, methodExitTime, subscriptionTime);
+
+            AtomicBoolean emittedValue = new AtomicBoolean();
+            Disposable subscription = result
+                    .doOnCancel(() -> {
+                        registry.counter(
+                                RESULT_SUBSCRIPTION_COUNT_METRIC_NAME,
+                                tags(
+                                        "method", method.getName(),
+                                        "subscriptionStage", "unsubscribed"
+                                )
+                        ).increment();
+                    }).subscribe(
+                            next -> {
+                                emittedValue.set(true);
+                                registry.counter(
+                                        RESULT_SUBSCRIPTION_COUNT_METRIC_NAME,
+                                        tags(
+                                                "method", method.getName(),
+                                                "subscriptionStage", "onSuccess",
+                                                "monoWithValue", "true"
+                                        )
+                                ).increment();
+                                reportExecutionTime(method, subscriptionTime, TAG_STATUS_SUCCESS, TAG_CALL_STAGE_ON_MONO_SUCCESS);
+
+                                sink.success(next);
+                            },
+                            error -> {
+                                registry.counter(
+                                        RESULT_SUBSCRIPTION_COUNT_METRIC_NAME,
+                                        tags(
+                                                "method", method.getName(),
+                                                "subscriptionStage", "onError",
+                                                "exception", getExceptionName(error)
+                                        )
+                                ).increment();
+                                reportExecutionTime(method, subscriptionTime, TAG_STATUS_ERROR, TAG_CALL_STAGE_ON_MONO_SUCCESS);
+
+                                sink.error(error);
+                            },
+                            () -> {
+                                if (!emittedValue.get()) {
+                                    registry.counter(
+                                            RESULT_SUBSCRIPTION_COUNT_METRIC_NAME,
+                                            tags(
+                                                    "method", method.getName(),
+                                                    "subscriptionStage", "onSuccess",
+                                                    "monoWithValue", "false"
+                                            )
+                                    ).increment();
+                                    reportExecutionTime(method, subscriptionTime, TAG_STATUS_SUCCESS, TAG_CALL_STAGE_ON_MONO_SUCCESS);
+
+                                    sink.success();
+                                }
+                            }
+                    );
+
+            sink.onCancel(subscription);
         });
     }
 

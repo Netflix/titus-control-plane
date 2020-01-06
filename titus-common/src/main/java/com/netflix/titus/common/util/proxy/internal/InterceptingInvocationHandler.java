@@ -16,20 +16,16 @@
 
 package com.netflix.titus.common.util.proxy.internal;
 
-import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.HashSet;
-import java.util.Optional;
 import java.util.Set;
 
 import com.netflix.titus.common.util.ReflectionExt;
 import com.netflix.titus.common.util.proxy.ProxyInvocationChain;
-import com.netflix.titus.common.util.proxy.annotation.ObservableResult;
-import com.netflix.titus.common.util.tuple.Triple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
 
@@ -39,19 +35,19 @@ abstract class InterceptingInvocationHandler<API, NATIVE, CONTEXT> extends Abstr
 
     private static final Logger logger = LoggerFactory.getLogger(InterceptingInvocationHandler.class);
 
-    private final boolean followObservableResults;
     private final Set<Method> observableResultFollowers;
     private final Set<Method> fluxResultFollowers;
     private final Set<Method> completableResultFollowers;
+    private final Set<Method> monoResultFollowers;
 
     InterceptingInvocationHandler(Class<API> apiInterface, boolean followObservableResults) {
         super(apiInterface);
-        this.followObservableResults = followObservableResults;
 
-        Triple<Set<Method>, Set<Method>, Set<Method>> asynchronousResultFollowers = findObservableAndCompletableResultFollowers(apiInterface, getIncludedMethods());
-        this.observableResultFollowers = asynchronousResultFollowers.getFirst();
-        this.fluxResultFollowers = asynchronousResultFollowers.getSecond();
-        this.completableResultFollowers = asynchronousResultFollowers.getThird();
+        ProxyMethodSegregator<API> methodSegregator = new ProxyMethodSegregator<>(apiInterface, followObservableResults, getIncludedMethods());
+        this.observableResultFollowers = methodSegregator.getFollowedObservables();
+        this.fluxResultFollowers = methodSegregator.getFollowedFlux();
+        this.completableResultFollowers = methodSegregator.getFollowedCompletables();
+        this.monoResultFollowers = methodSegregator.getFollowedMonos();
     }
 
     @Override
@@ -94,6 +90,8 @@ abstract class InterceptingInvocationHandler<API, NATIVE, CONTEXT> extends Abstr
             result = afterFlux(method, (Flux<Object>) result, context);
         } else if (completableResultFollowers.contains(method)) {
             result = afterCompletable(method, (Completable) result, context);
+        } else if (monoResultFollowers.contains(method)) {
+            result = afterMono(method, (Mono<Object>) result, context);
         }
 
         return result;
@@ -111,42 +109,5 @@ abstract class InterceptingInvocationHandler<API, NATIVE, CONTEXT> extends Abstr
 
     protected abstract Completable afterCompletable(Method method, Completable result, CONTEXT context);
 
-    private Triple<Set<Method>, Set<Method>, Set<Method>> findObservableAndCompletableResultFollowers(Class<API> apiInterface, Set<Method> includedMethodSet) {
-        Set<Method> followedObservables = new HashSet<>();
-        Set<Method> followedFlux = new HashSet<>();
-        Set<Method> followedCompletables = new HashSet<>();
-        boolean enabledByDefault = followObservableResults || enablesTarget(apiInterface.getAnnotations());
-        for (Method method : includedMethodSet) {
-            boolean isObservableResult = method.getReturnType().isAssignableFrom(Observable.class);
-            boolean isFluxResult = method.getReturnType().isAssignableFrom(Flux.class);
-            boolean isCompletableResult = !isObservableResult && method.getReturnType().isAssignableFrom(Completable.class);
-            if (isObservableResult || isFluxResult || isCompletableResult) {
-                boolean methodEnabled = enabledByDefault || enablesTarget(method.getAnnotations());
-                if (methodEnabled) {
-                    if (isObservableResult) {
-                        followedObservables.add(method);
-                    } else if (isFluxResult) {
-                        followedFlux.add(method);
-                    } else {
-                        followedCompletables.add(method);
-                    }
-                }
-            }
-        }
-        return Triple.of(followedObservables, followedFlux, followedCompletables);
-    }
-
-    private boolean enablesTarget(Annotation[] annotations) {
-        Optional<Annotation> result = find(annotations, ObservableResult.class);
-        return result.isPresent() && ((ObservableResult) result.get()).enabled();
-    }
-
-    private Optional<Annotation> find(Annotation[] annotations, Class<? extends Annotation> expected) {
-        for (Annotation current : annotations) {
-            if (current.annotationType().equals(expected)) {
-                return Optional.of(current);
-            }
-        }
-        return Optional.empty();
-    }
+    protected abstract Mono<Object> afterMono(Method method, Mono<Object> result, CONTEXT context);
 }

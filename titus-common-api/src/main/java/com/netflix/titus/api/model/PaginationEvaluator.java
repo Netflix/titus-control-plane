@@ -82,6 +82,7 @@ public class PaginationEvaluator<T> {
                 Collections.emptyList(),
                 Pagination.newBuilder()
                         .withCurrentPage(page)
+                        .withCursor("")
                         .withTotalItems(items.size())
                         .withTotalPages(1)
                         .withHasMore(false)
