@@ -24,6 +24,7 @@ import java.util.List;
 import com.netflix.titus.common.util.proxy.MyApi;
 import org.junit.Test;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
 
@@ -32,7 +33,7 @@ import static org.assertj.core.api.Assertions.fail;
 
 public class InterceptingInvocationHandlerTest {
 
-    private enum InterceptionPoint {Before, After, AfterException, AfterObservable, AfterFlux, AfterCompletable}
+    private enum InterceptionPoint {Before, After, AfterException, AfterObservable, AfterFlux, AfterCompletable, AfterMono}
 
     private static final String MESSAGE = "abcdefg";
 
@@ -94,6 +95,23 @@ public class InterceptingInvocationHandlerTest {
         verifyInterceptionPointsCalled(InterceptionPoint.Before, InterceptionPoint.After, InterceptionPoint.AfterCompletable);
     }
 
+    @Test
+    public void testMonoResult() {
+        assertThat(myApi.okMonoString().block()).isEqualTo("Hello");
+        verifyInterceptionPointsCalled(InterceptionPoint.Before, InterceptionPoint.After, InterceptionPoint.AfterMono);
+    }
+
+    @Test
+    public void tesFailedMonoResult() {
+        try {
+            myApi.failingMonoString().block();
+            fail("Mono failure expected");
+        } catch (Exception e) {
+            assertThat(e).isInstanceOf(RuntimeException.class);
+        }
+        verifyInterceptionPointsCalled(InterceptionPoint.Before, InterceptionPoint.After, InterceptionPoint.AfterMono);
+    }
+
     private void verifyInterceptionPointsCalled(InterceptionPoint... interceptionPoints) {
         assertThat(handler.interceptionPoints).hasSize(interceptionPoints.length);
         for (int i = 0; i < interceptionPoints.length; i++) {
@@ -140,6 +158,12 @@ public class InterceptingInvocationHandlerTest {
         @Override
         protected Completable afterCompletable(Method method, Completable result, Boolean aBoolean) {
             interceptionPoints.add(InterceptionPoint.AfterCompletable);
+            return result;
+        }
+
+        @Override
+        protected Mono<Object> afterMono(Method method, Mono<Object> result, Boolean aBoolean) {
+            interceptionPoints.add(InterceptionPoint.AfterMono);
             return result;
         }
     }

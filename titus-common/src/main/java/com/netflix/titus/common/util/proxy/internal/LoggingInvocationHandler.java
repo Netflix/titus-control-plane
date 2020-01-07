@@ -20,6 +20,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
@@ -27,7 +28,9 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.proxy.LoggingProxyBuilder;
 import com.netflix.titus.common.util.time.Clock;
 import org.slf4j.Logger;
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
 
@@ -207,6 +210,57 @@ public class LoggingInvocationHandler<API, NATIVE> extends InterceptingInvocatio
                         subscriber.onError(cause);
                     }
             );
+        });
+    }
+
+    @Override
+    protected Mono<Object> afterMono(Method method, Mono<Object> result, Long aLong) {
+        long methodExitTime = clock.wallTime();
+
+        AtomicInteger subscriptionCount = new AtomicInteger();
+        return Mono.create(sink -> {
+            long start = clock.wallTime();
+            int idx = subscriptionCount.incrementAndGet();
+
+            logOnSubscribe(method, methodExitTime, start, idx);
+
+            AtomicBoolean emittedValue = new AtomicBoolean();
+            Disposable subscription = result.subscribe(
+                    next -> {
+                        emittedValue.set(true);
+
+                        logWithPriority(observableReplyLevel, () -> {
+                            StringBuilder sb = new StringBuilder("Completed subscription with value #").append(idx);
+                            sb.append(" in ").append(getMethodSignature(method));
+                            return sb;
+                        });
+                        sink.success(next);
+                    },
+                    cause -> {
+                        logWithPriority(observableErrorLevel, () -> {
+                            Throwable realCause = cause instanceof InvocationTargetException ? cause.getCause() : cause;
+
+                            StringBuilder sb = new StringBuilder("Error in subscription #").append(idx);
+                            sb.append(" in ").append(getMethodSignature(method));
+                            sb.append(" with ").append(realCause.getClass().getSimpleName()).append(" (")
+                                    .append(realCause.getMessage()).append(')');
+                            return sb;
+                        });
+                        sink.error(cause);
+                    },
+                    () -> {
+                        if (!emittedValue.get()) {
+                            logWithPriority(observableReplyLevel, () -> {
+                                StringBuilder sb = new StringBuilder("Completed subscription without value #").append(idx);
+                                sb.append(" in ").append(getMethodSignature(method));
+                                return sb;
+                            });
+                            sink.success();
+                        }
+                    }
+            );
+
+            sink.onCancel(subscription);
         });
     }
 

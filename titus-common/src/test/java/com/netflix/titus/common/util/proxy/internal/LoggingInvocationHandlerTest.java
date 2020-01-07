@@ -64,4 +64,19 @@ public class LoggingInvocationHandlerTest {
     public void testFailingCompletableResultLogging() {
         assertThat(myApi.failingCompletable().get()).isInstanceOf(RuntimeException.class);
     }
+
+    @Test
+    public void testMonoString() {
+        assertThat(myApi.okMonoString().block()).isEqualTo("Hello");
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void testFailingMonoString() {
+        myApi.failingMonoString().block();
+    }
+
+    @Test
+    public void testMonoVoid() {
+        assertThat(myApi.okMonoVoid().block()).isNull();
+    }
 }
