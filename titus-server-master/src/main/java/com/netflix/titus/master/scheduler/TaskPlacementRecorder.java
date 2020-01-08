@@ -50,7 +50,8 @@ import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.config.MasterConfiguration;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
-import com.netflix.titus.master.mesos.TaskInfoFactory;
+import com.netflix.titus.master.mesos.TaskInfoRequestFactory;
+import com.netflix.titus.master.mesos.TaskInfoRequest;
 import com.netflix.titus.master.model.job.TitusQueuableTask;
 import com.netflix.titus.master.scheduler.opportunistic.OpportunisticCpuAvailability;
 import com.netflix.titus.master.scheduler.resourcecache.OpportunisticCpuCache;
@@ -71,7 +72,7 @@ class TaskPlacementRecorder {
     private final MasterConfiguration masterConfiguration;
     private final TaskSchedulingService schedulingService;
     private final V3JobOperations v3JobOperations;
-    private final TaskInfoFactory<Protos.TaskInfo> v3TaskInfoFactory;
+    private final TaskInfoRequestFactory v3TaskInfoRequestFactory;
     private final OpportunisticCpuCache opportunisticCpuCache;
     private final TitusRuntime titusRuntime;
 
@@ -80,26 +81,26 @@ class TaskPlacementRecorder {
                           MasterConfiguration masterConfiguration,
                           TaskSchedulingService schedulingService,
                           V3JobOperations v3JobOperations,
-                          TaskInfoFactory<Protos.TaskInfo> v3TaskInfoFactory,
+                          TaskInfoRequestFactory v3TaskInfoRequestFactory,
                           OpportunisticCpuCache opportunisticCpuCache,
                           TitusRuntime titusRuntime) {
         this.config = config;
         this.masterConfiguration = masterConfiguration;
         this.schedulingService = schedulingService;
         this.v3JobOperations = v3JobOperations;
-        this.v3TaskInfoFactory = v3TaskInfoFactory;
+        this.v3TaskInfoRequestFactory = v3TaskInfoRequestFactory;
         this.opportunisticCpuCache = opportunisticCpuCache;
         this.titusRuntime = titusRuntime;
     }
 
-    List<Pair<List<VirtualMachineLease>, List<Protos.TaskInfo>>> record(SchedulingResult schedulingResult) {
+    List<Pair<List<VirtualMachineLease>, List<TaskInfoRequest>>> record(SchedulingResult schedulingResult) {
         List<AgentAssignment> assignments = schedulingResult.getResultMap().entrySet().stream()
                 .map(entry -> new AgentAssignment(entry.getKey(), entry.getValue()))
                 .collect(Collectors.toList());
 
         long startTime = wallTime();
         try {
-            Map<AgentAssignment, List<Protos.TaskInfo>> v3Result = processV3Assignments(assignments);
+            Map<AgentAssignment, List<TaskInfoRequest>> v3Result = processV3Assignments(assignments);
 
             Set<AgentAssignment> allAssignments = v3Result.keySet();
 
@@ -118,19 +119,19 @@ class TaskPlacementRecorder {
         return titusRuntime.getClock().wallTime();
     }
 
-    private Map<AgentAssignment, List<Protos.TaskInfo>> processV3Assignments(List<AgentAssignment> assignments) {
-        List<Observable<Pair<AgentAssignment, Protos.TaskInfo>>> recordActions = assignments.stream()
+    private Map<AgentAssignment, List<TaskInfoRequest>> processV3Assignments(List<AgentAssignment> assignments) {
+        List<Observable<Pair<AgentAssignment, TaskInfoRequest>>> recordActions = assignments.stream()
                 .flatMap(a -> a.getV3Assignments().stream().map(ar -> processTask(a, ar)))
                 .collect(Collectors.toList());
-        List<Pair<AgentAssignment, Protos.TaskInfo>> taskInfos = Observable.merge(recordActions, RECORD_CONCURRENCY_LIMIT).toList().toBlocking().first();
+        List<Pair<AgentAssignment, TaskInfoRequest>> taskInfoRequests = Observable.merge(recordActions, RECORD_CONCURRENCY_LIMIT).toList().toBlocking().first();
 
-        Map<AgentAssignment, List<Protos.TaskInfo>> result = new HashMap<>();
-        taskInfos.forEach(p -> result.computeIfAbsent(p.getLeft(), a -> new ArrayList<>()).add(p.getRight()));
+        Map<AgentAssignment, List<TaskInfoRequest>> result = new HashMap<>();
+        taskInfoRequests.forEach(p -> result.computeIfAbsent(p.getLeft(), a -> new ArrayList<>()).add(p.getRight()));
 
         return result;
     }
 
-    private Observable<Pair<AgentAssignment, Protos.TaskInfo>> processTask(
+    private Observable<Pair<AgentAssignment, TaskInfoRequest>> processTask(
             AgentAssignment assignment,
             TaskAssignmentResult assignmentResult) {
         VirtualMachineLease lease = assignment.getLeases().get(0);
@@ -160,10 +161,11 @@ class TaskPlacementRecorder {
                             executorUriOverrideOpt, attributesMap, opportunisticResourcesContext, getTierName(fenzoTask)
                     ).apply(oldTask),
                     JobManagerConstants.SCHEDULER_CALLMETADATA.toBuilder().withCallReason("Record task placement").build()
-            ).toObservable().cast(Protos.TaskInfo.class).concatWith(Observable.fromCallable(() ->
-                    v3TaskInfoFactory.newTaskInfo(fenzoTask, v3Job, v3Task, lease.hostname(), attributesMap,
-                            lease.getOffer().getSlaveId(), consumeResult, executorUriOverrideOpt,
-                            opportunisticResourcesContext)
+            ).toObservable().cast(TaskInfoRequest.class).concatWith(Observable.fromCallable(() -> {
+                        return v3TaskInfoRequestFactory.newTaskInfo(fenzoTask, v3Job, v3Task, lease.hostname(), attributesMap,
+                                lease.getOffer().getSlaveId(), consumeResult, executorUriOverrideOpt,
+                                opportunisticResourcesContext);
+                    }
             )).timeout(
                     STORE_UPDATE_TIMEOUT_MS, TimeUnit.MILLISECONDS
             ).onErrorResumeNext(error -> {
@@ -181,7 +183,7 @@ class TaskPlacementRecorder {
                     killBrokenV3Task(fenzoTask, "model update error: " + ExceptionExt.toMessageChain(recordTaskError));
                 }
                 return Observable.empty();
-            }).map(taskInfo -> Pair.of(assignment, taskInfo));
+            }).map(taskInfoRequest -> Pair.of(assignment, taskInfoRequest));
         } catch (Exception e) {
             killBrokenV3Task(fenzoTask, ExceptionExt.toMessageChain(e));
             logger.error("Fatal error when creating Mesos#TaskInfo for task: {}", fenzoTask.getId(), e);

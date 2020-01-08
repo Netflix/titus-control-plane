@@ -30,6 +30,7 @@ import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.mesos.ContainerEvent;
 import com.netflix.titus.master.mesos.LeaseRescindedEvent;
+import com.netflix.titus.master.mesos.TaskInfoRequest;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import org.apache.mesos.Protos;
@@ -146,7 +147,7 @@ class StubbedVirtualMachineMasterService implements VirtualMachineMasterService 
     }
 
     @Override
-    public void launchTasks(List<Protos.TaskInfo> requests, List<VirtualMachineLease> leases) {
+    public void launchTasks(List<TaskInfoRequest> requests, List<VirtualMachineLease> leases) {
         throw new IllegalStateException("method not supported");
     }
 

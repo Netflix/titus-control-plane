@@ -32,9 +32,8 @@ import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEve
 import com.netflix.titus.master.jobmanager.service.limiter.DefaultJobSubmitLimiter;
 import com.netflix.titus.master.jobmanager.service.limiter.JobSubmitLimiter;
 import com.netflix.titus.master.jobmanager.service.service.ServiceDifferenceResolver;
-import com.netflix.titus.master.mesos.DefaultV3TaskInfoFactory;
-import com.netflix.titus.master.mesos.TaskInfoFactory;
-import org.apache.mesos.Protos;
+import com.netflix.titus.master.mesos.DefaultV3TaskInfoRequestFactory;
+import com.netflix.titus.master.mesos.TaskInfoRequestFactory;
 
 public class V3JobManagerModule extends AbstractModule {
 
@@ -51,8 +50,7 @@ public class V3JobManagerModule extends AbstractModule {
         bind(ReadOnlyJobOperations.class).to(DefaultV3JobOperations.class);
         bind(JobSubmitLimiter.class).to(DefaultJobSubmitLimiter.class);
 
-        bind(new TypeLiteral<TaskInfoFactory<Protos.TaskInfo>>() {
-        }).to(DefaultV3TaskInfoFactory.class);
+        bind(TaskInfoRequestFactory.class).to(DefaultV3TaskInfoRequestFactory.class);
 
         bind(JobAndTaskMetrics.class).asEagerSingleton();
     }

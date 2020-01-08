@@ -57,6 +57,7 @@ import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.mesos.ContainerEvent;
 import com.netflix.titus.master.mesos.LeaseRescindedEvent;
 import com.netflix.titus.master.mesos.MesosConfiguration;
+import com.netflix.titus.master.mesos.TaskInfoRequest;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.master.mesos.V3ContainerEvent;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
@@ -317,8 +318,8 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     }
 
     @Override
-    public void launchTasks(List<Protos.TaskInfo> requests, List<VirtualMachineLease> leases) {
-        for (Protos.TaskInfo request : requests) {
+    public void launchTasks(List<TaskInfoRequest> requests, List<VirtualMachineLease> leases) {
+        for (TaskInfoRequest request : requests) {
             try {
                 V1Pod v1Pod = taskInfoToPod(request);
                 logger.info("creating pod: {}", v1Pod);
@@ -329,12 +330,13 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         }
     }
 
-    private V1Pod taskInfoToPod(Protos.TaskInfo taskInfo) {
+    private V1Pod taskInfoToPod(TaskInfoRequest taskInfoRequest) {
+        Protos.TaskInfo taskInfo = taskInfoRequest.getTaskInfo();
         String taskId = taskInfo.getName();
         String nodeName = taskInfo.getSlaveId().getValue();
         String encodedContainerInfo = Base64.getEncoder().encodeToString(taskInfo.getData().toByteArray());
 
-        Map<String, String> annotations = new HashMap<>();
+        Map<String, String> annotations = new HashMap<>(taskInfoRequest.getPassthroughAttributes());
         annotations.put("containerInfo", encodedContainerInfo);
         annotations.putAll(PerformanceToolUtil.findPerformanceTestAnnotations(taskInfo));
 
@@ -797,7 +799,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
             return false;
         }
         V1NodeCondition readyCondition = readyConditionOpt.get();
-        Boolean status = Boolean.valueOf(readyCondition.getStatus());
+        boolean status = Boolean.parseBoolean(readyCondition.getStatus());
         DateTime lastHeartbeatTime = readyCondition.getLastHeartbeatTime();
         return !status &&
                 lastHeartbeatTime != null &&

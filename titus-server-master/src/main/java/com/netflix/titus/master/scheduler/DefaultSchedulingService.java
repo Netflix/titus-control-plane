@@ -78,7 +78,8 @@ import com.netflix.titus.master.jobmanager.service.common.V3QAttributes;
 import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import com.netflix.titus.master.mesos.LeaseRescindedEvent;
 import com.netflix.titus.master.mesos.MesosConfiguration;
-import com.netflix.titus.master.mesos.TaskInfoFactory;
+import com.netflix.titus.master.mesos.TaskInfoRequestFactory;
+import com.netflix.titus.master.mesos.TaskInfoRequest;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.model.job.TitusQueuableTask;
 import com.netflix.titus.master.scheduler.TaskPlacementFailure.FailureKind;
@@ -184,7 +185,7 @@ public class DefaultSchedulingService implements SchedulingService<V3QueueableTa
     @Inject
     public DefaultSchedulingService(V3JobOperations v3JobOperations,
                                     AgentManagementService agentManagementService,
-                                    TaskInfoFactory<Protos.TaskInfo> v3TaskInfoFactory,
+                                    TaskInfoRequestFactory v3TaskInfoRequestFactory,
                                     VMOperations vmOps,
                                     final VirtualMachineMasterService virtualMachineService,
                                     MasterConfiguration masterConfiguration,
@@ -202,7 +203,7 @@ public class DefaultSchedulingService implements SchedulingService<V3QueueableTa
                                     MesosConfiguration mesosConfiguration,
                                     ApplicationSlaManagementService capacityGroupService,
                                     SchedulingMachinesFilter schedulingMachinesFilter) {
-        this(v3JobOperations, agentManagementService, v3TaskInfoFactory, vmOps, virtualMachineService,
+        this(v3JobOperations, agentManagementService, v3TaskInfoRequestFactory, vmOps, virtualMachineService,
                 masterConfiguration, schedulerConfiguration, systemHardConstraint, taskCache, opportunisticCpuCache,
                 Schedulers.computation(), tierSlaUpdater, registry, preferentialNamedConsumableResourceEvaluator,
                 agentManagementFitnessCalculator, titusRuntime, agentResourceCache, config,
@@ -211,7 +212,7 @@ public class DefaultSchedulingService implements SchedulingService<V3QueueableTa
 
     public DefaultSchedulingService(V3JobOperations v3JobOperations,
                                     AgentManagementService agentManagementService,
-                                    TaskInfoFactory<Protos.TaskInfo> v3TaskInfoFactory,
+                                    TaskInfoRequestFactory v3TaskInfoRequestFactory,
                                     VMOperations vmOps,
                                     final VirtualMachineMasterService virtualMachineService,
                                     MasterConfiguration masterConfiguration,
@@ -286,7 +287,7 @@ public class DefaultSchedulingService implements SchedulingService<V3QueueableTa
             }
         });
 
-        this.taskPlacementRecorder = new TaskPlacementRecorder(config, masterConfiguration, schedulingService, v3JobOperations, v3TaskInfoFactory, opportunisticCpuCache, titusRuntime);
+        this.taskPlacementRecorder = new TaskPlacementRecorder(config, masterConfiguration, schedulingService, v3JobOperations, v3TaskInfoRequestFactory, opportunisticCpuCache, titusRuntime);
         this.taskPlacementFailureClassifier = new TaskPlacementFailureClassifier<>(titusRuntime);
 
         totalTasksPerIterationGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "totalTasksPerIteration");
@@ -488,10 +489,10 @@ public class DefaultSchedulingService implements SchedulingService<V3QueueableTa
         int failedTasksDuringSchedulingResult = schedulingResult.getFailures().size();
 
         long recordingStart = titusRuntime.getClock().wallTime();
-        List<Pair<List<VirtualMachineLease>, List<Protos.TaskInfo>>> taskInfos = taskPlacementRecorder.record(schedulingResult);
+        List<Pair<List<VirtualMachineLease>, List<TaskInfoRequest>>> taskInfoRequests = taskPlacementRecorder.record(schedulingResult);
         recordTaskPlacementLatencyTimer.record(titusRuntime.getClock().wallTime() - recordingStart, TimeUnit.MILLISECONDS);
-        taskInfos.forEach(ts -> launchTasks(ts.getLeft(), ts.getRight()));
-        assignedDuringSchedulingResult += taskInfos.stream().mapToInt(p -> p.getRight().size()).sum();
+        taskInfoRequests.forEach(ts -> launchTasks(ts.getLeft(), ts.getRight()));
+        assignedDuringSchedulingResult += taskInfoRequests.stream().mapToInt(p -> p.getRight().size()).sum();
 
         recordLastSchedulingResult(schedulingResult);
         taskPlacementFailureClassifier.update(schedulingResult);
@@ -536,9 +537,9 @@ public class DefaultSchedulingService implements SchedulingService<V3QueueableTa
         }
     }
 
-    private void launchTasks(List<VirtualMachineLease> leases, List<Protos.TaskInfo> taskInfoList) {
+    private void launchTasks(List<VirtualMachineLease> leases, List<TaskInfoRequest> taskInfoRequests) {
         long mesosStartTime = titusRuntime.getClock().wallTime();
-        if (taskInfoList.isEmpty()) {
+        if (taskInfoRequests.isEmpty()) {
             try {
                 leases.forEach(virtualMachineService::rejectLease);
             } finally {
@@ -548,11 +549,11 @@ public class DefaultSchedulingService implements SchedulingService<V3QueueableTa
             }
         } else {
             try {
-                virtualMachineService.launchTasks(taskInfoList, leases);
+                virtualMachineService.launchTasks(taskInfoRequests, leases);
             } finally {
                 long mesosLatency = titusRuntime.getClock().wallTime() - mesosStartTime;
                 totalSchedulingIterationMesosLatency.addAndGet(mesosLatency);
-                logger.info("Launched tasks on Mesos in {}ms: tasks={}, offers={}", mesosLatency, taskInfoList.size(), leases.size());
+                logger.info("Launched tasks on Mesos in {}ms: tasks={}, offers={}", mesosLatency, taskInfoRequests.size(), leases.size());
             }
         }
     }
