@@ -1124,8 +1124,8 @@
             ]
         },
         "org.postgresql:postgresql": {
-            "locked": "9.4.1212",
-            "requested": "9.4.+"
+            "locked": "42.2.9",
+            "requested": "42.2.9"
         },
         "org.reactivestreams:reactive-streams": {
             "locked": "1.0.2",
@@ -2444,8 +2444,8 @@
             ]
         },
         "org.postgresql:postgresql": {
-            "locked": "9.4.1212",
-            "requested": "9.4.+"
+            "locked": "42.2.9",
+            "requested": "42.2.9"
         },
         "org.reactivestreams:reactive-streams": {
             "locked": "1.0.2",
@@ -3764,8 +3764,8 @@
             ]
         },
         "org.postgresql:postgresql": {
-            "locked": "9.4.1212",
-            "requested": "9.4.+"
+            "locked": "42.2.9",
+            "requested": "42.2.9"
         },
         "org.reactivestreams:reactive-streams": {
             "locked": "1.0.2",
@@ -4030,12 +4030,6 @@
                 "org.jooq:jooq"
             ]
         },
-        "log4j:log4j": {
-            "locked": "1.2.17",
-            "transitive": [
-                "org.slf4j:slf4j-log4j12"
-            ]
-        },
         "org.jooq:jooq": {
             "locked": "3.11.2",
             "transitive": [
@@ -4051,20 +4045,6 @@
             "transitive": [
                 "org.jooq:jooq-codegen"
             ]
-        },
-        "org.slf4j:slf4j-api": {
-            "locked": "1.7.0",
-            "transitive": [
-                "org.slf4j:slf4j-log4j12"
-            ]
-        },
-        "org.slf4j:slf4j-log4j12": {
-            "locked": "1.7.0",
-            "requested": "1.7.0"
-        },
-        "postgresql:postgresql": {
-            "locked": "9.4.1208-jdbc42-atlassian-hosted",
-            "requested": "9.4.+"
         }
     },
     "jooqRuntimeClasspath": {
@@ -4074,12 +4054,6 @@
                 "org.jooq:jooq"
             ]
         },
-        "log4j:log4j": {
-            "locked": "1.2.17",
-            "transitive": [
-                "org.slf4j:slf4j-log4j12"
-            ]
-        },
         "org.jooq:jooq": {
             "locked": "3.11.2",
             "transitive": [
@@ -4095,20 +4069,6 @@
             "transitive": [
                 "org.jooq:jooq-codegen"
             ]
-        },
-        "org.slf4j:slf4j-api": {
-            "locked": "1.7.0",
-            "transitive": [
-                "org.slf4j:slf4j-log4j12"
-            ]
-        },
-        "org.slf4j:slf4j-log4j12": {
-            "locked": "1.7.0",
-            "requested": "1.7.0"
-        },
-        "postgresql:postgresql": {
-            "locked": "9.4.1208-jdbc42-atlassian-hosted",
-            "requested": "9.4.+"
         }
     },
     "runtime": {
@@ -5236,8 +5196,8 @@
             ]
         },
         "org.postgresql:postgresql": {
-            "locked": "9.4.1212",
-            "requested": "9.4.+"
+            "locked": "42.2.9",
+            "requested": "42.2.9"
         },
         "org.reactivestreams:reactive-streams": {
             "locked": "1.0.2",
@@ -6557,8 +6517,8 @@
             ]
         },
         "org.postgresql:postgresql": {
-            "locked": "9.4.1212",
-            "requested": "9.4.+"
+            "locked": "42.2.9",
+            "requested": "42.2.9"
         },
         "org.reactivestreams:reactive-streams": {
             "locked": "1.0.2",
@@ -8570,8 +8530,8 @@
             ]
         },
         "org.postgresql:postgresql": {
-            "locked": "9.4.1212",
-            "requested": "9.4.+"
+            "locked": "42.2.9",
+            "requested": "42.2.9"
         },
         "org.reactivestreams:reactive-streams": {
             "locked": "1.0.2",
@@ -10715,8 +10675,8 @@
             ]
         },
         "org.postgresql:postgresql": {
-            "locked": "9.4.1212",
-            "requested": "9.4.+"
+            "locked": "42.2.9",
+            "requested": "42.2.9"
         },
         "org.reactivestreams:reactive-streams": {
             "locked": "1.0.2",
@@ -12860,8 +12820,8 @@
             ]
         },
         "org.postgresql:postgresql": {
-            "locked": "9.4.1212",
-            "requested": "9.4.+"
+            "locked": "42.2.9",
+            "requested": "42.2.9"
         },
         "org.reactivestreams:reactive-streams": {
             "locked": "1.0.2",
@@ -15006,8 +14966,8 @@
             ]
         },
         "org.postgresql:postgresql": {
-            "locked": "9.4.1212",
-            "requested": "9.4.+"
+            "locked": "42.2.9",
+            "requested": "42.2.9"
         },
         "org.reactivestreams:reactive-streams": {
             "locked": "1.0.2",
