@@ -66,7 +66,7 @@ import static com.netflix.titus.common.util.Evaluators.applyNotNull;
  * Converts Titus Models into the Mesos proto objects
  */
 @Singleton
-public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo> {
+public class DefaultV3TaskInfoRequestFactory implements TaskInfoRequestFactory {
 
     private static final String PASSTHROUGH_ATTRIBUTES_PREFIX = "titusParameter.agent.";
     private static final String OWNER_EMAIL_ATTRIBUTE = "titus.agent.ownerEmail";
@@ -86,8 +86,8 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
     private final String iamArnPrefix;
 
     @Inject
-    public DefaultV3TaskInfoFactory(MasterConfiguration masterConfiguration,
-                                    MesosConfiguration mesosConfiguration) {
+    public DefaultV3TaskInfoRequestFactory(MasterConfiguration masterConfiguration,
+                                           MesosConfiguration mesosConfiguration) {
         this.masterConfiguration = masterConfiguration;
         this.mesosConfiguration = mesosConfiguration;
         // Get the AWS account ID to use for building IAM ARNs.
@@ -96,7 +96,7 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
     }
 
     @Override
-    public Protos.TaskInfo newTaskInfo(TitusQueuableTask<Job, Task> fenzoTask,
+    public TaskInfoRequest newTaskInfo(TitusQueuableTask<Job, Task> fenzoTask,
                                        Job<?> job,
                                        Task task,
                                        String hostname,
@@ -111,7 +111,7 @@ public class DefaultV3TaskInfoFactory implements TaskInfoFactory<Protos.TaskInfo
         Protos.TaskInfo.Builder taskInfoBuilder = newTaskInfoBuilder(protoTaskId, executorInfo, slaveID, fenzoTask, job, task);
         ContainerInfo.Builder containerInfoBuilder = newContainerInfoBuilder(job, task, fenzoTask, passthroughAttributes);
         taskInfoBuilder.setData(containerInfoBuilder.build().toByteString());
-        return taskInfoBuilder.build();
+        return new TaskInfoRequest(job, task, taskInfoBuilder.build(), containerInfoBuilder.getPassthroughAttributesMap());
     }
 
     private ContainerInfo.Builder newContainerInfoBuilder(Job job, Task task, TitusQueuableTask<Job, Task> fenzoTask,

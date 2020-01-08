@@ -25,8 +25,8 @@ import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.master.model.job.TitusQueuableTask;
 import org.apache.mesos.Protos;
 
-public interface TaskInfoFactory<T> {
-    T newTaskInfo(TitusQueuableTask<Job, Task> fenzoTask,
+public interface TaskInfoRequestFactory {
+    TaskInfoRequest newTaskInfo(TitusQueuableTask<Job, Task> fenzoTask,
                   Job<?> job,
                   Task task,
                   String hostname,

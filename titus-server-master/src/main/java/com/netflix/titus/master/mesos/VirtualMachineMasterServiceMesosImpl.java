@@ -16,7 +16,6 @@
 
 package com.netflix.titus.master.mesos;
 
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -25,6 +24,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -134,19 +134,18 @@ public class VirtualMachineMasterServiceMesosImpl implements VirtualMachineMaste
 
     // NOTE: all leases are for the same slave
     @Override
-    public void launchTasks(List<Protos.TaskInfo> taskInfos, List<VirtualMachineLease> leases) {
+    public void launchTasks(List<TaskInfoRequest> taskInfoRequests, List<VirtualMachineLease> leases) {
         if (!isActivatedAndRunning()) {
             logger.error("Not in leader mode, not launching tasks");
             return;
         }
-        List<Protos.OfferID> offerIDs = new ArrayList<>();
-        for (VirtualMachineLease vml : leases) {
-            offerIDs.add((vml).getOffer().getId());
-        }
-        if (!taskInfos.isEmpty()) {
+        List<Protos.TaskInfo> taskInfos = taskInfoRequests.stream().map(TaskInfoRequest::getTaskInfo).collect(Collectors.toList());
+        List<Protos.OfferID> offerIds = leases.stream().map(l -> l.getOffer().getId()).collect(Collectors.toList());
+
+        if (!taskInfoRequests.isEmpty()) {
             traceMesosVoidRequest(
                     "Launching tasks: " + toTaskSummary(taskInfos) + ", with leases: " + toLeaseIds(leases),
-                    () -> mesosDriver.launchTasks(offerIDs, taskInfos, (Protos.Filters.getDefaultInstance().toBuilder()).setRefuseSeconds(offerSecDelayInterval).build())
+                    () -> mesosDriver.launchTasks(offerIds, taskInfos, (Protos.Filters.getDefaultInstance().toBuilder()).setRefuseSeconds(offerSecDelayInterval).build())
             );
         } else { // reject offers to prevent offer leak, but shouldn't happen
             for (VirtualMachineLease l : leases) {

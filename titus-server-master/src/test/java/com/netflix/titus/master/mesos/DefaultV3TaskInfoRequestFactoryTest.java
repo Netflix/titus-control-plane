@@ -54,7 +54,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class DefaultV3TaskInfoFactoryTest {
+public class DefaultV3TaskInfoRequestFactoryTest {
 
     private MasterConfiguration masterConfiguration;
 
@@ -66,7 +66,7 @@ public class DefaultV3TaskInfoFactoryTest {
 
     @Test
     public void additionalPassthroughAttributes() throws InvalidProtocolBufferException {
-        DefaultV3TaskInfoFactory factory = new DefaultV3TaskInfoFactory(masterConfiguration, mock(MesosConfiguration.class));
+        DefaultV3TaskInfoRequestFactory factory = new DefaultV3TaskInfoRequestFactory(masterConfiguration, mock(MesosConfiguration.class));
         JobDescriptor<BatchJobExt> jobDescriptor = JobDescriptorGenerator.oneTaskBatchJobDescriptor();
         Protos.TaskInfo taskInfo = buildTaskInfo(factory, jobDescriptor, Collections.singletonMap("extra", "attribute"), Optional.empty());
         TitanProtos.ContainerInfo containerInfo = TitanProtos.ContainerInfo.parseFrom(taskInfo.getData());
@@ -75,7 +75,7 @@ public class DefaultV3TaskInfoFactoryTest {
 
     @Test
     public void useRequestedCpusInsteadOfAssigned() throws InvalidProtocolBufferException {
-        DefaultV3TaskInfoFactory factory = new DefaultV3TaskInfoFactory(masterConfiguration, mock(MesosConfiguration.class));
+        DefaultV3TaskInfoRequestFactory factory = new DefaultV3TaskInfoRequestFactory(masterConfiguration, mock(MesosConfiguration.class));
         JobDescriptor<BatchJobExt> jobDescriptor = JobDescriptorGenerator.oneTaskBatchJobDescriptor().but(jd -> jd.toBuilder()
                 .withAttributes(CollectionsExt.copyAndAdd(jd.getAttributes(), CollectionsExt.asMap(
                         JobAttributes.JOB_ATTRIBUTES_RUNTIME_PREDICTION_SEC, "12.5",
@@ -107,7 +107,7 @@ public class DefaultV3TaskInfoFactoryTest {
 
     @Test
     public void jobsWithNoCommandSendFlatEntrypointStringToAgents() throws InvalidProtocolBufferException {
-        DefaultV3TaskInfoFactory factory = new DefaultV3TaskInfoFactory(masterConfiguration, mock(MesosConfiguration.class));
+        DefaultV3TaskInfoRequestFactory factory = new DefaultV3TaskInfoRequestFactory(masterConfiguration, mock(MesosConfiguration.class));
         JobDescriptor<BatchJobExt> jobDescriptor = JobDescriptorGenerator.oneTaskBatchJobDescriptor();
         jobDescriptor = jobDescriptor.toBuilder().withContainer(jobDescriptor.getContainer().toBuilder()
                 .withEntryPoint(Arrays.asList("some", "entrypoint"))
@@ -123,7 +123,7 @@ public class DefaultV3TaskInfoFactoryTest {
 
     @Test
     public void jobsWithCommandDoNotSendFlatStrings() throws InvalidProtocolBufferException {
-        DefaultV3TaskInfoFactory factory = new DefaultV3TaskInfoFactory(masterConfiguration, mock(MesosConfiguration.class));
+        DefaultV3TaskInfoRequestFactory factory = new DefaultV3TaskInfoRequestFactory(masterConfiguration, mock(MesosConfiguration.class));
         JobDescriptor<BatchJobExt> jobDescriptor = JobDescriptorGenerator.oneTaskBatchJobDescriptor();
         jobDescriptor = jobDescriptor.toBuilder().withContainer(jobDescriptor.getContainer().toBuilder()
                 .withEntryPoint(Arrays.asList("some", "entrypoint"))
@@ -140,7 +140,7 @@ public class DefaultV3TaskInfoFactoryTest {
 
     @Test
     public void jobsAttributeDisablesShellParsingForEntryPoint() throws InvalidProtocolBufferException {
-        DefaultV3TaskInfoFactory factory = new DefaultV3TaskInfoFactory(masterConfiguration, mock(MesosConfiguration.class));
+        DefaultV3TaskInfoRequestFactory factory = new DefaultV3TaskInfoRequestFactory(masterConfiguration, mock(MesosConfiguration.class));
         JobDescriptor<BatchJobExt> jobDescriptor = JobDescriptorGenerator.oneTaskBatchJobDescriptor();
         Map<String, String> jobAttributesMap = new HashMap<>();
         jobAttributesMap.put(JobAttributes.JOB_PARAMETER_ATTRIBUTES_ENTRY_POINT_SKIP_SHELL_PARSING, "true");
@@ -158,11 +158,11 @@ public class DefaultV3TaskInfoFactoryTest {
     }
 
 
-    private Protos.TaskInfo buildTaskInfo(DefaultV3TaskInfoFactory factory, JobDescriptor<BatchJobExt> jobDescriptor) {
+    private Protos.TaskInfo buildTaskInfo(DefaultV3TaskInfoRequestFactory factory, JobDescriptor<BatchJobExt> jobDescriptor) {
         return buildTaskInfo(factory, jobDescriptor, Collections.emptyMap(), Optional.empty());
     }
 
-    private Protos.TaskInfo buildTaskInfo(DefaultV3TaskInfoFactory factory, JobDescriptor<BatchJobExt> jobDescriptor,
+    private Protos.TaskInfo buildTaskInfo(DefaultV3TaskInfoRequestFactory factory, JobDescriptor<BatchJobExt> jobDescriptor,
                                           Map<String, String> passthroughAttributes, Optional<Duration> runtimePrediction) {
         DataGenerator<Job<BatchJobExt>> jobs = JobGenerator.batchJobs(jobDescriptor);
         Job<BatchJobExt> job = jobs.getValue();
@@ -184,7 +184,8 @@ public class DefaultV3TaskInfoFactoryTest {
         PreferentialNamedConsumableResourceSet.ConsumeResult consumeResult = new PreferentialNamedConsumableResourceSet.ConsumeResult(
                 0, "someAgent", "someResource", 1.0
         );
-        return factory.newTaskInfo(fenzoTask, job, task, "someHost", Collections.emptyMap(), agentId,
+        TaskInfoRequest taskInfoRequest = factory.newTaskInfo(fenzoTask, job, task, "someHost", Collections.emptyMap(), agentId,
                 consumeResult, Optional.empty(), passthroughAttributes);
+        return taskInfoRequest.getTaskInfo();
     }
 }

@@ -29,7 +29,7 @@ public interface VirtualMachineMasterService {
 
     void enterActiveMode();
 
-    void launchTasks(List<Protos.TaskInfo> requests, List<VirtualMachineLease> leases);
+    void launchTasks(List<TaskInfoRequest> requests, List<VirtualMachineLease> leases);
 
     void rejectLease(VirtualMachineLease lease);
 
