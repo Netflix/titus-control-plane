@@ -75,7 +75,7 @@ subprojects {
         spectatorVersion = '0.59.+'
         mesosVersion = '1.7.2'
         protobufVersion = '3.5.+'
-        postgresqlVersion = '9.4.+'
+        postgresqlVersion = '42.2.9'
         grpcVersion = '1.10.+'
         googleTruthVersion = '0.34' // pinned to avoid a transitive dependency on guava > 20.x
         swaggerVersion = '1.5.12'
