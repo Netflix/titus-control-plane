@@ -44,6 +44,6 @@ public class JooqConnectorComponent {
         } catch (SQLException e) {
             throw new IllegalStateException("Cannot initialize connection to Postgres database", e);
         }
-        return new DefaultDSLContext(connectionProvider, SQLDialect.POSTGRES_9_5);
+        return new DefaultDSLContext(connectionProvider, SQLDialect.POSTGRES_10);
     }
 }
