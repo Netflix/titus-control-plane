@@ -17,6 +17,7 @@
 package com.netflix.titus.master.scheduler.resourcecache;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 public class AgentResourceCacheNetworkInterface {
@@ -24,20 +25,17 @@ public class AgentResourceCacheNetworkInterface {
     private final Map<String, Set<String>> ipAddresses;
     private final Set<String> securityGroupIds;
     private final boolean hasAvailableIps;
-    private final String joinedSecurityGroupIds;
     private final long timestamp;
 
     public AgentResourceCacheNetworkInterface(int index,
                                               Map<String, Set<String>> ipAddresses,
                                               Set<String> securityGroupIds,
                                               boolean hasAvailableIps,
-                                              String joinedSecurityGroupIds,
                                               long timestamp) {
         this.index = index;
         this.ipAddresses = ipAddresses;
         this.securityGroupIds = securityGroupIds;
         this.hasAvailableIps = hasAvailableIps;
-        this.joinedSecurityGroupIds = joinedSecurityGroupIds;
         this.timestamp = timestamp;
     }
 
@@ -57,9 +55,6 @@ public class AgentResourceCacheNetworkInterface {
         return hasAvailableIps;
     }
 
-    public String getJoinedSecurityGroupIds() {
-        return joinedSecurityGroupIds;
-    }
 
     public long getTimestamp() {
         return timestamp;
@@ -73,48 +68,17 @@ public class AgentResourceCacheNetworkInterface {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-
         AgentResourceCacheNetworkInterface that = (AgentResourceCacheNetworkInterface) o;
-
-        if (index != that.index) {
-            return false;
-        }
-        if (hasAvailableIps != that.hasAvailableIps) {
-            return false;
-        }
-        if (timestamp != that.timestamp) {
-            return false;
-        }
-        if (ipAddresses != null ? !ipAddresses.equals(that.ipAddresses) : that.ipAddresses != null) {
-            return false;
-        }
-        if (securityGroupIds != null ? !securityGroupIds.equals(that.securityGroupIds) : that.securityGroupIds != null) {
-            return false;
-        }
-        return joinedSecurityGroupIds != null ? joinedSecurityGroupIds.equals(that.joinedSecurityGroupIds) : that.joinedSecurityGroupIds == null;
+        return index == that.index &&
+                hasAvailableIps == that.hasAvailableIps &&
+                timestamp == that.timestamp &&
+                Objects.equals(ipAddresses, that.ipAddresses) &&
+                Objects.equals(securityGroupIds, that.securityGroupIds);
     }
 
     @Override
     public int hashCode() {
-        int result = index;
-        result = 31 * result + (ipAddresses != null ? ipAddresses.hashCode() : 0);
-        result = 31 * result + (securityGroupIds != null ? securityGroupIds.hashCode() : 0);
-        result = 31 * result + (hasAvailableIps ? 1 : 0);
-        result = 31 * result + (joinedSecurityGroupIds != null ? joinedSecurityGroupIds.hashCode() : 0);
-        result = 31 * result + (int) (timestamp ^ (timestamp >>> 32));
-        return result;
-    }
-
-    @Override
-    public String toString() {
-        return "AgentResourceCacheNetworkInterface{" +
-                "index=" + index +
-                ", ipAddresses=" + ipAddresses +
-                ", securityGroupIds=" + securityGroupIds +
-                ", hasAvailableIps=" + hasAvailableIps +
-                ", joinedSecurityGroupIds='" + joinedSecurityGroupIds + '\'' +
-                ", timestamp=" + timestamp +
-                '}';
+        return Objects.hash(index, ipAddresses, securityGroupIds, hasAvailableIps, timestamp);
     }
 
     public Builder toBuilder() {
@@ -130,7 +94,6 @@ public class AgentResourceCacheNetworkInterface {
                 .withIpAddresses(eni.getIpAddresses())
                 .withSecurityGroupIds(eni.getSecurityGroupIds())
                 .withHasAvailableIps(eni.hasAvailableIps())
-                .withJoinedSecurityGroupIds(eni.getJoinedSecurityGroupIds())
                 .withTimestamp(eni.getTimestamp());
     }
 
@@ -139,7 +102,6 @@ public class AgentResourceCacheNetworkInterface {
         private Map<String, Set<String>> ipAddresses;
         private Set<String> securityGroupIds;
         private boolean hasAvailableIps;
-        private String joinedSecurityGroupIds;
         private long timestamp;
 
         private Builder() {
@@ -165,11 +127,6 @@ public class AgentResourceCacheNetworkInterface {
             return this;
         }
 
-        public Builder withJoinedSecurityGroupIds(String joinedSecurityGroupIds) {
-            this.joinedSecurityGroupIds = joinedSecurityGroupIds;
-            return this;
-        }
-
         public Builder withTimestamp(long timestamp) {
             this.timestamp = timestamp;
             return this;
@@ -180,12 +137,11 @@ public class AgentResourceCacheNetworkInterface {
                     .withIpAddresses(ipAddresses)
                     .withSecurityGroupIds(securityGroupIds)
                     .withHasAvailableIps(hasAvailableIps)
-                    .withJoinedSecurityGroupIds(joinedSecurityGroupIds)
                     .withTimestamp(timestamp);
         }
 
         public AgentResourceCacheNetworkInterface build() {
-            return new AgentResourceCacheNetworkInterface(eniIndex, ipAddresses, securityGroupIds, hasAvailableIps, joinedSecurityGroupIds, timestamp);
+            return new AgentResourceCacheNetworkInterface(eniIndex, ipAddresses, securityGroupIds, hasAvailableIps, timestamp);
         }
     }
 }

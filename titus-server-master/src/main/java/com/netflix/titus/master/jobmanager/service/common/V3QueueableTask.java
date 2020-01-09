@@ -18,6 +18,7 @@ package com.netflix.titus.master.jobmanager.service.common;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -48,12 +49,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import static com.netflix.titus.common.util.CollectionsExt.isNullOrEmpty;
+import static com.netflix.titus.common.util.StringExt.isNotEmpty;
 
 public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
     private static final Logger logger = LoggerFactory.getLogger(V3QueueableTask.class);
 
     private static final String DEFAULT_GRP_NAME = "defaultGrp";
-    private static final String SecurityGroupsResName = "ENIs";
+    private static final String SECURITY_GROUP_RES_NAME = "ENIs";
+    private static final String SECURITY_GROUP_DELIMITER = ":";
 
     private final Job job;
     private final Task task;
@@ -125,11 +128,19 @@ public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
             assignedResources = new AssignedResources();
             List<PreferentialNamedConsumableResourceSet.ConsumeResult> consumeResults = new ArrayList<>();
             for (TwoLevelResource resource : twoLevelResources) {
+                String resourceName = resource.getName();
+                String resourceValue = resource.getValue();
+                int resourceIndex = resource.getIndex();
+                if (isNotEmpty(resourceName) && resourceName.equals(SECURITY_GROUP_RES_NAME) && isNotEmpty(resourceValue)) {
+                    // make sure the security groups are sorted when loading two level resources
+                    List<String> securityGroups = Arrays.asList(resourceValue.split(SECURITY_GROUP_DELIMITER));
+                    resourceValue = getConcatenatedSecurityGroups(securityGroups);
+                }
                 consumeResults.add(
                         new PreferentialNamedConsumableResourceSet.ConsumeResult(
-                                resource.getIndex(), resource.getName(),
-                                resource.getValue(), 1.0
-                        ));
+                                resourceIndex, resourceName, resourceValue, 1.0
+                        )
+                );
             }
             assignedResources.setConsumedNamedResources(consumeResults);
         }
@@ -308,7 +319,7 @@ public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
 
         if (!isNullOrEmpty(securityGroups)) {
             NamedResourceSetRequest resourceSetRequest = new NamedResourceSetRequest(
-                    SecurityGroupsResName,
+                    SECURITY_GROUP_RES_NAME,
                     getConcatenatedSecurityGroups(securityGroups),
                     1,
                     1
@@ -318,7 +329,9 @@ public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
     }
 
     private static String getConcatenatedSecurityGroups(List<String> securityGroups) {
-        return String.join(":", securityGroups);
+        List<String> sortedSecurityGroups = new ArrayList<>(securityGroups);
+        Collections.sort(sortedSecurityGroups);
+        return String.join(SECURITY_GROUP_DELIMITER, sortedSecurityGroups);
     }
 
     /**

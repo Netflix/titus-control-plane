@@ -17,6 +17,7 @@
 package com.netflix.titus.master.scheduler.fitness;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.function.Predicate;
 
@@ -30,10 +31,10 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
-import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
-import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheFunctions;
 import org.apache.mesos.Protos;
+
+import static org.apache.commons.collections.CollectionUtils.subtract;
 
 public class FitnessCalculatorFunctions {
 
@@ -61,10 +62,14 @@ public class FitnessCalculatorFunctions {
         return state == TaskState.Accepted || state == TaskState.Launched || state == TaskState.StartInitiated;
     }
 
-    public static String getJoinedSecurityGroupIds(TaskRequest taskRequest) {
-        Job job = getJob(taskRequest);
+    public static List<String> getSecurityGroups(TaskRequest taskRequest) {
+        Job<?> job = getJob(taskRequest);
         Container container = job.getJobDescriptor().getContainer();
-        return StringExt.concatenate(container.getSecurityProfile().getSecurityGroups(), AgentResourceCacheFunctions.SECURITY_GROUP_ID_DELIMITER);
+        return container.getSecurityProfile().getSecurityGroups();
+    }
+
+    public static boolean areSecurityGroupsEqual(Collection<String> first, Collection<String> second) {
+        return subtract(first, second).size() == 0;
     }
 
     public static Job<?> getJob(TaskRequest taskRequest) {

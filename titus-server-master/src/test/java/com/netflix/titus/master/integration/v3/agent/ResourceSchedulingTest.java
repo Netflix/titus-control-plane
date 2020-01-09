@@ -16,11 +16,13 @@
 
 package com.netflix.titus.master.integration.v3.agent;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
+import com.netflix.titus.api.jobmanager.model.job.JobGroupInfo;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.common.aws.AwsInstanceType;
@@ -41,7 +43,9 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 
+import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.changeSecurityGroups;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskServiceJobDescriptor;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @Category(IntegrationTest.class)
 public class ResourceSchedulingTest extends BaseIntegrationTest {
@@ -50,7 +54,7 @@ public class ResourceSchedulingTest extends BaseIntegrationTest {
             .withMaster(
                     EmbeddedTitusMasters.basicMaster(
                             new SimulatedCloud().createAgentInstanceGroups(
-                                    new SimulatedAgentGroupDescriptor("flex1", AwsInstanceType.M3_2XLARGE.name(), 0, 1, 1, 2)
+                                    new SimulatedAgentGroupDescriptor("flex1", AwsInstanceType.M5_Metal.name(), 0, 1, 1, 2)
                             ))
                             .toBuilder()
                             .withProperty("titus.scheduler.globalTaskLaunchingConstraintEvaluatorEnabled", "false")
@@ -89,5 +93,27 @@ public class ResourceSchedulingTest extends BaseIntegrationTest {
                     return indexes.size() == 2;
                 })
         );
+    }
+
+    /**
+     * Verify same security groups with different list orders are scheduled to same ENI index.
+     */
+    @Test(timeout = 30_000)
+    public void verifyDifferentSecurityGroupOrderingReusesEni() throws Exception {
+        JobDescriptor<ServiceJobExt> firstJobDescriptor = changeSecurityGroups(oneTaskServiceJobDescriptor(),
+                Arrays.asList("sg-1", "sg-2", "sg-3")).toBuilder().withJobGroupInfo(JobGroupInfo.newBuilder().build()).build();
+        JobDescriptor<ServiceJobExt> secondJobDescriptor = changeSecurityGroups(oneTaskServiceJobDescriptor(),
+                Arrays.asList("sg-2", "sg-3", "sg-1")).toBuilder().withJobGroupInfo(JobGroupInfo.newBuilder().build()).build();
+
+        jobsScenarioBuilder.schedule(firstJobDescriptor, jobScenarioBuilder -> jobScenarioBuilder
+                .template(ScenarioTemplates.startTasksInNewJob())
+        );
+        jobsScenarioBuilder.schedule(secondJobDescriptor, jobScenarioBuilder -> jobScenarioBuilder
+                .template(ScenarioTemplates.startTasksInNewJob())
+        );
+
+        int firstEniIndex = jobsScenarioBuilder.takeJob(0).getTaskByIndex(0).getTask().getTwoLevelResources().get(0).getIndex();
+        int secondEniIndex = jobsScenarioBuilder.takeJob(1).getTaskByIndex(0).getTask().getTwoLevelResources().get(0).getIndex();
+        assertThat(firstEniIndex).isEqualTo(secondEniIndex);
     }
 }

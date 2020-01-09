@@ -242,6 +242,11 @@ public final class JobFunctions {
         return job.toBuilder().withJobDescriptor(changeServiceJobCapacity(job.getJobDescriptor(), newCapacityBuilder.build())).build();
     }
 
+    public static <E extends JobDescriptorExt> JobDescriptor<E> changeSecurityGroups(JobDescriptor<E> jobDescriptor, List<String> securityGroups) {
+        return jobDescriptor.but(jd -> jd.getContainer()
+                .but(c -> c.getSecurityProfile().toBuilder().withSecurityGroups(securityGroups).build()));
+    }
+
     public static <E extends JobDescriptorExt> JobDescriptor<E> incrementJobDescriptorSize(JobDescriptor<E> jobDescriptor, int delta) {
         if (isServiceJob(jobDescriptor)) {
             Capacity oldCapacity = ((ServiceJobExt) jobDescriptor.getExtensions()).getCapacity();
