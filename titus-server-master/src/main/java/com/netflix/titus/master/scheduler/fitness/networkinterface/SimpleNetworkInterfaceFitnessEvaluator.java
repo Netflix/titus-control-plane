@@ -16,6 +16,8 @@
 
 package com.netflix.titus.master.scheduler.fitness.networkinterface;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 import com.netflix.fenzo.PreferentialNamedConsumableResourceEvaluator;
@@ -25,6 +27,8 @@ import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCache;
 import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheInstance;
 import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheNetworkInterface;
+
+import static com.netflix.titus.master.scheduler.fitness.FitnessCalculatorFunctions.areSecurityGroupsEqual;
 
 /**
  * Prefers to choose network interfaces in the following order:
@@ -45,6 +49,7 @@ public class SimpleNetworkInterfaceFitnessEvaluator implements PreferentialNamed
     private static final double UNKNOWN_SCORE = 0.099;
     private static final double MIN_DELAYED_SCORE = 0.090;
     private static final double MAX_DELAYED_SCORE = 0.098;
+    private static final String SECURITY_GROUP_DELIMITER = ":";
 
     private final AgentResourceCache cache;
     private final SchedulerConfiguration configuration;
@@ -71,7 +76,9 @@ public class SimpleNetworkInterfaceFitnessEvaluator implements PreferentialNamed
             return UNKNOWN_SCORE;
         }
 
-        if (resourceName.equals(networkInterface.getJoinedSecurityGroupIds())) {
+        List<String> securityGroups = Arrays.asList(resourceName.split(SECURITY_GROUP_DELIMITER));
+
+        if (areSecurityGroupsEqual(securityGroups, networkInterface.getSecurityGroupIds())) {
             return ALREADY_CONFIGURED_SCORE;
         }
 

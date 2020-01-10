@@ -16,6 +16,7 @@
 
 package com.netflix.titus.master.scheduler.fitness;
 
+import java.util.List;
 import java.util.Optional;
 
 import com.netflix.fenzo.TaskRequest;
@@ -26,7 +27,8 @@ import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCache;
 import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheInstance;
 import com.netflix.titus.master.scheduler.resourcecache.AgentResourceCacheNetworkInterface;
 
-import static com.netflix.titus.master.scheduler.fitness.FitnessCalculatorFunctions.getJoinedSecurityGroupIds;
+import static com.netflix.titus.master.scheduler.fitness.FitnessCalculatorFunctions.areSecurityGroupsEqual;
+import static com.netflix.titus.master.scheduler.fitness.FitnessCalculatorFunctions.getSecurityGroups;
 
 /**
  * A fitness calculator that will prefer placing tasks on agents that have previous launched the containers with
@@ -54,10 +56,10 @@ public class CachedSecurityGroupFitnessCalculator implements VMTaskFitnessCalcul
     public double calculateFitness(TaskRequest taskRequest, VirtualMachineCurrentState targetVM, TaskTrackerState taskTrackerState) {
         Optional<AgentResourceCacheInstance> instanceOpt = agentResourceCache.get(targetVM.getHostname());
         if (instanceOpt.isPresent()) {
-            String joinedSecurityGroupIds = getJoinedSecurityGroupIds(taskRequest);
+            List<String> taskSecurityGroups = getSecurityGroups(taskRequest);
             AgentResourceCacheInstance instance = instanceOpt.get();
             for (AgentResourceCacheNetworkInterface networkInterface : instance.getNetworkInterfaces().values()) {
-                if (networkInterface.getJoinedSecurityGroupIds().equals(joinedSecurityGroupIds)) {
+                if (areSecurityGroupsEqual(networkInterface.getSecurityGroupIds(), taskSecurityGroups)) {
                     return SECURITY_GROUPS_CACHED_SCORE;
                 }
             }

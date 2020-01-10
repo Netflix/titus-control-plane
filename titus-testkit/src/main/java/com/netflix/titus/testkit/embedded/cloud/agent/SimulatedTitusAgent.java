@@ -33,6 +33,7 @@ import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
 import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.ProtocolStringList;
 import com.netflix.titus.api.model.EfsMount;
 import com.netflix.titus.common.aws.AwsInstanceType;
 import com.netflix.titus.common.util.StringExt;
@@ -681,7 +682,9 @@ public class SimulatedTitusAgent {
             Preconditions.checkArgument(!eniTaskAssignments.containsKey(taskId));
 
             String eniLabel = networkConfigInfo.getEniLabel();
-            String taskSecurityGroups = StringExt.concatenate(networkConfigInfo.getSecurityGroupsList(), ",");
+            List<String> sortedSecurityGroups = new ArrayList<>(networkConfigInfo.getSecurityGroupsList());
+            Collections.sort(sortedSecurityGroups);
+            String taskSecurityGroups = StringExt.concatenate(sortedSecurityGroups, ",");
 
             Pair<Integer, String> eniState = eniAssignments.computeIfAbsent(eniLabel, l -> Pair.of(ipsPerEni, null));
             String assignedSecurityGroups = eniState.getRight();

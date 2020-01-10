@@ -48,7 +48,6 @@ public class AgentResourceCacheFunctions {
                 .withIpAddresses(ipAddresses)
                 .withSecurityGroupIds(securityGroupIds)
                 .withHasAvailableIps(hasAvailableIps)
-                .withJoinedSecurityGroupIds(joinedSecurityGroupIds)
                 .withTimestamp(timestamp)
                 .build();
     }

@@ -23,6 +23,9 @@ import com.netflix.fenzo.TaskTrackerState;
 import com.netflix.fenzo.VMTaskFitnessCalculator;
 import com.netflix.fenzo.VirtualMachineCurrentState;
 
+import static com.netflix.titus.master.scheduler.fitness.FitnessCalculatorFunctions.areSecurityGroupsEqual;
+import static com.netflix.titus.master.scheduler.fitness.FitnessCalculatorFunctions.getSecurityGroups;
+
 /**
  * A fitness calculator that will prefer placing tasks on agents that do not have a task with the same security groups.
  */
@@ -41,10 +44,10 @@ public class SecurityGroupSpreadingFitnessCalculator implements VMTaskFitnessCal
     @Override
     public double calculateFitness(TaskRequest taskRequest, VirtualMachineCurrentState targetVM, TaskTrackerState taskTrackerState) {
         List<TaskRequest> allTasksOnAgent = FitnessCalculatorFunctions.getAllTasksOnAgent(targetVM);
-        String currentTaskRequestJoinedSecurityGroupIds = FitnessCalculatorFunctions.getJoinedSecurityGroupIds(taskRequest);
+        List<String> taskSecurityGroups = getSecurityGroups(taskRequest);
         long matchingTaskCount = FitnessCalculatorFunctions.countMatchingTasks(allTasksOnAgent, taskOnAgent -> {
-            String taskOnAgentJoinedSecurityGroupIds = FitnessCalculatorFunctions.getJoinedSecurityGroupIds(taskOnAgent);
-            return currentTaskRequestJoinedSecurityGroupIds.equals(taskOnAgentJoinedSecurityGroupIds);
+            List<String> taskOnAgentJoinedSecurityGroups = getSecurityGroups(taskOnAgent);
+            return areSecurityGroupsEqual(taskSecurityGroups, taskOnAgentJoinedSecurityGroups);
         });
 
         if (matchingTaskCount == 0) {
