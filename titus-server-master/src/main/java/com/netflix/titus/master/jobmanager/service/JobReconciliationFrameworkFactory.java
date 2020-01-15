@@ -66,6 +66,7 @@ import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.MetricConstants;
 import com.netflix.titus.master.jobmanager.service.DefaultV3JobOperations.IndexKind;
+import com.netflix.titus.master.jobmanager.service.common.SecurityGroupUtils;
 import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import com.netflix.titus.master.jobmanager.service.common.action.task.TaskTimeoutChangeActions;
@@ -501,14 +502,10 @@ public class JobReconciliationFrameworkFactory {
         // Record
         String eniSignature = "ENI@" + agent + '#' + eniAssignment.getIndex();
         Map<String, Set<String>> eniSGs = eniAssignmentMap.computeIfAbsent(eniSignature, e -> new HashMap<>());
-        eniSGs.computeIfAbsent(eniAssignment.getValue(), sg -> new HashSet<>()).add(task.getId());
+        String normalizedSgs = SecurityGroupUtils.normalizeSecurityGroups(eniAssignment.getValue());
+        eniSGs.computeIfAbsent(normalizedSgs, sg -> new HashSet<>()).add(task.getId());
 
-        boolean consistent = eniSGs.size() == 1;
-        if (!consistent && jobManagerConfiguration.isForceLoadTasksWithInconsistentEni()) {
-            logger.warn("Found ENI assignment inconsistency: {}, task: {} ", eniSignature, task.getId());
-            return Optional.of(task);
-        }
-        return consistent ? Optional.of(task) : Optional.empty();
+        return eniSGs.size() == 1 ? Optional.of(task) : Optional.empty();
     }
 
     private static int compareByStatusCreationTime(EntityHolder holder1, EntityHolder holder2) {
