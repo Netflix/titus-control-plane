@@ -97,4 +97,15 @@ public interface JobManagerConfiguration {
      */
     @DefaultValue("false")
     boolean isFailOnDataValidation();
+
+    /**
+     * Do not prevent tasks with inconsistent  ENI assignment to be loaded during activation. Inconsistencies will still
+     * be reported during activation and {@link JobManagerConfiguration#getMaxFailedTasks()} can still prevent
+     * activation if there are too many inconsistencies.
+     * <p>
+     * Use with caution to recover from situations where tasks were corrupted, but still can be recovered by
+     * reconciliation when a new leader is being activated.
+     */
+    @DefaultValue("false")
+    boolean isForceLoadTasksWithInconsistentEni();
 }

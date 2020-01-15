@@ -503,7 +503,12 @@ public class JobReconciliationFrameworkFactory {
         Map<String, Set<String>> eniSGs = eniAssignmentMap.computeIfAbsent(eniSignature, e -> new HashMap<>());
         eniSGs.computeIfAbsent(eniAssignment.getValue(), sg -> new HashSet<>()).add(task.getId());
 
-        return eniSGs.size() == 1 ? Optional.of(task) : Optional.empty();
+        boolean consistent = eniSGs.size() == 1;
+        if (!consistent && jobManagerConfiguration.isForceLoadTasksWithInconsistentEni()) {
+            logger.warn("Found ENI assignment inconsistency: {}, task: {} ", eniSignature, task.getId());
+            return Optional.of(task);
+        }
+        return consistent ? Optional.of(task) : Optional.empty();
     }
 
     private static int compareByStatusCreationTime(EntityHolder holder1, EntityHolder holder2) {
