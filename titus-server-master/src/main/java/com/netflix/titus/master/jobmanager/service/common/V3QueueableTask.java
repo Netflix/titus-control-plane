@@ -18,7 +18,6 @@ package com.netflix.titus.master.jobmanager.service.common;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -56,7 +55,6 @@ public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
 
     private static final String DEFAULT_GRP_NAME = "defaultGrp";
     private static final String SECURITY_GROUP_RES_NAME = "ENIs";
-    private static final String SECURITY_GROUP_DELIMITER = ":";
 
     private final Job job;
     private final Task task;
@@ -132,9 +130,7 @@ public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
                 String resourceValue = resource.getValue();
                 int resourceIndex = resource.getIndex();
                 if (isNotEmpty(resourceName) && resourceName.equals(SECURITY_GROUP_RES_NAME) && isNotEmpty(resourceValue)) {
-                    // make sure the security groups are sorted when loading two level resources
-                    List<String> securityGroups = Arrays.asList(resourceValue.split(SECURITY_GROUP_DELIMITER));
-                    resourceValue = getConcatenatedSecurityGroups(securityGroups);
+                    resourceValue = SecurityGroupUtils.normalizeSecurityGroups(resourceValue);
                 }
                 consumeResults.add(
                         new PreferentialNamedConsumableResourceSet.ConsumeResult(
@@ -320,18 +316,12 @@ public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
         if (!isNullOrEmpty(securityGroups)) {
             NamedResourceSetRequest resourceSetRequest = new NamedResourceSetRequest(
                     SECURITY_GROUP_RES_NAME,
-                    getConcatenatedSecurityGroups(securityGroups),
+                    SecurityGroupUtils.normalizedSecurityGroupsIdentifier(securityGroups),
                     1,
                     1
             );
             namedResources.put(resourceSetRequest.getResName(), resourceSetRequest);
         }
-    }
-
-    private static String getConcatenatedSecurityGroups(List<String> securityGroups) {
-        List<String> sortedSecurityGroups = new ArrayList<>(securityGroups);
-        Collections.sort(sortedSecurityGroups);
-        return String.join(SECURITY_GROUP_DELIMITER, sortedSecurityGroups);
     }
 
     /**
