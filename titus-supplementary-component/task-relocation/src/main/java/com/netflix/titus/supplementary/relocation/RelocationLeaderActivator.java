@@ -27,21 +27,22 @@ import com.netflix.titus.api.common.LeaderActivationListener;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.runtime.clustermembership.activation.LeaderActivationConfiguration;
 import com.netflix.titus.runtime.clustermembership.activation.LeaderActivationCoordinator;
+import com.netflix.titus.runtime.clustermembership.activation.LeaderActivationStatus;
 import com.netflix.titus.supplementary.relocation.store.TaskRelocationStore;
-import com.netflix.titus.supplementary.relocation.workflow.DefaultRelocationWorkflowExecutor;
+import com.netflix.titus.supplementary.relocation.workflow.RelocationWorkflowExecutor;
 
 import static com.netflix.titus.runtime.clustermembership.activation.LeaderActivationCoordinators.coordinatorWithLoggingCallback;
 import static com.netflix.titus.runtime.clustermembership.activation.LeaderActivationCoordinators.coordinatorWithSystemExitCallback;
 
 @Singleton
-public class RelocationLeaderActivator {
+public class RelocationLeaderActivator implements LeaderActivationStatus {
 
     private final LeaderActivationCoordinator coordinator;
 
     @Inject
     public RelocationLeaderActivator(LeaderActivationConfiguration configuration,
                                      TaskRelocationStore relocationStore,
-                                     DefaultRelocationWorkflowExecutor workflowExecutor,
+                                     RelocationWorkflowExecutor workflowExecutor,
                                      ClusterMembershipService membershipService,
                                      TitusRuntime titusRuntime) {
         List<LeaderActivationListener> services = Arrays.asList(relocationStore, workflowExecutor);
@@ -53,5 +54,10 @@ public class RelocationLeaderActivator {
     @PreDestroy
     public void shutdown() {
         coordinator.shutdown();
+    }
+
+    @Override
+    public boolean isActivatedLeader() {
+        return coordinator.isActivatedLeader();
     }
 }

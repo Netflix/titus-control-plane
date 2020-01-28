@@ -18,11 +18,16 @@ package com.netflix.titus.supplementary.relocation.integration;
 
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
 
+import com.netflix.titus.common.util.ExceptionExt;
+import com.netflix.titus.grpc.protogen.TaskRelocationQuery;
+import com.netflix.titus.grpc.protogen.TaskRelocationServiceGrpc;
+import com.netflix.titus.grpc.protogen.TaskRelocationServiceGrpc.TaskRelocationServiceBlockingStub;
+import com.netflix.titus.runtime.clustermembership.activation.LeaderActivationComponent;
 import com.netflix.titus.runtime.clustermembership.connector.ClusterMembershipInMemoryConnectorComponent;
 import com.netflix.titus.runtime.clustermembership.endpoint.grpc.ClusterMembershipGrpcEndpointComponent;
 import com.netflix.titus.runtime.clustermembership.service.ClusterMembershipServiceComponent;
-import com.netflix.titus.runtime.clustermembership.activation.LeaderActivationComponent;
 import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorServerFactoryComponent;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolveComponent;
 import com.netflix.titus.runtime.health.AlwaysHealthyComponent;
@@ -41,10 +46,14 @@ import io.grpc.ManagedChannelBuilder;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.mock.env.MockEnvironment;
 
+import static com.jayway.awaitility.Awaitility.await;
+
 /**
  * Task relocation server runner, with stubbed external connectors. Used by the task relocation service integration tests.
  */
 public class TaskRelocationSandbox {
+
+    private static final long ACTIVATION_TIMEOUT_MS = 30_000;
 
     private final AnnotationConfigApplicationContext container;
     private final BlockingQueue<ManagedChannel> channels = new LinkedBlockingQueue<>();
@@ -80,6 +89,11 @@ public class TaskRelocationSandbox {
         container.register(RelocationLeaderActivator.class);
         container.refresh();
         container.start();
+
+        TaskRelocationServiceBlockingStub stub = TaskRelocationServiceGrpc.newBlockingStub(getGrpcChannel());
+        await().timeout(ACTIVATION_TIMEOUT_MS, TimeUnit.MILLISECONDS).until(() ->
+                !ExceptionExt.doCatch(() -> stub.getCurrentTaskRelocationPlans(TaskRelocationQuery.getDefaultInstance())).isPresent()
+        );
     }
 
     public void shutdown() {
