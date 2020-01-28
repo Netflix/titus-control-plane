@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2020 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.api.json;
+package com.netflix.titus.common.util.jackson;
 
 import java.util.Collections;
 import java.util.List;
@@ -24,11 +24,11 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.Test;
 
-import static com.netflix.titus.api.json.ObjectMappers.compactMapper;
+import static com.netflix.titus.common.util.jackson.CommonObjectMappers.compactMapper;
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class ObjectMappersTest {
+public class CommonObjectMappersTest {
     private final OuterClass NESTED_OBJECT = new OuterClass(
             "outerStringValue",
             123,
@@ -63,7 +63,7 @@ public class ObjectMappersTest {
     }
 
     private OuterClass filter(List<String> fields) throws Exception {
-        ObjectMapper mapper = ObjectMappers.applyFieldsFilter(compactMapper(), fields);
+        ObjectMapper mapper = CommonObjectMappers.applyFieldsFilter(compactMapper(), fields);
 
         String jsonValue = mapper.writeValueAsString(NESTED_OBJECT);
         return compactMapper().readValue(jsonValue, OuterClass.class);
