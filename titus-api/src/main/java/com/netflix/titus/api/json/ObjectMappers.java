@@ -16,34 +16,12 @@
 
 package com.netflix.titus.api.json;
 
-import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonView;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.JsonStreamContext;
-import com.fasterxml.jackson.core.Version;
-import com.fasterxml.jackson.databind.AnnotationIntrospector;
 import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.databind.SerializerProvider;
-import com.fasterxml.jackson.databind.deser.Deserializers;
-import com.fasterxml.jackson.databind.introspect.Annotated;
-import com.fasterxml.jackson.databind.module.SimpleDeserializers;
-import com.fasterxml.jackson.databind.module.SimpleModule;
-import com.fasterxml.jackson.databind.ser.BeanPropertyWriter;
-import com.fasterxml.jackson.databind.ser.PropertyWriter;
-import com.fasterxml.jackson.databind.ser.impl.SimpleBeanPropertyFilter;
-import com.fasterxml.jackson.databind.ser.impl.SimpleFilterProvider;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
-import com.google.common.base.Preconditions;
-import com.google.protobuf.Message;
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleStatus;
@@ -172,9 +150,7 @@ import com.netflix.titus.api.scheduler.store.mixin.ShouldMixin;
 import com.netflix.titus.api.scheduler.store.mixin.SystemSelectorMixin;
 import com.netflix.titus.api.store.v2.ApplicationSlaMixIn;
 import com.netflix.titus.api.store.v2.ResourceDimensionMixin;
-import com.netflix.titus.common.util.PropertiesExt;
-import com.netflix.titus.common.util.ReflectionExt;
-import rx.exceptions.Exceptions;
+import com.netflix.titus.common.util.jackson.CommonObjectMappers;
 
 /**
  * Jackon's {@link ObjectMapper} is thread safe, and uses cache for optimal performance. It makes sense
@@ -183,12 +159,8 @@ import rx.exceptions.Exceptions;
  */
 public class ObjectMappers {
 
-    private static final ObjectMapper JACKSON_DEFAULT = new ObjectMapper();
-    private static final ObjectMapper DEFAULT = createDefaultMapper();
-    private static final ObjectMapper COMPACT = createCompactMapper();
     private static final ObjectMapper STORE = createStoreMapper();
     private static final ObjectMapper APP_SCALE_STORE = createAppScalePolicyMapper();
-    private static final ObjectMapper PROTOBUF = createProtobufMapper();
 
     /**
      * A helper marker class for use with {@link JsonView} annotation.
@@ -199,18 +171,6 @@ public class ObjectMappers {
     public static final class DebugView {
     }
 
-    public static ObjectMapper jacksonDefaultMapper() {
-        return JACKSON_DEFAULT;
-    }
-
-    public static ObjectMapper defaultMapper() {
-        return DEFAULT;
-    }
-
-    public static ObjectMapper compactMapper() {
-        return COMPACT;
-    }
-
     public static ObjectMapper storeMapper() {
         return STORE;
     }
@@ -219,128 +179,39 @@ public class ObjectMappers {
         return APP_SCALE_STORE;
     }
 
+    @Deprecated
+    public static ObjectMapper jacksonDefaultMapper() {
+        return CommonObjectMappers.jacksonDefaultMapper();
+    }
+
+    @Deprecated
+    public static ObjectMapper defaultMapper() {
+        return CommonObjectMappers.defaultMapper();
+    }
+
+    @Deprecated
+    public static ObjectMapper compactMapper() {
+        return CommonObjectMappers.compactMapper();
+    }
+
+    @Deprecated
     public static ObjectMapper protobufMapper() {
-        return PROTOBUF;
+        return CommonObjectMappers.protobufMapper();
     }
 
+    @Deprecated
     public static String writeValueAsString(ObjectMapper objectMapper, Object object) {
-        try {
-            return objectMapper.writeValueAsString(object);
-        } catch (JsonProcessingException e) {
-            throw Exceptions.propagate(e);
-        }
+        return CommonObjectMappers.writeValueAsString(objectMapper, object);
     }
 
+    @Deprecated
     public static <T> T readValue(ObjectMapper objectMapper, String json, Class<T> clazz) {
-        try {
-            return objectMapper.readValue(json, clazz);
-        } catch (IOException e) {
-            throw Exceptions.propagate(e);
-        }
+        return CommonObjectMappers.readValue(objectMapper, json, clazz);
     }
 
-    /**
-     * Serializes only the specified fields in Titus POJOs.
-     */
+    @Deprecated
     public static ObjectMapper applyFieldsFilter(ObjectMapper original, Collection<String> fields) {
-        Preconditions.checkArgument(!fields.isEmpty(), "Fields filter, with no field names provided");
-
-        PropertiesExt.PropertyNode<Boolean> rootNode = PropertiesExt.fullSplit(fields);
-        SimpleModule module = new SimpleModule() {
-            @Override
-            public void setupModule(SetupContext context) {
-                super.setupModule(context);
-                context.appendAnnotationIntrospector(new TitusAnnotationIntrospector());
-            }
-        };
-        ObjectMapper newMapper = original.copy().registerModule(module);
-
-        SimpleBeanPropertyFilter filter = new SimpleBeanPropertyFilter() {
-
-            private PropertiesExt.PropertyNode<Boolean> findNode(JsonStreamContext outputContext) {
-                if (outputContext.inArray()) {
-                    return findNode(outputContext.getParent());
-                }
-                if (outputContext.getParent() == null) {
-                    return rootNode;
-                }
-                PropertiesExt.PropertyNode<Boolean> node = findNode(outputContext.getParent());
-                if (node == null) {
-                    return null;
-                }
-                if (isEnabled(node)) {
-                    return node;
-                }
-                return node.getChildren().get(outputContext.getCurrentName());
-            }
-
-            @Override
-            public void serializeAsField(Object pojo, JsonGenerator jgen, SerializerProvider provider, PropertyWriter writer) throws Exception {
-                PropertiesExt.PropertyNode<Boolean> selectorNode = findNode(jgen.getOutputContext().getParent());
-                if (selectorNode != null) {
-                    boolean enabled = isEnabled(selectorNode);
-                    if (!enabled) {
-                        PropertiesExt.PropertyNode<Boolean> childNode = selectorNode.getChildren().get(writer.getName());
-                        if (childNode != null) {
-                            boolean isNested = !childNode.getChildren().isEmpty() && !isPrimitive(writer);
-                            enabled = isNested || isEnabled(childNode);
-                        }
-                    }
-                    if (enabled) {
-                        writer.serializeAsField(pojo, jgen, provider);
-                        return;
-                    }
-                }
-                if (!jgen.canOmitFields()) {
-                    writer.serializeAsOmittedField(pojo, jgen, provider);
-                }
-            }
-
-            private boolean isPrimitive(PropertyWriter writer) {
-                if (writer instanceof BeanPropertyWriter) {
-                    BeanPropertyWriter bw = (BeanPropertyWriter) writer;
-                    return ReflectionExt.isPrimitiveOrWrapper(bw.getType().getRawClass());
-                }
-                return false;
-            }
-
-            private Boolean isEnabled(PropertiesExt.PropertyNode<Boolean> childNode) {
-                return childNode.getValue().orElse(Boolean.FALSE);
-            }
-        };
-
-        newMapper.setFilterProvider(new SimpleFilterProvider().addFilter("titusFilter", filter));
-        return newMapper;
-    }
-
-    private static class TitusAnnotationIntrospector extends AnnotationIntrospector {
-        @Override
-        public Version version() {
-            return Version.unknownVersion();
-        }
-
-        @Override
-        public Object findFilterId(Annotated ann) {
-            Object id = super.findFilterId(ann);
-            if (id == null && ann.getRawType().getName().startsWith("com.netflix.titus")) {
-                id = "titusFilter";
-            }
-            return id;
-        }
-    }
-
-    private static ObjectMapper createDefaultMapper() {
-        ObjectMapper objectMapper = new ObjectMapper();
-        objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-        objectMapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
-        objectMapper.configure(MapperFeature.AUTO_DETECT_GETTERS, false);
-        objectMapper.configure(MapperFeature.AUTO_DETECT_FIELDS, false);
-
-        return objectMapper;
-    }
-
-    private static ObjectMapper createCompactMapper() {
-        return new ObjectMapper();
+        return CommonObjectMappers.applyFieldsFilter(original, fields);
     }
 
     private static ObjectMapper createAppScalePolicyMapper() {
@@ -439,29 +310,4 @@ public class ObjectMappers {
 
         return objectMapper;
     }
-
-    private static ObjectMapper createProtobufMapper() {
-        ObjectMapper mapper = new ObjectMapper();
-
-        // Serialization
-        mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-
-        // Deserialization
-        mapper.disable(SerializationFeature.INDENT_OUTPUT);
-
-        SimpleDeserializers simpleDeserializers = new SimpleDeserializers();
-        simpleDeserializers.addDeserializer(String.class, new TrimmingStringDeserializer());
-
-        List<Deserializers> deserializersList = Arrays.asList(
-                new AssignableFromDeserializers(Message.class, new ProtobufMessageDeserializer()),
-                simpleDeserializers
-        );
-        CompositeDeserializers compositeDeserializers = new CompositeDeserializers(deserializersList);
-        CustomDeserializerSimpleModule module = new CustomDeserializerSimpleModule(compositeDeserializers);
-        module.addSerializer(Message.class, new ProtobufMessageSerializer());
-        mapper.registerModule(module);
-
-        return mapper;
-    }
-
 }
