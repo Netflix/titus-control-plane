@@ -26,6 +26,8 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.grpc.reactor.GrpcToReactorServerFactory;
 import com.netflix.titus.grpc.protogen.ClusterMembershipServiceGrpc;
 import com.netflix.titus.grpc.protogen.TaskRelocationServiceGrpc;
+import com.netflix.titus.runtime.clustermembership.activation.LeaderActivationStatus;
+import com.netflix.titus.runtime.clustermembership.endpoint.grpc.GrpcLeaderServerInterceptor;
 import com.netflix.titus.runtime.clustermembership.endpoint.grpc.ClusterMembershipGrpcExceptionMapper;
 import com.netflix.titus.runtime.clustermembership.endpoint.grpc.ReactorClusterMembershipGrpcService;
 import com.netflix.titus.runtime.endpoint.common.grpc.GrpcEndpointConfiguration;
@@ -38,12 +40,14 @@ public class TaskRelocationGrpcServerRunner {
 
     @Inject
     public TaskRelocationGrpcServerRunner(GrpcEndpointConfiguration configuration,
+                                          LeaderActivationStatus leaderActivationStatus,
                                           ReactorClusterMembershipGrpcService reactorClusterMembershipGrpcService,
                                           ReactorTaskRelocationGrpcService reactorTaskRelocationGrpcService,
                                           GrpcToReactorServerFactory reactorServerFactory,
                                           TitusRuntime titusRuntime) {
         this.server = apply(TitusGrpcServer.newBuilder(configuration.getPort(), titusRuntime))
                 .withCallMetadataInterceptor()
+                .withInterceptor(GrpcLeaderServerInterceptor.clusterMembershipAllowed(leaderActivationStatus))
                 .withShutdownTime(Duration.ofMillis(configuration.getShutdownTimeoutMs()))
 
                 // Cluster membership service
@@ -64,7 +68,6 @@ public class TaskRelocationGrpcServerRunner {
                         ),
                         Collections.emptyList()
                 )
-                .withExceptionMapper(ClusterMembershipGrpcExceptionMapper.getInstance())
                 .build();
         server.start();
     }

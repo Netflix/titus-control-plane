@@ -30,7 +30,6 @@ import javax.inject.Singleton;
 
 import com.google.common.base.Stopwatch;
 import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
-import com.netflix.titus.api.common.LeaderActivationListener;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.api.relocation.model.TaskRelocationStatus;
@@ -66,7 +65,7 @@ import reactor.core.publisher.ReplayProcessor;
 import reactor.core.scheduler.Schedulers;
 
 @Singleton
-public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExecutor, LeaderActivationListener {
+public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExecutor {
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultRelocationWorkflowExecutor.class);
 

@@ -22,6 +22,7 @@ dependencies {
 
     // Spring
     compile "org.springframework.boot:spring-boot-autoconfigure:${springBootVersion}"
+    compile "org.springframework:spring-webmvc:${springVersion}"
 
     // GRPC dependencies
     compile "io.grpc:grpc-netty-shaded:${grpcVersion}"

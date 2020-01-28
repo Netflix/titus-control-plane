@@ -52,7 +52,7 @@ import reactor.core.scheduler.Schedulers;
 /**
  * Coordinates the activation and deactivation processes for an elected leader.
  */
-public class LeaderActivationCoordinator {
+public class LeaderActivationCoordinator implements LeaderActivationStatus {
 
     private static final Logger logger = LoggerFactory.getLogger(LeaderActivationCoordinator.class);
 
@@ -141,6 +141,11 @@ public class LeaderActivationCoordinator {
                 context -> refresh(),
                 scheduler
         );
+    }
+
+    @Override
+    public boolean isActivatedLeader() {
+        return isLocalLeader() && activatedServices.size() == services.size();
     }
 
     private Mono<Void> refresh() {

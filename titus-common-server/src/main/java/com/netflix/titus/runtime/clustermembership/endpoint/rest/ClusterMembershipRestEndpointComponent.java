@@ -16,15 +16,27 @@
 
 package com.netflix.titus.runtime.clustermembership.endpoint.rest;
 
+import com.netflix.titus.runtime.clustermembership.activation.LeaderActivationStatus;
 import com.netflix.titus.runtime.clustermembership.endpoint.grpc.ReactorClusterMembershipGrpcService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
-public class ClusterMembershipRestEndpointComponent {
+public class ClusterMembershipRestEndpointComponent implements WebMvcConfigurer {
+
+    @Autowired
+    private LeaderActivationStatus leaderActivationStatus;
 
     @Bean
     public ClusterMembershipSpringResource getClusterMembershipSpringResource(ReactorClusterMembershipGrpcService reactorClusterMembershipService) {
         return new ClusterMembershipSpringResource(reactorClusterMembershipService);
+    }
+
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(SpringLeaderServerInterceptor.clusterMembershipAllowed(leaderActivationStatus));
     }
 }
