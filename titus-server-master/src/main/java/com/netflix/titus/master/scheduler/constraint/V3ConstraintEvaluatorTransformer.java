@@ -44,11 +44,12 @@ import org.slf4j.LoggerFactory;
  * <li>zoneBalance</li>
  * </ul>
  * <p>
- * Experimental Constraints:
+ * Advanced Constraints:
  * <ul>
  * <li>activeHost</li>
  * <li>availabilityZone</li>
  * <li>machineId</li>
+ * <li>machineGroup</li>
  * <li>machineType</li>
  * </ul>
  */
@@ -68,6 +69,7 @@ public class V3ConstraintEvaluatorTransformer implements ConstraintEvaluatorTran
     private static final String ACTIVE_HOST = "activehost";
     private static final String AVAILABILITY_ZONE = "availabilityzone";
     private static final String MACHINE_ID = "machineid";
+    private static final String MACHINE_GROUP = "machinegroup";
     private static final String MACHINE_TYPE = "machinetype";
 
     private final MasterConfiguration config;
@@ -111,6 +113,10 @@ public class V3ConstraintEvaluatorTransformer implements ConstraintEvaluatorTran
                 return StringExt.isNotEmpty(value)
                         ? Optional.of(new MachineIdConstraint(schedulerConfiguration, agentManagementService, value))
                         : Optional.empty();
+            case MACHINE_GROUP:
+                return StringExt.isNotEmpty(value)
+                        ? Optional.of(new MachineGroupConstraint(schedulerConfiguration, agentManagementService, value))
+                        : Optional.empty();
             case MACHINE_TYPE:
                 return StringExt.isNotEmpty(value)
                         ? Optional.of(new MachineTypeConstraint(schedulerConfiguration, agentManagementService, value))
@@ -144,6 +150,10 @@ public class V3ConstraintEvaluatorTransformer implements ConstraintEvaluatorTran
             case MACHINE_ID:
                 return StringExt.isNotEmpty(value)
                         ? Optional.of(AsSoftConstraint.get(new MachineIdConstraint(schedulerConfiguration, agentManagementService, value)))
+                        : Optional.empty();
+            case MACHINE_GROUP:
+                return StringExt.isNotEmpty(value)
+                        ? Optional.of(AsSoftConstraint.get(new MachineGroupConstraint(schedulerConfiguration, agentManagementService, value)))
                         : Optional.empty();
             case MACHINE_TYPE:
                 return StringExt.isNotEmpty(value)

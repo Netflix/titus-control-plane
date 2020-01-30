@@ -28,22 +28,22 @@ import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 import com.netflix.titus.master.scheduler.SchedulerUtils;
 
 /**
- * Constraint such that workloads can prefer a specific machine type.
+ * Constraint such that workloads can prefer a specific machine group.
  */
-public class MachineTypeConstraint implements ConstraintEvaluator {
-    public static final String NAME = "MachineTypeConstraint";
+public class MachineGroupConstraint implements ConstraintEvaluator {
+    public static final String NAME = "MachineGroupConstraint";
 
     private static final Result VALID = new Result(true, null);
     private static final Result MACHINE_DOES_NOT_EXIST = new Result(false, "The machine does not exist");
-    private static final Result MACHINE_TYPE_DOES_NOT_MATCH = new Result(false, "The machine type does not match the specified machine type");
+    private static final Result MACHINE_GROUP_DOES_NOT_MATCH = new Result(false, "The machine group does not match the specified name");
     private final SchedulerConfiguration configuration;
     private final AgentManagementService agentManagementService;
-    private final String machineType;
+    private final String machineGroup;
 
-    public MachineTypeConstraint(SchedulerConfiguration configuration, AgentManagementService agentManagementService, String machineType) {
+    public MachineGroupConstraint(SchedulerConfiguration configuration, AgentManagementService agentManagementService, String machineId) {
         this.configuration = configuration;
         this.agentManagementService = agentManagementService;
-        this.machineType = machineType;
+        this.machineGroup = machineId;
     }
 
     @Override
@@ -59,7 +59,7 @@ public class MachineTypeConstraint implements ConstraintEvaluator {
         }
 
         AgentInstance agentInstance = instanceOpt.get();
-        String instanceInstanceType = agentInstance.getAttributes().getOrDefault(configuration.getMachineTypeAttributeName(), "");
-        return instanceInstanceType.equalsIgnoreCase(machineType) ? VALID : MACHINE_TYPE_DOES_NOT_MATCH;
+
+        return agentInstance.getInstanceGroupId().equalsIgnoreCase(machineGroup) ? VALID : MACHINE_GROUP_DOES_NOT_MATCH;
     }
 }

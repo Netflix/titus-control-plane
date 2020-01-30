@@ -24,14 +24,12 @@ import com.netflix.fenzo.TaskTrackerState;
 import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.service.AgentManagementService;
-import com.netflix.titus.common.annotation.Experimental;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 import com.netflix.titus.master.scheduler.SchedulerUtils;
 
 /**
- * Experimental constraint such that workloads can prefer a machine in a specific availability zone.
+ * Constraint such that workloads can prefer a machine in a specific availability zone.
  */
-@Experimental(deadline = "06/2019")
 public class AvailabilityZoneConstraint implements ConstraintEvaluator {
 
     public static final String NAME = "AvailabilityZoneConstraint";
