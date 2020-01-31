@@ -48,7 +48,7 @@ public interface TokenBucket {
      * Attempt to take a token from the bucket.
      *
      * @param numberOfTokens the number of tokens to take
-     * @return true if the number of takens were taken
+     * @return true if the number of tokens were taken
      */
     boolean tryTake(long numberOfTokens);
 

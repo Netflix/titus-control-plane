@@ -116,4 +116,10 @@ public interface MesosConfiguration {
      */
     @DefaultValue("600000" /* 10 min */)
     long getKubeOpportunisticRefreshIntervalMs();
+
+    /**
+     * @return whether or not to GC unknown pods
+     */
+    @DefaultValue("true")
+    boolean isGcUnknownPodsEnabled();
 }

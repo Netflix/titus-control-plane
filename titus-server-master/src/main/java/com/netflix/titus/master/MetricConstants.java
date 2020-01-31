@@ -37,21 +37,13 @@ public class MetricConstants {
 
     public static final String METRIC_SCHEDULING_SERVICE = METRIC_ROOT + "scheduler.";
 
-    public static final String METRIC_SCHEDULING_JOB = METRIC_ROOT + "job.";
-
     public static final String METRIC_SCHEDULING_EVICTION = METRIC_ROOT + "eviction.";
 
     public static final String METRIC_LEADER = METRIC_ROOT + "leader.";
 
     public static final String METRIC_MESOS = METRIC_ROOT + "mesos.";
 
-    public static final String METRIC_STORE = METRIC_ROOT + "store.";
-
-    public static final String METRIC_TASK_MIGRATION = METRIC_ROOT + "taskMigration.";
-
-    public static final String METRIC_WORKER_STATE_OBSERVER = METRIC_ROOT + "workerStateObserver.";
+    public static final String METRIC_KUBERNETES = METRIC_ROOT + "kubernetes.";
 
     public static final String METRIC_LOADBALANCER = METRIC_ROOT + "loadBalancer.";
-
-    public static final String METRIC_ES_PUBLISHER = METRIC_ROOT + "esPublisher.";
 }
