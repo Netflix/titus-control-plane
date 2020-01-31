@@ -17,33 +17,38 @@
 package com.netflix.titus.master.scheduler.constraint;
 
 import java.util.Optional;
+import java.util.Set;
 
 import com.netflix.fenzo.ConstraintEvaluator;
 import com.netflix.fenzo.TaskRequest;
 import com.netflix.fenzo.TaskTrackerState;
 import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.titus.api.agent.model.AgentInstance;
+import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 import com.netflix.titus.master.scheduler.SchedulerUtils;
 
+import static com.netflix.titus.master.scheduler.SchedulerUtils.getTaints;
+
 /**
- * Constraint such that workloads can prefer a specific machine group.
+ * Constraint such that workloads can prefer a machine or machine group with a specific toleration.
  */
-public class MachineGroupConstraint implements ConstraintEvaluator {
-    public static final String NAME = "MachineGroupConstraint";
+public class TolerationConstraint implements ConstraintEvaluator {
+    public static final String NAME = "TolerationConstraint";
 
     private static final Result VALID = new Result(true, null);
     private static final Result MACHINE_DOES_NOT_EXIST = new Result(false, "The machine does not exist");
-    private static final Result MACHINE_GROUP_DOES_NOT_MATCH = new Result(false, "The machine group does not match the specified name");
+    private static final Result MACHINE_GROUP_DOES_NOT_EXIST = new Result(false, "The machine group does not exist");
+    private static final Result TOLERATION_DOES_NOT_MATCH = new Result(false, "The machine or machine group does not have a matching taint");
     private final SchedulerConfiguration configuration;
     private final AgentManagementService agentManagementService;
-    private final String machineGroup;
+    private final String toleration;
 
-    public MachineGroupConstraint(SchedulerConfiguration configuration, AgentManagementService agentManagementService, String machineGroup) {
+    public TolerationConstraint(SchedulerConfiguration configuration, AgentManagementService agentManagementService, String machineId) {
         this.configuration = configuration;
         this.agentManagementService = agentManagementService;
-        this.machineGroup = machineGroup;
+        this.toleration = machineId;
     }
 
     @Override
@@ -60,6 +65,14 @@ public class MachineGroupConstraint implements ConstraintEvaluator {
 
         AgentInstance agentInstance = instanceOpt.get();
 
-        return agentInstance.getInstanceGroupId().equalsIgnoreCase(machineGroup) ? VALID : MACHINE_GROUP_DOES_NOT_MATCH;
+        Optional<AgentInstanceGroup> instanceGroupOpt = agentManagementService.findInstanceGroup(agentInstance.getInstanceGroupId());
+        if (!instanceGroupOpt.isPresent()) {
+            return MACHINE_GROUP_DOES_NOT_EXIST;
+        }
+
+        AgentInstanceGroup instanceGroup = instanceGroupOpt.get();
+
+        Set<String> taints = getTaints(instanceGroup, agentInstance);
+        return taints.contains(toleration) ? VALID : TOLERATION_DOES_NOT_MATCH;
     }
 }

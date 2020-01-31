@@ -30,13 +30,19 @@ import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.fenzo.VirtualMachineLease;
 import com.netflix.fenzo.queues.QueuableTask;
 import com.netflix.titus.api.agent.model.AgentInstance;
+import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.model.Tier;
+import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import org.apache.mesos.Protos;
+
+import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_TOLERATIONS;
+import static com.netflix.titus.common.util.StringExt.nonNull;
+import static com.netflix.titus.master.scheduler.SchedulerAttributes.TAINTS;
 
 public class SchedulerUtils {
 
@@ -146,5 +152,22 @@ public class SchedulerUtils {
         }
         TaskState state = current.getStatus().getState();
         return state == TaskState.Accepted || state == TaskState.Launched || state == TaskState.StartInitiated;
+    }
+
+    public static Set<String> getTolerations(V3QueueableTask taskRequest) {
+        String jobTolerationValue = nonNull(
+                (String) taskRequest.getJob().getJobDescriptor().getAttributes().get(JOB_PARAMETER_ATTRIBUTES_TOLERATIONS)
+        ).toLowerCase();
+        return StringExt.splitByCommaIntoSet(jobTolerationValue);
+    }
+
+    public static Set<String> getTaints(AgentInstanceGroup instanceGroup, AgentInstance instance) {
+        String instanceGroupTaintsValue = nonNull(instanceGroup.getAttributes().get(TAINTS)).toLowerCase();
+        Set<String> instanceGroupTaints = StringExt.splitByCommaIntoSet(instanceGroupTaintsValue);
+
+        String instanceTaintsValue = nonNull(instance.getAttributes().get(TAINTS)).toLowerCase();
+        Set<String> instanceTaints = StringExt.splitByCommaIntoSet(instanceTaintsValue);
+
+        return CollectionsExt.merge(instanceGroupTaints, instanceTaints);
     }
 }

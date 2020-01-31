@@ -108,7 +108,7 @@ public class ClusterAgentAutoScaler {
 
     private static final Comparator<AgentInstanceGroup> PREFER_ACTIVE_INSTANCE_GROUP_COMPARATOR = Comparator.comparing(ig -> ig.getLifecycleStatus().getState());
     private static final Comparator<AgentInstanceGroup> PREFER_PHASED_OUT_INSTANCE_GROUP_COMPARATOR = PREFER_ACTIVE_INSTANCE_GROUP_COMPARATOR.reversed();
-    private static final Set<String> IGNORED_HARD_CONSTRAINT_NAMES = asSet("machineid", "machinegroup", "machinetype");
+    private static final Set<String> IGNORED_HARD_CONSTRAINT_NAMES = asSet("machineid", "machinegroup", "machinetype", "toleration");
     private static final Set<FailureKind> IGNORED_FAILURE_KINDS_WITH_LAUNCHGUARD = ImmutableSet.<FailureKind>builder()
             .addAll(FailureKind.NEVER_TRIGGER_AUTOSCALING)
             .add(FailureKind.LaunchGuard)
