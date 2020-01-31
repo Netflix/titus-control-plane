@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -38,6 +39,9 @@ import com.google.inject.Injector;
 import com.netflix.fenzo.VirtualMachineLease;
 import com.netflix.fenzo.functions.Action1;
 import com.netflix.fenzo.plugins.VMLeaseObject;
+import com.netflix.spectator.api.Counter;
+import com.netflix.spectator.api.Gauge;
+import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
@@ -52,8 +56,11 @@ import com.netflix.titus.common.util.NetworkExt;
 import com.netflix.titus.common.util.RegExpExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.guice.annotation.Deactivator;
+import com.netflix.titus.common.util.limiter.Limiters;
+import com.netflix.titus.common.util.limiter.tokenbucket.TokenBucket;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.master.MetricConstants;
 import com.netflix.titus.master.mesos.ContainerEvent;
 import com.netflix.titus.master.mesos.LeaseRescindedEvent;
 import com.netflix.titus.master.mesos.MesosConfiguration;
@@ -148,6 +155,25 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     private final Function<String, Matcher> localSystemErrorMessageMatcherFactory;
     private final Function<String, Matcher> unknownSystemErrorMessageMatcherFactory;
 
+    private final Counter launchTaskCounter;
+    private final Counter rejectLeaseCounter;
+    private final Counter killTaskCounter;
+    private final Counter nodeAddCounter;
+    private final Counter nodeUpdateCounter;
+    private final Counter nodeDeleteCounter;
+    private final Counter podAddCounter;
+    private final Counter podUpdateCounter;
+    private final Counter podDeleteCounter;
+    private final Gauge timedOutNodesToGcGauge;
+    private final Gauge orphanedPodsWithoutValidNodesToGcGauge;
+    private final Gauge terminalPodsToGcGauge;
+    private final Gauge potentialUnknownPodsToGcGauge;
+    private final Gauge unknownPodsToGcGauge;
+    private final Gauge podsPastDeletionTimestampToGcGauge;
+    private final Gauge pendingPodsWithDeletionTimestampToGcGauge;
+    private final Gauge orphanedTasksToKilledGauge;
+    private final Gauge orphanedTasksToLostGauge;
+
     private com.netflix.fenzo.functions.Action1<List<? extends VirtualMachineLease>> leaseHandler;
     private Action1<List<LeaseRescindedEvent>> rescindLeaseHandler;
     private Subject<ContainerEvent, ContainerEvent> vmTaskStatusObserver;
@@ -156,6 +182,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     private SharedInformerFactory sharedInformerFactory;
     private SharedIndexInformer<V1Node> nodeInformer;
     private SharedIndexInformer<V1Pod> podInformer;
+    private TokenBucket gcUnknownPodsTokenBucket;
 
     @Inject
     public KubeApiServerIntegrator(TitusRuntime titusRuntime,
@@ -175,6 +202,26 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         transientSystemErrorMessageMatcherFactory = RegExpExt.dynamicMatcher(mesosConfiguration::getTransientSystemErrorMessagePattern, "transientSystemErrorMessagePattern", Pattern.DOTALL, logger);
         localSystemErrorMessageMatcherFactory = RegExpExt.dynamicMatcher(mesosConfiguration::getLocalSystemErrorMessagePattern, "localSystemErrorMessagePattern", Pattern.DOTALL, logger);
         unknownSystemErrorMessageMatcherFactory = RegExpExt.dynamicMatcher(mesosConfiguration::getUnknownSystemErrorMessagePattern, "unknownSystemErrorMessagePattern", Pattern.DOTALL, logger);
+
+        Registry registry = titusRuntime.getRegistry();
+        launchTaskCounter = registry.counter(MetricConstants.METRIC_KUBERNETES + "launchTask");
+        rejectLeaseCounter = registry.counter(MetricConstants.METRIC_KUBERNETES + "rejectLease");
+        killTaskCounter = registry.counter(MetricConstants.METRIC_KUBERNETES + "killTask");
+        nodeAddCounter = registry.counter(MetricConstants.METRIC_KUBERNETES + "nodeAdd");
+        nodeUpdateCounter = registry.counter(MetricConstants.METRIC_KUBERNETES + "nodeUpdate");
+        nodeDeleteCounter = registry.counter(MetricConstants.METRIC_KUBERNETES + "nodeDelete");
+        podAddCounter = registry.counter(MetricConstants.METRIC_KUBERNETES + "podAdd");
+        podUpdateCounter = registry.counter(MetricConstants.METRIC_KUBERNETES + "podUpdate");
+        podDeleteCounter = registry.counter(MetricConstants.METRIC_KUBERNETES + "podDelete");
+        timedOutNodesToGcGauge = registry.gauge(MetricConstants.METRIC_KUBERNETES + "timedOutNodesToGc");
+        orphanedPodsWithoutValidNodesToGcGauge = registry.gauge(MetricConstants.METRIC_KUBERNETES + "orphanedPodsWithoutValidNodesToGc");
+        terminalPodsToGcGauge = registry.gauge(MetricConstants.METRIC_KUBERNETES + "terminalPodsToGc");
+        potentialUnknownPodsToGcGauge = registry.gauge(MetricConstants.METRIC_KUBERNETES + "potentialUnknownPodsToGc");
+        unknownPodsToGcGauge = registry.gauge(MetricConstants.METRIC_KUBERNETES + "unknownPodsToGc");
+        podsPastDeletionTimestampToGcGauge = registry.gauge(MetricConstants.METRIC_KUBERNETES + "podsPastDeletionTimestampToGc");
+        pendingPodsWithDeletionTimestampToGcGauge = registry.gauge(MetricConstants.METRIC_KUBERNETES + "pendingPodsWithDeletionTimestampToGc");
+        orphanedTasksToKilledGauge = registry.gauge(MetricConstants.METRIC_KUBERNETES + "orphanedTasksToKilled");
+        orphanedTasksToLostGauge = registry.gauge(MetricConstants.METRIC_KUBERNETES + "orphanedTasksToLost");
     }
 
     @Override
@@ -196,6 +243,15 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         podInformer = createPodInformer(sharedInformerFactory, informerApi);
         sharedInformerFactory.startAllRegisteredInformers();
 
+        gcUnknownPodsTokenBucket = Limiters.createFixedIntervalTokenBucket(
+                "gcUnknownPodsTokenBucket",
+                10,
+                10,
+                10,
+                1,
+                TimeUnit.MINUTES
+        );
+
         ScheduleDescriptor reconcileSchedulerDescriptor = ScheduleDescriptor.newBuilder()
                 .withName("reconcileNodesAndPods")
                 .withDescription("Reconcile nodes and pods")
@@ -213,6 +269,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
 
     @Override
     public void launchTasks(List<TaskInfoRequest> requests, List<VirtualMachineLease> leases) {
+        launchTaskCounter.increment();
         for (TaskInfoRequest request : requests) {
             try {
                 V1Pod v1Pod = taskInfoToPod(request);
@@ -226,11 +283,12 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
 
     @Override
     public void rejectLease(VirtualMachineLease lease) {
-        // do nothing
+        rejectLeaseCounter.increment();
     }
 
     @Override
     public void killTask(String taskId) {
+        killTaskCounter.increment();
         try {
             logger.info("deleting pod: {}", taskId);
             api.deleteNamespacedPod(taskId, KUBERNETES_NAMESPACE, null, null, null, DELETE_GRACE_PERIOD_SECONDS, null, null);
@@ -288,18 +346,21 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                     @Override
                     public void onAdd(V1Node node) {
                         logger.debug("Node Added: {}", node);
+                        nodeAddCounter.increment();
                         nodeUpdated(node);
                     }
 
                     @Override
                     public void onUpdate(V1Node oldNode, V1Node newNode) {
                         logger.debug("Node Updated Old: {}, New: {}", oldNode, newNode);
+                        nodeUpdateCounter.increment();
                         nodeUpdated(newNode);
                     }
 
                     @Override
                     public void onDelete(V1Node node, boolean deletedFinalStateUnknown) {
                         logger.debug("Node Deleted: {}, deletedFinalStateUnknown={}", node, deletedFinalStateUnknown);
+                        nodeDeleteCounter.increment();
                         nodeDeleted(node);
                     }
                 });
@@ -365,18 +426,21 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                     @Override
                     public void onAdd(V1Pod pod) {
                         logger.debug("Pod Added: {}", pod);
+                        podAddCounter.increment();
                         podUpdated(pod);
                     }
 
                     @Override
                     public void onUpdate(V1Pod oldPod, V1Pod newPod) {
                         logger.debug("Pod Updated Old: {}, New: {}", oldPod, newPod);
+                        podUpdateCounter.increment();
                         podUpdated(newPod);
                     }
 
                     @Override
                     public void onDelete(V1Pod pod, boolean deletedFinalStateUnknown) {
                         logger.debug("Pod Deleted: {}, deletedFinalStateUnknown={}", pod, deletedFinalStateUnknown);
+                        podDeleteCounter.increment();
                         podUpdated(pod);
                     }
                 });
@@ -772,15 +836,37 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
      * GC nodes that have timed out due to not publishing a heartbeat
      */
     private void gcTimedOutNodes(List<V1Node> nodes) {
-        List<V1Node> nodesToGc = nodes.stream()
+        List<V1Node> timedOutNodesToGc = nodes.stream()
                 .filter(this::isNodeReadyForGc)
                 .collect(Collectors.toList());
 
-        logger.info("Attempting to GC {} nodes: {}", nodesToGc.size(), nodesToGc);
-        for (V1Node node : nodesToGc) {
+        logger.info("Attempting to GC {} timed out nodes: {}", timedOutNodesToGc.size(), timedOutNodesToGc);
+        timedOutNodesToGcGauge.set(timedOutNodesToGc.size());
+        for (V1Node node : timedOutNodesToGc) {
             gcNode(node);
         }
-        logger.info("Finished node GC");
+        logger.info("Finished timed out node GC");
+    }
+
+    /**
+     * GC orphaned pods on nodes that are no longer valid/available.
+     */
+    private void gcOrphanedPodsWithoutValidNodes(List<V1Node> nodes, List<V1Pod> pods) {
+        Set<String> currentNodeNames = nodes.stream().map(n -> n.getMetadata().getName()).collect(Collectors.toSet());
+        List<V1Pod> orphanedPodsWithoutValidNodesToGc = pods.stream()
+                .filter(p -> {
+                    String nodeName = p.getSpec().getNodeName();
+                    return StringExt.isNotEmpty(nodeName) && !currentNodeNames.contains(nodeName);
+                })
+                .collect(Collectors.toList());
+
+        logger.info("Attempting to GC {} orphaned pods: {} without valid nodes", orphanedPodsWithoutValidNodesToGc.size(),
+                orphanedPodsWithoutValidNodesToGc);
+        orphanedPodsWithoutValidNodesToGcGauge.set(orphanedPodsWithoutValidNodesToGc.size());
+        for (V1Pod pod : orphanedPodsWithoutValidNodesToGc) {
+            gcPod(pod);
+        }
+        logger.info("Finished orphaned pod GC without valid nodes");
     }
 
     /**
@@ -799,6 +885,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
 
 
         logger.info("Attempting to GC {} terminal pods: {}", terminalPodsToGc.size(), terminalPodsToGc);
+        terminalPodsToGcGauge.set(terminalPodsToGc.size());
         for (V1Pod pod : terminalPodsToGc) {
             gcPod(pod);
         }
@@ -809,12 +896,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
      * GC pods that are unknown to Titus Master that are not in a terminal pod phase.
      */
     private void gcUnknownPods(List<V1Pod> pods, Map<String, Task> currentTasks) {
-        if (!mesosConfiguration.isGcUnknownPodsEnabled()) {
-            logger.info("GC unknown pods is not enabled");
-            return;
-        }
-
-        List<V1Pod> unknownPodsToGc = pods.stream()
+        List<V1Pod> potentialUnknownPodsToGc = pods.stream()
                 .filter(p -> {
                     if (isPodPhaseTerminal(p.getStatus().getPhase()) || currentTasks.containsKey(p.getMetadata().getName())) {
                         return false;
@@ -825,37 +907,33 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                 })
                 .collect(Collectors.toList());
 
-        logger.info("Attempting to GC {} unknown pods: {}", unknownPodsToGc.size(), unknownPodsToGc);
-        for (V1Pod pod : unknownPodsToGc) {
-            gcPod(pod);
-        }
-        logger.info("Finished unknown pod GC");
-    }
+        potentialUnknownPodsToGcGauge.set(potentialUnknownPodsToGc.size());
 
-    /**
-     * GC orphaned pods on nodes that are no longer valid/available.
-     */
-    private void gcOrphanedPodsWithoutValidNodes(List<V1Node> nodes, List<V1Pod> pods) {
-        Set<String> currentNodeNames = nodes.stream().map(n -> n.getMetadata().getName()).collect(Collectors.toSet());
-        List<V1Pod> orphanedPodsToGc = pods.stream()
-                .filter(p -> {
-                    String nodeName = p.getSpec().getNodeName();
-                    return StringExt.isNotEmpty(nodeName) && !currentNodeNames.contains(nodeName);
-                })
-                .collect(Collectors.toList());
-
-        logger.info("Attempting to GC {} orphaned pods: {} without valid nodes", orphanedPodsToGc.size(), orphanedPodsToGc);
-        for (V1Pod pod : orphanedPodsToGc) {
-            gcPod(pod);
+        if (!mesosConfiguration.isGcUnknownPodsEnabled()) {
+            logger.info("GC unknown pods is not enabled");
+            unknownPodsToGcGauge.set(0);
+            return;
         }
-        logger.info("Finished orphaned pod GC without valid nodes");
+
+        int numberOfPodsToGc = (int) Math.min(potentialUnknownPodsToGc.size(), gcUnknownPodsTokenBucket.getNumberOfTokens());
+        if (numberOfPodsToGc > 0 && gcUnknownPodsTokenBucket.tryTake(numberOfPodsToGc)) {
+            List<V1Pod> unknownPodsToGc = potentialUnknownPodsToGc.subList(0, numberOfPodsToGc);
+            logger.info("Attempting to GC {} unknown pods: {}", unknownPodsToGc.size(), unknownPodsToGc);
+            unknownPodsToGcGauge.set(unknownPodsToGc.size());
+            for (V1Pod pod : unknownPodsToGc) {
+                gcPod(pod);
+            }
+            logger.info("Finished unknown pod GC");
+        } else {
+            unknownPodsToGcGauge.set(0);
+        }
     }
 
     /**
      * GC pods past deletion timestamp timeout.
      */
     private void gcPodsPastDeletionTimestamp(List<V1Pod> pods) {
-        List<V1Pod> podsPastDeletionTimestampTimeout = pods.stream()
+        List<V1Pod> podsPastDeletionTimestampToGc = pods.stream()
                 .filter(p -> {
                     DateTime deletionTimestamp = p.getMetadata().getDeletionTimestamp();
                     return deletionTimestamp != null &&
@@ -863,28 +941,30 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                 })
                 .collect(Collectors.toList());
 
-        logger.info("Attempting to GC {} pods: {} past deletion timestamp timeout", podsPastDeletionTimestampTimeout.size(),
-                podsPastDeletionTimestampTimeout);
-        for (V1Pod pod : podsPastDeletionTimestampTimeout) {
+        logger.info("Attempting to GC {} pods: {} past deletion timestamp", podsPastDeletionTimestampToGc.size(),
+                podsPastDeletionTimestampToGc);
+        podsPastDeletionTimestampToGcGauge.set(podsPastDeletionTimestampToGc.size());
+        for (V1Pod pod : podsPastDeletionTimestampToGc) {
             gcPod(pod);
         }
-        logger.info("Finished pods past deletion timestamp timeout GC");
+        logger.info("Finished pods past deletion timestamp GC");
     }
 
     /**
      * GC pods in Pending phase with a deletion timestamp.
      */
     private void gcPendingPodsWithDeletionTimestamp(List<V1Pod> pods) {
-        List<V1Pod> pendingPodsWithDeletionTimestamp = pods.stream()
+        List<V1Pod> pendingPodsWithDeletionTimestampToGc = pods.stream()
                 .filter(p -> {
                     DateTime deletionTimestamp = p.getMetadata().getDeletionTimestamp();
                     return p.getStatus().getPhase().equalsIgnoreCase(PENDING) && deletionTimestamp != null;
                 })
                 .collect(Collectors.toList());
 
-        logger.info("Attempting to GC {} pending pods: {} with deletion timestamp", pendingPodsWithDeletionTimestamp.size(),
-                pendingPodsWithDeletionTimestamp);
-        for (V1Pod pod : pendingPodsWithDeletionTimestamp) {
+        logger.info("Attempting to GC {} pending pods: {} with deletion timestamp", pendingPodsWithDeletionTimestampToGc.size(),
+                pendingPodsWithDeletionTimestampToGc);
+        pendingPodsWithDeletionTimestampToGcGauge.set(pendingPodsWithDeletionTimestampToGc.size());
+        for (V1Pod pod : pendingPodsWithDeletionTimestampToGc) {
             gcPod(pod);
             publishContainerEvent(pod.getMetadata().getName(), Finished, REASON_TASK_KILLED, "", Optional.empty());
         }
@@ -901,15 +981,29 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                 .filter(t -> shouldTaskBeInApiServer(t) && !currentPodNames.contains(t.getId()))
                 .collect(Collectors.toList());
 
-        logger.info("Attempting to transition {} orphaned tasks: {}", tasksNotInApiServer.size(), tasksNotInApiServer);
+        List<Task> orphanedTasksToKilled = new ArrayList<>();
+        List<Task> orphanedTasksToLost = new ArrayList<>();
         for (Task task : tasksNotInApiServer) {
             if (task.getStatus().getState().equals(KillInitiated)) {
-                publishContainerEvent(task.getId(), Finished, REASON_TASK_KILLED, "", Optional.empty());
+                orphanedTasksToKilled.add(task);
             } else {
-                publishContainerEvent(task.getId(), Finished, REASON_TASK_LOST, "Task lost between control plane and machine", Optional.empty());
+                orphanedTasksToLost.add(task);
             }
         }
-        logger.info("Finished orphaned tasks transitions");
+
+        logger.info("Attempting to transition {} orphaned tasks to finished (killed): {}", orphanedTasksToKilled.size(), orphanedTasksToKilled);
+        orphanedTasksToKilledGauge.set(orphanedTasksToKilled.size());
+        for (Task task : orphanedTasksToKilled) {
+            publishContainerEvent(task.getId(), Finished, REASON_TASK_KILLED, "", Optional.empty());
+        }
+        logger.info("Finished orphaned task transitions to finished (killed)");
+
+        logger.info("Attempting to transition {} orphaned tasks to finished (lost): {}", orphanedTasksToLost.size(), orphanedTasksToLost);
+        orphanedTasksToLostGauge.set(orphanedTasksToLost.size());
+        for (Task task : orphanedTasksToLost) {
+            publishContainerEvent(task.getId(), Finished, REASON_TASK_LOST, "Task lost between control plane and machine", Optional.empty());
+        }
+        logger.info("Finished orphaned task transitions to finished (lost)");
     }
 
     private boolean isPodPhaseTerminal(String phase) {
