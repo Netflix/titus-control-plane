@@ -38,6 +38,7 @@ import com.netflix.titus.common.framework.simplereconciler.SimpleReconcilerEvent
 import com.netflix.titus.common.framework.simplereconciler.internal.transaction.Transaction;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.Evaluators;
+import com.netflix.titus.common.util.closeable.CloseableReference;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.time.Clock;
 import org.slf4j.Logger;
@@ -60,7 +61,8 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
     private final Function<DATA, List<Mono<Function<DATA, DATA>>>> reconcilerActionsProvider;
     private final long quickCycleMs;
     private final long longCycleMs;
-    private final Scheduler notificationScheduler;
+    private final CloseableReference<Scheduler> reconcilerSchedulerRef;
+    private final CloseableReference<Scheduler> notificationSchedulerRef;
     private final Clock clock;
     private final TitusRuntime titusRuntime;
 
@@ -81,21 +83,23 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
     private final MonoProcessor<Void> closedProcessor = MonoProcessor.create();
 
     public DefaultManyReconciler(
+            String name,
             Duration quickCycle,
             Duration longCycle,
             Function<DATA, List<Mono<Function<DATA, DATA>>>> reconcilerActionsProvider,
-            Scheduler reconcilerScheduler,
-            Scheduler notificationScheduler,
+            CloseableReference<Scheduler> reconcilerSchedulerRef,
+            CloseableReference<Scheduler> notificationSchedulerRef,
             TitusRuntime titusRuntime) {
         this.quickCycleMs = quickCycle.toMillis();
         this.longCycleMs = longCycle.toMillis();
         this.reconcilerActionsProvider = reconcilerActionsProvider;
-        this.notificationScheduler = notificationScheduler;
+        this.reconcilerSchedulerRef = reconcilerSchedulerRef;
+        this.notificationSchedulerRef = notificationSchedulerRef;
         this.clock = titusRuntime.getClock();
         this.titusRuntime = titusRuntime;
 
-        this.reconcilerWorker = reconcilerScheduler.createWorker();
-        this.metrics = new ReconcilerExecutorMetrics(titusRuntime);
+        this.reconcilerWorker = reconcilerSchedulerRef.get().createWorker();
+        this.metrics = new ReconcilerExecutorMetrics(name, titusRuntime);
 
         eventProcessor = DirectProcessor.create();
 
@@ -104,8 +108,8 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
         eventStream = eventProcessor
                 .compose(ReactorExt.head(() -> Collections.singleton(buildSnapshot())))
                 .compose(ReactorExt.badSubscriberHandler(logger))
-                .subscribeOn(notificationScheduler)
-                .publishOn(notificationScheduler);
+                .subscribeOn(notificationSchedulerRef.get())
+                .publishOn(notificationSchedulerRef.get());
 
         doSchedule(0);
     }
@@ -124,7 +128,7 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
                     sink.error(EXCEPTION_CLOSED);
                 }
             }
-        }).publishOn(notificationScheduler);
+        }).publishOn(notificationSchedulerRef.get());
     }
 
     @Override
@@ -144,14 +148,19 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
                     executor.close();
                 }
             }
-        }).publishOn(notificationScheduler);
+        }).publishOn(notificationSchedulerRef.get());
     }
 
     @Override
     public Mono<Void> close() {
         return Mono.defer(() -> {
             stateRef.compareAndSet(ReconcilerState.Running, ReconcilerState.Closing);
-            return closedProcessor;
+
+            return closedProcessor.doFinally(signal -> {
+                reconcilerSchedulerRef.close();
+                // TODO There may be pending notifications, so we have to delay the actual close. There must be a better solution than timer.
+                notificationSchedulerRef.get().createWorker().schedule(notificationSchedulerRef::close, 5_000, TimeUnit.MILLISECONDS);
+            });
         });
     }
 
@@ -192,7 +201,7 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
                     sink.error(EXCEPTION_CLOSED);
                 }
             }
-        }).publishOn(notificationScheduler);
+        }).publishOn(notificationSchedulerRef.get());
     }
 
     private void doSchedule(long delayMs) {
@@ -253,6 +262,7 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
             stateRef.set(ReconcilerState.Closed);
             eventProcessor.onError(EXCEPTION_CLOSED);
             closedProcessor.onComplete();
+            metrics.shutdown();
         }
 
         return stateRef.get() == ReconcilerState.Closed;
@@ -323,6 +333,7 @@ public class DefaultManyReconciler<DATA> implements ManyReconciler<DATA> {
                 Optional<Runnable> runnable = executor.tryToClose();
                 if (executor.getState() == ReconcilerState.Closed) {
                     it.remove();
+                    metrics.remove(executor.getId());
 
                     // This is the very last action, so we can take safely the next transaction id without progressing it.
                     eventProcessor.onNext(Collections.singletonList(

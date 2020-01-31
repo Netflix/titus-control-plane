@@ -66,7 +66,7 @@ public class DefaultOneOffReconciler<DATA> implements OneOffReconciler<DATA> {
         this.clock = titusRuntime.getClock();
         this.titusRuntime = titusRuntime;
 
-        this.metrics = new ReconcilerExecutorMetrics(titusRuntime);
+        this.metrics = new ReconcilerExecutorMetrics(id, titusRuntime);
         this.executor = new ReconcilerEngine<>(id, initial, reconcilerActionsProvider, metrics, titusRuntime);
 
         eventProcessor.onNext(initial);
