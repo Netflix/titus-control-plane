@@ -26,7 +26,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.StringExt;
@@ -60,7 +59,9 @@ public class PaginationEvaluator<T> {
     }
 
     public PageResult<T> takePage(Page page, List<T> items) {
-        Preconditions.checkArgument(page.getPageSize() >= 0, "Page size must be >= 0");
+        if (page.getPageSize() < 0) {
+            throw PaginationException.badPageSize(page.getPageSize());
+        }
 
         if (page.getPageSize() == 0) {
             return takeEmptyPage(page, items);
@@ -172,17 +173,27 @@ public class PaginationEvaluator<T> {
     }
 
     private static Pair<String, Long> decode(String encoded) {
-        String decoded = new String(Base64.getDecoder().decode(encoded.getBytes()));
+        String decoded;
+        try {
+            decoded = new String(Base64.getDecoder().decode(encoded.getBytes()));
+        } catch (Exception e) {
+            throw PaginationException.badCursor(encoded);
+        }
 
         Matcher matcher = CURSOR_RE.matcher(decoded);
-        if (!matcher.matches()) {
-            throw new IllegalArgumentException(
-                    String.format("Not a valid cursor value: encoded=%s, decoded=%s", encoded, decoded)
-            );
+
+        boolean matches = matcher.matches();
+        if (!matches) {
+            throw PaginationException.badCursor(encoded, decoded);
         }
 
         String jobId = matcher.group(1);
-        long timestamp = Long.parseLong(matcher.group(2));
+        long timestamp;
+        try {
+            timestamp = Long.parseLong(matcher.group(2));
+        } catch (NumberFormatException e) {
+            throw PaginationException.badCursor(encoded, decoded);
+        }
 
         return Pair.of(jobId, timestamp);
     }

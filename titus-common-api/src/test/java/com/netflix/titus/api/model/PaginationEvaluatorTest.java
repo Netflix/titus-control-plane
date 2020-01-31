@@ -66,12 +66,12 @@ public class PaginationEvaluatorTest {
         paginateThroughAllRemainingPages(page, items.subList(50, items.size()));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = PaginationException.class)
     public void testPaginationWithBadPageSize() {
         PAGINATION_EVALUATOR.takePage(FIRST_PAGE.toBuilder().withPageSize(-1).build(), PaginableItems.items(2));
     }
 
-    @Test(expected = IllegalArgumentException.class)
+    @Test(expected = PaginationException.class)
     public void testPaginationWithBadCursor() {
         PAGINATION_EVALUATOR.takePage(FIRST_PAGE.toBuilder().withCursor("badCursor").build(), PaginableItems.items(2));
     }
