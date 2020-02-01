@@ -5162,8 +5162,9 @@
             ]
         },
         "org.springframework:spring-webmvc": {
-            "locked": "5.1.5.RELEASE",
+            "locked": "5.1.13.RELEASE",
             "transitive": [
+                "com.netflix.titus:titus-common-server",
                 "org.springframework.boot:spring-boot-starter-web"
             ]
         },
@@ -7258,8 +7259,9 @@
             ]
         },
         "org.springframework:spring-webmvc": {
-            "locked": "5.1.5.RELEASE",
+            "locked": "5.1.13.RELEASE",
             "transitive": [
+                "com.netflix.titus:titus-common-server",
                 "org.springframework.boot:spring-boot-starter-web"
             ]
         },
@@ -9355,8 +9357,9 @@
             ]
         },
         "org.springframework:spring-webmvc": {
-            "locked": "5.1.5.RELEASE",
+            "locked": "5.1.13.RELEASE",
             "transitive": [
+                "com.netflix.titus:titus-common-server",
                 "org.springframework.boot:spring-boot-starter-web"
             ]
         },
@@ -11452,8 +11455,9 @@
             ]
         },
         "org.springframework:spring-webmvc": {
-            "locked": "5.1.5.RELEASE",
+            "locked": "5.1.13.RELEASE",
             "transitive": [
+                "com.netflix.titus:titus-common-server",
                 "org.springframework.boot:spring-boot-starter-web"
             ]
         },
