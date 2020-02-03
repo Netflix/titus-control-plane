@@ -39,6 +39,22 @@ public interface CloseableReference<T> extends AutoCloseable {
         return new Builder<>();
     }
 
+    static <T> CloseableReference<T> referenceOf(T value) {
+        return CloseableReference.<T>newBuilder()
+                .withResource(value)
+                .withCloseAction(() -> {
+                    // nothing
+                })
+                .build();
+    }
+
+    static <T> CloseableReference<T> referenceOf(T value, Consumer<T> closeAction) {
+        return CloseableReference.<T>newBuilder()
+                .withResource(value)
+                .withCloseAction(() -> closeAction.accept(value))
+                .build();
+    }
+
     class Builder<T> {
 
         private static final Runnable NO_OP_ON_SUCCESS = () -> {

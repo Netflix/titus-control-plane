@@ -22,12 +22,15 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 
+import com.google.common.base.Preconditions;
 import com.netflix.titus.common.annotation.Experimental;
 import com.netflix.titus.common.framework.simplereconciler.internal.DefaultManyReconciler;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.closeable.CloseableReference;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 
 /**
  * A simple reconciliation framework that manages multiple data items. Each individual data item is processed
@@ -56,6 +59,7 @@ public interface ManyReconciler<DATA> {
 
     class Builder<DATA> {
 
+        private String name = "default";
         private Duration quickCycle;
         private Duration longCycle;
         private Function<DATA, List<Mono<Function<DATA, DATA>>>> reconcilerActionsProvider;
@@ -64,6 +68,14 @@ public interface ManyReconciler<DATA> {
         private TitusRuntime titusRuntime;
 
         private Builder() {
+        }
+
+        /**
+         * Reconciler unique name (for reporting purposes).
+         */
+        public Builder<DATA> withName(String name) {
+            this.name = name;
+            return this;
         }
 
         /**
@@ -104,12 +116,23 @@ public interface ManyReconciler<DATA> {
         }
 
         public ManyReconciler<DATA> build() {
+            Preconditions.checkNotNull(name, "Name is null");
+
+            CloseableReference<Scheduler> reconcilerSchedulerRef = reconcilerScheduler == null
+                    ? CloseableReference.referenceOf(Schedulers.newSingle("reconciler-internal-" + name, true), Scheduler::dispose)
+                    : CloseableReference.referenceOf(reconcilerScheduler);
+
+            CloseableReference<Scheduler> notificationSchedulerRef = notificationScheduler == null
+                    ? CloseableReference.referenceOf(Schedulers.newSingle("reconciler-notification-" + name, true), Scheduler::dispose)
+                    : CloseableReference.referenceOf(notificationScheduler);
+
             return new DefaultManyReconciler<>(
+                    name,
                     quickCycle,
                     longCycle,
                     reconcilerActionsProvider,
-                    reconcilerScheduler,
-                    notificationScheduler,
+                    reconcilerSchedulerRef,
+                    notificationSchedulerRef,
                     titusRuntime
             );
         }

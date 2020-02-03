@@ -28,6 +28,7 @@ import com.netflix.titus.common.framework.simplereconciler.SimpleReconcilerEvent
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.Evaluators;
+import com.netflix.titus.common.util.closeable.CloseableReference;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.testkit.rx.TitusRxSubscriber;
 import org.junit.After;
@@ -47,9 +48,6 @@ public class DefaultManyReconcilerTest {
 
     private final TitusRuntime titusRuntime = TitusRuntimes.internal();
 
-    private final Scheduler reconcilerScheduler = Schedulers.newSingle("reconciler");
-    private final Scheduler notificationScheduler = Schedulers.newSingle("notification");
-
     private DefaultManyReconciler<String> reconciler;
     private TitusRxSubscriber<List<SimpleReconcilerEvent<String>>> changesSubscriber;
 
@@ -57,7 +55,6 @@ public class DefaultManyReconcilerTest {
     public void tearDown() {
         ReactorExt.safeDispose(changesSubscriber);
         Evaluators.acceptNotNull(reconciler, r -> r.close().block(TIMEOUT));
-        ReactorExt.safeDispose(reconcilerScheduler, notificationScheduler);
     }
 
     @Test
@@ -227,12 +224,16 @@ public class DefaultManyReconcilerTest {
                                                 String... idAndInitialValuePairs) throws InterruptedException {
         Preconditions.checkArgument((idAndInitialValuePairs.length % 2) == 0, "Expected pairs of id/value");
 
+        CloseableReference<Scheduler> reconcilerSchedulerRef = CloseableReference.referenceOf(Schedulers.newSingle("reconciler"), Scheduler::dispose);
+        CloseableReference<Scheduler> notificationSchedulerRef = CloseableReference.referenceOf(Schedulers.newSingle("notification"), Scheduler::dispose);
+
         reconciler = new DefaultManyReconciler<>(
+                "junit",
                 Duration.ofMillis(1),
                 Duration.ofMillis(2),
                 reconcilerActionsProvider,
-                reconcilerScheduler,
-                notificationScheduler,
+                reconcilerSchedulerRef,
+                notificationSchedulerRef,
                 titusRuntime
         );
 

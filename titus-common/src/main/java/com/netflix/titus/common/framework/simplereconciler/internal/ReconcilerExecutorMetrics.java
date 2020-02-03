@@ -19,7 +19,6 @@ package com.netflix.titus.common.framework.simplereconciler.internal;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 
 import com.netflix.spectator.api.Gauge;
 import com.netflix.spectator.api.Id;
@@ -37,29 +36,40 @@ public class ReconcilerExecutorMetrics {
     private static final String SINCE_LAST_EVALUATION = ROOT_NAME + "sinceLastEvaluation";
 
     private final Id evaluationId;
+    private final Id sinceLastEvaluationId;
+    private final Id externalActionQueueSizeId;
 
     private final ConcurrentMap<String, Gauge> externalActionsQueueSizes = new ConcurrentHashMap<>();
-    private final AtomicLong lastEvaluationTimestamp = new AtomicLong();
+    private volatile long lastEvaluationTimestamp;
 
     private final Registry registry;
     private final Clock clock;
 
-    public ReconcilerExecutorMetrics(TitusRuntime titusRuntime) {
+    public ReconcilerExecutorMetrics(String name, TitusRuntime titusRuntime) {
         this.registry = titusRuntime.getRegistry();
         this.clock = titusRuntime.getClock();
+        this.lastEvaluationTimestamp = clock.wallTime();
 
-        this.evaluationId = registry.createId(EVALUATIONS);
-        Clock clockFinal = clock;
-        PolledMeter.using(registry).withName(SINCE_LAST_EVALUATION).monitorValue(lastEvaluationTimestamp, v -> clockFinal.wallTime() - v.get());
+        this.evaluationId = registry.createId(EVALUATIONS, "reconcilerName", name);
+        this.sinceLastEvaluationId = registry.createId(SINCE_LAST_EVALUATION, "reconcilerName", name);
+        this.externalActionQueueSizeId = registry.createId(EXTERNAL_ACTIONS_QUEUE_SIZE, "reconcilerName", name);
+
+        PolledMeter.using(registry).withId(sinceLastEvaluationId).monitorValue(this, self -> self.clock.wallTime() - self.lastEvaluationTimestamp);
     }
 
-    void close(String id) {
+    void shutdown() {
+        PolledMeter.remove(registry, sinceLastEvaluationId);
+        externalActionsQueueSizes.values().forEach(g -> g.set(0));
+        externalActionsQueueSizes.clear();
+    }
+
+    void remove(String id) {
         Evaluators.acceptNotNull(externalActionsQueueSizes.remove(id), g -> g.set(0.0));
     }
 
     void evaluated(long executionTimeNs) {
         registry.timer(evaluationId).record(executionTimeNs, TimeUnit.NANOSECONDS);
-        lastEvaluationTimestamp.set(clock.wallTime());
+        lastEvaluationTimestamp = clock.wallTime();
     }
 
     void evaluated(long executionTimeNs, Exception error) {
@@ -67,8 +77,8 @@ public class ReconcilerExecutorMetrics {
     }
 
     void updateExternalActionQueueSize(String id, int size) {
-        externalActionsQueueSizes.computeIfAbsent(id, i -> registry.gauge(
-                EXTERNAL_ACTIONS_QUEUE_SIZE, "executorId", id
-        )).set(size);
+        externalActionsQueueSizes.computeIfAbsent(id,
+                i -> registry.gauge(externalActionQueueSizeId.withTag("executorId", id))
+        ).set(size);
     }
 }
