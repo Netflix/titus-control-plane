@@ -99,6 +99,7 @@ import rx.Observable;
 import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
 
+import static com.netflix.titus.api.jobmanager.model.job.TaskState.Accepted;
 import static com.netflix.titus.api.jobmanager.model.job.TaskState.Finished;
 import static com.netflix.titus.api.jobmanager.model.job.TaskState.KillInitiated;
 import static com.netflix.titus.api.jobmanager.model.job.TaskState.Launched;
@@ -132,7 +133,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     private static final String INTERNAL_IP = "InternalIP";
     private static final Quantity DEFAULT_QUANTITY = Quantity.fromString("0");
 
-    private static final String NOT_FOUND = "Not found";
+    private static final String NOT_FOUND = "Not Found";
 
     private static final String PENDING = "Pending";
     private static final String RUNNING = "Running";
@@ -295,7 +296,9 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         } catch (JsonSyntaxException e) {
             // this is probably successful. the generated client has the wrong response type
         } catch (ApiException e) {
-            if (!e.getMessage().equalsIgnoreCase(NOT_FOUND)) {
+            if (e.getMessage().equalsIgnoreCase(NOT_FOUND) && taskKilledInAccepted(taskId)) {
+                publishContainerEvent(taskId, Finished, REASON_TASK_KILLED, "", Optional.empty());
+            } else {
                 logger.error("Failed to kill task: {} with error: ", taskId, e);
             }
         } catch (Exception e) {
@@ -1008,5 +1011,15 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
 
     private boolean isPodPhaseTerminal(String phase) {
         return SUCCEEDED.equals(phase) || FAILED.equals(phase);
+    }
+
+    private boolean taskKilledInAccepted(String taskId) {
+        Optional<Pair<Job<?>, Task>> taskJobPair = v3JobOperations.findTaskById(taskId);
+        if (!taskJobPair.isPresent()) {
+            return false;
+        }
+
+        Task task = taskJobPair.get().getRight();
+        return task.getStatus().getState() == Accepted;
     }
 }
