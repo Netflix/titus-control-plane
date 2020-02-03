@@ -24,14 +24,12 @@ import com.netflix.fenzo.TaskTrackerState;
 import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.service.AgentManagementService;
-import com.netflix.titus.common.annotation.Experimental;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 import com.netflix.titus.master.scheduler.SchedulerUtils;
 
 /**
- * Experimental constraint such that workloads can prefer a specific machine id.
+ * Constraint such that workloads can prefer a specific machine id.
  */
-@Experimental(deadline = "06/2019")
 public class MachineIdConstraint implements ConstraintEvaluator {
     public static final String NAME = "MachineIdConstraint";
 

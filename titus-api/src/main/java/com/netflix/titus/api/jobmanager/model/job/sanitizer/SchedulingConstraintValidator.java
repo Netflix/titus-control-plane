@@ -44,7 +44,7 @@ public class SchedulingConstraintValidator implements ConstraintValidator<Schedu
      * TODO Convert names to IDL defined format when job is created.
      */
     private static final Set<String> CONSTRAINT_NAMES = asSet("uniquehost", "exclusivehost", "zonebalance",
-            "activehost", "availabilityzone", "machineid", "machinetype");
+            "activehost", "availabilityzone", "machineid", "machinegroup", "machinetype", "toleration");
 
     @Target({METHOD, FIELD, ANNOTATION_TYPE, CONSTRUCTOR, PARAMETER})
     @Retention(RetentionPolicy.RUNTIME)

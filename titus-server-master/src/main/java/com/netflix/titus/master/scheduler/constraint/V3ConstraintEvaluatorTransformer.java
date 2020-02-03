@@ -44,11 +44,12 @@ import org.slf4j.LoggerFactory;
  * <li>zoneBalance</li>
  * </ul>
  * <p>
- * Experimental Constraints:
+ * Advanced Constraints:
  * <ul>
  * <li>activeHost</li>
  * <li>availabilityZone</li>
  * <li>machineId</li>
+ * <li>machineGroup</li>
  * <li>machineType</li>
  * </ul>
  */
@@ -64,11 +65,13 @@ public class V3ConstraintEvaluatorTransformer implements ConstraintEvaluatorTran
     private static final String UNIQUE_HOST = "uniquehost";
     private static final String ZONE_BALANCE = "zonebalance";
 
-    // Experimental Constraints
+    // Advanced Constraints
     private static final String ACTIVE_HOST = "activehost";
     private static final String AVAILABILITY_ZONE = "availabilityzone";
     private static final String MACHINE_ID = "machineid";
+    private static final String MACHINE_GROUP = "machinegroup";
     private static final String MACHINE_TYPE = "machinetype";
+    private static final String TOLERATION = "toleration";
 
     private final MasterConfiguration config;
     private final SchedulerConfiguration schedulerConfiguration;
@@ -111,9 +114,17 @@ public class V3ConstraintEvaluatorTransformer implements ConstraintEvaluatorTran
                 return StringExt.isNotEmpty(value)
                         ? Optional.of(new MachineIdConstraint(schedulerConfiguration, agentManagementService, value))
                         : Optional.empty();
+            case MACHINE_GROUP:
+                return StringExt.isNotEmpty(value)
+                        ? Optional.of(new MachineGroupConstraint(schedulerConfiguration, agentManagementService, value))
+                        : Optional.empty();
             case MACHINE_TYPE:
                 return StringExt.isNotEmpty(value)
                         ? Optional.of(new MachineTypeConstraint(schedulerConfiguration, agentManagementService, value))
+                        : Optional.empty();
+            case TOLERATION:
+                return StringExt.isNotEmpty(value)
+                        ? Optional.of(new TolerationConstraint(schedulerConfiguration, agentManagementService, value))
                         : Optional.empty();
         }
         logger.error("Unknown or not supported job hard constraint: {}", name);
@@ -145,9 +156,17 @@ public class V3ConstraintEvaluatorTransformer implements ConstraintEvaluatorTran
                 return StringExt.isNotEmpty(value)
                         ? Optional.of(AsSoftConstraint.get(new MachineIdConstraint(schedulerConfiguration, agentManagementService, value)))
                         : Optional.empty();
+            case MACHINE_GROUP:
+                return StringExt.isNotEmpty(value)
+                        ? Optional.of(AsSoftConstraint.get(new MachineGroupConstraint(schedulerConfiguration, agentManagementService, value)))
+                        : Optional.empty();
             case MACHINE_TYPE:
                 return StringExt.isNotEmpty(value)
                         ? Optional.of(AsSoftConstraint.get(new MachineTypeConstraint(schedulerConfiguration, agentManagementService, value)))
+                        : Optional.empty();
+            case TOLERATION:
+                return StringExt.isNotEmpty(value)
+                        ? Optional.of(AsSoftConstraint.get(new TolerationConstraint(schedulerConfiguration, agentManagementService, value)))
                         : Optional.empty();
         }
         logger.error("Unknown or not supported job hard constraint: {}", name);
