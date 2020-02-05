@@ -230,10 +230,10 @@ public class TitusMasterGrpcServer {
      */
     protected List<ServerInterceptor> createInterceptors(ServiceDescriptor serviceDescriptor) {
         List<ServerInterceptor> interceptors = new ArrayList<ServerInterceptor>();
+        interceptors.add(admissionControllerServerInterceptor);
         interceptors.add(new ErrorCatchingServerInterceptor());
         interceptors.add(leaderServerInterceptor);
         interceptors.add(new V3HeaderInterceptor());
-        interceptors.add(admissionControllerServerInterceptor);
         return GrpcFitInterceptor.appendIfFitEnabled(interceptors, titusRuntime);
     }
 }
