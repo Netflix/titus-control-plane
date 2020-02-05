@@ -195,9 +195,9 @@ public class TitusFederationGrpcServer {
      */
     protected List<ServerInterceptor> createInterceptors(ServiceDescriptor serviceDescriptor) {
         return Arrays.asList(
+                admissionController,
                 new ErrorCatchingServerInterceptor(),
-                new V3HeaderInterceptor(),
-                admissionController
+                new V3HeaderInterceptor()
         );
     }
 }
