@@ -2,7 +2,7 @@ version: 2.1
 executors:
   java:
     docker:
-      - image: circleci/openjdk:8-stretch-node-browsers-legacy
+      - image: azul/zulu-openjdk:8
 jobs:
   build:
     executor: java
@@ -12,8 +12,8 @@ jobs:
           environment:
             DEBIAN_FRONTEND: noninteractive
           command: |
-            sudo apt update
-            sudo apt install -qy ca-certificates git
+            apt update
+            apt install -qy ca-certificates git
       - checkout
       - restore_cache:
           keys:
