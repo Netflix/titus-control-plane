@@ -28,8 +28,10 @@ import com.netflix.fenzo.TaskRequest;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
+import com.netflix.titus.api.jobmanager.model.job.JobModel;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
+import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
@@ -41,7 +43,9 @@ import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.DateTimeExt;
+import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
@@ -51,6 +55,7 @@ import com.netflix.titus.master.jobmanager.service.common.action.TaskRetryers;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusChangeAction;
 import com.netflix.titus.master.jobmanager.service.common.action.TitusModelAction;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeApiServerIntegrator;
 import com.netflix.titus.master.scheduler.SchedulingService;
 import com.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransformer;
 import com.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
@@ -93,7 +98,6 @@ public class BasicTaskActions {
      */
     public static TitusChangeAction writeReferenceTaskToStore(JobStore titusStore,
                                                               SchedulingService<? extends TaskRequest> schedulingService,
-                                                              ApplicationSlaManagementService capacityGroupService,
                                                               ReconciliationEngine<JobManagerReconcilerEvent> engine,
                                                               String taskId,
                                                               TitusRuntime titusRuntime) {
@@ -229,6 +233,40 @@ public class BasicTaskActions {
                                 return Optional.of(Pair.of(newRoot, newTask));
                             });
                     return ModelActionHolder.running(modelUpdateAction);
+                });
+    }
+
+    /**
+     * Create pod for a task.
+     */
+    public static TitusChangeAction launchTaskInKube(DirectKubeApiServerIntegrator kubeApiServerIntegrator,
+                                                     Job<?> job,
+                                                     Task task) {
+        return TitusChangeAction.newAction("launchTaskInKube")
+                .task(task)
+                .trigger(V3JobOperations.Trigger.Reconciler)
+                .summary("Adding task to Kube")
+                .changeWithModelUpdate(self -> {
+                    TaskStatus taskStatus = JobModel.newTaskStatus()
+                            .withState(TaskState.Launched)
+                            .withReasonCode("scheduled")
+                            .withReasonMessage("Task added to Kube")
+                            .build();
+                    Task taskWithLaunchedState = task.toBuilder()
+                            .withStatus(taskStatus)
+                            .withStatusHistory(CollectionsExt.copyAndAdd(task.getStatusHistory(), taskStatus))
+                            .build();
+
+                    TitusModelAction modelUpdateAction = TitusModelAction.newModelUpdate(self)
+                            .summary("Creating new task entity holder")
+                            .taskMaybeUpdate(jobHolder -> {
+                                EntityHolder newTaskHolder = EntityHolder.newRoot(task.getId(), taskWithLaunchedState);
+                                EntityHolder newRoot = jobHolder.addChild(newTaskHolder);
+                                return Optional.of(Pair.of(newRoot, newTaskHolder));
+                            });
+                    ModelActionHolder modelUpdateActionHolder = ModelActionHolder.running(modelUpdateAction);
+
+                    return ReactorExt.toCompletable(kubeApiServerIntegrator.launchTask(job, task).then()).andThen(Observable.just(modelUpdateActionHolder));
                 });
     }
 }

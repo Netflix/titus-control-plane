@@ -33,9 +33,14 @@ import rx.Observable;
 class StubbedSchedulingService implements SchedulingService<TaskRequest> {
 
     private final Map<String, V3QueueableTask> queuableTasks = new HashMap<>();
+    private final boolean kubSchedulerEnabled;
 
     public HashMap<String, V3QueueableTask> getQueuableTasks() {
         return new HashMap<>(queuableTasks);
+    }
+
+    StubbedSchedulingService(boolean kubSchedulerEnabled) {
+        this.kubSchedulerEnabled = kubSchedulerEnabled;
     }
 
     @Override
@@ -45,7 +50,9 @@ class StubbedSchedulingService implements SchedulingService<TaskRequest> {
 
     @Override
     public void removeTask(String taskId) {
-        Preconditions.checkArgument(queuableTasks.containsKey(taskId));
+        if (!kubSchedulerEnabled) {
+            Preconditions.checkArgument(queuableTasks.containsKey(taskId));
+        }
         queuableTasks.remove(taskId);
     }
 

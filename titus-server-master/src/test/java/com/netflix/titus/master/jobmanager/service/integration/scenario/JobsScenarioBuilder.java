@@ -22,6 +22,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import com.netflix.fenzo.ConstraintEvaluator;
 import com.netflix.fenzo.TaskRequest;
@@ -83,9 +84,11 @@ public class JobsScenarioBuilder {
     private final FeatureActivationConfiguration featureActivationConfiguration = mock(FeatureActivationConfiguration.class);
     private final JobConfiguration jobSanitizerConfiguration = mock(JobConfiguration.class);
     private final ApplicationSlaManagementService capacityGroupService = new StubbedApplicationSlaManagementService();
-    private final StubbedSchedulingService schedulingService = new StubbedSchedulingService();
+    private final StubbedSchedulingService schedulingService;
+    private final StubbedDirectKubeApiServerIntegrator kubeApiServerIntegrator = new StubbedDirectKubeApiServerIntegrator();
     private final StubbedVirtualMachineMasterService vmService = new StubbedVirtualMachineMasterService();
     private final StubbedJobStore jobStore = new StubbedJobStore();
+    private final Predicate<JobDescriptor> kubeSchedulerPredicate;
 
     private volatile int concurrentStoreUpdateLimit = CONCURRENT_STORE_UPDATE_LIMIT;
 
@@ -97,7 +100,9 @@ public class JobsScenarioBuilder {
 
     private final ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer = mock(ConstraintEvaluatorTransformer.class);
 
-    public JobsScenarioBuilder() {
+    public JobsScenarioBuilder(boolean kubeSchedulerEnabled) {
+        this.kubeSchedulerPredicate = jobDescriptor -> kubeSchedulerEnabled;
+        this.schedulingService = new StubbedSchedulingService(kubeSchedulerEnabled);
         when(configuration.getReconcilerActiveTimeoutMs()).thenReturn(RECONCILER_ACTIVE_TIMEOUT_MS);
         when(configuration.getReconcilerIdleTimeoutMs()).thenReturn(RECONCILER_IDLE_TIMEOUT_MS);
 
@@ -114,6 +119,10 @@ public class JobsScenarioBuilder {
         jobStore.events().subscribe(storeEvents);
 
         this.jobOperations = createAndActivateV3JobOperations();
+    }
+
+    public JobsScenarioBuilder() {
+        this(false);
     }
 
     private DefaultV3JobOperations createAndActivateV3JobOperations() {
@@ -141,8 +150,10 @@ public class JobsScenarioBuilder {
         };
 
         BatchDifferenceResolver batchDifferenceResolver = new BatchDifferenceResolver(
+                kubeApiServerIntegrator,
                 configuration,
                 featureActivationConfiguration,
+                kubeSchedulerPredicate,
                 capacityGroupService,
                 schedulingService,
                 vmService,
@@ -154,8 +165,10 @@ public class JobsScenarioBuilder {
                 testScheduler
         );
         ServiceDifferenceResolver serviceDifferenceResolver = new ServiceDifferenceResolver(
+                kubeApiServerIntegrator,
                 configuration,
                 featureActivationConfiguration,
+                kubeSchedulerPredicate,
                 capacityGroupService,
                 schedulingService,
                 vmService,
@@ -240,7 +253,19 @@ public class JobsScenarioBuilder {
             jobOperations.observeJob(job.getId()).subscribe(jobEventsSubscriber);
             jobStore.events(job.getId()).subscribe(storeEventsSubscriber);
 
-            JobScenarioBuilder<?> jobScenarioBuilder = new JobScenarioBuilder<>(job.getId(), jobEventsSubscriber, storeEventsSubscriber, jobOperations, schedulingService, jobStore, vmService, titusRuntime, testScheduler);
+            JobScenarioBuilder<?> jobScenarioBuilder = new JobScenarioBuilder<>(
+                    job.getId(),
+                    kubeSchedulerPredicate.test(job.getJobDescriptor()),
+                    jobEventsSubscriber,
+                    storeEventsSubscriber,
+                    jobOperations,
+                    schedulingService,
+                    jobStore,
+                    vmService,
+                    kubeApiServerIntegrator,
+                    titusRuntime,
+                    testScheduler
+            );
             jobScenarioBuilders.add(jobScenarioBuilder);
         });
 
@@ -303,7 +328,19 @@ public class JobsScenarioBuilder {
         String jobId = jobIdRef.get();
         assertThat(jobId).describedAs("Job not created").isNotNull();
 
-        JobScenarioBuilder<E> jobScenarioBuilder = new JobScenarioBuilder<>(jobId, jobEventsSubscriber, storeEventsSubscriber, jobOperations, schedulingService, jobStore, vmService, titusRuntime, testScheduler);
+        JobScenarioBuilder<E> jobScenarioBuilder = new JobScenarioBuilder<>(
+                jobId,
+                kubeSchedulerPredicate.test(jobDescriptor),
+                jobEventsSubscriber,
+                storeEventsSubscriber,
+                jobOperations,
+                schedulingService,
+                jobStore,
+                vmService,
+                kubeApiServerIntegrator,
+                titusRuntime,
+                testScheduler
+        );
         jobScenarioBuilders.add(jobScenarioBuilder);
         jobScenario.apply(jobScenarioBuilder);
         return this;
