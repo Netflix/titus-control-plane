@@ -42,7 +42,7 @@ public class JobLoadSheddingTest extends BaseIntegrationTest {
     public final TitusMasterResource titusMasterResource = new TitusMasterResource(basicMaster(new SimulatedCloud())
             .toBuilder()
             .withProperty(GRPC_ADMISSION_CONTROLLER_CONFIGURATION_PREFIX + ".default.order", "1")
-            .withProperty(GRPC_ADMISSION_CONTROLLER_CONFIGURATION_PREFIX + ".default.shared", "true")
+            .withProperty(GRPC_ADMISSION_CONTROLLER_CONFIGURATION_PREFIX + ".default.sharedByCallers", "true")
             .withProperty(GRPC_ADMISSION_CONTROLLER_CONFIGURATION_PREFIX + ".default.callerPattern", ".*")
             .withProperty(GRPC_ADMISSION_CONTROLLER_CONFIGURATION_PREFIX + ".default.endpointPattern", ".*")
             .withProperty(GRPC_ADMISSION_CONTROLLER_CONFIGURATION_PREFIX + ".default.capacity", "1")

@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Example configuration layout:
  * default.order=100
- * default.shared=true
+ * default.sharedByCallers=true
  * default.callerPattern=.*
  * default.endpointPattern=.*
  * default.capacity=100
