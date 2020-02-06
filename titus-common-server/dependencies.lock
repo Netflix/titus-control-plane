@@ -240,13 +240,13 @@
             ]
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.8.0",
+            "locked": "3.14.6",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "com.squareup.okio:okio": {
-            "locked": "1.13.0",
+            "locked": "1.17.2",
             "transitive": [
                 "com.squareup.okhttp3:okhttp"
             ]
@@ -897,13 +897,13 @@
             ]
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.8.0",
+            "locked": "3.14.6",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "com.squareup.okio:okio": {
-            "locked": "1.13.0",
+            "locked": "1.17.2",
             "transitive": [
                 "com.squareup.okhttp3:okhttp"
             ]
@@ -1554,13 +1554,13 @@
             ]
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.8.0",
+            "locked": "3.14.6",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "com.squareup.okio:okio": {
-            "locked": "1.13.0",
+            "locked": "1.17.2",
             "transitive": [
                 "com.squareup.okhttp3:okhttp"
             ]
@@ -2275,13 +2275,13 @@
             ]
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.8.0",
+            "locked": "3.14.6",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "com.squareup.okio:okio": {
-            "locked": "1.13.0",
+            "locked": "1.17.2",
             "transitive": [
                 "com.squareup.okhttp3:okhttp"
             ]
@@ -2933,13 +2933,13 @@
             ]
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.8.0",
+            "locked": "3.14.6",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "com.squareup.okio:okio": {
-            "locked": "1.13.0",
+            "locked": "1.17.2",
             "transitive": [
                 "com.squareup.okhttp3:okhttp"
             ]
@@ -3615,13 +3615,13 @@
             "project": true
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.8.0",
+            "locked": "3.14.6",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "com.squareup.okio:okio": {
-            "locked": "1.13.0",
+            "locked": "1.17.2",
             "transitive": [
                 "com.squareup.okhttp3:okhttp"
             ]
@@ -4371,13 +4371,13 @@
             "project": true
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.8.0",
+            "locked": "3.14.6",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "com.squareup.okio:okio": {
-            "locked": "1.13.0",
+            "locked": "1.17.2",
             "transitive": [
                 "com.squareup.okhttp3:okhttp"
             ]
@@ -5127,13 +5127,13 @@
             "project": true
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.8.0",
+            "locked": "3.14.6",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "com.squareup.okio:okio": {
-            "locked": "1.13.0",
+            "locked": "1.17.2",
             "transitive": [
                 "com.squareup.okhttp3:okhttp"
             ]
@@ -5884,13 +5884,13 @@
             "project": true
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.8.0",
+            "locked": "3.14.6",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "com.squareup.okio:okio": {
-            "locked": "1.13.0",
+            "locked": "1.17.2",
             "transitive": [
                 "com.squareup.okhttp3:okhttp"
             ]

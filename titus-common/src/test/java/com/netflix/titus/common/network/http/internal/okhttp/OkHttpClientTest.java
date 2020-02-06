@@ -18,6 +18,7 @@ package com.netflix.titus.common.network.http.internal.okhttp;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.InetAddress;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
@@ -31,10 +32,11 @@ import com.netflix.titus.common.network.http.Response;
 import com.netflix.titus.common.network.http.StatusCode;
 import com.netflix.titus.common.network.http.internal.RoundRobinEndpointResolver;
 import okhttp3.Interceptor;
-import okhttp3.internal.tls.SslClient;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
+import okhttp3.tls.HandshakeCertificates;
+import okhttp3.tls.HeldCertificate;
 import org.assertj.core.api.Assertions;
 import org.junit.After;
 import org.junit.Before;
@@ -44,14 +46,16 @@ public class OkHttpClientTest {
 
     private static final String TEST_REQUEST_BODY = "Test Request Body";
     private static final String TEST_RESPONSE_BODY = "Test Response Body";
-    private MockWebServer server = new MockWebServer();
+    private MockWebServer server;
 
     @Before
     public void setUp() throws Exception {
+        server = new MockWebServer();
     }
 
     @After
     public void tearDown() throws Exception {
+        server.shutdown();
     }
 
     @Test
@@ -213,36 +217,46 @@ public class OkHttpClientTest {
 
     @Test
     public void testGetWithSslContext() throws Exception {
-        SslClient sslClient = SslClient.localhost();
-
-        MockWebServer sslServer = new MockWebServer();
-        sslServer.useHttps(sslClient.socketFactory, false);
-        String url = sslServer.url("/").toString();
-
-        MockResponse mockResponse = new MockResponse()
-                .setBody(TEST_RESPONSE_BODY)
-                .setResponseCode(StatusCode.OK.getCode());
-        sslServer.enqueue(mockResponse);
-
-        HttpClient client = OkHttpClient.newBuilder()
-                .sslContext(sslClient.sslContext)
-                .trustManager(sslClient.trustManager)
+        String localhost = InetAddress.getByName("localhost").getCanonicalHostName();
+        HeldCertificate localhostCertificate = new HeldCertificate.Builder()
+                .addSubjectAlternativeName(localhost)
+                .build();
+        HandshakeCertificates serverCertificates = new HandshakeCertificates.Builder()
+                .heldCertificate(localhostCertificate)
                 .build();
 
-        Request request = new Request.Builder()
-                .url(url)
-                .get()
-                .build();
+        try(MockWebServer sslServer = new MockWebServer()) {
+            sslServer.useHttps(serverCertificates.sslSocketFactory(), false);
+            String url = sslServer.url("/").toString();
 
-        Response response = client.execute(request);
-        Assertions.assertThat(response.isSuccessful()).isTrue();
+            MockResponse mockResponse = new MockResponse()
+                    .setBody(TEST_RESPONSE_BODY)
+                    .setResponseCode(StatusCode.OK.getCode());
+            sslServer.enqueue(mockResponse);
 
-        InputStream inputStream = response.getBody().get(InputStream.class);
-        String actualResponseBody = CharStreams.toString(new InputStreamReader(inputStream, Charsets.UTF_8));
-        Assertions.assertThat(actualResponseBody).isEqualTo(TEST_RESPONSE_BODY);
+            HandshakeCertificates clientCertificates = new HandshakeCertificates.Builder()
+                    .addTrustedCertificate(localhostCertificate.certificate())
+                    .build();
+            HttpClient client = OkHttpClient.newBuilder()
+                    .sslContext(clientCertificates.sslContext())
+                    .trustManager(clientCertificates.trustManager())
+                    .build();
 
-        RecordedRequest recordedRequest = sslServer.takeRequest(1, TimeUnit.MILLISECONDS);
-        Assertions.assertThat(recordedRequest).isNotNull();
-        Assertions.assertThat(recordedRequest.getBodySize()).isLessThanOrEqualTo(0);
+            Request request = new Request.Builder()
+                    .url(url)
+                    .get()
+                    .build();
+
+            Response response = client.execute(request);
+            Assertions.assertThat(response.isSuccessful()).isTrue();
+
+            InputStream inputStream = response.getBody().get(InputStream.class);
+            String actualResponseBody = CharStreams.toString(new InputStreamReader(inputStream, Charsets.UTF_8));
+            Assertions.assertThat(actualResponseBody).isEqualTo(TEST_RESPONSE_BODY);
+
+            RecordedRequest recordedRequest = sslServer.takeRequest(1, TimeUnit.MILLISECONDS);
+            Assertions.assertThat(recordedRequest).isNotNull();
+            Assertions.assertThat(recordedRequest.getBodySize()).isLessThanOrEqualTo(0);
+        }
     }
 }
