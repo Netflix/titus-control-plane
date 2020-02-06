@@ -40,4 +40,5 @@ dependencies {
 
     testCompile project(':titus-testkit')
     testCompile "com.squareup.okhttp3:mockwebserver:${okHttpVersion}"
+    testCompile "com.squareup.okhttp3:okhttp-tls:${okHttpVersion}"
 }
