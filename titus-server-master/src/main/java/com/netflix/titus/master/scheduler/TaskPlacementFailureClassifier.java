@@ -26,6 +26,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.netflix.fenzo.AssignmentFailure;
@@ -36,6 +37,8 @@ import com.netflix.fenzo.TaskRequest;
 import com.netflix.fenzo.VMResource;
 import com.netflix.fenzo.plugins.ExclusiveHostConstraint;
 import com.netflix.fenzo.queues.QueuableTask;
+import com.netflix.spectator.api.Id;
+import com.netflix.spectator.api.Registry;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.StringExt;
@@ -64,6 +67,9 @@ class TaskPlacementFailureClassifier<T extends TaskRequest> {
     private static final String EXCLUSIVE_HOST_CONSTRAINT_NAME = ExclusiveHostConstraint.class.getName();
 
     private final CodeInvariants invariants;
+    private final Registry registry;
+    private final Id failuresCounterId;
+    private final Function<T, Map<String, String>> tagsExtractor;
 
     private final AtomicReference<Map<FailureKind, Map<T, List<TaskPlacementFailure>>>> failuresRef = new AtomicReference<>(Collections.emptyMap());
 
@@ -76,14 +82,21 @@ class TaskPlacementFailureClassifier<T extends TaskRequest> {
             TimeUnit.MILLISECONDS
     );
 
-    TaskPlacementFailureClassifier(TitusRuntime titusRuntime) {
+    /**
+     * @param tagsExtractor what tags to add to published metrics for each failed taskRequest
+     */
+    TaskPlacementFailureClassifier(TitusRuntime titusRuntime, Function<T, Map<String, String>> tagsExtractor) {
         this.invariants = titusRuntime.getCodeInvariants();
+        this.registry = titusRuntime.getRegistry();
+        this.failuresCounterId = registry.createId("titus.scheduler.taskPlacementFailures");
+        this.tagsExtractor = tagsExtractor;
     }
 
     void update(SchedulingResult schedulingResult) {
         try {
             updateInternal(schedulingResult);
             writeToLog();
+            publishMetrics();
         } catch (Exception e) {
             invariants.unexpectedError("Unexpected error during task failure analysis", e);
         }
@@ -370,5 +383,15 @@ class TaskPlacementFailureClassifier<T extends TaskRequest> {
                 logger.info("        skipping {} remaining items", kindFailures.size() - loggedRecordCount);
             }
         }
+    }
+
+    private void publishMetrics() {
+        failuresRef.get().forEach((failureKind, failuresByRequest) ->
+                failuresByRequest.forEach((request, failures) -> {
+                    Id id = failuresCounterId.withTag("failureKind", failureKind.name())
+                            .withTags(tagsExtractor.apply(request));
+                    registry.counter(id).increment(failures.size());
+                })
+        );
     }
 }
