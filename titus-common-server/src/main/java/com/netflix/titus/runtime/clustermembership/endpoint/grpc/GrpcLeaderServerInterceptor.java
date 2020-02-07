@@ -17,8 +17,10 @@
 package com.netflix.titus.runtime.clustermembership.endpoint.grpc;
 
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import com.netflix.titus.grpc.protogen.ClusterMembershipServiceGrpc;
@@ -37,14 +39,14 @@ import io.grpc.Status;
 public class GrpcLeaderServerInterceptor implements ServerInterceptor {
 
     private final LeaderActivationStatus leaderActivationStatus;
-    private final Set<MethodDescriptor> notProtectedMethods;
+    private final Set<MethodDescriptor<?, ?>> notProtectedMethods;
 
     public GrpcLeaderServerInterceptor(LeaderActivationStatus leaderActivationStatus,
                                        List<ServiceDescriptor> notProtectedServices) {
         this.leaderActivationStatus = leaderActivationStatus;
         this.notProtectedMethods = notProtectedServices.stream()
                 .flatMap(s -> s.getMethods().stream())
-                .collect(Collectors.toSet());
+                .collect(Collectors.toCollection(() -> new TreeSet<>(new MethodDescriptorComparator())));
     }
 
     @Override
@@ -65,5 +67,13 @@ public class GrpcLeaderServerInterceptor implements ServerInterceptor {
 
     public static GrpcLeaderServerInterceptor clusterMembershipAllowed(LeaderActivationStatus leaderActivationStatus) {
         return new GrpcLeaderServerInterceptor(leaderActivationStatus, Collections.singletonList(ClusterMembershipServiceGrpc.getServiceDescriptor()));
+    }
+
+    private static class MethodDescriptorComparator implements Comparator<MethodDescriptor<?, ?>> {
+
+        @Override
+        public int compare(MethodDescriptor<?, ?> m1, MethodDescriptor<?, ?> m2) {
+            return m1.getFullMethodName().compareTo(m2.getFullMethodName());
+        }
     }
 }
