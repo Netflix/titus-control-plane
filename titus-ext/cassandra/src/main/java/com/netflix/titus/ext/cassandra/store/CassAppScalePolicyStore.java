@@ -72,6 +72,7 @@ public class CassAppScalePolicyStore implements AppScalePolicyStore {
     private final Counter updatePolicyCounter;
 
     private Session session;
+    private final CassandraStoreConfiguration config;
 
     private static String GET_ALL_JOB_IDS = "SELECT * FROM app_scale_jobs;";
     private static String GET_POLICY_BY_ID = "SELECT * FROM app_scale_policy where ref_id = ?;";
@@ -89,9 +90,10 @@ public class CassAppScalePolicyStore implements AppScalePolicyStore {
 
 
     @Inject
-    public CassAppScalePolicyStore(Session session, Registry registry) {
+    public CassAppScalePolicyStore(Session session, CassandraStoreConfiguration config, Registry registry) {
 
         this.session = session;
+        this.config = config;
         this.registry = registry;
         this.insertNewPolicyStmt = this.session.prepare(INSERT_NEW_POLICY);
         this.insertJobIdWithPolicyRefStmt = this.session.prepare(INSERT_JOB_ID_WITH_POLICY_REF_ID);
@@ -122,9 +124,9 @@ public class CassAppScalePolicyStore implements AppScalePolicyStore {
                     return refId;
                 })
                 .map(refId -> getPolicyByRefIdStmt.bind().setUUID(0, UUID.fromString(refId)).setFetchSize(Integer.MAX_VALUE))
-                .flatMap(stmt -> storeHelper.execute(stmt))
-                .flatMap(rs -> Observable.from(rs.all()))
-                .map(row -> buildAutoScalingPolicyFromRow(row))
+                .flatMap(storeHelper::execute, config.getConcurrencyLimit())
+                .flatMap(Observable::from)
+                .map(this::buildAutoScalingPolicyFromRow)
                 .map(autoScalingPolicy -> policies.putIfAbsent(autoScalingPolicy.getRefId(), autoScalingPolicy))
                 .toCompletable();
 

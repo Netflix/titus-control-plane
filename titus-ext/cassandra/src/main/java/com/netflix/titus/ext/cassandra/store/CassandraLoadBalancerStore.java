@@ -66,6 +66,8 @@ import static com.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerSan
 
 @Singleton
 public class CassandraLoadBalancerStore implements LoadBalancerStore {
+    public static final String LOAD_BALANCER_CASSANDRA_SESSION = "loadbalancer";
+
     private static Logger logger = LoggerFactory.getLogger(CassandraLoadBalancerStore.class);
 
     private static final String TABLE_LOAD_BALANCER_ASSOCIATIONS = "load_balancer_jobs";
@@ -152,7 +154,7 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
     @Inject
     public CassandraLoadBalancerStore(CassandraStoreConfiguration configuration,
                                       @Named(LOAD_BALANCER_SANITIZER) EntitySanitizer entitySanitizer,
-                                      Session session) {
+                                      @Named(LOAD_BALANCER_CASSANDRA_SESSION) Session session) {
         this.configuration = configuration;
         this.entitySanitizer = entitySanitizer;
 

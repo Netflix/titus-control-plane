@@ -44,6 +44,7 @@ import com.netflix.titus.testkit.junit.category.IntegrationNotParallelizableTest
 import org.assertj.core.api.Assertions;
 import org.cassandraunit.CassandraCQLUnit;
 import org.cassandraunit.dataset.cql.ClassPathCQLDataSet;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -51,12 +52,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 @Category(IntegrationNotParallelizableTest.class)
 public class CassAppScalePolicyStoreTest {
     private static Logger log = LoggerFactory.getLogger(CassAppScalePolicyStoreTest.class);
 
     private static final long STARTUP_TIMEOUT = 60_000L;
     private static final String CONFIGURATION_FILE_NAME = "relocated-cassandra.yaml";
+
+    private CassandraStoreConfiguration configuration;
 
     @Rule
     public CassandraCQLUnit cassandraCQLUnit = new CassandraCQLUnit(
@@ -69,6 +75,12 @@ public class CassAppScalePolicyStoreTest {
     private static String POLICY_2_ID = UUID.randomUUID().toString();
     private static String POLICY_3_ID = UUID.randomUUID().toString();
 
+
+    @Before
+    public void setup() {
+        this.configuration = mock(CassandraStoreConfiguration.class);
+        when(configuration.getConcurrencyLimit()).thenReturn(10);
+    }
 
     private void loadTestData() throws Exception {
         Session session = cassandraCQLUnit.getSession();
@@ -108,7 +120,7 @@ public class CassAppScalePolicyStoreTest {
         Session session = cassandraCQLUnit.getSession();
         loadTestData();
 
-        CassAppScalePolicyStore store = new CassAppScalePolicyStore(session, new DefaultRegistry());
+        CassAppScalePolicyStore store = new CassAppScalePolicyStore(session, configuration, new DefaultRegistry());
         store.init().await();
 
         List<AutoScalingPolicy> allPolicies = store.retrievePolicies(false).toList().toBlocking().first();
@@ -137,7 +149,7 @@ public class CassAppScalePolicyStoreTest {
     @Test
     public void checkStoreAndRetrieve() throws Exception {
         Session session = cassandraCQLUnit.getSession();
-        CassAppScalePolicyStore store = new CassAppScalePolicyStore(session, new DefaultRegistry());
+        CassAppScalePolicyStore store = new CassAppScalePolicyStore(session, configuration, new DefaultRegistry());
 
         String jobId = UUID.randomUUID().toString();
         Observable<String> respRefId = store.storePolicy(buildAutoScalingPolicy(jobId));
@@ -169,7 +181,7 @@ public class CassAppScalePolicyStoreTest {
     @Test
     public void checkUpdates() throws Exception {
         Session session = cassandraCQLUnit.getSession();
-        CassAppScalePolicyStore store = new CassAppScalePolicyStore(session, new DefaultRegistry());
+        CassAppScalePolicyStore store = new CassAppScalePolicyStore(session, configuration, new DefaultRegistry());
 
         String jobId = UUID.randomUUID().toString();
         Observable<String> respRefId = store.storePolicy(buildAutoScalingPolicy(jobId));
