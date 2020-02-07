@@ -35,6 +35,7 @@ public class DefaultSystemHardConstraint implements SystemHardConstraint {
 
     private final AgentManagementConstraint agentManagementConstraint;
     private final AgentLaunchGuardConstraint agentLaunchGuardConstraint;
+    private final AgentContainerLimitSystemConstraint agentContainerLimitSystemConstraint;
     private final SystemSelectorConstraintEvaluator systemSelectorConstraintEvaluator;
     private final IpAllocationConstraint ipAllocationConstraint;
     private final OpportunisticCpuConstraint opportunisticCpuConstraint;
@@ -44,11 +45,13 @@ public class DefaultSystemHardConstraint implements SystemHardConstraint {
     @Inject
     public DefaultSystemHardConstraint(AgentManagementConstraint agentManagementConstraint,
                                        AgentLaunchGuardConstraint agentLaunchGuardConstraint,
+                                       AgentContainerLimitSystemConstraint agentContainerLimitSystemConstraint,
                                        SystemSelectorConstraintEvaluator systemSelectorConstraintEvaluator,
                                        IpAllocationConstraint ipAllocationConstraint,
                                        OpportunisticCpuConstraint opportunisticCpuConstraint) {
         this.agentManagementConstraint = agentManagementConstraint;
         this.agentLaunchGuardConstraint = agentLaunchGuardConstraint;
+        this.agentContainerLimitSystemConstraint = agentContainerLimitSystemConstraint;
         this.systemSelectorConstraintEvaluator = systemSelectorConstraintEvaluator;
         this.ipAllocationConstraint = ipAllocationConstraint;
         this.opportunisticCpuConstraint = opportunisticCpuConstraint;
@@ -59,6 +62,7 @@ public class DefaultSystemHardConstraint implements SystemHardConstraint {
         this.delegate = new CompositeSystemConstraint(asList(
                 agentManagementConstraint,
                 agentLaunchGuardConstraint,
+                agentContainerLimitSystemConstraint,
                 systemSelectorConstraintEvaluator,
                 ipAllocationConstraint,
                 opportunisticCpuConstraint

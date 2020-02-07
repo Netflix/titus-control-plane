@@ -55,6 +55,11 @@ public class TaskPlacementFailure {
         LaunchGuard,
 
         /**
+         * Task not launched on an agent, as it runs the maximum allowed number of containers.
+         */
+        AgentContainerLimit,
+
+        /**
          * Task not launched due to job hard constraint. It has lower priority than the previous failure kinds.
          */
         JobHardConstraint,

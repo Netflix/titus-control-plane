@@ -78,6 +78,12 @@ public interface SchedulerConfiguration {
     int getMaxLaunchingTasksPerMachine();
 
     /**
+     * @return the maximum number of tasks per machine.
+     */
+    @DefaultValue("120")
+    int getMaxTasksPerMachine();
+
+    /**
      * Option used by component {@link TitusNetworkInterfaceFitnessEvaluator}.
      *
      * @return whether or not to use the default fenzo network interface allocation strategy.
