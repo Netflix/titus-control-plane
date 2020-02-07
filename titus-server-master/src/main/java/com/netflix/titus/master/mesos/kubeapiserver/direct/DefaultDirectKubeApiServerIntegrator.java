@@ -16,14 +16,19 @@
 
 package com.netflix.titus.master.mesos.kubeapiserver.direct;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.common.util.guice.annotation.Activator;
@@ -41,6 +46,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
+import reactor.core.scheduler.Schedulers;
 
 import static com.netflix.titus.master.mesos.kubeapiserver.KubeUtil.createSharedInformerFactory;
 
@@ -62,6 +69,9 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
 
     private final ConcurrentMap<String, V1Pod> pods = new ConcurrentHashMap<>();
 
+    private final ExecutorService apiClientExecutor;
+    private final Scheduler apiClientScheduler;
+
     @Inject
     public DefaultDirectKubeApiServerIntegrator(DirectKubeConfiguration configuration,
                                                 ApiClient apiClient,
@@ -70,6 +80,13 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
         this.apiClient = apiClient;
         this.coreV1Api = new CoreV1Api(apiClient);
         this.taskToPodConverter = taskToPodConverter;
+
+        ThreadFactory threadFactory = new ThreadFactoryBuilder()
+                .setNameFormat("kube-apiclient-%s")
+                .setDaemon(true)
+                .build();
+        this.apiClientExecutor = Executors.newFixedThreadPool(configuration.getApiClientThreadPoolSize(), threadFactory);
+        this.apiClientScheduler = Schedulers.fromExecutorService(apiClientExecutor);
     }
 
     @Activator
@@ -87,6 +104,8 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
         if (sharedInformerFactory != null) {
             sharedInformerFactory.stopAllRegisteredInformers();
         }
+        apiClientScheduler.dispose();
+        apiClientExecutor.shutdown();
     }
 
     @Override
@@ -107,7 +126,7 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
                 logger.error("Unable to create pod with error:", e);
                 return Mono.error(new IllegalStateException("Unable to launch a task " + task.getId(), e));
             }
-        });
+        }).subscribeOn(apiClientScheduler).timeout(Duration.ofMillis(configuration.getKubeApiClientTimeoutMs()));
     }
 
     @Override

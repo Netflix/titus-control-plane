@@ -59,4 +59,13 @@ public interface DirectKubeConfiguration {
      */
     @DefaultValue("300000" /* 5 min */)
     long getKubeApiServerIntegratorRefreshIntervalMs();
+
+    /**
+     * Thread pool size for handling Kube apiClient calls.
+     */
+    @DefaultValue("20")
+    int getApiClientThreadPoolSize();
+
+    @DefaultValue("5000")
+    long getKubeApiClientTimeoutMs();
 }
