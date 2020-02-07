@@ -174,10 +174,11 @@ public final class JobFunctions {
         return jobDescriptor.toBuilder().withExtensions(ext).build();
     }
 
-    public static JobDescriptor<?> filterOutSanitizationAttributes(JobDescriptor<?> jobDescriptor) {
+    public static JobDescriptor<?> filterOutGeneratedAttributes(JobDescriptor<?> jobDescriptor) {
         return jobDescriptor.toBuilder().withAttributes(
                 CollectionsExt.copyAndRemoveByKey(jobDescriptor.getAttributes(),
-                        key -> key.startsWith(JobAttributes.JOB_ATTRIBUTE_SANITIZATION_PREFIX)
+                        key -> key.startsWith(JobAttributes.JOB_ATTRIBUTE_SANITIZATION_PREFIX) ||
+                                key.startsWith(JobAttributes.PREDICTION_ATTRIBUTE_PREFIX)
                 )
         ).build();
     }

@@ -17,7 +17,9 @@
 package com.netflix.titus.master.integration.v3.job;
 
 import java.util.Collections;
+import java.util.Map;
 
+import com.google.common.collect.ImmutableMap;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.common.util.CollectionsExt;
@@ -57,11 +59,21 @@ public class JobAttributesTest extends BaseIntegrationTest {
     @Test(timeout = TEST_TIMEOUT_MS)
     public void testIgnoreTitusAttributesFromInput() throws Exception {
         JobDescriptor<ServiceJobExt> job = oneTaskServiceJobDescriptor().but(jd ->
-                jd.toBuilder().withAttributes(CollectionsExt.copyAndAdd(jd.getAttributes(), "titus.sanitization.something", "foo"))
+                jd.toBuilder().withAttributes(CollectionsExt.copyAndAdd(
+                        jd.getAttributes(),
+                        ImmutableMap.<String, String>builder()
+                                .put("titus.sanitization.something", "foo")
+                                .put("titus.runtimePrediction.anything", "bar")
+                                .build()
+                ))
         );
         jobsScenarioBuilder.schedule(job, jobScenarioBuilder -> jobScenarioBuilder
                 .template(ScenarioTemplates.jobAccepted())
-                .assertJob(j -> !j.getJobDescriptor().getAttributes().containsKey("titus.sanitization.something"))
+                .assertJob(j -> {
+                    Map<String, String> attributes = ((JobDescriptor<?>) j.getJobDescriptor()).getAttributes();
+                    return !attributes.containsKey("titus.sanitization.something") &&
+                            !attributes.containsKey("titus.runtimePrediction.anything");
+                })
         );
     }
 

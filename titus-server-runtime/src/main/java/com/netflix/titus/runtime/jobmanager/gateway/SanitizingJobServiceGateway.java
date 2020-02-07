@@ -19,10 +19,10 @@ package com.netflix.titus.runtime.jobmanager.gateway;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Capacity;
 import com.netflix.titus.api.jobmanager.model.job.CapacityAttributes;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.model.sanitizer.ValidationError;
@@ -61,7 +61,9 @@ public class SanitizingJobServiceGateway extends JobServiceGatewayDelegate {
     public Observable<String> createJob(JobDescriptor jobDescriptor, CallMetadata callMetadata) {
         com.netflix.titus.api.jobmanager.model.job.JobDescriptor coreJobDescriptor;
         try {
-            coreJobDescriptor = JobFunctions.filterOutSanitizationAttributes(GrpcJobManagementModelConverters.toCoreJobDescriptor(jobDescriptor));
+            coreJobDescriptor = JobFunctions.filterOutGeneratedAttributes(
+                    GrpcJobManagementModelConverters.toCoreJobDescriptor(jobDescriptor)
+            );
         } catch (Exception e) {
             return Observable.error(TitusServiceException.invalidArgument(e));
         }
