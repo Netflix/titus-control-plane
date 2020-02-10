@@ -175,9 +175,13 @@ public class SchedulerUtils {
 
     public static Map<String, String> applicationAndCapacityGroupTags(V3QueueableTask task) {
         JobDescriptor<?> jobDescriptor = task.getJob().getJobDescriptor();
+        int tierNumber = task.getQAttributes().getTierNumber();
+        String tier = tierNumber >= 0 && tierNumber < Tier.values().length ?
+                Tier.values()[tierNumber].name().toLowerCase() : "unknown";
         return ImmutableMap.<String, String>builder()
                 .put("applicationName", jobDescriptor.getApplicationName())
                 .put("capacityGroup", jobDescriptor.getCapacityGroup())
+                .put("tier", tier)
                 .build();
     }
 }
