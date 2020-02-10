@@ -137,9 +137,11 @@ public class RelocationPredicates {
         return checkRelocationAttribute(agentInstance.getAttributes());
     }
 
+    /**
+     * Please, note that {@link RelocationAttributes#RELOCATION_REQUIRED} is not supported at the instance group level.
+     */
     public static boolean isRelocationRequired(AgentInstanceGroup instanceGroup) {
-        return instanceGroup.getLifecycleStatus().getState() == InstanceGroupLifecycleState.Removable
-                || checkRelocationAttribute(instanceGroup.getAttributes());
+        return instanceGroup.getLifecycleStatus().getState() == InstanceGroupLifecycleState.Removable;
     }
 
     private static boolean isRelocationRequiredImmediately(AgentInstance agentInstance) {
