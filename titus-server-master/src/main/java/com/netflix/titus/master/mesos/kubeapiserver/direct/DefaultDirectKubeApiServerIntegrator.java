@@ -22,15 +22,14 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.ExecutorsExt;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodEvent;
 import io.kubernetes.client.ApiClient;
@@ -75,17 +74,14 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
     @Inject
     public DefaultDirectKubeApiServerIntegrator(DirectKubeConfiguration configuration,
                                                 ApiClient apiClient,
-                                                TaskToPodConverter taskToPodConverter) {
+                                                TaskToPodConverter taskToPodConverter,
+                                                TitusRuntime titusRuntime) {
         this.configuration = configuration;
         this.apiClient = apiClient;
         this.coreV1Api = new CoreV1Api(apiClient);
         this.taskToPodConverter = taskToPodConverter;
 
-        ThreadFactory threadFactory = new ThreadFactoryBuilder()
-                .setNameFormat("kube-apiclient-%s")
-                .setDaemon(true)
-                .build();
-        this.apiClientExecutor = Executors.newFixedThreadPool(configuration.getApiClientThreadPoolSize(), threadFactory);
+        this.apiClientExecutor = ExecutorsExt.instrumentedFixedSizeThreadPool(titusRuntime.getRegistry(), "kube-apiclient", configuration.getApiClientThreadPoolSize());
         this.apiClientScheduler = Schedulers.fromExecutorService(apiClientExecutor);
     }
 
