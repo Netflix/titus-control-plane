@@ -122,7 +122,9 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
 
     private static final String ATTRIBUTE_PREFIX = "com.netflix.titus.agent.attribute/";
     private static final String KUBERNETES_NAMESPACE = "default";
-    private static final String CLIENT_METRICS_PREFIX = "titusMaster.mesos.kubeApiServerIntegration";
+
+    public static final String CLIENT_METRICS_PREFIX = "titusMaster.mesos.kubeApiServerIntegration";
+
     private static final long POD_TERMINATION_GRACE_PERIOD_SECONDS = 600L;
     private static final int POD_TERMINATION_GC_TIMEOUT_MS = 1_800_000;
     private static final int DELETE_GRACE_PERIOD_SECONDS = 300;

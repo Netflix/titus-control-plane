@@ -43,6 +43,7 @@ public interface V3JobOperations extends ReadOnlyJobOperations {
         Scheduler,
         TaskMigration,
         Eviction,
+        Kube,
     }
 
     /**

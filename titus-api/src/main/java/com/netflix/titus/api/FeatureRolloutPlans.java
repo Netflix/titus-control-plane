@@ -69,4 +69,11 @@ public interface FeatureRolloutPlans {
             description = "Allows publishing of job activity events"
     )
     String JOB_ACTIVITY_PUBLISH_FEATURE = "jobActivityPublishFeature";
+
+    @FeatureRollout(
+            featureId = "kubeSchedulerFeature",
+            deadline = "06/30/2020",
+            description = "Integrate Kube scheduler"
+    )
+    String KUBE_SCHEDULER_FEATURE = "kubeSchedulerFeature";
 }

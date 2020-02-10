@@ -16,14 +16,17 @@
 
 package com.netflix.titus.master.jobmanager.service;
 
+import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.inject.AbstractModule;
+import com.google.inject.Injector;
 import com.google.inject.Key;
 import com.google.inject.Provides;
 import com.google.inject.TypeLiteral;
 import com.google.inject.name.Names;
 import com.netflix.archaius.ConfigProxyFactory;
+import com.netflix.titus.api.FeatureActivationConfiguration;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine.DifferenceResolver;
@@ -34,8 +37,12 @@ import com.netflix.titus.master.jobmanager.service.limiter.JobSubmitLimiter;
 import com.netflix.titus.master.jobmanager.service.service.ServiceDifferenceResolver;
 import com.netflix.titus.master.mesos.DefaultV3TaskInfoRequestFactory;
 import com.netflix.titus.master.mesos.TaskInfoRequestFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class V3JobManagerModule extends AbstractModule {
+
+    private static final Logger logger = LoggerFactory.getLogger(V3JobManagerModule.class);
 
     private static final TypeLiteral<DifferenceResolver<JobManagerReconcilerEvent>> JOB_DIFFERENCE_RESOLVER =
             new TypeLiteral<DifferenceResolver<JobManagerReconcilerEvent>>() {
@@ -51,6 +58,7 @@ public class V3JobManagerModule extends AbstractModule {
         bind(JobSubmitLimiter.class).to(DefaultJobSubmitLimiter.class);
 
         bind(TaskInfoRequestFactory.class).to(DefaultV3TaskInfoRequestFactory.class);
+        bind(KubeNotificationProcessorInitializer.class).asEagerSingleton();
 
         bind(JobAndTaskMetrics.class).asEagerSingleton();
     }
@@ -59,5 +67,20 @@ public class V3JobManagerModule extends AbstractModule {
     @Singleton
     public JobManagerConfiguration getJobManagerConfiguration(ConfigProxyFactory factory) {
         return factory.newProxy(JobManagerConfiguration.class);
+    }
+
+    @Singleton
+    private static class KubeNotificationProcessorInitializer {
+
+        @Inject
+        public KubeNotificationProcessorInitializer(FeatureActivationConfiguration configuration,
+                                                    Injector injector) {
+            if (configuration.isKubeSchedulerEnabled()) {
+                logger.info("Kube-scheduler enabled: starting KubeNotificationProcessor...");
+                injector.getInstance(KubeNotificationProcessor.class);
+            } else {
+                logger.info("Kube-scheduler disabled: not starting KubeNotificationProcessor");
+            }
+        }
     }
 }

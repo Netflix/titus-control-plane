@@ -48,4 +48,10 @@ public interface FeatureActivationConfiguration {
      */
     @DefaultValue("true")
     boolean isOpportunisticResourcesSchedulingEnabled();
+
+    /**
+     * Set to true to enable Kube scheduler integration.
+     */
+    @DefaultValue("false")
+    boolean isKubeSchedulerEnabled();
 }

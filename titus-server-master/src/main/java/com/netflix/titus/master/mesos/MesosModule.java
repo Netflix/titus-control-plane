@@ -24,22 +24,38 @@ import com.google.inject.Injector;
 import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.runtime.health.guice.HealthModule;
+import com.netflix.titus.api.FeatureActivationConfiguration;
 import com.netflix.titus.common.framework.scheduler.LocalScheduler;
 import com.netflix.titus.common.framework.scheduler.internal.DefaultLocalScheduler;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeApiServerIntegrator;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeOpportunisticResourceProvider;
+import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.DefaultDirectKubeApiServerIntegrator;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.DefaultTaskToPodConverter;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeApiServerIntegrator;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeConfiguration;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.NoOpDirectKubeApiServerIntegrator;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.TaskToPodConverter;
 import com.netflix.titus.master.mesos.resolver.DefaultMesosMasterResolver;
 import com.netflix.titus.master.scheduler.opportunistic.NoOpportunisticCpus;
 import com.netflix.titus.master.scheduler.opportunistic.OpportunisticCpuAvailabilityProvider;
+import io.kubernetes.client.ApiClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.scheduler.Schedulers;
 
 public class MesosModule extends AbstractModule {
+
+    private static final Logger logger = LoggerFactory.getLogger(MesosModule.class);
+
     @Override
     protected void configure() {
         bind(MesosMasterResolver.class).to(DefaultMesosMasterResolver.class);
         bind(MesosSchedulerDriverFactory.class).to(StdSchedulerDriverFactory.class);
         bind(VirtualMachineMasterServiceActivator.class).asEagerSingleton();
+
+        bind(TaskToPodConverter.class).to(DefaultTaskToPodConverter.class);
 
         bind(WorkerStateMonitor.class).asEagerSingleton();
 
@@ -59,6 +75,23 @@ public class MesosModule extends AbstractModule {
 
     @Provides
     @Singleton
+    public DirectKubeConfiguration getDirectKubeConfiguration(ConfigProxyFactory factory) {
+        return factory.newProxy(DirectKubeConfiguration.class);
+    }
+
+    @Provides
+    @Singleton
+    public ApiClient getKubeApiClient(MesosConfiguration configuration, TitusRuntime titusRuntime) {
+        return KubeUtil.createApiClient(
+                configuration.getKubeApiServerUrl(),
+                KubeApiServerIntegrator.CLIENT_METRICS_PREFIX,
+                titusRuntime,
+                0L
+        );
+    }
+
+    @Provides
+    @Singleton
     public LocalScheduler getLocalScheduler(TitusRuntime titusRuntime) {
         return new DefaultLocalScheduler(Duration.ofMillis(100), Schedulers.elastic(), titusRuntime.getClock(), titusRuntime.getRegistry());
     }
@@ -71,6 +104,18 @@ public class MesosModule extends AbstractModule {
             return injector.getInstance(KubeApiServerIntegrator.class);
         }
         return injector.getInstance(VirtualMachineMasterServiceMesosImpl.class);
+    }
+
+    @Provides
+    @Singleton
+    public DirectKubeApiServerIntegrator getDirectKubeApiServerIntegrator(FeatureActivationConfiguration configuration,
+                                                                          Injector injector) {
+        if (configuration.isKubeSchedulerEnabled()) {
+            logger.info("Kube-scheduler enabled: starting DefaultDirectKubeApiServerIntegrator...");
+            return injector.getInstance(DefaultDirectKubeApiServerIntegrator.class);
+        }
+        logger.info("Kube-scheduler disabled: starting NoOpDirectKubeApiServerIntegrator...");
+        return new NoOpDirectKubeApiServerIntegrator();
     }
 
     @Provides

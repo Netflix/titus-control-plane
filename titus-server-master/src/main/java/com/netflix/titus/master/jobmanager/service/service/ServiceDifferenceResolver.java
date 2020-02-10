@@ -24,13 +24,17 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
+import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.netflix.fenzo.TaskRequest;
 import com.netflix.titus.api.FeatureActivationConfiguration;
+import com.netflix.titus.api.FeatureRolloutPlans;
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
@@ -57,6 +61,7 @@ import com.netflix.titus.master.jobmanager.service.common.action.task.KillInitia
 import com.netflix.titus.master.jobmanager.service.common.interceptor.RetryActionInterceptor;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeApiServerIntegrator;
 import com.netflix.titus.master.scheduler.SchedulingService;
 import com.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransformer;
 import com.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
@@ -78,8 +83,10 @@ import static com.netflix.titus.master.jobmanager.service.service.action.CreateO
 @Singleton
 public class ServiceDifferenceResolver implements ReconciliationEngine.DifferenceResolver<JobManagerReconcilerEvent> {
 
+    private final DirectKubeApiServerIntegrator kubeApiServerIntegrator;
     private final JobManagerConfiguration configuration;
     private final FeatureActivationConfiguration featureConfiguration;
+    private final Predicate<JobDescriptor> kubeSchedulerPredicate;
     private final ApplicationSlaManagementService capacityGroupService;
     private final SchedulingService<? extends TaskRequest> schedulingService;
     private final VirtualMachineMasterService vmService;
@@ -95,8 +102,10 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
 
     @Inject
     public ServiceDifferenceResolver(
+            DirectKubeApiServerIntegrator kubeApiServerIntegrator,
             JobManagerConfiguration configuration,
             FeatureActivationConfiguration featureConfiguration,
+            @Named(FeatureRolloutPlans.KUBE_SCHEDULER_FEATURE) Predicate<JobDescriptor> kubeSchedulerPredicate,
             ApplicationSlaManagementService capacityGroupService,
             SchedulingService<? extends TaskRequest> schedulingService,
             VirtualMachineMasterService vmService,
@@ -105,14 +114,17 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
             SystemSoftConstraint systemSoftConstraint,
             SystemHardConstraint systemHardConstraint,
             TitusRuntime titusRuntime) {
-        this(configuration, featureConfiguration, capacityGroupService, schedulingService, vmService, jobStore,
-                constraintEvaluatorTransformer, systemSoftConstraint, systemHardConstraint, titusRuntime,
-                Schedulers.computation());
+        this(kubeApiServerIntegrator, configuration, featureConfiguration, kubeSchedulerPredicate, capacityGroupService,
+                schedulingService, vmService, jobStore, constraintEvaluatorTransformer, systemSoftConstraint,
+                systemHardConstraint, titusRuntime, Schedulers.computation()
+        );
     }
 
     public ServiceDifferenceResolver(
+            DirectKubeApiServerIntegrator kubeApiServerIntegrator,
             JobManagerConfiguration configuration,
             FeatureActivationConfiguration featureConfiguration,
+            @Named(FeatureRolloutPlans.KUBE_SCHEDULER_FEATURE) Predicate<JobDescriptor> kubeSchedulerPredicate,
             ApplicationSlaManagementService capacityGroupService,
             SchedulingService<? extends TaskRequest> schedulingService,
             VirtualMachineMasterService vmService,
@@ -122,8 +134,10 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
             SystemHardConstraint systemHardConstraint,
             TitusRuntime titusRuntime,
             Scheduler scheduler) {
+        this.kubeApiServerIntegrator = kubeApiServerIntegrator;
         this.configuration = configuration;
         this.featureConfiguration = featureConfiguration;
+        this.kubeSchedulerPredicate = kubeSchedulerPredicate;
         this.capacityGroupService = capacityGroupService;
         this.schedulingService = schedulingService;
         this.vmService = vmService;
@@ -258,17 +272,25 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
         for (ServiceJobTask refTask : tasks) {
             ServiceJobTask runningTask = runningJobView.getTaskById(refTask.getId());
             if (runningTask == null) {
-                missingTasks.add(BasicTaskActions.scheduleTask(
-                        capacityGroupService,
-                        schedulingService,
-                        refJobView.getJob(),
-                        refTask,
-                        featureConfiguration::isOpportunisticResourcesSchedulingEnabled,
-                        () -> JobManagerUtil.filterActiveTaskIds(engine),
-                        constraintEvaluatorTransformer,
-                        systemSoftConstraint,
-                        systemHardConstraint
-                ));
+                if (kubeSchedulerPredicate.test(refJobView.getJob().getJobDescriptor())) {
+                    missingTasks.add(BasicTaskActions.launchTaskInKube(
+                            kubeApiServerIntegrator,
+                            refJobView.getJob(),
+                            refTask
+                    ));
+                } else {
+                    missingTasks.add(BasicTaskActions.scheduleTask(
+                            capacityGroupService,
+                            schedulingService,
+                            refJobView.getJob(),
+                            refTask,
+                            featureConfiguration::isOpportunisticResourcesSchedulingEnabled,
+                            () -> JobManagerUtil.filterActiveTaskIds(engine),
+                            constraintEvaluatorTransformer,
+                            systemSoftConstraint,
+                            systemHardConstraint
+                    ));
+                }
             }
         }
         return missingTasks;
@@ -314,7 +336,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
                 }
             } else {
                 Task task = referenceTaskHolder.getEntity();
-                actions.add(storeWriteRetryInterceptor.apply(BasicTaskActions.writeReferenceTaskToStore(jobStore, schedulingService, capacityGroupService, engine, task.getId(), titusRuntime)));
+                actions.add(storeWriteRetryInterceptor.apply(BasicTaskActions.writeReferenceTaskToStore(jobStore, schedulingService, engine, task.getId(), titusRuntime)));
             }
 
             // Both current and delayed retries are counted

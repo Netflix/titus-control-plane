@@ -31,6 +31,7 @@ import com.netflix.titus.common.util.feature.FeatureGuards;
 import static com.netflix.titus.api.FeatureRolloutPlans.ENVIRONMENT_VARIABLE_NAMES_STRICT_VALIDATION_FEATURE;
 import static com.netflix.titus.api.FeatureRolloutPlans.JOB_ACTIVITY_PUBLISH_FEATURE;
 import static com.netflix.titus.api.FeatureRolloutPlans.JOB_AUTHORIZATION_FEATURE;
+import static com.netflix.titus.api.FeatureRolloutPlans.KUBE_SCHEDULER_FEATURE;
 import static com.netflix.titus.api.FeatureRolloutPlans.SECURITY_GROUPS_REQUIRED_FEATURE;
 
 public class FeatureFlagModule extends AbstractModule {
@@ -139,5 +140,30 @@ public class FeatureFlagModule extends AbstractModule {
     @Named(JOB_ACTIVITY_PUBLISH_FEATURE)
     public FeatureGuardWhiteListConfiguration getJobActivityPublishFeatureGuardConfiguration(ConfigProxyFactory factory) {
         return factory.newProxy(FeatureGuardWhiteListConfiguration.class, "titus.features.jobManager." + JOB_ACTIVITY_PUBLISH_FEATURE);
+    }
+
+    /* *************************************************************************************************************
+     * Kube scheduler integration.
+     *
+     * This change was introduced in Q1/2020.
+     */
+
+    @Provides
+    @Singleton
+    @Named(KUBE_SCHEDULER_FEATURE)
+    public Predicate<JobDescriptor> getKubeSchedulerFeaturePredicate(@Named(KUBE_SCHEDULER_FEATURE) FeatureGuardWhiteListConfiguration configuration) {
+        return FeatureGuards.toPredicate(
+                FeatureGuards.fromField(
+                        JobDescriptor::getApplicationName,
+                        FeatureGuards.newWhiteListFromConfiguration(configuration).build()
+                )
+        );
+    }
+
+    @Provides
+    @Singleton
+    @Named(KUBE_SCHEDULER_FEATURE)
+    public FeatureGuardWhiteListConfiguration getKubeSchedulerFeatureGuardConfiguration(ConfigProxyFactory factory) {
+        return factory.newProxy(FeatureGuardWhiteListConfiguration.class, "titus.features.jobManager." + KUBE_SCHEDULER_FEATURE);
     }
 }

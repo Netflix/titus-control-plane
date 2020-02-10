@@ -73,6 +73,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
 
     private final String jobId;
+    private final boolean kubeScheduler;
+    private final StubbedDirectKubeApiServerIntegrator kubeApiServerIntegrator;
     private final TitusRuntime titusRuntime;
     private final EventHolder<JobManagerEvent<?>> jobEventsSubscriber;
     private final EventHolder<Pair<StoreEvent, ?>> storeEventsSubscriber;
@@ -87,15 +89,19 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
     private final CallMetadata callMetadata = CallMetadata.newBuilder().withCallReason("Testing call metadata").withCallerId("test").build();
 
     public JobScenarioBuilder(String jobId,
+                              boolean kubeScheduler,
                               EventHolder<JobManagerEvent<?>> jobEventsSubscriber,
                               EventHolder<Pair<StoreEvent, ?>> storeEventsSubscriber,
                               V3JobOperations jobOperations,
                               StubbedSchedulingService schedulingService,
                               StubbedJobStore jobStore,
                               StubbedVirtualMachineMasterService vmService,
+                              StubbedDirectKubeApiServerIntegrator kubeApiServerIntegrator,
                               TitusRuntime titusRuntime,
                               TestScheduler testScheduler) {
         this.jobId = jobId;
+        this.kubeScheduler = kubeScheduler;
+        this.kubeApiServerIntegrator = kubeApiServerIntegrator;
         this.titusRuntime = titusRuntime;
         this.batchJob = JobFunctions.isBatchJob(jobStore.retrieveJob(jobId).toBlocking().first());
         this.jobEventsSubscriber = jobEventsSubscriber;
@@ -113,6 +119,10 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
 
     public String getJobId() {
         return jobId;
+    }
+
+    public boolean isKubeScheduler() {
+        return kubeScheduler;
     }
 
     public JobScenarioBuilder<E> advance() {
@@ -388,9 +398,16 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
     public JobScenarioBuilder<E> expectScheduleRequest(int taskIdx, int resubmit) {
         Task task = jobStore.expectTaskInStore(jobId, taskIdx, resubmit);
 
-        assertThat(schedulingService.getQueuableTasks().get(task.getId()))
-                .describedAs("Task %s (index %d) is not scheduled yet", task.getId(), taskIdx)
-                .isNotNull();
+        if (kubeScheduler) {
+            advance();
+            assertThat(kubeApiServerIntegrator.getPods())
+                    .describedAs("Task %s (index %d) is not scheduled yet", task.getId(), taskIdx)
+                    .containsKey(task.getId());
+        } else {
+            assertThat(schedulingService.getQueuableTasks().get(task.getId()))
+                    .describedAs("Task %s (index %d) is not scheduled yet", task.getId(), taskIdx)
+                    .isNotNull();
+        }
         return this;
     }
 
