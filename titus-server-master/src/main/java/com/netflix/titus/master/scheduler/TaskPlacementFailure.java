@@ -89,7 +89,9 @@ public class TaskPlacementFailure {
          */
         public static final Set<FailureKind> IGNORED_FOR_OPPORTUNISTIC_SCHEDULING = ImmutableSet.<FailureKind>builder()
                 .addAll(TRANSIENT)
-                .add(NoActiveAgents).build();
+                .add(AgentContainerLimit)
+                .add(NoActiveAgents)
+                .build();
 
         /**
          * Failures that should never trigger cluster autoscaling

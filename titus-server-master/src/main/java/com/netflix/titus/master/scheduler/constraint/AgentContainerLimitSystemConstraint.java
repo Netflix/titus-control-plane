@@ -52,6 +52,6 @@ public class AgentContainerLimitSystemConstraint implements SystemConstraint {
     }
 
     public static boolean isAgentContainerLimitSystemConstraint(String reason) {
-        return reason != null && TOO_MANY_CONTAINERS.getFailureReason().contains(reason);
+        return reason != null && TOO_MANY_CONTAINERS.getFailureReason().equals(reason);
     }
 }
