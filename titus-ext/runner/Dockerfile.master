@@ -11,7 +11,7 @@ COPY . /usr/src/titus-control-plane
 RUN ./gradlew -PdisablePrivateRepo=true :titus-server-master:installDist
 
 
-FROM openjdk:8-jre
+FROM openjdk:8-jre-stretch
 RUN echo "deb http://repos.mesosphere.io/debian stretch main" > /etc/apt/sources.list.d/mesosphere.list
 RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv DF7D54CBE56151BF
 RUN apt-get -y update
