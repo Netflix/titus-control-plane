@@ -55,6 +55,11 @@ public class TaskPlacementFailure {
         LaunchGuard,
 
         /**
+         * Task not launched on an agent, as it runs the maximum allowed number of containers.
+         */
+        AgentContainerLimit,
+
+        /**
          * Task not launched due to job hard constraint. It has lower priority than the previous failure kinds.
          */
         JobHardConstraint,
@@ -84,7 +89,9 @@ public class TaskPlacementFailure {
          */
         public static final Set<FailureKind> IGNORED_FOR_OPPORTUNISTIC_SCHEDULING = ImmutableSet.<FailureKind>builder()
                 .addAll(TRANSIENT)
-                .add(NoActiveAgents).build();
+                .add(AgentContainerLimit)
+                .add(NoActiveAgents)
+                .build();
 
         /**
          * Failures that should never trigger cluster autoscaling
