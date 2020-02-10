@@ -21,7 +21,7 @@ RUN DEBIAN_FRONTEND=noninteractive apt-get -qy download mesos && \
     rm /var/lib/dpkg/info/mesos*.postinst -f && \
     ( dpkg --configure mesos || true )
 # install mesos dependencies
-RUN DEBIAN_FRONTEND=noninteractive apt -qy --fix-broken install
+RUN DEBIAN_FRONTEND=noninteractive apt-get -qyf install
 ENV MESOS_NATIVE_JAVA_LIBRARY=/usr/lib/libmesos.so
 COPY --from=builder /usr/src/titus-control-plane/titus-server-master/build/install/titus-server-master \
      /opt/titus-server-master
