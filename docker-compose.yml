@@ -54,7 +54,7 @@ services:
       - 1.0.0.1
 
   mesos-master:
-    image: mesosphere/mesos-master:1.2.3
+    image: mesosphere/mesos-master:1.7.1
     networks:
       - titus
     restart: always

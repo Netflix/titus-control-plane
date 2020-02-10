@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import com.google.common.collect.ImmutableMap;
 import com.netflix.fenzo.TaskRequest;
 import com.netflix.fenzo.TaskTracker;
 import com.netflix.fenzo.VirtualMachineCurrentState;
@@ -32,6 +33,7 @@ import com.netflix.fenzo.queues.QueuableTask;
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.service.AgentManagementService;
+import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.model.Tier;
@@ -169,5 +171,17 @@ public class SchedulerUtils {
         Set<String> instanceTaints = StringExt.splitByCommaIntoSet(instanceTaintsValue);
 
         return CollectionsExt.merge(instanceGroupTaints, instanceTaints);
+    }
+
+    public static Map<String, String> applicationAndCapacityGroupTags(V3QueueableTask task) {
+        JobDescriptor<?> jobDescriptor = task.getJob().getJobDescriptor();
+        int tierNumber = task.getQAttributes().getTierNumber();
+        String tier = tierNumber >= 0 && tierNumber < Tier.values().length ?
+                Tier.values()[tierNumber].name().toLowerCase() : "unknown";
+        return ImmutableMap.<String, String>builder()
+                .put("applicationName", jobDescriptor.getApplicationName())
+                .put("capacityGroup", jobDescriptor.getCapacityGroup())
+                .put("tier", tier)
+                .build();
     }
 }

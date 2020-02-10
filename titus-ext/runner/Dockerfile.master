@@ -11,17 +11,20 @@ COPY . /usr/src/titus-control-plane
 RUN ./gradlew -PdisablePrivateRepo=true :titus-server-master:installDist
 
 
-FROM openjdk:8-jre
+FROM openjdk:8-jre-stretch
 RUN echo "deb http://repos.mesosphere.io/debian stretch main" > /etc/apt/sources.list.d/mesosphere.list
-RUN apt-key adv --keyserver keyserver.ubuntu.com --recv E56151BF
+RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv DF7D54CBE56151BF
 RUN apt-get -y update
-# we don't need a full mesos install, just libmesos, so we install the dependencies it needs,
-# and unpack it to prevent postinstall scripts
-RUN DEBIAN_FRONTEND=noninteractive apt-get -qy install \
-    libcurl4 libevent-dev libsasl2-modules libcurl4-nss-dev libsvn1
-RUN cd /tmp; \
-    apt-get download mesos=1.1.3-2.0.1; \
-    dpkg --unpack mesos*.deb
+# unpack the mesos package to prevent postinstall scripts, fix its python libs location,
+# and install its dependencies manually
+RUN DEBIAN_FRONTEND=noninteractive apt-get -qy download mesos && \
+    dpkg --unpack mesos*.deb && \
+    rm -f /var/lib/dpkg/info/mesos.postinst && \
+    mkdir -p /usr/local/lib/python2.7 && \
+    mv /usr/lib/python2.7/site-packages /usr/local/lib/python2.7/dist-packages && \
+    ln -s /usr/lib/python2.7/site-packages /usr/local/lib/python2.7/dist-packages && \
+    ( dpkg --configure mesos || true ) && \
+    apt -qy --fix-broken install
 ENV MESOS_NATIVE_JAVA_LIBRARY=/usr/lib/libmesos.so
 COPY --from=builder /usr/src/titus-control-plane/titus-server-master/build/install/titus-server-master \
      /opt/titus-server-master

@@ -288,7 +288,7 @@ public class DefaultSchedulingService implements SchedulingService<V3QueueableTa
         });
 
         this.taskPlacementRecorder = new TaskPlacementRecorder(config, masterConfiguration, schedulingService, v3JobOperations, v3TaskInfoRequestFactory, opportunisticCpuCache, titusRuntime);
-        this.taskPlacementFailureClassifier = new TaskPlacementFailureClassifier<>(titusRuntime);
+        this.taskPlacementFailureClassifier = new TaskPlacementFailureClassifier<>(titusRuntime, SchedulerUtils::applicationAndCapacityGroupTags);
 
         totalTasksPerIterationGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "totalTasksPerIteration");
         assignedTasksPerIterationGauge = registry.gauge(METRIC_SCHEDULING_SERVICE + "assignedTasksPerIteration");
