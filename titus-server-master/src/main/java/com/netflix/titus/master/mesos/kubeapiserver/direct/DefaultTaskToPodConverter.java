@@ -129,12 +129,12 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
         requests.put("memory", new Quantity(String.valueOf(containerResources.getMemoryMB())));
         limits.put("memory", new Quantity(String.valueOf(containerResources.getMemoryMB())));
 
-//        requests.put("ephemeral-storage", new Quantity(String.valueOf(containerResources.getDiskMB())));
-//        limits.put("ephemeral-storage", new Quantity(String.valueOf(containerResources.getDiskMB())));
+        requests.put("ephemeral-storage", new Quantity(String.valueOf(containerResources.getDiskMB())));
+        limits.put("ephemeral-storage", new Quantity(String.valueOf(containerResources.getDiskMB())));
 
-//        requests.put("titus/network", new Quantity(String.valueOf(containerResources.getNetworkMbps())));
-//        limits.put("titus/network", new Quantity(String.valueOf(containerResources.getNetworkMbps())));
-//
+        requests.put("titus/network", new Quantity(String.valueOf(containerResources.getNetworkMbps())));
+        limits.put("titus/network", new Quantity(String.valueOf(containerResources.getNetworkMbps())));
+
 //        requests.put("titus/gpu", new Quantity(String.valueOf(containerResources.getGpu())));
 //        limits.put("titus/gpu", new Quantity(String.valueOf(containerResources.getGpu())));
 
