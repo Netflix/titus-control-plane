@@ -33,7 +33,6 @@ import javax.inject.Singleton;
 import com.netflix.spectator.api.Gauge;
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
-import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
@@ -157,7 +156,7 @@ public class JobAndTaskMetrics {
                 "tier", assignment.getLeft().name(),
                 "capacityGroup", assignment.getRight(),
                 "state", task.getStatus().getState().name(),
-                "hasPods", "" + hasPod(task)
+                "kubeScheduler", "" + JobFunctions.hasOwnedByKubeSchedulerAttribute(task)
         ).increment();
     }
 
@@ -257,7 +256,7 @@ public class JobAndTaskMetrics {
             if (JobFunctions.getJobDesiredSize(job) == 0) {
                 emptyJobs++;
             } else {
-                boolean hasPods = tasks.stream().anyMatch(this::hasPod);
+                boolean hasPods = tasks.stream().anyMatch(JobFunctions::hasOwnedByKubeSchedulerAttribute);
                 boolean serviceJob = JobFunctions.isServiceJob(job);
 
                 if (hasPods) {
@@ -280,20 +279,20 @@ public class JobAndTaskMetrics {
 
         registry.gauge(jobCountId.withTags(
                 "jobType", "service",
-                "hasPods", "true"
+                "kubeScheduler", "true"
         )).set(serviceJobsWithPods);
         registry.gauge(jobCountId.withTags(
                 "jobType", "service",
-                "hasPods", "false"
+                "kubeScheduler", "false"
         )).set(serviceJobsWithoutPods);
 
         registry.gauge(jobCountId.withTags(
                 "jobType", "batch",
-                "hasPods", "true"
+                "kubeScheduler", "true"
         )).set(batchJobsWithPods);
         registry.gauge(jobCountId.withTags(
                 "jobType", "batch",
-                "hasPods", "false"
+                "kubeScheduler", "false"
         )).set(batchJobsWithoutPods);
     }
 
@@ -303,16 +302,12 @@ public class JobAndTaskMetrics {
     private void updateTaskCounts(List<Task> tasks) {
         int tasksWithPods = 0;
         for (Task task : tasks) {
-            if (hasPod(task)) {
+            if (JobFunctions.hasOwnedByKubeSchedulerAttribute(task)) {
                 tasksWithPods++;
             }
         }
-        registry.gauge(taskCountId.withTag("hasPod", "true")).set(tasksWithPods);
-        registry.gauge(taskCountId.withTag("hasPod", "false")).set(tasks.size() - tasksWithPods);
-    }
-
-    private boolean hasPod(Task task) {
-        return Boolean.parseBoolean(task.getAttributes().get(TaskAttributes.TASK_ATTRIBUTES_POD_CREATED));
+        registry.gauge(taskCountId.withTag("kubeScheduler", "true")).set(tasksWithPods);
+        registry.gauge(taskCountId.withTag("kubeScheduler", "false")).set(tasks.size() - tasksWithPods);
     }
 
     /**

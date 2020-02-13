@@ -33,6 +33,7 @@ import javax.inject.Singleton;
 import com.netflix.fenzo.TaskRequest;
 import com.netflix.titus.api.FeatureActivationConfiguration;
 import com.netflix.titus.api.FeatureRolloutPlans;
+import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
@@ -47,6 +48,7 @@ import com.netflix.titus.common.framework.reconciler.ChangeAction;
 import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.retry.Retryers;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
@@ -257,6 +259,10 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
         }
 
         Map<String, String> taskContext = getTaskContext(previousTask, unassignedIpAllocations);
+        if (kubeSchedulerPredicate.test(refJobView.getJob().getJobDescriptor())) {
+            taskContext = CollectionsExt.copyAndAdd(taskContext, TaskAttributes.TASK_ATTRIBUTES_OWNED_BY_KUBE_SCHEDULER, "true");
+        }
+
         TitusChangeAction storeAction = storeWriteRetryInterceptor.apply(
                 createOrReplaceTaskAction(configuration, jobStore, refJobView.getJobHolder(), previousTask, clock, taskContext)
         );
@@ -272,7 +278,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
         for (ServiceJobTask refTask : tasks) {
             ServiceJobTask runningTask = runningJobView.getTaskById(refTask.getId());
             if (runningTask == null) {
-                if (kubeSchedulerPredicate.test(refJobView.getJob().getJobDescriptor())) {
+                if (JobFunctions.hasOwnedByKubeSchedulerAttribute(refTask)) {
                     missingTasks.add(BasicTaskActions.launchTaskInKube(
                             kubeApiServerIntegrator,
                             refJobView.getJob(),

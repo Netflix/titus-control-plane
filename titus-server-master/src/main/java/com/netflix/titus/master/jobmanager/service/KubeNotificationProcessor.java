@@ -41,16 +41,11 @@ import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeApiServerIntegrator;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodEvent;
 import io.kubernetes.client.models.V1ContainerState;
-import io.kubernetes.client.models.V1ContainerStateTerminated;
 import io.kubernetes.client.models.V1Pod;
-import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
-
-import static com.netflix.titus.api.jobmanager.model.job.TaskState.Finished;
-import static com.netflix.titus.api.jobmanager.model.job.TaskState.Started;
 
 /**
  * TODO Incorporate this into {@link DefaultV3JobOperations} once Fenzo is removed.
@@ -83,7 +78,14 @@ public class KubeNotificationProcessor {
                         logger.warn("Got Kube notification about unknown task: {}", event.getTaskId());
                         return Mono.empty();
                     }
-                    return handlePodUpdatedEvent(event, jobAndTask.getLeft(), jobAndTask.getRight());
+
+                    Task task = jobAndTask.getRight();
+                    if (!JobFunctions.hasOwnedByKubeSchedulerAttribute(task)) {
+                        logger.debug("Ignoring notification for task managed via Mesos adapter: taskId={}", task.getId());
+                        return Mono.empty();
+                    }
+
+                    return handlePodUpdatedEvent(event, jobAndTask.getLeft(), task);
                 })
                 .ignoreElements()
                 .doOnError(error -> logger.warn("Kube integration event stream terminated with an error (retrying soon)", error))
@@ -160,40 +162,37 @@ public class KubeNotificationProcessor {
 
     private Task fillInMissingStates(V1Pod pod, Task task) {
         TaskState currentState = task.getStatus().getState();
-        if (currentState != Finished) {
+        if (currentState != TaskState.Started && currentState != TaskState.Finished) {
             return task;
         }
 
-        Optional<V1ContainerStateTerminated> terminatedContainerStatusOpt = KubeUtil.findTerminatedContainerStatus(pod);
-        if (!terminatedContainerStatusOpt.isPresent()) {
+        V1ContainerState containerState = KubeUtil.findContainerState(pod).orElse(null);
+        if (containerState == null) {
             return task;
         }
 
-        V1ContainerStateTerminated containerStateTerminated = terminatedContainerStatusOpt.get();
-        DateTime startedAt = containerStateTerminated.getStartedAt();
-        if (startedAt == null) {
-            return task;
+        long startAtTimestamp;
+        if (currentState == TaskState.Started) {
+            if (containerState.getRunning() == null || containerState.getRunning().getStartedAt() == null) {
+                return task;
+            }
+            startAtTimestamp = containerState.getRunning().getStartedAt().getMillis();
+        } else { // TaskState.Finished
+            if (containerState.getTerminated() == null || containerState.getTerminated().getStartedAt() == null) {
+                return task;
+            }
+            startAtTimestamp = containerState.getTerminated().getStartedAt().getMillis();
         }
-
-        String taskId = task.getId();
-
-        List<TaskStatus> missingStatuses = new ArrayList<>();
 
         TaskStatus.Builder statusTemplate = TaskStatus.newBuilder()
                 .withReasonCode(TaskStatus.REASON_STATE_MISSING)
                 .withReasonMessage("Filled in")
-                .withTimestamp(startedAt.getMillis());
+                .withTimestamp(startAtTimestamp);
 
-        Optional<TaskStatus> startInitiatedOpt = JobFunctions.findTaskStatus(task, TaskState.StartInitiated);
-        if (!startInitiatedOpt.isPresent()) {
-            logger.debug("Adding missing task status: StartInitiated for task: {}", taskId);
-            missingStatuses.add(statusTemplate.withState(TaskState.StartInitiated).build());
-        }
-        Optional<TaskStatus> startedOpt = JobFunctions.findTaskStatus(task, Started);
-        if (!startedOpt.isPresent()) {
-            logger.debug("Publishing missing task status: Started for task: {}", taskId);
-            missingStatuses.add(statusTemplate.withState(Started).build());
-        }
+        List<TaskStatus> missingStatuses = new ArrayList<>();
+        addIfMissing(task, TaskState.Launched, statusTemplate).ifPresent(missingStatuses::add);
+        addIfMissing(task, TaskState.StartInitiated, statusTemplate).ifPresent(missingStatuses::add);
+        addIfMissing(task, TaskState.Started, statusTemplate).ifPresent(missingStatuses::add);
 
         if (missingStatuses.isEmpty()) {
             return task;
@@ -205,5 +204,14 @@ public class KubeNotificationProcessor {
 
         return task.toBuilder().withStatusHistory(newStatusHistory).build();
 
+    }
+
+    private Optional<TaskStatus> addIfMissing(Task task, TaskState expectedState, TaskStatus.Builder statusTemplate) {
+        Optional<TaskStatus> foundStatus = JobFunctions.findTaskStatus(task, expectedState);
+        if (!foundStatus.isPresent()) {
+            logger.debug("Adding missing task status: {} for task: {}", expectedState, task.getId());
+            return Optional.of(statusTemplate.withState(expectedState).build());
+        }
+        return Optional.empty();
     }
 }
