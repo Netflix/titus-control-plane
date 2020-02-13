@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Netflix, Inc.
+ * Copyright 2020 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,4 +22,6 @@ import io.grpc.ServiceDescriptor;
 public interface GrpcToReactorServerFactory {
 
     <REACT_SERVICE> ServerServiceDefinition apply(ServiceDescriptor serviceDefinition, REACT_SERVICE reactService);
+
+    <REACT_SERVICE> ServerServiceDefinition apply(ServiceDescriptor serviceDefinition, REACT_SERVICE reactService, Class<REACT_SERVICE> reactorDetailedFallbackClass);
 }
