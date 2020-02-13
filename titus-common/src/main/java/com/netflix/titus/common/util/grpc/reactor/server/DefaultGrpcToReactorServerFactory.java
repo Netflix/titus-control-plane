@@ -34,7 +34,7 @@ public class DefaultGrpcToReactorServerFactory<CONTEXT> implements GrpcToReactor
 
     @Override
     public <REACT_SERVICE> ServerServiceDefinition apply(ServiceDescriptor serviceDescriptor, REACT_SERVICE reactService) {
-        return apply(serviceDescriptor, reactService, null);
+        return apply(serviceDescriptor, reactService, (Class<REACT_SERVICE>) reactService.getClass());
     }
 
     @Override

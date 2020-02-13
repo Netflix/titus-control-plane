@@ -23,5 +23,10 @@ public interface GrpcToReactorServerFactory {
 
     <REACT_SERVICE> ServerServiceDefinition apply(ServiceDescriptor serviceDefinition, REACT_SERVICE reactService);
 
+    /**
+     * This method is used when the {@link REACT_SERVICE} is a CGLIB proxy and additional class details need to be provided to the factory.
+     * If the {@link REACT_SERVICE} is a CGLIB proxy class it does not retain generic type information from the proxy target class so a
+     * detailed description of the target class is needed.
+     */
     <REACT_SERVICE> ServerServiceDefinition apply(ServiceDescriptor serviceDefinition, REACT_SERVICE reactService, Class<REACT_SERVICE> reactorDetailedFallbackClass);
 }
