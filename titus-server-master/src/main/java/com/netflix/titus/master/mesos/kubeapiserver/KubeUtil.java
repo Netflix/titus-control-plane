@@ -16,6 +16,10 @@
 
 package com.netflix.titus.master.mesos.kubeapiserver;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -23,11 +27,17 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.google.common.base.Strings;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.squareup.okhttp.Request;
 import io.kubernetes.client.ApiClient;
 import io.kubernetes.client.apis.CoreV1Api;
 import io.kubernetes.client.informer.SharedInformerFactory;
+import io.kubernetes.client.models.V1ContainerState;
+import io.kubernetes.client.models.V1ContainerStateTerminated;
+import io.kubernetes.client.models.V1ContainerStatus;
+import io.kubernetes.client.models.V1Pod;
 import io.kubernetes.client.util.Config;
 
 public class KubeUtil {
@@ -75,5 +85,36 @@ public class KubeUtil {
             thread.setDaemon(true);
             return thread;
         }));
+    }
+
+    public static Optional<TitusExecutorDetails> getTitusExecutorDetails(V1Pod pod) {
+        Map<String, String> annotations = pod.getMetadata().getAnnotations();
+        if (!Strings.isNullOrEmpty(annotations.get("IpAddress"))) {
+            TitusExecutorDetails titusExecutorDetails = new TitusExecutorDetails(
+                    Collections.emptyMap(),
+                    new TitusExecutorDetails.NetworkConfiguration(
+                            Boolean.parseBoolean(annotations.getOrDefault("IsRoutableIp", "true")),
+                            annotations.getOrDefault("IpAddress", "UnknownIpAddress"),
+                            annotations.getOrDefault("EniIpAddress", "UnknownEniIpAddress"),
+                            annotations.getOrDefault("EniId", "UnknownEniId"),
+                            annotations.getOrDefault("ResourceId", "UnknownResourceId")
+                    )
+            );
+            return Optional.of(titusExecutorDetails);
+        }
+        return Optional.empty();
+    }
+
+    public static Optional<V1ContainerStateTerminated> findTerminatedContainerStatus(V1Pod pod) {
+        List<V1ContainerStatus> containerStatuses = pod.getStatus().getContainerStatuses();
+        if (containerStatuses != null) {
+            for (V1ContainerStatus status : containerStatuses) {
+                V1ContainerState state = status.getState();
+                if (state != null) {
+                    return Optional.ofNullable(state.getTerminated());
+                }
+            }
+        }
+        return Optional.empty();
     }
 }

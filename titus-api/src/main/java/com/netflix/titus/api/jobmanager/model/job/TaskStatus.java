@@ -32,6 +32,16 @@ public class TaskStatus extends ExecutableStatus<TaskState> {
     public static final String REASON_NORMAL = "normal";
 
     /**
+     * Filled in to preserve state history continuity.
+     */
+    public static final String REASON_STATE_MISSING = "filledIn";
+
+    /**
+     * Task has a pod created for it (set in the Accepted state only).
+     */
+    public static final String REASON_POD_CREATED = "podCreated";
+
+    /**
      * Job was explicitly terminated by a user.
      */
     public static final String REASON_JOB_KILLED = "killed";

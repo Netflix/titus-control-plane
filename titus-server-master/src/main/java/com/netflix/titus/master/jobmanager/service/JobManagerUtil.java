@@ -115,23 +115,27 @@ public final class JobManagerUtil {
                 return Optional.empty();
             }
 
-            final Task newTask = JobFunctions.changeTaskStatus(oldTask, newTaskStatus);
-            Task newTaskWithPlacementData = detailsOpt.map(details -> {
-                if (details.getNetworkConfiguration() != null) {
-
-                    Map<String, String> newContext = new HashMap<>(newTask.getTaskContext());
-                    BiConsumer<String, String> contextSetter = (key, value) -> StringExt.applyIfNonEmpty(value, v -> newContext.put(key, v));
-
-                    contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP, details.getNetworkConfiguration().getIpAddress());
-                    contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_ID, details.getNetworkConfiguration().getEniID());
-                    parseEniResourceId(details.getNetworkConfiguration().getResourceID()).ifPresent(index -> newContext.put(TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_INDEX, index));
-
-                    return newTask.toBuilder().addAllToTaskContext(newContext).build();
-                }
-                return newTask;
-            }).orElse(newTask);
+            Task newTask = JobFunctions.changeTaskStatus(oldTask, newTaskStatus);
+            Task newTaskWithPlacementData = attachPlacementData(newTask, detailsOpt);
             return Optional.of(newTaskWithPlacementData);
         };
+    }
+
+    public static Task attachPlacementData(Task task, Optional<TitusExecutorDetails> detailsOpt) {
+        return detailsOpt.map(details -> {
+            TitusExecutorDetails.NetworkConfiguration networkConfiguration = details.getNetworkConfiguration();
+            if (networkConfiguration != null) {
+                Map<String, String> newContext = new HashMap<>(task.getTaskContext());
+                BiConsumer<String, String> contextSetter = (key, value) -> StringExt.applyIfNonEmpty(value, v -> newContext.put(key, v));
+
+                contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP, networkConfiguration.getIpAddress());
+                contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_ID, networkConfiguration.getEniID());
+                parseEniResourceId(networkConfiguration.getResourceID()).ifPresent(index -> newContext.put(TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_INDEX, index));
+
+                return task.toBuilder().addAllToTaskContext(newContext).build();
+            }
+            return task;
+        }).orElse(task);
     }
 
     public static Optional<String> parseEniResourceId(String resourceId) {
