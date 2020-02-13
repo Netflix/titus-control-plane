@@ -41,6 +41,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Completable;
 import rx.Observable;
+import rx.schedulers.Schedulers;
 
 @Singleton
 public class CassAppScalePolicyStore implements AppScalePolicyStore {
@@ -105,7 +106,7 @@ public class CassAppScalePolicyStore implements AppScalePolicyStore {
         this.updateStatusMessageStmt = this.session.prepare(UPDATE_STATUS_MESSAGE);
         this.getAllJobIdsStmt = this.session.prepare(GET_ALL_JOB_IDS);
 
-        this.storeHelper = new CassStoreHelper(session);
+        this.storeHelper = new CassStoreHelper(session, Schedulers.io());
         this.policies = new ConcurrentHashMap<>();
         this.policyRefIdsForJob = new ConcurrentHashMap<>();
 

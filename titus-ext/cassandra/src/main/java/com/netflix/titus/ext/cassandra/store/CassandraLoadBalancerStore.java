@@ -56,6 +56,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
+import rx.schedulers.Schedulers;
 
 import static com.datastax.driver.core.querybuilder.QueryBuilder.bindMarker;
 import static com.datastax.driver.core.querybuilder.QueryBuilder.delete;
@@ -159,7 +160,7 @@ public class CassandraLoadBalancerStore implements LoadBalancerStore {
         this.entitySanitizer = entitySanitizer;
 
         this.session = session;
-        this.storeHelper = new CassStoreHelper(session);
+        this.storeHelper = new CassStoreHelper(session, Schedulers.io());
         this.loadBalancerStateMap = new ConcurrentHashMap<>();
         this.jobToAssociatedLoadBalancersMap = new ConcurrentHashMap<>();
 

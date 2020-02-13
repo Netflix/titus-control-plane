@@ -27,46 +27,49 @@ import com.datastax.driver.core.Statement;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.netflix.titus.api.jobmanager.store.JobStoreException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import rx.Emitter;
 import rx.Observable;
+import rx.Scheduler;
 
 
 public class CassStoreHelper {
-    private static Logger log = LoggerFactory.getLogger(CassStoreHelper.class);
-    private Session session;
+    private final Session session;
+    private final Scheduler scheduler;
 
-    public CassStoreHelper(Session session) {
+    /**
+     * Results from queries will have pages fetched on demand, which can block code iterating on
+     * {@link ResultSet result sets}. For that reason, it is recommended a Scheduler suitable for (slow) blocking
+     * operations is used to process results.
+     *
+     * @param session   a C* session where queries will be executed
+     * @param scheduler where results (callbacks) will be processed so C* driver threads are not blocked
+     */
+    public CassStoreHelper(Session session, Scheduler scheduler) {
         this.session = session;
-    }
-
-
-    public Observable<ResultSet> executeQuery(String query) {
-        return buildResultSetObservable(() -> session.executeAsync(query));
+        this.scheduler = scheduler;
     }
 
     public Observable<ResultSet> execute(Statement statement) {
         return buildResultSetObservable(() -> session.executeAsync(statement));
     }
 
-
     private Observable<ResultSet> buildResultSetObservable(Supplier<ResultSetFuture> resultSetFutureSupplier) {
-        return Observable.create(emitter -> {
-            ResultSetFuture resultSetFuture = resultSetFutureSupplier.get();
-            Futures.addCallback(resultSetFuture, new FutureCallback<ResultSet>() {
-                @Override
-                public void onSuccess(@Nullable ResultSet result) {
-                    emitter.onNext(result);
-                    emitter.onCompleted();
-                }
+        return Observable.<ResultSet>create(emitter -> {
+                    ResultSetFuture resultSetFuture = resultSetFutureSupplier.get();
+                    Futures.addCallback(resultSetFuture, new FutureCallback<ResultSet>() {
+                        @Override
+                        public void onSuccess(@Nullable ResultSet result) {
+                            emitter.onNext(result);
+                            emitter.onCompleted();
+                        }
 
-                @Override
-                public void onFailure(@Nonnull Throwable e) {
-                    emitter.onError(JobStoreException.cassandraDriverError(e));
-                }
-            });
-        }, Emitter.BackpressureMode.NONE);
-
+                        @Override
+                        public void onFailure(@Nonnull Throwable e) {
+                            emitter.onError(JobStoreException.cassandraDriverError(e));
+                        }
+                    });
+                },
+                Emitter.BackpressureMode.NONE
+        ).observeOn(scheduler);
     }
 }
