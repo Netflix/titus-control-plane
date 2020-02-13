@@ -33,7 +33,9 @@ import javax.inject.Singleton;
 import com.netflix.spectator.api.Gauge;
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
+import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
@@ -67,6 +69,7 @@ public class JobAndTaskMetrics {
     private static final Logger logger = LoggerFactory.getLogger(JobAndTaskMetrics.class);
 
     private static final String JOBS_METRIC_NAME = MetricConstants.METRIC_ROOT + "jobManager.jobs";
+    private static final String TASKS_METRIC_NAME = MetricConstants.METRIC_ROOT + "jobManager.tasks";
     private static final String TASK_IN_STATE_ROOT_METRIC_NAME = MetricConstants.METRIC_ROOT + "jobManager.taskLiveness.";
     private static final String TASK_IN_STATE_METRIC_NAME = TASK_IN_STATE_ROOT_METRIC_NAME + "duration";
     private static final String TASK_STATE_CHANGE_METRIC_NAME = MetricConstants.METRIC_ROOT + "jobManager.taskStateUpdates";
@@ -100,6 +103,7 @@ public class JobAndTaskMetrics {
 
     private final Map<String, Map<String, List<Gauge>>> capacityGroupsMetrics = new HashMap<>();
     private final Id jobCountId;
+    private final Id taskCountId;
 
     private Subscription taskLivenessRefreshSubscription;
     private Subscription taskStateUpdateSubscription;
@@ -115,6 +119,7 @@ public class JobAndTaskMetrics {
         this.registry = registry;
 
         this.jobCountId = registry.createId(JOBS_METRIC_NAME);
+        this.taskCountId = registry.createId(TASKS_METRIC_NAME);
     }
 
     @Activator
@@ -151,14 +156,21 @@ public class JobAndTaskMetrics {
                 TASK_STATE_CHANGE_METRIC_NAME,
                 "tier", assignment.getLeft().name(),
                 "capacityGroup", assignment.getRight(),
-                "state", task.getStatus().getState().name()
+                "state", task.getStatus().getState().name(),
+                "hasPods", "" + hasPod(task)
         ).increment();
     }
 
     private void refresh() {
         Map<String, Tier> tierMap = buildTierMap();
+
+        List<Pair<Job, List<Task>>> jobsAndTasks = v3JobOperations.getJobsAndTasks();
         List<Job> jobs = v3JobOperations.getJobs();
-        updateJobCounts(jobs);
+        List<Task> tasks = v3JobOperations.getTasks();
+
+        updateJobCounts(jobsAndTasks);
+        updateTaskCounts(tasks);
+
         Map<String, Map<String, Histogram.Builder>> capacityGroupsHistograms = buildCapacityGroupsHistograms(tierMap.keySet(), jobs);
         resetDroppedCapacityGroups(capacityGroupsHistograms.keySet());
         updateCapacityGroupCounters(capacityGroupsHistograms, tierMap);
@@ -231,8 +243,76 @@ public class JobAndTaskMetrics {
     /**
      * Traverse all active jobs and update the count metrics
      */
-    private void updateJobCounts(List<Job> jobs) {
-        registry.gauge(jobCountId).set(jobs.size());
+    private void updateJobCounts(List<Pair<Job, List<Task>>> jobsAndTasks) {
+        int emptyJobs = 0;
+        int serviceJobsWithPods = 0;
+        int serviceJobsWithoutPods = 0;
+        int batchJobsWithPods = 0;
+        int batchJobsWithoutPods = 0;
+
+        for (Pair<Job, List<Task>> jobAndTasks : jobsAndTasks) {
+            Job job = jobAndTasks.getLeft();
+            List<Task> tasks = jobAndTasks.getRight();
+
+            if (JobFunctions.getJobDesiredSize(job) == 0) {
+                emptyJobs++;
+            } else {
+                boolean hasPods = tasks.stream().anyMatch(this::hasPod);
+                boolean serviceJob = JobFunctions.isServiceJob(job);
+
+                if (hasPods) {
+                    if (serviceJob) {
+                        serviceJobsWithPods++;
+                    } else {
+                        batchJobsWithPods++;
+                    }
+                } else {
+                    if (serviceJob) {
+                        serviceJobsWithoutPods++;
+                    } else {
+                        batchJobsWithoutPods++;
+                    }
+                }
+            }
+        }
+
+        registry.gauge(jobCountId.withTag("emptyJobs", "true")).set(emptyJobs);
+
+        registry.gauge(jobCountId.withTags(
+                "jobType", "service",
+                "hasPods", "true"
+        )).set(serviceJobsWithPods);
+        registry.gauge(jobCountId.withTags(
+                "jobType", "service",
+                "hasPods", "false"
+        )).set(serviceJobsWithoutPods);
+
+        registry.gauge(jobCountId.withTags(
+                "jobType", "batch",
+                "hasPods", "true"
+        )).set(batchJobsWithPods);
+        registry.gauge(jobCountId.withTags(
+                "jobType", "batch",
+                "hasPods", "false"
+        )).set(batchJobsWithoutPods);
+    }
+
+    /**
+     * Traverse all tasks and update the count metrics
+     */
+    private void updateTaskCounts(List<Task> tasks) {
+        int tasksWithPods = 0;
+        for (Task task : tasks) {
+            if (hasPod(task)) {
+                tasksWithPods++;
+            }
+        }
+        registry.gauge(taskCountId.withTag("hasPod", "true")).set(tasksWithPods);
+        registry.gauge(taskCountId.withTag("hasPod", "false")).set(tasks.size() - tasksWithPods);
+    }
+
+    private boolean hasPod(Task task) {
+        return Boolean.parseBoolean(task.getAttributes().get(TaskAttributes.TASK_ATTRIBUTES_POD_CREATED));
     }
 
     /**

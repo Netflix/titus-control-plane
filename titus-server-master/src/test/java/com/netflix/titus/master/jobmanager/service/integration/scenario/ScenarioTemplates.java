@@ -65,7 +65,7 @@ public class ScenarioTemplates {
                 .triggerMesosLaunchEvent(taskIdx, resubmit)
                 .expectTaskUpdatedInStore(taskIdx, resubmit, task -> {
                     assertThat(task.getStatus().getState()).isEqualTo(TaskState.Launched);
-                    if(!jobScenario.isKubeScheduler()) {
+                    if (!jobScenario.isKubeScheduler()) {
                         assertThat(task.getTwoLevelResources()).describedAs("ENI not assigned").isNotEmpty();
                     }
                 })
@@ -108,12 +108,18 @@ public class ScenarioTemplates {
                 return accepted;
             }
 
+            JobScenarioBuilder<E> launched;
             if (!accepted.isKubeScheduler()) {
                 accepted.triggerSchedulerLaunchEvent(taskIdx, resubmit);
-            }
-            JobScenarioBuilder<E> launched = accepted.template(triggerMesosLaunchEvent(taskIdx, resubmit));
-            if (targetTaskState == TaskState.Launched) {
-                return launched;
+                launched = accepted.template(triggerMesosLaunchEvent(taskIdx, resubmit));
+                if (targetTaskState == TaskState.Launched) {
+                    return launched;
+                }
+            } else {
+                launched = jobScenario.triggerMesosLaunchEvent(taskIdx, resubmit);
+                jobScenario.advance();
+                jobScenario.expectTaskUpdatedInStore(taskIdx, resubmit, updatedTask -> assertThat(updatedTask.getStatus().getState() == TaskState.Launched));
+                jobScenario.ignoreAvailableEvents();
             }
 
             JobScenarioBuilder<E> startInitiated = launched.template(triggerMesosStartInitiatedEvent(taskIdx, resubmit));

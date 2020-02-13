@@ -41,20 +41,23 @@ public class PodUpdatedEvent extends PodEvent {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
+        if (!super.equals(o)) {
+            return false;
+        }
         PodUpdatedEvent that = (PodUpdatedEvent) o;
-        return Objects.equals(oldPod, that.oldPod) &&
-                Objects.equals(pod, that.pod);
+        return Objects.equals(oldPod, that.oldPod);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(oldPod, pod);
+        return Objects.hash(super.hashCode(), oldPod);
     }
 
     @Override
     public String toString() {
         return "PodUpdatedEvent{" +
-                "pod=" + pod +
+                "taskId='" + taskId + '\'' +
+                ", pod=" + pod +
                 ", oldPod=" + oldPod +
                 '}';
     }

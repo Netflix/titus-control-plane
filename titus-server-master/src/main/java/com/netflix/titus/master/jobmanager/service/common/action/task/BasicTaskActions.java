@@ -246,27 +246,28 @@ public class BasicTaskActions {
                 .task(task)
                 .trigger(V3JobOperations.Trigger.Reconciler)
                 .summary("Adding task to Kube")
-                .changeWithModelUpdate(self -> {
+                .changeWithModelUpdates(self -> {
                     TaskStatus taskStatus = JobModel.newTaskStatus()
-                            .withState(TaskState.Launched)
-                            .withReasonCode("scheduled")
-                            .withReasonMessage("Task added to Kube")
+                            .withState(TaskState.Accepted)
+                            .withReasonCode(TaskStatus.REASON_POD_CREATED)
+                            .withReasonMessage("Created pod in Kube")
                             .build();
-                    Task taskWithLaunchedState = task.toBuilder()
+                    Task taskWithPod = task.toBuilder()
+                            .withTaskContext(CollectionsExt.copyAndAdd(task.getTaskContext(), TaskAttributes.TASK_ATTRIBUTES_POD_CREATED, "true"))
                             .withStatus(taskStatus)
-                            .withStatusHistory(CollectionsExt.copyAndAdd(task.getStatusHistory(), taskStatus))
+                            .withStatusHistory(CollectionsExt.copyAndAdd(task.getStatusHistory(), task.getStatus()))
                             .build();
 
                     TitusModelAction modelUpdateAction = TitusModelAction.newModelUpdate(self)
                             .summary("Creating new task entity holder")
                             .taskMaybeUpdate(jobHolder -> {
-                                EntityHolder newTaskHolder = EntityHolder.newRoot(task.getId(), taskWithLaunchedState);
+                                EntityHolder newTaskHolder = EntityHolder.newRoot(task.getId(), taskWithPod);
                                 EntityHolder newRoot = jobHolder.addChild(newTaskHolder);
                                 return Optional.of(Pair.of(newRoot, newTaskHolder));
                             });
-                    ModelActionHolder modelUpdateActionHolder = ModelActionHolder.running(modelUpdateAction);
+                    List<ModelActionHolder> modelActionHolders = ModelActionHolder.referenceAndRunning(modelUpdateAction);
 
-                    return ReactorExt.toCompletable(kubeApiServerIntegrator.launchTask(job, task).then()).andThen(Observable.just(modelUpdateActionHolder));
+                    return ReactorExt.toCompletable(kubeApiServerIntegrator.launchTask(job, task).then()).andThen(Observable.just(modelActionHolders));
                 });
     }
 }

@@ -16,31 +16,12 @@
 
 package com.netflix.titus.master.mesos.kubeapiserver.direct.model;
 
-import java.util.Objects;
-
 import io.kubernetes.client.models.V1Pod;
 
 public class PodAddedEvent extends PodEvent {
 
     public PodAddedEvent(V1Pod pod) {
         super(pod);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        PodAddedEvent that = (PodAddedEvent) o;
-        return Objects.equals(pod, that.pod);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(pod);
     }
 
     @Override

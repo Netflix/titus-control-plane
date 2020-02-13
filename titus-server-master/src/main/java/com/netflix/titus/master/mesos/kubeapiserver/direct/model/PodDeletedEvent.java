@@ -41,20 +41,23 @@ public class PodDeletedEvent extends PodEvent {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
+        if (!super.equals(o)) {
+            return false;
+        }
         PodDeletedEvent that = (PodDeletedEvent) o;
-        return deletedFinalStateUnknown == that.deletedFinalStateUnknown &&
-                Objects.equals(pod, that.pod);
+        return deletedFinalStateUnknown == that.deletedFinalStateUnknown;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(pod, deletedFinalStateUnknown);
+        return Objects.hash(super.hashCode(), deletedFinalStateUnknown);
     }
 
     @Override
     public String toString() {
         return "PodDeletedEvent{" +
-                "pod=" + pod +
+                "taskId='" + taskId + '\'' +
+                ", pod=" + pod +
                 ", deletedFinalStateUnknown=" + deletedFinalStateUnknown +
                 '}';
     }

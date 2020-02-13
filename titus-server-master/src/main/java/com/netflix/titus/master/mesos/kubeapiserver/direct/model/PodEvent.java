@@ -16,6 +16,8 @@
 
 package com.netflix.titus.master.mesos.kubeapiserver.direct.model;
 
+import java.util.Objects;
+
 import io.kubernetes.client.models.V1Pod;
 
 public abstract class PodEvent {
@@ -34,6 +36,32 @@ public abstract class PodEvent {
 
     public V1Pod getPod() {
         return pod;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        PodEvent podEvent = (PodEvent) o;
+        return Objects.equals(taskId, podEvent.taskId) &&
+                Objects.equals(pod, podEvent.pod);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(taskId, pod);
+    }
+
+    @Override
+    public String toString() {
+        return "PodEvent{" +
+                "taskId='" + taskId + '\'' +
+                ", pod=" + pod +
+                '}';
     }
 
     public static PodAddedEvent onAdd(V1Pod pod) {

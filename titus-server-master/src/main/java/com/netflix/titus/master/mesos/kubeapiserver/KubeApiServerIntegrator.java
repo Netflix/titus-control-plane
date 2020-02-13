@@ -33,7 +33,6 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.google.common.base.Strings;
 import com.google.gson.JsonSyntaxException;
 import com.google.inject.Injector;
 import com.netflix.fenzo.VirtualMachineLease;
@@ -76,9 +75,7 @@ import io.kubernetes.client.informer.ResourceEventHandler;
 import io.kubernetes.client.informer.SharedIndexInformer;
 import io.kubernetes.client.informer.SharedInformerFactory;
 import io.kubernetes.client.models.V1Container;
-import io.kubernetes.client.models.V1ContainerState;
 import io.kubernetes.client.models.V1ContainerStateTerminated;
-import io.kubernetes.client.models.V1ContainerStatus;
 import io.kubernetes.client.models.V1Node;
 import io.kubernetes.client.models.V1NodeAddress;
 import io.kubernetes.client.models.V1NodeCondition;
@@ -621,7 +618,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
             String reasonMessage = status.getMessage();
             boolean hasDeletionTimestamp = metadata.getDeletionTimestamp() != null;
 
-            Optional<TitusExecutorDetails> executorDetails = getTitusExecutorDetails(pod);
+            Optional<TitusExecutorDetails> executorDetails = KubeUtil.getTitusExecutorDetails(pod);
             Task task = taskJobOpt.get().getRight();
 
             TaskState newState;
@@ -666,7 +663,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
             return;
         }
 
-        Optional<V1ContainerStateTerminated> terminatedContainerStatusOpt = findTerminatedContainerStatus(pod);
+        Optional<V1ContainerStateTerminated> terminatedContainerStatusOpt = KubeUtil.findTerminatedContainerStatus(pod);
         if (!terminatedContainerStatusOpt.isPresent()) {
             return;
         }
@@ -689,19 +686,6 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                         executorDetailsOpt, timestampOpt);
             }
         }
-    }
-
-    private Optional<V1ContainerStateTerminated> findTerminatedContainerStatus(V1Pod pod) {
-        List<V1ContainerStatus> containerStatuses = pod.getStatus().getContainerStatuses();
-        if (containerStatuses != null) {
-            for (V1ContainerStatus status : containerStatuses) {
-                V1ContainerState state = status.getState();
-                if (state != null) {
-                    return Optional.ofNullable(state.getTerminated());
-                }
-            }
-        }
-        return Optional.empty();
     }
 
     private void publishContainerEvent(String taskId, TaskState taskState, String reasonCode, String reasonMessage,
@@ -817,24 +801,6 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         return JobFunctions.findTaskStatus(task, Launched)
                 .map(s -> clock.isPast(s.getTimestamp() + ORPHANED_POD_TIMEOUT_MS))
                 .orElse(false);
-    }
-
-    private Optional<TitusExecutorDetails> getTitusExecutorDetails(V1Pod pod) {
-        Map<String, String> annotations = pod.getMetadata().getAnnotations();
-        if (!Strings.isNullOrEmpty(annotations.get("IpAddress"))) {
-            TitusExecutorDetails titusExecutorDetails = new TitusExecutorDetails(
-                    Collections.emptyMap(),
-                    new TitusExecutorDetails.NetworkConfiguration(
-                            Boolean.parseBoolean(annotations.getOrDefault("IsRoutableIp", "true")),
-                            annotations.getOrDefault("IpAddress", "UnknownIpAddress"),
-                            annotations.getOrDefault("EniIpAddress", "UnknownEniIpAddress"),
-                            annotations.getOrDefault("EniId", "UnknownEniId"),
-                            annotations.getOrDefault("ResourceId", "UnknownResourceId")
-                    )
-            );
-            return Optional.of(titusExecutorDetails);
-        }
-        return Optional.empty();
     }
 
     /**

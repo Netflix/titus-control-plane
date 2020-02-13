@@ -28,6 +28,11 @@ public final class TaskAttributes {
     public static final String TASK_ATTRIBUTES_AGENT_ITYPE = "agent.itype";
 
     /*
+     * Kube attributes.
+     */
+    public static final String TASK_ATTRIBUTES_POD_CREATED = "kube.podCreated";
+
+    /*
      * Task attributes.
      */
     public static final String TASK_ATTRIBUTES_TASK_INDEX = "task.index";
