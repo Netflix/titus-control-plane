@@ -58,7 +58,9 @@ public class KubeSchedulerTest {
                 .inActiveTasks((taskIdx, resubmit) -> ScenarioTemplates.triggerMesosFinishedEvent(taskIdx, resubmit, 0))
                 .advance().advance()
                 .inActiveTasks((taskIdx, resubmit) -> ScenarioTemplates.acceptTask(taskIdx, resubmit))
+                .ignoreAvailableEvents()
                 .template(ScenarioTemplates.killJob())
+                .advance()
                 .inActiveTasks((taskIdx, resubmit) -> js -> js
                         .template(ScenarioTemplates.reconcilerTaskKill(taskIdx, resubmit))
                         .expectTaskUpdatedInStore(taskIdx, resubmit, task -> assertThat(task.getStatus().getState()).isEqualTo(TaskState.Finished))
