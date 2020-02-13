@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Netflix, Inc.
+ * Copyright 2020 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,12 +34,13 @@ import com.netflix.titus.common.util.ReflectionExt;
 import io.grpc.MethodDescriptor;
 import io.grpc.ServiceDescriptor;
 import io.grpc.protobuf.ProtoMethodDescriptorSupplier;
+import org.springframework.aop.support.AopUtils;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import static com.netflix.titus.common.util.grpc.GrpcToReactUtil.toMethodNameFromFullName;
 
-class MethodHandlersBuilder<CONTEXT> {
+class MethodHandlersBuilder<CONTEXT, REACT_SERVICE> {
 
     private final Map<String, Method> reactorMethodMap;
     private final Class<CONTEXT> contextType;
@@ -50,8 +51,11 @@ class MethodHandlersBuilder<CONTEXT> {
     MethodHandlersBuilder(Object reactorService,
                           ServiceDescriptor serviceDefinition,
                           Class<CONTEXT> contextType,
-                          Supplier<CONTEXT> contextResolver) {
-        this.reactorMethodMap = Stream.of(reactorService.getClass().getMethods())
+                          Supplier<CONTEXT> contextResolver,
+                          Class<REACT_SERVICE> reactorDetailedFallbackClass) {
+        // CGLIB proxies do not retain generic type info. For these proxies we rely on a detailed fallback class definition to derive generic type info.
+        Stream<Method> methodStream = AopUtils.isCglibProxy(reactorService) ? Stream.of(reactorDetailedFallbackClass.getMethods()) : Stream.of(reactorService.getClass().getMethods());
+        this.reactorMethodMap = methodStream
                 .filter(m -> !ReflectionExt.isObjectMethod(m))
                 .collect(Collectors.toMap(Method::getName, Function.identity()));
         this.contextType = contextType;

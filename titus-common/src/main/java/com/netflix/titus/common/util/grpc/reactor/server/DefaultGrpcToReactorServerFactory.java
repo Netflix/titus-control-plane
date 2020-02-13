@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Netflix, Inc.
+ * Copyright 2020 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,8 +34,14 @@ public class DefaultGrpcToReactorServerFactory<CONTEXT> implements GrpcToReactor
 
     @Override
     public <REACT_SERVICE> ServerServiceDefinition apply(ServiceDescriptor serviceDescriptor, REACT_SERVICE reactService) {
+        return apply(serviceDescriptor, reactService, (Class<REACT_SERVICE>) reactService.getClass());
+    }
+
+    @Override
+    public <REACT_SERVICE> ServerServiceDefinition apply(ServiceDescriptor serviceDescriptor, REACT_SERVICE reactService, Class<REACT_SERVICE> reactorDetailedFallbackClass) {
         return GrpcToReactorServerBuilder.<REACT_SERVICE, CONTEXT>newBuilder(serviceDescriptor, reactService)
                 .withContext(contextType, contextResolver)
+                .withReactorFallbackClass(reactorDetailedFallbackClass)
                 .build();
     }
 }

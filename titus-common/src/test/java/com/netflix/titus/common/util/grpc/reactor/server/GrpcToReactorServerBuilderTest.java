@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Netflix, Inc.
+ * Copyright 2020 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,6 +39,8 @@ import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.aop.framework.ProxyFactory;
+import org.springframework.aop.support.AopUtils;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -65,10 +67,20 @@ public class GrpcToReactorServerBuilderTest {
 
     @Before
     public void setUp() throws Exception {
-        this.reactorSampleService = new ReactorSampleServiceImpl();
+        createReactorGrpcServer(new ReactorSampleServiceImpl());
+    }
+
+    @After
+    public void tearDown() {
+        ExceptionExt.silent(channel, ManagedChannel::shutdownNow);
+        ExceptionExt.silent(server, Server::shutdownNow);
+    }
+
+    private void createReactorGrpcServer(ReactorSampleServiceImpl reactorSampleService) throws Exception {
+        this.reactorSampleService = reactorSampleService;
 
         DefaultGrpcToReactorServerFactory<SampleContext> factory = new DefaultGrpcToReactorServerFactory<>(SampleContext.class, SampleContextServerInterceptor::serverResolve);
-        ServerServiceDefinition serviceDefinition = factory.apply(SampleServiceGrpc.getServiceDescriptor(), reactorSampleService);
+        ServerServiceDefinition serviceDefinition = factory.apply(SampleServiceGrpc.getServiceDescriptor(), reactorSampleService, ReactorSampleServiceImpl.class);
 
         this.server = NettyServerBuilder.forPort(0)
                 .addService(ServerInterceptors.intercept(serviceDefinition, new SampleContextServerInterceptor()))
@@ -84,12 +96,6 @@ public class GrpcToReactorServerBuilderTest {
                 .withStreamingTimeout(Duration.ofMillis(ReactorToGrpcClientBuilder.DEFAULT_STREAMING_TIMEOUT_MS))
                 .withGrpcStubDecorator(SampleContextServerInterceptor::attachClientContext)
                 .build();
-    }
-
-    @After
-    public void tearDown() {
-        ExceptionExt.silent(channel, ManagedChannel::shutdownNow);
-        ExceptionExt.silent(server, Server::shutdownNow);
     }
 
     @Test(timeout = 30_000)
@@ -150,6 +156,24 @@ public class GrpcToReactorServerBuilderTest {
     public void testFluxStreamCancel() {
         reactorSampleService.block = true;
         testCancellation(client.stream().subscribe());
+    }
+
+    @Test(timeout = 30_000)
+    public void testAopCglibProxy() throws Exception {
+        // Tear down the non-proxied server
+        tearDown();
+
+        // Create proxied version of the service
+        ReactorSampleServiceImpl reactorSampleServiceToProxy = new ReactorSampleServiceImpl();
+        ProxyFactory proxyFactory = new ProxyFactory(reactorSampleServiceToProxy);
+        ReactorSampleServiceImpl proxy = (ReactorSampleServiceImpl) proxyFactory.getProxy();
+        assertThat(AopUtils.isCglibProxy(proxy)).isTrue();
+
+        // Create server with proxied service
+        createReactorGrpcServer(proxy);
+
+        assertThat(client.setOneValue(HELLO).block()).isNull();
+        assertThat(reactorSampleServiceToProxy.lastSet).isEqualTo(HELLO);
     }
 
     private void testCancellation(Disposable disposable) {
