@@ -34,7 +34,7 @@ public class BatchJobExt implements JobDescriptor.JobDescriptorExt {
     @FieldInvariant(value = "value <= @constraints.getMaxBatchJobSize()", message = "Batch job too big #{value} > #{@constraints.getMaxBatchJobSize()}")
     private final int size;
 
-    @Min(value = 60_000, message = "Runtime limit too low (must be at least 60sec, but is #{#root}[ms])")
+    @Min(value = 5_000, message = "Runtime limit too low (must be at least 5sec, but is #{#root}[ms])")
     @FieldInvariant(value = "value <= @constraints.getMaxRuntimeLimitSec() * 1000", message = "Runtime limit too high #{value} > #{@constraints.getMaxRuntimeLimitSec() * 1000}")
     private final long runtimeLimitMs;
 
