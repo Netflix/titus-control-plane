@@ -65,9 +65,9 @@ public class InstanceGroupScenarioBuilder {
     private final ConcurrentMap<String, AgentInstance> instances = new ConcurrentHashMap<>();
 
     InstanceGroupScenarioBuilder(TitusStackResource titusStackResource, EmbeddedTitusOperations titusOperations,
-                                        SimulatedTitusAgentCluster simulatedAgentCluster,
-                                        InstanceGroupsScenarioBuilder parent,
-                                        Observable<AgentChangeEvent> events) {
+                                 SimulatedTitusAgentCluster simulatedAgentCluster,
+                                 InstanceGroupsScenarioBuilder parent,
+                                 Observable<AgentChangeEvent> events) {
         this.titusStackResource = titusStackResource;
         this.simulatedCluster = simulatedAgentCluster;
         this.client = titusOperations.getV3BlockingGrpcAgentClient();
@@ -82,6 +82,10 @@ public class InstanceGroupScenarioBuilder {
 
     public void shutdown() {
         eventSubscription.unsubscribe();
+    }
+
+    public boolean hasInstance(String instanceId) {
+        return instances.containsKey(instanceId);
     }
 
     public InstanceGroupScenarioBuilder any(Consumer<InstanceScenarioBuilder> transformer) {

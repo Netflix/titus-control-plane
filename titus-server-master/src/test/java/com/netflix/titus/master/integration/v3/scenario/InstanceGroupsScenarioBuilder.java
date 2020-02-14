@@ -171,7 +171,7 @@ public class InstanceGroupsScenarioBuilder extends ExternalResource {
         return eventStreamObserver.toObservable().filter(e -> getInstanceGroupId(e).map(id -> id.equals(instanceGroupId)).orElse(false));
     }
 
-    public static Optional<String> getInstanceGroupId(AgentChangeEvent event) {
+    public Optional<String> getInstanceGroupId(AgentChangeEvent event) {
         switch (event.getEventCase()) {
             case INSTANCEGROUPUPDATE:
                 return Optional.of(event.getInstanceGroupUpdate().getInstanceGroup().getId());
@@ -180,8 +180,10 @@ public class InstanceGroupsScenarioBuilder extends ExternalResource {
             case AGENTINSTANCEUPDATE:
                 return Optional.of(event.getAgentInstanceUpdate().getInstance().getInstanceGroupId());
             case AGENTINSTANCEREMOVED:
-                // FIXME We have to iterate through all instance groups to find the destination
-                break;
+                return instanceGroupScenarioBuilders.entrySet().stream()
+                        .filter(entry -> entry.getValue().hasInstance(event.getAgentInstanceRemoved().getInstanceId()))
+                        .map(Map.Entry::getKey)
+                        .findFirst();
             case SNAPSHOTEND:
                 return Optional.empty();
         }
