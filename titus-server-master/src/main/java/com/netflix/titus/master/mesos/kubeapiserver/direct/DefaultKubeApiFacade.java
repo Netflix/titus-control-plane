@@ -20,10 +20,16 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.guice.annotation.Deactivator;
+import com.netflix.titus.master.mesos.kubeapiserver.model.v1.V1OpportunisticResource;
+import com.netflix.titus.master.mesos.kubeapiserver.model.v1.V1OpportunisticResourceList;
+import com.squareup.okhttp.Call;
 import io.kubernetes.client.ApiClient;
+import io.kubernetes.client.ApiException;
 import io.kubernetes.client.apis.CoreV1Api;
+import io.kubernetes.client.apis.CustomObjectsApi;
 import io.kubernetes.client.informer.SharedIndexInformer;
 import io.kubernetes.client.informer.SharedInformerFactory;
 import io.kubernetes.client.models.V1Node;
@@ -37,29 +43,40 @@ import org.slf4j.LoggerFactory;
 import static com.netflix.titus.master.mesos.kubeapiserver.KubeUtil.createSharedInformerFactory;
 
 @Singleton
-public class DefaultKubeApiFactory implements KubeApiFactory {
+public class DefaultKubeApiFacade implements KubeApiFacade {
 
-    private static final Logger logger = LoggerFactory.getLogger(DefaultKubeApiFactory.class);
+    private static final Logger logger = LoggerFactory.getLogger(DefaultKubeApiFacade.class);
 
     private static final String KUBERNETES_NAMESPACE = "default";
 
+    private static final String OPPORTUNISTIC_RESOURCE_GROUP = "titus.netflix.com";
+    private static final String OPPORTUNISTIC_RESOURCE_VERSION = "v1";
+    private static final String OPPORTUNISTIC_RESOURCE_NAMESPACE = "default";
+    private static final String OPPORTUNISTIC_RESOURCE_PLURAL = "opportunistic-resources";
+
     private final DirectKubeConfiguration configuration;
+
     private final ApiClient apiClient;
     private final CoreV1Api coreV1Api;
+    private final CustomObjectsApi customObjectsApi;
+    private final TitusRuntime titusRuntime;
 
     private final Object activationLock = new Object();
 
     private volatile SharedInformerFactory sharedInformerFactory;
     private volatile SharedIndexInformer<V1Node> nodeInformer;
     private volatile SharedIndexInformer<V1Pod> podInformer;
+    private volatile SharedIndexInformer<V1OpportunisticResource> opportunisticResourceInformer;
 
     private volatile boolean deactivated;
 
     @Inject
-    public DefaultKubeApiFactory(DirectKubeConfiguration configuration, ApiClient apiClient) {
+    public DefaultKubeApiFacade(DirectKubeConfiguration configuration, ApiClient apiClient, TitusRuntime titusRuntime) {
         this.configuration = configuration;
         this.apiClient = apiClient;
         this.coreV1Api = new CoreV1Api(apiClient);
+        this.customObjectsApi = new CustomObjectsApi(apiClient);
+        this.titusRuntime = titusRuntime;
     }
 
     @PreDestroy
@@ -92,6 +109,12 @@ public class DefaultKubeApiFactory implements KubeApiFactory {
     }
 
     @Override
+    public CustomObjectsApi getCustomObjectsApi() {
+        activate();
+        return customObjectsApi;
+    }
+
+    @Override
     public SharedIndexInformer<V1Node> getNodeInformer() {
         activate();
         return nodeInformer;
@@ -101,6 +124,12 @@ public class DefaultKubeApiFactory implements KubeApiFactory {
     public SharedIndexInformer<V1Pod> getPodInformer() {
         activate();
         return podInformer;
+    }
+
+    @Override
+    public SharedIndexInformer<V1OpportunisticResource> getOpportunisticResourceInformer() {
+        activate();
+        return opportunisticResourceInformer;
     }
 
     private void activate() {
@@ -119,8 +148,9 @@ public class DefaultKubeApiFactory implements KubeApiFactory {
                         apiClient
                 );
 
-                this.nodeInformer = createNodeInformer(sharedInformerFactory, coreV1Api);
-                this.podInformer = createPodInformer(sharedInformerFactory, coreV1Api);
+                this.nodeInformer = createNodeInformer(sharedInformerFactory);
+                this.podInformer = createPodInformer(sharedInformerFactory);
+                this.opportunisticResourceInformer = createOpportunisticResourceInformer(sharedInformerFactory);
 
                 sharedInformerFactory.startAllRegisteredInformers();
 
@@ -138,9 +168,9 @@ public class DefaultKubeApiFactory implements KubeApiFactory {
         }
     }
 
-    private SharedIndexInformer<V1Node> createNodeInformer(SharedInformerFactory sharedInformerFactory, CoreV1Api api) {
+    private SharedIndexInformer<V1Node> createNodeInformer(SharedInformerFactory sharedInformerFactory) {
         return sharedInformerFactory.sharedIndexInformerFor(
-                (CallGeneratorParams params) -> api.listNodeCall(
+                (CallGeneratorParams params) -> coreV1Api.listNodeCall(
                         null,
                         null,
                         null,
@@ -157,9 +187,9 @@ public class DefaultKubeApiFactory implements KubeApiFactory {
         );
     }
 
-    private SharedIndexInformer<V1Pod> createPodInformer(SharedInformerFactory sharedInformerFactory, CoreV1Api api) {
+    private SharedIndexInformer<V1Pod> createPodInformer(SharedInformerFactory sharedInformerFactory) {
         return sharedInformerFactory.sharedIndexInformerFor(
-                (CallGeneratorParams params) -> api.listNamespacedPodCall(
+                (CallGeneratorParams params) -> coreV1Api.listNamespacedPodCall(
                         KUBERNETES_NAMESPACE,
                         null,
                         null,
@@ -176,5 +206,38 @@ public class DefaultKubeApiFactory implements KubeApiFactory {
                 V1PodList.class,
                 configuration.getKubeApiServerIntegratorRefreshIntervalMs()
         );
+    }
+
+    private SharedIndexInformer<V1OpportunisticResource> createOpportunisticResourceInformer(SharedInformerFactory sharedInformerFactory) {
+        // TODO(fabio): enhance the kube client to support custom JSON deserialization options
+        return sharedInformerFactory.sharedIndexInformerFor(
+                this::listOpportunisticResourcesCall,
+                V1OpportunisticResource.class,
+                V1OpportunisticResourceList.class,
+                configuration.getKubeOpportunisticRefreshIntervalMs()
+        );
+    }
+
+    private Call listOpportunisticResourcesCall(CallGeneratorParams params) {
+        try {
+            return customObjectsApi.listNamespacedCustomObjectCall(
+                    OPPORTUNISTIC_RESOURCE_GROUP,
+                    OPPORTUNISTIC_RESOURCE_VERSION,
+                    OPPORTUNISTIC_RESOURCE_NAMESPACE,
+                    OPPORTUNISTIC_RESOURCE_PLURAL,
+                    null,
+                    null,
+                    null,
+                    params.resourceVersion,
+                    params.timeoutSeconds,
+                    params.watch,
+                    null,
+                    null
+            );
+        } catch (ApiException e) {
+            titusRuntime.getCodeInvariants().unexpectedError("Error building a kube http call for opportunistic resources", e);
+        }
+        // this should never happen, if it does the code building request calls is wrong
+        return null;
     }
 }

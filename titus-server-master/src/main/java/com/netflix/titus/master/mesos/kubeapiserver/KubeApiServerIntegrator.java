@@ -66,7 +66,7 @@ import com.netflix.titus.master.mesos.TaskInfoRequest;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.master.mesos.V3ContainerEvent;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
-import com.netflix.titus.master.mesos.kubeapiserver.direct.KubeApiFactory;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.KubeApiFacade;
 import io.kubernetes.client.ApiException;
 import io.kubernetes.client.custom.Quantity;
 import io.kubernetes.client.informer.ResourceEventHandler;
@@ -138,7 +138,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     private final LocalScheduler scheduler;
     private final Clock clock;
     private final Injector injector;
-    private final KubeApiFactory kubeApiFactory;
+    private final KubeApiFacade kubeApiFacade;
 
     private final Function<String, Matcher> invalidRequestMessageMatcherFactory;
     private final Function<String, Matcher> crashedMessageMatcherFactory;
@@ -176,13 +176,13 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                                    MesosConfiguration mesosConfiguration,
                                    LocalScheduler scheduler,
                                    Injector injector,
-                                   KubeApiFactory kubeApiFactory) {
+                                   KubeApiFacade kubeApiFacade) {
         this.titusRuntime = titusRuntime;
         this.mesosConfiguration = mesosConfiguration;
         this.scheduler = scheduler;
         this.clock = titusRuntime.getClock();
         this.injector = injector;
-        this.kubeApiFactory = kubeApiFactory;
+        this.kubeApiFacade = kubeApiFacade;
 
         this.vmTaskStatusObserver = PublishSubject.create();
 
@@ -246,7 +246,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
             try {
                 V1Pod v1Pod = taskInfoToPod(request);
                 logger.info("creating pod: {}", v1Pod);
-                kubeApiFactory.getCoreV1Api().createNamespacedPod(KUBERNETES_NAMESPACE, v1Pod, null, null, null);
+                kubeApiFacade.getCoreV1Api().createNamespacedPod(KUBERNETES_NAMESPACE, v1Pod, null, null, null);
             } catch (ApiException e) {
                 logger.error("Unable to create pod with error:", e);
             }
@@ -263,7 +263,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         killTaskCounter.increment();
         try {
             logger.info("deleting pod: {}", taskId);
-            kubeApiFactory.getCoreV1Api().deleteNamespacedPod(taskId, KUBERNETES_NAMESPACE, null, null, null, DELETE_GRACE_PERIOD_SECONDS, null, null);
+            kubeApiFacade.getCoreV1Api().deleteNamespacedPod(taskId, KUBERNETES_NAMESPACE, null, null, null, DELETE_GRACE_PERIOD_SECONDS, null, null);
         } catch (JsonSyntaxException e) {
             // this is probably successful. the generated client has the wrong response type
         } catch (ApiException e) {
@@ -298,7 +298,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     }
 
     private void subscribeToNodeInformer() {
-        kubeApiFactory.getNodeInformer().addEventHandler(
+        kubeApiFacade.getNodeInformer().addEventHandler(
                 new ResourceEventHandler<V1Node>() {
                     @Override
                     public void onAdd(V1Node node) {
@@ -356,7 +356,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     }
 
     private void subscribeToPodInformer() {
-        kubeApiFactory.getPodInformer().addEventHandler(
+        kubeApiFacade.getPodInformer().addEventHandler(
                 new ResourceEventHandler<V1Pod>() {
                     @Override
                     public void onAdd(V1Pod pod) {
@@ -654,12 +654,12 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     }
 
     private void reconcileNodesAndPods() {
-        if (!mesosConfiguration.isReconcilerEnabled() || !kubeApiFactory.getNodeInformer().hasSynced() || !kubeApiFactory.getPodInformer().hasSynced()) {
+        if (!mesosConfiguration.isReconcilerEnabled() || !kubeApiFacade.getNodeInformer().hasSynced() || !kubeApiFacade.getPodInformer().hasSynced()) {
             return;
         }
 
-        List<V1Node> nodes = kubeApiFactory.getNodeInformer().getIndexer().list();
-        List<V1Pod> pods = kubeApiFactory.getPodInformer().getIndexer().list();
+        List<V1Node> nodes = kubeApiFacade.getNodeInformer().getIndexer().list();
+        List<V1Pod> pods = kubeApiFacade.getPodInformer().getIndexer().list();
         List<Task> tasks = v3JobOperations.getTasks();
         Map<String, Task> currentTasks = tasks.stream().collect(Collectors.toMap(Task::getId, Function.identity()));
         Set<String> currentPodNames = pods.stream().map(p -> p.getMetadata().getName()).collect(Collectors.toSet());
@@ -676,7 +676,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     private void gcNode(V1Node node) {
         String nodeName = node.getMetadata().getName();
         try {
-            kubeApiFactory.getCoreV1Api().deleteNode(nodeName, null, null, null, 0, null, "Background");
+            kubeApiFacade.getCoreV1Api().deleteNode(nodeName, null, null, null, 0, null, "Background");
         } catch (JsonSyntaxException e) {
             // this is probably successful. the generated client has the wrong response type
         } catch (ApiException e) {
@@ -713,7 +713,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     private void gcPod(V1Pod pod) {
         String podName = pod.getMetadata().getName();
         try {
-            kubeApiFactory.getCoreV1Api().deleteNamespacedPod(podName, KUBERNETES_NAMESPACE, null, null, null, 0, null, "Background");
+            kubeApiFacade.getCoreV1Api().deleteNamespacedPod(podName, KUBERNETES_NAMESPACE, null, null, null, 0, null, "Background");
         } catch (JsonSyntaxException e) {
             // this is probably successful. the generated client has the wrong response type
         } catch (ApiException e) {

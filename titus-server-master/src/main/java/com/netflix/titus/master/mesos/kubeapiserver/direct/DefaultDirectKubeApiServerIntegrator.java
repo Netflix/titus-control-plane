@@ -57,7 +57,7 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
     private static final String NOT_FOUND = "Not Found";
 
     private final DirectKubeConfiguration configuration;
-    private final KubeApiFactory kubeApiFactory;
+    private final KubeApiFacade kubeApiFacade;
 
     private final TaskToPodConverter taskToPodConverter;
 
@@ -76,11 +76,11 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
 
     @Inject
     public DefaultDirectKubeApiServerIntegrator(DirectKubeConfiguration configuration,
-                                                KubeApiFactory kubeApiFactory,
+                                                KubeApiFacade kubeApiFacade,
                                                 TaskToPodConverter taskToPodConverter,
                                                 TitusRuntime titusRuntime) {
         this.configuration = configuration;
-        this.kubeApiFactory = kubeApiFactory;
+        this.kubeApiFacade = kubeApiFacade;
         this.taskToPodConverter = taskToPodConverter;
 
         this.apiClientExecutor = ExecutorsExt.instrumentedFixedSizeThreadPool(titusRuntime.getRegistry(), "kube-apiclient", configuration.getApiClientThreadPoolSize());
@@ -104,7 +104,7 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
             try {
                 V1Pod v1Pod = taskToPodConverter.apply(job, task);
                 logger.info("creating pod: {}", v1Pod);
-                kubeApiFactory.getCoreV1Api().createNamespacedPod(KUBERNETES_NAMESPACE, v1Pod, null, null, null);
+                kubeApiFacade.getCoreV1Api().createNamespacedPod(KUBERNETES_NAMESPACE, v1Pod, null, null, null);
                 pods.putIfAbsent(task.getId(), v1Pod);
                 return v1Pod;
             } catch (ApiException e) {
@@ -121,7 +121,7 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
         return Mono.<Void>fromRunnable(() -> {
             try {
                 logger.info("Deleting pod: {}", taskId);
-                kubeApiFactory.getCoreV1Api().deleteNamespacedPod(taskId, KUBERNETES_NAMESPACE, null, null, null, DELETE_GRACE_PERIOD_SECONDS, null, null);
+                kubeApiFacade.getCoreV1Api().deleteNamespacedPod(taskId, KUBERNETES_NAMESPACE, null, null, null, DELETE_GRACE_PERIOD_SECONDS, null, null);
             } catch (JsonSyntaxException e) {
                 // this is probably successful. the generated client has the wrong response type
             } catch (ApiException e) {
@@ -173,7 +173,7 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
                     sink.next(PodEvent.onDelete(pod, deletedFinalStateUnknown));
                 }
             };
-            kubeApiFactory.getPodInformer().addEventHandler(handler);
+            kubeApiFacade.getPodInformer().addEventHandler(handler);
 
             // A listener cannot be removed from shared informer.
             // sink.onCancel(() -> ???);

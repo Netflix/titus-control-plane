@@ -28,11 +28,11 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.master.mesos.MesosConfiguration;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DefaultDirectKubeApiServerIntegrator;
-import com.netflix.titus.master.mesos.kubeapiserver.direct.DefaultKubeApiFactory;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.DefaultKubeApiFacade;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DefaultTaskToPodConverter;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeApiServerIntegrator;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeConfiguration;
-import com.netflix.titus.master.mesos.kubeapiserver.direct.KubeApiFactory;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.KubeApiFacade;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.NoOpDirectKubeApiServerIntegrator;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.TaskToPodConverter;
 import io.kubernetes.client.ApiClient;
@@ -48,7 +48,7 @@ public class KubeModule extends AbstractModule {
     @Override
     protected void configure() {
         bind(TaskToPodConverter.class).to(DefaultTaskToPodConverter.class);
-        bind(KubeApiFactory.class).to(DefaultKubeApiFactory.class);
+        bind(KubeApiFacade.class).to(DefaultKubeApiFacade.class);
         bind(VirtualMachineMasterService.class).annotatedWith(Names.named(MESOS_KUBE_ADAPTER)).to(KubeApiServerIntegrator.class);
     }
 

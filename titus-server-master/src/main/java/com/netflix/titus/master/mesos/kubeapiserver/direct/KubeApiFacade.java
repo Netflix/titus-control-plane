@@ -16,19 +16,25 @@
 
 package com.netflix.titus.master.mesos.kubeapiserver.direct;
 
+import com.netflix.titus.master.mesos.kubeapiserver.model.v1.V1OpportunisticResource;
 import io.kubernetes.client.ApiClient;
 import io.kubernetes.client.apis.CoreV1Api;
+import io.kubernetes.client.apis.CustomObjectsApi;
 import io.kubernetes.client.informer.SharedIndexInformer;
 import io.kubernetes.client.models.V1Node;
 import io.kubernetes.client.models.V1Pod;
 
-public interface KubeApiFactory {
+public interface KubeApiFacade {
 
     ApiClient getApiClient();
 
     CoreV1Api getCoreV1Api();
 
+    CustomObjectsApi getCustomObjectsApi();
+
     SharedIndexInformer<V1Node> getNodeInformer();
 
     SharedIndexInformer<V1Pod> getPodInformer();
+
+    SharedIndexInformer<V1OpportunisticResource> getOpportunisticResourceInformer();
 }
