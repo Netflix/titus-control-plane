@@ -30,6 +30,8 @@ public final class TaskAttributes {
     /*
      * Kube attributes.
      */
+
+    public static final String TASK_ATTRIBUTES_OWNED_BY_KUBE_SCHEDULER = "kube.ownedByKubeScheduler";
     public static final String TASK_ATTRIBUTES_POD_CREATED = "kube.podCreated";
 
     /*

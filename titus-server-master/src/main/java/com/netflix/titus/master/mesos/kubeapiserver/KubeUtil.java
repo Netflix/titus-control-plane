@@ -105,16 +105,20 @@ public class KubeUtil {
         return Optional.empty();
     }
 
-    public static Optional<V1ContainerStateTerminated> findTerminatedContainerStatus(V1Pod pod) {
+    public static Optional<V1ContainerState> findContainerState(V1Pod pod) {
         List<V1ContainerStatus> containerStatuses = pod.getStatus().getContainerStatuses();
         if (containerStatuses != null) {
             for (V1ContainerStatus status : containerStatuses) {
                 V1ContainerState state = status.getState();
                 if (state != null) {
-                    return Optional.ofNullable(state.getTerminated());
+                    return Optional.of(state);
                 }
             }
         }
         return Optional.empty();
+    }
+
+    public static Optional<V1ContainerStateTerminated> findTerminatedContainerStatus(V1Pod pod) {
+        return findContainerState(pod).flatMap(state -> Optional.ofNullable(state.getTerminated()));
     }
 }

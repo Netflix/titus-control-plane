@@ -527,4 +527,12 @@ public final class JobFunctions {
                 .map(seconds -> ((long) (seconds * 1000))) // seconds -> milliseconds
                 .map(Duration::ofMillis);
     }
+
+    public static boolean hasOwnedByKubeSchedulerAttribute(Task task) {
+        return Boolean.parseBoolean(task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_OWNED_BY_KUBE_SCHEDULER));
+    }
+
+    public static boolean hasPodCreatedAttribute(Task task) {
+        return Boolean.parseBoolean(task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_POD_CREATED));
+    }
 }

@@ -23,14 +23,15 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.JobModel;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
@@ -72,6 +73,12 @@ public class WorkerStateMonitor {
                         Optional<Pair<Job<?>, Task>> jobAndTaskOpt = v3JobOperations.findTaskById(args.getTaskId());
                         if (jobAndTaskOpt.isPresent()) {
                             Task task = jobAndTaskOpt.get().getRight();
+
+                            if (JobFunctions.hasOwnedByKubeSchedulerAttribute(task)) {
+                                logger.debug("Ignoring notification for task managed via direct Kube integration: taskId={}", task.getId());
+                                return;
+                            }
+
                             TaskState newState = args.getTaskState();
                             if (task.getStatus().getState() != newState) {
 

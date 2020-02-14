@@ -33,7 +33,6 @@ import javax.inject.Singleton;
 import com.netflix.spectator.api.Gauge;
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
-import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
@@ -157,7 +156,7 @@ public class JobAndTaskMetrics {
                 "tier", assignment.getLeft().name(),
                 "capacityGroup", assignment.getRight(),
                 "state", task.getStatus().getState().name(),
-                "hasPods", "" + hasPod(task)
+                "kubeScheduler", "" + JobFunctions.hasOwnedByKubeSchedulerAttribute(task)
         ).increment();
     }
 
@@ -245,10 +244,10 @@ public class JobAndTaskMetrics {
      */
     private void updateJobCounts(List<Pair<Job, List<Task>>> jobsAndTasks) {
         int emptyJobs = 0;
-        int serviceJobsWithPods = 0;
-        int serviceJobsWithoutPods = 0;
-        int batchJobsWithPods = 0;
-        int batchJobsWithoutPods = 0;
+        int serviceJobsOwnedByKubeScheduler = 0;
+        int serviceJobsOwnedByFenzo = 0;
+        int batchJobsOwnedByKubeScheduler = 0;
+        int batchJobsOwnedByFenzo = 0;
 
         for (Pair<Job, List<Task>> jobAndTasks : jobsAndTasks) {
             Job job = jobAndTasks.getLeft();
@@ -257,20 +256,20 @@ public class JobAndTaskMetrics {
             if (JobFunctions.getJobDesiredSize(job) == 0) {
                 emptyJobs++;
             } else {
-                boolean hasPods = tasks.stream().anyMatch(this::hasPod);
+                boolean ownedByKubeScheduler = tasks.stream().anyMatch(JobFunctions::hasOwnedByKubeSchedulerAttribute);
                 boolean serviceJob = JobFunctions.isServiceJob(job);
 
-                if (hasPods) {
+                if (ownedByKubeScheduler) {
                     if (serviceJob) {
-                        serviceJobsWithPods++;
+                        serviceJobsOwnedByKubeScheduler++;
                     } else {
-                        batchJobsWithPods++;
+                        batchJobsOwnedByKubeScheduler++;
                     }
                 } else {
                     if (serviceJob) {
-                        serviceJobsWithoutPods++;
+                        serviceJobsOwnedByFenzo++;
                     } else {
-                        batchJobsWithoutPods++;
+                        batchJobsOwnedByFenzo++;
                     }
                 }
             }
@@ -280,39 +279,35 @@ public class JobAndTaskMetrics {
 
         registry.gauge(jobCountId.withTags(
                 "jobType", "service",
-                "hasPods", "true"
-        )).set(serviceJobsWithPods);
+                "kubeScheduler", "true"
+        )).set(serviceJobsOwnedByKubeScheduler);
         registry.gauge(jobCountId.withTags(
                 "jobType", "service",
-                "hasPods", "false"
-        )).set(serviceJobsWithoutPods);
+                "kubeScheduler", "false"
+        )).set(serviceJobsOwnedByFenzo);
 
         registry.gauge(jobCountId.withTags(
                 "jobType", "batch",
-                "hasPods", "true"
-        )).set(batchJobsWithPods);
+                "kubeScheduler", "true"
+        )).set(batchJobsOwnedByKubeScheduler);
         registry.gauge(jobCountId.withTags(
                 "jobType", "batch",
-                "hasPods", "false"
-        )).set(batchJobsWithoutPods);
+                "kubeScheduler", "false"
+        )).set(batchJobsOwnedByFenzo);
     }
 
     /**
      * Traverse all tasks and update the count metrics
      */
     private void updateTaskCounts(List<Task> tasks) {
-        int tasksWithPods = 0;
+        int tasksOwnedByKubeScheduler = 0;
         for (Task task : tasks) {
-            if (hasPod(task)) {
-                tasksWithPods++;
+            if (JobFunctions.hasOwnedByKubeSchedulerAttribute(task)) {
+                tasksOwnedByKubeScheduler++;
             }
         }
-        registry.gauge(taskCountId.withTag("hasPod", "true")).set(tasksWithPods);
-        registry.gauge(taskCountId.withTag("hasPod", "false")).set(tasks.size() - tasksWithPods);
-    }
-
-    private boolean hasPod(Task task) {
-        return Boolean.parseBoolean(task.getAttributes().get(TaskAttributes.TASK_ATTRIBUTES_POD_CREATED));
+        registry.gauge(taskCountId.withTag("kubeScheduler", "true")).set(tasksOwnedByKubeScheduler);
+        registry.gauge(taskCountId.withTag("kubeScheduler", "false")).set(tasks.size() - tasksOwnedByKubeScheduler);
     }
 
     /**
