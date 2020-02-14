@@ -244,10 +244,10 @@ public class JobAndTaskMetrics {
      */
     private void updateJobCounts(List<Pair<Job, List<Task>>> jobsAndTasks) {
         int emptyJobs = 0;
-        int serviceJobsWithPods = 0;
-        int serviceJobsWithoutPods = 0;
-        int batchJobsWithPods = 0;
-        int batchJobsWithoutPods = 0;
+        int serviceJobsOwnedByKubeScheduler = 0;
+        int serviceJobsOwnedByFenzo = 0;
+        int batchJobsOwnedByKubeScheduler = 0;
+        int batchJobsOwnedByFenzo = 0;
 
         for (Pair<Job, List<Task>> jobAndTasks : jobsAndTasks) {
             Job job = jobAndTasks.getLeft();
@@ -256,20 +256,20 @@ public class JobAndTaskMetrics {
             if (JobFunctions.getJobDesiredSize(job) == 0) {
                 emptyJobs++;
             } else {
-                boolean hasPods = tasks.stream().anyMatch(JobFunctions::hasOwnedByKubeSchedulerAttribute);
+                boolean ownedByKubeScheduler = tasks.stream().anyMatch(JobFunctions::hasOwnedByKubeSchedulerAttribute);
                 boolean serviceJob = JobFunctions.isServiceJob(job);
 
-                if (hasPods) {
+                if (ownedByKubeScheduler) {
                     if (serviceJob) {
-                        serviceJobsWithPods++;
+                        serviceJobsOwnedByKubeScheduler++;
                     } else {
-                        batchJobsWithPods++;
+                        batchJobsOwnedByKubeScheduler++;
                     }
                 } else {
                     if (serviceJob) {
-                        serviceJobsWithoutPods++;
+                        serviceJobsOwnedByFenzo++;
                     } else {
-                        batchJobsWithoutPods++;
+                        batchJobsOwnedByFenzo++;
                     }
                 }
             }
@@ -280,34 +280,34 @@ public class JobAndTaskMetrics {
         registry.gauge(jobCountId.withTags(
                 "jobType", "service",
                 "kubeScheduler", "true"
-        )).set(serviceJobsWithPods);
+        )).set(serviceJobsOwnedByKubeScheduler);
         registry.gauge(jobCountId.withTags(
                 "jobType", "service",
                 "kubeScheduler", "false"
-        )).set(serviceJobsWithoutPods);
+        )).set(serviceJobsOwnedByFenzo);
 
         registry.gauge(jobCountId.withTags(
                 "jobType", "batch",
                 "kubeScheduler", "true"
-        )).set(batchJobsWithPods);
+        )).set(batchJobsOwnedByKubeScheduler);
         registry.gauge(jobCountId.withTags(
                 "jobType", "batch",
                 "kubeScheduler", "false"
-        )).set(batchJobsWithoutPods);
+        )).set(batchJobsOwnedByFenzo);
     }
 
     /**
      * Traverse all tasks and update the count metrics
      */
     private void updateTaskCounts(List<Task> tasks) {
-        int tasksWithPods = 0;
+        int tasksOwnedByKubeScheduler = 0;
         for (Task task : tasks) {
             if (JobFunctions.hasOwnedByKubeSchedulerAttribute(task)) {
-                tasksWithPods++;
+                tasksOwnedByKubeScheduler++;
             }
         }
-        registry.gauge(taskCountId.withTag("kubeScheduler", "true")).set(tasksWithPods);
-        registry.gauge(taskCountId.withTag("kubeScheduler", "false")).set(tasks.size() - tasksWithPods);
+        registry.gauge(taskCountId.withTag("kubeScheduler", "true")).set(tasksOwnedByKubeScheduler);
+        registry.gauge(taskCountId.withTag("kubeScheduler", "false")).set(tasks.size() - tasksOwnedByKubeScheduler);
     }
 
     /**
