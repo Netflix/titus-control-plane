@@ -33,7 +33,6 @@ import javax.inject.Singleton;
 import com.netflix.titus.api.FeatureActivationConfiguration;
 import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
-import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.CapacityAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobCompatibility;
@@ -54,6 +53,7 @@ import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.jobmanager.store.JobStore;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.common.framework.reconciler.ChangeAction;
 import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
@@ -83,6 +83,7 @@ import com.netflix.titus.master.jobmanager.service.limiter.JobSubmitLimiter;
 import com.netflix.titus.master.jobmanager.service.service.action.BasicServiceJobActions;
 import com.netflix.titus.master.jobmanager.service.service.action.MoveTaskBetweenJobsAction;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeApiServerIntegrator;
 import com.netflix.titus.master.service.management.ManagementSubsystemInitializer;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataUtils;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
@@ -111,6 +112,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
 
     private final JobStore store;
     private final VirtualMachineMasterService vmService;
+    private final DirectKubeApiServerIntegrator kubeApiServerIntegrator;
     private final JobManagerConfiguration jobManagerConfiguration;
     private final FeatureActivationConfiguration featureActivationConfiguration;
     private final JobReconciliationFrameworkFactory jobReconciliationFrameworkFactory;
@@ -131,6 +133,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
                                   FeatureActivationConfiguration featureActivationConfiguration,
                                   JobStore store,
                                   VirtualMachineMasterService vmService,
+                                  DirectKubeApiServerIntegrator kubeApiServerIntegrator,
                                   JobReconciliationFrameworkFactory jobReconciliationFrameworkFactory,
                                   JobSubmitLimiter jobSubmitLimiter,
                                   ManagementSubsystemInitializer managementSubsystemInitializer,
@@ -140,6 +143,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
         this.store = store;
         this.vmService = vmService;
         this.jobManagerConfiguration = jobManagerConfiguration;
+        this.kubeApiServerIntegrator = kubeApiServerIntegrator;
         this.jobReconciliationFrameworkFactory = jobReconciliationFrameworkFactory;
         this.jobSubmitLimiter = jobSubmitLimiter;
         this.managementSubsystemInitializer = managementSubsystemInitializer;
@@ -448,7 +452,7 @@ public class DefaultV3JobOperations implements V3JobOperations {
                     String reason = String.format("%s %s(shrink=%s)", Evaluators.getOrDefault(CallMetadataUtils.getFirstCallerId(callMetadata), "<no_caller>"),
                             Evaluators.getOrDefault(callMetadata.getCallReason(), "<no_reason>"), shrink);
                     ChangeAction killAction = KillInitiatedActions.userInitiateTaskKillAction(
-                            engineChildPair.getLeft(), vmService, store, task.getId(), shrink, preventMinSizeUpdate, reasonCode, reason, titusRuntime, callMetadata
+                            engineChildPair.getLeft(), vmService, kubeApiServerIntegrator, store, task.getId(), shrink, preventMinSizeUpdate, reasonCode, reason, titusRuntime, callMetadata
                     );
                     return engineChildPair.getLeft().changeReferenceModel(killAction);
                 })

@@ -462,6 +462,12 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         return this;
     }
 
+    public JobScenarioBuilder<E> expectPodTerminated(int taskIdx, int resubmit) {
+        Task task = findTaskInActiveState(taskIdx, resubmit);
+        assertThat(kubeApiServerIntegrator.getPods().get(task.getId())).describedAs("Expected not to find task in Kube").isNull();
+        return this;
+    }
+
     public JobScenarioBuilder<E> expectMesosTaskKill(int taskIdx, int resubmit) {
         Task task = findTaskInActiveState(taskIdx, resubmit);
         Pair<StubbedVirtualMachineMasterService.MesosEvent, String> mesosEvent = mesosEventsSubscriber.takeNextMesosEvent(taskIdx, resubmit);

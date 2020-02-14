@@ -202,6 +202,7 @@ public class JobsScenarioBuilder {
                 featureActivationConfiguration,
                 jobStore,
                 vmService,
+                kubeApiServerIntegrator,
                 new JobReconciliationFrameworkFactory(
                         configuration,
                         featureActivationConfiguration,

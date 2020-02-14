@@ -24,7 +24,7 @@ public class PodUpdatedEvent extends PodEvent {
 
     private final V1Pod oldPod;
 
-    public PodUpdatedEvent(V1Pod oldPod, V1Pod newPod) {
+    PodUpdatedEvent(V1Pod oldPod, V1Pod newPod) {
         super(newPod);
         this.oldPod = oldPod;
     }

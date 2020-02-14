@@ -39,7 +39,7 @@ public class NoOpDirectKubeApiServerIntegrator implements DirectKubeApiServerInt
     }
 
     @Override
-    public Mono<Void> terminateTask(String taskId) {
+    public Mono<Void> terminateTask(Task task) {
         return Mono.error(new IllegalStateException("Kube scheduler disabled"));
     }
 
