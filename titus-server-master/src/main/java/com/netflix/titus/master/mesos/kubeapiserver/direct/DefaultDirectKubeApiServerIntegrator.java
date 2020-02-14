@@ -26,11 +26,14 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.google.gson.JsonSyntaxException;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExecutorsExt;
 import com.netflix.titus.common.util.guice.annotation.Activator;
+import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodEvent;
 import io.kubernetes.client.ApiClient;
 import io.kubernetes.client.ApiException;
@@ -43,7 +46,9 @@ import io.kubernetes.client.models.V1PodList;
 import io.kubernetes.client.util.CallGeneratorParams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
@@ -56,6 +61,9 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
     private static final Logger logger = LoggerFactory.getLogger(DefaultDirectKubeApiServerIntegrator.class);
 
     private static final String KUBERNETES_NAMESPACE = "default";
+    private static final int DELETE_GRACE_PERIOD_SECONDS = 300;
+
+    private static final String NOT_FOUND = "Not Found";
 
     private final DirectKubeConfiguration configuration;
 
@@ -65,6 +73,14 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
 
     private volatile SharedInformerFactory sharedInformerFactory;
     private volatile SharedIndexInformer<V1Pod> podInformer;
+
+    private final DirectProcessor<PodEvent> supplementaryPodEventProcessor = DirectProcessor.create();
+
+    /**
+     * We use {@link FluxSink.OverflowStrategy#LATEST} with the assumption that the supplementary events created here, will
+     * be re-crated later if needed (like pod not found event).
+     */
+    private final FluxSink<PodEvent> supplementaryPodEventSink = supplementaryPodEventProcessor.sink(FluxSink.OverflowStrategy.LATEST);
 
     private final ConcurrentMap<String, V1Pod> pods = new ConcurrentHashMap<>();
 
@@ -111,27 +127,48 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
 
     @Override
     public Mono<V1Pod> launchTask(Job job, Task task) {
-        return Mono.defer(() -> {
+        return Mono.fromCallable(() -> {
             try {
                 V1Pod v1Pod = taskToPodConverter.apply(job, task);
                 logger.info("creating pod: {}", v1Pod);
                 coreV1Api.createNamespacedPod(KUBERNETES_NAMESPACE, v1Pod, null, null, null);
                 pods.putIfAbsent(task.getId(), v1Pod);
-                return Mono.just(v1Pod);
+                return v1Pod;
             } catch (ApiException e) {
                 logger.error("Unable to create pod with error:", e);
-                return Mono.error(new IllegalStateException("Unable to launch a task " + task.getId(), e));
+                throw new IllegalStateException("Unable to launch a task " + task.getId(), e);
             }
         }).subscribeOn(apiClientScheduler).timeout(Duration.ofMillis(configuration.getKubeApiClientTimeoutMs()));
     }
 
     @Override
-    public Mono<Void> terminateTask(String taskId) {
-        return Mono.error(new IllegalStateException("not implemented yet"));
+    public Mono<Void> terminateTask(Task task) {
+        String taskId = task.getId();
+
+        return Mono.<Void>fromRunnable(() -> {
+            try {
+                logger.info("Deleting pod: {}", taskId);
+                coreV1Api.deleteNamespacedPod(taskId, KUBERNETES_NAMESPACE, null, null, null, DELETE_GRACE_PERIOD_SECONDS, null, null);
+            } catch (JsonSyntaxException e) {
+                // this is probably successful. the generated client has the wrong response type
+            } catch (ApiException e) {
+                if (e.getMessage().equalsIgnoreCase(NOT_FOUND) && task.getStatus().getState() == TaskState.Accepted) {
+                    sendEvent(PodEvent.onPodNotFound(task));
+                } else {
+                    logger.error("Failed to kill task: {} with error: ", taskId, e);
+                }
+            } catch (Exception e) {
+                logger.error("Failed to kill task: {} with error: ", taskId, e);
+            }
+        }).subscribeOn(apiClientScheduler).timeout(Duration.ofMillis(configuration.getKubeApiClientTimeoutMs()));
     }
 
     @Override
     public Flux<PodEvent> events() {
+        return kubeInformerEvents().mergeWith(supplementaryPodEventProcessor).compose(ReactorExt.badSubscriberHandler(logger));
+    }
+
+    private Flux<PodEvent> kubeInformerEvents() {
         return Flux.create(sink -> {
             if (podInformer == null) {
                 sink.error(new IllegalStateException("Service not activated yet"));
@@ -194,5 +231,9 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
                 V1PodList.class,
                 configuration.getKubeApiServerIntegratorRefreshIntervalMs()
         );
+    }
+
+    private void sendEvent(PodEvent podEvent) {
+        supplementaryPodEventSink.next(podEvent);
     }
 }

@@ -41,17 +41,23 @@ public class StubbedDirectKubeApiServerIntegrator implements DirectKubeApiServer
 
     @Override
     public Mono<V1Pod> launchTask(Job job, Task task) {
-        V1Pod v1Pod = new V1Pod()
-                .metadata(new V1ObjectMeta()
-                        .name(task.getId())
-                );
-        podHoldersByTaskId.put(task.getId(), v1Pod);
-        return Mono.just(v1Pod);
+        return Mono.fromCallable(() -> {
+            V1Pod v1Pod = new V1Pod()
+                    .metadata(new V1ObjectMeta()
+                            .name(task.getId())
+                    );
+            podHoldersByTaskId.put(task.getId(), v1Pod);
+            return v1Pod;
+        });
     }
 
     @Override
-    public Mono<Void> terminateTask(String taskId) {
-        throw new IllegalStateException("not implemented"); // not used
+    public Mono<Void> terminateTask(Task task) {
+        return Mono.fromRunnable(() -> {
+            if (podHoldersByTaskId.remove(task.getId()) == null) {
+                throw new IllegalArgumentException("Task not found: " + task.getId());
+            }
+        });
     }
 
     @Override

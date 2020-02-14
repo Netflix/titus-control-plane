@@ -31,7 +31,7 @@ public interface DirectKubeApiServerIntegrator {
 
     Mono<V1Pod> launchTask(Job job, Task task);
 
-    Mono<Void> terminateTask(String taskId);
+    Mono<Void> terminateTask(Task task);
 
     Flux<PodEvent> events();
 }

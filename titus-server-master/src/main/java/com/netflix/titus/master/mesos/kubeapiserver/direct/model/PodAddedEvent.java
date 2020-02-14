@@ -20,7 +20,7 @@ import io.kubernetes.client.models.V1Pod;
 
 public class PodAddedEvent extends PodEvent {
 
-    public PodAddedEvent(V1Pod pod) {
+    PodAddedEvent(V1Pod pod) {
         super(pod);
     }
 

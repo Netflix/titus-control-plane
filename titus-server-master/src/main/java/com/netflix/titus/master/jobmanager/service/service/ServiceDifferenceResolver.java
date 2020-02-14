@@ -187,12 +187,12 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
 
         if (hasJobState(referenceModel, JobState.KillInitiated)) {
             List<ChangeAction> killInitiatedActions = KillInitiatedActions.reconcilerInitiatedAllTasksKillInitiated(
-                    engine, vmService, jobStore, TaskStatus.REASON_TASK_KILLED,
+                    engine, vmService,kubeApiServerIntegrator, jobStore, TaskStatus.REASON_TASK_KILLED,
                     "Killing task as its job is in KillInitiated state", allowedTaskKills.get(),
                     titusRuntime
             );
             if (killInitiatedActions.isEmpty()) {
-                return findTaskStateTimeouts(engine, runningJobView, configuration, vmService, jobStore, titusRuntime);
+                return findTaskStateTimeouts(engine, runningJobView, configuration, vmService,kubeApiServerIntegrator, jobStore, titusRuntime);
             }
             allowedTaskKills.set(allowedTaskKills.get() - killInitiatedActions.size());
             return killInitiatedActions;
@@ -206,7 +206,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
         if (numberOfTaskAdjustingActions.isEmpty()) {
             actions.addAll(findMissingRunningTasks(engine, refJobView, runningJobView));
         }
-        actions.addAll(findTaskStateTimeouts(engine, runningJobView, configuration, vmService, jobStore, titusRuntime));
+        actions.addAll(findTaskStateTimeouts(engine, runningJobView, configuration, vmService,kubeApiServerIntegrator, jobStore, titusRuntime));
 
         return actions;
     }
@@ -238,7 +238,9 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
                 List<ServiceJobTask> tasksToRemove = ScaleDownEvaluator.selectTasksToTerminate(tasks, tasks.size() - toRemoveCount, titusRuntime);
                 List<ChangeAction> killActions = tasksToRemove.stream()
                         .filter(t -> !isTerminating(t))
-                        .map(t -> KillInitiatedActions.reconcilerInitiatedTaskKillInitiated(engine, t, vmService, jobStore, TaskStatus.REASON_SCALED_DOWN, "Terminating excessive service job task", titusRuntime))
+                        .map(t -> KillInitiatedActions.reconcilerInitiatedTaskKillInitiated(engine, t, vmService, kubeApiServerIntegrator,
+                                jobStore, TaskStatus.REASON_SCALED_DOWN, "Terminating excessive service job task", titusRuntime)
+                        )
                         .collect(Collectors.toList());
                 allowedTaskKills.set(allowedTaskKills.get() - killActions.size());
                 return killActions;

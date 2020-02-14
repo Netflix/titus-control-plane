@@ -51,6 +51,7 @@ import com.netflix.titus.master.jobmanager.service.common.action.task.KillInitia
 import com.netflix.titus.master.jobmanager.service.common.action.task.TaskTimeoutChangeActions;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeApiServerIntegrator;
 
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_IP_ALLOCATION_ID;
 
@@ -132,6 +133,7 @@ public class DifferenceResolverUtils {
                                                            JobView runningJobView,
                                                            JobManagerConfiguration configuration,
                                                            VirtualMachineMasterService vmService,
+                                                           DirectKubeApiServerIntegrator kubeApiServerIntegrator,
                                                            JobStore jobStore,
                                                            TitusRuntime titusRuntime) {
         Clock clock = titusRuntime.getClock();
@@ -149,7 +151,8 @@ public class DifferenceResolverUtils {
 
                 long deadline = task.getStatus().getTimestamp() + runtimeLimitMs;
                 if (deadline < clock.wallTime()) {
-                    actions.add(KillInitiatedActions.reconcilerInitiatedTaskKillInitiated(engine, task, vmService, jobStore, TaskStatus.REASON_RUNTIME_LIMIT_EXCEEDED,
+                    actions.add(KillInitiatedActions.reconcilerInitiatedTaskKillInitiated(engine, task, vmService, kubeApiServerIntegrator,
+                            jobStore, TaskStatus.REASON_RUNTIME_LIMIT_EXCEEDED,
                             "Task running too long (runtimeLimit=" + runtimeLimitMs + "ms)", titusRuntime)
                     );
                 }
@@ -204,11 +207,13 @@ public class DifferenceResolverUtils {
                             );
                         } else {
                             actions.add(TaskTimeoutChangeActions.incrementTaskKillAttempt(task.getId(), configuration.getTaskInKillInitiatedStateTimeoutMs(), clock));
-                            actions.add(KillInitiatedActions.reconcilerInitiatedTaskKillInitiated(engine, task, vmService, jobStore, TaskStatus.REASON_STUCK_IN_KILLING_STATE,
+                            actions.add(KillInitiatedActions.reconcilerInitiatedTaskKillInitiated(engine, task, vmService, kubeApiServerIntegrator,
+                                    jobStore, TaskStatus.REASON_STUCK_IN_KILLING_STATE,
                                     "Another kill attempt (" + (attempts + 1) + ')', titusRuntime));
                         }
                     } else {
-                        actions.add(KillInitiatedActions.reconcilerInitiatedTaskKillInitiated(engine, task, vmService, jobStore, TaskStatus.REASON_STUCK_IN_STATE,
+                        actions.add(KillInitiatedActions.reconcilerInitiatedTaskKillInitiated(engine, task, vmService, kubeApiServerIntegrator,
+                                jobStore, TaskStatus.REASON_STUCK_IN_STATE,
                                 "Task stuck in " + taskState + " state", titusRuntime));
                     }
                     break;
@@ -243,7 +248,7 @@ public class DifferenceResolverUtils {
                 .collect(Collectors.toCollection(HashSet::new));
 
         // Filter out those that are assigned
-        for (Task task : (List<Task>)refJobView.getTasks()) {
+        for (Task task : (List<Task>) refJobView.getTasks()) {
             if (!TaskState.isTerminalState(task.getStatus().getState())) {
                 unassignedIpAddressIds.remove(task.getTaskContext().getOrDefault(TASK_ATTRIBUTES_IP_ALLOCATION_ID, ""));
             }
@@ -279,7 +284,7 @@ public class DifferenceResolverUtils {
     public static Map<String, String> getTaskContext(Optional<EntityHolder> optionalPreviousTaskEntityHolder,
                                                      Set<String> unassignedIpAllocations) {
         return optionalPreviousTaskEntityHolder
-                .map(entityHolder -> (Task)entityHolder.getEntity())
+                .map(entityHolder -> (Task) entityHolder.getEntity())
                 .map(DifferenceResolverUtils::getTaskContextFromPreviousTask)
                 .orElseGet(() -> getInitialTaskContext(unassignedIpAllocations));
     }

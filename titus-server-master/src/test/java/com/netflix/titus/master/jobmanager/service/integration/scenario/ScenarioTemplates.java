@@ -199,17 +199,37 @@ public class ScenarioTemplates {
     }
 
     public static <E extends JobDescriptorExt> Function<JobScenarioBuilder<E>, JobScenarioBuilder<E>> reconcilerTaskKill(int taskIdx, int resubmit) {
-        return jobScenario -> jobScenario
-                .expectMesosTaskKill(taskIdx, resubmit)
-                .expectTaskUpdatedInStore(taskIdx, resubmit, task -> assertThat(task.getStatus().getState()).isEqualTo(TaskState.KillInitiated))
-                .expectTaskStateChangeEvent(taskIdx, resubmit, TaskState.KillInitiated)
-                .triggerMesosFinishedEvent(taskIdx, resubmit, -1, TaskStatus.REASON_TASK_KILLED);
+        return jobScenario -> {
+            if (jobScenario.isKubeScheduler()) {
+                return jobScenario
+                        .expectPodTerminated(taskIdx, resubmit)
+                        .expectTaskUpdatedInStore(taskIdx, resubmit, task -> assertThat(task.getStatus().getState()).isEqualTo(TaskState.KillInitiated))
+                        .triggerMesosFinishedEvent(taskIdx, resubmit, -1, TaskStatus.REASON_TASK_KILLED);
+            } else {
+                return jobScenario
+                        .expectMesosTaskKill(taskIdx, resubmit)
+                        .expectTaskUpdatedInStore(taskIdx, resubmit, task -> assertThat(task.getStatus().getState()).isEqualTo(TaskState.KillInitiated))
+                        .expectTaskStateChangeEvent(taskIdx, resubmit, TaskState.KillInitiated)
+                        .triggerMesosFinishedEvent(taskIdx, resubmit, -1, TaskStatus.REASON_TASK_KILLED);
+            }
+        };
     }
 
     public static <E extends JobDescriptorExt> Function<JobScenarioBuilder<E>, JobScenarioBuilder<E>> killTask(int taskIdx, int resubmit) {
         return jobScenario -> jobScenario
                 .killTask(taskIdx, resubmit)
                 .expectMesosTaskKill(taskIdx, resubmit)
+                .expectTaskUpdatedInStore(taskIdx, resubmit, task -> {
+                    assertThat(task.getStatus().getState()).isEqualTo(TaskState.KillInitiated);
+                    assertThat(task.getStatus().getReasonCode()).isEqualTo(TaskStatus.REASON_TASK_KILLED);
+                })
+                .expectTaskStateChangeEvent(taskIdx, resubmit, TaskState.KillInitiated, TaskStatus.REASON_TASK_KILLED);
+    }
+
+    public static <E extends JobDescriptorExt> Function<JobScenarioBuilder<E>, JobScenarioBuilder<E>> killKubeTask(int taskIdx, int resubmit) {
+        return jobScenario -> jobScenario
+                .killTask(taskIdx, resubmit)
+                .expectPodTerminated(taskIdx, resubmit)
                 .expectTaskUpdatedInStore(taskIdx, resubmit, task -> {
                     assertThat(task.getStatus().getState()).isEqualTo(TaskState.KillInitiated);
                     assertThat(task.getStatus().getReasonCode()).isEqualTo(TaskStatus.REASON_TASK_KILLED);

@@ -68,4 +68,13 @@ public class KubeSchedulerTest {
                 .template(ScenarioTemplates.verifyJobWithFinishedTasksCompletes())
         );
     }
+
+    @Test
+    public void testBatchTaskTerminate() {
+        jobsScenarioBuilder.scheduleJob(oneTaskBatchJobDescriptor(), jobScenario -> jobScenario
+                .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
+                .template(ScenarioTemplates.startTask(0, 0, TaskState.Started))
+                .template(ScenarioTemplates.killKubeTask(0, 0))
+        );
+    }
 }

@@ -19,24 +19,20 @@ package com.netflix.titus.master.mesos.kubeapiserver.direct.model;
 import java.util.Objects;
 
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import io.kubernetes.client.models.V1ObjectMeta;
 import io.kubernetes.client.models.V1Pod;
 
-public abstract class PodEvent {
+public class PodNotFoundEvent extends PodEvent {
 
-    protected final String taskId;
-    protected final V1Pod pod;
+    private final Task task;
 
-    protected PodEvent(V1Pod pod) {
-        this.taskId = pod.getMetadata().getName();
-        this.pod = pod;
+    PodNotFoundEvent(Task task) {
+        super(new V1Pod().metadata(new V1ObjectMeta().name(task.getId())));
+        this.task = task;
     }
 
-    public String getTaskId() {
-        return taskId;
-    }
-
-    public V1Pod getPod() {
-        return pod;
+    public Task getTask() {
+        return task;
     }
 
     @Override
@@ -47,37 +43,22 @@ public abstract class PodEvent {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        PodEvent podEvent = (PodEvent) o;
-        return Objects.equals(taskId, podEvent.taskId) &&
-                Objects.equals(pod, podEvent.pod);
+        if (!super.equals(o)) {
+            return false;
+        }
+        PodNotFoundEvent that = (PodNotFoundEvent) o;
+        return Objects.equals(task, that.task);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(taskId, pod);
+        return Objects.hash(super.hashCode(), task);
     }
 
     @Override
     public String toString() {
-        return "PodEvent{" +
-                "taskId='" + taskId + '\'' +
-                ", pod=" + pod +
+        return "PodNotFoundEvent{" +
+                "taskId=" + task.getId() +
                 '}';
-    }
-
-    public static PodAddedEvent onAdd(V1Pod pod) {
-        return new PodAddedEvent(pod);
-    }
-
-    public static PodUpdatedEvent onUpdate(V1Pod oldPod, V1Pod newPod) {
-        return new PodUpdatedEvent(oldPod, newPod);
-    }
-
-    public static PodDeletedEvent onDelete(V1Pod pod, boolean deletedFinalStateUnknown) {
-        return new PodDeletedEvent(pod, deletedFinalStateUnknown);
-    }
-
-    public static PodNotFoundEvent onPodNotFound(Task task) {
-        return new PodNotFoundEvent(task);
     }
 }

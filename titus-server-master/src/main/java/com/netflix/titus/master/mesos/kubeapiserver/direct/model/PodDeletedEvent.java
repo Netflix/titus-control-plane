@@ -24,7 +24,7 @@ public class PodDeletedEvent extends PodEvent {
 
     private final boolean deletedFinalStateUnknown;
 
-    public PodDeletedEvent(V1Pod pod, boolean deletedFinalStateUnknown) {
+    PodDeletedEvent(V1Pod pod, boolean deletedFinalStateUnknown) {
         super(pod);
         this.deletedFinalStateUnknown = deletedFinalStateUnknown;
     }
