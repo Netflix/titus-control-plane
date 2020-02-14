@@ -209,7 +209,6 @@ public class DefaultKubeApiFacade implements KubeApiFacade {
     }
 
     private SharedIndexInformer<V1OpportunisticResource> createOpportunisticResourceInformer(SharedInformerFactory sharedInformerFactory) {
-        // TODO(fabio): enhance the kube client to support custom JSON deserialization options
         return sharedInformerFactory.sharedIndexInformerFor(
                 this::listOpportunisticResourcesCall,
                 V1OpportunisticResource.class,
@@ -235,9 +234,7 @@ public class DefaultKubeApiFacade implements KubeApiFacade {
                     null
             );
         } catch (ApiException e) {
-            titusRuntime.getCodeInvariants().unexpectedError("Error building a kube http call for opportunistic resources", e);
+            throw new IllegalStateException("listNamespacedCustomObjectCall error", e);
         }
-        // this should never happen, if it does the code building request calls is wrong
-        return null;
     }
 }
