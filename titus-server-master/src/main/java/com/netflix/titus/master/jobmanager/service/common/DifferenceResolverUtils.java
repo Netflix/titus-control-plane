@@ -147,7 +147,7 @@ public class DifferenceResolverUtils {
                 Job<BatchJobExt> batchJob = runningJobView.getJob();
 
                 // We expect runtime limit to be always set, so this is just extra safety measure.
-                long runtimeLimitMs = Math.max(60_000, batchJob.getJobDescriptor().getExtensions().getRuntimeLimitMs());
+                long runtimeLimitMs = Math.max(BatchJobExt.RUNTIME_LIMIT_MIN, batchJob.getJobDescriptor().getExtensions().getRuntimeLimitMs());
 
                 long deadline = task.getStatus().getTimestamp() + runtimeLimitMs;
                 if (deadline < clock.wallTime()) {
