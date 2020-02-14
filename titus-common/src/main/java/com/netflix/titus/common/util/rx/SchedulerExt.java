@@ -16,26 +16,26 @@
 
 package com.netflix.titus.common.util.rx;
 
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.netflix.titus.common.util.ExecutorsExt;
 import rx.Scheduler;
 import rx.schedulers.Schedulers;
 
 public class SchedulerExt {
 
     /**
-     * Create a {@link Scheduler} from a single threaded {@link ScheduledExecutorService} with a name pattern.
+     * Create a {@link Scheduler} from a single (non-daemon) threaded {@link ScheduledExecutorService} with a name pattern.
      *
      * @param name the thread name pattern
      * @return the scheduler
      */
     public static Scheduler createSingleThreadScheduler(String name) {
-        ThreadFactory threadFactory = new ThreadFactoryBuilder().setNameFormat(name).build();
-        ScheduledExecutorService scheduledExecutorService = Executors.newSingleThreadScheduledExecutor(threadFactory);
-        return Schedulers.from(scheduledExecutorService);
+        return Schedulers.from(ExecutorsExt.namedSingleThreadExecutor(name));
     }
 
 }

@@ -35,11 +35,13 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.guice.annotation.Deactivator;
 import com.netflix.titus.common.util.rx.ReactorExt;
+import com.netflix.titus.common.util.rx.SchedulerExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.publisher.BufferOverflowStrategy;
 import reactor.core.publisher.Flux;
+import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
 /**
@@ -100,6 +102,7 @@ public class JobActivityPublisher {
     }
 
     private Flux<JobManagerEvent<?>> jobManagerStream() {
+        Scheduler scheduler = Schedulers.newSingle(JOB_ACTIVITY_PUBLISHER_SCHEDULER, true);
         // The TitusRuntime emits stream metrics so we avoid explicitly managing them here
         return ReactorExt.toFlux(runtime.persistentStream(v3JobOperations.observeJobs()))
                 .onBackpressureBuffer(jobActivityStreamBufferSize,
@@ -109,7 +112,7 @@ public class JobActivityPublisher {
                                     jobActivityStreamBufferSize);
                         },
                         BufferOverflowStrategy.DROP_LATEST)
-                .subscribeOn(Schedulers.newSingle(JOB_ACTIVITY_PUBLISHER_SCHEDULER));
+                .subscribeOn(scheduler);
     }
 
     /**
