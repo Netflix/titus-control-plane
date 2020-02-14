@@ -54,7 +54,6 @@ import com.netflix.titus.common.util.ExecutorsExt;
 import com.netflix.titus.common.util.NetworkExt;
 import com.netflix.titus.common.util.RegExpExt;
 import com.netflix.titus.common.util.StringExt;
-import com.netflix.titus.common.util.guice.annotation.Deactivator;
 import com.netflix.titus.common.util.limiter.Limiters;
 import com.netflix.titus.common.util.limiter.tokenbucket.TokenBucket;
 import com.netflix.titus.common.util.time.Clock;
@@ -67,27 +66,21 @@ import com.netflix.titus.master.mesos.TaskInfoRequest;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.master.mesos.V3ContainerEvent;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
-import io.kubernetes.client.ApiClient;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.KubeApiFactory;
 import io.kubernetes.client.ApiException;
-import io.kubernetes.client.apis.CoreV1Api;
 import io.kubernetes.client.custom.Quantity;
 import io.kubernetes.client.informer.ResourceEventHandler;
-import io.kubernetes.client.informer.SharedIndexInformer;
-import io.kubernetes.client.informer.SharedInformerFactory;
 import io.kubernetes.client.models.V1Container;
 import io.kubernetes.client.models.V1ContainerStateTerminated;
 import io.kubernetes.client.models.V1Node;
 import io.kubernetes.client.models.V1NodeAddress;
 import io.kubernetes.client.models.V1NodeCondition;
-import io.kubernetes.client.models.V1NodeList;
 import io.kubernetes.client.models.V1NodeStatus;
 import io.kubernetes.client.models.V1ObjectMeta;
 import io.kubernetes.client.models.V1Pod;
-import io.kubernetes.client.models.V1PodList;
 import io.kubernetes.client.models.V1PodSpec;
 import io.kubernetes.client.models.V1PodStatus;
 import io.kubernetes.client.models.V1ResourceRequirements;
-import io.kubernetes.client.util.CallGeneratorParams;
 import org.apache.mesos.Protos;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
@@ -106,9 +99,6 @@ import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_FAILE
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_NORMAL;
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TASK_KILLED;
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TASK_LOST;
-import static com.netflix.titus.master.mesos.kubeapiserver.KubeUtil.createApi;
-import static com.netflix.titus.master.mesos.kubeapiserver.KubeUtil.createApiClient;
-import static com.netflix.titus.master.mesos.kubeapiserver.KubeUtil.createSharedInformerFactory;
 
 /**
  * Responsible for integrating Kubernetes API Server concepts into Titus's Mesos based approaches.
@@ -148,6 +138,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     private final LocalScheduler scheduler;
     private final Clock clock;
     private final Injector injector;
+    private final KubeApiFactory kubeApiFactory;
 
     private final Function<String, Matcher> invalidRequestMessageMatcherFactory;
     private final Function<String, Matcher> crashedMessageMatcherFactory;
@@ -178,22 +169,20 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     private Action1<List<LeaseRescindedEvent>> rescindLeaseHandler;
     private Subject<ContainerEvent, ContainerEvent> vmTaskStatusObserver;
     private V3JobOperations v3JobOperations;
-    private CoreV1Api api;
-    private SharedInformerFactory sharedInformerFactory;
-    private SharedIndexInformer<V1Node> nodeInformer;
-    private SharedIndexInformer<V1Pod> podInformer;
     private TokenBucket gcUnknownPodsTokenBucket;
 
     @Inject
     public KubeApiServerIntegrator(TitusRuntime titusRuntime,
                                    MesosConfiguration mesosConfiguration,
                                    LocalScheduler scheduler,
-                                   Injector injector) {
+                                   Injector injector,
+                                   KubeApiFactory kubeApiFactory) {
         this.titusRuntime = titusRuntime;
         this.mesosConfiguration = mesosConfiguration;
         this.scheduler = scheduler;
         this.clock = titusRuntime.getClock();
         this.injector = injector;
+        this.kubeApiFactory = kubeApiFactory;
 
         this.vmTaskStatusObserver = PublishSubject.create();
 
@@ -226,22 +215,10 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
 
     @Override
     public void enterActiveMode() {
-        api = createApi(mesosConfiguration.getKubeApiServerUrl(), CLIENT_METRICS_PREFIX,
-                titusRuntime, 60_000L);
-
         v3JobOperations = injector.getInstance(V3JobOperations.class);
 
-        ApiClient informerApiClient = createApiClient(mesosConfiguration.getKubeApiServerUrl(), CLIENT_METRICS_PREFIX,
-                titusRuntime, 0L);
-        CoreV1Api informerApi = new CoreV1Api(informerApiClient);
-
-        sharedInformerFactory = createSharedInformerFactory(
-                "kube-api-server-integrator-shared-informer-",
-                informerApiClient
-        );
-        nodeInformer = createNodeInformer(sharedInformerFactory, informerApi);
-        podInformer = createPodInformer(sharedInformerFactory, informerApi);
-        sharedInformerFactory.startAllRegisteredInformers();
+        subscribeToNodeInformer();
+        subscribeToPodInformer();
 
         gcUnknownPodsTokenBucket = Limiters.createFixedIntervalTokenBucket(
                 "gcUnknownPodsTokenBucket",
@@ -262,11 +239,6 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         scheduler.schedule(reconcileSchedulerDescriptor, e -> reconcileNodesAndPods(), ExecutorsExt.namedSingleThreadExecutor("kube-api-server-integrator-gc"));
     }
 
-    @Deactivator
-    public void shutdown() {
-        sharedInformerFactory.stopAllRegisteredInformers();
-    }
-
     @Override
     public void launchTasks(List<TaskInfoRequest> requests, List<VirtualMachineLease> leases) {
         launchTaskCounter.increment();
@@ -274,7 +246,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
             try {
                 V1Pod v1Pod = taskInfoToPod(request);
                 logger.info("creating pod: {}", v1Pod);
-                api.createNamespacedPod(KUBERNETES_NAMESPACE, v1Pod, null, null, null);
+                kubeApiFactory.getCoreV1Api().createNamespacedPod(KUBERNETES_NAMESPACE, v1Pod, null, null, null);
             } catch (ApiException e) {
                 logger.error("Unable to create pod with error:", e);
             }
@@ -291,7 +263,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         killTaskCounter.increment();
         try {
             logger.info("deleting pod: {}", taskId);
-            api.deleteNamespacedPod(taskId, KUBERNETES_NAMESPACE, null, null, null, DELETE_GRACE_PERIOD_SECONDS, null, null);
+            kubeApiFactory.getCoreV1Api().deleteNamespacedPod(taskId, KUBERNETES_NAMESPACE, null, null, null, DELETE_GRACE_PERIOD_SECONDS, null, null);
         } catch (JsonSyntaxException e) {
             // this is probably successful. the generated client has the wrong response type
         } catch (ApiException e) {
@@ -325,25 +297,8 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         return vmTaskStatusObserver.asObservable();
     }
 
-    private SharedIndexInformer<V1Node> createNodeInformer(SharedInformerFactory sharedInformerFactory, CoreV1Api api) {
-        SharedIndexInformer<V1Node> nodeInformer = sharedInformerFactory.sharedIndexInformerFor(
-                (CallGeneratorParams params) -> api.listNodeCall(
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        params.resourceVersion,
-                        params.timeoutSeconds,
-                        params.watch,
-                        null,
-                        null),
-                V1Node.class,
-                V1NodeList.class,
-                mesosConfiguration.getKubeApiServerIntegratorRefreshIntervalMs()
-        );
-
-        nodeInformer.addEventHandler(
+    private void subscribeToNodeInformer() {
+        kubeApiFactory.getNodeInformer().addEventHandler(
                 new ResourceEventHandler<V1Node>() {
                     @Override
                     public void onAdd(V1Node node) {
@@ -366,8 +321,6 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                         nodeDeleted(node);
                     }
                 });
-
-        return nodeInformer;
     }
 
     private void nodeUpdated(V1Node node) {
@@ -402,28 +355,8 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         }
     }
 
-    private SharedIndexInformer<V1Pod> createPodInformer(SharedInformerFactory sharedInformerFactory, CoreV1Api api) {
-        SharedIndexInformer<V1Pod> podInformer =
-                sharedInformerFactory.sharedIndexInformerFor(
-                        (CallGeneratorParams params) -> api.listNamespacedPodCall(
-                                KUBERNETES_NAMESPACE,
-                                null,
-                                null,
-                                null,
-                                null,
-                                null,
-                                params.resourceVersion,
-                                params.timeoutSeconds,
-                                params.watch,
-                                null,
-                                null
-                        ),
-                        V1Pod.class,
-                        V1PodList.class,
-                        mesosConfiguration.getKubeApiServerIntegratorRefreshIntervalMs()
-                );
-
-        podInformer.addEventHandler(
+    private void subscribeToPodInformer() {
+        kubeApiFactory.getPodInformer().addEventHandler(
                 new ResourceEventHandler<V1Pod>() {
                     @Override
                     public void onAdd(V1Pod pod) {
@@ -446,8 +379,6 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                         podUpdated(pod);
                     }
                 });
-
-        return podInformer;
     }
 
     private VirtualMachineLease nodeToLease(V1Node node) {
@@ -723,12 +654,12 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     }
 
     private void reconcileNodesAndPods() {
-        if (!mesosConfiguration.isReconcilerEnabled() || !nodeInformer.hasSynced() || !podInformer.hasSynced()) {
+        if (!mesosConfiguration.isReconcilerEnabled() || !kubeApiFactory.getNodeInformer().hasSynced() || !kubeApiFactory.getPodInformer().hasSynced()) {
             return;
         }
 
-        List<V1Node> nodes = nodeInformer.getIndexer().list();
-        List<V1Pod> pods = podInformer.getIndexer().list();
+        List<V1Node> nodes = kubeApiFactory.getNodeInformer().getIndexer().list();
+        List<V1Pod> pods = kubeApiFactory.getPodInformer().getIndexer().list();
         List<Task> tasks = v3JobOperations.getTasks();
         Map<String, Task> currentTasks = tasks.stream().collect(Collectors.toMap(Task::getId, Function.identity()));
         Set<String> currentPodNames = pods.stream().map(p -> p.getMetadata().getName()).collect(Collectors.toSet());
@@ -745,7 +676,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     private void gcNode(V1Node node) {
         String nodeName = node.getMetadata().getName();
         try {
-            api.deleteNode(nodeName, null, null, null, 0, null, "Background");
+            kubeApiFactory.getCoreV1Api().deleteNode(nodeName, null, null, null, 0, null, "Background");
         } catch (JsonSyntaxException e) {
             // this is probably successful. the generated client has the wrong response type
         } catch (ApiException e) {
@@ -782,7 +713,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     private void gcPod(V1Pod pod) {
         String podName = pod.getMetadata().getName();
         try {
-            api.deleteNamespacedPod(podName, KUBERNETES_NAMESPACE, null, null, null, 0, null, "Background");
+            kubeApiFactory.getCoreV1Api().deleteNamespacedPod(podName, KUBERNETES_NAMESPACE, null, null, null, 0, null, "Background");
         } catch (JsonSyntaxException e) {
             // this is probably successful. the generated client has the wrong response type
         } catch (ApiException e) {
