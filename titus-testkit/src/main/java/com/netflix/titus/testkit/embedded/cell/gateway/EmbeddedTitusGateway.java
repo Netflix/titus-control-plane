@@ -258,7 +258,9 @@ public class EmbeddedTitusGateway {
                 .withMaster(embeddedTitusMaster)
                 .withHttpPort(httpPort)
                 .withGrpcPort(grpcPort)
-                .withProperties(properties);
+                .withProperties(properties)
+                .withJobValidator(validator)
+                .withJobSanitizer(jobSanitizer);
     }
 
     public static Builder aDefaultTitusGateway() {

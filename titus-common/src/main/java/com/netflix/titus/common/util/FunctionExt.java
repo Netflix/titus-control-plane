@@ -16,8 +16,11 @@
 
 package com.netflix.titus.common.util;
 
+import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 
 public final class FunctionExt {
     private static final Predicate TRUE_PREDICATE = ignored -> true;
@@ -37,4 +40,14 @@ public final class FunctionExt {
         }
         return opt;
     }
+
+    /**
+     * {@link UnaryOperator} does not have an equivalent of {@link Function#andThen(Function)}, so this can be used when
+     * the more specific type is required.
+     */
+    public static <T> UnaryOperator<T> andThen(UnaryOperator<T> op, UnaryOperator<T> after) {
+        Objects.requireNonNull(after);
+        return (T t) -> after.apply(op.apply(t));
+    }
+
 }

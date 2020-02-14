@@ -78,10 +78,9 @@ import com.netflix.titus.master.jobmanager.service.common.V3QAttributes;
 import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import com.netflix.titus.master.mesos.LeaseRescindedEvent;
 import com.netflix.titus.master.mesos.MesosConfiguration;
-import com.netflix.titus.master.mesos.TaskInfoRequestFactory;
 import com.netflix.titus.master.mesos.TaskInfoRequest;
+import com.netflix.titus.master.mesos.TaskInfoRequestFactory;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
-import com.netflix.titus.master.model.job.TitusQueuableTask;
 import com.netflix.titus.master.scheduler.TaskPlacementFailure.FailureKind;
 import com.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
 import com.netflix.titus.master.scheduler.constraint.TaskCacheEventListener;
@@ -533,7 +532,7 @@ public class DefaultSchedulingService implements SchedulingService<V3QueueableTa
     private void processTaskSchedulingFailureCallbacks(Map<FailureKind, Map<V3QueueableTask, List<TaskPlacementFailure>>> failuresByKind) {
         for (V3QueueableTask failed : SchedulerUtils.collectFailedTasksIgnoring(failuresByKind,
                 FailureKind.IGNORED_FOR_OPPORTUNISTIC_SCHEDULING)) {
-            ((TitusQueuableTask) failed).opportunisticSchedulingFailed();
+            failed.opportunisticSchedulingFailed();
         }
     }
 

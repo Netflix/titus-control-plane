@@ -16,6 +16,13 @@
 
 package com.netflix.titus.testkit.embedded.cell;
 
+import com.netflix.titus.common.runtime.TitusRuntimes;
+import com.netflix.titus.runtime.connector.prediction.EmptyJobRuntimePredictionClient;
+import com.netflix.titus.runtime.endpoint.admission.JobRuntimePredictionConfiguration;
+import com.netflix.titus.runtime.endpoint.admission.JobRuntimePredictionSanitizer;
+import com.netflix.titus.runtime.endpoint.admission.JobRuntimePredictionSelectors;
+import com.netflix.titus.runtime.endpoint.admission.PassJobValidator;
+import com.netflix.titus.testkit.embedded.cell.gateway.EmbeddedTitusGateway;
 import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMaster;
 import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMasters;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
@@ -37,6 +44,27 @@ public class EmbeddedTitusCells {
                 )
                 .withDefaultGateway()
                 .build();
+    }
+
+    public static EmbeddedTitusCell cellWithRuntimePredictions(String cellName, int desired,
+                                                               JobRuntimePredictionConfiguration predictionConfig) {
+        SimulatedCloud simulatedCloud = SimulatedClouds.basicCloud(desired);
+
+        return EmbeddedTitusCell.aTitusCell()
+                .withMaster(EmbeddedTitusMasters.basicMaster(simulatedCloud).toBuilder()
+                        .withCellName(cellName)
+                        .build()
+                )
+                .withGateway(EmbeddedTitusGateway.aDefaultTitusGateway()
+                        .withJobValidator(new PassJobValidator())
+                        .withJobSanitizer(new JobRuntimePredictionSanitizer(
+                                new EmptyJobRuntimePredictionClient(),
+                                JobRuntimePredictionSelectors.best(),
+                                predictionConfig,
+                                TitusRuntimes.test()))
+                        .build(), false)
+                .build();
+
     }
 
     public static EmbeddedTitusCell twoPartitionsPerTierCell(int desired) {
