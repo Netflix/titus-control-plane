@@ -43,7 +43,7 @@ public final class FunctionExt {
 
     /**
      * {@link UnaryOperator} does not have an equivalent of {@link Function#andThen(Function)}, so this can be used when
-     * the more specific type is required.
+     * the more specific type ({@link UnaryOperator}) is required.
      */
     public static <T> UnaryOperator<T> andThen(UnaryOperator<T> op, UnaryOperator<T> after) {
         Objects.requireNonNull(after);
