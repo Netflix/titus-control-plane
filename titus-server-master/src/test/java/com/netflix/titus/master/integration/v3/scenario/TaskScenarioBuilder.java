@@ -307,6 +307,15 @@ public class TaskScenarioBuilder {
         return this;
     }
 
+    public TaskScenarioBuilder expectNoTaskContext(String key) {
+        logger.info("[{}] Expecting current task to not have taskContext key {}", discoverActiveTest(), key);
+        Preconditions.checkArgument(
+                !getTask().getTaskContext().containsKey(key),
+                "Task context contains {}", key
+        );
+        return this;
+    }
+
     public TaskScenarioBuilder expectStateUpdates(TaskStatus.TaskState... expectedStates) {
         logger.info("[{}] Expecting sequence of events with task states {}...", discoverActiveTest(), asList(expectedStates));
 

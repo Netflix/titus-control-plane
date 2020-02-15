@@ -234,7 +234,7 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
     public void testBatchJobWithTooLowRuntimeLimit() throws Exception {
         submitBadJob(
                 client,
-                BATCH_JOB_DESCR_BUILDER.setBatch(BATCH_JOB_SPEC_BUILDER.setRuntimeLimitSec(5)).build(),
+                BATCH_JOB_DESCR_BUILDER.setBatch(BATCH_JOB_SPEC_BUILDER.setRuntimeLimitSec(4)).build(),
                 "extensions.runtimeLimitMs"
         );
     }

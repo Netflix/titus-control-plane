@@ -26,15 +26,18 @@ import com.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
 import com.netflix.titus.common.model.sanitizer.FieldInvariant;
 
 /**
+ *
  */
 @ClassFieldsNotNull
 public class BatchJobExt implements JobDescriptor.JobDescriptorExt {
+
+    public static final int RUNTIME_LIMIT_MIN = 5_000;
 
     @Min(value = 1, message = "Batch job must have at least one task")
     @FieldInvariant(value = "value <= @constraints.getMaxBatchJobSize()", message = "Batch job too big #{value} > #{@constraints.getMaxBatchJobSize()}")
     private final int size;
 
-    @Min(value = 60_000, message = "Runtime limit too low (must be at least 60sec, but is #{#root}[ms])")
+    @Min(value = RUNTIME_LIMIT_MIN, message = "Runtime limit too low (must be at least 5sec, but is #{#root}[ms])")
     @FieldInvariant(value = "value <= @constraints.getMaxRuntimeLimitSec() * 1000", message = "Runtime limit too high #{value} > #{@constraints.getMaxRuntimeLimitSec() * 1000}")
     private final long runtimeLimitMs;
 

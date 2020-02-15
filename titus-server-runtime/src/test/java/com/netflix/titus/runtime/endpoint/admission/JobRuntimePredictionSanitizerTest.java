@@ -50,14 +50,16 @@ public class JobRuntimePredictionSanitizerTest {
 
     private JobDescriptor<BatchJobExt> jobDescriptor;
     private String modelId;
+    private JobRuntimePredictionConfiguration config;
     private JobRuntimePredictionClient client;
 
     @Before
     public void setup() {
         jobDescriptor = JobDescriptorGenerator.oneTaskBatchJobDescriptor();
         modelId = UUID.randomUUID().toString();
+        config = mock(JobRuntimePredictionConfiguration.class);
+        when(config.getMaxOpportunisticRuntimeLimitMs()).thenReturn(300_000L);
         client = mock(JobRuntimePredictionClient.class);
-
         JobRuntimePredictions predictions = new JobRuntimePredictions("v1", modelId,
                 new TreeSet<>(Arrays.asList(
                         new JobRuntimePrediction(0.05, 5.5),
@@ -70,7 +72,7 @@ public class JobRuntimePredictionSanitizerTest {
     @Test
     public void predictionsAreAddedToJobs() {
         AdmissionSanitizer<JobDescriptor> sanitizer = new JobRuntimePredictionSanitizer(client,
-                JobRuntimePredictionSelectors.best(), TitusRuntimes.test());
+                JobRuntimePredictionSelectors.best(), config, TitusRuntimes.test());
 
         StepVerifier.create(sanitizer.sanitizeAndApply(jobDescriptor))
                 .assertNext(result -> assertThat(((JobDescriptor<?>) result).getAttributes())
@@ -84,14 +86,42 @@ public class JobRuntimePredictionSanitizerTest {
     }
 
     @Test
+    public void predictionsAreCappedToRuntimeLimit() {
+        JobRuntimePredictionClient client = mock(JobRuntimePredictionClient.class);
+        JobRuntimePredictions predictions = new JobRuntimePredictions("v1", modelId,
+                new TreeSet<>(Arrays.asList(
+                        new JobRuntimePrediction(0.05, 10.1),
+                        new JobRuntimePrediction(0.25, 30.2),
+                        new JobRuntimePrediction(0.90, 90.5)
+                )));
+        when(client.getRuntimePredictions(any())).thenReturn(Mono.just(predictions));
+
+        AdmissionSanitizer<JobDescriptor> sanitizer = new JobRuntimePredictionSanitizer(client,
+                JobRuntimePredictionSelectors.best(), config, TitusRuntimes.test());
+
+        StepVerifier.create(sanitizer.sanitizeAndApply(jobDescriptor))
+                .assertNext(result -> assertThat(((JobDescriptor<?>) result).getAttributes())
+                        .containsEntry(JOB_ATTRIBUTES_RUNTIME_PREDICTION_SEC, "60.0")
+                        .containsEntry(JOB_ATTRIBUTES_RUNTIME_PREDICTION_CONFIDENCE, "1.0")
+                        .containsEntry(JOB_ATTRIBUTES_RUNTIME_PREDICTION_MODEL_ID, modelId)
+                        .containsEntry(JOB_ATTRIBUTES_RUNTIME_PREDICTION_VERSION, "v1")
+                        .containsEntry(JOB_ATTRIBUTES_RUNTIME_PREDICTION_AVAILABLE, "0.05=10.1;0.25=30.2;0.9=90.5")
+                )
+                .verifyComplete();
+    }
+
+    @Test
     public void errorsCauseSanitizationToBeSkipped() {
+        JobDescriptor<BatchJobExt> noRuntimeLimit = jobDescriptor.but(jd -> jd.getExtensions().toBuilder()
+                .withRuntimeLimitMs(0)
+        );
         JobRuntimePredictionClient errorClient = mock(JobRuntimePredictionClient.class);
         when(errorClient.getRuntimePredictions(any())).thenReturn(Mono.error(TitusServiceException.internal("bad request")));
 
         AdmissionSanitizer<JobDescriptor> sanitizer = new JobRuntimePredictionSanitizer(errorClient,
-                JobRuntimePredictionSelectors.best(), TitusRuntimes.test());
+                JobRuntimePredictionSelectors.best(), config, TitusRuntimes.test());
 
-        StepVerifier.create(sanitizer.sanitizeAndApply(jobDescriptor))
+        StepVerifier.create(sanitizer.sanitizeAndApply(noRuntimeLimit))
                 .assertNext(result -> assertThat(((JobDescriptor<?>) result).getAttributes())
                         .containsEntry(JOB_ATTRIBUTES_SANITIZATION_SKIPPED_RUNTIME_PREDICTION, "true")
                         .doesNotContainKeys(
@@ -105,16 +135,86 @@ public class JobRuntimePredictionSanitizerTest {
     }
 
     @Test
+    public void errorsCauseFallbackToRuntimeLimit() {
+        JobRuntimePredictionClient errorClient = mock(JobRuntimePredictionClient.class);
+        when(errorClient.getRuntimePredictions(any())).thenReturn(Mono.error(TitusServiceException.internal("bad request")));
+
+        AdmissionSanitizer<JobDescriptor> sanitizer = new JobRuntimePredictionSanitizer(errorClient,
+                JobRuntimePredictionSelectors.best(), config, TitusRuntimes.test());
+
+        StepVerifier.create(sanitizer.sanitizeAndApply(jobDescriptor))
+                .assertNext(result -> assertThat(((JobDescriptor<?>) result).getAttributes())
+                        .containsEntry(JOB_ATTRIBUTES_SANITIZATION_SKIPPED_RUNTIME_PREDICTION, "true")
+                        .containsEntry(JOB_ATTRIBUTES_RUNTIME_PREDICTION_CONFIDENCE, "1.0")
+                        .containsEntry(JOB_ATTRIBUTES_RUNTIME_PREDICTION_SEC, "60.0")
+                )
+                .verifyComplete();
+    }
+
+    @Test
     public void emptyPredictionsCauseSanitizationToBeSkipped() {
+        JobDescriptor<BatchJobExt> noRuntimeLimit = jobDescriptor.but(jd -> jd.getExtensions().toBuilder()
+                .withRuntimeLimitMs(0)
+        );
         JobRuntimePredictionClient client = mock(JobRuntimePredictionClient.class);
         JobRuntimePredictions predictions = new JobRuntimePredictions("v1", modelId, new TreeSet<>());
         when(client.getRuntimePredictions(any())).thenReturn(Mono.just(predictions));
 
         AdmissionSanitizer<JobDescriptor> sanitizer = new JobRuntimePredictionSanitizer(client,
-                JobRuntimePredictionSelectors.best(), TitusRuntimes.test());
+                JobRuntimePredictionSelectors.best(), config, TitusRuntimes.test());
+
+        StepVerifier.create(sanitizer.sanitizeAndApply(noRuntimeLimit))
+                .assertNext(result -> assertThat(((JobDescriptor<?>) result).getAttributes())
+                        .containsEntry(JOB_ATTRIBUTES_SANITIZATION_SKIPPED_RUNTIME_PREDICTION, "true")
+                        .containsEntry(JOB_ATTRIBUTES_RUNTIME_PREDICTION_MODEL_ID, modelId)
+                        .containsEntry(JOB_ATTRIBUTES_RUNTIME_PREDICTION_VERSION, "v1")
+                        .containsEntry(JOB_ATTRIBUTES_RUNTIME_PREDICTION_AVAILABLE, "")
+                        .doesNotContainKeys(
+                                JOB_ATTRIBUTES_RUNTIME_PREDICTION_SEC,
+                                JOB_ATTRIBUTES_RUNTIME_PREDICTION_CONFIDENCE
+                        )
+                )
+                .verifyComplete();
+    }
+
+    @Test
+    public void emptyPredictionsCauseFallbackToRuntimeLimit() {
+        JobRuntimePredictionClient client = mock(JobRuntimePredictionClient.class);
+        JobRuntimePredictions predictions = new JobRuntimePredictions("v1", modelId, new TreeSet<>());
+        when(client.getRuntimePredictions(any())).thenReturn(Mono.just(predictions));
+
+        AdmissionSanitizer<JobDescriptor> sanitizer = new JobRuntimePredictionSanitizer(client,
+                JobRuntimePredictionSelectors.best(), config, TitusRuntimes.test());
 
         StepVerifier.create(sanitizer.sanitizeAndApply(jobDescriptor))
                 .assertNext(result -> assertThat(((JobDescriptor<?>) result).getAttributes())
+                        .containsEntry(JOB_ATTRIBUTES_RUNTIME_PREDICTION_CONFIDENCE, "1.0")
+                        .containsEntry(JOB_ATTRIBUTES_RUNTIME_PREDICTION_SEC, "60.0")
+                        .containsEntry(JOB_ATTRIBUTES_SANITIZATION_SKIPPED_RUNTIME_PREDICTION, "true")
+                        .containsEntry(JOB_ATTRIBUTES_RUNTIME_PREDICTION_MODEL_ID, modelId)
+                        .containsEntry(JOB_ATTRIBUTES_RUNTIME_PREDICTION_VERSION, "v1")
+                        .containsEntry(JOB_ATTRIBUTES_RUNTIME_PREDICTION_AVAILABLE, "")
+                )
+                .verifyComplete();
+    }
+
+    @Test
+    public void runtimeLimitIsOnlyUsedWhenWithinAllowedConfig() {
+        JobRuntimePredictionClient client = mock(JobRuntimePredictionClient.class);
+        JobRuntimePredictions predictions = new JobRuntimePredictions("v1", modelId, new TreeSet<>());
+        when(client.getRuntimePredictions(any())).thenReturn(Mono.just(predictions));
+
+        JobRuntimePredictionConfiguration lowConfig = mock(JobRuntimePredictionConfiguration.class);
+        // lower than the 60s runtime limit on the job
+        when(lowConfig.getMaxOpportunisticRuntimeLimitMs()).thenReturn(30_000L);
+
+        AdmissionSanitizer<JobDescriptor> sanitizer = new JobRuntimePredictionSanitizer(client,
+                JobRuntimePredictionSelectors.best(), lowConfig, TitusRuntimes.test());
+
+        StepVerifier.create(sanitizer.sanitizeAndApply(jobDescriptor))
+                .assertNext(result -> assertThat(((JobDescriptor<?>) result).getAttributes())
+                        .doesNotContainKeys(JOB_ATTRIBUTES_RUNTIME_PREDICTION_CONFIDENCE,
+                                JOB_ATTRIBUTES_RUNTIME_PREDICTION_SEC)
                         .containsEntry(JOB_ATTRIBUTES_SANITIZATION_SKIPPED_RUNTIME_PREDICTION, "true")
                         .containsEntry(JOB_ATTRIBUTES_RUNTIME_PREDICTION_MODEL_ID, modelId)
                         .containsEntry(JOB_ATTRIBUTES_RUNTIME_PREDICTION_VERSION, "v1")
@@ -135,7 +235,7 @@ public class JobRuntimePredictionSanitizerTest {
         when(client.getRuntimePredictions(any())).thenReturn(Mono.just(predictions));
 
         AdmissionSanitizer<JobDescriptor> sanitizer = new JobRuntimePredictionSanitizer(client,
-                JobRuntimePredictionSelectors.best(), TitusRuntimes.test());
+                JobRuntimePredictionSelectors.best(), config, TitusRuntimes.test());
 
         StepVerifier.create(sanitizer.sanitizeAndApply(jobDescriptor))
                 .assertNext(result -> assertThat(((JobDescriptor<?>) result).getAttributes())
@@ -160,7 +260,7 @@ public class JobRuntimePredictionSanitizerTest {
         when(client.getRuntimePredictions(any())).thenReturn(Mono.just(predictions));
 
         AdmissionSanitizer<JobDescriptor> sanitizer = new JobRuntimePredictionSanitizer(client,
-                JobRuntimePredictionSelectors.best(), TitusRuntimes.test());
+                JobRuntimePredictionSelectors.best(), config, TitusRuntimes.test());
 
         StepVerifier.create(sanitizer.sanitizeAndApply(jobDescriptor))
                 .assertNext(result -> assertThat(((JobDescriptor<?>) result).getAttributes())
@@ -180,7 +280,7 @@ public class JobRuntimePredictionSanitizerTest {
                         // can't override prediction attributes
                         JOB_ATTRIBUTES_RUNTIME_PREDICTION_SEC, "0.82",
                         JOB_ATTRIBUTES_RUNTIME_PREDICTION_CONFIDENCE, "1.0"
-                )), TitusRuntimes.test());
+                )), config, TitusRuntimes.test());
 
         StepVerifier.create(sanitizer.sanitizeAndApply(jobDescriptor))
                 .assertNext(result -> assertThat(((JobDescriptor<?>) result).getAttributes())
@@ -199,7 +299,7 @@ public class JobRuntimePredictionSanitizerTest {
                 ))
                 .build();
         AdmissionSanitizer<JobDescriptor> sanitizer = new JobRuntimePredictionSanitizer(client,
-                JobRuntimePredictionSelectors.best(), TitusRuntimes.test());
+                JobRuntimePredictionSelectors.best(), config, TitusRuntimes.test());
 
         StepVerifier.create(sanitizer.sanitizeAndApply(optedOut))
                 .assertNext(result -> assertThat(((JobDescriptor<?>) result).getAttributes())

@@ -42,6 +42,7 @@ import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Subscription;
 
+import static com.jayway.awaitility.Awaitility.waitAtMost;
 import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcAgentModelConverters.toGrpcDeploymentState;
 import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcAgentModelConverters.toGrpcLifecycleState;
 import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcAgentModelConverters.toGrpcTier;
@@ -65,9 +66,9 @@ public class InstanceGroupScenarioBuilder {
     private final ConcurrentMap<String, AgentInstance> instances = new ConcurrentHashMap<>();
 
     InstanceGroupScenarioBuilder(TitusStackResource titusStackResource, EmbeddedTitusOperations titusOperations,
-                                        SimulatedTitusAgentCluster simulatedAgentCluster,
-                                        InstanceGroupsScenarioBuilder parent,
-                                        Observable<AgentChangeEvent> events) {
+                                 SimulatedTitusAgentCluster simulatedAgentCluster,
+                                 InstanceGroupsScenarioBuilder parent,
+                                 Observable<AgentChangeEvent> events) {
         this.titusStackResource = titusStackResource;
         this.simulatedCluster = simulatedAgentCluster;
         this.client = titusOperations.getV3BlockingGrpcAgentClient();
@@ -82,6 +83,10 @@ public class InstanceGroupScenarioBuilder {
 
     public void shutdown() {
         eventSubscription.unsubscribe();
+    }
+
+    public boolean hasInstance(String instanceId) {
+        return instances.containsKey(instanceId);
     }
 
     public InstanceGroupScenarioBuilder any(Consumer<InstanceScenarioBuilder> transformer) {
@@ -137,6 +142,12 @@ public class InstanceGroupScenarioBuilder {
         return this;
     }
 
+    public InstanceGroupScenarioBuilder awaitDesiredInstanceCount() {
+        checkIsKnown();
+        waitAtMost(TIMEOUT_MS, TimeUnit.MILLISECONDS).until(this::hasDesiredInstanceCount);
+        return this;
+    }
+
     public InstanceGroupScenarioBuilder awaitDesiredSize(int expectedDesired) {
         checkIsKnown();
 
@@ -160,6 +171,13 @@ public class InstanceGroupScenarioBuilder {
         }
         com.netflix.titus.grpc.protogen.InstanceLifecycleState grpcState = toGrpcDeploymentState(state);
         return instances.values().stream().allMatch(i -> i.getLifecycleStatus().getState() == grpcState);
+    }
+
+    private boolean hasDesiredInstanceCount() {
+        if (instanceGroup == null) {
+            return false;
+        }
+        return instanceGroup.getDesired() == instances.size();
     }
 
     boolean isSynchronizedWithCloud() {

@@ -23,8 +23,10 @@ import java.util.function.UnaryOperator;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.google.common.collect.ImmutableMap;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
+import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.FunctionExt;
@@ -54,15 +56,18 @@ public class JobRuntimePredictionSanitizer implements AdmissionSanitizer<JobDesc
 
     private final JobRuntimePredictionClient predictionsClient;
     private final JobRuntimePredictionSelector selector;
+    private final JobRuntimePredictionConfiguration configuration;
 
     private final JobRuntimePredictionSanitizerMetrics metrics;
 
     @Inject
     public JobRuntimePredictionSanitizer(JobRuntimePredictionClient predictionsClient,
                                          JobRuntimePredictionSelector selector,
+                                         JobRuntimePredictionConfiguration configuration,
                                          TitusRuntime runtime) {
         this.predictionsClient = predictionsClient;
         this.selector = selector;
+        this.configuration = configuration;
         this.metrics = new JobRuntimePredictionSanitizerMetrics(runtime.getRegistry());
     }
 
@@ -83,13 +88,16 @@ public class JobRuntimePredictionSanitizer implements AdmissionSanitizer<JobDesc
                     logger.error("Error calling the job runtime prediction service, skipping prediction for {}: {}",
                             entity.getApplicationName(), throwable.getMessage());
                 })
-                .onErrorReturn(JobRuntimePredictionSanitizer::skipSanitization);
+                .onErrorReturn(JobRuntimePredictionSanitizer::skipSanitization)
+                // the runtime limit acts as a cap on the prediction, or a fallback when no prediction is selected
+                .map(sanitizer -> FunctionExt.andThen(sanitizer, this::capPredictionToRuntimeLimit))
+                .defaultIfEmpty(this::capPredictionToRuntimeLimit);
     }
 
     @SuppressWarnings("unchecked")
     private UnaryOperator<JobDescriptor> addPredictionToJob(JobRuntimePredictions predictions) {
         return jobDescriptor -> {
-            Map<String, String> metadata = new HashMap<>(((JobDescriptor<?>) jobDescriptor).getAttributes());
+            Map<String, String> metadata = new HashMap<>();
             metadata.put(JOB_ATTRIBUTES_RUNTIME_PREDICTION_MODEL_ID, predictions.getModelId());
             metadata.put(JOB_ATTRIBUTES_RUNTIME_PREDICTION_VERSION, predictions.getVersion());
             metadata.put(JOB_ATTRIBUTES_RUNTIME_PREDICTION_AVAILABLE, predictions.toSimpleString());
@@ -115,6 +123,28 @@ public class JobRuntimePredictionSanitizer implements AdmissionSanitizer<JobDesc
                     });
             return resultOpt.orElseGet(() -> skipSanitization(appendJobDescriptorAttributes(jobDescriptor, metadata)));
         };
+    }
+
+    /**
+     * Use the prediction when available and shorter than the runtime limit, otherwise the runtime limit becomes
+     * the prediction if within {@link JobRuntimePredictionConfiguration#getMaxOpportunisticRuntimeLimitMs()}
+     */
+    @SuppressWarnings("unchecked")
+    private JobDescriptor capPredictionToRuntimeLimit(JobDescriptor jobDescriptor) {
+        // non-batch jobs have been filtered before this point, it is safe to cast
+        BatchJobExt extensions = ((JobDescriptor<BatchJobExt>) jobDescriptor).getExtensions();
+        long runtimeLimitMs = extensions.getRuntimeLimitMs();
+        if (runtimeLimitMs <= 0 || runtimeLimitMs > configuration.getMaxOpportunisticRuntimeLimitMs()) {
+            return jobDescriptor; // no runtime limit or too high to be used, noop
+        }
+
+        return JobFunctions.getJobRuntimePrediction(jobDescriptor)
+                .filter(prediction -> runtimeLimitMs > prediction.toMillis())
+                .map(ignored -> jobDescriptor)
+                .orElseGet(() -> JobFunctions.appendJobDescriptorAttributes(jobDescriptor, ImmutableMap.<String, String>builder()
+                        .put(JOB_ATTRIBUTES_RUNTIME_PREDICTION_SEC, Double.toString(runtimeLimitMs / 1000.0))
+                        .put(JOB_ATTRIBUTES_RUNTIME_PREDICTION_CONFIDENCE, Double.toString(1.0))
+                        .build()));
     }
 
     private static boolean isValid(JobRuntimePredictions predictions) {
