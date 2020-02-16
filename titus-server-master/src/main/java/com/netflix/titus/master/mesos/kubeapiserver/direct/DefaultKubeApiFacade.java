@@ -20,9 +20,12 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.netflix.spectator.api.Id;
+import com.netflix.spectator.api.patterns.PolledMeter;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.guice.annotation.Deactivator;
+import com.netflix.titus.master.MetricConstants;
 import com.netflix.titus.master.mesos.kubeapiserver.model.v1.V1OpportunisticResource;
 import com.netflix.titus.master.mesos.kubeapiserver.model.v1.V1OpportunisticResourceList;
 import com.squareup.okhttp.Call;
@@ -47,6 +50,8 @@ public class DefaultKubeApiFacade implements KubeApiFacade {
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultKubeApiFacade.class);
 
+    private static final String METRICS_ROOT = MetricConstants.METRIC_KUBERNETES + "kubeClient.";
+
     private static final String KUBERNETES_NAMESPACE = "default";
 
     private static final String OPPORTUNISTIC_RESOURCE_GROUP = "titus.netflix.com";
@@ -60,6 +65,10 @@ public class DefaultKubeApiFacade implements KubeApiFacade {
     private final CoreV1Api coreV1Api;
     private final CustomObjectsApi customObjectsApi;
     private final TitusRuntime titusRuntime;
+
+    private final Id nodeSizeGaugeId;
+    private final Id podSizeGaugeId;
+    private final Id opportunisticResourceSizeGaugeId;
 
     private final Object activationLock = new Object();
 
@@ -77,6 +86,10 @@ public class DefaultKubeApiFacade implements KubeApiFacade {
         this.coreV1Api = new CoreV1Api(apiClient);
         this.customObjectsApi = new CustomObjectsApi(apiClient);
         this.titusRuntime = titusRuntime;
+
+        this.nodeSizeGaugeId = titusRuntime.getRegistry().createId(METRICS_ROOT + "informer", "type", "node");
+        this.podSizeGaugeId = titusRuntime.getRegistry().createId(METRICS_ROOT + "informer", "type", "pod");
+        this.opportunisticResourceSizeGaugeId = titusRuntime.getRegistry().createId(METRICS_ROOT + "informer", "type", "opportunistic");
     }
 
     @PreDestroy
@@ -84,6 +97,9 @@ public class DefaultKubeApiFacade implements KubeApiFacade {
         if (sharedInformerFactory != null) {
             sharedInformerFactory.stopAllRegisteredInformers();
         }
+        PolledMeter.remove(titusRuntime.getRegistry(), nodeSizeGaugeId);
+        PolledMeter.remove(titusRuntime.getRegistry(), podSizeGaugeId);
+        PolledMeter.remove(titusRuntime.getRegistry(), opportunisticResourceSizeGaugeId);
     }
 
     @Deactivator
@@ -165,6 +181,10 @@ public class DefaultKubeApiFacade implements KubeApiFacade {
                 podInformer = null;
                 throw e;
             }
+
+            PolledMeter.using(titusRuntime.getRegistry()).withId(nodeSizeGaugeId).monitorValue(nodeInformer, informer -> informer.getIndexer().list().size());
+            PolledMeter.using(titusRuntime.getRegistry()).withId(podSizeGaugeId).monitorValue(podInformer, informer -> informer.getIndexer().list().size());
+            PolledMeter.using(titusRuntime.getRegistry()).withId(opportunisticResourceSizeGaugeId).monitorValue(opportunisticResourceInformer, informer -> informer.getIndexer().list().size());
         }
     }
 
