@@ -106,18 +106,6 @@ public interface MesosConfiguration {
     String getKubeApiServerUrl();
 
     /**
-     * @return how often to trigger a full reconciliation of nodes/pods
-     */
-    @DefaultValue("300000" /* 5 min */)
-    long getKubeApiServerIntegratorRefreshIntervalMs();
-
-    /**
-     * @return how often to trigger a full reconciliation of available opportunistic resources
-     */
-    @DefaultValue("600000" /* 10 min */)
-    long getKubeOpportunisticRefreshIntervalMs();
-
-    /**
      * @return whether or not to GC unknown pods
      */
     @DefaultValue("true")

@@ -61,6 +61,12 @@ public interface DirectKubeConfiguration {
     long getKubeApiServerIntegratorRefreshIntervalMs();
 
     /**
+     * @return how often to trigger a full reconciliation of available opportunistic resources
+     */
+    @DefaultValue("600000" /* 10 min */)
+    long getKubeOpportunisticRefreshIntervalMs();
+
+    /**
      * Thread pool size for handling Kube apiClient calls.
      */
     @DefaultValue("20")

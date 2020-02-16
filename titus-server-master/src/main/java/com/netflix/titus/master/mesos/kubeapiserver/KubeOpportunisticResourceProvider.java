@@ -18,58 +18,40 @@ package com.netflix.titus.master.mesos.kubeapiserver;
 
 import java.util.Comparator;
 import java.util.Map;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
 import java.util.function.BinaryOperator;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.patterns.PolledMeter;
 import com.netflix.titus.common.annotation.Experimental;
 import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.common.util.code.CodeInvariants;
+import com.netflix.titus.common.util.Evaluators;
+import com.netflix.titus.common.util.ExecutorsExt;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.guice.annotation.Deactivator;
-import com.netflix.titus.master.mesos.MesosConfiguration;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.KubeApiFacade;
 import com.netflix.titus.master.mesos.kubeapiserver.model.v1.V1OpportunisticResource;
-import com.netflix.titus.master.mesos.kubeapiserver.model.v1.V1OpportunisticResourceList;
 import com.netflix.titus.master.scheduler.opportunistic.OpportunisticCpuAvailability;
 import com.netflix.titus.master.scheduler.opportunistic.OpportunisticCpuAvailabilityProvider;
-import com.squareup.okhttp.Call;
-import io.kubernetes.client.ApiClient;
-import io.kubernetes.client.ApiException;
-import io.kubernetes.client.apis.CustomObjectsApi;
 import io.kubernetes.client.informer.ResourceEventHandler;
-import io.kubernetes.client.informer.SharedIndexInformer;
-import io.kubernetes.client.informer.SharedInformerFactory;
-import io.kubernetes.client.util.CallGeneratorParams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static com.netflix.titus.master.mesos.kubeapiserver.KubeUtil.createApiClient;
-import static com.netflix.titus.master.mesos.kubeapiserver.KubeUtil.createSharedInformerFactory;
 
 @Experimental(detail = "Informer-pattern based integration with Kubernetes for opportunistic resources", deadline = "12/1/2019")
 @Singleton
 public class KubeOpportunisticResourceProvider implements OpportunisticCpuAvailabilityProvider {
+
     private static final Logger logger = LoggerFactory.getLogger(KubeOpportunisticResourceProvider.class);
-    private static final String CLIENT_METRICS_PREFIX = "titusMaster.mesos.kubeOpportunisticResourceProvider";
 
-    private static final String OPPORTUNISTIC_RESOURCE_GROUP = "titus.netflix.com";
-    private static final String OPPORTUNISTIC_RESOURCE_VERSION = "v1";
-    private static final String OPPORTUNISTIC_RESOURCE_NAMESPACE = "default";
-    private static final String OPPORTUNISTIC_RESOURCE_PLURAL = "opportunistic-resources";
-
-    private final CustomObjectsApi api;
+    private final KubeApiFacade kubeApiFacade;
     private final TitusRuntime titusRuntime;
-    private final SharedIndexInformer<V1OpportunisticResource> informer;
-    private final SharedInformerFactory informerFactory;
     private final Id cpuSupplyId;
-    private final ScheduledExecutorService metricsPollerExecutor;
+
+    private ScheduledExecutorService metricsPollerExecutor;
 
     private static long currentOpportunisticCpuCount(KubeOpportunisticResourceProvider self) {
         return self.getOpportunisticCpus().values().stream()
@@ -79,40 +61,23 @@ public class KubeOpportunisticResourceProvider implements OpportunisticCpuAvaila
     }
 
     @Inject
-    public KubeOpportunisticResourceProvider(MesosConfiguration configuration, TitusRuntime titusRuntime) {
+    public KubeOpportunisticResourceProvider(KubeApiFacade kubeApiFacade, TitusRuntime titusRuntime) {
+        this.kubeApiFacade = kubeApiFacade;
         this.titusRuntime = titusRuntime;
         cpuSupplyId = titusRuntime.getRegistry().createId("titusMaster.opportunistic.supply.cpu");
 
-        long refreshIntervalMs = configuration.getKubeOpportunisticRefreshIntervalMs();
+    }
 
-        ThreadFactory threadFactory = new ThreadFactoryBuilder()
-                .setNameFormat("kube-opportunistic-cpu-metrics-poller")
-                .setDaemon(true)
-                .build();
-        metricsPollerExecutor = Executors.newSingleThreadScheduledExecutor(threadFactory);
+    @Activator
+    public void enterActiveMode() {
+        this.metricsPollerExecutor = ExecutorsExt.namedSingleThreadScheduledExecutor("kube-opportunistic-cpu-metrics-poller");
         PolledMeter.using(titusRuntime.getRegistry())
                 .withId(cpuSupplyId)
                 .scheduleOn(metricsPollerExecutor)
                 .monitorValue(this, KubeOpportunisticResourceProvider::currentOpportunisticCpuCount);
 
-        ApiClient apiClient = createApiClient(configuration.getKubeApiServerUrl(), CLIENT_METRICS_PREFIX,
-                titusRuntime, 0L);
-        api = new CustomObjectsApi(apiClient);
-
-        informerFactory = createSharedInformerFactory(
-                KubeOpportunisticResourceProvider.class.getSimpleName() + "-",
-                apiClient
-        );
-        // TODO(fabio): enhance the kube client to support custom JSON deserialization options
-        informer = informerFactory.sharedIndexInformerFor(
-                this::listOpportunisticResourcesCall,
-                V1OpportunisticResource.class,
-                V1OpportunisticResourceList.class,
-                refreshIntervalMs
-        );
-
         // TODO(fabio): metrics on available opportunistic resources
-        informer.addEventHandler(new ResourceEventHandler<V1OpportunisticResource>() {
+        kubeApiFacade.getOpportunisticResourceInformer().addEventHandler(new ResourceEventHandler<V1OpportunisticResource>() {
             @Override
             public void onAdd(V1OpportunisticResource resource) {
                 logger.info("New opportunistic resources available: instance {}, expires at {}, cpus {}, name {}",
@@ -138,43 +103,10 @@ public class KubeOpportunisticResourceProvider implements OpportunisticCpuAvaila
         });
     }
 
-    @Activator
-    public void enterActiveMode() {
-        informerFactory.startAllRegisteredInformers();
-    }
-
     @Deactivator
     public void shutdown() {
         PolledMeter.remove(titusRuntime.getRegistry(), cpuSupplyId);
-        metricsPollerExecutor.shutdown();
-        informerFactory.stopAllRegisteredInformers();
-    }
-
-    private Call listOpportunisticResourcesCall(CallGeneratorParams params) {
-        try {
-            return api.listNamespacedCustomObjectCall(
-                    OPPORTUNISTIC_RESOURCE_GROUP,
-                    OPPORTUNISTIC_RESOURCE_VERSION,
-                    OPPORTUNISTIC_RESOURCE_NAMESPACE,
-                    OPPORTUNISTIC_RESOURCE_PLURAL,
-                    null,
-                    null,
-                    null,
-                    params.resourceVersion,
-                    params.timeoutSeconds,
-                    params.watch,
-                    null,
-                    null
-            );
-        } catch (ApiException e) {
-            codeInvariants().unexpectedError("Error building a kube http call for opportunistic resources", e);
-        }
-        // this should never happen, if it does the code building request calls is wrong
-        return null;
-    }
-
-    private CodeInvariants codeInvariants() {
-        return titusRuntime.getCodeInvariants();
+        Evaluators.acceptNotNull(metricsPollerExecutor, ExecutorService::shutdown);
     }
 
     private static final Comparator<OpportunisticCpuAvailability> EXPIRES_AT_COMPARATOR = Comparator
@@ -198,7 +130,7 @@ public class KubeOpportunisticResourceProvider implements OpportunisticCpuAvaila
      */
     @Override
     public Map<String, OpportunisticCpuAvailability> getOpportunisticCpus() {
-        return informer.getIndexer().list().stream().collect(Collectors.toMap(
+        return kubeApiFacade.getOpportunisticResourceInformer().getIndexer().list().stream().collect(Collectors.toMap(
                 V1OpportunisticResource::getInstanceId,
                 resource -> new OpportunisticCpuAvailability(resource.getUid(), resource.getEnd(), resource.getCpus()),
                 BinaryOperator.maxBy(EXPIRES_AT_COMPARATOR)
@@ -208,5 +140,4 @@ public class KubeOpportunisticResourceProvider implements OpportunisticCpuAvaila
     private boolean isNotExpired(OpportunisticCpuAvailability availability) {
         return !titusRuntime.getClock().isPast(availability.getExpiresAt().toEpochMilli());
     }
-
 }

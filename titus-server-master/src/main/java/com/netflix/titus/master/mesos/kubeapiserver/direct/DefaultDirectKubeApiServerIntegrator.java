@@ -32,18 +32,11 @@ import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExecutorsExt;
-import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodEvent;
-import io.kubernetes.client.ApiClient;
 import io.kubernetes.client.ApiException;
-import io.kubernetes.client.apis.CoreV1Api;
 import io.kubernetes.client.informer.ResourceEventHandler;
-import io.kubernetes.client.informer.SharedIndexInformer;
-import io.kubernetes.client.informer.SharedInformerFactory;
 import io.kubernetes.client.models.V1Pod;
-import io.kubernetes.client.models.V1PodList;
-import io.kubernetes.client.util.CallGeneratorParams;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.DirectProcessor;
@@ -52,8 +45,6 @@ import reactor.core.publisher.FluxSink;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
-
-import static com.netflix.titus.master.mesos.kubeapiserver.KubeUtil.createSharedInformerFactory;
 
 @Singleton
 public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServerIntegrator {
@@ -66,13 +57,9 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
     private static final String NOT_FOUND = "Not Found";
 
     private final DirectKubeConfiguration configuration;
+    private final KubeApiFacade kubeApiFacade;
 
-    private final ApiClient apiClient;
-    private final CoreV1Api coreV1Api;
     private final TaskToPodConverter taskToPodConverter;
-
-    private volatile SharedInformerFactory sharedInformerFactory;
-    private volatile SharedIndexInformer<V1Pod> podInformer;
 
     private final DirectProcessor<PodEvent> supplementaryPodEventProcessor = DirectProcessor.create();
 
@@ -89,33 +76,19 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
 
     @Inject
     public DefaultDirectKubeApiServerIntegrator(DirectKubeConfiguration configuration,
-                                                ApiClient apiClient,
+                                                KubeApiFacade kubeApiFacade,
                                                 TaskToPodConverter taskToPodConverter,
                                                 TitusRuntime titusRuntime) {
         this.configuration = configuration;
-        this.apiClient = apiClient;
-        this.coreV1Api = new CoreV1Api(apiClient);
+        this.kubeApiFacade = kubeApiFacade;
         this.taskToPodConverter = taskToPodConverter;
 
         this.apiClientExecutor = ExecutorsExt.instrumentedFixedSizeThreadPool(titusRuntime.getRegistry(), "kube-apiclient", configuration.getApiClientThreadPoolSize());
         this.apiClientScheduler = Schedulers.fromExecutorService(apiClientExecutor);
     }
 
-    @Activator
-    public void enterActiveMode() {
-        this.sharedInformerFactory = createSharedInformerFactory(
-                "kube-api-server-integrator-shared-informer-",
-                apiClient
-        );
-        this.podInformer = createPodInformer(sharedInformerFactory, coreV1Api);
-        sharedInformerFactory.startAllRegisteredInformers();
-    }
-
     @PreDestroy
     public void shutdown() {
-        if (sharedInformerFactory != null) {
-            sharedInformerFactory.stopAllRegisteredInformers();
-        }
         apiClientScheduler.dispose();
         apiClientExecutor.shutdown();
     }
@@ -131,7 +104,7 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
             try {
                 V1Pod v1Pod = taskToPodConverter.apply(job, task);
                 logger.info("creating pod: {}", v1Pod);
-                coreV1Api.createNamespacedPod(KUBERNETES_NAMESPACE, v1Pod, null, null, null);
+                kubeApiFacade.getCoreV1Api().createNamespacedPod(KUBERNETES_NAMESPACE, v1Pod, null, null, null);
                 pods.putIfAbsent(task.getId(), v1Pod);
                 return v1Pod;
             } catch (ApiException e) {
@@ -148,7 +121,7 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
         return Mono.<Void>fromRunnable(() -> {
             try {
                 logger.info("Deleting pod: {}", taskId);
-                coreV1Api.deleteNamespacedPod(taskId, KUBERNETES_NAMESPACE, null, null, null, DELETE_GRACE_PERIOD_SECONDS, null, null);
+                kubeApiFacade.getCoreV1Api().deleteNamespacedPod(taskId, KUBERNETES_NAMESPACE, null, null, null, DELETE_GRACE_PERIOD_SECONDS, null, null);
             } catch (JsonSyntaxException e) {
                 // this is probably successful. the generated client has the wrong response type
             } catch (ApiException e) {
@@ -170,11 +143,6 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
 
     private Flux<PodEvent> kubeInformerEvents() {
         return Flux.create(sink -> {
-            if (podInformer == null) {
-                sink.error(new IllegalStateException("Service not activated yet"));
-                return;
-            }
-
             ResourceEventHandler<V1Pod> handler = new ResourceEventHandler<V1Pod>() {
                 @Override
                 public void onAdd(V1Pod pod) {
@@ -205,32 +173,11 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
                     sink.next(PodEvent.onDelete(pod, deletedFinalStateUnknown));
                 }
             };
-            podInformer.addEventHandler(handler);
+            kubeApiFacade.getPodInformer().addEventHandler(handler);
 
             // A listener cannot be removed from shared informer.
             // sink.onCancel(() -> ???);
         });
-    }
-
-    private SharedIndexInformer<V1Pod> createPodInformer(SharedInformerFactory sharedInformerFactory, CoreV1Api api) {
-        return sharedInformerFactory.sharedIndexInformerFor(
-                (CallGeneratorParams params) -> api.listNamespacedPodCall(
-                        KUBERNETES_NAMESPACE,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        params.resourceVersion,
-                        params.timeoutSeconds,
-                        params.watch,
-                        null,
-                        null
-                ),
-                V1Pod.class,
-                V1PodList.class,
-                configuration.getKubeApiServerIntegratorRefreshIntervalMs()
-        );
     }
 
     private void sendEvent(PodEvent podEvent) {

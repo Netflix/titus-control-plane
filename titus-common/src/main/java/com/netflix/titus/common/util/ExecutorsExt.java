@@ -19,6 +19,7 @@ package com.netflix.titus.common.util;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -37,6 +38,14 @@ public final class ExecutorsExt {
 
     public static ExecutorService namedSingleThreadExecutor(String name) {
         return Executors.newSingleThreadExecutor(runnable -> {
+            Thread thread = new Thread(runnable, name);
+            thread.setDaemon(true);
+            return thread;
+        });
+    }
+
+    public static ScheduledExecutorService namedSingleThreadScheduledExecutor(String name) {
+        return Executors.newSingleThreadScheduledExecutor(runnable -> {
             Thread thread = new Thread(runnable, name);
             thread.setDaemon(true);
             return thread;
