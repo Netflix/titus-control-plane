@@ -22,10 +22,12 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.google.common.base.Stopwatch;
 import com.google.gson.JsonSyntaxException;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
@@ -60,6 +62,7 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
     private final KubeApiFacade kubeApiFacade;
 
     private final TaskToPodConverter taskToPodConverter;
+    private final DefaultDirectKubeApiServerIntegratorMetrics metrics;
 
     private final DirectProcessor<PodEvent> supplementaryPodEventProcessor = DirectProcessor.create();
 
@@ -83,6 +86,9 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
         this.kubeApiFacade = kubeApiFacade;
         this.taskToPodConverter = taskToPodConverter;
 
+        this.metrics = new DefaultDirectKubeApiServerIntegratorMetrics(titusRuntime);
+        metrics.observePodsCollection(pods);
+
         this.apiClientExecutor = ExecutorsExt.instrumentedFixedSizeThreadPool(titusRuntime.getRegistry(), "kube-apiclient", configuration.getApiClientThreadPoolSize());
         this.apiClientScheduler = Schedulers.fromExecutorService(apiClientExecutor);
     }
@@ -91,6 +97,7 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
     public void shutdown() {
         apiClientScheduler.dispose();
         apiClientExecutor.shutdown();
+        metrics.shutdown();
     }
 
     @Override
@@ -101,14 +108,21 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
     @Override
     public Mono<V1Pod> launchTask(Job job, Task task) {
         return Mono.fromCallable(() -> {
+            Stopwatch timer = Stopwatch.createStarted();
             try {
                 V1Pod v1Pod = taskToPodConverter.apply(job, task);
                 logger.info("creating pod: {}", v1Pod);
                 kubeApiFacade.getCoreV1Api().createNamespacedPod(KUBERNETES_NAMESPACE, v1Pod, null, null, null);
                 pods.putIfAbsent(task.getId(), v1Pod);
+
+                metrics.launchSuccess(task, v1Pod, timer.elapsed(TimeUnit.MILLISECONDS));
+
                 return v1Pod;
             } catch (ApiException e) {
                 logger.error("Unable to create pod with error:", e);
+
+                metrics.launchError(task, e, timer.elapsed(TimeUnit.MILLISECONDS));
+
                 throw new IllegalStateException("Unable to launch a task " + task.getId(), e);
             }
         }).subscribeOn(apiClientScheduler).timeout(Duration.ofMillis(configuration.getKubeApiClientTimeoutMs()));
@@ -119,12 +133,18 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
         String taskId = task.getId();
 
         return Mono.<Void>fromRunnable(() -> {
+            Stopwatch timer = Stopwatch.createStarted();
             try {
                 logger.info("Deleting pod: {}", taskId);
                 kubeApiFacade.getCoreV1Api().deleteNamespacedPod(taskId, KUBERNETES_NAMESPACE, null, null, null, DELETE_GRACE_PERIOD_SECONDS, null, null);
+
+                metrics.terminateSuccess(task, timer.elapsed(TimeUnit.MILLISECONDS));
             } catch (JsonSyntaxException e) {
                 // this is probably successful. the generated client has the wrong response type
+                metrics.terminateSuccess(task, timer.elapsed(TimeUnit.MILLISECONDS));
             } catch (ApiException e) {
+                metrics.terminateError(task, e, timer.elapsed(TimeUnit.MILLISECONDS));
+
                 if (e.getMessage().equalsIgnoreCase(NOT_FOUND) && task.getStatus().getState() == TaskState.Accepted) {
                     sendEvent(PodEvent.onPodNotFound(task));
                 } else {
@@ -132,6 +152,7 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
                 }
             } catch (Exception e) {
                 logger.error("Failed to kill task: {} with error: ", taskId, e);
+                metrics.terminateError(task, e, timer.elapsed(TimeUnit.MILLISECONDS));
             }
         }).subscribeOn(apiClientScheduler).timeout(Duration.ofMillis(configuration.getKubeApiClientTimeoutMs()));
     }
@@ -147,14 +168,17 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
                 @Override
                 public void onAdd(V1Pod pod) {
                     logger.info("Pod Added: {}", pod);
+
                     String taskId = pod.getSpec().getContainers().get(0).getName();
 
                     V1Pod old = pods.get(taskId);
                     pods.put(taskId, pod);
 
                     if (old != null) {
+                        metrics.onUpdate(pod);
                         sink.next(PodEvent.onUpdate(old, pod));
                     } else {
+                        metrics.onAdd(pod);
                         sink.next(PodEvent.onAdd(pod));
                     }
                 }
@@ -162,6 +186,8 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
                 @Override
                 public void onUpdate(V1Pod oldPod, V1Pod newPod) {
                     logger.info("Pod Updated Old: {}, New: {}", oldPod, newPod);
+                    metrics.onUpdate(newPod);
+
                     pods.put(newPod.getSpec().getContainers().get(0).getName(), newPod);
                     sink.next(PodEvent.onUpdate(oldPod, newPod));
                 }
@@ -169,6 +195,8 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
                 @Override
                 public void onDelete(V1Pod pod, boolean deletedFinalStateUnknown) {
                     logger.info("Pod Deleted: {}, deletedFinalStateUnknown={}", pod, deletedFinalStateUnknown);
+                    metrics.onDelete(pod);
+
                     pods.remove(pod.getSpec().getContainers().get(0).getName());
                     sink.next(PodEvent.onDelete(pod, deletedFinalStateUnknown));
                 }

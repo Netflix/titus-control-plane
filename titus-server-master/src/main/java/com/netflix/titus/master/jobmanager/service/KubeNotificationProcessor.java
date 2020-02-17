@@ -40,6 +40,7 @@ import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeApiServerIntegrator;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodEvent;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodNotFoundEvent;
 import io.kubernetes.client.models.V1ContainerState;
 import io.kubernetes.client.models.V1Pod;
 import org.slf4j.Logger;
@@ -49,6 +50,7 @@ import reactor.core.publisher.Mono;
 
 /**
  * TODO Incorporate this into {@link DefaultV3JobOperations} once Fenzo is removed.
+ * TODO Add junit tests
  */
 @Singleton
 public class KubeNotificationProcessor {
@@ -85,6 +87,9 @@ public class KubeNotificationProcessor {
                         return Mono.empty();
                     }
 
+                    if (event instanceof PodNotFoundEvent) {
+                        return handlePodNotFoundEvent((PodNotFoundEvent) event);
+                    }
                     return handlePodUpdatedEvent(event, jobAndTask.getLeft(), task);
                 })
                 .ignoreElements()
@@ -126,6 +131,32 @@ public class KubeNotificationProcessor {
             }
         }
         return Mono.empty();
+    }
+
+    private Mono<Void> handlePodNotFoundEvent(PodNotFoundEvent event) {
+        Task task = event.getTask();
+        return ReactorExt.toMono(v3JobOperations.updateTask(
+                task.getId(),
+                currentTask -> {
+                    TaskStatus newStatus = TaskStatus.newBuilder()
+                            .withState(TaskState.Finished)
+                            .withReasonCode(TaskStatus.REASON_TASK_LOST)
+                            .withReasonMessage("Pod not found")
+                            .build();
+
+                    List<TaskStatus> newHistory = CollectionsExt.copyAndAdd(currentTask.getStatusHistory(), currentTask.getStatus());
+
+                    Task updatedTask = currentTask.toBuilder()
+                            .withStatus(newStatus)
+                            .withStatusHistory(newHistory)
+                            .build();
+
+                    return Optional.of(updatedTask);
+                },
+                V3JobOperations.Trigger.Kube,
+                "Kube pod notification",
+                KUBE_CALL_METADATA
+        ));
     }
 
     private Mono<Void> updateTaskStatus(V1Pod pod,
