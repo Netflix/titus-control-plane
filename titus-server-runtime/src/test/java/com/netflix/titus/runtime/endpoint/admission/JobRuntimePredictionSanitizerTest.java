@@ -168,10 +168,10 @@ public class JobRuntimePredictionSanitizerTest {
                         .containsEntry(JOB_ATTRIBUTES_SANITIZATION_SKIPPED_RUNTIME_PREDICTION, "true")
                         .containsEntry(JOB_ATTRIBUTES_RUNTIME_PREDICTION_MODEL_ID, modelId)
                         .containsEntry(JOB_ATTRIBUTES_RUNTIME_PREDICTION_VERSION, "v1")
-                        .containsEntry(JOB_ATTRIBUTES_RUNTIME_PREDICTION_AVAILABLE, "")
                         .doesNotContainKeys(
                                 JOB_ATTRIBUTES_RUNTIME_PREDICTION_SEC,
-                                JOB_ATTRIBUTES_RUNTIME_PREDICTION_CONFIDENCE
+                                JOB_ATTRIBUTES_RUNTIME_PREDICTION_CONFIDENCE,
+                                JOB_ATTRIBUTES_RUNTIME_PREDICTION_AVAILABLE
                         )
                 )
                 .verifyComplete();
@@ -193,7 +193,7 @@ public class JobRuntimePredictionSanitizerTest {
                         .containsEntry(JOB_ATTRIBUTES_SANITIZATION_SKIPPED_RUNTIME_PREDICTION, "true")
                         .containsEntry(JOB_ATTRIBUTES_RUNTIME_PREDICTION_MODEL_ID, modelId)
                         .containsEntry(JOB_ATTRIBUTES_RUNTIME_PREDICTION_VERSION, "v1")
-                        .containsEntry(JOB_ATTRIBUTES_RUNTIME_PREDICTION_AVAILABLE, "")
+                        .doesNotContainKeys(JOB_ATTRIBUTES_RUNTIME_PREDICTION_AVAILABLE)
                 )
                 .verifyComplete();
     }
@@ -214,11 +214,11 @@ public class JobRuntimePredictionSanitizerTest {
         StepVerifier.create(sanitizer.sanitizeAndApply(jobDescriptor))
                 .assertNext(result -> assertThat(((JobDescriptor<?>) result).getAttributes())
                         .doesNotContainKeys(JOB_ATTRIBUTES_RUNTIME_PREDICTION_CONFIDENCE,
-                                JOB_ATTRIBUTES_RUNTIME_PREDICTION_SEC)
+                                JOB_ATTRIBUTES_RUNTIME_PREDICTION_SEC,
+                                JOB_ATTRIBUTES_RUNTIME_PREDICTION_AVAILABLE)
                         .containsEntry(JOB_ATTRIBUTES_SANITIZATION_SKIPPED_RUNTIME_PREDICTION, "true")
                         .containsEntry(JOB_ATTRIBUTES_RUNTIME_PREDICTION_MODEL_ID, modelId)
                         .containsEntry(JOB_ATTRIBUTES_RUNTIME_PREDICTION_VERSION, "v1")
-                        .containsEntry(JOB_ATTRIBUTES_RUNTIME_PREDICTION_AVAILABLE, "")
                 )
                 .verifyComplete();
     }

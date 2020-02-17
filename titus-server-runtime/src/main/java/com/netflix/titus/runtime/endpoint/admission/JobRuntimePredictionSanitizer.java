@@ -100,7 +100,9 @@ public class JobRuntimePredictionSanitizer implements AdmissionSanitizer<JobDesc
             Map<String, String> metadata = new HashMap<>();
             metadata.put(JOB_ATTRIBUTES_RUNTIME_PREDICTION_MODEL_ID, predictions.getModelId());
             metadata.put(JOB_ATTRIBUTES_RUNTIME_PREDICTION_VERSION, predictions.getVersion());
-            metadata.put(JOB_ATTRIBUTES_RUNTIME_PREDICTION_AVAILABLE, predictions.toSimpleString());
+            predictions.toSimpleString().ifPresent(predictionsStr ->
+                    metadata.put(JOB_ATTRIBUTES_RUNTIME_PREDICTION_AVAILABLE, predictionsStr)
+            );
 
             Optional<JobRuntimePredictionSelection> selectionOpt;
             if (isValid(predictions)) {
