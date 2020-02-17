@@ -37,6 +37,7 @@ import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
+import com.netflix.titus.master.mesos.kubeapiserver.KubeJobManagementReconciler;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeApiServerIntegrator;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodEvent;
@@ -61,6 +62,7 @@ public class KubeNotificationProcessor {
 
     private final JobManagerConfiguration configuration;
     private final DirectKubeApiServerIntegrator kubeApiServerIntegrator;
+    private final KubeJobManagementReconciler kubeJobManagementReconciler;
     private final V3JobOperations v3JobOperations;
 
     private Disposable subscription;
@@ -68,15 +70,17 @@ public class KubeNotificationProcessor {
     @Inject
     public KubeNotificationProcessor(JobManagerConfiguration configuration,
                                      DirectKubeApiServerIntegrator kubeApiServerIntegrator,
+                                     KubeJobManagementReconciler kubeJobManagementReconciler,
                                      V3JobOperations v3JobOperations) {
         this.configuration = configuration;
         this.kubeApiServerIntegrator = kubeApiServerIntegrator;
+        this.kubeJobManagementReconciler = kubeJobManagementReconciler;
         this.v3JobOperations = v3JobOperations;
     }
 
     @Activator
     public void enterActiveMode() {
-        this.subscription = kubeApiServerIntegrator.events()
+        this.subscription = kubeApiServerIntegrator.events().mergeWith(kubeJobManagementReconciler.getPodEventSource())
                 .flatMap(event -> {
                     Pair<Job<?>, Task> jobAndTask = v3JobOperations.findTaskById(event.getTaskId()).orElse(null);
                     if (jobAndTask == null) {
@@ -124,7 +128,7 @@ public class KubeNotificationProcessor {
         TaskState taskState = task.getStatus().getState();
         Optional<TitusExecutorDetails> executorDetailsOpt = KubeUtil.getTitusExecutorDetails(event.getPod());
 
-        logger.info("State: {}", containerState);
+        logger.info("Pod state change event: taskId={}, details={}", task.getId(), KubeUtil.formatV1ContainerState(containerState));
         if (containerState.getWaiting() != null) {
             logger.debug("Ignoring 'waiting' state update, as task must stay in the 'Accepted' state here");
         } else if (containerState.getRunning() != null) {
@@ -141,19 +145,16 @@ public class KubeNotificationProcessor {
 
     private Mono<Void> handlePodNotFoundEvent(PodNotFoundEvent event) {
         Task task = event.getTask();
+
+        logger.info("Pod not found event: taskId={}, finalTaskStatus={}", task.getId(), event.getFinalTaskStatus());
+
         return ReactorExt.toMono(v3JobOperations.updateTask(
                 task.getId(),
                 currentTask -> {
-                    TaskStatus newStatus = TaskStatus.newBuilder()
-                            .withState(TaskState.Finished)
-                            .withReasonCode(TaskStatus.REASON_TASK_LOST)
-                            .withReasonMessage("Pod not found")
-                            .build();
-
                     List<TaskStatus> newHistory = CollectionsExt.copyAndAdd(currentTask.getStatusHistory(), currentTask.getStatus());
 
                     Task updatedTask = currentTask.toBuilder()
-                            .withStatus(newStatus)
+                            .withStatus(event.getFinalTaskStatus())
                             .withStatusHistory(newHistory)
                             .build();
 

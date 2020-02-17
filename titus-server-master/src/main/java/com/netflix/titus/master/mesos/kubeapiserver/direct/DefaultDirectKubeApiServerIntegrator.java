@@ -32,6 +32,7 @@ import com.google.gson.JsonSyntaxException;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
+import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExecutorsExt;
 import com.netflix.titus.common.util.rx.ReactorExt;
@@ -64,6 +65,8 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
     private final TaskToPodConverter taskToPodConverter;
     private final DefaultDirectKubeApiServerIntegratorMetrics metrics;
 
+    private final TitusRuntime titusRuntime;
+
     private final DirectProcessor<PodEvent> supplementaryPodEventProcessor = DirectProcessor.create();
 
     /**
@@ -85,6 +88,7 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
         this.configuration = configuration;
         this.kubeApiFacade = kubeApiFacade;
         this.taskToPodConverter = taskToPodConverter;
+        this.titusRuntime = titusRuntime;
 
         this.metrics = new DefaultDirectKubeApiServerIntegratorMetrics(titusRuntime);
         metrics.observePodsCollection(pods);
@@ -146,7 +150,14 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
                 metrics.terminateError(task, e, timer.elapsed(TimeUnit.MILLISECONDS));
 
                 if (e.getMessage().equalsIgnoreCase(NOT_FOUND) && task.getStatus().getState() == TaskState.Accepted) {
-                    sendEvent(PodEvent.onPodNotFound(task));
+                    sendEvent(PodEvent.onPodNotFound(task,
+                            TaskStatus.newBuilder()
+                                    .withState(TaskState.Finished)
+                                    .withReasonCode(TaskStatus.REASON_TASK_LOST)
+                                    .withReasonMessage("Pod terminate requested, but the pod is not found")
+                                    .withTimestamp(titusRuntime.getClock().wallTime())
+                                    .build()
+                    ));
                 } else {
                     logger.error("Failed to kill task: {} with error: ", taskId, e);
                 }

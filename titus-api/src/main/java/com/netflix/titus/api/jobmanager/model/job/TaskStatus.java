@@ -153,6 +153,14 @@ public class TaskStatus extends ExecutableStatus<TaskState> {
                 ).orElse(false);
     }
 
+    public static boolean hasPod(Task task) {
+        TaskStatus acceptedStatus = JobFunctions.findTaskStatus(task, TaskState.Accepted).orElse(null);
+        if (acceptedStatus == null) {
+            return false;
+        }
+        return REASON_POD_CREATED.equals(acceptedStatus.getReasonCode());
+    }
+
     public static boolean areEquivalent(TaskStatus first, TaskStatus second) {
         if (first.getState() != second.getState()) {
             return false;

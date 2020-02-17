@@ -17,6 +17,7 @@
 package com.netflix.titus.master.mesos;
 
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import javax.annotation.PreDestroy;
@@ -33,10 +34,13 @@ import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
+import com.netflix.titus.master.mesos.kubeapiserver.KubeJobManagementReconciler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import rx.Observable;
 import rx.Observer;
 
 @Singleton
@@ -51,72 +55,83 @@ public class WorkerStateMonitor {
 
     @Inject
     public WorkerStateMonitor(VirtualMachineMasterService vmService,
+                              KubeJobManagementReconciler kubeJobManagementReconciler,
                               V3JobOperations v3JobOperations,
                               TitusRuntime titusRuntime) {
         this.vmService = vmService;
-        vmService.getTaskStatusObservable().subscribe(new Observer<ContainerEvent>() {
-            @Override
-            public void onCompleted() {
-                logger.error("Unexpected end of vmTaskStatusObservable");
-            }
+        Observable
+                .merge(
+                        vmService.getTaskStatusObservable(),
+                        ReactorExt.toObservable(kubeJobManagementReconciler.getV3ContainerEventSource())
+                )
+                .retryWhen(errors -> errors.flatMap(error -> {
+                    logger.warn("Kube/Mesos state update stream terminated with an error: {}", error.getMessage());
+                    logger.debug("Stack trace", error);
+                    return Observable.interval(1, TimeUnit.SECONDS).take(1);
+                }))
+                .subscribe(new Observer<ContainerEvent>() {
+                    @Override
+                    public void onCompleted() {
+                        logger.error("Unexpected end of vmTaskStatusObservable");
+                    }
 
-            @Override
-            public void onError(Throwable e) {
-                logger.error("Unknown error from vmTaskStatusObservable - {}", e.getLocalizedMessage());
-            }
+                    @Override
+                    public void onError(Throwable e) {
+                        logger.error("Unknown error from vmTaskStatusObservable - {}", e.getLocalizedMessage());
+                    }
 
-            @Override
-            public void onNext(ContainerEvent containerEvent) {
-                try {
-                    V3ContainerEvent args = (V3ContainerEvent) containerEvent;
-                    if (args.getTaskId() != null) {
-                        Optional<Pair<Job<?>, Task>> jobAndTaskOpt = v3JobOperations.findTaskById(args.getTaskId());
-                        if (jobAndTaskOpt.isPresent()) {
-                            Task task = jobAndTaskOpt.get().getRight();
+                    @Override
+                    public void onNext(ContainerEvent containerEvent) {
+                        try {
+                            V3ContainerEvent args = (V3ContainerEvent) containerEvent;
+                            if (args.getTaskId() != null) {
+                                Optional<Pair<Job<?>, Task>> jobAndTaskOpt = v3JobOperations.findTaskById(args.getTaskId());
+                                if (jobAndTaskOpt.isPresent()) {
+                                    Task task = jobAndTaskOpt.get().getRight();
 
-                            if (JobFunctions.isOwnedByKubeScheduler(task)) {
-                                logger.debug("Ignoring notification for task managed via direct Kube integration: taskId={}", task.getId());
-                                return;
-                            }
+                                    if (JobFunctions.isOwnedByKubeScheduler(task)) {
+                                        logger.debug("Ignoring notification for task managed via direct Kube integration: taskId={}", task.getId());
+                                        return;
+                                    }
 
-                            TaskState newState = args.getTaskState();
-                            if (task.getStatus().getState() != newState) {
+                                    TaskState newState = args.getTaskState();
+                                    if (task.getStatus().getState() != newState) {
 
-                                String reasonCode = args.getReasonCode();
+                                        String reasonCode = args.getReasonCode();
 
-                                TaskStatus.Builder taskStatusBuilder = JobModel.newTaskStatus()
-                                        .withState(newState)
-                                        .withTimestamp(args.getTimestamp());
+                                        TaskStatus.Builder taskStatusBuilder = JobModel.newTaskStatus()
+                                                .withState(newState)
+                                                .withTimestamp(args.getTimestamp());
 
-                                // We send kill operation even if task is in Accepted state, but if the latter is the case
-                                // we do not want to report Mesos 'lost' state in task status.
-                                if (isKillConfirmationForTaskInAcceptedState(task, newState, reasonCode)) {
-                                    taskStatusBuilder
-                                            .withReasonCode(TaskStatus.REASON_TASK_KILLED)
-                                            .withReasonMessage("Task killed before it was launched");
-                                } else {
-                                    taskStatusBuilder
-                                            .withReasonCode(reasonCode)
-                                            .withReasonMessage(args.getReasonMessage());
+                                        // We send kill operation even if task is in Accepted state, but if the latter is the case
+                                        // we do not want to report Mesos 'lost' state in task status.
+                                        if (isKillConfirmationForTaskInAcceptedState(task, newState, reasonCode)) {
+                                            taskStatusBuilder
+                                                    .withReasonCode(TaskStatus.REASON_TASK_KILLED)
+                                                    .withReasonMessage("Task killed before it was launched");
+                                        } else {
+                                            taskStatusBuilder
+                                                    .withReasonCode(reasonCode)
+                                                    .withReasonMessage(args.getReasonMessage());
+                                        }
+                                        TaskStatus taskStatus = taskStatusBuilder.build();
+
+                                        // Failures are logged only, as the reconciler will take care of it if needed.
+                                        final Function<Task, Optional<Task>> updater = JobManagerUtil.newMesosTaskStateUpdater(taskStatus, args.getTitusExecutorDetails(), titusRuntime);
+                                        v3JobOperations.updateTask(task.getId(), updater, Trigger.Mesos, "Mesos -> " + taskStatus, MESOS_CALL_METADATA.toBuilder().withCallReason("Mesos task change").build()).subscribe(
+                                                () -> logger.info("Changed task {} status state to {}", task.getId(), taskStatus),
+                                                e -> logger.warn("Could not update task state of {} to {} ({})", args.getTaskId(), taskStatus, e.toString())
+                                        );
+                                    }
+                                    return;
                                 }
-                                TaskStatus taskStatus = taskStatusBuilder.build();
-
-                                // Failures are logged only, as the reconciler will take care of it if needed.
-                                final Function<Task, Optional<Task>> updater = JobManagerUtil.newMesosTaskStateUpdater(taskStatus, args.getTitusExecutorDetails(), titusRuntime);
-                                v3JobOperations.updateTask(task.getId(), updater, Trigger.Mesos, "Mesos -> " + taskStatus, MESOS_CALL_METADATA.toBuilder().withCallReason("Mesos task change").build()).subscribe(
-                                        () -> logger.info("Changed task {} status state to {}", task.getId(), taskStatus),
-                                        e -> logger.warn("Could not update task state of {} to {} ({})", args.getTaskId(), taskStatus, e.toString())
-                                );
                             }
-                            return;
+                            killOrphanedTask(args);
+                        } catch (Exception e) {
+                            logger.warn("Exception during handling task status update notification", e);
                         }
                     }
-                    killOrphanedTask(args);
-                } catch (Exception e) {
-                    logger.warn("Exception during handling task status update notification", e);
-                }
-            }
-        });
+                });
     }
 
     /**
