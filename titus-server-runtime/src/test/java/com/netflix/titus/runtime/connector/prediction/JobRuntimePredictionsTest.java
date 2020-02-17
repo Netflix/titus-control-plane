@@ -16,6 +16,7 @@
 
 package com.netflix.titus.runtime.connector.prediction;
 
+import java.util.Optional;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
@@ -32,7 +33,15 @@ public class JobRuntimePredictionsTest {
         predictions.add(new JobRuntimePrediction(0.1, 10.0));
         predictions.add(new JobRuntimePrediction(0.2, 15.0));
         JobRuntimePredictions jobRuntimePredictions = new JobRuntimePredictions("1", "some-id", predictions);
-        assertThat(jobRuntimePredictions.toSimpleString()).isEqualTo("0.1=10.0;0.2=15.0;0.95=26.2");
+        Optional<String> asString = jobRuntimePredictions.toSimpleString();
+        assertThat(asString).isPresent();
+        assertThat(asString.get()).isEqualTo("0.1=10.0;0.2=15.0;0.95=26.2");
+    }
+
+    @Test
+    public void testOneLineRepresentationForEmptyPredictions() {
+        JobRuntimePredictions predictions = new JobRuntimePredictions("1", "some-id", new TreeSet<>());
+        assertThat(predictions.toSimpleString()).isEmpty();
     }
 
 }

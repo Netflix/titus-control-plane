@@ -17,13 +17,16 @@
 package com.netflix.titus.runtime.connector.prediction;
 
 import java.util.Collection;
+import java.util.Optional;
 import java.util.SortedSet;
+
+import com.netflix.titus.common.util.CollectionsExt;
 
 public class JobRuntimePredictions {
     private final String version;
     private final String modelId;
     private final SortedSet<JobRuntimePrediction> predictions;
-    private final String simpleStringRepresentation;
+    private final Optional<String> simpleStringRepresentation;
 
     public JobRuntimePredictions(String version, String modelId, SortedSet<JobRuntimePrediction> predictions) {
         this.version = version;
@@ -48,7 +51,7 @@ public class JobRuntimePredictions {
      * One line representation of all predictions in seconds, and their confidence percentile, e.g.:
      * <tt>0.1=10.0;0.2=15.1;0.9=40.5</tt>
      */
-    public String toSimpleString() {
+    public Optional<String> toSimpleString() {
         return simpleStringRepresentation;
     }
 
@@ -61,7 +64,10 @@ public class JobRuntimePredictions {
                 '}';
     }
 
-    private static String buildSimpleString(Collection<JobRuntimePrediction> predictions) {
+    private static Optional<String> buildSimpleString(Collection<JobRuntimePrediction> predictions) {
+        if (CollectionsExt.isNullOrEmpty(predictions)) {
+            return Optional.empty();
+        }
         StringBuilder builder = new StringBuilder();
         boolean first = true;
         for (JobRuntimePrediction prediction : predictions) {
@@ -72,6 +78,6 @@ public class JobRuntimePredictions {
             }
             builder.append(prediction.getConfidence()).append('=').append(prediction.getRuntimeInSeconds());
         }
-        return builder.toString();
+        return Optional.of(builder.toString());
     }
 }
