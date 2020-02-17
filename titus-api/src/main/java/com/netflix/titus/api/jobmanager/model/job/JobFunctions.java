@@ -541,11 +541,7 @@ public final class JobFunctions {
                 .map(Duration::ofMillis);
     }
 
-    public static boolean hasOwnedByKubeSchedulerAttribute(Task task) {
+    public static boolean isOwnedByKubeScheduler(Task task) {
         return Boolean.parseBoolean(task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_OWNED_BY_KUBE_SCHEDULER));
-    }
-
-    public static boolean hasPodCreatedAttribute(Task task) {
-        return Boolean.parseBoolean(task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_POD_CREATED));
     }
 }

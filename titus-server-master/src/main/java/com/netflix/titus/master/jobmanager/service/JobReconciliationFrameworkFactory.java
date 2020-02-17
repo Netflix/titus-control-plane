@@ -211,11 +211,13 @@ public class JobReconciliationFrameworkFactory {
             for (Task task : tasks) {
                 Optional<Task> validatedTask = validateTask(task);
                 if (validatedTask.isPresent()) {
-                    TaskFenzoCheck check = addTaskToFenzo(engine, job, task);
-                    if (check == TaskFenzoCheck.FenzoAddError) {
-                        errorCollector.taskAddToFenzoError(task.getId());
-                    } else if (check == TaskFenzoCheck.Inconsistent) {
-                        errorCollector.inconsistentTask(task.getId());
+                    if (!JobFunctions.isOwnedByKubeScheduler(task)) {
+                        TaskFenzoCheck check = addTaskToFenzo(engine, job, task);
+                        if (check == TaskFenzoCheck.FenzoAddError) {
+                            errorCollector.taskAddToFenzoError(task.getId());
+                        } else if (check == TaskFenzoCheck.Inconsistent) {
+                            errorCollector.inconsistentTask(task.getId());
+                        }
                     }
                 } else {
                     errorCollector.invalidTaskRecord(task.getId());
@@ -395,7 +397,9 @@ public class JobReconciliationFrameworkFactory {
             for (Pair<Job, Pair<List<Task>, Integer>> jobTaskPair : jobTasksPairs) {
                 Job job = jobTaskPair.getLeft();
                 List<Task> tasks = jobTaskPair.getRight().getLeft();
-                List<String> taskStrings = tasks.stream().map(t -> String.format("<%s,%s>", t.getId(), t.getStatus().getState())).collect(Collectors.toList());
+                List<String> taskStrings = tasks.stream()
+                        .map(t -> String.format("<%s,%s:%s>", t.getId(), JobFunctions.isOwnedByKubeScheduler(t) ? "ks" : "fenzo", t.getStatus().getState()))
+                        .collect(Collectors.toList());
                 logger.info("Loaded job: {} with tasks: {}", job.getId(), taskStrings);
             }
 
@@ -477,6 +481,11 @@ public class JobReconciliationFrameworkFactory {
     }
 
     private Optional<Task> checkTaskEniAssignment(Task task, Map<String, Map<String, Set<String>>> eniAssignmentMap) {
+        // ENI assignment for tasks managed by Kube scheduler is done by agents.
+        if (JobFunctions.isOwnedByKubeScheduler(task)) {
+            return Optional.of(task);
+        }
+
         // Filter out tasks that will not be put back into Fenzo queue.
         TaskState taskState = task.getStatus().getState();
         if (taskState == TaskState.Accepted || isTaskEffectivelyFinished(task)) {

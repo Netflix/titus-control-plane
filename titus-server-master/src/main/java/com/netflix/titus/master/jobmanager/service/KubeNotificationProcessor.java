@@ -82,7 +82,7 @@ public class KubeNotificationProcessor {
                     }
 
                     Task task = jobAndTask.getRight();
-                    if (!JobFunctions.hasOwnedByKubeSchedulerAttribute(task)) {
+                    if (!JobFunctions.isOwnedByKubeScheduler(task)) {
                         logger.debug("Ignoring notification for task managed via Mesos adapter: taskId={}", task.getId());
                         return Mono.empty();
                     }
