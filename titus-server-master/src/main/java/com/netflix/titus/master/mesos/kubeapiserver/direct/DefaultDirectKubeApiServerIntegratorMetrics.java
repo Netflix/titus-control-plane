@@ -16,7 +16,6 @@
 
 package com.netflix.titus.master.mesos.kubeapiserver.direct;
 
-import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 
@@ -55,7 +54,7 @@ class DefaultDirectKubeApiServerIntegratorMetrics {
     }
 
     void observePodsCollection(ConcurrentMap<String, V1Pod> pods) {
-        PolledMeter.using(registry).withId(podGaugeId).monitorValue(pods, Map::size);
+        PolledMeter.using(registry).withId(podGaugeId).monitorSize(pods);
     }
 
     void launchSuccess(Task task, V1Pod v1Pod, long elapsedMs) {

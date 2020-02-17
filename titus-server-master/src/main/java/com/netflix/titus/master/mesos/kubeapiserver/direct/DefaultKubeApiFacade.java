@@ -51,6 +51,7 @@ public class DefaultKubeApiFacade implements KubeApiFacade {
     private static final Logger logger = LoggerFactory.getLogger(DefaultKubeApiFacade.class);
 
     private static final String METRICS_ROOT = MetricConstants.METRIC_KUBERNETES + "kubeClient.";
+    private static final String METRICS_INFORMER = METRICS_ROOT + "informer";
 
     private static final String KUBERNETES_NAMESPACE = "default";
 
@@ -87,9 +88,9 @@ public class DefaultKubeApiFacade implements KubeApiFacade {
         this.customObjectsApi = new CustomObjectsApi(apiClient);
         this.titusRuntime = titusRuntime;
 
-        this.nodeSizeGaugeId = titusRuntime.getRegistry().createId(METRICS_ROOT + "informer", "type", "node");
-        this.podSizeGaugeId = titusRuntime.getRegistry().createId(METRICS_ROOT + "informer", "type", "pod");
-        this.opportunisticResourceSizeGaugeId = titusRuntime.getRegistry().createId(METRICS_ROOT + "informer", "type", "opportunistic");
+        this.nodeSizeGaugeId = titusRuntime.getRegistry().createId(METRICS_INFORMER, "type", "node");
+        this.podSizeGaugeId = titusRuntime.getRegistry().createId(METRICS_INFORMER, "type", "pod");
+        this.opportunisticResourceSizeGaugeId = titusRuntime.getRegistry().createId(METRICS_INFORMER, "type", "opportunistic");
     }
 
     @PreDestroy
