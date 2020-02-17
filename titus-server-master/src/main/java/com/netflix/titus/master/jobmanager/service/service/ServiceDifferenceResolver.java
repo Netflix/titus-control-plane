@@ -280,7 +280,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
         for (ServiceJobTask refTask : tasks) {
             ServiceJobTask runningTask = runningJobView.getTaskById(refTask.getId());
             if (runningTask == null) {
-                if (JobFunctions.hasOwnedByKubeSchedulerAttribute(refTask)) {
+                if (JobFunctions.isOwnedByKubeScheduler(refTask)) {
                     missingTasks.add(BasicTaskActions.launchTaskInKube(
                             kubeApiServerIntegrator,
                             refJobView.getJob(),

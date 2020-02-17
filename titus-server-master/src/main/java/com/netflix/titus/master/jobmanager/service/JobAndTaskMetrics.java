@@ -156,7 +156,7 @@ public class JobAndTaskMetrics {
                 "tier", assignment.getLeft().name(),
                 "capacityGroup", assignment.getRight(),
                 "state", task.getStatus().getState().name(),
-                "kubeScheduler", "" + JobFunctions.hasOwnedByKubeSchedulerAttribute(task)
+                "kubeScheduler", "" + JobFunctions.isOwnedByKubeScheduler(task)
         ).increment();
     }
 
@@ -256,7 +256,7 @@ public class JobAndTaskMetrics {
             if (JobFunctions.getJobDesiredSize(job) == 0) {
                 emptyJobs++;
             } else {
-                boolean ownedByKubeScheduler = tasks.stream().anyMatch(JobFunctions::hasOwnedByKubeSchedulerAttribute);
+                boolean ownedByKubeScheduler = tasks.stream().anyMatch(JobFunctions::isOwnedByKubeScheduler);
                 boolean serviceJob = JobFunctions.isServiceJob(job);
 
                 if (ownedByKubeScheduler) {
@@ -302,7 +302,7 @@ public class JobAndTaskMetrics {
     private void updateTaskCounts(List<Task> tasks) {
         int tasksOwnedByKubeScheduler = 0;
         for (Task task : tasks) {
-            if (JobFunctions.hasOwnedByKubeSchedulerAttribute(task)) {
+            if (JobFunctions.isOwnedByKubeScheduler(task)) {
                 tasksOwnedByKubeScheduler++;
             }
         }

@@ -236,7 +236,7 @@ public class KillInitiatedActions {
     }
 
     private static Completable createKillAction(VirtualMachineMasterService vmService, DirectKubeApiServerIntegrator kubeApiServerIntegrator, Task task) {
-        return JobFunctions.hasOwnedByKubeSchedulerAttribute(task)
+        return JobFunctions.isOwnedByKubeScheduler(task)
                 ? ReactorExt.toCompletable(kubeApiServerIntegrator.terminateTask(task))
                 : Completable.fromAction(() -> vmService.killTask(task.getId()));
     }

@@ -74,7 +74,7 @@ public class WorkerStateMonitor {
                         if (jobAndTaskOpt.isPresent()) {
                             Task task = jobAndTaskOpt.get().getRight();
 
-                            if (JobFunctions.hasOwnedByKubeSchedulerAttribute(task)) {
+                            if (JobFunctions.isOwnedByKubeScheduler(task)) {
                                 logger.debug("Ignoring notification for task managed via direct Kube integration: taskId={}", task.getId());
                                 return;
                             }

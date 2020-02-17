@@ -725,6 +725,9 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         }
     }
 
+    /**
+     * TODO Check Accepted/podCreated state
+     */
     private boolean shouldTaskBeInApiServer(Task task) {
         if (!TaskState.isRunning(task.getStatus().getState())) {
             return false;
@@ -903,6 +906,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         logger.info("Attempting to transition {} orphaned tasks to finished (lost): {}", orphanedTasksToLost.size(), orphanedTasksToLost);
         orphanedTasksToLostGauge.set(orphanedTasksToLost.size());
         for (Task task : orphanedTasksToLost) {
+            // TODO Check for node termination case
             publishContainerEvent(task.getId(), Finished, REASON_TASK_LOST, "Task lost between control plane and machine", Optional.empty());
         }
         logger.info("Finished orphaned task transitions to finished (lost)");
