@@ -59,14 +59,17 @@ public class KubeNotificationProcessor {
 
     private static CallMetadata KUBE_CALL_METADATA = CallMetadata.newBuilder().withCallerId("Kube").build();
 
+    private final JobManagerConfiguration configuration;
     private final DirectKubeApiServerIntegrator kubeApiServerIntegrator;
     private final V3JobOperations v3JobOperations;
 
     private Disposable subscription;
 
     @Inject
-    public KubeNotificationProcessor(DirectKubeApiServerIntegrator kubeApiServerIntegrator,
+    public KubeNotificationProcessor(JobManagerConfiguration configuration,
+                                     DirectKubeApiServerIntegrator kubeApiServerIntegrator,
                                      V3JobOperations v3JobOperations) {
+        this.configuration = configuration;
         this.kubeApiServerIntegrator = kubeApiServerIntegrator;
         this.v3JobOperations = v3JobOperations;
     }
@@ -90,8 +93,11 @@ public class KubeNotificationProcessor {
                     if (event instanceof PodNotFoundEvent) {
                         return handlePodNotFoundEvent((PodNotFoundEvent) event);
                     }
+                    // We depend in this flatmap on the fact that the task update event is added by the source thread to
+                    // the job reconciler queue. This guarantees the right order of the execution.
+                    // TODO Implement flatMapWithSequentialSubscription operator
                     return handlePodUpdatedEvent(event, jobAndTask.getLeft(), task);
-                })
+                }, Math.max(1, configuration.getKubeEventConcurrencyLimit()))
                 .ignoreElements()
                 .doOnError(error -> logger.warn("Kube integration event stream terminated with an error (retrying soon)", error))
                 .retryBackoff(Long.MAX_VALUE, Duration.ofSeconds(1))

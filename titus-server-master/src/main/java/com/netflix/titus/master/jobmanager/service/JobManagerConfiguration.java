@@ -97,4 +97,10 @@ public interface JobManagerConfiguration {
      */
     @DefaultValue("false")
     boolean isFailOnDataValidation();
+
+    /**
+     * Maximum number of Kube events processed at the same time.
+     */
+    @DefaultValue("200")
+    int getKubeEventConcurrencyLimit();
 }
