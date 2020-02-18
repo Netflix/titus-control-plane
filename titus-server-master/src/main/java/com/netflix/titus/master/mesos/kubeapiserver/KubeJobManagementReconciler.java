@@ -16,13 +16,24 @@
 
 package com.netflix.titus.master.mesos.kubeapiserver;
 
+import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.master.mesos.ContainerEvent;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodEvent;
 import reactor.core.publisher.Flux;
 
+/**
+ * {@link KubeJobManagementReconciler} checks that for each placed {@link Task} there exists a pod. If the pod does not
+ * exist, and a task is in a running state, the task is moved to a finished state, an event is emitted.
+ */
 public interface KubeJobManagementReconciler {
 
+    /**
+     * Event stream for {@link com.netflix.titus.master.mesos.WorkerStateMonitor}.
+     */
     Flux<ContainerEvent> getV3ContainerEventSource();
 
+    /**
+     * Event stream for {@link com.netflix.titus.master.jobmanager.service.KubeNotificationProcessor}.
+     */
     Flux<PodEvent> getPodEventSource();
 }

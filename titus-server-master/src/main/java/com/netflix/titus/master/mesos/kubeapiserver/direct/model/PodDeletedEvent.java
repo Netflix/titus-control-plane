@@ -17,20 +17,28 @@
 package com.netflix.titus.master.mesos.kubeapiserver.direct.model;
 
 import java.util.Objects;
+import java.util.Optional;
 
+import io.kubernetes.client.models.V1Node;
 import io.kubernetes.client.models.V1Pod;
 
 public class PodDeletedEvent extends PodEvent {
 
     private final boolean deletedFinalStateUnknown;
+    private final Optional<V1Node> node;
 
-    PodDeletedEvent(V1Pod pod, boolean deletedFinalStateUnknown) {
+    PodDeletedEvent(V1Pod pod, boolean deletedFinalStateUnknown, Optional<V1Node> node) {
         super(pod);
         this.deletedFinalStateUnknown = deletedFinalStateUnknown;
+        this.node = node;
     }
 
     public boolean isDeletedFinalStateUnknown() {
         return deletedFinalStateUnknown;
+    }
+
+    public Optional<V1Node> getNode() {
+        return node;
     }
 
     @Override
@@ -45,12 +53,13 @@ public class PodDeletedEvent extends PodEvent {
             return false;
         }
         PodDeletedEvent that = (PodDeletedEvent) o;
-        return deletedFinalStateUnknown == that.deletedFinalStateUnknown;
+        return deletedFinalStateUnknown == that.deletedFinalStateUnknown &&
+                Objects.equals(node, that.node);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), deletedFinalStateUnknown);
+        return Objects.hash(super.hashCode(), deletedFinalStateUnknown, node);
     }
 
     @Override
@@ -59,6 +68,7 @@ public class PodDeletedEvent extends PodEvent {
                 "taskId='" + taskId + '\'' +
                 ", pod=" + pod +
                 ", deletedFinalStateUnknown=" + deletedFinalStateUnknown +
+                ", node=" + node.map(n -> n.getMetadata().getName()).orElse("<not_assigned>") +
                 '}';
     }
 }

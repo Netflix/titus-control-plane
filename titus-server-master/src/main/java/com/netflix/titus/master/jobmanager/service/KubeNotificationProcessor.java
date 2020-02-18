@@ -19,11 +19,14 @@ package com.netflix.titus.master.jobmanager.service;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.ExecutableStatus;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
@@ -40,14 +43,19 @@ import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeJobManagementReconciler;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeApiServerIntegrator;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodDeletedEvent;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodEvent;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodNotFoundEvent;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodUpdatedEvent;
 import io.kubernetes.client.models.V1ContainerState;
+import io.kubernetes.client.models.V1Node;
 import io.kubernetes.client.models.V1Pod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
+
+import static com.netflix.titus.common.util.Evaluators.acceptNotNull;
 
 /**
  * TODO Incorporate this into {@link DefaultV3JobOperations} once Fenzo is removed.
@@ -57,6 +65,8 @@ import reactor.core.publisher.Mono;
 public class KubeNotificationProcessor {
 
     private static final Logger logger = LoggerFactory.getLogger(KubeNotificationProcessor.class);
+
+    private static final String NODE_ANNOTATION_PREFIX = "com.netflix.titus.agent.attribute/";
 
     private static CallMetadata KUBE_CALL_METADATA = CallMetadata.newBuilder().withCallerId("Kube").build();
 
@@ -128,16 +138,25 @@ public class KubeNotificationProcessor {
         TaskState taskState = task.getStatus().getState();
         Optional<TitusExecutorDetails> executorDetailsOpt = KubeUtil.getTitusExecutorDetails(event.getPod());
 
+        Optional<V1Node> node;
+        if (event instanceof PodUpdatedEvent) {
+            node = ((PodUpdatedEvent) event).getNode();
+        } else if (event instanceof PodDeletedEvent) {
+            node = ((PodDeletedEvent) event).getNode();
+        } else {
+            node = Optional.empty();
+        }
+
         logger.info("Pod state change event: taskId={}, details={}", task.getId(), KubeUtil.formatV1ContainerState(containerState));
         if (containerState.getWaiting() != null) {
             logger.debug("Ignoring 'waiting' state update, as task must stay in the 'Accepted' state here");
         } else if (containerState.getRunning() != null) {
             if (TaskState.isBefore(taskState, TaskState.Started)) {
-                return updateTaskStatus(event.getPod(), task, TaskState.Started, executorDetailsOpt);
+                return updateTaskStatus(event.getPod(), task, TaskState.Started, executorDetailsOpt, node);
             }
         } else if (containerState.getTerminated() != null) {
             if (taskState != TaskState.Finished) {
-                return updateTaskStatus(event.getPod(), task, TaskState.Finished, executorDetailsOpt);
+                return updateTaskStatus(event.getPod(), task, TaskState.Finished, executorDetailsOpt, node);
             }
         }
         return Mono.empty();
@@ -169,7 +188,8 @@ public class KubeNotificationProcessor {
     private Mono<Void> updateTaskStatus(V1Pod pod,
                                         Task task,
                                         TaskState newTaskState,
-                                        Optional<TitusExecutorDetails> executorDetailsOpt) {
+                                        Optional<TitusExecutorDetails> executorDetailsOpt,
+                                        Optional<V1Node> node) {
         return ReactorExt.toMono(v3JobOperations.updateTask(
                 task.getId(),
                 currentTask -> {
@@ -189,13 +209,46 @@ public class KubeNotificationProcessor {
 
                     Task fixedTask = fillInMissingStates(pod, updatedTask);
                     Task taskWithPlacementData = JobManagerUtil.attachPlacementData(fixedTask, executorDetailsOpt);
+                    Task taskWithNodeMetadata = node.map(n -> attachNodeMetadata(taskWithPlacementData, n)).orElse(taskWithPlacementData);
 
-                    return Optional.of(taskWithPlacementData);
+                    return Optional.of(taskWithNodeMetadata);
                 },
                 V3JobOperations.Trigger.Kube,
                 "Kube pod notification",
                 KUBE_CALL_METADATA
         ));
+    }
+
+    private Task attachNodeMetadata(Task task, V1Node node) {
+        Map<String, String> annotations = node.getMetadata().getAnnotations();
+        if (CollectionsExt.isNullOrEmpty(annotations)) {
+            return task;
+        }
+
+        Map<String, String> agentAttributes = new HashMap<>();
+
+        acceptNotNull(annotations.get(NODE_ANNOTATION_PREFIX + "ami"), ami -> agentAttributes.put(TaskAttributes.TASK_ATTRIBUTES_AGENT_AMI, ami));
+        acceptNotNull(annotations.get(NODE_ANNOTATION_PREFIX + "asg"), asg -> agentAttributes.put(TaskAttributes.TASK_ATTRIBUTES_AGENT_ASG, asg));
+        acceptNotNull(annotations.get(NODE_ANNOTATION_PREFIX + "cluster"), cluster -> agentAttributes.put(TaskAttributes.TASK_ATTRIBUTES_AGENT_CLUSTER, cluster));
+        acceptNotNull(annotations.get(NODE_ANNOTATION_PREFIX + "id"), id -> {
+            agentAttributes.put(TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID, id);
+            agentAttributes.put("agent.id", id);
+        });
+        acceptNotNull(annotations.get(NODE_ANNOTATION_PREFIX + "itype"), itype -> agentAttributes.put(TaskAttributes.TASK_ATTRIBUTES_AGENT_ITYPE, itype));
+        acceptNotNull(annotations.get(NODE_ANNOTATION_PREFIX + "region"), region -> agentAttributes.put(TaskAttributes.TASK_ATTRIBUTES_AGENT_REGION, region));
+        acceptNotNull(annotations.get(NODE_ANNOTATION_PREFIX + "res"), res -> agentAttributes.put(TaskAttributes.TASK_ATTRIBUTES_AGENT_RES, res));
+        acceptNotNull(annotations.get(NODE_ANNOTATION_PREFIX + "stack"), stack -> agentAttributes.put(TaskAttributes.TASK_ATTRIBUTES_STACK, stack));
+        acceptNotNull(annotations.get(NODE_ANNOTATION_PREFIX + "zone"), zone -> agentAttributes.put(TaskAttributes.TASK_ATTRIBUTES_AGENT_ZONE, zone));
+
+        acceptNotNull(node.getMetadata().getName(), nodeName -> agentAttributes.put(TaskAttributes.TASK_ATTRIBUTES_KUBE_NODE_NAME, nodeName));
+
+        if (agentAttributes.isEmpty()) {
+            return task;
+        }
+
+        return task.toBuilder()
+                .withTaskContext(CollectionsExt.merge(task.getTaskContext(), agentAttributes))
+                .build();
     }
 
     private Task fillInMissingStates(V1Pod pod, Task task) {

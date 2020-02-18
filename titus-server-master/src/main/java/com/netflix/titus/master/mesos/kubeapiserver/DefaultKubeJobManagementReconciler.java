@@ -62,10 +62,6 @@ import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.FluxSink;
 
-/**
- * {@link DefaultKubeJobManagementReconciler} checks that for each placed {@link Task} there exists a pod. If the pod does not
- * exist, and a task is in a running state, the task is moved to a finished state.
- */
 @Singleton
 public class DefaultKubeJobManagementReconciler implements KubeJobManagementReconciler {
 
@@ -85,8 +81,6 @@ public class DefaultKubeJobManagementReconciler implements KubeJobManagementReco
 
         UNKNOWN
     }
-
-    private static final int ORPHANED_POD_TIMEOUT_MS = 60_000;
 
     private final MesosConfiguration mesosConfiguration;
     private final KubeApiFacade kubeApiFacade;
@@ -157,7 +151,14 @@ public class DefaultKubeJobManagementReconciler implements KubeJobManagementReco
     }
 
     private void reconcile() {
-        if (!mesosConfiguration.isReconcilerEnabled() || !kubeApiFacade.getNodeInformer().hasSynced() || !kubeApiFacade.getPodInformer().hasSynced()) {
+        if (!mesosConfiguration.isReconcilerEnabled()) {
+            logger.info("Skipping the job management / Kube reconciliation cycle: reconciler disabled");
+            return;
+        }
+        if (!kubeApiFacade.getNodeInformer().hasSynced() || !kubeApiFacade.getPodInformer().hasSynced()) {
+            logger.info("Skipping the job management / Kube reconciliation cycle: Kube informers not ready (node={}, pod={})",
+                    kubeApiFacade.getNodeInformer().hasSynced(), kubeApiFacade.getPodInformer().hasSynced()
+            );
             return;
         }
 
@@ -211,12 +212,12 @@ public class DefaultKubeJobManagementReconciler implements KubeJobManagementReco
                         break;
                     case NODE_TERMINATED:
                         reasonCode = TaskStatus.REASON_TASK_LOST;
-                        reasonMessage = "Agent terminated";
+                        reasonMessage = "Terminated due to an issue with the underlying host machine";
                         break;
                     case UNKNOWN:
                     default:
                         reasonCode = TaskStatus.REASON_TASK_LOST;
-                        reasonMessage = "Task lost between control plane and machine";
+                        reasonMessage = "Abandoned with unknown state due to lack of status updates from the host machine";
                         break;
                 }
 
@@ -234,22 +235,31 @@ public class DefaultKubeJobManagementReconciler implements KubeJobManagementReco
     }
 
     private Optional<V1Node> findNode(Task task, Map<String, V1Node> nodes) {
-        String instanceId = task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID);
-        if (instanceId == null) {
+        // Node name may be different from agent instance id. We use the instance id attribute only as a fallback.
+        String nodeName = task.getTaskContext().getOrDefault(
+                TaskAttributes.TASK_ATTRIBUTES_KUBE_NODE_NAME,
+                task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID)
+        );
+        if (nodeName == null) {
             return Optional.empty();
         }
-        return Optional.ofNullable(nodes.get(instanceId));
+        return Optional.ofNullable(nodes.get(nodeName));
     }
 
     private boolean shouldTaskBeInApiServer(Task task) {
         boolean isRunning = TaskState.isRunning(task.getStatus().getState());
 
         if (JobFunctions.isOwnedByKubeScheduler(task)) {
-            return isRunning || (task.getStatus().getState() == TaskState.Accepted && TaskStatus.hasPod(task));
+            if (isRunning) {
+                return true;
+            }
+            if (task.getStatus().getState() == TaskState.Accepted && TaskStatus.hasPod(task)) {
+                return clock.isPast(task.getStatus().getTimestamp() + mesosConfiguration.getOrphanedPodTimeoutMs());
+            }
         } else {
             if (isRunning) {
                 return JobFunctions.findTaskStatus(task, TaskState.Launched)
-                        .map(s -> clock.isPast(s.getTimestamp() + ORPHANED_POD_TIMEOUT_MS))
+                        .map(s -> clock.isPast(s.getTimestamp() + mesosConfiguration.getOrphanedPodTimeoutMs()))
                         .orElse(false);
             }
         }

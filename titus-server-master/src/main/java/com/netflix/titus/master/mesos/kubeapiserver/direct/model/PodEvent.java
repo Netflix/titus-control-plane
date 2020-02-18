@@ -17,9 +17,11 @@
 package com.netflix.titus.master.mesos.kubeapiserver.direct.model;
 
 import java.util.Objects;
+import java.util.Optional;
 
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
+import io.kubernetes.client.models.V1Node;
 import io.kubernetes.client.models.V1Pod;
 
 public abstract class PodEvent {
@@ -70,12 +72,12 @@ public abstract class PodEvent {
         return new PodAddedEvent(pod);
     }
 
-    public static PodUpdatedEvent onUpdate(V1Pod oldPod, V1Pod newPod) {
-        return new PodUpdatedEvent(oldPod, newPod);
+    public static PodUpdatedEvent onUpdate(V1Pod oldPod, V1Pod newPod, Optional<V1Node> node) {
+        return new PodUpdatedEvent(oldPod, newPod, node);
     }
 
-    public static PodDeletedEvent onDelete(V1Pod pod, boolean deletedFinalStateUnknown) {
-        return new PodDeletedEvent(pod, deletedFinalStateUnknown);
+    public static PodDeletedEvent onDelete(V1Pod pod, boolean deletedFinalStateUnknown, Optional<V1Node> node) {
+        return new PodDeletedEvent(pod, deletedFinalStateUnknown, node);
     }
 
     public static PodNotFoundEvent onPodNotFound(Task task, TaskStatus finalTaskStatus) {

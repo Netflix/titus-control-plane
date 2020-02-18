@@ -153,12 +153,24 @@ public class TaskStatus extends ExecutableStatus<TaskState> {
                 ).orElse(false);
     }
 
+    /**
+     * Checks if task has a status (Accepted, reasonCode=podCreated). A matching task will have at least two
+     * Accepted states in its history, so all of them must be checked.
+     */
     public static boolean hasPod(Task task) {
-        TaskStatus acceptedStatus = JobFunctions.findTaskStatus(task, TaskState.Accepted).orElse(null);
-        if (acceptedStatus == null) {
-            return false;
+        if (isPodMarker(task.getStatus())) {
+            return true;
         }
-        return REASON_POD_CREATED.equals(acceptedStatus.getReasonCode());
+        for (TaskStatus status : task.getStatusHistory()) {
+            if (isPodMarker(status)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean isPodMarker(TaskStatus status) {
+        return status.getState() == TaskState.Accepted && REASON_POD_CREATED.equals(status.getReasonCode());
     }
 
     public static boolean areEquivalent(TaskStatus first, TaskStatus second) {
