@@ -40,6 +40,15 @@ public interface MesosConfiguration {
     @DefaultValue("true")
     boolean isReconcilerEnabled();
 
+    @DefaultValue("10000")
+    long getReconcilerInitialDelayMs();
+
+    @DefaultValue("30000")
+    long getReconcilerIntervalMs();
+
+    @DefaultValue("60000")
+    long getOrphanedPodTimeoutMs();
+
     @DefaultValue("false")
     boolean isAllowReconcilerUpdatesForUnknownTasks();
 

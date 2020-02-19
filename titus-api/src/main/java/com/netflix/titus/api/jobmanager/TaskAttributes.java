@@ -22,15 +22,19 @@ public final class TaskAttributes {
      */
     public static final String TASK_ATTRIBUTES_AGENT_REGION = "agent.region";
     public static final String TASK_ATTRIBUTES_AGENT_ZONE = "agent.zone";
+    public static final String TASK_ATTRIBUTES_AGENT_AMI = "agent.ami";
     public static final String TASK_ATTRIBUTES_AGENT_ASG = "agent.asg";
     public static final String TASK_ATTRIBUTES_AGENT_HOST = "agent.host";
+    public static final String TASK_ATTRIBUTES_AGENT_CLUSTER = "agent.cluster";
     public static final String TASK_ATTRIBUTES_AGENT_INSTANCE_ID = "agent.instanceId";
     public static final String TASK_ATTRIBUTES_AGENT_ITYPE = "agent.itype";
+    public static final String TASK_ATTRIBUTES_AGENT_RES = "agent.res";
 
     /*
      * Kube attributes.
      */
 
+    public static final String TASK_ATTRIBUTES_KUBE_NODE_NAME = "kube.nodeName";
     public static final String TASK_ATTRIBUTES_OWNED_BY_KUBE_SCHEDULER = "kube.ownedByKubeScheduler";
     public static final String TASK_ATTRIBUTES_POD_CREATED = "kube.podCreated";
 

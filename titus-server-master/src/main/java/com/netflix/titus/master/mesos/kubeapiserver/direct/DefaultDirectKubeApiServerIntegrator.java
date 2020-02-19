@@ -19,6 +19,7 @@ package com.netflix.titus.master.mesos.kubeapiserver.direct;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ExecutorService;
@@ -32,12 +33,15 @@ import com.google.gson.JsonSyntaxException;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
+import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExecutorsExt;
+import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodEvent;
 import io.kubernetes.client.ApiException;
 import io.kubernetes.client.informer.ResourceEventHandler;
+import io.kubernetes.client.models.V1Node;
 import io.kubernetes.client.models.V1Pod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,6 +68,8 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
     private final TaskToPodConverter taskToPodConverter;
     private final DefaultDirectKubeApiServerIntegratorMetrics metrics;
 
+    private final TitusRuntime titusRuntime;
+
     private final DirectProcessor<PodEvent> supplementaryPodEventProcessor = DirectProcessor.create();
 
     /**
@@ -85,6 +91,7 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
         this.configuration = configuration;
         this.kubeApiFacade = kubeApiFacade;
         this.taskToPodConverter = taskToPodConverter;
+        this.titusRuntime = titusRuntime;
 
         this.metrics = new DefaultDirectKubeApiServerIntegratorMetrics(titusRuntime);
         metrics.observePodsCollection(pods);
@@ -146,7 +153,14 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
                 metrics.terminateError(task, e, timer.elapsed(TimeUnit.MILLISECONDS));
 
                 if (e.getMessage().equalsIgnoreCase(NOT_FOUND) && task.getStatus().getState() == TaskState.Accepted) {
-                    sendEvent(PodEvent.onPodNotFound(task));
+                    sendEvent(PodEvent.onPodNotFound(task,
+                            TaskStatus.newBuilder()
+                                    .withState(TaskState.Finished)
+                                    .withReasonCode(TaskStatus.REASON_TASK_LOST)
+                                    .withReasonMessage("Task terminate requested, but its container is not found")
+                                    .withTimestamp(titusRuntime.getClock().wallTime())
+                                    .build()
+                    ));
                 } else {
                     logger.error("Failed to kill task: {} with error: ", taskId, e);
                 }
@@ -176,7 +190,7 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
 
                     if (old != null) {
                         metrics.onUpdate(pod);
-                        sink.next(PodEvent.onUpdate(old, pod));
+                        sink.next(PodEvent.onUpdate(old, pod, findNode(pod)));
                     } else {
                         metrics.onAdd(pod);
                         sink.next(PodEvent.onAdd(pod));
@@ -189,7 +203,7 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
                     metrics.onUpdate(newPod);
 
                     pods.put(newPod.getSpec().getContainers().get(0).getName(), newPod);
-                    sink.next(PodEvent.onUpdate(oldPod, newPod));
+                    sink.next(PodEvent.onUpdate(oldPod, newPod, findNode(newPod)));
                 }
 
                 @Override
@@ -198,7 +212,7 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
                     metrics.onDelete(pod);
 
                     pods.remove(pod.getSpec().getContainers().get(0).getName());
-                    sink.next(PodEvent.onDelete(pod, deletedFinalStateUnknown));
+                    sink.next(PodEvent.onDelete(pod, deletedFinalStateUnknown, findNode(pod)));
                 }
             };
             kubeApiFacade.getPodInformer().addEventHandler(handler);
@@ -210,5 +224,13 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
 
     private void sendEvent(PodEvent podEvent) {
         supplementaryPodEventSink.next(podEvent);
+    }
+
+    private Optional<V1Node> findNode(V1Pod pod) {
+        String nodeName = pod.getSpec().getNodeName();
+        if (StringExt.isEmpty(nodeName)) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(kubeApiFacade.getNodeInformer().getIndexer().getByKey(nodeName));
     }
 }

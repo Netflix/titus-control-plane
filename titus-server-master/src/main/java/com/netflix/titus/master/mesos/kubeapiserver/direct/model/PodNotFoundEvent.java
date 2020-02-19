@@ -19,20 +19,27 @@ package com.netflix.titus.master.mesos.kubeapiserver.direct.model;
 import java.util.Objects;
 
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import io.kubernetes.client.models.V1ObjectMeta;
 import io.kubernetes.client.models.V1Pod;
 
 public class PodNotFoundEvent extends PodEvent {
 
     private final Task task;
+    private final TaskStatus finalTaskStatus;
 
-    PodNotFoundEvent(Task task) {
+    PodNotFoundEvent(Task task, TaskStatus finalTaskStatus) {
         super(new V1Pod().metadata(new V1ObjectMeta().name(task.getId())));
         this.task = task;
+        this.finalTaskStatus = finalTaskStatus;
     }
 
     public Task getTask() {
         return task;
+    }
+
+    public TaskStatus getFinalTaskStatus() {
+        return finalTaskStatus;
     }
 
     @Override
@@ -47,18 +54,20 @@ public class PodNotFoundEvent extends PodEvent {
             return false;
         }
         PodNotFoundEvent that = (PodNotFoundEvent) o;
-        return Objects.equals(task, that.task);
+        return Objects.equals(task, that.task) &&
+                Objects.equals(finalTaskStatus, that.finalTaskStatus);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), task);
+        return Objects.hash(super.hashCode(), task, finalTaskStatus);
     }
 
     @Override
     public String toString() {
         return "PodNotFoundEvent{" +
-                "taskId=" + task.getId() +
+                "task=" + task +
+                ", finalTaskStatus=" + finalTaskStatus +
                 '}';
     }
 }

@@ -49,6 +49,8 @@ public class KubeModule extends AbstractModule {
     protected void configure() {
         bind(TaskToPodConverter.class).to(DefaultTaskToPodConverter.class);
         bind(KubeApiFacade.class).to(DefaultKubeApiFacade.class);
+        bind(ContainerResultCodeResolver.class).to(DefaultContainerResultCodeResolver.class);
+        bind(KubeJobManagementReconciler.class).to(DefaultKubeJobManagementReconciler.class);
         bind(VirtualMachineMasterService.class).annotatedWith(Names.named(MESOS_KUBE_ADAPTER)).to(KubeApiServerIntegrator.class);
     }
 

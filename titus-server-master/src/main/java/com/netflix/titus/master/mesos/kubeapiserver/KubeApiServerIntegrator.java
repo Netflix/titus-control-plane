@@ -27,8 +27,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -52,7 +50,6 @@ import com.netflix.titus.common.framework.scheduler.model.ScheduleDescriptor;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExecutorsExt;
 import com.netflix.titus.common.util.NetworkExt;
-import com.netflix.titus.common.util.RegExpExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.limiter.Limiters;
 import com.netflix.titus.common.util.limiter.tokenbucket.TokenBucket;
@@ -91,14 +88,12 @@ import rx.subjects.Subject;
 
 import static com.netflix.titus.api.jobmanager.model.job.TaskState.Accepted;
 import static com.netflix.titus.api.jobmanager.model.job.TaskState.Finished;
-import static com.netflix.titus.api.jobmanager.model.job.TaskState.KillInitiated;
 import static com.netflix.titus.api.jobmanager.model.job.TaskState.Launched;
 import static com.netflix.titus.api.jobmanager.model.job.TaskState.StartInitiated;
 import static com.netflix.titus.api.jobmanager.model.job.TaskState.Started;
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_FAILED;
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_NORMAL;
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TASK_KILLED;
-import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TASK_LOST;
 
 /**
  * Responsible for integrating Kubernetes API Server concepts into Titus's Mesos based approaches.
@@ -139,12 +134,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     private final Clock clock;
     private final Injector injector;
     private final KubeApiFacade kubeApiFacade;
-
-    private final Function<String, Matcher> invalidRequestMessageMatcherFactory;
-    private final Function<String, Matcher> crashedMessageMatcherFactory;
-    private final Function<String, Matcher> transientSystemErrorMessageMatcherFactory;
-    private final Function<String, Matcher> localSystemErrorMessageMatcherFactory;
-    private final Function<String, Matcher> unknownSystemErrorMessageMatcherFactory;
+    private final ContainerResultCodeResolver containerResultCodeResolver;
 
     private final Counter launchTaskCounter;
     private final Counter rejectLeaseCounter;
@@ -162,8 +152,6 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     private final Gauge unknownPodsToGcGauge;
     private final Gauge podsPastDeletionTimestampToGcGauge;
     private final Gauge pendingPodsWithDeletionTimestampToGcGauge;
-    private final Gauge orphanedTasksToKilledGauge;
-    private final Gauge orphanedTasksToLostGauge;
 
     private com.netflix.fenzo.functions.Action1<List<? extends VirtualMachineLease>> leaseHandler;
     private Action1<List<LeaseRescindedEvent>> rescindLeaseHandler;
@@ -176,21 +164,17 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                                    MesosConfiguration mesosConfiguration,
                                    LocalScheduler scheduler,
                                    Injector injector,
-                                   KubeApiFacade kubeApiFacade) {
+                                   KubeApiFacade kubeApiFacade,
+                                   ContainerResultCodeResolver containerResultCodeResolver) {
         this.titusRuntime = titusRuntime;
         this.mesosConfiguration = mesosConfiguration;
         this.scheduler = scheduler;
         this.clock = titusRuntime.getClock();
         this.injector = injector;
         this.kubeApiFacade = kubeApiFacade;
+        this.containerResultCodeResolver = containerResultCodeResolver;
 
         this.vmTaskStatusObserver = PublishSubject.create();
-
-        invalidRequestMessageMatcherFactory = RegExpExt.dynamicMatcher(mesosConfiguration::getInvalidRequestMessagePattern, "invalidRequestMessagePattern", Pattern.DOTALL, logger);
-        crashedMessageMatcherFactory = RegExpExt.dynamicMatcher(mesosConfiguration::getCrashedMessagePattern, "crashedMessagePattern", Pattern.DOTALL, logger);
-        transientSystemErrorMessageMatcherFactory = RegExpExt.dynamicMatcher(mesosConfiguration::getTransientSystemErrorMessagePattern, "transientSystemErrorMessagePattern", Pattern.DOTALL, logger);
-        localSystemErrorMessageMatcherFactory = RegExpExt.dynamicMatcher(mesosConfiguration::getLocalSystemErrorMessagePattern, "localSystemErrorMessagePattern", Pattern.DOTALL, logger);
-        unknownSystemErrorMessageMatcherFactory = RegExpExt.dynamicMatcher(mesosConfiguration::getUnknownSystemErrorMessagePattern, "unknownSystemErrorMessagePattern", Pattern.DOTALL, logger);
 
         Registry registry = titusRuntime.getRegistry();
         launchTaskCounter = registry.counter(MetricConstants.METRIC_KUBERNETES + "launchTask");
@@ -209,8 +193,6 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         unknownPodsToGcGauge = registry.gauge(MetricConstants.METRIC_KUBERNETES + "unknownPodsToGc");
         podsPastDeletionTimestampToGcGauge = registry.gauge(MetricConstants.METRIC_KUBERNETES + "podsPastDeletionTimestampToGc");
         pendingPodsWithDeletionTimestampToGcGauge = registry.gauge(MetricConstants.METRIC_KUBERNETES + "pendingPodsWithDeletionTimestampToGc");
-        orphanedTasksToKilledGauge = registry.gauge(MetricConstants.METRIC_KUBERNETES + "orphanedTasksToKilled");
-        orphanedTasksToLostGauge = registry.gauge(MetricConstants.METRIC_KUBERNETES + "orphanedTasksToLost");
     }
 
     @Override
@@ -626,24 +608,10 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
 
     private void publishContainerEvent(String taskId, TaskState taskState, String reasonCode, String reasonMessage,
                                        Optional<TitusExecutorDetails> executorDetails, Optional<Long> timestampOpt) {
-        if (taskState == com.netflix.titus.api.jobmanager.model.job.TaskState.Finished && !StringExt.isEmpty(reasonMessage)) {
-            if (invalidRequestMessageMatcherFactory.apply(reasonMessage).matches()) {
-                reasonCode = com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_INVALID_REQUEST;
-            } else if (crashedMessageMatcherFactory.apply(reasonMessage).matches()) {
-                reasonCode = com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_CRASHED;
-            } else if (transientSystemErrorMessageMatcherFactory.apply(reasonMessage).matches()) {
-                reasonCode = com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TRANSIENT_SYSTEM_ERROR;
-            } else if (localSystemErrorMessageMatcherFactory.apply(reasonMessage).matches()) {
-                reasonCode = com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_LOCAL_SYSTEM_ERROR;
-            } else if (unknownSystemErrorMessageMatcherFactory.apply(reasonMessage).matches()) {
-                reasonCode = com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_UNKNOWN_SYSTEM_ERROR;
-            }
-        }
-
         V3ContainerEvent event = new V3ContainerEvent(
                 taskId,
                 taskState,
-                reasonCode,
+                containerResultCodeResolver.resolve(taskState, reasonMessage).orElse(reasonCode),
                 reasonMessage,
                 timestampOpt.orElseGet(() -> titusRuntime.getClock().wallTime()),
                 executorDetails
@@ -662,7 +630,6 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         List<V1Pod> pods = kubeApiFacade.getPodInformer().getIndexer().list();
         List<Task> tasks = v3JobOperations.getTasks();
         Map<String, Task> currentTasks = tasks.stream().collect(Collectors.toMap(Task::getId, Function.identity()));
-        Set<String> currentPodNames = pods.stream().map(p -> p.getMetadata().getName()).collect(Collectors.toSet());
 
         gcTimedOutNodes(nodes);
         gcOrphanedPodsWithoutValidNodes(nodes, pods);
@@ -670,7 +637,6 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         gcUnknownPods(pods, currentTasks);
         gcPodsPastDeletionTimestamp(pods);
         gcPendingPodsWithDeletionTimestamp(pods);
-        transitionOrphanedTasks(currentTasks, currentPodNames);
     }
 
     private void gcNode(V1Node node) {
@@ -723,18 +689,6 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         } catch (Exception e) {
             logger.error("Failed to delete pod: {} with error: ", podName, e);
         }
-    }
-
-    /**
-     * TODO Check Accepted/podCreated state
-     */
-    private boolean shouldTaskBeInApiServer(Task task) {
-        if (!TaskState.isRunning(task.getStatus().getState())) {
-            return false;
-        }
-        return JobFunctions.findTaskStatus(task, Launched)
-                .map(s -> clock.isPast(s.getTimestamp() + ORPHANED_POD_TIMEOUT_MS))
-                .orElse(false);
     }
 
     /**
@@ -874,42 +828,6 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
             publishContainerEvent(pod.getMetadata().getName(), Finished, REASON_TASK_KILLED, "", Optional.empty());
         }
         logger.info("Finished pending pods with deletion timestamp GC");
-    }
-
-    /**
-     * Transition orphaned tasks to Finished that don't exist in Kubernetes. If the last task status was KillInitiated
-     * and the system missed the last event then the assumption is that the kubelet successfully terminated the pod and
-     * deleted the pod object.
-     */
-    private void transitionOrphanedTasks(Map<String, Task> currentTasks, Set<String> currentPodNames) {
-        List<Task> tasksNotInApiServer = currentTasks.values().stream()
-                .filter(t -> shouldTaskBeInApiServer(t) && !currentPodNames.contains(t.getId()))
-                .collect(Collectors.toList());
-
-        List<Task> orphanedTasksToKilled = new ArrayList<>();
-        List<Task> orphanedTasksToLost = new ArrayList<>();
-        for (Task task : tasksNotInApiServer) {
-            if (task.getStatus().getState().equals(KillInitiated)) {
-                orphanedTasksToKilled.add(task);
-            } else {
-                orphanedTasksToLost.add(task);
-            }
-        }
-
-        logger.info("Attempting to transition {} orphaned tasks to finished (killed): {}", orphanedTasksToKilled.size(), orphanedTasksToKilled);
-        orphanedTasksToKilledGauge.set(orphanedTasksToKilled.size());
-        for (Task task : orphanedTasksToKilled) {
-            publishContainerEvent(task.getId(), Finished, REASON_TASK_KILLED, "", Optional.empty());
-        }
-        logger.info("Finished orphaned task transitions to finished (killed)");
-
-        logger.info("Attempting to transition {} orphaned tasks to finished (lost): {}", orphanedTasksToLost.size(), orphanedTasksToLost);
-        orphanedTasksToLostGauge.set(orphanedTasksToLost.size());
-        for (Task task : orphanedTasksToLost) {
-            // TODO Check for node termination case
-            publishContainerEvent(task.getId(), Finished, REASON_TASK_LOST, "Task lost between control plane and machine", Optional.empty());
-        }
-        logger.info("Finished orphaned task transitions to finished (lost)");
     }
 
     private boolean isPodPhaseTerminal(String phase) {

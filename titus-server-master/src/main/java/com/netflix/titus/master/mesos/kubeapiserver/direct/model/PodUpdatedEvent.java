@@ -17,20 +17,28 @@
 package com.netflix.titus.master.mesos.kubeapiserver.direct.model;
 
 import java.util.Objects;
+import java.util.Optional;
 
+import io.kubernetes.client.models.V1Node;
 import io.kubernetes.client.models.V1Pod;
 
 public class PodUpdatedEvent extends PodEvent {
 
     private final V1Pod oldPod;
+    private final Optional<V1Node> node;
 
-    PodUpdatedEvent(V1Pod oldPod, V1Pod newPod) {
+    PodUpdatedEvent(V1Pod oldPod, V1Pod newPod, Optional<V1Node> node) {
         super(newPod);
         this.oldPod = oldPod;
+        this.node = node;
     }
 
     public V1Pod getOldPod() {
         return oldPod;
+    }
+
+    public Optional<V1Node> getNode() {
+        return node;
     }
 
     @Override
@@ -45,12 +53,13 @@ public class PodUpdatedEvent extends PodEvent {
             return false;
         }
         PodUpdatedEvent that = (PodUpdatedEvent) o;
-        return Objects.equals(oldPod, that.oldPod);
+        return Objects.equals(oldPod, that.oldPod) &&
+                Objects.equals(node, that.node);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), oldPod);
+        return Objects.hash(super.hashCode(), oldPod, node);
     }
 
     @Override
@@ -59,6 +68,7 @@ public class PodUpdatedEvent extends PodEvent {
                 "taskId='" + taskId + '\'' +
                 ", pod=" + pod +
                 ", oldPod=" + oldPod +
+                ", node=" + node.map(n -> n.getMetadata().getName()).orElse("<not_assigned>") +
                 '}';
     }
 }

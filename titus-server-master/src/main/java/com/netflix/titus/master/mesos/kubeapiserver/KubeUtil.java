@@ -32,10 +32,11 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.squareup.okhttp.Request;
 import io.kubernetes.client.ApiClient;
-import io.kubernetes.client.apis.CoreV1Api;
 import io.kubernetes.client.informer.SharedInformerFactory;
 import io.kubernetes.client.models.V1ContainerState;
+import io.kubernetes.client.models.V1ContainerStateRunning;
 import io.kubernetes.client.models.V1ContainerStateTerminated;
+import io.kubernetes.client.models.V1ContainerStateWaiting;
 import io.kubernetes.client.models.V1ContainerStatus;
 import io.kubernetes.client.models.V1Pod;
 import io.kubernetes.client.util.Config;
@@ -48,14 +49,6 @@ public class KubeUtil {
         Matcher matcher = UUID_PATTERN.matcher(path);
         return matcher.replaceAll("");
     };
-
-    public static CoreV1Api createApi(String serverUrl,
-                                      String metricsNamePrefix,
-                                      TitusRuntime titusRuntime,
-                                      long readTimeoutMs) {
-        ApiClient client = createApiClient(serverUrl, metricsNamePrefix, titusRuntime, readTimeoutMs);
-        return new CoreV1Api(client);
-    }
 
     public static ApiClient createApiClient(String serverUrl,
                                             String metricsNamePrefix,
@@ -120,5 +113,26 @@ public class KubeUtil {
 
     public static Optional<V1ContainerStateTerminated> findTerminatedContainerStatus(V1Pod pod) {
         return findContainerState(pod).flatMap(state -> Optional.ofNullable(state.getTerminated()));
+    }
+
+    public static String formatV1ContainerState(V1ContainerState containerState) {
+        if (containerState.getWaiting() != null) {
+            V1ContainerStateWaiting waiting = containerState.getWaiting();
+            return String.format("{state=waiting, reason=%s, message=%s}", waiting.getReason(), waiting.getMessage());
+        }
+
+        if (containerState.getRunning() != null) {
+            V1ContainerStateRunning running = containerState.getRunning();
+            return String.format("{state=running, startedAt=%s}", running.getStartedAt());
+        }
+
+        if (containerState.getTerminated() != null) {
+            V1ContainerStateTerminated terminated = containerState.getTerminated();
+            return String.format("{state=terminated, startedAt=%s, finishedAt=%s, reason=%s, message=%s}",
+                    terminated.getStartedAt(), terminated.getFinishedAt(),
+                    terminated.getReason(), terminated.getMessage());
+        }
+
+        return "{state=<not set>}";
     }
 }
