@@ -64,7 +64,7 @@ public class KubeModule extends AbstractModule {
     @Singleton
     public ApiClient getKubeApiClient(MesosConfiguration configuration, TitusRuntime titusRuntime) {
         return KubeUtil.createApiClient(
-                configuration.getKubeApiServerUrl(),
+                configuration.getKubeConfigPath(),
                 KubeApiServerIntegrator.CLIENT_METRICS_PREFIX,
                 titusRuntime,
                 0L

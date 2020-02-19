@@ -109,10 +109,10 @@ public interface MesosConfiguration {
     boolean isKubeApiServerIntegrationEnabled();
 
     /**
-     * @return the url of the Kube API Server
+     * @return the path to the kubeconfig file
      */
-    @DefaultValue("localhost:8080")
-    String getKubeApiServerUrl();
+    @DefaultValue("/run/kubernetes/config")
+    String getKubeConfigPath();
 
     /**
      * @return whether or not to GC unknown pods
