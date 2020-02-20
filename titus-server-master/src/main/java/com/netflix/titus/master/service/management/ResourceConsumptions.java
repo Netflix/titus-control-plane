@@ -99,9 +99,12 @@ public final class ResourceConsumptions {
         C first = consumptionList.get(0);
         if (first instanceof CompositeResourceConsumption) {
             Map<String, ResourceConsumption> mergedContributors = new HashMap<>();
-            consumptionList.forEach(consumption -> mergedContributors.compute(consumption.getConsumerName(),
-                    (name, current) -> current == null ? consumption : ResourceConsumptions.add(current, consumption)
-            ));
+            consumptionList.stream()
+                    .map(CompositeResourceConsumption.class::cast)
+                    .flatMap(c -> c.getContributors().entrySet().stream())
+                    .forEach(entry -> mergedContributors.compute(entry.getKey(), (name, current) ->
+                            current == null ? entry.getValue() : ResourceConsumptions.add(current, entry.getValue())
+                    ));
 
             ResourceDimension allowedUsage = addAllowedConsumptions((Collection<CompositeResourceConsumption>) consumptionList);
 
