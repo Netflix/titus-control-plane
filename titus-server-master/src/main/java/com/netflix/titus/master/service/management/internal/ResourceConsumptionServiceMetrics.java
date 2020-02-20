@@ -16,10 +16,12 @@
 
 package com.netflix.titus.master.service.management.internal;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
@@ -199,8 +201,9 @@ class ResourceConsumptionServiceMetrics {
                 actualUsageByInstanceType.computeIfAbsent(instanceType, this::buildInstanceTypeMetrics)
                         .update(consumption.getCurrentConsumption());
             });
-            // clean up instance types not being used anymore
-            actualUsageByInstanceType.keySet().stream()
+            // clean up instance types not being used anymore, create a copy to avoid ConcurrentModificationException
+            List<String> trackedInstanceTypes = new ArrayList<>(actualUsageByInstanceType.keySet());
+            trackedInstanceTypes.stream()
                     .filter(i -> !instanceTypesInUse.contains(i))
                     .forEach(toRemove -> actualUsageByInstanceType.remove(toRemove).reset());
         }
