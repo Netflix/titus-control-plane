@@ -27,6 +27,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.primitives.Ints;
 import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
@@ -80,11 +81,14 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
     private static final Pattern IAM_PROFILE_RE = Pattern.compile(ARN_PREFIX + "(\\d+)" + ARN_SUFFIX + "\\S+");
 
     private final DirectKubeConfiguration configuration;
+    private final PodAffinityFactory podAffinityFactory;
     private final String iamArnPrefix;
 
     @Inject
-    public DefaultTaskToPodConverter(DirectKubeConfiguration configuration) {
+    public DefaultTaskToPodConverter(DirectKubeConfiguration configuration,
+                                     PodAffinityFactory podAffinityFactory) {
         this.configuration = configuration;
+        this.podAffinityFactory = podAffinityFactory;
 
         // Get the AWS account ID to use for building IAM ARNs.
         String accountId = Evaluators.getOrDefault(System.getenv("EC2_OWNER_ID"), "default");
@@ -103,7 +107,11 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
 
         V1ObjectMeta metadata = new V1ObjectMeta()
                 .name(taskId)
-                .annotations(annotations);
+                .annotations(annotations)
+                .labels(ImmutableMap.of(
+                        KubeConstants.POD_LABEL_JOB_ID, job.getId(),
+                        KubeConstants.POD_LABEL_TASK_ID, taskId
+                ));
 
         V1Container container = new V1Container()
                 .name(taskId)
@@ -114,7 +122,8 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
                 .schedulerName("default-scheduler")
                 .containers(Collections.singletonList(container))
                 .terminationGracePeriodSeconds(POD_TERMINATION_GRACE_PERIOD_SECONDS)
-                .restartPolicy(NEVER_RESTART_POLICY);
+                .restartPolicy(NEVER_RESTART_POLICY)
+                .affinity(podAffinityFactory.buildV1Affinity(job, task));
 
         return new V1Pod().metadata(metadata).spec(spec);
     }
