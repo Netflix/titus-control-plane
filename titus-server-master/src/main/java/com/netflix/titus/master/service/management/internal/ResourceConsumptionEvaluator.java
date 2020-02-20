@@ -153,7 +153,9 @@ class ResourceConsumptionEvaluator {
             Map<String, ResourceConsumption> consumptionByInstanceType = CollectionsExt.mapValuesWithKeys(
                     tasksByInstanceType,
                     (instanceType, instanceTypeTasks) -> {
-                        ResourceDimension instanceTypeConsumption = ResourceDimensions.multiply(taskResources, instanceTypeTasks.size());
+                        ResourceDimension instanceTypeConsumption = ResourceDimensions.multiply(
+                                taskResources, getRunningWorkers(instanceTypeTasks).size()
+                        );
                         return new ResourceConsumption(
                                 instanceType,
                                 ConsumptionLevel.InstanceType,
