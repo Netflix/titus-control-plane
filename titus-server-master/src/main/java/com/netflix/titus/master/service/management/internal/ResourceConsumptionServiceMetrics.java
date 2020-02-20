@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.google.common.base.Preconditions;
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.patterns.PolledMeter;
@@ -31,6 +32,7 @@ import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.service.management.CompositeResourceConsumption;
 import com.netflix.titus.master.service.management.ResourceConsumption;
+import com.netflix.titus.master.service.management.ResourceConsumption.ConsumptionLevel;
 
 import static com.netflix.titus.common.util.CollectionsExt.copyAndRemove;
 
@@ -39,7 +41,7 @@ class ResourceConsumptionServiceMetrics {
     private final Id rootId;
     private final Registry registry;
 
-    private final Map<Pair<String, String>, CapacityGroupMetrics> metricsByCapacityGroupAndApp = new HashMap<>();
+    private final Map<Pair<String, String>, ApplicationMetrics> metricsByCapacityGroupAndApp = new HashMap<>();
     private final Map<String, ResourceMetrics> capacityGroupLimits = new HashMap<>();
 
     private volatile long updateTimestamp;
@@ -102,9 +104,9 @@ class ResourceConsumptionServiceMetrics {
 
     private Pair<String, String> updateApp(String tierName, ResourceConsumption groupConsumption, ResourceConsumption appConsumption) {
         Pair<String, String> key = Pair.of(groupConsumption.getConsumerName(), appConsumption.getConsumerName());
-        CapacityGroupMetrics metrics = metricsByCapacityGroupAndApp.get(key);
+        ApplicationMetrics metrics = metricsByCapacityGroupAndApp.get(key);
         if (metrics == null) {
-            metrics = new CapacityGroupMetrics(tierName, groupConsumption.getConsumerName(), appConsumption.getConsumerName());
+            metrics = new ApplicationMetrics(tierName, groupConsumption.getConsumerName(), appConsumption.getConsumerName());
             metricsByCapacityGroupAndApp.put(key, metrics);
         }
         metrics.update(appConsumption);
@@ -157,33 +159,56 @@ class ResourceConsumptionServiceMetrics {
         }
     }
 
-    private class CapacityGroupMetrics {
+    private class ApplicationMetrics {
+        private final String tierName;
+        private final String capacityGroup;
+        private final String appName;
         private final ResourceMetrics maxUsage;
-        private final ResourceMetrics actualUsage;
+        private final Map<String, ResourceMetrics> actualUsageByInstanceType = new HashMap<>();
 
-        private CapacityGroupMetrics(String tierName, String capacityGroup, String appName) {
+        private ApplicationMetrics(String tierName, String capacityGroup, String appName) {
+            this.tierName = tierName;
+            this.capacityGroup = capacityGroup;
+            this.appName = appName;
             this.maxUsage = new ResourceMetrics(
                     registry.createId(rootId.name() + "maxUsage", rootId.tags())
                             .withTag("tier", tierName)
                             .withTag("capacityGroup", capacityGroup)
                             .withTag("applicationName", appName)
             );
-            this.actualUsage = new ResourceMetrics(
+        }
+
+        private ResourceMetrics buildInstanceTypeMetrics(String instanceType) {
+            return new ResourceMetrics(
                     registry.createId(rootId.name() + "actualUsage", rootId.tags())
                             .withTag("tier", tierName)
                             .withTag("capacityGroup", capacityGroup)
                             .withTag("applicationName", appName)
+                            .withTag("instanceType", instanceType)
             );
         }
 
-        private void update(ResourceConsumption consumption) {
-            actualUsage.update(consumption.getCurrentConsumption());
-            maxUsage.update(consumption.getMaxConsumption());
+        private void update(ResourceConsumption appConsumption) {
+            Preconditions.checkArgument(ConsumptionLevel.Application.equals(appConsumption.getConsumptionLevel()));
+            maxUsage.update(appConsumption.getMaxConsumption());
+
+            Set<String> instanceTypesInUse = new HashSet<>();
+            Map<String, ResourceConsumption> consumptionByInstanceType = ((CompositeResourceConsumption) appConsumption).getContributors();
+            consumptionByInstanceType.forEach((instanceType, consumption) -> {
+                instanceTypesInUse.add(instanceType);
+                actualUsageByInstanceType.computeIfAbsent(instanceType, this::buildInstanceTypeMetrics)
+                        .update(consumption.getCurrentConsumption());
+            });
+            // clean up instance types not being used anymore
+            actualUsageByInstanceType.keySet().stream()
+                    .filter(i -> !instanceTypesInUse.contains(i))
+                    .forEach(toRemove -> actualUsageByInstanceType.remove(toRemove).reset());
         }
 
         private void reset() {
             maxUsage.reset();
-            actualUsage.reset();
+            actualUsageByInstanceType.values().forEach(ResourceMetrics::reset);
+            actualUsageByInstanceType.clear();
         }
     }
 }

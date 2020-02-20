@@ -32,8 +32,6 @@ import com.netflix.titus.master.model.ResourceDimensions;
 
 import static java.util.Arrays.asList;
 
-/**
- */
 public final class ResourceConsumptions {
 
     private ResourceConsumptions() {
@@ -67,9 +65,9 @@ public final class ResourceConsumptions {
             return Collections.singletonMap(parent.getConsumerName(), parent);
         }
 
-        // If this is CapacityGroup level, next one is Application level, which is the last one
-        if (parent.getConsumptionLevel() == ResourceConsumption.ConsumptionLevel.CapacityGroup) {
-            Preconditions.checkArgument(level == ResourceConsumption.ConsumptionLevel.Application);
+        // If this is the Application level, the next one needs to be the InstanceType level, which is the last one
+        if (parent.getConsumptionLevel() == ResourceConsumption.ConsumptionLevel.Application) {
+            Preconditions.checkArgument(level == ResourceConsumption.ConsumptionLevel.InstanceType);
             return parent.getContributors();
         }
 
@@ -100,8 +98,10 @@ public final class ResourceConsumptions {
 
         C first = consumptionList.get(0);
         if (first instanceof CompositeResourceConsumption) {
-            Map<String, ResourceConsumption> contributors = new HashMap<>();
-            consumptionList.forEach(c -> contributors.put(c.getConsumerName(), c));
+            Map<String, ResourceConsumption> mergedContributors = new HashMap<>();
+            consumptionList.forEach(consumption -> mergedContributors.compute(consumption.getConsumerName(),
+                    (name, current) -> current == null ? consumption : ResourceConsumptions.add(current, consumption)
+            ));
 
             ResourceDimension allowedUsage = addAllowedConsumptions((Collection<CompositeResourceConsumption>) consumptionList);
 
@@ -110,8 +110,9 @@ public final class ResourceConsumptions {
                     first.getConsumptionLevel(),
                     currentUsage,
                     maxUsage,
-                    allowedUsage, mergedAttrs,
-                    contributors,
+                    allowedUsage,
+                    mergedAttrs,
+                    mergedContributors,
                     !ResourceDimensions.isBigger(allowedUsage, maxUsage)
             );
         }

@@ -29,6 +29,7 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.common.util.guice.ProxyType;
@@ -89,9 +90,10 @@ public class DefaultResourceConsumptionService implements ResourceConsumptionSer
         this(ResourceConsumptionEvaluator.newEvaluator(applicationSlaManagementService, v3JobOperations), registry, Schedulers.computation());
     }
 
-    /* For testing */ DefaultResourceConsumptionService(Supplier<ConsumptionEvaluationResult> evaluator,
-                                                        Registry registry,
-                                                        Scheduler scheduler) {
+    @VisibleForTesting
+    DefaultResourceConsumptionService(Supplier<ConsumptionEvaluationResult> evaluator,
+                                      Registry registry,
+                                      Scheduler scheduler) {
         this.evaluator = evaluator;
         this.registry = registry;
         this.worker = scheduler.createWorker();

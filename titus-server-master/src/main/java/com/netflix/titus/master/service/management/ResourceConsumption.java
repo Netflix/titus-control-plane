@@ -27,7 +27,7 @@ public class ResourceConsumption {
 
     public static final String SYSTEM_CONSUMER = "system";
 
-    public enum ConsumptionLevel {System, Tier, CapacityGroup, Application}
+    public enum ConsumptionLevel {System, Tier, CapacityGroup, Application, InstanceType}
 
     private final String consumerName;
     private final ConsumptionLevel consumptionLevel;
