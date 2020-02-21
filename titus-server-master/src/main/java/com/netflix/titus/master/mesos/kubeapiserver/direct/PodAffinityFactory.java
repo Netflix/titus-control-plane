@@ -20,6 +20,10 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import io.kubernetes.client.models.V1Affinity;
 
+/**
+ * Builds pod affinity and ant-affinity rules for a job/task. This includes both the job level hard and soft
+ * constraints, as well as Titus system level constraints.
+ */
 public interface PodAffinityFactory {
 
     V1Affinity buildV1Affinity(Job<?> job, Task task);

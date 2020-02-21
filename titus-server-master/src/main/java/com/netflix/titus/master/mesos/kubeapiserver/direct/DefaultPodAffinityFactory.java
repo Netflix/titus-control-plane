@@ -69,11 +69,11 @@ public class DefaultPodAffinityFactory implements PodAffinityFactory {
         }
 
         private void processJobConstraints(Map<String, String> constraints, boolean hard) {
-            if ("true".equalsIgnoreCase(constraints.get(JobConstraints.EXCLUSIVE_HOST))) {
+            if (Boolean.parseBoolean(constraints.get(JobConstraints.EXCLUSIVE_HOST))) {
                 addExclusiveHostConstraint(hard);
             }
 
-            if ("true".equalsIgnoreCase(constraints.get(JobConstraints.UNIQUE_HOST))) {
+            if (Boolean.parseBoolean(constraints.get(JobConstraints.UNIQUE_HOST))) {
                 addUniqueHostConstraint(hard);
             }
 
