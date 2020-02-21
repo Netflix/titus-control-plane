@@ -47,6 +47,8 @@ import com.netflix.titus.api.model.EfsMount;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.StringExt;
+import com.netflix.titus.master.mesos.kubeapiserver.PerformanceToolUtil;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.taint.TaintTolerationFactory;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import io.kubernetes.client.custom.Quantity;
 import io.kubernetes.client.models.V1Container;
@@ -82,13 +84,16 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
 
     private final DirectKubeConfiguration configuration;
     private final PodAffinityFactory podAffinityFactory;
+    private final TaintTolerationFactory taintTolerationFactory;
     private final String iamArnPrefix;
 
     @Inject
     public DefaultTaskToPodConverter(DirectKubeConfiguration configuration,
-                                     PodAffinityFactory podAffinityFactory) {
+                                     PodAffinityFactory podAffinityFactory,
+                                     TaintTolerationFactory taintTolerationFactory) {
         this.configuration = configuration;
         this.podAffinityFactory = podAffinityFactory;
+        this.taintTolerationFactory = taintTolerationFactory;
 
         // Get the AWS account ID to use for building IAM ARNs.
         String accountId = Evaluators.getOrDefault(System.getenv("EC2_OWNER_ID"), "default");
@@ -104,6 +109,7 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
 
         Map<String, String> annotations = new HashMap<>();
         annotations.put("containerInfo", encodedContainerInfo);
+        annotations.putAll(PerformanceToolUtil.toAnnotations(job));
 
         V1ObjectMeta metadata = new V1ObjectMeta()
                 .name(taskId)
@@ -123,7 +129,8 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
                 .containers(Collections.singletonList(container))
                 .terminationGracePeriodSeconds(POD_TERMINATION_GRACE_PERIOD_SECONDS)
                 .restartPolicy(NEVER_RESTART_POLICY)
-                .affinity(podAffinityFactory.buildV1Affinity(job, task));
+                .affinity(podAffinityFactory.buildV1Affinity(job, task))
+                .tolerations(taintTolerationFactory.buildV1Toleration(job, task));
 
         return new V1Pod().metadata(metadata).spec(spec);
     }

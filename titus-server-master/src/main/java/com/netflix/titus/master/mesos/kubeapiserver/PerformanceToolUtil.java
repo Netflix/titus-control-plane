@@ -24,11 +24,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.google.protobuf.InvalidProtocolBufferException;
+import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.common.util.unit.TimeUnitExt;
 import io.titanframework.messages.TitanProtos;
 import org.apache.mesos.Protos;
 
-class PerformanceToolUtil {
+public class PerformanceToolUtil {
 
     private static final Pattern TASK_STATE_RULES_RE = Pattern.compile("(launched|startInitiated|started|killInitiated)\\s*:\\s*delay=(\\d+(ms|s|m|h|d))");
 
@@ -40,21 +41,26 @@ class PerformanceToolUtil {
      * Performance tool annotations are encoded as environment variables like this:
      * {@code TASK_LIFECYCLE_1=selector: slots=0.. slotStep=2; launched: delay=2s; startInitiated: delay=3s; started: delay=60s; killInitiated: delay=5s}<br>
      */
-    static Map<String, String> findPerformanceTestAnnotations(Protos.TaskInfo taskInfo) {
-        return findTaskLifecycleEnv(taskInfo).map(PerformanceToolUtil::toAnnotations).orElse(Collections.emptyMap());
-    }
-
-    static Optional<String> findTaskLifecycleEnv(Protos.TaskInfo taskInfo) {
+    public static Map<String, String> findPerformanceTestAnnotations(Protos.TaskInfo taskInfo) {
         TitanProtos.ContainerInfo containerInfo;
         try {
             containerInfo = TitanProtos.ContainerInfo.parseFrom(taskInfo.getData());
         } catch (InvalidProtocolBufferException e) {
-            return Optional.empty();
+            return Collections.emptyMap();
         }
-        return containerInfo.getUserProvidedEnvMap().keySet().stream()
-                .filter(k -> k.startsWith("TASK_LIFECYCLE"))
-                .map(k -> containerInfo.getUserProvidedEnvMap().get(k))
-                .findFirst();
+        return findTaskLifecycleEnv(containerInfo.getUserProvidedEnvMap())
+                .map(PerformanceToolUtil::toAnnotations)
+                .orElse(Collections.emptyMap());
+    }
+
+    public static Map<String, String> toAnnotations(Job job) {
+        return findTaskLifecycleEnv(job.getJobDescriptor().getContainer().getEnv())
+                .map(PerformanceToolUtil::toAnnotations)
+                .orElse(Collections.emptyMap());
+    }
+
+    private static Optional<String> findTaskLifecycleEnv(Map<String, String> env) {
+        return env.keySet().stream().filter(k -> k.startsWith("TASK_LIFECYCLE")).map(env::get).findFirst();
     }
 
     private static Map<String, String> toAnnotations(String envValue) {
