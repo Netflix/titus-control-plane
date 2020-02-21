@@ -46,4 +46,34 @@ public class KubeConstants {
     public static final String POD_LABEL_JOB_ID = "titus/jobId";
 
     public static final String POD_LABEL_TASK_ID = "titus/taskId";
+
+    /*
+     * Titus taints.
+     */
+
+    /**
+     * Machines with this taint and value 'titus' can be used for pod placement.
+     */
+    public static final String TAINT_VIRTUAL_KUBLET = "virtual-kubelet.io/provider";
+
+    /**
+     * Common prefix for Titus taints.
+     */
+    public static final String TITUS_TAINT_DOMAIN = "com.netflix.titus.agent.taint/";
+
+    /**
+     * Set value to 'fenzo' to assign a machine to Fenzo scheduler. By default all machines belong to the Kube scheduler.
+     */
+    public static final String TAINT_SCHEDULER = TITUS_TAINT_DOMAIN + "scheduler";
+
+    /**
+     * Machines with the taint value 'flex' belong to the flex tier. Machines with the taint 'critical' belong to
+     * the critical tiers.
+     */
+    public static final String TAINT_TIER = TITUS_TAINT_DOMAIN + "tier";
+
+    /**
+     * Taint for GPU machines to prevent non-GPU pods running on them.
+     */
+    public static final String TAINT_GPU_INSTANCE = TITUS_TAINT_DOMAIN + "gpu";
 }

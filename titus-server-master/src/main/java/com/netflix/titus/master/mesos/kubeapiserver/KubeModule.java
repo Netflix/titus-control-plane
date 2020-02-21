@@ -37,6 +37,8 @@ import com.netflix.titus.master.mesos.kubeapiserver.direct.KubeApiFacade;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.NoOpDirectKubeApiServerIntegrator;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.PodAffinityFactory;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.TaskToPodConverter;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.taint.DefaultTaintTolerationFactory;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.taint.TaintTolerationFactory;
 import io.kubernetes.client.ApiClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,6 +55,7 @@ public class KubeModule extends AbstractModule {
         bind(KubeApiFacade.class).to(DefaultKubeApiFacade.class);
         bind(ContainerResultCodeResolver.class).to(DefaultContainerResultCodeResolver.class);
         bind(PodAffinityFactory.class).to(DefaultPodAffinityFactory.class);
+        bind(TaintTolerationFactory.class).to(DefaultTaintTolerationFactory.class);
         bind(VirtualMachineMasterService.class).annotatedWith(Names.named(MESOS_KUBE_ADAPTER)).to(KubeApiServerIntegrator.class);
     }
 

@@ -25,6 +25,7 @@ import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.titus.api.FeatureActivationConfiguration;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.feature.FeatureGuardWhiteListConfiguration;
 import com.netflix.titus.common.util.feature.FeatureGuards;
 
@@ -148,16 +149,32 @@ public class FeatureFlagModule extends AbstractModule {
      * This change was introduced in Q1/2020.
      */
 
+    /**
+     * TODO Kube scheduler does not support jobs that require: static IPs, GPUs
+     */
     @Provides
     @Singleton
     @Named(KUBE_SCHEDULER_FEATURE)
     public Predicate<JobDescriptor> getKubeSchedulerFeaturePredicate(@Named(KUBE_SCHEDULER_FEATURE) FeatureGuardWhiteListConfiguration configuration) {
-        return FeatureGuards.toPredicate(
+
+        Predicate<JobDescriptor> routingPredicate = FeatureGuards.toPredicate(
                 FeatureGuards.fromField(
                         JobDescriptor::getApplicationName,
                         FeatureGuards.newWhiteListFromConfiguration(configuration).build()
                 )
         );
+
+        return jobDescriptor -> {
+            // GPU jobs are not allowed
+            if (jobDescriptor.getContainer().getContainerResources().getGpu() > 0) {
+                return false;
+            }
+            // Jobs with static IP addresses are not allowed.
+            if (!CollectionsExt.isNullOrEmpty(jobDescriptor.getContainer().getContainerResources().getSignedIpAddressAllocations())) {
+                return false;
+            }
+            return routingPredicate.test(jobDescriptor);
+        };
     }
 
     @Provides

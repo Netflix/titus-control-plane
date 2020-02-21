@@ -52,6 +52,8 @@ import com.netflix.titus.common.util.time.Clock;
  */
 public final class JobFunctions {
 
+    private static final String DEFAULT_APPLICATION = "DEFAULT";
+
     private static final DisruptionBudget NO_DISRUPTION_BUDGET_MARKER = DisruptionBudget.newBuilder()
             .withDisruptionBudgetPolicy(SelfManagedDisruptionBudgetPolicy.newBuilder().build())
             .withDisruptionBudgetRate(UnlimitedDisruptionBudgetRate.newBuilder().build())
@@ -543,5 +545,13 @@ public final class JobFunctions {
 
     public static boolean isOwnedByKubeScheduler(Task task) {
         return Boolean.parseBoolean(task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_OWNED_BY_KUBE_SCHEDULER));
+    }
+
+    public static String getEffectiveCapacityGroup(Job job) {
+        String capacityGroup = job.getJobDescriptor().getCapacityGroup();
+        if (StringExt.isEmpty(capacityGroup)) {
+            capacityGroup = job.getJobDescriptor().getApplicationName();
+        }
+        return StringExt.isEmpty(capacityGroup) ? DEFAULT_APPLICATION : capacityGroup;
     }
 }
