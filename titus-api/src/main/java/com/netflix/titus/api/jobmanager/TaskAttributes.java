@@ -28,6 +28,10 @@ public final class TaskAttributes {
     public static final String TASK_ATTRIBUTES_AGENT_CLUSTER = "agent.cluster";
     public static final String TASK_ATTRIBUTES_AGENT_INSTANCE_ID = "agent.instanceId";
     public static final String TASK_ATTRIBUTES_AGENT_ITYPE = "agent.itype";
+
+    /**
+     * Agent ENI resources.
+     */
     public static final String TASK_ATTRIBUTES_AGENT_RES = "agent.res";
 
     /*
