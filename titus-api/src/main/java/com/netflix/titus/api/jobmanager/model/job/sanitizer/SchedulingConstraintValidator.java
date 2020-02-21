@@ -29,7 +29,8 @@ import javax.validation.ConstraintValidator;
 import javax.validation.ConstraintValidatorContext;
 import javax.validation.Payload;
 
-import static com.netflix.titus.common.util.CollectionsExt.asSet;
+import com.netflix.titus.api.jobmanager.JobConstraints;
+
 import static java.lang.annotation.ElementType.ANNOTATION_TYPE;
 import static java.lang.annotation.ElementType.CONSTRUCTOR;
 import static java.lang.annotation.ElementType.FIELD;
@@ -37,14 +38,6 @@ import static java.lang.annotation.ElementType.METHOD;
 import static java.lang.annotation.ElementType.PARAMETER;
 
 public class SchedulingConstraintValidator implements ConstraintValidator<SchedulingConstraintValidator.SchedulingConstraint, Map<String, String>> {
-
-    /**
-     * In V3 IDL we define names with first lower case latter, but actual implementation originally assumed names starting with upper case letter.
-     * To avoid compatibility issues we will ignore case for constraint names.
-     * TODO Convert names to IDL defined format when job is created.
-     */
-    private static final Set<String> CONSTRAINT_NAMES = asSet("uniquehost", "exclusivehost", "zonebalance",
-            "activehost", "availabilityzone", "machineid", "machinegroup", "machinetype", "toleration");
 
     @Target({METHOD, FIELD, ANNOTATION_TYPE, CONSTRUCTOR, PARAMETER})
     @Retention(RetentionPolicy.RUNTIME)
@@ -79,7 +72,7 @@ public class SchedulingConstraintValidator implements ConstraintValidator<Schedu
     public boolean isValid(Map<String, String> value, ConstraintValidatorContext context) {
         Set<String> namesInLowerCase = value.keySet().stream().map(String::toLowerCase).collect(Collectors.toSet());
         HashSet<String> unknown = new HashSet<>(namesInLowerCase);
-        unknown.removeAll(CONSTRAINT_NAMES);
+        unknown.removeAll(JobConstraints.CONSTRAINT_NAMES);
         if (unknown.isEmpty()) {
             return true;
         }
