@@ -16,6 +16,7 @@
 
 package com.netflix.titus.master.mesos.kubeapiserver;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -50,14 +51,16 @@ public class KubeUtil {
         return matcher.replaceAll("");
     };
 
-    public static ApiClient createApiClient(String serverUrl,
+    public static ApiClient createApiClient(String kubeApiServerUrl,
+                                            String kubeConfigPath,
                                             String metricsNamePrefix,
                                             TitusRuntime titusRuntime,
                                             long readTimeoutMs) {
-        return createApiClient(serverUrl, metricsNamePrefix, titusRuntime, DEFAULT_URI_MAPPER, readTimeoutMs);
+        return createApiClient(kubeApiServerUrl, kubeConfigPath, metricsNamePrefix, titusRuntime, DEFAULT_URI_MAPPER, readTimeoutMs);
     }
 
-    public static ApiClient createApiClient(String serverUrl,
+    public static ApiClient createApiClient(String kubeApiServerUrl,
+                                            String kubeConfigPath,
                                             String metricsNamePrefix,
                                             TitusRuntime titusRuntime,
                                             Function<Request, String> uriMapper,
@@ -65,7 +68,17 @@ public class KubeUtil {
         OkHttpMetricsInterceptor metricsInterceptor = new OkHttpMetricsInterceptor(metricsNamePrefix, titusRuntime.getRegistry(),
                 titusRuntime.getClock(), uriMapper);
 
-        ApiClient client = Config.fromUrl(serverUrl);
+        ApiClient client;
+        if (Strings.isNullOrEmpty(kubeApiServerUrl)) {
+            try {
+                client = Config.fromConfig(kubeConfigPath);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            client = Config.fromUrl(kubeApiServerUrl);
+        }
+
         client.getHttpClient().setReadTimeout(readTimeoutMs, TimeUnit.MILLISECONDS);
         client.getHttpClient().interceptors().add(metricsInterceptor);
         return client;

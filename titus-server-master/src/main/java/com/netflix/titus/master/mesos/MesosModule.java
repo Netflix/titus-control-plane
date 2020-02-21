@@ -17,11 +17,11 @@
 package com.netflix.titus.master.mesos;
 
 import java.time.Duration;
-import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Injector;
+import com.google.inject.Key;
 import com.google.inject.Provides;
 import com.google.inject.name.Names;
 import com.netflix.archaius.ConfigProxyFactory;
@@ -76,10 +76,9 @@ public class MesosModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public VirtualMachineMasterService getVirtualMachineMasterService(MesosConfiguration configuration,
-                                                                      @Named(MESOS_INTEGRATION) VirtualMachineMasterService mesosIntegrator,
-                                                                      @Named(MESOS_KUBE_ADAPTER) VirtualMachineMasterService kubeApiServerIntegrator) {
-        return configuration.isKubeApiServerIntegrationEnabled() ? kubeApiServerIntegrator : mesosIntegrator;
+    public VirtualMachineMasterService getVirtualMachineMasterService(Injector injector, MesosConfiguration configuration) {
+        String annotationName = configuration.isKubeApiServerIntegrationEnabled() ? MESOS_KUBE_ADAPTER : MESOS_INTEGRATION;
+        return injector.getInstance(Key.get(VirtualMachineMasterService.class, Names.named(annotationName)));
     }
 
     @Provides

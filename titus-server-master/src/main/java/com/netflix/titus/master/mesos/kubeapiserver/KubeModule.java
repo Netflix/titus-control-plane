@@ -52,7 +52,6 @@ public class KubeModule extends AbstractModule {
         bind(TaskToPodConverter.class).to(DefaultTaskToPodConverter.class);
         bind(KubeApiFacade.class).to(DefaultKubeApiFacade.class);
         bind(ContainerResultCodeResolver.class).to(DefaultContainerResultCodeResolver.class);
-        bind(KubeJobManagementReconciler.class).to(DefaultKubeJobManagementReconciler.class);
         bind(PodAffinityFactory.class).to(DefaultPodAffinityFactory.class);
         bind(VirtualMachineMasterService.class).annotatedWith(Names.named(MESOS_KUBE_ADAPTER)).to(KubeApiServerIntegrator.class);
     }
@@ -68,6 +67,7 @@ public class KubeModule extends AbstractModule {
     public ApiClient getKubeApiClient(MesosConfiguration configuration, TitusRuntime titusRuntime) {
         return KubeUtil.createApiClient(
                 configuration.getKubeApiServerUrl(),
+                configuration.getKubeConfigPath(),
                 KubeApiServerIntegrator.CLIENT_METRICS_PREFIX,
                 titusRuntime,
                 0L
@@ -77,12 +77,23 @@ public class KubeModule extends AbstractModule {
     @Provides
     @Singleton
     public DirectKubeApiServerIntegrator getDirectKubeApiServerIntegrator(FeatureActivationConfiguration configuration,
+                                                                          MesosConfiguration mesosConfiguration,
                                                                           Injector injector) {
-        if (configuration.isKubeSchedulerEnabled()) {
+        if (mesosConfiguration.isKubeApiServerIntegrationEnabled() && configuration.isKubeSchedulerEnabled()) {
             logger.info("Kube-scheduler enabled: starting DefaultDirectKubeApiServerIntegrator...");
             return injector.getInstance(DefaultDirectKubeApiServerIntegrator.class);
         }
         logger.info("Kube-scheduler disabled: starting NoOpDirectKubeApiServerIntegrator...");
         return new NoOpDirectKubeApiServerIntegrator();
+    }
+
+    @Provides
+    @Singleton
+    public KubeJobManagementReconciler getKubeJobManagementReconciler(MesosConfiguration mesosConfiguration,
+                                                                      Injector injector) {
+        if (mesosConfiguration.isKubeApiServerIntegrationEnabled()) {
+            return injector.getInstance(DefaultKubeJobManagementReconciler.class);
+        }
+        return new NoOpJobManagementReconciler();
     }
 }
