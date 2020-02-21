@@ -64,11 +64,8 @@ class ConsumptionModelGenerator {
         addConsumption(capacityGroup, appName, maxConsumption, maxConsumptionByApp);
     }
 
-    private void addConsumption(String capacityGroup, String appName, ResourceDimension consumption, Map<String, Map<String, ResourceDimension>> output) {
-        Map<String, ResourceDimension> appsMap = output.get(capacityGroup);
-        if (appsMap == null) {
-            output.put(capacityGroup, appsMap = new HashMap<>());
-        }
+    private static void addConsumption(String capacityGroup, String appName, ResourceDimension consumption, Map<String, Map<String, ResourceDimension>> output) {
+        Map<String, ResourceDimension> appsMap = output.computeIfAbsent(capacityGroup, k -> new HashMap<>());
         if (appsMap.get(appName) == null) {
             appsMap.put(appName, consumption);
         } else {
@@ -172,13 +169,23 @@ class ConsumptionModelGenerator {
 
         List<ResourceConsumption> appConsumptions = new ArrayList<>();
         for (String appName : actual.keySet()) {
+            ResourceConsumption byInstanceType = new ResourceConsumption(
+                    appName,
+                    ConsumptionLevel.InstanceType,
+                    actual.get(appName),
+                    max.get(appName),
+                    Collections.emptyMap()
+            );
             appConsumptions.add(
-                    new ResourceConsumption(
+                    new CompositeResourceConsumption(
                             appName,
                             ConsumptionLevel.Application,
                             actual.get(appName),
                             max.get(appName),
-                            Collections.emptyMap()
+                            max.get(appName),
+                            Collections.emptyMap(),
+                            Collections.singletonMap("itype.test", byInstanceType),
+                            !ResourceDimensions.isBigger(max.get(appName), actual.get(appName))
                     )
             );
         }

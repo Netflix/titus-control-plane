@@ -30,6 +30,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
@@ -41,6 +42,8 @@ import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.model.Tier;
+import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.model.ResourceDimensions;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
@@ -54,6 +57,7 @@ import org.slf4j.LoggerFactory;
 import static com.netflix.titus.common.util.CollectionsExt.copyAndRemove;
 import static com.netflix.titus.master.service.management.ApplicationSlaManagementService.DEFAULT_APPLICATION;
 import static com.netflix.titus.master.service.management.ResourceConsumption.SYSTEM_CONSUMER;
+import static java.util.stream.Collectors.groupingBy;
 
 /**
  * Computes current resource consumption.
@@ -108,7 +112,8 @@ class ResourceConsumptionEvaluator {
                     ConsumptionLevel.CapacityGroup,
                     ResourceConsumptions.addCurrentConsumptions(appConsumptions.values()),
                     maxConsumption,
-                    allowedConsumption, ResourceConsumptions.mergeAttributes(attrsList),
+                    allowedConsumption,
+                    ResourceConsumptions.mergeAttributes(attrsList),
                     appConsumptions,
                     !ResourceDimensions.isBigger(allowedConsumption, maxConsumption)
             );
@@ -125,27 +130,51 @@ class ResourceConsumptionEvaluator {
         return ResourceConsumptions.aggregate(SYSTEM_CONSUMER, ConsumptionLevel.System, aggregatedTierConsumptions);
     }
 
+    /**
+     * @return capacityGroups -> apps -> instanceTypes -> consumption
+     */
     private Pair<Map<String, Map<String, ResourceConsumption>>, Set<String>> computeAllocationsByCapacityGroupAndAppName() {
         Map<String, Map<String, ResourceConsumption>> consumptionMap = new HashMap<>();
         Set<String> undefinedCapacityGroups = new HashSet<>();
 
-        // V3 engine
         v3JobOperations.getJobsAndTasks().forEach(jobsAndTasks -> {
             Job job = jobsAndTasks.getLeft();
             List<Task> tasks = jobsAndTasks.getRight();
 
             ResourceDimension taskResources = toResourceDimension(job, tasks);
-            int max = getMaxJobSize(job);
+            String appName = Evaluators.getOrDefault(job.getJobDescriptor().getApplicationName(), DEFAULT_APPLICATION);
+            ResourceDimension currentConsumption = ResourceDimensions.multiply(taskResources, getRunningWorkers(tasks).size());
+            ResourceDimension maxConsumption = ResourceDimensions.multiply(taskResources, getMaxJobSize(job));
 
-            Map<String, Object> tasksStates = getWorkerStateMap(tasks);
-            String appName = job.getJobDescriptor().getApplicationName();
-
-            ResourceConsumption jobConsumption = new ResourceConsumption(
-                    appName == null ? DEFAULT_APPLICATION : appName,
+            Map<String, List<Task>> tasksByInstanceType = tasks.stream().collect(
+                    groupingBy(task -> task.getTaskContext()
+                            .getOrDefault(TaskAttributes.TASK_ATTRIBUTES_AGENT_ITYPE, "unknown"))
+            );
+            Map<String, ResourceConsumption> consumptionByInstanceType = CollectionsExt.mapValuesWithKeys(
+                    tasksByInstanceType,
+                    (instanceType, instanceTypeTasks) -> {
+                        ResourceDimension instanceTypeConsumption = ResourceDimensions.multiply(
+                                taskResources, getRunningWorkers(instanceTypeTasks).size()
+                        );
+                        return new ResourceConsumption(
+                                instanceType,
+                                ConsumptionLevel.InstanceType,
+                                instanceTypeConsumption,
+                                instanceTypeConsumption, // maxConsumption is not relevant at ConsumptionLevel.InstanceType
+                                getWorkerStateMap(instanceTypeTasks)
+                        );
+                    },
+                    HashMap::new
+            );
+            ResourceConsumption jobConsumption = new CompositeResourceConsumption(
+                    appName,
                     ConsumptionLevel.Application,
-                    ResourceDimensions.multiply(taskResources, getRunningWorkers(tasks).size()),
-                    ResourceDimensions.multiply(taskResources, max),
-                    tasksStates
+                    currentConsumption,
+                    maxConsumption,
+                    maxConsumption, // allowedConsumption is not relevant at ConsumptionLevel.Application
+                    getWorkerStateMap(tasks),
+                    consumptionByInstanceType,
+                    false // we consider a job is always within its allowed usage since it can't go over its max
             );
 
             String capacityGroup = resolveCapacityGroup(undefinedCapacityGroups, job, appName);

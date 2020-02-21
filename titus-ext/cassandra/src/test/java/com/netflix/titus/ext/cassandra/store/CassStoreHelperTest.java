@@ -37,7 +37,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 public class CassStoreHelperTest {
 
-    private static final long STARTUP_TIMEOUT = 30_000L;
+    private static final long STARTUP_TIMEOUT = 60_000L;
 
     /**
      * As Cassandra uses memory mapped files there are sometimes issues with virtual disks storing the project files.

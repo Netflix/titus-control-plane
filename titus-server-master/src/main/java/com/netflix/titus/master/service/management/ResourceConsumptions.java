@@ -32,8 +32,6 @@ import com.netflix.titus.master.model.ResourceDimensions;
 
 import static java.util.Arrays.asList;
 
-/**
- */
 public final class ResourceConsumptions {
 
     private ResourceConsumptions() {
@@ -67,9 +65,9 @@ public final class ResourceConsumptions {
             return Collections.singletonMap(parent.getConsumerName(), parent);
         }
 
-        // If this is CapacityGroup level, next one is Application level, which is the last one
-        if (parent.getConsumptionLevel() == ResourceConsumption.ConsumptionLevel.CapacityGroup) {
-            Preconditions.checkArgument(level == ResourceConsumption.ConsumptionLevel.Application);
+        // If this is the Application level, the next one needs to be the InstanceType level, which is the last one
+        if (parent.getConsumptionLevel() == ResourceConsumption.ConsumptionLevel.Application) {
+            Preconditions.checkArgument(level == ResourceConsumption.ConsumptionLevel.InstanceType);
             return parent.getContributors();
         }
 
@@ -100,8 +98,13 @@ public final class ResourceConsumptions {
 
         C first = consumptionList.get(0);
         if (first instanceof CompositeResourceConsumption) {
-            Map<String, ResourceConsumption> contributors = new HashMap<>();
-            consumptionList.forEach(c -> contributors.put(c.getConsumerName(), c));
+            Map<String, ResourceConsumption> mergedContributors = new HashMap<>();
+            consumptionList.stream()
+                    .map(CompositeResourceConsumption.class::cast)
+                    .flatMap(c -> c.getContributors().entrySet().stream())
+                    .forEach(entry -> mergedContributors.compute(entry.getKey(), (name, current) ->
+                            current == null ? entry.getValue() : ResourceConsumptions.add(current, entry.getValue())
+                    ));
 
             ResourceDimension allowedUsage = addAllowedConsumptions((Collection<CompositeResourceConsumption>) consumptionList);
 
@@ -110,8 +113,9 @@ public final class ResourceConsumptions {
                     first.getConsumptionLevel(),
                     currentUsage,
                     maxUsage,
-                    allowedUsage, mergedAttrs,
-                    contributors,
+                    allowedUsage,
+                    mergedAttrs,
+                    mergedContributors,
                     !ResourceDimensions.isBigger(allowedUsage, maxUsage)
             );
         }

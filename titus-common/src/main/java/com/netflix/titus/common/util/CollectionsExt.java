@@ -327,8 +327,12 @@ public final class CollectionsExt {
     }
 
     public static <K, U, V> Map<K, V> mapValues(Map<K, U> source, Function<U, V> valueMapper, Supplier<Map<K, V>> mapSupplier) {
+        return mapValuesWithKeys(source, (key, value) -> valueMapper.apply(value), mapSupplier);
+    }
+
+    public static <K, U, V> Map<K, V> mapValuesWithKeys(Map<K, U> source, BiFunction<K, U, V> valueMapper, Supplier<Map<K, V>> mapSupplier) {
         return source.entrySet().stream().collect(Collectors.toMap(
-                Map.Entry::getKey, entry -> valueMapper.apply(entry.getValue()),
+                Map.Entry::getKey, entry -> valueMapper.apply(entry.getKey(), entry.getValue()),
                 (v1, v2) -> v1, mapSupplier
         ));
     }
