@@ -109,6 +109,12 @@ public interface MesosConfiguration {
     boolean isKubeApiServerIntegrationEnabled();
 
     /**
+     * @return the kube api server url to use. If this is empty, use the kube config path instead.
+     */
+    @DefaultValue("")
+    String getKubeApiServerUrl();
+
+    /**
      * @return the path to the kubeconfig file
      */
     @DefaultValue("/run/kubernetes/config")

@@ -51,14 +51,16 @@ public class KubeUtil {
         return matcher.replaceAll("");
     };
 
-    public static ApiClient createApiClient(String kubeConfigPath,
+    public static ApiClient createApiClient(String kubeApiServerUrl,
+                                            String kubeConfigPath,
                                             String metricsNamePrefix,
                                             TitusRuntime titusRuntime,
                                             long readTimeoutMs) {
-        return createApiClient(kubeConfigPath, metricsNamePrefix, titusRuntime, DEFAULT_URI_MAPPER, readTimeoutMs);
+        return createApiClient(kubeApiServerUrl, kubeConfigPath, metricsNamePrefix, titusRuntime, DEFAULT_URI_MAPPER, readTimeoutMs);
     }
 
-    public static ApiClient createApiClient(String kubeConfigPath,
+    public static ApiClient createApiClient(String kubeApiServerUrl,
+                                            String kubeConfigPath,
                                             String metricsNamePrefix,
                                             TitusRuntime titusRuntime,
                                             Function<Request, String> uriMapper,
@@ -67,11 +69,16 @@ public class KubeUtil {
                 titusRuntime.getClock(), uriMapper);
 
         ApiClient client;
-        try {
-            client = Config.fromConfig(kubeConfigPath);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        if (Strings.isNullOrEmpty(kubeApiServerUrl)) {
+            try {
+                client = Config.fromConfig(kubeConfigPath);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            client = Config.fromUrl(kubeApiServerUrl);
         }
+
         client.getHttpClient().setReadTimeout(readTimeoutMs, TimeUnit.MILLISECONDS);
         client.getHttpClient().interceptors().add(metricsInterceptor);
         return client;
