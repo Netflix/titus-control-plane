@@ -37,6 +37,7 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
+import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.model.ApplicationSLA;
@@ -301,12 +302,24 @@ public class JobAndTaskMetrics {
      */
     private void updateTaskCounts(List<Task> tasks) {
         int tasksOwnedByKubeScheduler = 0;
+        int tasksWithPodCreated = 0;
         for (Task task : tasks) {
             if (JobFunctions.isOwnedByKubeScheduler(task)) {
                 tasksOwnedByKubeScheduler++;
+                if (TaskStatus.hasPod(task)) {
+                    tasksWithPodCreated++;
+                }
             }
         }
-        registry.gauge(taskCountId.withTag("kubeScheduler", "true")).set(tasksOwnedByKubeScheduler);
+        registry.gauge(taskCountId.withTags(
+                "kubeScheduler", "true",
+                "podCreated", "true"
+        )).set(tasksWithPodCreated);
+        registry.gauge(taskCountId.withTags(
+                "kubeScheduler", "true",
+                "podCreated", "false"
+        )).set(tasksOwnedByKubeScheduler - tasksWithPodCreated);
+
         registry.gauge(taskCountId.withTag("kubeScheduler", "false")).set(tasks.size() - tasksOwnedByKubeScheduler);
     }
 
