@@ -548,12 +548,10 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                 newState = Started;
             } else if (phase.equalsIgnoreCase(SUCCEEDED)) {
                 newState = Finished;
-                if (hasDeletionTimestamp) {
-                    reasonCode = REASON_TASK_KILLED;
-                }
+                reasonCode = hasDeletionTimestamp ? REASON_TASK_KILLED : REASON_NORMAL;
             } else if (phase.equalsIgnoreCase(FAILED)) {
                 newState = Finished;
-                reasonCode = REASON_FAILED;
+                reasonCode = hasDeletionTimestamp ? REASON_TASK_KILLED : REASON_FAILED;
             } else {
                 titusRuntime.getCodeInvariants().inconsistent("Pod: %s has unknown phase mapping: %s", podName, phase);
                 return;
