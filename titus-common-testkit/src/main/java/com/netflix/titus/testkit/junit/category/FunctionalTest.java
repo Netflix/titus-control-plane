@@ -17,7 +17,7 @@
 package com.netflix.titus.testkit.junit.category;
 
 /**
- * Integration tests that require external services, and cannot be run in isolation.
+ * A functional test is a {@link RemoteIntegrationTest} that is appropriate for reoccurring functional/regression testing.
  */
-public interface RemoteIntegrationTest {
+public interface FunctionalTest extends RemoteIntegrationTest {
 }

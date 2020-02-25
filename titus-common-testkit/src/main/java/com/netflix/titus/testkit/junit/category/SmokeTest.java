@@ -17,7 +17,7 @@
 package com.netflix.titus.testkit.junit.category;
 
 /**
- * Integration tests that require external services, and cannot be run in isolation.
+ * A smoke test is {@link FunctionalTest} that is appropriate for use during regular smoke testing.
  */
-public interface RemoteIntegrationTest {
+public interface SmokeTest extends FunctionalTest {
 }
