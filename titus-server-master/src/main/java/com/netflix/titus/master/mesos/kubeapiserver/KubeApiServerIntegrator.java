@@ -48,6 +48,7 @@ import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.common.framework.scheduler.LocalScheduler;
 import com.netflix.titus.common.framework.scheduler.model.ScheduleDescriptor;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.ExecutorsExt;
 import com.netflix.titus.common.util.NetworkExt;
 import com.netflix.titus.common.util.StringExt;
@@ -64,6 +65,7 @@ import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.master.mesos.V3ContainerEvent;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.KubeApiFacade;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.KubeConstants;
 import io.kubernetes.client.ApiException;
 import io.kubernetes.client.custom.Quantity;
 import io.kubernetes.client.informer.ResourceEventHandler;
@@ -78,6 +80,7 @@ import io.kubernetes.client.models.V1Pod;
 import io.kubernetes.client.models.V1PodSpec;
 import io.kubernetes.client.models.V1PodStatus;
 import io.kubernetes.client.models.V1ResourceRequirements;
+import io.kubernetes.client.models.V1Taint;
 import org.apache.mesos.Protos;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
@@ -311,9 +314,13 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                     .anyMatch(c -> c.getType().equalsIgnoreCase(STOPPED) && Boolean.parseBoolean(c.getStatus()));
             boolean removeNotReady = node.getStatus().getConditions().stream()
                     .anyMatch(c -> c.getType().equalsIgnoreCase(READY) && !Boolean.parseBoolean(c.getStatus()));
-            if (removeStopped || removeNotReady) {
+            boolean removeNotOwnedByFenzo = !isNodeOwnedByFenzo(node);
+
+            if (removeStopped || removeNotReady || removeNotOwnedByFenzo) {
                 String leaseId = node.getMetadata().getName();
-                logger.debug("Removing lease on node update: {}", leaseId);
+                logger.debug("Removing lease on node update: nodeId={} (removeStopped: {}, removeNotReady={}, removeNotOwnedByFenzo={})",
+                        leaseId, removeStopped, removeNotReady, removeNotOwnedByFenzo
+                );
                 rescindLeaseHandler.call(Collections.singletonList(LeaseRescindedEvent.leaseIdEvent(leaseId)));
             } else {
                 VirtualMachineLease lease = nodeToLease(node);
@@ -325,6 +332,34 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         } catch (Exception e) {
             logger.warn("Exception on node update: {}", node, e);
         }
+    }
+
+    /**
+     * A node is owned by Fenzo if:
+     * <ul>
+     *     <li>There is no taint with {@link KubeConstants#TAINT_SCHEDULER} key</li>
+     *     <li>There is one taint with {@link KubeConstants#TAINT_SCHEDULER} key and 'fenzo' value</li>
+     * </ul>
+     */
+    private boolean isNodeOwnedByFenzo(V1Node node) {
+        List<V1Taint> taints = node.getSpec().getTaints();
+        if (CollectionsExt.isNullOrEmpty(taints)) {
+            return true;
+        }
+
+        Set<String> schedulerTaintValues = taints.stream()
+                .filter(t -> KubeConstants.TAINT_SCHEDULER.equals(t.getKey()))
+                .map(t -> StringExt.safeTrim(t.getValue()))
+                .collect(Collectors.toSet());
+
+        if (schedulerTaintValues.isEmpty()) {
+            return true;
+        }
+        if (schedulerTaintValues.size() > 1) {
+            return false;
+        }
+
+        return "fenzo".equalsIgnoreCase(CollectionsExt.first(schedulerTaintValues));
     }
 
     private void nodeDeleted(V1Node node) {

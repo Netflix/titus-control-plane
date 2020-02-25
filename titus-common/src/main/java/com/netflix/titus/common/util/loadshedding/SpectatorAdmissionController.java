@@ -22,6 +22,8 @@ import javax.inject.Singleton;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.common.runtime.TitusRuntime;
 
+import static com.netflix.titus.common.util.StringExt.getNonEmptyOrDefault;
+
 @Singleton
 public class SpectatorAdmissionController implements AdmissionController {
 
@@ -42,18 +44,18 @@ public class SpectatorAdmissionController implements AdmissionController {
             AdmissionControllerResponse result = delegate.apply(request);
 
             registry.counter(METRIC_NAME,
-                    "callerId", request.getCallerId(),
-                    "endpointName", request.getEndpointName(),
+                    "callerId", getNonEmptyOrDefault(request.getCallerId(), "notSet"),
+                    "endpointName", getNonEmptyOrDefault(request.getEndpointName(), "notSet)"),
                     "allowed", "" + result.isAllowed(),
-                    "decisionPoint", result.getDecisionPoint(),
-                    "equivalenceGroup", result.getEquivalenceGroup()
+                    "decisionPoint", getNonEmptyOrDefault(result.getDecisionPoint(), "notSet"),
+                    "equivalenceGroup", getNonEmptyOrDefault(result.getEquivalenceGroup(), "notSet")
             ).increment();
 
             return result;
         } catch (Exception e) {
             registry.counter(METRIC_NAME,
-                    "callerId", request.getCallerId(),
-                    "endpointName", request.getEndpointName(),
+                    "callerId", getNonEmptyOrDefault(request.getCallerId(), "notSet"),
+                    "endpointName", getNonEmptyOrDefault(request.getEndpointName(), "notSet"),
                     "error", e.getClass().getSimpleName()
             ).increment();
 
