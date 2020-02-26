@@ -28,6 +28,12 @@ public interface KubeConnectorConfiguration {
 
     String getKubeApiServerUri();
 
+    /**
+     * @return the path to the kubeconfig file
+     */
+    @DefaultValue("/run/kubernetes/config")
+    String getKubeConfigPath();
+
     @DefaultValue("titus")
     String getNamespace();
 

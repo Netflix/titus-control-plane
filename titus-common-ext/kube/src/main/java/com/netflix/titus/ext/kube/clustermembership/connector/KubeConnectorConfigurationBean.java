@@ -35,6 +35,11 @@ public class KubeConnectorConfigurationBean implements KubeConnectorConfiguratio
     }
 
     @Override
+    public String getKubeConfigPath() {
+        return SpringConfigurationUtil.getString(environment, prefix + "kubeConfigPath", "/run/kubernetes/config");
+    }
+
+    @Override
     public String getNamespace() {
         return SpringConfigurationUtil.getString(environment, prefix + "namespace", "titus");
     }
