@@ -26,7 +26,9 @@ import com.netflix.titus.api.clustermembership.model.ClusterMember;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.StringExt;
 import io.kubernetes.client.ApiClient;
-import io.kubernetes.client.util.ClientBuilder;
+import io.kubernetes.client.util.Config;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -37,6 +39,8 @@ import org.springframework.core.env.Environment;
 @ConditionalOnProperty(name = "titus.ext.kube.enabled", havingValue = "true", matchIfMissing = true)
 public class KubeClusterMembershipConnectorComponent {
 
+    private static final Logger logger = LoggerFactory.getLogger(KubeClusterMembershipConnectorComponent.class);
+
     public static final String LOCAL_MEMBER_INITIAL = "localMemberInitial";
 
     @Bean
@@ -46,20 +50,26 @@ public class KubeClusterMembershipConnectorComponent {
 
     @Bean
     public ApiClient getApiClient(KubeConnectorConfiguration configuration) {
-        String kubeApiServerUri = Preconditions.checkNotNull(
-                StringExt.safeTrim(configuration.getKubeApiServerUri()),
+        String kubeApiServerUri = StringExt.safeTrim(configuration.getKubeApiServerUri());
+        String kubeConfigPath = StringExt.safeTrim(configuration.getKubeConfigPath());
+
+        Preconditions.checkState(!kubeApiServerUri.isEmpty() || !kubeConfigPath.isEmpty(),
                 "Kubernetes address not set"
         );
 
         ApiClient client;
-        try {
-            client = ClientBuilder
-                    .standard()
-                    .setBasePath(kubeApiServerUri)
-                    .build();
-        } catch (IOException e) {
-            throw new IllegalStateException(e);
+        if (kubeApiServerUri.isEmpty()) {
+            try {
+                logger.info("Initializing Kube ApiClient from config file: {}", kubeConfigPath);
+                client = Config.fromConfig(kubeConfigPath);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        } else {
+            logger.info("Initializing Kube ApiClient with URI: {}", kubeApiServerUri);
+            client = Config.fromUrl(kubeApiServerUri);
         }
+
         client.getHttpClient().setReadTimeout(0, TimeUnit.SECONDS); // infinite timeout
         return client;
     }
