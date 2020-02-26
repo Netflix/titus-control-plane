@@ -36,6 +36,7 @@ import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.tuple.Pair;
@@ -55,6 +56,8 @@ import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
 
+import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_NORMAL;
+import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TASK_KILLED;
 import static com.netflix.titus.common.util.Evaluators.acceptNotNull;
 
 /**
@@ -193,11 +196,31 @@ public class KubeNotificationProcessor {
         return ReactorExt.toMono(v3JobOperations.updateTask(
                 task.getId(),
                 currentTask -> {
-                    TaskStatus newStatus = TaskStatus.newBuilder()
-                            .withState(newTaskState)
-                            .withReasonCode(TaskStatus.REASON_NORMAL)
-                            .withReasonMessage("Kube pod notification")
-                            .build();
+                    TaskStatus newStatus;
+
+                    if (newTaskState != TaskState.Finished) {
+                        newStatus = TaskStatus.newBuilder()
+                                .withState(newTaskState)
+                                .withReasonCode(TaskStatus.REASON_NORMAL)
+                                .withReasonMessage("Kube pod notification")
+                                .build();
+                    } else {
+                        TaskStatus.Builder newStatusBuilder = TaskStatus.newBuilder().withState(TaskState.Finished);
+
+                        boolean hasDeletionTimestamp = pod.getMetadata().getDeletionTimestamp() != null;
+
+                        if ("failed".equalsIgnoreCase(pod.getStatus().getPhase())) {
+                            newStatusBuilder
+                                    .withReasonCode(hasDeletionTimestamp ? REASON_TASK_KILLED : TaskStatus.REASON_FAILED)
+                                    .withReasonMessage(Evaluators.getOrDefault(pod.getStatus().getMessage(), "Pod execution failed"));
+                        } else {
+                            newStatusBuilder
+                                    .withReasonCode(hasDeletionTimestamp ? REASON_TASK_KILLED : REASON_NORMAL)
+                                    .withReasonMessage("Kube pod notification");
+                        }
+
+                        newStatus = newStatusBuilder.build();
+                    }
 
                     List<TaskStatus> newHistory = CollectionsExt.copyAndAdd(currentTask.getStatusHistory(), currentTask.getStatus());
 
@@ -205,7 +228,6 @@ public class KubeNotificationProcessor {
                             .withStatus(newStatus)
                             .withStatusHistory(newHistory)
                             .build();
-
 
                     Task fixedTask = fillInMissingStates(pod, updatedTask);
                     Task taskWithPlacementData = JobManagerUtil.attachPlacementData(fixedTask, executorDetailsOpt);

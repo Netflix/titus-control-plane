@@ -59,7 +59,7 @@ public class KubeConstants {
     /**
      * Common prefix for Titus taints.
      */
-    public static final String TITUS_TAINT_DOMAIN = "com.netflix.titus.agent.taint/";
+    public static final String TITUS_TAINT_DOMAIN = "node.titus.netflix.com/";
 
     /**
      * Set value to 'fenzo' to assign a machine to Fenzo scheduler. By default all machines belong to the Kube scheduler.

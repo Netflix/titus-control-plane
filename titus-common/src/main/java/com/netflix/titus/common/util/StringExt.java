@@ -204,6 +204,10 @@ public final class StringExt {
         return sb.toString();
     }
 
+    public static String getNonEmptyOrDefault(String value, String defaultValue) {
+        return isNotEmpty(value) ? value : defaultValue;
+    }
+
     /**
      * Given sequence of string values, return the first one that is not empty (see {@link #isNotEmpty(String)} or
      * {@link Optional#empty()}.
