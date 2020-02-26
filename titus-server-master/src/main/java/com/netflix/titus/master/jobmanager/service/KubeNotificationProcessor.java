@@ -207,13 +207,13 @@ public class KubeNotificationProcessor {
                     } else {
                         TaskStatus.Builder newStatusBuilder = TaskStatus.newBuilder().withState(TaskState.Finished);
 
-                        if("failed".equalsIgnoreCase(pod.getStatus().getPhase())) {
+                        boolean hasDeletionTimestamp = pod.getMetadata().getDeletionTimestamp() != null;
+
+                        if ("failed".equalsIgnoreCase(pod.getStatus().getPhase())) {
                             newStatusBuilder
-                                    .withReasonCode(TaskStatus.REASON_FAILED)
+                                    .withReasonCode(hasDeletionTimestamp ? REASON_TASK_KILLED : TaskStatus.REASON_FAILED)
                                     .withReasonMessage(Evaluators.getOrDefault(pod.getStatus().getMessage(), "Pod execution failed"));
                         } else {
-                            boolean hasDeletionTimestamp = pod.getMetadata().getDeletionTimestamp() != null;
-
                             newStatusBuilder
                                     .withReasonCode(hasDeletionTimestamp ? REASON_TASK_KILLED : REASON_NORMAL)
                                     .withReasonMessage("Kube pod notification");

@@ -44,18 +44,18 @@ public class SpectatorAdmissionController implements AdmissionController {
             AdmissionControllerResponse result = delegate.apply(request);
 
             registry.counter(METRIC_NAME,
-                    "callerId", getNonEmptyOrDefault(request.getCallerId(), "notSet"),
-                    "endpointName", getNonEmptyOrDefault(request.getEndpointName(), "notSet)"),
+                    "callerId", getNonEmptyOrDefault(request.getCallerId(), "requiredButNotSet"),
+                    "endpointName", getNonEmptyOrDefault(request.getEndpointName(), "requiredButNotSet)"),
                     "allowed", "" + result.isAllowed(),
-                    "decisionPoint", getNonEmptyOrDefault(result.getDecisionPoint(), "notSet"),
-                    "equivalenceGroup", getNonEmptyOrDefault(result.getEquivalenceGroup(), "notSet")
+                    "decisionPoint", getNonEmptyOrDefault(result.getDecisionPoint(), "requiredButNotSet"),
+                    "equivalenceGroup", getNonEmptyOrDefault(result.getEquivalenceGroup(), "requiredButNotSet")
             ).increment();
 
             return result;
         } catch (Exception e) {
             registry.counter(METRIC_NAME,
-                    "callerId", getNonEmptyOrDefault(request.getCallerId(), "notSet"),
-                    "endpointName", getNonEmptyOrDefault(request.getEndpointName(), "notSet"),
+                    "callerId", getNonEmptyOrDefault(request.getCallerId(), "requiredButNotSet"),
+                    "endpointName", getNonEmptyOrDefault(request.getEndpointName(), "requiredButNotSet"),
                     "error", e.getClass().getSimpleName()
             ).increment();
 
