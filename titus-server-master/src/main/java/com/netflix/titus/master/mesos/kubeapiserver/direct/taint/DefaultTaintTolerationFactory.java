@@ -18,7 +18,6 @@ package com.netflix.titus.master.mesos.kubeapiserver.direct.taint;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -46,17 +45,11 @@ public class DefaultTaintTolerationFactory implements TaintTolerationFactory {
 
         // Default taints.
         tolerations.add(Tolerations.TOLERATION_VIRTUAL_KUBLET);
+        tolerations.add(Tolerations.TOLERATION_KUBE_SCHEDULER);
 
-        resolveGpuToleration(job).ifPresent(tolerations::add);
         tolerations.add(resolveTierToleration(job));
 
         return tolerations;
-    }
-
-    private Optional<V1Toleration> resolveGpuToleration(Job job) {
-        return job.getJobDescriptor().getContainer().getContainerResources().getGpu() > 0
-                ? Optional.of(Tolerations.TOLERATION_GPU_INSTANCE)
-                : Optional.empty();
     }
 
     private V1Toleration resolveTierToleration(Job job) {
