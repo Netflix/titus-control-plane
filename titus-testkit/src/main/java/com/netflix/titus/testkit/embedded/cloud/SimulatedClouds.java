@@ -34,6 +34,16 @@ public final class SimulatedClouds {
         return simulatedCloud;
     }
 
+    public static SimulatedCloud basicCloudWithLargeInstances(int desired) {
+        SimulatedCloud simulatedCloud = new SimulatedCloud();
+        simulatedCloud.createAgentInstanceGroups(
+                SimulatedAgentGroupDescriptor.awsInstanceGroup("critical1", AwsInstanceType.M5_Metal, desired),
+                SimulatedAgentGroupDescriptor.awsInstanceGroup("flex1", AwsInstanceType.R5_Metal, desired),
+                SimulatedAgentGroupDescriptor.awsInstanceGroup("flexGpu", AwsInstanceType.P3_16XLarge, desired)
+        );
+        return simulatedCloud;
+    }
+
     public static SimulatedCloud twoPartitionsPerTierStack(int partitionDesired) {
         SimulatedCloud simulatedCloud = new SimulatedCloud();
         simulatedCloud.createAgentInstanceGroups(

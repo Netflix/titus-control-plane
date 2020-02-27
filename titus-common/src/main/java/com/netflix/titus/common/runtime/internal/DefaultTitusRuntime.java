@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
+import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.netflix.spectator.api.BasicTag;
@@ -50,6 +51,8 @@ import rx.Observable;
 @Singleton
 public class DefaultTitusRuntime implements TitusRuntime {
 
+    public static final String SYSTEM_EXIT_ON_FAILURE = "systemExitOnFailure";
+
     private static final Logger logger = LoggerFactory.getLogger(DefaultTitusRuntime.class);
 
     public static final String FIT_ACTIVATION_PROPERTY = "titus.runtime.fit.enabled";
@@ -67,6 +70,7 @@ public class DefaultTitusRuntime implements TitusRuntime {
     private final CodePointTracker codePointTracker;
     private final CodeInvariants codeInvariants;
     private final SystemLogService systemLogService;
+    private final boolean systemExitOnFailure;
     private final SystemAbortListener systemAbortListener;
     private final Registry registry;
     private final Clock clock;
@@ -76,12 +80,14 @@ public class DefaultTitusRuntime implements TitusRuntime {
     @Inject
     public DefaultTitusRuntime(CodeInvariants codeInvariants,
                                SystemLogService systemLogService,
+                               @Named(SYSTEM_EXIT_ON_FAILURE) boolean systemExitOnFailure,
                                SystemAbortListener systemAbortListener,
                                Registry registry) {
         this(
                 new SpectatorCodePointTracker(registry),
                 codeInvariants,
                 systemLogService,
+                systemExitOnFailure,
                 systemAbortListener,
                 LOCAL_SCHEDULER_LOOP_INTERVAL,
                 registry,
@@ -93,6 +99,7 @@ public class DefaultTitusRuntime implements TitusRuntime {
     public DefaultTitusRuntime(CodePointTracker codePointTracker,
                                CodeInvariants codeInvariants,
                                SystemLogService systemLogService,
+                               boolean systemExitOnFailure,
                                SystemAbortListener systemAbortListener,
                                Duration localSchedulerLoopInterval,
                                Registry registry,
@@ -101,6 +108,7 @@ public class DefaultTitusRuntime implements TitusRuntime {
         this.codePointTracker = codePointTracker;
         this.codeInvariants = codeInvariants;
         this.systemLogService = systemLogService;
+        this.systemExitOnFailure = systemExitOnFailure;
         this.systemAbortListener = systemAbortListener;
         this.registry = registry;
         this.clock = clock;
@@ -173,6 +181,11 @@ public class DefaultTitusRuntime implements TitusRuntime {
     @Override
     public LocalScheduler getLocalScheduler() {
         return localScheduler;
+    }
+
+    @Override
+    public boolean isSystemExitOnFailure() {
+        return systemExitOnFailure;
     }
 
     @Override

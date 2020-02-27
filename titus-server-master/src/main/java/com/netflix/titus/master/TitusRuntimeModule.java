@@ -71,6 +71,12 @@ public class TitusRuntimeModule extends AbstractModule {
 
     public static final String FIT_CONFIGURATION_PREFIX = "titusMaster.runtime.fitActions.";
 
+    private final boolean systemExitOnFailure;
+
+    public TitusRuntimeModule(boolean systemExitOnFailure) {
+        this.systemExitOnFailure = systemExitOnFailure;
+    }
+
     @Override
     protected void configure() {
         // Framework services
@@ -95,7 +101,7 @@ public class TitusRuntimeModule extends AbstractModule {
                 LoggingCodeInvariants.getDefault(),
                 new SpectatorCodeInvariants(registry.createId("titus.runtime.invariant.violations"), registry)
         );
-        DefaultTitusRuntime titusRuntime = new DefaultTitusRuntime(codeInvariants, systemLogService, systemAbortListener, registry);
+        DefaultTitusRuntime titusRuntime = new DefaultTitusRuntime(codeInvariants, systemLogService, systemExitOnFailure, systemAbortListener, registry);
 
         // Setup FIT component hierarchy
         FitFramework fitFramework = titusRuntime.getFitFramework();
