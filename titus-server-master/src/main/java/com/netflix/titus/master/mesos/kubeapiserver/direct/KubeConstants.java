@@ -71,9 +71,4 @@ public class KubeConstants {
      * the critical tiers.
      */
     public static final String TAINT_TIER = TITUS_TAINT_DOMAIN + "tier";
-
-    /**
-     * Taint for GPU machines to prevent non-GPU pods running on them.
-     */
-    public static final String TAINT_GPU_INSTANCE = TITUS_TAINT_DOMAIN + "gpu";
 }

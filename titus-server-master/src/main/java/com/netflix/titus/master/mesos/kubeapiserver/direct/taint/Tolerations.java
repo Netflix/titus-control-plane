@@ -27,9 +27,9 @@ public final class Tolerations {
             .operator("Equal")
             .effect("NoSchedule");
 
-    public static final V1Toleration TOLERATION_GPU_INSTANCE = new V1Toleration()
-            .key(KubeConstants.TAINT_GPU_INSTANCE)
-            .value("gpuWorkloads")
+    public static final V1Toleration TOLERATION_KUBE_SCHEDULER = new V1Toleration()
+            .key(KubeConstants.TAINT_SCHEDULER)
+            .value("kubeScheduler")
             .operator("Equal")
             .effect("NoSchedule");
 
