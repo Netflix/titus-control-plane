@@ -110,11 +110,6 @@ public class DefaultSchedulingService implements SchedulingService<V3QueueableTa
     private static final String METRIC_SCHEDULING_ITERATION_LATENCY = METRIC_SCHEDULING_SERVICE + "schedulingIterationLatency";
     private static final long vmCurrentStatesCheckIntervalMillis = 10_000L;
 
-    // Choose this max delay between scheduling iterations with care. Making it too short makes scheduler do unnecessary
-    // work when assignments are not possible. On the other hand, making it too long will delay other aspects such as
-    // expiring mesos offers, etc.
-    private static final long MAX_DELAY_MILLIS_BETWEEN_SCHEDULING_ITERATIONS = 5_000L;
-
     private final VirtualMachineMasterService virtualMachineService;
     private final MasterConfiguration masterConfiguration;
     private final SchedulerConfiguration schedulerConfiguration;
@@ -331,7 +326,8 @@ public class DefaultSchedulingService implements SchedulingService<V3QueueableTa
     private TaskSchedulingService setupTaskSchedulingService(TaskScheduler taskScheduler) {
         TaskSchedulingService.Builder builder = new TaskSchedulingService.Builder()
                 .withLoopIntervalMillis(schedulerConfiguration.getSchedulerIterationIntervalMs())
-                .withMaxDelayMillis(MAX_DELAY_MILLIS_BETWEEN_SCHEDULING_ITERATIONS) // sort of rate limiting when no assignments were made and no new offers available
+                // sort of rate limiting when no assignments were made and no new offers available
+                .withMaxDelayMillis(schedulerConfiguration.getSchedulerMaxIdleIntervalMs())
                 .withTaskQueue(taskQueue)
                 .withPreSchedulingLoopHook(this::preSchedulingHook)
                 .withSchedulingResultCallback(this::schedulingResultsHandler)
@@ -440,7 +436,7 @@ public class DefaultSchedulingService implements SchedulingService<V3QueueableTa
                 logger.error("Couldn't request state dump from Fenzo: {}", e.getMessage(), e);
             }
             try {
-                if (!latch.await(MAX_DELAY_MILLIS_BETWEEN_SCHEDULING_ITERATIONS * 3, TimeUnit.MILLISECONDS)) {
+                if (!latch.await(schedulerConfiguration.getStateDumpTimeoutMs(), TimeUnit.MILLISECONDS)) {
                     logger.error("Timeout waiting for Fenzo state dump");
                 }
             } catch (InterruptedException e) {
