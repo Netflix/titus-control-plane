@@ -16,11 +16,13 @@ plugins {
     id 'nebula.ospackage' version '8.1.0'
 }
 
+ext.useMavenLocal = project.hasProperty('useMavenLocal') ? project.getProperty('useMavenLocal').toBoolean() : false
+
 allprojects {
     apply plugin: 'nebula.dependency-lock'
     apply plugin: 'idea'
 
-    if (project.hasProperty('useMavenLocal')) {
+    if (useMavenLocal) {
         repositories {
             mavenLocal()
         }
