@@ -33,6 +33,11 @@ public final class EmbeddedTitusMasters {
                 .withProperty("titus.agent.fullCacheRefreshIntervalMs", "500")
                 .withProperty("titus.agent.synchronizeWithInstanceCacheIntervalMs", "500")
                 .withProperty("titus.master.capacityManagement.availableCapacityUpdateIntervalMs", "10")
+
+                // speed up scheduling during tests
+                .withProperty("titus.scheduler.schedulerIterationIntervalMs", "1")
+                .withProperty("titus.scheduler.schedulerMaxIdleIntervalMs", "5")
+
                 .withProperty("titus.scheduler.tierSlaUpdateIntervalMs", "10")
                 .withProperty("titus.master.grpcServer.shutdownTimeoutMs", "0")
                 .withProperty("titusMaster.jobManager.taskInLaunchedStateTimeoutMs", "30000")

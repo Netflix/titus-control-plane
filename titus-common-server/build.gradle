@@ -17,6 +17,8 @@
 dependencies {
     compile project(':titus-common-client')
 
+    runtime "com.google.inject.extensions:guice-servlet:${guiceVersion}"
+
     // Netflix dependencies
     compile "com.netflix.archaius:archaius2-guice:${archaius2Version}"
 

@@ -180,6 +180,7 @@ subprojects {
 
     task integrationTest(type: Test) {
         maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
+        shouldRunAfter test
 
         useJUnit {
             includeCategories 'com.netflix.titus.testkit.junit.category.IntegrationTest'
@@ -200,6 +201,8 @@ subprojects {
     }
 
     task integrationNotParallelizableTest(type: Test) {
+        shouldRunAfter test
+
         useJUnit {
             includeCategories 'com.netflix.titus.testkit.junit.category.IntegrationNotParallelizableTest'
         }
@@ -220,6 +223,7 @@ subprojects {
 
     task remoteIntegrationTest(type: Test) {
         maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
+        shouldRunAfter test
 
         useJUnit {
             includeCategories 'com.netflix.titus.testkit.junit.category.RemoteIntegrationTest'
@@ -243,8 +247,6 @@ subprojects {
         dependsOn 'test'
         dependsOn 'integrationTest'
         dependsOn 'integrationNotParallelizableTest'
-        tasks.findByName('integrationTest').mustRunAfter 'test'
-        tasks.findByName('integrationNotParallelizableTest').mustRunAfter 'test'
     }
 
     task buildScriptDependencies(type: org.gradle.api.tasks.diagnostics.DependencyReportTask) {

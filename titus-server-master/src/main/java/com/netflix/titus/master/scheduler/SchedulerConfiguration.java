@@ -38,6 +38,20 @@ public interface SchedulerConfiguration {
     long getSchedulerIterationIntervalMs();
 
     /**
+     * A way of rate limiting the scheduler loop when there are no perceived changes in the system. Keep in mind that
+     * some scheduler operations (e.g.: opportunistic scheduling) rely on external state changes that are not related to
+     * offers or new tasks arriving.
+     * <p>
+     * A high delay will slow down opportunistic scheduling when no opportunistic resources can be found in a scheduling
+     * iteration. A low delay will cause the scheduler to do more work and consume more resources (CPU/memory) when
+     * tasks are potentially not schedulable and waiting for new offers.
+     *
+     * @return max interval between scheduler iterations when no new offers and no new tasks arrived
+     */
+    @DefaultValue("5000")
+    long getSchedulerMaxIdleIntervalMs();
+
+    /**
      * @return the maximum amount of concurrent threads to use while computing scheduler placements.
      */
     @DefaultValue("8")
@@ -150,4 +164,11 @@ public interface SchedulerConfiguration {
 
     @DefaultValue("600000")
     long getLeaseDumpIntervalMs();
+
+    /**
+     * @return timeout for waiting for a state dump from the scheduler. A good value is at least
+     * 3 * {@link SchedulerConfiguration#getSchedulerMaxIdleIntervalMs()}.
+     */
+    @DefaultValue("15000")
+    long getStateDumpTimeoutMs();
 }
