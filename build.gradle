@@ -50,6 +50,7 @@ subprojects {
 
     apply plugin: 'java'
     apply plugin: 'jacoco'
+    apply plugin: 'nebula.netflixoss'
 
     sourceCompatibility = 1.8
     targetCompatibility = 1.8
