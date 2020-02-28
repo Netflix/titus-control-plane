@@ -21,6 +21,7 @@ import javax.inject.Named;
 import com.netflix.titus.common.runtime.InternalRuntimeComponent;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorClientFactoryComponent;
+import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorServerFactoryComponent;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagementDataReplicationComponent;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagerConnectorComponent;
 import com.netflix.titus.runtime.connector.titusmaster.ConfigurationLeaderResolverComponent;
@@ -43,6 +44,7 @@ import static com.netflix.titus.runtime.connector.titusmaster.ConfigurationLeade
         CallMetadataResolveComponent.class,
         ConfigurationLeaderResolverComponent.class,
         GrpcToReactorClientFactoryComponent.class,
+        GrpcToReactorServerFactoryComponent.class,
 
         // Job connector
         JobManagerConnectorComponent.class,

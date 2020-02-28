@@ -41,9 +41,9 @@ dependencies {
     compile 'org.postgresql:postgresql:42.2.4'
 
     // JOOQ integration
-    compile 'org.jooq:jooq:3.11.4'
-    compile 'org.jooq:jooq-meta:3.11.4'
-    compile 'org.jooq:jooq-codegen:3.11.4'
+    compile "org.jooq:jooq:${jooqVersion}"
+    compile "org.jooq:jooq-meta:${jooqVersion}"
+    compile "org.jooq:jooq-codegen:${jooqVersion}"
     jooqRuntime 'org.postgresql:postgresql:42.2.4'
 
 

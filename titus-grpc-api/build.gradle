@@ -1,12 +1,5 @@
-apply plugin: 'com.google.protobuf'
-
-buildscript {
-    dependencies {
-        classpath 'com.google.protobuf:protobuf-gradle-plugin:0.8.4'
-    }
-    repositories {
-        jcenter()
-    }
+plugins {
+    id "com.google.protobuf" version "0.8.11"
 }
 
 configurations {
@@ -52,8 +45,6 @@ sourceSets {
         }
     }
 }
-
-check.dependsOn.remove(test)
 
 //Grabs the resolved dependency coordinates so we can pass them to the protobuf plugin with the platform-recommended version
 def getResolvedDependencyFromProtoPluginDeps(dependency) {

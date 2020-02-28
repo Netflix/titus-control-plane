@@ -10,16 +10,8 @@ dependencies {
     compile "com.netflix.fenzo:fenzo-core:${fenzoVersion}"
     compile "com.netflix.archaius:archaius2-guice:${archaius2Version}"
     compile "com.netflix.numerus:numerus:${numerusVersion}"
-    compile "com.netflix.governator:governator-core:${governatorVersion}"
-    compile "com.netflix.governator:governator-servlet:${governatorVersion}"
-    compile "com.netflix.governator:governator-jersey:${governatorVersion}"
-    compile("com.netflix.governator:governator-jetty:${governatorVersion}") { transitive = false }
     compile "com.netflix.runtime:health-guice:${runtimeHealthVersion}"
 
-    // Servlet dependencies
-    compile "org.eclipse.jetty:jetty-servlet:${jettyVersion}"
-    compile "org.eclipse.jetty:jetty-webapp:${jettyVersion}"
-    compile "javax.servlet:javax.servlet-api:${servletVersion}"
 
     // GRPC dependencies
     compile "com.google.protobuf:protobuf-java:${protobufVersion}"
@@ -29,7 +21,6 @@ dependencies {
     compile "io.kubernetes:client-java:${kubernetesClientVersion}"
     compile "com.github.spullara.cli-parser:cli-parser:${cliParserVersion}"
     compile "com.google.inject:guice:${guiceVersion}"
-    compile "io.swagger:swagger-jaxrs:${swaggerVersion}"
     compile "org.webjars:swagger-ui:${swaggerUiVersion}"
     compile "org.json:json:${jsonVersion}"
     compile "javax.inject:javax.inject:${javaxInjectVersion}"

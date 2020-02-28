@@ -17,6 +17,8 @@ dependencies {
     compile "com.fasterxml.jackson.core:jackson-databind:${jacksonVersion}"
     compile "com.fasterxml.jackson.datatype:jackson-datatype-jdk8:${jacksonVersion}"
     compile "com.google.protobuf:protobuf-java:${protobufVersion}"
+    compile "com.google.inject:guice:${guiceVersion}"
+    compile "com.netflix.governator:governator-api:${governatorVersion}"
     compile "com.netflix.governator:governator-core:${governatorVersion}"
     compile "com.squareup.okhttp3:okhttp:${okHttpVersion}"
     compile "com.github.ben-manes.caffeine:caffeine:${caffeineVersion}"

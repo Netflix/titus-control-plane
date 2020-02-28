@@ -8,6 +8,7 @@ dependencies {
     // Netflix dependencies
     compile "com.netflix.archaius:archaius2-guice:${archaius2Version}"
     compile "com.netflix.governator:governator-core:${governatorVersion}"
+    compile "com.netflix.governator:governator-providers:${governatorVersion}"
     compile "com.netflix.governator:governator-servlet:${governatorVersion}"
     compile "com.netflix.governator:governator-jersey:${governatorVersion}"
     compile("com.netflix.governator:governator-jetty:${governatorVersion}") { transitive = false }
@@ -16,6 +17,8 @@ dependencies {
     compile "org.eclipse.jetty:jetty-servlet:${jettyVersion}"
     compile "org.eclipse.jetty:jetty-webapp:${jettyVersion}"
     compile "javax.servlet:javax.servlet-api:${servletVersion}"
+    compile "com.sun.jersey:jersey-server:${jerseyVersion}"
+    compile "com.sun.jersey.contribs:jersey-guice:${jerseyVersion}"
 
     // Misc dependencies
     compile "io.swagger:swagger-jaxrs:${swaggerVersion}"

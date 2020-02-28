@@ -1,18 +1,22 @@
 buildscript {
     repositories {
         jcenter()
-        maven {
-            url "https://plugins.gradle.org/m2/"
-        }
+        mavenCentral()
+        maven { url 'https://plugins.gradle.org/m2/' }
     }
     dependencies {
-        classpath 'com.netflix.nebula:gradle-netflixoss-project-plugin:5.0.0'
-        classpath 'com.netflix.nebula:nebula-ospackage-plugin:3.+'
+        // force a more recent spring since some nebula plugins were bringing an older version
+        // before springboot plugins had any saying
+        classpath "org.springframework:spring-core:5.1.5.RELEASE"
     }
 }
 
+plugins {
+    id 'nebula.netflixoss' version '8.6.0'
+    id 'nebula.ospackage' version '8.1.0'
+}
+
 allprojects {
-    apply plugin: 'nebula.netflixoss'
     apply plugin: 'nebula.dependency-lock'
     apply plugin: 'idea'
 
@@ -26,13 +30,20 @@ allprojects {
         jcenter()
         maven { url 'https://dl.bintray.com/netflixoss/oss-candidate/' }
     }
-
-    project.tasks.withType(org.jfrog.gradle.plugin.artifactory.task.BuildInfoBaseTask) { Task task ->
-        task.enabled = false
-    }
 }
 
 subprojects {
+    buildscript {
+        repositories {
+            jcenter()
+            mavenCentral()
+            maven { url 'https://plugins.gradle.org/m2/' }
+        }
+        dependencies {
+            classpath "org.springframework:spring-core:5.1.5.RELEASE"
+        }
+    }
+
     group "com.netflix.titus"
 
     apply plugin: 'java'
@@ -48,10 +59,10 @@ subprojects {
         javaxElVersion = '3.+'
         // pinned because of SSL incompatibilities with tomcat-embed-core 9.0.17
         springBootVersion = '2.1.3.RELEASE'
-        springCloudVersion = '2.1.1.RELEASE'
+        springCloudVersion = '2.1.3.RELEASE'
         springReactor = '3.1.+'
         springReactorNetty = '0.8.+'
-        springVersion = '5.1.+'
+        springVersion = '5.1.5.RELEASE'
         javaxInjectVersion = '1'
         guavaVersion = '20.+'
         servletVersion = '3.1.0'
@@ -69,8 +80,8 @@ subprojects {
         curatorVersion = '2.13.+'
         governatorVersion = '1.15.+'
         jettyVersion = '9.2.12.v20150709'
-        jerseyVersion = '1.19.1'
-        jooqVersion = '3.+'
+        jerseyVersion = '1.19.+'
+        jooqVersion = '3.11.+'
         fenzoVersion = '1.1.0-rc.8'
         spectatorVersion = '0.59.+'
         mesosVersion = '1.7.2'
@@ -234,6 +245,10 @@ subprojects {
         dependsOn 'integrationNotParallelizableTest'
         tasks.findByName('integrationTest').mustRunAfter 'test'
         tasks.findByName('integrationNotParallelizableTest').mustRunAfter 'test'
+    }
+
+    task buildScriptDependencies(type: org.gradle.api.tasks.diagnostics.DependencyReportTask) {
+        configurations = project.buildscript.configurations
     }
 }
 
