@@ -1,0 +1,59 @@
+fs java() {
+	image "dockerregistry.test.netflix.net:7002/baseos/bionic:release"
+	rm "/etc/apt/apt.conf.d/docker-gzip-indexes"
+	run "apt-get update && apt-get install -y jq ccache build-essential g++ cmake git software-properties-common metatron-tools zip nflx-java-8 nflx-zulu-java-8" with option {
+		mount fs { scratch; } "/var/cache/apt" with option {
+			cache "@hlb-demo/apt-cache" "private"
+		}
+		mount fs { scratch; } "/var/lib/apt" with option {
+			cache "@hlb-demo/apt-lib" "private"
+		}
+	}
+}
+
+fs nflxism(fs state) {
+	state
+	env "CI" "true"
+	env "LANG" "en_US.UTF-8"
+	env "GRADLE_USER_HOME" "/gradle-cache"
+	env "NETFLIX_EXECUTOR" "buildkit"
+	env "NETFLIX_APP" "hlbjava"
+	env "NETFLIX_ENVIRONMENT" "prod"
+	env "NETFLIX_APPUSER" "cloudbuild"
+	env "EC2_REGION" "us-west-2"
+	env "EC2_AVAILABILITY_ZONE" "us-west-2c"
+	env "NETFLIX_STACK" "stable"
+	env "NETFLIX_DETAIL" ""
+	env "NETFLIX_ACCOUNT" "build_prod"
+	env "NETFLIX_ACCOUNT_TYPE" "build"
+}
+
+fs gradle(fs src, string tasks) {
+	nflxism java
+	dir "/src"
+	run string {
+		format "./scripts/hlb/hlb-build %s" tasks
+	} with option {
+		mountMetatron
+		mount src "/src"
+	}
+}
+
+fs titusBuild() {
+    gradle source "testAll"
+}
+
+fs homeMetatron() {
+	local "/Users/@{{USER}}/.metatron"
+}
+
+option::run mountMetatron() {
+	mount homeMetatron "/metatron/certificates"
+	mount homeMetatron "/run/metatron/certificates"
+}
+
+fs source() {
+    local "." with option {
+        excludePatterns "build"
+    }
+}
