@@ -22,12 +22,10 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
-import javax.validation.ConstraintValidator;
-import javax.validation.ConstraintValidatorContext;
 
 import com.netflix.titus.common.model.sanitizer.CollectionInvariants;
 
-public class CollectionValidator implements ConstraintValidator<CollectionInvariants, Object> {
+public class CollectionValidator extends AbstractConstraintValidator<CollectionInvariants, Object> {
 
     private CollectionInvariants constraintAnnotation;
 
@@ -37,7 +35,7 @@ public class CollectionValidator implements ConstraintValidator<CollectionInvari
     }
 
     @Override
-    public boolean isValid(Object value, ConstraintValidatorContext context) {
+    public boolean isValid(Object value, ConstraintValidatorContextWrapper context) {
         if (value == null) {
             return true;
         }
@@ -50,7 +48,7 @@ public class CollectionValidator implements ConstraintValidator<CollectionInvari
         return false;
     }
 
-    private boolean isValid(Collection<?> value, ConstraintValidatorContext context) {
+    private boolean isValid(Collection<?> value, ConstraintValidatorContextWrapper context) {
         if (value.isEmpty()) {
             return true;
         }
@@ -65,7 +63,7 @@ public class CollectionValidator implements ConstraintValidator<CollectionInvari
         return true;
     }
 
-    private boolean isValid(Map<?, ?> value, ConstraintValidatorContext context) {
+    private boolean isValid(Map<?, ?> value, ConstraintValidatorContextWrapper context) {
         if (value.isEmpty()) {
             return true;
         }
@@ -98,8 +96,7 @@ public class CollectionValidator implements ConstraintValidator<CollectionInvari
         return true;
     }
 
-    private void attachMessage(ConstraintValidatorContext context, String message) {
-        context.buildConstraintViolationWithTemplate(message).addConstraintViolation();
-        context.disableDefaultConstraintViolation();
+    private void attachMessage(ConstraintValidatorContextWrapper context, String message) {
+        context.buildConstraintViolationWithStaticMessage(message).addConstraintViolation().disableDefaultConstraintViolation();
     }
 }
