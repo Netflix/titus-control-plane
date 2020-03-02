@@ -28,6 +28,7 @@ import com.netflix.titus.api.connector.cloud.CloudConnectorException;
 import com.netflix.titus.api.connector.cloud.LoadBalancer;
 import com.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import com.netflix.titus.api.loadbalancer.service.LoadBalancerException;
+import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.ext.aws.loadbalancer.AwsLoadBalancerConnector;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -51,12 +52,13 @@ import static org.mockito.Mockito.when;
  */
 public class AwsLoadBalancerConnectorTest {
     private static final String REGION = "us-east-1";
+    private static final String DEFAULT_ARN = "arn:aws:elasticloadbalancing:us-east-2:123456789012:loadbalancer/app/my-load-balancer/1234567890123456";
     private LoadBalancerConnector awsLoadBalancerConnector;
 
-    private final String validIpTargetGroup = System.getenv("validTargetGroup");
-    private final String invalidIpTargetGroup = System.getenv("invalidTargetGroup");
-    private final String nonExistentTarget = System.getenv("nonExistentTargetGroup");
-    private final String targetGroupWithTargets = System.getenv("targetGroupWithTargets");
+    private final String validIpTargetGroup = StringExt.getNonEmptyOrDefault(System.getenv("validTargetGroup"), DEFAULT_ARN);
+    private final String invalidIpTargetGroup = StringExt.getNonEmptyOrDefault(System.getenv("invalidTargetGroup"), DEFAULT_ARN);
+    private final String nonExistentTarget = StringExt.getNonEmptyOrDefault(System.getenv("nonExistentTargetGroup"), DEFAULT_ARN);
+    private final String targetGroupWithTargets = StringExt.getNonEmptyOrDefault(System.getenv("targetGroupWithTargets"), DEFAULT_ARN);
 
     @Before
     public void setUp() {
@@ -65,7 +67,7 @@ public class AwsLoadBalancerConnectorTest {
                 .withCredentials(credentialsProvider)
                 .withRegion(REGION)
                 .build();
-        awsLoadBalancerConnector = new AwsLoadBalancerConnector(albClient, new DefaultRegistry());
+        awsLoadBalancerConnector = getAwsLoadBalancerConnector(albClient);
     }
 
     @Ignore("AWS dependencies")
@@ -120,7 +122,7 @@ public class AwsLoadBalancerConnectorTest {
         AmazonElasticLoadBalancingAsync albClient = mock(AmazonElasticLoadBalancingAsync.class);
         when(albClient.describeTargetHealthAsync(any(), any())).thenThrow(TargetGroupNotFoundException.class);
 
-        awsLoadBalancerConnector = new AwsLoadBalancerConnector(albClient, new DefaultRegistry());
+        awsLoadBalancerConnector = getAwsLoadBalancerConnector(albClient);
         awsLoadBalancerConnector.getLoadBalancer(targetGroupWithTargets).subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent();
@@ -139,7 +141,7 @@ public class AwsLoadBalancerConnectorTest {
         AmazonElasticLoadBalancingAsync albClient = mock(AmazonElasticLoadBalancingAsync.class);
         when(albClient.describeTargetHealthAsync(any(), any())).thenThrow(defaultExceptionClass);
 
-        awsLoadBalancerConnector = new AwsLoadBalancerConnector(albClient, new DefaultRegistry());
+        awsLoadBalancerConnector = getAwsLoadBalancerConnector(albClient);
         awsLoadBalancerConnector.getLoadBalancer(targetGroupWithTargets).subscribe(testSubscriber);
 
         testSubscriber.awaitTerminalEvent();
@@ -150,5 +152,11 @@ public class AwsLoadBalancerConnectorTest {
         Throwable throwable = errors.get(0);
         assertFalse(throwable instanceof LoadBalancerException);
         assertTrue(throwable instanceof TargetGroupAssociationLimitException);
+    }
+
+    private AwsLoadBalancerConnector getAwsLoadBalancerConnector(AmazonElasticLoadBalancingAsync albClient) {
+        AmazonClientProvider amazonClientProvider = mock(AmazonClientProvider.class);
+        when(amazonClientProvider.getLoadBalancingClient(any())).thenReturn(albClient);
+        return new AwsLoadBalancerConnector(amazonClientProvider, new DefaultRegistry());
     }
 }

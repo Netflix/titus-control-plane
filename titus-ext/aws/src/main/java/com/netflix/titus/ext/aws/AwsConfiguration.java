@@ -89,4 +89,16 @@ public interface AwsConfiguration {
 
     @DefaultValue("3600")
     int getDataPlaneControllerRoleSessionDurationSeconds();
+
+    /**
+     * IAM role name the control plane uses to manage aws resources such as load balancers.
+     */
+    @DefaultValue("TitusControlPlaneRole")
+    String getControlPlaneRoleName();
+
+    @DefaultValue("titusControlPlaneSession")
+    String getControlPlaneRoleSessionName();
+
+    @DefaultValue("3600")
+    int getControlPlaneRoleSessionDurationSeconds();
 }
