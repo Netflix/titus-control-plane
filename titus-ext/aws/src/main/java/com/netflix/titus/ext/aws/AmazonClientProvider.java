@@ -31,7 +31,7 @@ public class AmazonClientProvider {
     public AmazonElasticLoadBalancingAsync getLoadBalancingClient(String accountId) {
         AmazonElasticLoadBalancingAsync client = loadBalancerClients.get(accountId);
         if (client == null) {
-            synchronized (AmazonClientProvider.class) {
+            synchronized (this) {
                 client = loadBalancerClients.get(accountId);
                 if (client == null) {
                     String region = configuration.getRegion().trim().toLowerCase();
@@ -50,7 +50,7 @@ public class AmazonClientProvider {
     private AWSCredentialsProvider getAwsCredentialsProvider(String accountId) {
         AWSCredentialsProvider credentialsProvider = awsCredentialsByAccountId.get(accountId);
         if (credentialsProvider == null) {
-            synchronized (AmazonClientProvider.class) {
+            synchronized (this) {
                 credentialsProvider = awsCredentialsByAccountId.get(accountId);
                 if (credentialsProvider == null) {
                     String roleSessionName = configuration.getControlPlaneRoleSessionName();
