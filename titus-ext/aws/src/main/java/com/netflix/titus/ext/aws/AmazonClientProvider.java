@@ -1,7 +1,7 @@
 package com.netflix.titus.ext.aws;
 
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.HashMap;
+import java.util.Map;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -18,8 +18,8 @@ public class AmazonClientProvider {
     private final AwsConfiguration configuration;
     private final AWSSecurityTokenServiceAsync stsClient;
 
-    private ConcurrentMap<String, AWSCredentialsProvider> awsCredentialsByAccountId = new ConcurrentHashMap<>();
-    private ConcurrentMap<String, AmazonElasticLoadBalancingAsync> loadBalancerClients = new ConcurrentHashMap<>();
+    private Map<String, AWSCredentialsProvider> awsCredentialsByAccountId = new HashMap<>();
+    private Map<String, AmazonElasticLoadBalancingAsync> loadBalancerClients = new HashMap<>();
 
     @Inject
     public AmazonClientProvider(AwsConfiguration configuration,
@@ -29,27 +29,43 @@ public class AmazonClientProvider {
     }
 
     public AmazonElasticLoadBalancingAsync getLoadBalancingClient(String accountId) {
-        return loadBalancerClients.computeIfAbsent(accountId, id -> {
-            String region = configuration.getRegion().trim().toLowerCase();
-            AWSCredentialsProvider credentialsProvider = getAwsCredentialsProvider(id);
-            return AmazonElasticLoadBalancingAsyncClientBuilder.standard()
-                    .withCredentials(credentialsProvider)
-                    .withRegion(region)
-                    .build();
-        });
+        AmazonElasticLoadBalancingAsync client = loadBalancerClients.get(accountId);
+        if (client == null) {
+            synchronized (AmazonClientProvider.class) {
+                client = loadBalancerClients.get(accountId);
+                if (client == null) {
+                    String region = configuration.getRegion().trim().toLowerCase();
+                    AWSCredentialsProvider credentialsProvider = getAwsCredentialsProvider(accountId);
+                    client = AmazonElasticLoadBalancingAsyncClientBuilder.standard()
+                            .withCredentials(credentialsProvider)
+                            .withRegion(region)
+                            .build();
+                    loadBalancerClients.put(accountId, client);
+                }
+            }
+        }
+        return client;
     }
 
     private AWSCredentialsProvider getAwsCredentialsProvider(String accountId) {
-        return awsCredentialsByAccountId.computeIfAbsent(accountId, id -> {
-            String roleSessionName = configuration.getControlPlaneRoleSessionName();
-            int roleSessionDurationSeconds = configuration.getControlPlaneRoleSessionDurationSeconds();
-            Arn roleArn = getControlPlaneRoleArnForAccount(id);
+        AWSCredentialsProvider credentialsProvider = awsCredentialsByAccountId.get(accountId);
+        if (credentialsProvider == null) {
+            synchronized (AmazonClientProvider.class) {
+                credentialsProvider = awsCredentialsByAccountId.get(accountId);
+                if (credentialsProvider == null) {
+                    String roleSessionName = configuration.getControlPlaneRoleSessionName();
+                    int roleSessionDurationSeconds = configuration.getControlPlaneRoleSessionDurationSeconds();
+                    Arn roleArn = getControlPlaneRoleArnForAccount(accountId);
 
-            return new STSAssumeRoleSessionCredentialsProvider.Builder(roleArn.toString(), roleSessionName)
-                    .withStsClient(stsClient)
-                    .withRoleSessionDurationSeconds(roleSessionDurationSeconds)
-                    .build();
-        });
+                    credentialsProvider = new STSAssumeRoleSessionCredentialsProvider.Builder(roleArn.toString(), roleSessionName)
+                            .withStsClient(stsClient)
+                            .withRoleSessionDurationSeconds(roleSessionDurationSeconds)
+                            .build();
+                    awsCredentialsByAccountId.put(accountId, credentialsProvider);
+                }
+            }
+        }
+        return credentialsProvider;
     }
 
     private Arn getControlPlaneRoleArnForAccount(String accountId) {
