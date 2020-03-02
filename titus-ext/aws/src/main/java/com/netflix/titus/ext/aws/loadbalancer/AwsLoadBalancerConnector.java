@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.amazonaws.arn.Arn;
 import com.amazonaws.services.elasticloadbalancingv2.AmazonElasticLoadBalancingAsync;
 import com.amazonaws.services.elasticloadbalancingv2.model.DeregisterTargetsRequest;
 import com.amazonaws.services.elasticloadbalancingv2.model.DescribeTargetGroupsRequest;
@@ -38,6 +39,7 @@ import com.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.guice.ProxyType;
 import com.netflix.titus.common.util.guice.annotation.ProxyConfiguration;
+import com.netflix.titus.ext.aws.AmazonClientProvider;
 import com.netflix.titus.ext.aws.AwsObservableExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,19 +55,19 @@ public class AwsLoadBalancerConnector implements LoadBalancerConnector {
     private static final Logger logger = LoggerFactory.getLogger(AwsLoadBalancerConnector.class);
     private static final String AWS_IP_TARGET_TYPE = "ip";
 
-    private final AmazonElasticLoadBalancingAsync client;
-    private final Registry registry;
+    private final AmazonClientProvider clientProvider;
     private final Scheduler scheduler;
+    private final Registry registry;
 
     private AwsLoadBalancerConnectorMetrics connectorMetrics;
 
     @Inject
-    public AwsLoadBalancerConnector(AmazonElasticLoadBalancingAsync client, Registry registry) {
-        this(client, Schedulers.computation(), registry);
+    public AwsLoadBalancerConnector(AmazonClientProvider clientProvider, Registry registry) {
+        this(clientProvider, Schedulers.computation(), registry);
     }
 
-    private AwsLoadBalancerConnector(AmazonElasticLoadBalancingAsync client, Scheduler scheduler, Registry registry) {
-        this.client = client;
+    private AwsLoadBalancerConnector(AmazonClientProvider clientProvider, Scheduler scheduler, Registry registry) {
+        this.clientProvider = clientProvider;
         this.scheduler = scheduler;
         this.registry = registry;
         this.connectorMetrics = new AwsLoadBalancerConnectorMetrics(registry);
@@ -90,7 +92,7 @@ public class AwsLoadBalancerConnector implements LoadBalancerConnector {
 
         long startTime = registry.clock().wallTime();
         // force observeOn(scheduler) since the callback will be called from the AWS SDK threadpool
-        return AwsObservableExt.asyncActionCompletable(factory -> client.registerTargetsAsync(request, factory.handler(
+        return AwsObservableExt.asyncActionCompletable(factory -> getClient(loadBalancerId).registerTargetsAsync(request, factory.handler(
                 (req, resp) -> {
                     logger.debug("Registered targets {}", resp);
                     connectorMetrics.success(AwsLoadBalancerConnectorMetrics.AwsLoadBalancerMethods.RegisterTargets, startTime);
@@ -120,7 +122,7 @@ public class AwsLoadBalancerConnector implements LoadBalancerConnector {
 
         long startTime = registry.clock().wallTime();
         // force observeOn(scheduler) since the callback will be called from the AWS SDK threadpool
-        return AwsObservableExt.asyncActionCompletable(supplier -> client.deregisterTargetsAsync(request, supplier.handler(
+        return AwsObservableExt.asyncActionCompletable(supplier -> getClient(loadBalancerId).deregisterTargetsAsync(request, supplier.handler(
                 (req, resp) -> {
                     logger.debug("Deregistered targets {}", resp);
                     connectorMetrics.success(AwsLoadBalancerConnectorMetrics.AwsLoadBalancerMethods.DeregisterTargets, startTime);
@@ -138,7 +140,7 @@ public class AwsLoadBalancerConnector implements LoadBalancerConnector {
                 .withTargetGroupArns(loadBalancerId);
 
         long startTime = registry.clock().wallTime();
-        Single<DescribeTargetGroupsResult> resultSingle = AwsObservableExt.asyncActionSingle(supplier -> client.describeTargetGroupsAsync(request, supplier.handler()));
+        Single<DescribeTargetGroupsResult> resultSingle = AwsObservableExt.asyncActionSingle(supplier -> getClient(loadBalancerId).describeTargetGroupsAsync(request, supplier.handler()));
         return resultSingle
                 .observeOn(scheduler)
                 .doOnError(throwable -> {
@@ -158,12 +160,12 @@ public class AwsLoadBalancerConnector implements LoadBalancerConnector {
     }
 
     @Override
-    public Single<LoadBalancer> getLoadBalancer(String id) {
-        final DescribeTargetHealthRequest request = new DescribeTargetHealthRequest().withTargetGroupArn(id);
+    public Single<LoadBalancer> getLoadBalancer(String loadBalancerId) {
+        final DescribeTargetHealthRequest request = new DescribeTargetHealthRequest().withTargetGroupArn(loadBalancerId);
 
         long startTime = registry.clock().wallTime();
         Single<DescribeTargetHealthResult> asyncResult = AwsObservableExt.asyncActionSingle(
-                factory -> client.describeTargetHealthAsync(request, factory.handler())
+                factory -> getClient(loadBalancerId).describeTargetHealthAsync(request, factory.handler())
         );
 
         return asyncResult
@@ -173,14 +175,19 @@ public class AwsLoadBalancerConnector implements LoadBalancerConnector {
                     Set<String> ips = result.getTargetHealthDescriptions().stream()
                             .map(description -> description.getTarget().getId())
                             .collect(Collectors.toSet());
-                    return new LoadBalancer(id, LoadBalancer.State.ACTIVE, ips);
+                    return new LoadBalancer(loadBalancerId, LoadBalancer.State.ACTIVE, ips);
                 })
                 .onErrorResumeNext(throwable -> {
                     connectorMetrics.failure(AwsLoadBalancerConnectorMetrics.AwsLoadBalancerMethods.DescribeTargetHealth, throwable, startTime);
                     if (throwable instanceof TargetGroupNotFoundException) {
-                        return Single.just(new LoadBalancer(id, LoadBalancer.State.REMOVED, Collections.emptySet()));
+                        return Single.just(new LoadBalancer(loadBalancerId, LoadBalancer.State.REMOVED, Collections.emptySet()));
                     }
                     return Single.error(throwable);
                 });
+    }
+
+    private AmazonElasticLoadBalancingAsync getClient(String loadBalancerId) {
+        Arn arn = Arn.fromString(loadBalancerId);
+        return clientProvider.getLoadBalancingClient(arn.getAccountId());
     }
 }
