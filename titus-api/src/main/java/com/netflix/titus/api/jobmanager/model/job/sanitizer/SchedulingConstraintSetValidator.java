@@ -22,12 +22,13 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Function;
 import javax.validation.Constraint;
+import javax.validation.ConstraintValidatorContext;
 import javax.validation.Payload;
 
 import com.netflix.titus.api.jobmanager.model.job.Container;
 import com.netflix.titus.common.model.sanitizer.internal.AbstractConstraintValidator;
-import com.netflix.titus.common.model.sanitizer.internal.ConstraintValidatorContextWrapper;
 
 import static java.lang.annotation.ElementType.TYPE;
 
@@ -54,7 +55,7 @@ public class SchedulingConstraintSetValidator extends AbstractConstraintValidato
     }
 
     @Override
-    public boolean isValid(Container container, ConstraintValidatorContextWrapper context) {
+    protected boolean isValid(Container container, Function<String, ConstraintValidatorContext.ConstraintViolationBuilder> constraintViolationBuilderFunction) {
         if (container == null) {
             return true;
         }
@@ -65,7 +66,7 @@ public class SchedulingConstraintSetValidator extends AbstractConstraintValidato
             return true;
         }
 
-        context.buildConstraintViolationWithStaticMessage(
+        constraintViolationBuilderFunction.apply(
                 "Soft and hard constraints not unique. Shared constraints: " + common
         ).addConstraintViolation().disableDefaultConstraintViolation();
         return false;

@@ -19,14 +19,38 @@ package com.netflix.titus.common.model.sanitizer.internal;
 import javax.validation.ConstraintValidator;
 import javax.validation.ConstraintValidatorContext;
 import java.lang.annotation.Annotation;
+import java.util.function.Function;
 
 public abstract class AbstractConstraintValidator<A extends Annotation, T> implements ConstraintValidator<A, T> {
 
-    @Override
-    final public boolean isValid(T type, ConstraintValidatorContext context) {
-        return this.isValid(type, new ConstraintValidatorContextWrapper(context));
+    /**
+     * Escape all special characters that participate in EL expressions so the the message string
+     * cannot be classified as a template for interpolation.
+     *
+     * @param message string that needs to be sanitized
+     * @return copy of the input string with '{','}','#' and '$' characters escaped
+     */
+    private static String sanitizeMessage(String message) {
+        return message.replaceAll("([}{$#])", "\\\\$1");
     }
 
-    abstract public boolean isValid(T type, ConstraintValidatorContextWrapper wrapper);
+    @Override
+    final public boolean isValid(T type, ConstraintValidatorContext context) {
+        return this.isValid(type, message -> {
+            String sanitizedMessage = sanitizeMessage(message);
+            return context.buildConstraintViolationWithTemplate(sanitizedMessage);
+        });
+    }
+
+    /**
+     * Implementing classes will need to apply the builder function with the violation message string
+     * to retrieve the underlying instance of {@link javax.validation.ConstraintValidatorContext} in order
+     * to continue add any violations.
+     *
+     * @param type                               type of the object under validation
+     * @param constraintViolationBuilderFunction function to apply with a violation message string
+     * @return validation status
+     */
+    abstract protected boolean isValid(T type, Function<String, ConstraintValidatorContext.ConstraintViolationBuilder> constraintViolationBuilderFunction);
 
 }

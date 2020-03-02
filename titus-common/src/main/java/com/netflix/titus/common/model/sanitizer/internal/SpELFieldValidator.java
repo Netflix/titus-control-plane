@@ -16,7 +16,10 @@
 
 package com.netflix.titus.common.model.sanitizer.internal;
 
+import java.util.function.Function;
 import java.util.function.Supplier;
+
+import javax.validation.ConstraintValidatorContext;
 
 import com.netflix.titus.common.model.sanitizer.FieldInvariant;
 import com.netflix.titus.common.model.sanitizer.VerifierMode;
@@ -50,7 +53,7 @@ public class SpELFieldValidator extends AbstractConstraintValidator<FieldInvaria
     }
 
     @Override
-    public boolean isValid(Object value, ConstraintValidatorContextWrapper context) {
+    protected boolean isValid(Object value, Function<String, ConstraintValidatorContext.ConstraintViolationBuilder> constraintViolationBuilderFunction) {
         if (!enabled) {
             return true;
         }

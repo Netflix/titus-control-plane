@@ -22,13 +22,14 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.validation.Constraint;
+import javax.validation.ConstraintValidatorContext;
 import javax.validation.Payload;
 
 import com.netflix.titus.api.jobmanager.JobConstraints;
 import com.netflix.titus.common.model.sanitizer.internal.AbstractConstraintValidator;
-import com.netflix.titus.common.model.sanitizer.internal.ConstraintValidatorContextWrapper;
 
 import static java.lang.annotation.ElementType.ANNOTATION_TYPE;
 import static java.lang.annotation.ElementType.CONSTRUCTOR;
@@ -65,16 +66,16 @@ public class SchedulingConstraintValidator extends AbstractConstraintValidator<S
 
     @Override
     public void initialize(SchedulingConstraint constraintAnnotation) {
-   }
+    }
 
     @Override
-    public boolean isValid(Map<String, String> value, ConstraintValidatorContextWrapper context) {
+    protected boolean isValid(Map<String, String> value, Function<String, ConstraintValidatorContext.ConstraintViolationBuilder> constraintViolationBuilderFunction) {
         HashSet<String> unknown = value.keySet().stream().map(String::toLowerCase).collect(Collectors.toCollection(HashSet::new));
         unknown.removeAll(JobConstraints.CONSTRAINT_NAMES);
         if (unknown.isEmpty()) {
             return true;
         }
-        context.buildConstraintViolationWithStaticMessage("Unrecognized constraints " + unknown)
+        constraintViolationBuilderFunction.apply("Unrecognized constraints " + unknown)
                 .addConstraintViolation().disableDefaultConstraintViolation();
         return false;
     }

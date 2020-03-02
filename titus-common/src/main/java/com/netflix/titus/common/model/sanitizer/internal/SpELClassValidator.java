@@ -17,7 +17,10 @@
 package com.netflix.titus.common.model.sanitizer.internal;
 
 import java.util.Map;
+import java.util.function.Function;
 import java.util.function.Supplier;
+
+import javax.validation.ConstraintValidatorContext;
 
 import com.netflix.titus.common.model.sanitizer.ClassInvariant;
 import com.netflix.titus.common.model.sanitizer.VerifierMode;
@@ -60,7 +63,7 @@ public class SpELClassValidator extends AbstractConstraintValidator<ClassInvaria
     }
 
     @Override
-    public boolean isValid(Object value, ConstraintValidatorContextWrapper context) {
+    protected boolean isValid(Object value, Function<String, ConstraintValidatorContext.ConstraintViolationBuilder> constraintViolationBuilderFunction) {
         if (!enabled) {
             return true;
         }
@@ -73,7 +76,7 @@ public class SpELClassValidator extends AbstractConstraintValidator<ClassInvaria
             return true;
         }
 
-        violations.forEach((field, message) -> context.buildConstraintViolationWithStaticMessage(message)
+        violations.forEach((field, message) -> constraintViolationBuilderFunction.apply(message)
                 .addPropertyNode(field)
                 .addConstraintViolation()
                 .disableDefaultConstraintViolation());

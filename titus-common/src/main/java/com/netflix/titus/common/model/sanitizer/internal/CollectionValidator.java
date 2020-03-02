@@ -21,7 +21,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import javax.validation.ConstraintValidatorContext;
 
 import com.netflix.titus.common.model.sanitizer.CollectionInvariants;
 
@@ -35,27 +38,28 @@ public class CollectionValidator extends AbstractConstraintValidator<CollectionI
     }
 
     @Override
-    public boolean isValid(Object value, ConstraintValidatorContextWrapper context) {
+    protected boolean isValid(Object value, Function<String, ConstraintValidatorContext.ConstraintViolationBuilder> constraintViolationBuilderFunction) {
+
         if (value == null) {
             return true;
         }
         if (value instanceof Collection) {
-            return isValid((Collection<?>) value, context);
+            return isValid((Collection<?>) value, constraintViolationBuilderFunction);
         }
         if (value instanceof Map) {
-            return isValid((Map<?, ?>) value, context);
+            return isValid((Map<?, ?>) value, constraintViolationBuilderFunction);
         }
         return false;
     }
 
-    private boolean isValid(Collection<?> value, ConstraintValidatorContextWrapper context) {
+    private boolean isValid(Collection<?> value, Function<String, ConstraintValidatorContext.ConstraintViolationBuilder> constraintViolationBuilderFunction) {
         if (value.isEmpty()) {
             return true;
         }
 
         if (!constraintAnnotation.allowNullValues()) {
             if (value.stream().anyMatch(Objects::isNull)) {
-                attachMessage(context, "null values not allowed");
+                attachMessage(constraintViolationBuilderFunction, "null values not allowed");
                 return false;
             }
         }
@@ -63,21 +67,21 @@ public class CollectionValidator extends AbstractConstraintValidator<CollectionI
         return true;
     }
 
-    private boolean isValid(Map<?, ?> value, ConstraintValidatorContextWrapper context) {
+    private boolean isValid(Map<?, ?> value, Function<String, ConstraintValidatorContext.ConstraintViolationBuilder> constraintViolationBuilderFunction) {
         if (value.isEmpty()) {
             return true;
         }
 
         if (!constraintAnnotation.allowEmptyKeys()) {
             if (value.keySet().stream().anyMatch(key -> key == null || (key instanceof String && ((String) key).isEmpty()))) {
-                attachMessage(context, "empty key names not allowed");
+                attachMessage(constraintViolationBuilderFunction, "empty key names not allowed");
                 return false;
             }
         }
 
         if (!constraintAnnotation.allowNullKeys()) {
             if (value.keySet().stream().anyMatch(Objects::isNull)) {
-                attachMessage(context, "null key names not allowed");
+                attachMessage(constraintViolationBuilderFunction, "null key names not allowed");
                 return false;
             }
         }
@@ -88,7 +92,7 @@ public class CollectionValidator extends AbstractConstraintValidator<CollectionI
                     .map(e -> e.getKey() instanceof String ? (String) e.getKey() : "<not_string>")
                     .collect(Collectors.toSet());
             if (!badEntryKeys.isEmpty()) {
-                attachMessage(context, "null values found for keys: " + new TreeSet<>(badEntryKeys));
+                attachMessage(constraintViolationBuilderFunction, "null values found for keys: " + new TreeSet<>(badEntryKeys));
                 return false;
             }
         }
@@ -96,7 +100,7 @@ public class CollectionValidator extends AbstractConstraintValidator<CollectionI
         return true;
     }
 
-    private void attachMessage(ConstraintValidatorContextWrapper context, String message) {
-        context.buildConstraintViolationWithStaticMessage(message).addConstraintViolation().disableDefaultConstraintViolation();
+    private void attachMessage(Function<String, ConstraintValidatorContext.ConstraintViolationBuilder> constraintViolationBuilderFunction, String message) {
+        constraintViolationBuilderFunction.apply(message).addConstraintViolation().disableDefaultConstraintViolation();
     }
 }
