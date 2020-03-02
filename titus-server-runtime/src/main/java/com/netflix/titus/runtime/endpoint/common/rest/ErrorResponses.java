@@ -35,9 +35,12 @@ import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.fasterxml.jackson.databind.exc.PropertyBindingException;
+import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.NetworkExt;
+import com.netflix.titus.common.util.StringExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.web.context.request.WebRequest;
 
 /**
  * Collection of helper functions to build {@link ErrorResponse} instances.
@@ -144,6 +147,16 @@ public final class ErrorResponses {
             String header = headerIt.nextElement();
             result.put(header, req.getHeader(header));
         }
+
+        return result;
+    }
+
+    public static Map<String, Object> buildWebRequestContext(WebRequest webRequest) {
+        Map<String, Object> result = new TreeMap<>();
+
+        result.put("relativeURI", StringExt.safeTrim(webRequest.getContextPath()));
+        result.put("secure", webRequest.isSecure());
+        Evaluators.acceptNotNull(webRequest.getRemoteUser(), user -> result.put("remoteUser", user));
 
         return result;
     }

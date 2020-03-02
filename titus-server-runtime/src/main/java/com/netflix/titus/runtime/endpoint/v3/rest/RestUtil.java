@@ -21,17 +21,20 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import javax.ws.rs.core.MultivaluedMap;
 
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.grpc.protogen.Page;
 
-import static com.netflix.titus.runtime.endpoint.v3.rest.RestConstants.*;
+import static com.netflix.titus.runtime.endpoint.v3.rest.RestConstants.CURSOR_QUERY_KEY;
+import static com.netflix.titus.runtime.endpoint.v3.rest.RestConstants.FIELDS_QUERY_KEY;
+import static com.netflix.titus.runtime.endpoint.v3.rest.RestConstants.IGNORED_QUERY_PARAMS;
+import static com.netflix.titus.runtime.endpoint.v3.rest.RestConstants.PAGE_QUERY_KEY;
+import static com.netflix.titus.runtime.endpoint.v3.rest.RestConstants.PAGE_SIZE_QUERY_KEY;
 
 public final class RestUtil {
 
-    public static Page createPage(MultivaluedMap<String, String> map) {
+    public static Page createPage(Map<String, List<String>> map) {
         Page.Builder pageBuilder = Page.newBuilder();
         pageBuilder.setPageNumber(Integer.parseInt(getFirstOrDefault(map, PAGE_QUERY_KEY, "0")));
         pageBuilder.setPageSize(Integer.parseInt(getFirstOrDefault(map, PAGE_SIZE_QUERY_KEY, "10")));
@@ -39,29 +42,26 @@ public final class RestUtil {
         return pageBuilder.build();
     }
 
-    private static String getFirstOrDefault(MultivaluedMap<String, String> map, String key, String defaultValue) {
-        String first = map.getFirst(key);
-        if (first == null) {
-            return defaultValue;
-        }
-        return first;
+    private static String getFirstOrDefault(Map<String, List<String>> map, String key, String defaultValue) {
+        List<String> values = map.get(key);
+        return CollectionsExt.isNullOrEmpty(values) ? defaultValue : values.get(0);
     }
 
-    public static Map<String, String> getFilteringCriteria(MultivaluedMap<String, String> map) {
+    public static Map<String, String> getFilteringCriteria(Map<String, List<String>> map) {
         Map<String, String> filterCriteria = new HashMap<>();
         map.keySet()
                 .stream()
                 .filter(e -> !IGNORED_QUERY_PARAMS.contains(e.toLowerCase()))
                 .forEach(e -> {
-                    String first = map.getFirst(e);
-                    if (first != null) {
-                        filterCriteria.put(e, first);
+                    List<String> values = map.get(e);
+                    if (!CollectionsExt.isNullOrEmpty(values)) {
+                        filterCriteria.put(e, values.get(0));
                     }
                 });
         return filterCriteria;
     }
 
-    public static List<String> getFieldsParameter(MultivaluedMap<String, String> queryParameters) {
+    public static List<String> getFieldsParameter(Map<String, List<String>> queryParameters) {
         List<String> fields = queryParameters.get(FIELDS_QUERY_KEY);
         if (CollectionsExt.isNullOrEmpty(fields)) {
             return Collections.emptyList();
