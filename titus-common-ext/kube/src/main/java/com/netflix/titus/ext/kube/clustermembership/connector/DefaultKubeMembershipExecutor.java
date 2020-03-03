@@ -25,6 +25,7 @@ import com.netflix.titus.ext.kube.clustermembership.connector.model.KubeClusterM
 import com.netflix.titus.ext.kube.clustermembership.connector.model.KubeClusterMembershipRevisionResource;
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.apis.CustomObjectsApi;
+import io.kubernetes.client.openapi.models.V1DeleteOptionsBuilder;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -106,7 +107,7 @@ class DefaultKubeMembershipExecutor implements KubeMembershipExecutor {
                         namespace,
                         KubeClusterMembershipModelConverters.CRD_PLURAL_MEMBERS,
                         memberId,
-                        null,
+                        new V1DeleteOptionsBuilder().build(),
                         0,
                         false,
                         null,

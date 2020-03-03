@@ -245,7 +245,8 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         killTaskCounter.increment();
         try {
             logger.info("deleting pod: {}", taskId);
-            kubeApiFacade.getCoreV1Api().deleteNamespacedPod(taskId,
+            kubeApiFacade.getCoreV1Api().deleteNamespacedPod(
+                    taskId,
                     KUBERNETES_NAMESPACE,
                     null,
                     null,
@@ -676,7 +677,8 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     private void gcNode(V1Node node) {
         String nodeName = node.getMetadata().getName();
         try {
-            kubeApiFacade.getCoreV1Api().deleteNode(nodeName,
+            kubeApiFacade.getCoreV1Api().deleteNode(
+                    nodeName,
                     null,
                     null,
                     0,
@@ -720,7 +722,8 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     private void gcPod(V1Pod pod) {
         String podName = pod.getMetadata().getName();
         try {
-            kubeApiFacade.getCoreV1Api().deleteNamespacedPod(podName,
+            kubeApiFacade.getCoreV1Api().deleteNamespacedPod(
+                    podName,
                     KUBERNETES_NAMESPACE,
                     null,
                     null,

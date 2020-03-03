@@ -36,3 +36,5 @@ dependencies {
 
     compile project(':titus-testkit')
 }
+
+publishNebulaPublicationToMavenLocal.enabled = false

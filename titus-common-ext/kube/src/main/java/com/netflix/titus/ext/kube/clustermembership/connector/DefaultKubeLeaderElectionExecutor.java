@@ -260,7 +260,7 @@ class DefaultKubeLeaderElectionExecutor implements KubeLeaderElectionExecutor {
 
         private LeaderElectionHandler() {
             EndpointsLock lock = new EndpointsLock(namespace, clusterName, localMemberId, kubeApiClient);
-            LeaderElectionConfig leaderElectionConfig = new LeaderElectionConfig(lock, leaseDuration, null, retryPeriod);
+            LeaderElectionConfig leaderElectionConfig = new LeaderElectionConfig(lock, leaseDuration, leaseDuration.dividedBy(2), retryPeriod);
             LeaderElector leaderElector = new LeaderElector(leaderElectionConfig);
 
             this.leaderThread = new Thread("LeaderElectionHandler-" + LEADER_ELECTION_THREAD_IDX.getAndIncrement()) {

@@ -144,7 +144,8 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
             Stopwatch timer = Stopwatch.createStarted();
             try {
                 logger.info("Deleting pod: {}", taskId);
-                kubeApiFacade.getCoreV1Api().deleteNamespacedPod(taskId,
+                kubeApiFacade.getCoreV1Api().deleteNamespacedPod(
+                        taskId,
                         KUBERNETES_NAMESPACE,
                         null,
                         null,
