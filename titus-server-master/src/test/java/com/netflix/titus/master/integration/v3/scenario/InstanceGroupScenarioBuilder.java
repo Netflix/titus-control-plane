@@ -89,6 +89,15 @@ public class InstanceGroupScenarioBuilder {
         return instances.containsKey(instanceId);
     }
 
+    public InstanceGroupScenarioBuilder all(Consumer<InstanceScenarioBuilder> transformer) {
+        checkIsKnown();
+        Preconditions.checkElementIndex(0, instances.values().size(), "At least one agent instance available");
+        instances.values().forEach(instance ->
+                transformer.accept(new InstanceScenarioBuilder(titusStackResource, instance))
+        );
+        return this;
+    }
+
     public InstanceGroupScenarioBuilder any(Consumer<InstanceScenarioBuilder> transformer) {
         checkIsKnown();
         ArrayList<AgentInstance> instancesList = new ArrayList<>(instances.values());
