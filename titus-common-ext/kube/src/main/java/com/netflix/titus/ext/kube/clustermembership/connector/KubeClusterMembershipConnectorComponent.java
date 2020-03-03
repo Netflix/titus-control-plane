@@ -18,14 +18,13 @@ package com.netflix.titus.ext.kube.clustermembership.connector;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Preconditions;
 import com.netflix.titus.api.clustermembership.connector.ClusterMembershipConnector;
 import com.netflix.titus.api.clustermembership.model.ClusterMember;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.StringExt;
-import io.kubernetes.client.ApiClient;
+import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.util.Config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,7 +69,7 @@ public class KubeClusterMembershipConnectorComponent {
             client = Config.fromUrl(kubeApiServerUri);
         }
 
-        client.getHttpClient().setReadTimeout(0, TimeUnit.SECONDS); // infinite timeout
+        client.setReadTimeout(0); // infinite timeout
         return client;
     }
 

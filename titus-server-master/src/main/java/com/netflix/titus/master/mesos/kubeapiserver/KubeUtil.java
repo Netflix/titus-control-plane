@@ -38,26 +38,26 @@ import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeConfiguration;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.KubeConstants;
-import com.squareup.okhttp.Request;
-import io.kubernetes.client.ApiClient;
 import io.kubernetes.client.informer.SharedInformerFactory;
-import io.kubernetes.client.models.V1ContainerState;
-import io.kubernetes.client.models.V1ContainerStateRunning;
-import io.kubernetes.client.models.V1ContainerStateTerminated;
-import io.kubernetes.client.models.V1ContainerStateWaiting;
-import io.kubernetes.client.models.V1ContainerStatus;
-import io.kubernetes.client.models.V1Node;
-import io.kubernetes.client.models.V1NodeAddress;
-import io.kubernetes.client.models.V1Pod;
-import io.kubernetes.client.models.V1Toleration;
+import io.kubernetes.client.openapi.ApiClient;
+import io.kubernetes.client.openapi.models.V1ContainerState;
+import io.kubernetes.client.openapi.models.V1ContainerStateRunning;
+import io.kubernetes.client.openapi.models.V1ContainerStateTerminated;
+import io.kubernetes.client.openapi.models.V1ContainerStateWaiting;
+import io.kubernetes.client.openapi.models.V1ContainerStatus;
+import io.kubernetes.client.openapi.models.V1Node;
+import io.kubernetes.client.openapi.models.V1NodeAddress;
+import io.kubernetes.client.openapi.models.V1Pod;
+import io.kubernetes.client.openapi.models.V1Toleration;
 import io.kubernetes.client.util.Config;
+import okhttp3.Request;
 
 public class KubeUtil {
 
     public static final Pattern UUID_PATTERN = Pattern.compile("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
 
     public static final Function<Request, String> DEFAULT_URI_MAPPER = r -> {
-        String path = r.url().getPath();
+        String path = '/' + String.join("/", r.url().pathSegments());
         Matcher matcher = UUID_PATTERN.matcher(path);
         return matcher.replaceAll("");
     };
@@ -92,8 +92,12 @@ public class KubeUtil {
             client = Config.fromUrl(kubeApiServerUrl);
         }
 
-        client.getHttpClient().setReadTimeout(readTimeoutMs, TimeUnit.MILLISECONDS);
-        client.getHttpClient().interceptors().add(metricsInterceptor);
+        client.setHttpClient(
+                client.getHttpClient().newBuilder()
+                        .addInterceptor(metricsInterceptor)
+                        .readTimeout(readTimeoutMs, TimeUnit.SECONDS)
+                        .build()
+        );
         return client;
     }
 
@@ -199,7 +203,7 @@ public class KubeUtil {
     }
 
     public static String getNodeIpV4Address(V1Node node) {
-        return   node.getStatus().getAddresses().stream()
+        return node.getStatus().getAddresses().stream()
                 .filter(a -> a.getType().equalsIgnoreCase(INTERNAL_IP) && NetworkExt.isIpV4(a.getAddress()))
                 .findFirst()
                 .map(V1NodeAddress::getAddress)

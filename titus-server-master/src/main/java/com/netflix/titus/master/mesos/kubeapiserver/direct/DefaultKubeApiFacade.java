@@ -28,18 +28,18 @@ import com.netflix.titus.common.util.guice.annotation.Deactivator;
 import com.netflix.titus.master.MetricConstants;
 import com.netflix.titus.master.mesos.kubeapiserver.model.v1.V1OpportunisticResource;
 import com.netflix.titus.master.mesos.kubeapiserver.model.v1.V1OpportunisticResourceList;
-import com.squareup.okhttp.Call;
-import io.kubernetes.client.ApiClient;
-import io.kubernetes.client.ApiException;
-import io.kubernetes.client.apis.CoreV1Api;
-import io.kubernetes.client.apis.CustomObjectsApi;
 import io.kubernetes.client.informer.SharedIndexInformer;
 import io.kubernetes.client.informer.SharedInformerFactory;
-import io.kubernetes.client.models.V1Node;
-import io.kubernetes.client.models.V1NodeList;
-import io.kubernetes.client.models.V1Pod;
-import io.kubernetes.client.models.V1PodList;
+import io.kubernetes.client.openapi.ApiClient;
+import io.kubernetes.client.openapi.ApiException;
+import io.kubernetes.client.openapi.apis.CoreV1Api;
+import io.kubernetes.client.openapi.apis.CustomObjectsApi;
+import io.kubernetes.client.openapi.models.V1Node;
+import io.kubernetes.client.openapi.models.V1NodeList;
+import io.kubernetes.client.openapi.models.V1Pod;
+import io.kubernetes.client.openapi.models.V1PodList;
 import io.kubernetes.client.util.CallGeneratorParams;
+import okhttp3.Call;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -197,11 +197,12 @@ public class DefaultKubeApiFacade implements KubeApiFacade {
                         null,
                         null,
                         null,
+                        null,
                         params.resourceVersion,
                         params.timeoutSeconds,
                         params.watch,
-                        null,
-                        null),
+                        null
+                ),
                 V1Node.class,
                 V1NodeList.class,
                 configuration.getKubeApiServerIntegratorRefreshIntervalMs()
@@ -217,10 +218,10 @@ public class DefaultKubeApiFacade implements KubeApiFacade {
                         null,
                         null,
                         null,
+                        null,
                         params.resourceVersion,
                         params.timeoutSeconds,
                         params.watch,
-                        null,
                         null
                 ),
                 V1Pod.class,
@@ -248,10 +249,11 @@ public class DefaultKubeApiFacade implements KubeApiFacade {
                     null,
                     null,
                     null,
+                    null,
+                    null,
                     params.resourceVersion,
                     params.timeoutSeconds,
                     params.watch,
-                    null,
                     null
             );
         } catch (ApiException e) {

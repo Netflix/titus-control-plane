@@ -30,7 +30,7 @@ import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeConfiguration;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
-import io.kubernetes.client.models.V1Toleration;
+import io.kubernetes.client.openapi.models.V1Toleration;
 
 @Singleton
 public class DefaultTaintTolerationFactory implements TaintTolerationFactory {

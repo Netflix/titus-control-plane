@@ -17,10 +17,9 @@
 package com.netflix.titus.ext.kube.clustermembership.connector;
 
 import java.time.Duration;
-import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Preconditions;
-import io.kubernetes.client.ApiClient;
+import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.util.ClientBuilder;
 import org.junit.rules.ExternalResource;
 
@@ -40,7 +39,7 @@ public class KubeExternalResource extends ExternalResource {
                 .standard()
                 .setBasePath(String.format("http://%s:7001", kubeServer))
                 .build();
-        client.getHttpClient().setReadTimeout(0, TimeUnit.SECONDS); // infinite timeout
+        client.setReadTimeout(0); // infinite timeout
     }
 
     public ApiClient getClient() {

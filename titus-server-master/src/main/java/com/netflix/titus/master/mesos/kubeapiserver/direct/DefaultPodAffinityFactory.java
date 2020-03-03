@@ -26,17 +26,17 @@ import com.netflix.titus.api.jobmanager.JobConstraints;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
-import io.kubernetes.client.models.V1Affinity;
-import io.kubernetes.client.models.V1LabelSelector;
-import io.kubernetes.client.models.V1LabelSelectorRequirement;
-import io.kubernetes.client.models.V1NodeAffinity;
-import io.kubernetes.client.models.V1NodeSelector;
-import io.kubernetes.client.models.V1NodeSelectorRequirement;
-import io.kubernetes.client.models.V1NodeSelectorTerm;
-import io.kubernetes.client.models.V1PodAffinityTerm;
-import io.kubernetes.client.models.V1PodAntiAffinity;
-import io.kubernetes.client.models.V1PreferredSchedulingTerm;
-import io.kubernetes.client.models.V1WeightedPodAffinityTerm;
+import io.kubernetes.client.openapi.models.V1Affinity;
+import io.kubernetes.client.openapi.models.V1LabelSelector;
+import io.kubernetes.client.openapi.models.V1LabelSelectorRequirement;
+import io.kubernetes.client.openapi.models.V1NodeAffinity;
+import io.kubernetes.client.openapi.models.V1NodeSelector;
+import io.kubernetes.client.openapi.models.V1NodeSelectorRequirement;
+import io.kubernetes.client.openapi.models.V1NodeSelectorTerm;
+import io.kubernetes.client.openapi.models.V1PodAffinityTerm;
+import io.kubernetes.client.openapi.models.V1PodAntiAffinity;
+import io.kubernetes.client.openapi.models.V1PreferredSchedulingTerm;
+import io.kubernetes.client.openapi.models.V1WeightedPodAffinityTerm;
 
 @Singleton
 public class DefaultPodAffinityFactory implements PodAffinityFactory {

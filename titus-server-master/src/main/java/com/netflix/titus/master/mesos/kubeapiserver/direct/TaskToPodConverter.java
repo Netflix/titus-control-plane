@@ -20,7 +20,7 @@ import java.util.function.BiFunction;
 
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
-import io.kubernetes.client.models.V1Pod;
+import io.kubernetes.client.openapi.models.V1Pod;
 
 public interface TaskToPodConverter extends BiFunction<Job<?>, Task, V1Pod> {
 }

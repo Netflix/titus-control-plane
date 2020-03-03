@@ -40,10 +40,10 @@ import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodEvent;
-import io.kubernetes.client.ApiException;
 import io.kubernetes.client.informer.ResourceEventHandler;
-import io.kubernetes.client.models.V1Node;
-import io.kubernetes.client.models.V1Pod;
+import io.kubernetes.client.openapi.ApiException;
+import io.kubernetes.client.openapi.models.V1Node;
+import io.kubernetes.client.openapi.models.V1Pod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.DirectProcessor;
@@ -144,7 +144,15 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
             Stopwatch timer = Stopwatch.createStarted();
             try {
                 logger.info("Deleting pod: {}", taskId);
-                kubeApiFacade.getCoreV1Api().deleteNamespacedPod(taskId, KUBERNETES_NAMESPACE, null, null, null, DELETE_GRACE_PERIOD_SECONDS, null, null);
+                kubeApiFacade.getCoreV1Api().deleteNamespacedPod(taskId,
+                        KUBERNETES_NAMESPACE,
+                        null,
+                        null,
+                        DELETE_GRACE_PERIOD_SECONDS,
+                        null,
+                        null,
+                        null
+                );
 
                 metrics.terminateSuccess(task, timer.elapsed(TimeUnit.MILLISECONDS));
             } catch (JsonSyntaxException e) {
