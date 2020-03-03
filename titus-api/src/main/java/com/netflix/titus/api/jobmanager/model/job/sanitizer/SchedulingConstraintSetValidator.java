@@ -22,18 +22,20 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.Function;
 import javax.validation.Constraint;
-import javax.validation.ConstraintValidator;
 import javax.validation.ConstraintValidatorContext;
 import javax.validation.Payload;
 
 import com.netflix.titus.api.jobmanager.model.job.Container;
+import com.netflix.titus.common.model.sanitizer.internal.AbstractConstraintValidator;
 
 import static java.lang.annotation.ElementType.TYPE;
 
 /**
+ *
  */
-public class SchedulingConstraintSetValidator implements ConstraintValidator<SchedulingConstraintSetValidator.SchedulingConstraintSet, Container> {
+public class SchedulingConstraintSetValidator extends AbstractConstraintValidator<SchedulingConstraintSetValidator.SchedulingConstraintSet, Container> {
 
     @Target({TYPE})
     @Retention(RetentionPolicy.RUNTIME)
@@ -53,7 +55,7 @@ public class SchedulingConstraintSetValidator implements ConstraintValidator<Sch
     }
 
     @Override
-    public boolean isValid(Container container, ConstraintValidatorContext context) {
+    protected boolean isValid(Container container, Function<String, ConstraintValidatorContext.ConstraintViolationBuilder> constraintViolationBuilderFunction) {
         if (container == null) {
             return true;
         }
@@ -64,7 +66,7 @@ public class SchedulingConstraintSetValidator implements ConstraintValidator<Sch
             return true;
         }
 
-        context.buildConstraintViolationWithTemplate(
+        constraintViolationBuilderFunction.apply(
                 "Soft and hard constraints not unique. Shared constraints: " + common
         ).addConstraintViolation().disableDefaultConstraintViolation();
         return false;

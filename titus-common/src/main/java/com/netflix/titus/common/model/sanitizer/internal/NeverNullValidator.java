@@ -20,26 +20,26 @@ import java.lang.reflect.Field;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
-import javax.validation.ConstraintValidator;
+import java.util.function.Function;
+
 import javax.validation.ConstraintValidatorContext;
 
 import com.netflix.titus.common.model.sanitizer.ClassFieldsNotNull;
 import com.netflix.titus.common.util.ReflectionExt;
 
-public class NeverNullValidator implements ConstraintValidator<ClassFieldsNotNull, Object> {
+public class NeverNullValidator extends AbstractConstraintValidator<ClassFieldsNotNull, Object> {
 
     @Override
     public void initialize(ClassFieldsNotNull constraintAnnotation) {
     }
 
     @Override
-    public boolean isValid(Object value, ConstraintValidatorContext context) {
+    protected boolean isValid(Object value, Function<String, ConstraintValidatorContext.ConstraintViolationBuilder> constraintViolationBuilderFunction) {
         Set<String> nullFields = validate(value);
         if (nullFields.isEmpty()) {
             return true;
         }
-        context.buildConstraintViolationWithTemplate(buildMessage(nullFields)).addConstraintViolation();
-        context.disableDefaultConstraintViolation();
+        constraintViolationBuilderFunction.apply(buildMessage(nullFields)).addConstraintViolation().disableDefaultConstraintViolation();
         return false;
     }
 

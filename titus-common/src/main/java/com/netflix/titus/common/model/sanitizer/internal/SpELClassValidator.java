@@ -17,12 +17,14 @@
 package com.netflix.titus.common.model.sanitizer.internal;
 
 import java.util.Map;
+import java.util.function.Function;
 import java.util.function.Supplier;
-import javax.validation.ConstraintValidator;
+
 import javax.validation.ConstraintValidatorContext;
 
 import com.netflix.titus.common.model.sanitizer.ClassInvariant;
 import com.netflix.titus.common.model.sanitizer.VerifierMode;
+import com.netflix.titus.common.util.CollectionsExt;
 import org.springframework.expression.EvaluationContext;
 import org.springframework.expression.Expression;
 import org.springframework.expression.ExpressionParser;
@@ -31,7 +33,7 @@ import org.springframework.expression.spel.standard.SpelExpressionParser;
 /**
  * Spring EL JavaBean validation framework class-level validator.
  */
-public class SpELClassValidator implements ConstraintValidator<ClassInvariant, Object> {
+public class SpELClassValidator extends AbstractConstraintValidator<ClassInvariant, Object> {
 
     private final ExpressionParser parser = new SpelExpressionParser();
     private final VerifierMode verifierMode;
@@ -61,7 +63,7 @@ public class SpELClassValidator implements ConstraintValidator<ClassInvariant, O
     }
 
     @Override
-    public boolean isValid(Object value, ConstraintValidatorContext context) {
+    protected boolean isValid(Object value, Function<String, ConstraintValidatorContext.ConstraintViolationBuilder> constraintViolationBuilderFunction) {
         if (!enabled) {
             return true;
         }
@@ -70,16 +72,14 @@ public class SpELClassValidator implements ConstraintValidator<ClassInvariant, O
         }
 
         Map<String, String> violations = (Map<String, String>) exprExpression.getValue(spelContext, value);
-        if (violations.isEmpty()) {
+        if (CollectionsExt.isNullOrEmpty(violations)) {
             return true;
         }
 
-        context.disableDefaultConstraintViolation();
-        violations.forEach((field, message) -> {
-            context.buildConstraintViolationWithTemplate(message)
-                    .addPropertyNode(field)
-                    .addConstraintViolation();
-        });
+        violations.forEach((field, message) -> constraintViolationBuilderFunction.apply(message)
+                .addPropertyNode(field)
+                .addConstraintViolation()
+                .disableDefaultConstraintViolation());
 
         return false;
     }

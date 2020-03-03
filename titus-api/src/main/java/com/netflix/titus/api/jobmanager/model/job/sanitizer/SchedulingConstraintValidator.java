@@ -22,14 +22,14 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.validation.Constraint;
-import javax.validation.ConstraintValidator;
 import javax.validation.ConstraintValidatorContext;
 import javax.validation.Payload;
 
 import com.netflix.titus.api.jobmanager.JobConstraints;
+import com.netflix.titus.common.model.sanitizer.internal.AbstractConstraintValidator;
 
 import static java.lang.annotation.ElementType.ANNOTATION_TYPE;
 import static java.lang.annotation.ElementType.CONSTRUCTOR;
@@ -37,7 +37,7 @@ import static java.lang.annotation.ElementType.FIELD;
 import static java.lang.annotation.ElementType.METHOD;
 import static java.lang.annotation.ElementType.PARAMETER;
 
-public class SchedulingConstraintValidator implements ConstraintValidator<SchedulingConstraintValidator.SchedulingConstraint, Map<String, String>> {
+public class SchedulingConstraintValidator extends AbstractConstraintValidator<SchedulingConstraintValidator.SchedulingConstraint, Map<String, String>> {
 
     @Target({METHOD, FIELD, ANNOTATION_TYPE, CONSTRUCTOR, PARAMETER})
     @Retention(RetentionPolicy.RUNTIME)
@@ -69,14 +69,13 @@ public class SchedulingConstraintValidator implements ConstraintValidator<Schedu
     }
 
     @Override
-    public boolean isValid(Map<String, String> value, ConstraintValidatorContext context) {
-        Set<String> namesInLowerCase = value.keySet().stream().map(String::toLowerCase).collect(Collectors.toSet());
-        HashSet<String> unknown = new HashSet<>(namesInLowerCase);
+    protected boolean isValid(Map<String, String> value, Function<String, ConstraintValidatorContext.ConstraintViolationBuilder> constraintViolationBuilderFunction) {
+        HashSet<String> unknown = value.keySet().stream().map(String::toLowerCase).collect(Collectors.toCollection(HashSet::new));
         unknown.removeAll(JobConstraints.CONSTRAINT_NAMES);
         if (unknown.isEmpty()) {
             return true;
         }
-        context.buildConstraintViolationWithTemplate("Unrecognized constraints " + unknown)
+        constraintViolationBuilderFunction.apply("Unrecognized constraints " + unknown)
                 .addConstraintViolation().disableDefaultConstraintViolation();
         return false;
     }

@@ -16,8 +16,9 @@
 
 package com.netflix.titus.common.model.sanitizer.internal;
 
+import java.util.function.Function;
 import java.util.function.Supplier;
-import javax.validation.ConstraintValidator;
+
 import javax.validation.ConstraintValidatorContext;
 
 import com.netflix.titus.common.model.sanitizer.FieldInvariant;
@@ -27,7 +28,7 @@ import org.springframework.expression.Expression;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 
-public class SpELFieldValidator implements ConstraintValidator<FieldInvariant, Object> {
+public class SpELFieldValidator extends AbstractConstraintValidator<FieldInvariant, Object> {
 
     private final ExpressionParser parser = new SpelExpressionParser();
     private final VerifierMode verifierMode;
@@ -52,7 +53,7 @@ public class SpELFieldValidator implements ConstraintValidator<FieldInvariant, O
     }
 
     @Override
-    public boolean isValid(Object value, ConstraintValidatorContext context) {
+    protected boolean isValid(Object value, Function<String, ConstraintValidatorContext.ConstraintViolationBuilder> constraintViolationBuilderFunction) {
         if (!enabled) {
             return true;
         }
