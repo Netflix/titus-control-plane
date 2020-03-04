@@ -66,6 +66,15 @@ public class KubeConstants {
      */
     public static final String TAINT_SCHEDULER = TITUS_TAINT_DOMAIN + "scheduler";
 
+    public static final String TAINT_SCHEDULER_VALUE_FENZO = "fenzo";
+
+    public static final String TAINT_SCHEDULER_VALUE_KUBE = "kubeScheduler";
+
+    /**
+     * Machine in a farzone have the farzone taint set with its name as a value.
+     */
+    public static final String TAINT_FARZONE = TITUS_TAINT_DOMAIN + "farzone";
+
     /**
      * Machines with the taint value 'flex' belong to the flex tier. Machines with the taint 'critical' belong to
      * the critical tiers.

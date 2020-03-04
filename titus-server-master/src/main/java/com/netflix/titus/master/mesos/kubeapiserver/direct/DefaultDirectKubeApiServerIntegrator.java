@@ -38,6 +38,7 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExecutorsExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.rx.ReactorExt;
+import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodEvent;
 import io.kubernetes.client.ApiException;
 import io.kubernetes.client.informer.ResourceEventHandler;
@@ -181,6 +182,9 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
             ResourceEventHandler<V1Pod> handler = new ResourceEventHandler<V1Pod>() {
                 @Override
                 public void onAdd(V1Pod pod) {
+                    if(!KubeUtil.isOwnedByKubeScheduler(pod)) {
+                        return;
+                    }
                     logger.info("Pod Added: {}", pod);
 
                     String taskId = pod.getSpec().getContainers().get(0).getName();
@@ -199,6 +203,10 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
 
                 @Override
                 public void onUpdate(V1Pod oldPod, V1Pod newPod) {
+                    if(!KubeUtil.isOwnedByKubeScheduler(newPod)) {
+                        return;
+                    }
+
                     logger.info("Pod Updated Old: {}, New: {}", oldPod, newPod);
                     metrics.onUpdate(newPod);
 
@@ -208,6 +216,10 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
 
                 @Override
                 public void onDelete(V1Pod pod, boolean deletedFinalStateUnknown) {
+                    if(!KubeUtil.isOwnedByKubeScheduler(pod)) {
+                        return;
+                    }
+
                     logger.info("Pod Deleted: {}, deletedFinalStateUnknown={}", pod, deletedFinalStateUnknown);
                     metrics.onDelete(pod);
 

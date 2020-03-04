@@ -16,6 +16,8 @@
 
 package com.netflix.titus.master.mesos.kubeapiserver.direct;
 
+import java.util.List;
+
 import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
 
@@ -74,4 +76,10 @@ public interface DirectKubeConfiguration {
 
     @DefaultValue("5000")
     long getKubeApiClientTimeoutMs();
+
+    /**
+     * Get list of farzone names. A job associated with a zone hard constraint, where the zone id is one of the
+     * farzone names has pods tainted with that zone id.
+     */
+    List<String> getFarzones();
 }
