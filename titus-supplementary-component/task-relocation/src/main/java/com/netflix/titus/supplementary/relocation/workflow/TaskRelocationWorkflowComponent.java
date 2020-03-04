@@ -19,6 +19,7 @@ package com.netflix.titus.supplementary.relocation.workflow;
 import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.runtime.connector.agent.AgentDataReplicator;
 import com.netflix.titus.runtime.connector.eviction.EvictionDataReplicator;
 import com.netflix.titus.runtime.connector.eviction.EvictionServiceClient;
@@ -28,10 +29,16 @@ import com.netflix.titus.supplementary.relocation.descheduler.DeschedulerService
 import com.netflix.titus.supplementary.relocation.store.TaskRelocationResultStore;
 import com.netflix.titus.supplementary.relocation.store.TaskRelocationStore;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 
 @Component
 public class TaskRelocationWorkflowComponent {
+
+    @Bean
+    public RelocationConfiguration getRelocationConfiguration(Environment environment) {
+        return Archaius2Ext.newConfiguration(RelocationConfiguration.class, environment);
+    }
 
     @Bean
     public RelocationWorkflowExecutor getRelocationWorkflowExecutor(RelocationConfiguration configuration,
