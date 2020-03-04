@@ -19,7 +19,7 @@ jobs:
           keys:
             - v2-gradle-cache
       - run:
-          command: ./gradlew testAll --parallel --no-daemon --max-workers 2 --stacktrace
+          command: ./gradlew testAll --no-daemon --max-workers 2 --stacktrace
           no_output_timeout: 20m
       - run:
           name: Save test results

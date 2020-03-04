@@ -98,7 +98,7 @@ public class OpportunisticCpuSchedulingTest extends BaseIntegrationTest {
         Instant expiresAt = Instant.now().plus(Duration.ofSeconds(45));
         OpportunisticCpuAvailability availability = new OpportunisticCpuAvailability(allocationId, expiresAt, 4);
         instanceGroupsScenarioBuilder.apply("flex1",
-                group -> group.any(instance -> instance.addOpportunisticCpus(availability))
+                group -> group.all(instance -> instance.addOpportunisticCpus(availability))
         );
 
         // job runtime is 12s, but opportunistic cpus are available for 10s
@@ -123,14 +123,16 @@ public class OpportunisticCpuSchedulingTest extends BaseIntegrationTest {
         String allocationId = UUID.randomUUID().toString();
         Instant expiresAt = Instant.now().plus(Duration.ofHours(6));
         OpportunisticCpuAvailability availability = new OpportunisticCpuAvailability(allocationId, expiresAt, 4);
-        instanceGroupsScenarioBuilder.apply("flex1",
-                group -> group.any(instance -> instance.addOpportunisticCpus(availability))
+        titusStackResource.getMaster().getSimulatedCloud().updateAgentGroupCapacity("flex1", 1, 1, 1);
+        instanceGroupsScenarioBuilder.apply("flex1", group -> group
+                .awaitDesiredSize(1)
+                .awaitDesiredInstanceCount() // ensure the agent is scaled down
+                .all(instance -> instance.addOpportunisticCpus(availability))
         );
 
         JobDescriptor<BatchJobExt> jobDescriptor = BATCH_JOB_WITH_RUNTIME_PREDICTION.but(j ->
                 j.getContainer().but(c -> c.getContainerResources().toBuilder().withCpu(2))
         );
-
         jobsScenarioBuilder.schedule(jobDescriptor, jobScenarioBuilder -> jobScenarioBuilder
                 .template(launchJob())
                 .allTasks(taskScenarioBuilder -> taskScenarioBuilder
@@ -188,7 +190,7 @@ public class OpportunisticCpuSchedulingTest extends BaseIntegrationTest {
         Instant expiresAt = Instant.now().minus(Duration.ofMillis(1));
         OpportunisticCpuAvailability availability = new OpportunisticCpuAvailability(allocationId, expiresAt, 10);
         instanceGroupsScenarioBuilder.apply("flex1",
-                group -> group.any(instance -> instance.addOpportunisticCpus(availability))
+                group -> group.all(instance -> instance.addOpportunisticCpus(availability))
         );
 
         JobDescriptor<BatchJobExt> jobDescriptor = BATCH_JOB_WITH_RUNTIME_PREDICTION.but(j ->
@@ -212,7 +214,7 @@ public class OpportunisticCpuSchedulingTest extends BaseIntegrationTest {
         Instant expiresAt = Instant.now().plus(Duration.ofHours(6));
         OpportunisticCpuAvailability availability = new OpportunisticCpuAvailability(allocationId, expiresAt, 2);
         instanceGroupsScenarioBuilder.apply("flex1",
-                group -> group.any(instance -> instance.addOpportunisticCpus(availability))
+                group -> group.all(instance -> instance.addOpportunisticCpus(availability))
         );
 
         JobDescriptor<BatchJobExt> jobDescriptor = BATCH_JOB_WITH_RUNTIME_PREDICTION.but(j ->
@@ -239,7 +241,7 @@ public class OpportunisticCpuSchedulingTest extends BaseIntegrationTest {
         instanceGroupsScenarioBuilder.apply("flex1", group -> group
                 .awaitDesiredSize(1)
                 .awaitDesiredInstanceCount() // ensure the agent is scaled down
-                .any(instance -> instance.addOpportunisticCpus(availability))
+                .all(instance -> instance.addOpportunisticCpus(availability))
         );
 
         JobDescriptor<BatchJobExt> regularJob = oneTaskBatchJobDescriptor().but(
@@ -293,7 +295,7 @@ public class OpportunisticCpuSchedulingTest extends BaseIntegrationTest {
         Instant expiresAt = Instant.now().plus(Duration.ofHours(6));
         OpportunisticCpuAvailability availability = new OpportunisticCpuAvailability(allocationId, expiresAt, 4);
         instanceGroupsScenarioBuilder.apply("flex1",
-                group -> group.any(instance -> instance.addOpportunisticCpus(availability))
+                group -> group.all(instance -> instance.addOpportunisticCpus(availability))
         );
 
         JobDescriptor<BatchJobExt> opportunisticJob = BATCH_JOB_WITH_RUNTIME_PREDICTION.but(j ->
@@ -328,7 +330,7 @@ public class OpportunisticCpuSchedulingTest extends BaseIntegrationTest {
         Instant expiresAt = Instant.now().plus(Duration.ofHours(6));
         OpportunisticCpuAvailability availability = new OpportunisticCpuAvailability(allocationId, expiresAt, 4);
         instanceGroupsScenarioBuilder.apply("flex1",
-                group -> group.any(instance -> instance.addOpportunisticCpus(availability))
+                group -> group.all(instance -> instance.addOpportunisticCpus(availability))
         );
 
         JobDescriptor<BatchJobExt> jobDescriptor = BATCH_JOB_WITH_RUNTIME_PREDICTION.but(j ->
