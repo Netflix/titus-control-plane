@@ -159,8 +159,10 @@ subprojects {
         testCompile "org.assertj:assertj-core:${assertjVersion}"
     }
 
+    def processorTarget = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
+
     test {
-        maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
+        maxParallelForks = processorTarget
 
         useJUnit {
             excludeCategories 'com.netflix.titus.testkit.junit.category.IntegrationTest', 'com.netflix.titus.testkit.junit.category.IntegrationNotParallelizableTest',
@@ -182,7 +184,7 @@ subprojects {
     }
 
     task integrationTest(type: Test) {
-        maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
+        maxParallelForks = processorTarget
         shouldRunAfter test
 
         useJUnit {
@@ -225,7 +227,7 @@ subprojects {
     }
 
     task remoteIntegrationTest(type: Test) {
-        maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
+        maxParallelForks = processorTarget
         shouldRunAfter test
 
         useJUnit {

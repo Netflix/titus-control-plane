@@ -34,9 +34,15 @@ public class EmbeddedTitusCells {
         return basicCell(EmbeddedTitusMaster.CELL_NAME, desired);
     }
 
-    public static EmbeddedTitusCell basicCell(String cellName, int desired) {
-        SimulatedCloud simulatedCloud = SimulatedClouds.basicCloud(desired);
+    public static EmbeddedTitusCell basicCell(SimulatedCloud simulatedCloud) {
+        return basicCell(EmbeddedTitusMaster.CELL_NAME, simulatedCloud);
+    }
 
+    public static EmbeddedTitusCell basicCell(String cellName, int desired) {
+        return basicCell(cellName, SimulatedClouds.basicCloud(desired));
+    }
+
+    private static EmbeddedTitusCell basicCell(String cellName, SimulatedCloud simulatedCloud) {
         return EmbeddedTitusCell.aTitusCell()
                 .withMaster(EmbeddedTitusMasters.basicMaster(simulatedCloud).toBuilder()
                         .withCellName(cellName)

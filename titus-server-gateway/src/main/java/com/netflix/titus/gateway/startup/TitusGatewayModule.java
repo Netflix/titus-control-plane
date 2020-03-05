@@ -140,7 +140,7 @@ public final class TitusGatewayModule extends AbstractModule {
                 LoggingCodeInvariants.getDefault(),
                 new SpectatorCodeInvariants(registry.createId("titus.runtime.invariant.violations"), registry)
         );
-        return new DefaultTitusRuntime(codeInvariants, systemLogService, systemAbortListener, registry);
+        return new DefaultTitusRuntime(codeInvariants, systemLogService, false, systemAbortListener, registry);
     }
 
     @Provides

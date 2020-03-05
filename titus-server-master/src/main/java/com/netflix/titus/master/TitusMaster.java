@@ -55,7 +55,7 @@ public class TitusMaster {
             String resourceDir = TitusMaster.class.getClassLoader().getResource("static").toExternalForm();
 
             LifecycleInjector injector = InjectorBuilder.fromModules(
-                    Modules.override(new TitusRuntimeModule()).with(
+                    Modules.override(new TitusRuntimeModule(true)).with(
                             new AbstractModule() {
                                 @Override
                                 protected void configure() {

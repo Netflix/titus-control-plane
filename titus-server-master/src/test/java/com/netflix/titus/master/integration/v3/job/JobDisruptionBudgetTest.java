@@ -69,7 +69,7 @@ public class JobDisruptionBudgetTest extends BaseIntegrationTest {
     }
 
     @Test(timeout = TEST_TIMEOUT_MS)
-    public void testDisruptionBudgetUpdate() throws Exception {
+    public void testDisruptionBudgetUpdate() {
         JobDescriptor<ServiceJobExt> jobWithSelfManaged = changeDisruptionBudget(oneTaskServiceJobDescriptor(), NUMBER_OF_HEALTHY);
 
         jobsScenarioBuilder.schedule(jobWithSelfManaged, jobScenarioBuilder -> jobScenarioBuilder

@@ -201,7 +201,7 @@ public class EmbeddedTitusMaster {
 
         opportunisticCpuAvailability.clear();
         injector = InjectorBuilder.fromModules(
-                Modules.override(new TitusRuntimeModule()).with(new AbstractModule() {
+                Modules.override(new TitusRuntimeModule(false)).with(new AbstractModule() {
                     @Override
                     protected void configure() {
                         bind(Archaius2ConfigurationLogger.class).asEagerSingleton();

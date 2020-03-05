@@ -84,7 +84,7 @@ public class JobGroupInfo {
     }
 
     public Builder toBuilder() {
-        return newBuilder();
+        return newBuilder().withStack(stack).withDetail(detail).withSequence(sequence);
     }
 
     public static Builder newBuilder() {

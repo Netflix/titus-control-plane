@@ -19,6 +19,7 @@ package com.netflix.titus.master.integration.v3.scenario;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -110,11 +111,16 @@ public class JobsScenarioBuilder extends ExternalResource {
     }
 
     public JobsScenarioBuilder schedule(JobDescriptor jobDescriptor,
-                                        Function<JobScenarioBuilder, JobScenarioBuilder> jobScenario) throws Exception {
+                                        Function<JobScenarioBuilder, JobScenarioBuilder> jobScenario) {
         TestStreamObserver<JobId> responseObserver = new TestStreamObserver<>();
         client.createJob(GrpcJobManagementModelConverters.toGrpcJobDescriptor(jobDescriptor), responseObserver);
 
-        JobId jobId = responseObserver.takeNext(TIMEOUT_MS, TimeUnit.MILLISECONDS);
+        JobId jobId;
+        try {
+            jobId = responseObserver.takeNext(TIMEOUT_MS, TimeUnit.MILLISECONDS);
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
         Preconditions.checkNotNull(jobId, "Job create operation not completed in time");
 
         TestStreamObserver<JobChangeNotification> eventStream = new TestStreamObserver<>();
@@ -142,6 +148,15 @@ public class JobsScenarioBuilder extends ExternalResource {
         return this;
     }
 
+    public Job scheduleAndReturnJob(JobDescriptor jobDescriptor,
+                                    Function<JobScenarioBuilder, JobScenarioBuilder> jobScenario) {
+        AtomicReference<Job> jobRef = new AtomicReference<>();
+        schedule(jobDescriptor, js -> jobScenario.apply(js).inJob(jobRef::set));
+
+        Preconditions.checkNotNull(jobRef.get(), "Job not set after scheduling");
+        return jobRef.get();
+    }
+
     public JobScenarioBuilder takeJob(String jobId) {
         return jobScenarioBuilders.stream().filter(j -> j.getJobId().equals(jobId)).findFirst().orElseThrow(() -> new IllegalArgumentException("Job not found: " + jobId));
     }
@@ -157,6 +172,10 @@ public class JobsScenarioBuilder extends ExternalResource {
 
     public String takeTaskId(int jobIdx, int taskIdx) {
         return takeJob(jobIdx).getTaskByIndex(taskIdx).getTask().getId();
+    }
+
+    public String takeTaskId(String jobId, int taskIdx) {
+        return takeJob(jobId).getTaskByIndex(taskIdx).getTask().getId();
     }
 
     public JobsScenarioBuilder assertJobs(Predicate<List<Job>> predicate) {

@@ -63,6 +63,7 @@ public class GuiceLeaderActivator implements LeaderActivator, ContainerEventList
 
     private final Injector injector;
     private final Clock clock;
+    private final TitusRuntime titusRuntime;
     private final ActivationLifecycle activationLifecycle;
 
     private volatile boolean leader;
@@ -83,6 +84,7 @@ public class GuiceLeaderActivator implements LeaderActivator, ContainerEventList
         this.injector = injector;
         this.activationLifecycle = activationLifecycle;
         this.clock = titusRuntime.getClock();
+        this.titusRuntime = titusRuntime;
 
         Registry registry = titusRuntime.getRegistry();
 
@@ -177,12 +179,16 @@ public class GuiceLeaderActivator implements LeaderActivator, ContainerEventList
         leader = false;
         activated = false;
 
-        // Various services may have built in-memory state that is currently not easy to revert to initialization state.
-        // Until we create such a lifecycle feature for each service and all of their references, best thing to do is to
-        //  exit the process and depend on a watcher process to restart us right away. Especially since restart isn't
-        // very expensive.
-        logger.error("Exiting due to losing leadership after running as leader");
-        SystemExt.forcedProcessExit(1);
+        if (titusRuntime.isSystemExitOnFailure()) {
+            // Various services may have built in-memory state that is currently not easy to revert to initialization state.
+            // Until we create such a lifecycle feature for each service and all of their references, best thing to do is to
+            //  exit the process and depend on a watcher process to restart us right away. Especially since restart isn't
+            // very expensive.
+            logger.error("Exiting due to losing leadership after running as leader");
+            SystemExt.forcedProcessExit(1);
+        } else {
+            deactivate();
+        }
     }
 
     @Override
@@ -213,15 +219,29 @@ public class GuiceLeaderActivator implements LeaderActivator, ContainerEventList
             } catch (Exception e) {
                 stopBeingLeader();
 
-                // As stopBeingLeader method not always terminates the process, lets make sure it does.
-                SystemExt.forcedProcessExit(-1);
+                if (titusRuntime.isSystemExitOnFailure()) {
+                    // As stopBeingLeader method not always terminates the process, lets make sure it does.
+                    SystemExt.forcedProcessExit(-1);
+                }
+                throw e;
             }
         } catch (Throwable e) {
-            SystemExt.forcedProcessExit(-1);
+            if (titusRuntime.isSystemExitOnFailure()) {
+                SystemExt.forcedProcessExit(-1);
+            }
+            throw e;
         }
 
         this.activated = true;
         this.activationEndTimestamp = clock.wallTime();
         this.activationTime = activationEndTimestamp - activationStartTimestamp;
+    }
+
+    private void deactivate() {
+        try {
+            activationLifecycle.deactivate();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 }
