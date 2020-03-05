@@ -452,7 +452,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         V1ObjectMeta metadata = node.getMetadata();
         String nodeIp = node.getStatus().getAddresses().stream()
                 .filter(a -> a.getType().equalsIgnoreCase(INTERNAL_IP) && NetworkExt.isIpV4(a.getAddress()))
-                .findAny()
+                .findFirst()
                 .map(V1NodeAddress::getAddress)
                 .orElse("UnknownIpAddress");
 
