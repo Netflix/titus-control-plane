@@ -37,6 +37,7 @@ import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.Evaluators;
+import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.tuple.Pair;
@@ -50,6 +51,7 @@ import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodNotFoundEven
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodUpdatedEvent;
 import io.kubernetes.client.models.V1ContainerState;
 import io.kubernetes.client.models.V1Node;
+import io.kubernetes.client.models.V1NodeAddress;
 import io.kubernetes.client.models.V1Pod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -263,6 +265,16 @@ public class KubeNotificationProcessor {
         acceptNotNull(annotations.get(NODE_ANNOTATION_PREFIX + "zone"), zone -> agentAttributes.put(TaskAttributes.TASK_ATTRIBUTES_AGENT_ZONE, zone));
 
         acceptNotNull(node.getMetadata().getName(), nodeName -> agentAttributes.put(TaskAttributes.TASK_ATTRIBUTES_KUBE_NODE_NAME, nodeName));
+
+        List<V1NodeAddress> addresses = node.getStatus().getAddresses();
+        if (!CollectionsExt.isNullOrEmpty(addresses)) {
+            addresses.forEach(address -> {
+                if (StringExt.isNotEmpty(address.getAddress()) && "InternalIP".equals(address.getType())) {
+                    agentAttributes.put(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST, address.getAddress());
+                    agentAttributes.put(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST_IP, address.getAddress());
+                }
+            });
+        }
 
         if (agentAttributes.isEmpty()) {
             return task;
