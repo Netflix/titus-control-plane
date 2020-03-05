@@ -50,7 +50,6 @@ import com.netflix.titus.common.framework.scheduler.model.ScheduleDescriptor;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.ExecutorsExt;
-import com.netflix.titus.common.util.NetworkExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.limiter.Limiters;
 import com.netflix.titus.common.util.limiter.tokenbucket.TokenBucket;
@@ -72,7 +71,6 @@ import io.kubernetes.client.informer.ResourceEventHandler;
 import io.kubernetes.client.models.V1Container;
 import io.kubernetes.client.models.V1ContainerStateTerminated;
 import io.kubernetes.client.models.V1Node;
-import io.kubernetes.client.models.V1NodeAddress;
 import io.kubernetes.client.models.V1NodeCondition;
 import io.kubernetes.client.models.V1NodeStatus;
 import io.kubernetes.client.models.V1ObjectMeta;
@@ -117,7 +115,6 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     private static final int ORPHANED_POD_TIMEOUT_MS = 60_000;
     private static final int UNKNOWN_POD_GC_TIMEOUT_MS = 300_000;
     private static final String NEVER_RESTART_POLICY = "Never";
-    private static final String INTERNAL_IP = "InternalIP";
     private static final Quantity DEFAULT_QUANTITY = Quantity.fromString("0");
 
     private static final String NOT_FOUND = "Not Found";
@@ -450,11 +447,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
 
     private Iterable<? extends Protos.Attribute> nodeToAttributes(V1Node node) {
         V1ObjectMeta metadata = node.getMetadata();
-        String nodeIp = node.getStatus().getAddresses().stream()
-                .filter(a -> a.getType().equalsIgnoreCase(INTERNAL_IP) && NetworkExt.isIpV4(a.getAddress()))
-                .findFirst()
-                .map(V1NodeAddress::getAddress)
-                .orElse("UnknownIpAddress");
+        String nodeIp = KubeUtil.getNodeIpV4Address(node);
 
         List<Protos.Attribute> attributes = new ArrayList<>();
         attributes.add(createAttribute("hostIp", nodeIp));

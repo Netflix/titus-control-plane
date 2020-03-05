@@ -33,6 +33,7 @@ import com.netflix.titus.api.jobmanager.JobConstraints;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.common.util.NetworkExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeConfiguration;
@@ -45,6 +46,8 @@ import io.kubernetes.client.models.V1ContainerStateRunning;
 import io.kubernetes.client.models.V1ContainerStateTerminated;
 import io.kubernetes.client.models.V1ContainerStateWaiting;
 import io.kubernetes.client.models.V1ContainerStatus;
+import io.kubernetes.client.models.V1Node;
+import io.kubernetes.client.models.V1NodeAddress;
 import io.kubernetes.client.models.V1Pod;
 import io.kubernetes.client.models.V1Toleration;
 import io.kubernetes.client.util.Config;
@@ -52,11 +55,14 @@ import io.kubernetes.client.util.Config;
 public class KubeUtil {
 
     public static final Pattern UUID_PATTERN = Pattern.compile("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
+
     public static final Function<Request, String> DEFAULT_URI_MAPPER = r -> {
         String path = r.url().getPath();
         Matcher matcher = UUID_PATTERN.matcher(path);
         return matcher.replaceAll("");
     };
+
+    private static final String INTERNAL_IP = "InternalIP";
 
     public static ApiClient createApiClient(String kubeApiServerUrl,
                                             String kubeConfigPath,
@@ -190,5 +196,13 @@ public class KubeUtil {
             }
         }
         return false;
+    }
+
+    public static String getNodeIpV4Address(V1Node node) {
+        return   node.getStatus().getAddresses().stream()
+                .filter(a -> a.getType().equalsIgnoreCase(INTERNAL_IP) && NetworkExt.isIpV4(a.getAddress()))
+                .findFirst()
+                .map(V1NodeAddress::getAddress)
+                .orElse("UnknownIpAddress");
     }
 }
