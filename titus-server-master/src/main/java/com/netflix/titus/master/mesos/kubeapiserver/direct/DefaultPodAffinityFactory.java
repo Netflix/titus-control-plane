@@ -25,6 +25,7 @@ import javax.inject.Singleton;
 import com.netflix.titus.api.jobmanager.JobConstraints;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 import io.kubernetes.client.models.V1Affinity;
 import io.kubernetes.client.models.V1LabelSelector;
 import io.kubernetes.client.models.V1LabelSelectorRequirement;
@@ -44,8 +45,11 @@ public class DefaultPodAffinityFactory implements PodAffinityFactory {
     private static final int UNIQUE_HOST_WEIGHT = 100;
     private static final int NODE_AFFINITY_WEIGHT = 100;
 
+    private final DirectKubeConfiguration configuration;
+
     @Inject
-    public DefaultPodAffinityFactory() {
+    public DefaultPodAffinityFactory(DirectKubeConfiguration configuration) {
+        this.configuration = configuration;
     }
 
     @Override
@@ -66,6 +70,7 @@ public class DefaultPodAffinityFactory implements PodAffinityFactory {
 
             processJobConstraints(job.getJobDescriptor().getContainer().getHardConstraints(), true);
             processJobConstraints(job.getJobDescriptor().getContainer().getSoftConstraints(), false);
+            processFarzoneConstraints();
         }
 
         private void processJobConstraints(Map<String, String> constraints, boolean hard) {
@@ -179,6 +184,12 @@ public class DefaultPodAffinityFactory implements PodAffinityFactory {
                     .values(Collections.singletonList(value));
 
             term.addMatchExpressionsItem(requirement);
+        }
+
+        private void processFarzoneConstraints() {
+            KubeUtil.findFarzoneId(configuration, job).ifPresent(farzoneId ->
+                    addNodeAffinityRequiredSelectorConstraint(KubeConstants.NODE_LABEL_ZONE, farzoneId)
+            );
         }
 
         private V1NodeAffinity getNodeAffinity() {

@@ -63,7 +63,9 @@ import com.netflix.titus.master.jobmanager.service.common.action.task.KillInitia
 import com.netflix.titus.master.jobmanager.service.common.interceptor.RetryActionInterceptor;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
+import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeApiServerIntegrator;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeConfiguration;
 import com.netflix.titus.master.scheduler.SchedulingService;
 import com.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransformer;
 import com.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
@@ -88,6 +90,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
     private final DirectKubeApiServerIntegrator kubeApiServerIntegrator;
     private final JobManagerConfiguration configuration;
     private final FeatureActivationConfiguration featureConfiguration;
+    private final DirectKubeConfiguration kubeConfiguration;
     private final Predicate<JobDescriptor> kubeSchedulerPredicate;
     private final ApplicationSlaManagementService capacityGroupService;
     private final SchedulingService<? extends TaskRequest> schedulingService;
@@ -107,6 +110,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
             DirectKubeApiServerIntegrator kubeApiServerIntegrator,
             JobManagerConfiguration configuration,
             FeatureActivationConfiguration featureConfiguration,
+            DirectKubeConfiguration kubeConfiguration,
             @Named(FeatureRolloutPlans.KUBE_SCHEDULER_FEATURE) Predicate<JobDescriptor> kubeSchedulerPredicate,
             ApplicationSlaManagementService capacityGroupService,
             SchedulingService<? extends TaskRequest> schedulingService,
@@ -116,7 +120,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
             SystemSoftConstraint systemSoftConstraint,
             SystemHardConstraint systemHardConstraint,
             TitusRuntime titusRuntime) {
-        this(kubeApiServerIntegrator, configuration, featureConfiguration, kubeSchedulerPredicate, capacityGroupService,
+        this(kubeApiServerIntegrator, configuration, featureConfiguration, kubeConfiguration, kubeSchedulerPredicate, capacityGroupService,
                 schedulingService, vmService, jobStore, constraintEvaluatorTransformer, systemSoftConstraint,
                 systemHardConstraint, titusRuntime, Schedulers.computation()
         );
@@ -126,6 +130,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
             DirectKubeApiServerIntegrator kubeApiServerIntegrator,
             JobManagerConfiguration configuration,
             FeatureActivationConfiguration featureConfiguration,
+            DirectKubeConfiguration kubeConfiguration,
             @Named(FeatureRolloutPlans.KUBE_SCHEDULER_FEATURE) Predicate<JobDescriptor> kubeSchedulerPredicate,
             ApplicationSlaManagementService capacityGroupService,
             SchedulingService<? extends TaskRequest> schedulingService,
@@ -139,6 +144,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
         this.kubeApiServerIntegrator = kubeApiServerIntegrator;
         this.configuration = configuration;
         this.featureConfiguration = featureConfiguration;
+        this.kubeConfiguration = kubeConfiguration;
         this.kubeSchedulerPredicate = kubeSchedulerPredicate;
         this.capacityGroupService = capacityGroupService;
         this.schedulingService = schedulingService;
@@ -187,12 +193,12 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
 
         if (hasJobState(referenceModel, JobState.KillInitiated)) {
             List<ChangeAction> killInitiatedActions = KillInitiatedActions.reconcilerInitiatedAllTasksKillInitiated(
-                    engine, vmService,kubeApiServerIntegrator, jobStore, TaskStatus.REASON_TASK_KILLED,
+                    engine, vmService, kubeApiServerIntegrator, jobStore, TaskStatus.REASON_TASK_KILLED,
                     "Killing task as its job is in KillInitiated state", allowedTaskKills.get(),
                     titusRuntime
             );
             if (killInitiatedActions.isEmpty()) {
-                return findTaskStateTimeouts(engine, runningJobView, configuration, vmService,kubeApiServerIntegrator, jobStore, titusRuntime);
+                return findTaskStateTimeouts(engine, runningJobView, configuration, vmService, kubeApiServerIntegrator, jobStore, titusRuntime);
             }
             allowedTaskKills.set(allowedTaskKills.get() - killInitiatedActions.size());
             return killInitiatedActions;
@@ -206,7 +212,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
         if (numberOfTaskAdjustingActions.isEmpty()) {
             actions.addAll(findMissingRunningTasks(engine, refJobView, runningJobView));
         }
-        actions.addAll(findTaskStateTimeouts(engine, runningJobView, configuration, vmService,kubeApiServerIntegrator, jobStore, titusRuntime));
+        actions.addAll(findTaskStateTimeouts(engine, runningJobView, configuration, vmService, kubeApiServerIntegrator, jobStore, titusRuntime));
 
         return actions;
     }
@@ -261,7 +267,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
         }
 
         Map<String, String> taskContext = getTaskContext(previousTask, unassignedIpAllocations);
-        if (kubeSchedulerPredicate.test(refJobView.getJob().getJobDescriptor())) {
+        if (KubeUtil.findFarzoneId(kubeConfiguration, refJobView.getJob()).isPresent() || kubeSchedulerPredicate.test(refJobView.getJob().getJobDescriptor())) {
             taskContext = CollectionsExt.copyAndAdd(taskContext, TaskAttributes.TASK_ATTRIBUTES_OWNED_BY_KUBE_SCHEDULER, "true");
         }
 

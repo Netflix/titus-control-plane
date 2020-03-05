@@ -264,9 +264,9 @@ public class KubeNotificationProcessor {
 
         acceptNotNull(node.getMetadata().getName(), nodeName -> agentAttributes.put(TaskAttributes.TASK_ATTRIBUTES_KUBE_NODE_NAME, nodeName));
 
-        if (agentAttributes.isEmpty()) {
-            return task;
-        }
+        String nodeIpAddress = KubeUtil.getNodeIpV4Address(node);
+        agentAttributes.put(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST, nodeIpAddress);
+        agentAttributes.put(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST_IP, nodeIpAddress);
 
         return task.toBuilder()
                 .withTaskContext(CollectionsExt.merge(task.getTaskContext(), agentAttributes))

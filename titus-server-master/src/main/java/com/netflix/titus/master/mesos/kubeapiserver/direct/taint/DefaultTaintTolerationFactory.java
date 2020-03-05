@@ -18,6 +18,7 @@ package com.netflix.titus.master.mesos.kubeapiserver.direct.taint;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -26,16 +27,21 @@ import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.model.Tier;
+import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeConfiguration;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import io.kubernetes.client.models.V1Toleration;
 
 @Singleton
 public class DefaultTaintTolerationFactory implements TaintTolerationFactory {
 
+    private final DirectKubeConfiguration configuration;
     private final ApplicationSlaManagementService capacityManagement;
 
     @Inject
-    public DefaultTaintTolerationFactory(ApplicationSlaManagementService capacityManagement) {
+    public DefaultTaintTolerationFactory(DirectKubeConfiguration configuration,
+                                         ApplicationSlaManagementService capacityManagement) {
+        this.configuration = configuration;
         this.capacityManagement = capacityManagement;
     }
 
@@ -48,6 +54,7 @@ public class DefaultTaintTolerationFactory implements TaintTolerationFactory {
         tolerations.add(Tolerations.TOLERATION_KUBE_SCHEDULER);
 
         tolerations.add(resolveTierToleration(job));
+        resolveAvailabilityZoneToleration(job).ifPresent(tolerations::add);
 
         return tolerations;
     }
@@ -59,5 +66,9 @@ public class DefaultTaintTolerationFactory implements TaintTolerationFactory {
             return Tolerations.TOLERATION_TIER_FLEX;
         }
         return capacityGroup.getTier() == Tier.Critical ? Tolerations.TOLERATION_TIER_CRITICAL : Tolerations.TOLERATION_TIER_FLEX;
+    }
+
+    private Optional<V1Toleration> resolveAvailabilityZoneToleration(Job job) {
+        return KubeUtil.findFarzoneId(configuration, job).map(Tolerations.TOLERATION_FARZONE_FACTORY);
     }
 }

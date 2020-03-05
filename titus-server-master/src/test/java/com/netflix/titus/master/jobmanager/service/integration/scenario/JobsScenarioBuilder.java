@@ -42,6 +42,7 @@ import com.netflix.titus.common.model.sanitizer.EntitySanitizerBuilder;
 import com.netflix.titus.common.model.sanitizer.VerifierMode;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
+import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.jobmanager.service.DefaultV3JobOperations;
 import com.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
@@ -50,6 +51,7 @@ import com.netflix.titus.master.jobmanager.service.batch.BatchDifferenceResolver
 import com.netflix.titus.master.jobmanager.service.integration.scenario.StubbedJobStore.StoreEvent;
 import com.netflix.titus.master.jobmanager.service.limiter.JobSubmitLimiter;
 import com.netflix.titus.master.jobmanager.service.service.ServiceDifferenceResolver;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeConfiguration;
 import com.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransformer;
 import com.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
 import com.netflix.titus.master.scheduler.constraint.SystemSoftConstraint;
@@ -81,6 +83,7 @@ public class JobsScenarioBuilder {
     private final TitusRuntime titusRuntime = TitusRuntimes.test(testScheduler);
 
     private final JobManagerConfiguration configuration = mock(JobManagerConfiguration.class);
+    private final DirectKubeConfiguration kubeConfiguration = Archaius2Ext.newConfiguration(DirectKubeConfiguration.class);
     private final FeatureActivationConfiguration featureActivationConfiguration = mock(FeatureActivationConfiguration.class);
     private final JobConfiguration jobSanitizerConfiguration = mock(JobConfiguration.class);
     private final ApplicationSlaManagementService capacityGroupService = new StubbedApplicationSlaManagementService();
@@ -153,6 +156,7 @@ public class JobsScenarioBuilder {
                 kubeApiServerIntegrator,
                 configuration,
                 featureActivationConfiguration,
+                kubeConfiguration,
                 kubeSchedulerPredicate,
                 capacityGroupService,
                 schedulingService,
@@ -168,6 +172,7 @@ public class JobsScenarioBuilder {
                 kubeApiServerIntegrator,
                 configuration,
                 featureActivationConfiguration,
+                kubeConfiguration,
                 kubeSchedulerPredicate,
                 capacityGroupService,
                 schedulingService,
