@@ -16,12 +16,13 @@
 
 package com.netflix.titus.master.integration.v3.job;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import com.google.common.collect.ImmutableMap;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -31,7 +32,6 @@ import com.netflix.titus.grpc.protogen.Image;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
 import com.netflix.titus.grpc.protogen.JobChangeNotification.NotificationCase;
-import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobStatus.JobState;
 import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
 import com.netflix.titus.grpc.protogen.Task;
@@ -82,8 +82,7 @@ public class JobObserveTest extends BaseIntegrationTest {
 
     @Test(timeout = TEST_TIMEOUT_MS)
     public void observeJobs() throws Exception {
-        TestStreamObserver<JobChangeNotification> eventObserver = new TestStreamObserver<>();
-        titusStackResource.getGateway().getV3GrpcClient().observeJobs(ObserveJobsQuery.newBuilder().build(), eventObserver);
+        TestStreamObserver<JobChangeNotification> eventObserver = observe(ObserveJobsQuery.newBuilder().build());
 
         CountDownLatch latch = new CountDownLatch(2);
         AssertableSubscriber<JobChangeNotification> events = eventObserver.toObservable().doOnNext(n -> {
@@ -125,11 +124,10 @@ public class JobObserveTest extends BaseIntegrationTest {
         String myAppJobId = jobsScenarioBuilder.takeJobId(0);
 
         // start the stream after tasks are already running
-        TestStreamObserver<JobChangeNotification> eventObserver = new TestStreamObserver<>();
         ObserveJobsQuery query = ObserveJobsQuery.newBuilder()
                 .putFilteringCriteria("applicationName", "myApp")
                 .build();
-        titusStackResource.getGateway().getV3GrpcClient().observeJobs(query, eventObserver);
+        TestStreamObserver<JobChangeNotification> eventObserver = observe(query);
 
         CountDownLatch latch = new CountDownLatch(1);
         AssertableSubscriber<JobChangeNotification> events = eventObserver.toObservable().doOnNext(n -> {
@@ -296,15 +294,16 @@ public class JobObserveTest extends BaseIntegrationTest {
         }
     }
 
+    private TestStreamObserver<JobChangeNotification> observe(ObserveJobsQuery query) {
+        TestStreamObserver<JobChangeNotification> eventObserver = new TestStreamObserver<>();
+        titusStackResource.getGateway().getV3GrpcClient()
+                .withDeadlineAfter(TEST_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+                .observeJobs(query, eventObserver);
+        return eventObserver;
+    }
+
     private List<TestStreamObserver<JobChangeNotification>> observeAll(ObserveJobsQuery... queries) {
-        JobManagementServiceGrpc.JobManagementServiceStub client = titusStackResource.getGateway().getV3GrpcClient();
-        List<TestStreamObserver<JobChangeNotification>> observers = new ArrayList<>();
-        for (ObserveJobsQuery query : queries) {
-            TestStreamObserver<JobChangeNotification> observer = new TestStreamObserver<>();
-            observers.add(observer);
-            client.observeJobs(query, observer);
-        }
-        return observers;
+        return Stream.of(queries).map(this::observe).collect(Collectors.toList());
     }
 
     private void assertEvents(TestStreamObserver<JobChangeNotification> events, Consumer<Job> jobAssertions, Consumer<Task> taskAssertions) {
