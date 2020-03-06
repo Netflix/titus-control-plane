@@ -33,6 +33,8 @@ import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.testkit.embedded.cloud.agent.player.ContainerPlayersManager;
 import org.apache.mesos.Protos;
 import org.apache.mesos.Protos.TaskState;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.Observer;
 
@@ -44,6 +46,8 @@ import static com.netflix.titus.common.util.CollectionsExt.asSet;
  * state.
  */
 public class TaskExecutorHolder {
+
+    private static final Logger logger = LoggerFactory.getLogger(TaskExecutorHolder.class);
 
     private static final Map<TaskState, Set<TaskState>> VALID_STATE_TRANSITIONS = CollectionsExt.<TaskState, Set<TaskState>>newHashMap()
             .entry(TaskState.TASK_STAGING, asSet(TaskState.TASK_STARTING, TaskState.TASK_FAILED, TaskState.TASK_KILLING, TaskState.TASK_KILLED))
@@ -199,6 +203,8 @@ public class TaskExecutorHolder {
 
     public TaskState transitionToUnchecked(TaskState nextState, Protos.TaskStatus.Reason reason, String reasonMessage) {
         TaskState oldState = currentTaskStatus.getState();
+
+        logger.info("Changing task state: taskId={}, from={}, to={}", taskId, oldState, nextState);
 
         Protos.TaskStatus.Builder statusBuilder = newTaskStatusBuilder()
                 .setState(nextState)

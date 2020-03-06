@@ -33,7 +33,6 @@ import java.util.stream.Collectors;
 
 import com.google.common.base.Preconditions;
 import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.ProtocolStringList;
 import com.netflix.titus.api.model.EfsMount;
 import com.netflix.titus.common.aws.AwsInstanceType;
 import com.netflix.titus.common.util.StringExt;
@@ -678,7 +677,7 @@ public class SimulatedTitusAgent {
             this.ipsPerEni = ipsPerEni;
         }
 
-        private boolean assign(TaskID taskId, NetworkConfigInfo networkConfigInfo, String containerIp) {
+        private synchronized boolean assign(TaskID taskId, NetworkConfigInfo networkConfigInfo, String containerIp) {
             Preconditions.checkArgument(!eniTaskAssignments.containsKey(taskId));
 
             String eniLabel = networkConfigInfo.getEniLabel();
@@ -691,11 +690,19 @@ public class SimulatedTitusAgent {
             int availableIpCount = eniState.getLeft();
 
             if (assignedSecurityGroups != null && !assignedSecurityGroups.equals(taskSecurityGroups)) {
+                logger.info("[ENI assign] Cannot assign used ENI: taskId={}, eniIdx={}, availableIps={}, usedBy={}",
+                        taskId.getValue(), eniLabel, availableIpCount, toEniAssignmentString(eniLabel)
+                );
                 return false;
             }
             if (availableIpCount <= 0) {
+                logger.info("[ENI assign] Cannot assign used ENI, too many IPs requested: taskId={}, eniIdx={}, availableIps={}, usedBy={}",
+                        taskId.getValue(), eniLabel, availableIpCount, toEniAssignmentString(eniLabel)
+                );
                 return false;
             }
+
+            logger.info("[ENI assign] Assigned ENI: taskId={}, eniIdx={}, availableIps={}", taskId.getValue(), eniLabel, availableIpCount);
 
             eniAssignments.put(eniLabel, Pair.of(availableIpCount - 1, taskSecurityGroups));
             eniTaskAssignments.put(taskId, new EniAndIpAssignment(eniLabel, containerIp));
@@ -703,9 +710,10 @@ public class SimulatedTitusAgent {
             return true;
         }
 
-        private boolean unAssign(TaskID taskId) {
+        private synchronized boolean unAssign(TaskID taskId) {
             EniAndIpAssignment assignment = eniTaskAssignments.remove(taskId);
             if (assignment == null) {
+                logger.warn("[ENI unassign] ENI unassign request for unknown task: {}", taskId.getValue());
                 return false;
             }
             String eniLabel = assignment.getEni();
@@ -716,11 +724,19 @@ public class SimulatedTitusAgent {
             } else {
                 eniAssignments.put(eniLabel, Pair.of(availableIpCount, eniState.getRight()));
             }
+            logger.info("[ENI unassign] Unassigned ENI: taskId={}, eniIdx={}, availableIps={}", taskId.getValue(), eniLabel, availableIpCount);
             return true;
         }
 
         private int getIpsPerEni() {
             return ipsPerEni;
+        }
+
+        private String toEniAssignmentString(String eniLabel) {
+            return eniTaskAssignments.entrySet().stream()
+                    .filter(entry -> entry.getValue().getEni().equals(eniLabel))
+                    .map(entry -> entry.getKey().getValue() + '@' + entry.getValue().getIpAddress())
+                    .collect(Collectors.joining(","));
         }
     }
 }
