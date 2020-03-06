@@ -40,7 +40,7 @@ fs gradle(fs src, string tasks) {
 }
 
 fs titusBuild() {
-    gradle source "testAll"
+    gradle source "--continue clean testAll"
 }
 
 fs homeMetatron() {

@@ -82,7 +82,6 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
             EmbeddedTitusCell.aTitusCell()
                     .withMaster(EmbeddedTitusMasters.basicMaster(SimulatedClouds.basicCloudWithLargeInstances(20)).toBuilder()
                             .withCellName("embeddedCell")
-                            .withProperty("titus.scheduler.globalTaskLaunchingConstraintEvaluatorEnabled", "false")
                             // Set to very high value as we do not want to expire it.
                             .withProperty("titusMaster.jobManager.taskInLaunchedStateTimeoutMs", "30000000")
                             .withProperty("titusMaster.jobManager.batchTaskInStartInitiatedStateTimeoutMs", "30000000")
