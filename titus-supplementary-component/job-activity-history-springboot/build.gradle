@@ -33,6 +33,6 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-tomcat'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
-
-    compile project(':titus-testkit')
 }
+
+publishNebulaPublicationToMavenLocal.enabled = false

@@ -26,7 +26,7 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.testkit.junit.category.RemoteIntegrationTest;
 import com.netflix.titus.testkit.rx.TitusRxSubscriber;
-import io.kubernetes.client.ApiClient;
+import io.kubernetes.client.openapi.ApiClient;
 import org.junit.After;
 import org.junit.ClassRule;
 import org.junit.Test;

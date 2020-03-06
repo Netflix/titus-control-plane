@@ -51,11 +51,11 @@ import com.netflix.titus.master.mesos.kubeapiserver.PerformanceToolUtil;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.taint.TaintTolerationFactory;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import io.kubernetes.client.custom.Quantity;
-import io.kubernetes.client.models.V1Container;
-import io.kubernetes.client.models.V1ObjectMeta;
-import io.kubernetes.client.models.V1Pod;
-import io.kubernetes.client.models.V1PodSpec;
-import io.kubernetes.client.models.V1ResourceRequirements;
+import io.kubernetes.client.openapi.models.V1Container;
+import io.kubernetes.client.openapi.models.V1ObjectMeta;
+import io.kubernetes.client.openapi.models.V1Pod;
+import io.kubernetes.client.openapi.models.V1PodSpec;
+import io.kubernetes.client.openapi.models.V1ResourceRequirements;
 import io.titanframework.messages.TitanProtos;
 
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_ALLOW_CPU_BURSTING;

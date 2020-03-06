@@ -65,20 +65,20 @@ import com.netflix.titus.master.mesos.V3ContainerEvent;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.KubeApiFacade;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.KubeConstants;
-import io.kubernetes.client.ApiException;
 import io.kubernetes.client.custom.Quantity;
 import io.kubernetes.client.informer.ResourceEventHandler;
-import io.kubernetes.client.models.V1Container;
-import io.kubernetes.client.models.V1ContainerStateTerminated;
-import io.kubernetes.client.models.V1Node;
-import io.kubernetes.client.models.V1NodeCondition;
-import io.kubernetes.client.models.V1NodeStatus;
-import io.kubernetes.client.models.V1ObjectMeta;
-import io.kubernetes.client.models.V1Pod;
-import io.kubernetes.client.models.V1PodSpec;
-import io.kubernetes.client.models.V1PodStatus;
-import io.kubernetes.client.models.V1ResourceRequirements;
-import io.kubernetes.client.models.V1Taint;
+import io.kubernetes.client.openapi.ApiException;
+import io.kubernetes.client.openapi.models.V1Container;
+import io.kubernetes.client.openapi.models.V1ContainerStateTerminated;
+import io.kubernetes.client.openapi.models.V1Node;
+import io.kubernetes.client.openapi.models.V1NodeCondition;
+import io.kubernetes.client.openapi.models.V1NodeStatus;
+import io.kubernetes.client.openapi.models.V1ObjectMeta;
+import io.kubernetes.client.openapi.models.V1Pod;
+import io.kubernetes.client.openapi.models.V1PodSpec;
+import io.kubernetes.client.openapi.models.V1PodStatus;
+import io.kubernetes.client.openapi.models.V1ResourceRequirements;
+import io.kubernetes.client.openapi.models.V1Taint;
 import org.apache.mesos.Protos;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
@@ -245,7 +245,16 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         killTaskCounter.increment();
         try {
             logger.info("deleting pod: {}", taskId);
-            kubeApiFacade.getCoreV1Api().deleteNamespacedPod(taskId, KUBERNETES_NAMESPACE, null, null, null, DELETE_GRACE_PERIOD_SECONDS, null, null);
+            kubeApiFacade.getCoreV1Api().deleteNamespacedPod(
+                    taskId,
+                    KUBERNETES_NAMESPACE,
+                    null,
+                    null,
+                    DELETE_GRACE_PERIOD_SECONDS,
+                    null,
+                    null,
+                    null
+            );
         } catch (JsonSyntaxException e) {
             // this is probably successful. the generated client has the wrong response type
         } catch (ApiException e) {
@@ -668,7 +677,15 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     private void gcNode(V1Node node) {
         String nodeName = node.getMetadata().getName();
         try {
-            kubeApiFacade.getCoreV1Api().deleteNode(nodeName, null, null, null, 0, null, "Background");
+            kubeApiFacade.getCoreV1Api().deleteNode(
+                    nodeName,
+                    null,
+                    null,
+                    0,
+                    null,
+                    "Background",
+                    null
+            );
         } catch (JsonSyntaxException e) {
             // this is probably successful. the generated client has the wrong response type
         } catch (ApiException e) {
@@ -705,7 +722,16 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     private void gcPod(V1Pod pod) {
         String podName = pod.getMetadata().getName();
         try {
-            kubeApiFacade.getCoreV1Api().deleteNamespacedPod(podName, KUBERNETES_NAMESPACE, null, null, null, 0, null, "Background");
+            kubeApiFacade.getCoreV1Api().deleteNamespacedPod(
+                    podName,
+                    KUBERNETES_NAMESPACE,
+                    null,
+                    null,
+                    0,
+                    null,
+                    "Background",
+                    null
+            );
         } catch (JsonSyntaxException e) {
             // this is probably successful. the generated client has the wrong response type
         } catch (ApiException e) {

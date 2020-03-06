@@ -17,7 +17,7 @@
 package com.netflix.titus.ext.kube.clustermembership.connector.model;
 
 import com.google.gson.annotations.SerializedName;
-import io.kubernetes.client.models.V1ObjectMeta;
+import io.kubernetes.client.openapi.models.V1ObjectMeta;
 
 public class KubeClusterMembershipRevisionResource {
 

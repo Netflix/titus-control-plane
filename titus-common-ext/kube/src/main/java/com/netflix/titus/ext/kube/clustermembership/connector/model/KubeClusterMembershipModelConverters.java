@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 import com.netflix.titus.api.clustermembership.model.ClusterMember;
 import com.netflix.titus.api.clustermembership.model.ClusterMemberAddress;
 import com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision;
-import io.kubernetes.client.models.V1ObjectMeta;
+import io.kubernetes.client.openapi.models.V1ObjectMeta;
 
 public class KubeClusterMembershipModelConverters {
 

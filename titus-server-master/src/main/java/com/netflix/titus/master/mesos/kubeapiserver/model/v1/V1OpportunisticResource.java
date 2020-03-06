@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import com.google.gson.annotations.SerializedName;
-import io.kubernetes.client.models.V1ObjectMeta;
+import io.kubernetes.client.openapi.models.V1ObjectMeta;
 
 /**
  * GSON-compatible POJO, with a default constructor following JavaBeans conventions.

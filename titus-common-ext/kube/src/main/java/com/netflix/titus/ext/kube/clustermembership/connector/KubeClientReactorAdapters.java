@@ -26,12 +26,12 @@ import com.google.gson.reflect.TypeToken;
 import com.netflix.titus.common.util.IOExt;
 import com.netflix.titus.ext.kube.clustermembership.connector.model.KubeClusterMembershipRevisionResource;
 import com.netflix.titus.ext.kube.clustermembership.connector.model.KubeStatus;
-import com.squareup.okhttp.Call;
-import io.kubernetes.client.ApiCallback;
-import io.kubernetes.client.ApiClient;
-import io.kubernetes.client.ApiException;
-import io.kubernetes.client.JSON;
+import io.kubernetes.client.openapi.ApiCallback;
+import io.kubernetes.client.openapi.ApiClient;
+import io.kubernetes.client.openapi.ApiException;
+import io.kubernetes.client.openapi.JSON;
 import io.kubernetes.client.util.Watch;
+import okhttp3.Call;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
