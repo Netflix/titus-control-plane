@@ -66,7 +66,7 @@ import static org.junit.Assert.fail;
 @Category(IntegrationTest.class)
 public class JobObserveTest extends BaseIntegrationTest {
 
-    private final TitusStackResource titusStackResource = new TitusStackResource(EmbeddedTitusCells.basicCell(2));
+    private final TitusStackResource titusStackResource = new TitusStackResource(EmbeddedTitusCells.basicCell(4));
 
     private final InstanceGroupsScenarioBuilder instanceGroupsScenarioBuilder = new InstanceGroupsScenarioBuilder(titusStackResource);
 
@@ -80,7 +80,7 @@ public class JobObserveTest extends BaseIntegrationTest {
         instanceGroupsScenarioBuilder.synchronizeWithCloud().template(InstanceGroupScenarioTemplates.basicCloudActivation());
     }
 
-    @Test(timeout = TEST_TIMEOUT_MS)
+    @Test(timeout = LONG_TEST_TIMEOUT_MS)
     public void observeJobs() throws Exception {
         TestStreamObserver<JobChangeNotification> eventObserver = observe(ObserveJobsQuery.newBuilder().build());
 
@@ -111,7 +111,7 @@ public class JobObserveTest extends BaseIntegrationTest {
                 .forEach(n -> CellAssertions.assertCellInfo(n.getJobUpdate().getJob(), EmbeddedTitusMaster.CELL_NAME));
     }
 
-    @Test(timeout = TEST_TIMEOUT_MS)
+    @Test(timeout = LONG_TEST_TIMEOUT_MS)
     public void observeSnapshotWithFilter() throws Exception {
         startAll(
                 batchJobDescriptors().getValue().toBuilder()
@@ -145,7 +145,7 @@ public class JobObserveTest extends BaseIntegrationTest {
         );
     }
 
-    @Test(timeout = TEST_TIMEOUT_MS)
+    @Test(timeout = LONG_TEST_TIMEOUT_MS)
     public void observeByJobDescriptor() throws Exception {
         List<TestStreamObserver<JobChangeNotification>> observers = observeAll(
                 ObserveJobsQuery.newBuilder()
@@ -238,7 +238,7 @@ public class JobObserveTest extends BaseIntegrationTest {
         );
     }
 
-    @Test(timeout = TEST_TIMEOUT_MS)
+    @Test(timeout = LONG_TEST_TIMEOUT_MS)
     public void observeByStates() throws Exception {
         List<TestStreamObserver<JobChangeNotification>> observers = observeAll(
                 ObserveJobsQuery.newBuilder()
