@@ -44,7 +44,7 @@ import com.netflix.titus.master.integration.v3.scenario.ScenarioTemplates;
 import com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCells;
 import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMaster;
 import com.netflix.titus.testkit.grpc.TestStreamObserver;
-import com.netflix.titus.testkit.junit.category.IntegrationNotParallelizableTest;
+import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import com.netflix.titus.testkit.junit.master.TitusStackResource;
 import org.junit.Before;
 import org.junit.Rule;
@@ -63,7 +63,7 @@ import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.service
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.fail;
 
-@Category(IntegrationNotParallelizableTest.class)
+@Category(IntegrationTest.class)
 public class JobObserveTest extends BaseIntegrationTest {
 
     private final TitusStackResource titusStackResource = new TitusStackResource(EmbeddedTitusCells.basicCell(4));
@@ -80,7 +80,7 @@ public class JobObserveTest extends BaseIntegrationTest {
         instanceGroupsScenarioBuilder.synchronizeWithCloud().template(InstanceGroupScenarioTemplates.basicCloudActivation());
     }
 
-    @Test(timeout = LONG_TEST_TIMEOUT_MS)
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void observeJobs() throws Exception {
         TestStreamObserver<JobChangeNotification> eventObserver = observe(ObserveJobsQuery.newBuilder().build());
 
@@ -111,7 +111,7 @@ public class JobObserveTest extends BaseIntegrationTest {
                 .forEach(n -> CellAssertions.assertCellInfo(n.getJobUpdate().getJob(), EmbeddedTitusMaster.CELL_NAME));
     }
 
-    @Test(timeout = LONG_TEST_TIMEOUT_MS)
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void observeSnapshotWithFilter() throws Exception {
         startAll(
                 batchJobDescriptors().getValue().toBuilder()
@@ -145,8 +145,28 @@ public class JobObserveTest extends BaseIntegrationTest {
         );
     }
 
-    @Test(timeout = LONG_TEST_TIMEOUT_MS)
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void observeByJobDescriptor() throws Exception {
+        startAll(
+                batchJobDescriptors().getValue().toBuilder()
+                        .withApplicationName("myApp")
+                        .build(),
+                batchJobDescriptors().getValue().toBuilder()
+                        .withApplicationName("otherApp")
+                        .withOwner(Owner.newBuilder().withTeamEmail("me@netflix.com").build())
+                        .build(),
+                batchJobDescriptors().getValue().but(j -> j.getContainer().toBuilder().withImage(
+                        JobModel.newImage().withName("some/image").withTag("stable").build()
+                )),
+                batchJobDescriptors().getValue().toBuilder()
+                        .withAttributes(ImmutableMap.<String, String>builder()
+                                .put("attr1", "value1")
+                                .put("attr2", "value2")
+                                .build())
+                        .build()
+        );
+        startAll(serviceJobDescriptors().getValue());
+
         List<TestStreamObserver<JobChangeNotification>> observers = observeAll(
                 ObserveJobsQuery.newBuilder()
                         .putFilteringCriteria("applicationName", "myApp")
@@ -176,26 +196,6 @@ public class JobObserveTest extends BaseIntegrationTest {
                 }
             }).test();
         }
-
-        startAll(
-                batchJobDescriptors().getValue().toBuilder()
-                        .withApplicationName("myApp")
-                        .build(),
-                batchJobDescriptors().getValue().toBuilder()
-                        .withApplicationName("otherApp")
-                        .withOwner(Owner.newBuilder().withTeamEmail("me@netflix.com").build())
-                        .build(),
-                batchJobDescriptors().getValue().but(j -> j.getContainer().toBuilder().withImage(
-                        JobModel.newImage().withName("some/image").withTag("stable").build()
-                )),
-                batchJobDescriptors().getValue().toBuilder()
-                        .withAttributes(ImmutableMap.<String, String>builder()
-                                .put("attr1", "value1")
-                                .put("attr2", "value2")
-                                .build())
-                        .build()
-        );
-        startAll(serviceJobDescriptors().getValue());
 
         String myAppJobId = jobsScenarioBuilder.takeJobId(0);
         String meOwnerJobId = jobsScenarioBuilder.takeJobId(1);
@@ -238,7 +238,7 @@ public class JobObserveTest extends BaseIntegrationTest {
         );
     }
 
-    @Test(timeout = LONG_TEST_TIMEOUT_MS)
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void observeByStates() throws Exception {
         List<TestStreamObserver<JobChangeNotification>> observers = observeAll(
                 ObserveJobsQuery.newBuilder()
