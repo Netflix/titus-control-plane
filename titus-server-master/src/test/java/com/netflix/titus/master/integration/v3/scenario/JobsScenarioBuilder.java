@@ -113,7 +113,8 @@ public class JobsScenarioBuilder extends ExternalResource {
     public JobsScenarioBuilder schedule(JobDescriptor jobDescriptor,
                                         Function<JobScenarioBuilder, JobScenarioBuilder> jobScenario) {
         TestStreamObserver<JobId> responseObserver = new TestStreamObserver<>();
-        client.createJob(GrpcJobManagementModelConverters.toGrpcJobDescriptor(jobDescriptor), responseObserver);
+        client.withDeadlineAfter(TIMEOUT_MS, TimeUnit.MILLISECONDS)
+                .createJob(GrpcJobManagementModelConverters.toGrpcJobDescriptor(jobDescriptor), responseObserver);
 
         JobId jobId;
         try {
