@@ -17,6 +17,7 @@ plugins {
 }
 
 ext.useMavenLocal = project.hasProperty('useMavenLocal') ? project.getProperty('useMavenLocal').toBoolean() : false
+ext.integrationTestScope = project.hasProperty('integrationTestScope') ? project.getProperty('integrationTestScope') : ""
 
 allprojects {
     apply plugin: 'nebula.dependency-lock'
@@ -186,6 +187,12 @@ subprojects {
     task integrationTest(type: Test) {
         maxParallelForks = processorTarget
         shouldRunAfter test
+
+        if( "excludeMaster".equalsIgnoreCase(integrationTestScope)) {
+            exclude 'com/netflix/titus/master/integration/**/*'
+        } else if( "onlyMaster".equalsIgnoreCase(integrationTestScope)) {
+            include 'com/netflix/titus/master/integration/**/*'
+        }
 
         useJUnit {
             includeCategories 'com.netflix.titus.testkit.junit.category.IntegrationTest'
