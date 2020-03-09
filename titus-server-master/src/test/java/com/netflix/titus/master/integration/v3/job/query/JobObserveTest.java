@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2020 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.integration.v3.job;
+package com.netflix.titus.master.integration.v3.job.query;
 
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
@@ -33,6 +33,7 @@ import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
 import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskStatus.TaskState;
 import com.netflix.titus.master.integration.BaseIntegrationTest;
+import com.netflix.titus.master.integration.v3.job.CellAssertions;
 import com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates;
 import com.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import com.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;

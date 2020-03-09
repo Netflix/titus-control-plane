@@ -4,9 +4,15 @@
 if [ "$TITUS_TEST_GROUP" == "integrationExcludeMaster" ]; then
   echo -e "Running integration tests (PR=$TRAVIS_PULL_REQUEST) => Branch [$TRAVIS_BRANCH]"
   ./gradlew -PintegrationTestScope=excludeMaster integrationTest --parallel --stacktrace
-elif [ "$TITUS_TEST_GROUP" == "integrationOnlyMaster" ]; then
+elif [ "$TITUS_TEST_GROUP" == "integrationOnlyMaster1" ]; then
   echo -e "Running integration tests (PR=$TRAVIS_PULL_REQUEST) => Branch [$TRAVIS_BRANCH]"
-  ./gradlew -PintegrationTestScope=onlyMaster integrationTest --parallel --stacktrace
+  ./gradlew -PintegrationTestScope=onlyMaster1 integrationTest --parallel --stacktrace
+elif [ "$TITUS_TEST_GROUP" == "integrationOnlyMaster2" ]; then
+  echo -e "Running integration tests (PR=$TRAVIS_PULL_REQUEST) => Branch [$TRAVIS_BRANCH]"
+  ./gradlew -PintegrationTestScope=onlyMaster2 integrationTest --parallel --stacktrace
+elif [ "$TITUS_TEST_GROUP" == "integrationOnlyMaster3" ]; then
+  echo -e "Running integration tests (PR=$TRAVIS_PULL_REQUEST) => Branch [$TRAVIS_BRANCH]"
+  ./gradlew -PintegrationTestScope=onlyMaster3 integrationTest --parallel --stacktrace
 elif [ "$TITUS_TEST_GROUP" == "integrationNotParallelizable" ]; then
   echo -e "Running integration tests (PR=$TRAVIS_PULL_REQUEST) => Branch [$TRAVIS_BRANCH]"
   ./gradlew integrationNotParallelizableTest --parallel --stacktrace

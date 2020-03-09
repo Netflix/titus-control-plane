@@ -67,7 +67,7 @@ public class JobCustomConfigurationValidatorTest extends BaseIntegrationTest {
         client = titusStackResource.getGateway().getV3BlockingGrpcClient();
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testCustomBatchJobSizeValidation() {
         JobDescriptor<BatchJobExt> jobDescriptor = JobFunctions.changeBatchJobSize(
                 oneTaskBatchJobDescriptor().toBuilder()
@@ -87,7 +87,7 @@ public class JobCustomConfigurationValidatorTest extends BaseIntegrationTest {
         }
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testCustomServiceJobSizeValidation() {
         JobDescriptor<ServiceJobExt> jobDescriptor = JobFunctions.changeServiceJobCapacity(
                 oneTaskServiceJobDescriptor().toBuilder()

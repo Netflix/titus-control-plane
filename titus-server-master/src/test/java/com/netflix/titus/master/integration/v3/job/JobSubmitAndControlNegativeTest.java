@@ -85,7 +85,7 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
         client = titusStackResource.getGateway().getV3BlockingGrpcClient();
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testJobWithNoOwner() throws Exception {
         submitBadJob(
                 client,
@@ -94,13 +94,13 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
         );
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testJobWithNoApplicationName() throws Exception {
         submitBadJob(client, BATCH_JOB_DESCR_BUILDER.setApplicationName("").build(), "applicationName");
         submitBadJob(client, BATCH_JOB_DESCR_BUILDER.setApplicationName("   ").build(), "applicationName");
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testJobWithInvalidComputeResources() throws Exception {
         ContainerResources badContainer = ContainerResources.newBuilder()
                 .setGpu(-1)
@@ -115,7 +115,7 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
     /**
      * TODO GPU is not limited today. We should add GPU to {@link ResourceDimension} model.
      */
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testJobWithExcessiveComputeResources() throws Exception {
         ContainerResources badContainer = ContainerResources.newBuilder()
                 .setCpu(100)
@@ -135,7 +135,7 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
         );
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testJobWithInvalidEfsMounts() throws Exception {
         ContainerResources badEfs = ContainerResources.newBuilder()
                 .addEfsMounts(ContainerResources.EfsMount.getDefaultInstance())
@@ -148,7 +148,7 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
         );
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testJobWithBadSecurityProfile() throws Exception {
         SecurityProfile securityProfile = SecurityProfile.newBuilder()
                 .addSecurityGroups("not-good-security-group")
@@ -161,7 +161,7 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
         );
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testJobWithoutImage() throws Exception {
         submitBadJob(
                 client,
@@ -171,12 +171,7 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
         );
     }
 
-    @Test
-    @Ignore("Until we support digests")
-    public void testJobWithBothTagAndDigest() throws Exception {
-    }
-
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testJobWithInvalidNameAndTag() throws Exception {
         Image badImage = Image.newBuilder().setName("????????").setTag("############").build();
         submitBadJob(
@@ -187,7 +182,7 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
         );
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testInvalidSoftAndHardConstraints() throws Exception {
         submitBadJob(
                 client,
@@ -200,7 +195,7 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
         );
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testOverlappingSoftAndHardConstraints() throws Exception {
         submitBadJob(
                 client,
@@ -212,7 +207,7 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
         );
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testBatchJobWithInvalidSize() throws Exception {
         submitBadJob(
                 client,
@@ -221,7 +216,7 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
         );
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testTooLargeBatchJob() throws Exception {
         submitBadJob(
                 client,
@@ -230,7 +225,7 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
         );
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testBatchJobWithTooLowRuntimeLimit() throws Exception {
         submitBadJob(
                 client,
@@ -239,7 +234,7 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
         );
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testTooLargeBatchJobRuntimeLimit() throws Exception {
         submitBadJob(
                 client,
@@ -248,7 +243,7 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
         );
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testServiceJobInvalidCapacity() throws Exception {
         Capacity badCapacity = Capacity.newBuilder().setMin(-2).setDesired(-3).setMax(-4).build();
         submitBadJob(
@@ -261,7 +256,7 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
         );
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testTooLargeServiceJob() throws Exception {
         Capacity badCapacity = Capacity.newBuilder().setMin(1).setDesired(100).setMax(10_001).build();
         submitBadJob(
@@ -271,7 +266,7 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
         );
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testJobWithInvalidImmediateRetryPolicy() throws Exception {
         RetryPolicy badRetryPolicy = RetryPolicy.newBuilder().setImmediate(
                 RetryPolicy.Immediate.newBuilder().setRetries(-1)
@@ -283,7 +278,7 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
         );
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testJobWithInvalidDelayedRetryPolicy() throws Exception {
         RetryPolicy badRetryPolicy = RetryPolicy.newBuilder().setDelayed(
                 RetryPolicy.Delayed.newBuilder().setRetries(-1).setDelayMs(-1)
@@ -296,7 +291,7 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
         );
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testJobWithInvalidExpBackoffRetryPolicy() throws Exception {
         RetryPolicy badRetryPolicy = RetryPolicy.newBuilder().setExponentialBackOff(
                 RetryPolicy.ExponentialBackOff.newBuilder().setRetries(-1).setInitialDelayMs(-1).setMaxDelayIntervalMs(-1)
@@ -310,7 +305,7 @@ public class JobSubmitAndControlNegativeTest extends BaseIntegrationTest {
         );
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testSubmitJobsWithIdenticalJobGroupIdentity() throws Exception {
         JobDescriptor jobDescriptor = toGrpcJobDescriptor(JobDescriptorGenerator.oneTaskServiceJobDescriptor()
                 .but(jd -> jd.toBuilder().withApplicationName("v3App").build())
