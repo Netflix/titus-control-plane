@@ -16,13 +16,11 @@
 
 package com.netflix.titus.master.integration.v3.job;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import com.google.common.collect.ImmutableMap;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -31,7 +29,7 @@ import com.netflix.titus.api.jobmanager.model.job.Owner;
 import com.netflix.titus.grpc.protogen.Image;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobChangeNotification;
-import com.netflix.titus.grpc.protogen.JobChangeNotification.NotificationCase;
+import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceBlockingStub;
 import com.netflix.titus.grpc.protogen.JobStatus.JobState;
 import com.netflix.titus.grpc.protogen.ObserveJobsQuery;
 import com.netflix.titus.grpc.protogen.Task;
@@ -43,7 +41,6 @@ import com.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
 import com.netflix.titus.master.integration.v3.scenario.ScenarioTemplates;
 import com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCells;
 import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMaster;
-import com.netflix.titus.testkit.grpc.TestStreamObserver;
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
 import com.netflix.titus.testkit.junit.master.TitusStackResource;
 import org.junit.Before;
@@ -51,14 +48,12 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
-import rx.observers.AssertableSubscriber;
 
 import static com.netflix.titus.grpc.protogen.JobDescriptor.JobSpecCase.SERVICE;
 import static com.netflix.titus.master.integration.v3.scenario.ScenarioTemplates.killJob;
 import static com.netflix.titus.master.integration.v3.scenario.ScenarioTemplates.startTasksInNewJob;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.batchJobDescriptors;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskBatchJobDescriptor;
-import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskServiceJobDescriptor;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.serviceJobDescriptors;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.fail;
@@ -75,44 +70,42 @@ public class JobObserveTest extends BaseIntegrationTest {
     @Rule
     public RuleChain ruleChain = RuleChain.outerRule(titusStackResource).around(instanceGroupsScenarioBuilder).around(jobsScenarioBuilder);
 
+    private JobManagementServiceBlockingStub client;
+
     @Before
     public void setUp() throws Exception {
         instanceGroupsScenarioBuilder.synchronizeWithCloud().template(InstanceGroupScenarioTemplates.basicCloudActivation());
+        this.client = titusStackResource.getGateway().getV3BlockingGrpcClient();
     }
 
     @Test(timeout = TEST_TIMEOUT_MS)
-    public void observeJobs() throws Exception {
-        TestStreamObserver<JobChangeNotification> eventObserver = observe(ObserveJobsQuery.newBuilder().build());
+    public void observeJobs() {
+        Iterator<JobChangeNotification> eventId = client.observeJobs(ObserveJobsQuery.getDefaultInstance());
 
-        CountDownLatch latch = new CountDownLatch(2);
-        AssertableSubscriber<JobChangeNotification> events = eventObserver.toObservable().doOnNext(n -> {
-            if (n.getNotificationCase() == NotificationCase.JOBUPDATE &&
-                    n.getJobUpdate().getJob().getStatus().getState() == JobState.Finished) {
-                latch.countDown();
+        for (int i = 0; i < 2; i++) {
+            String jobId = jobsScenarioBuilder.scheduleAndReturnJob(oneTaskBatchJobDescriptor(), jobScenarioBuilder -> jobScenarioBuilder
+                    .template(startTasksInNewJob())
+                    .killJob()
+            ).getId();
+
+            JobChangeNotification event;
+            while (true) {
+                assertThat(eventId.hasNext()).describedAs("More events expected").isTrue();
+                event = eventId.next();
+                if (event.hasJobUpdate()) {
+                    Job job = event.getJobUpdate().getJob();
+                    assertThat(job.getId()).isEqualTo(jobId);
+                    CellAssertions.assertCellInfo(job, EmbeddedTitusMaster.CELL_NAME);
+                    if (job.getStatus().getState() == JobState.Finished) {
+                        break;
+                    }
+                }
             }
-        }).test();
-
-        jobsScenarioBuilder.schedule(oneTaskBatchJobDescriptor(), jobScenarioBuilder -> jobScenarioBuilder
-                .template(ScenarioTemplates.startTasksInNewJob())
-                .killJob()
-        );
-        jobsScenarioBuilder.schedule(oneTaskServiceJobDescriptor(), jobScenarioBuilder -> jobScenarioBuilder
-                .template(ScenarioTemplates.startTasksInNewJob())
-                .killJob()
-        );
-
-        if (!latch.await(25, TimeUnit.SECONDS)) {
-            fail("jobs did not finish within 25s");
         }
-
-        assertThat(events.getValueCount()).isGreaterThan(0);
-        events.getOnNextEvents().stream()
-                .filter(n -> n.getNotificationCase() == NotificationCase.JOBUPDATE)
-                .forEach(n -> CellAssertions.assertCellInfo(n.getJobUpdate().getJob(), EmbeddedTitusMaster.CELL_NAME));
     }
 
     @Test(timeout = TEST_TIMEOUT_MS)
-    public void observeSnapshotWithFilter() throws Exception {
+    public void observeSnapshotWithFilter() {
         startAll(
                 batchJobDescriptors().getValue().toBuilder()
                         .withApplicationName("myApp")
@@ -124,29 +117,27 @@ public class JobObserveTest extends BaseIntegrationTest {
         String myAppJobId = jobsScenarioBuilder.takeJobId(0);
 
         // start the stream after tasks are already running
-        ObserveJobsQuery query = ObserveJobsQuery.newBuilder()
-                .putFilteringCriteria("applicationName", "myApp")
-                .build();
-        TestStreamObserver<JobChangeNotification> eventObserver = observe(query);
+        ObserveJobsQuery query = ObserveJobsQuery.newBuilder().putFilteringCriteria("applicationName", "myApp").build();
+        Iterator<JobChangeNotification> eventIt = client.observeJobs(query);
 
-        CountDownLatch latch = new CountDownLatch(1);
-        AssertableSubscriber<JobChangeNotification> events = eventObserver.toObservable().doOnNext(n -> {
-            if (n.getNotificationCase() == NotificationCase.SNAPSHOTEND) {
-                latch.countDown();
+        List<JobChangeNotification> events = new ArrayList<>();
+        while (eventIt.hasNext()) {
+            JobChangeNotification event = eventIt.next();
+            if (event.hasJobUpdate()) {
+                assertThat(event.getJobUpdate().getJob().getJobDescriptor().getApplicationName()).isEqualTo("myApp");
+            } else if (event.hasTaskUpdate()) {
+                assertThat(event.getTaskUpdate().getTask().getJobId()).isEqualTo(myAppJobId);
+            } else if (event.hasSnapshotEnd()) {
+                events.add(event);
+                break;
             }
-        }).test();
-        if (!latch.await(25, TimeUnit.SECONDS)) {
-            fail("snapshot did not finish within 25s");
+            events.add(event);
         }
-
-        assertEvents(eventObserver,
-                job -> assertThat(job.getJobDescriptor().getApplicationName()).isEqualTo("myApp"),
-                task -> assertThat(task.getJobId()).isEqualTo(myAppJobId)
-        );
+        assertThat(events).hasSize(3);
     }
 
     @Test(timeout = TEST_TIMEOUT_MS)
-    public void observeByJobDescriptor() throws Exception {
+    public void observeByJobDescriptor() {
         startAll(
                 batchJobDescriptors().getValue().toBuilder()
                         .withApplicationName("myApp")
@@ -167,83 +158,59 @@ public class JobObserveTest extends BaseIntegrationTest {
         );
         startAll(serviceJobDescriptors().getValue());
 
-        List<TestStreamObserver<JobChangeNotification>> observers = observeAll(
-                ObserveJobsQuery.newBuilder()
-                        .putFilteringCriteria("applicationName", "myApp")
-                        .build(),
-                ObserveJobsQuery.newBuilder()
-                        .putFilteringCriteria("owner", "me@netflix.com")
-                        .build(),
-                ObserveJobsQuery.newBuilder()
-                        .putFilteringCriteria("imageName", "some/image")
-                        .putFilteringCriteria("imageTag", "stable")
-                        .build(),
-                ObserveJobsQuery.newBuilder()
-                        .putFilteringCriteria("attributes", "attr1,attr2:value2")
-                        .putFilteringCriteria("attributes.op", "and")
-                        .build(),
-                ObserveJobsQuery.newBuilder()
-                        .putFilteringCriteria("jobType", "service")
-                        .build()
+        observeByJobDescriptor(
+                jobsScenarioBuilder.takeJobId(0),
+                ObserveJobsQuery.newBuilder().putFilteringCriteria("applicationName", "myApp").build(),
+                job -> assertThat(job.getJobDescriptor().getApplicationName()).isEqualTo("myApp")
         );
-
-        CountDownLatch latch = new CountDownLatch(observers.size());
-        for (TestStreamObserver<JobChangeNotification> eventObserver : observers) {
-            eventObserver.toObservable().doOnNext(n -> {
-                if (n.getNotificationCase() == NotificationCase.TASKUPDATE &&
-                        n.getTaskUpdate().getTask().getStatus().getState() == TaskState.Started) {
-                    latch.countDown();
-                }
-            }).test();
-        }
-
-        String myAppJobId = jobsScenarioBuilder.takeJobId(0);
-        String meOwnerJobId = jobsScenarioBuilder.takeJobId(1);
-        String someImageJobId = jobsScenarioBuilder.takeJobId(2);
-        String attributesJobId = jobsScenarioBuilder.takeJobId(3);
-        String serviceJobId = jobsScenarioBuilder.takeJobId(4);
-
-        if (!latch.await(25, TimeUnit.SECONDS)) {
-            fail("all tasks did not start within 25s");
-        }
-
-        assertEvents(observers.get(0),
-                job -> assertThat(job.getJobDescriptor().getApplicationName()).isEqualTo("myApp"),
-                task -> assertThat(task.getJobId()).isEqualTo(myAppJobId)
+        observeByJobDescriptor(
+                jobsScenarioBuilder.takeJobId(1),
+                ObserveJobsQuery.newBuilder().putFilteringCriteria("owner", "me@netflix.com").build(),
+                job -> assertThat(job.getJobDescriptor().getOwner().getTeamEmail()).isEqualTo("me@netflix.com")
         );
-        assertEvents(observers.get(1),
-                job -> assertThat(job.getJobDescriptor().getOwner().getTeamEmail()).isEqualTo("me@netflix.com"),
-                task -> assertThat(task.getJobId()).isEqualTo(meOwnerJobId)
-        );
-        assertEvents(observers.get(2),
+        observeByJobDescriptor(
+                jobsScenarioBuilder.takeJobId(2),
+                ObserveJobsQuery.newBuilder().putFilteringCriteria("imageName", "some/image").putFilteringCriteria("imageTag", "stable").build(),
                 job -> {
                     Image image = job.getJobDescriptor().getContainer().getImage();
                     assertThat(image.getName()).isEqualTo("some/image");
                     assertThat(image.getTag()).isEqualTo("stable");
-                },
-                task -> assertThat(task.getJobId()).isEqualTo(someImageJobId)
+                }
         );
-        assertEvents(observers.get(3),
+        observeByJobDescriptor(
+                jobsScenarioBuilder.takeJobId(3),
+                ObserveJobsQuery.newBuilder().putFilteringCriteria("attributes", "attr1,attr2:value2").putFilteringCriteria("attributes.op", "and").build(),
                 job -> assertThat(job.getJobDescriptor().getAttributesMap())
                         .containsKey("attr1")
-                        .containsEntry("attr2", "value2"),
-                task -> assertThat(task.getJobId()).isEqualTo(attributesJobId)
+                        .containsEntry("attr2", "value2")
         );
-        assertEvents(observers.get(4),
-                job -> {
-                    assertThat(job.getJobDescriptor().getJobSpecCase()).isEqualTo(SERVICE);
-                    assertThat(job.getId()).isEqualTo(serviceJobId);
-                },
-                task -> assertThat(task.getJobId()).isEqualTo(serviceJobId)
+        observeByJobDescriptor(
+                jobsScenarioBuilder.takeJobId(4),
+                ObserveJobsQuery.newBuilder().putFilteringCriteria("jobType", "service").build(),
+                job -> assertThat(job.getJobDescriptor().getJobSpecCase()).isEqualTo(SERVICE)
         );
     }
 
+    private void observeByJobDescriptor(String jobId, ObserveJobsQuery query, Consumer<Job> check) {
+        Iterator<JobChangeNotification> eventIt = client.observeJobs(query);
+        while (eventIt.hasNext()) {
+            JobChangeNotification event = eventIt.next();
+            if (event.hasJobUpdate()) {
+                Job job = event.getJobUpdate().getJob();
+                assertThat(job.getId()).isEqualTo(jobId);
+                check.accept(job);
+                return;
+            }
+        }
+        fail(String.format("Expected job event not found: jobId=%s, query=%s", jobId, query));
+    }
+
     @Test(timeout = TEST_TIMEOUT_MS)
-    public void observeByStates() throws Exception {
-        List<TestStreamObserver<JobChangeNotification>> observers = observeAll(
-                ObserveJobsQuery.newBuilder()
-                        .putFilteringCriteria("jobState", JobState.KillInitiated.toString())
-                        .build(),
+    public void observeByStates() {
+        Iterator<JobChangeNotification> eventsWithJobStateFilter = client.observeJobs(
+                ObserveJobsQuery.newBuilder().putFilteringCriteria("jobState", JobState.KillInitiated.toString()).build()
+        );
+        Iterator<JobChangeNotification> eventsWithTaskStateFilter = client.observeJobs(
                 ObserveJobsQuery.newBuilder()
                         .putFilteringCriteria("taskStates", String.join(",", Arrays.asList(
                                 TaskState.Launched.toString(),
@@ -251,74 +218,45 @@ public class JobObserveTest extends BaseIntegrationTest {
                         )))
                         .build()
         );
-        CountDownLatch latch = new CountDownLatch(2);
-        // look for task events since the job ones are being filtered
-        observers.get(0).toObservable().doOnNext(n -> {
-            if (n.getNotificationCase() == NotificationCase.TASKUPDATE &&
-                    n.getTaskUpdate().getTask().getStatus().getState() == TaskState.Finished) {
-                latch.countDown();
-            }
-        }).test();
-        // look for job events since the task ones are being filtered
-        observers.get(1).toObservable().doOnNext(n -> {
-            if (n.getNotificationCase() == NotificationCase.JOBUPDATE &&
-                    n.getJobUpdate().getJob().getStatus().getState() == JobState.KillInitiated) {
-                latch.countDown();
-            }
-        }).test();
+        assertNextIsSnapshot(eventsWithJobStateFilter);
+        assertNextIsSnapshot(eventsWithTaskStateFilter);
 
-        jobsScenarioBuilder.schedule(batchJobDescriptors().getValue(), jobScenarioBuilder -> jobScenarioBuilder
+        String jobId = jobsScenarioBuilder.scheduleAndReturnJob(batchJobDescriptors().getValue(), jobScenarioBuilder -> jobScenarioBuilder
                 .template(startTasksInNewJob())
                 .template(killJob())
-        );
-        String jobId = jobsScenarioBuilder.takeJobId(0);
+        ).getId();
 
-        if (!latch.await(25, TimeUnit.SECONDS)) {
-            fail("timed out waiting streams to see finished events");
-        }
+        assertNextIsJobEvent(eventsWithJobStateFilter, job -> assertThat(job.getStatus().getState()).isEqualTo(JobState.KillInitiated));
+        assertNextIsTaskEvent(eventsWithJobStateFilter, task -> assertThat(task.getStatus().getState()).isEqualTo(TaskState.KillInitiated));
 
-        assertEvents(observers.get(0),
-                job -> assertThat(job.getStatus().getState()).isEqualTo(JobState.KillInitiated),
-                task -> assertThat(task.getJobId()).isEqualTo(jobId)
-        );
-        assertEvents(observers.get(1),
-                job -> assertThat(job.getId()).isEqualTo(jobId),
-                task -> assertThat(task.getStatus().getState()).isIn(TaskState.Launched, TaskState.Started)
-        );
+        assertNextIsTaskEvent(eventsWithTaskStateFilter, task -> assertThat(task.getStatus().getState()).isEqualTo(TaskState.Launched));
+        assertNextIsTaskEvent(eventsWithTaskStateFilter, task -> assertThat(task.getStatus().getState()).isEqualTo(TaskState.Started));
+        assertNextIsJobEvent(eventsWithTaskStateFilter, job -> assertThat(job.getStatus().getState()).isEqualTo(JobState.KillInitiated));
     }
 
     @SafeVarargs
-    private final <E extends JobDescriptor.JobDescriptorExt> void startAll(JobDescriptor<E>... descriptors) throws Exception {
+    private final <E extends JobDescriptor.JobDescriptorExt> void startAll(JobDescriptor<E>... descriptors) {
         for (JobDescriptor<E> descriptor : descriptors) {
             jobsScenarioBuilder.schedule(descriptor, jobScenarioBuilder -> jobScenarioBuilder.template(ScenarioTemplates.startTasksInNewJob()));
         }
     }
 
-    private TestStreamObserver<JobChangeNotification> observe(ObserveJobsQuery query) {
-        TestStreamObserver<JobChangeNotification> eventObserver = new TestStreamObserver<>();
-        titusStackResource.getGateway().getV3GrpcClient()
-                .withDeadlineAfter(TEST_TIMEOUT_MS, TimeUnit.MILLISECONDS)
-                .observeJobs(query, eventObserver);
-        return eventObserver;
+    private void assertNextIsSnapshot(Iterator<JobChangeNotification> eventsIt) {
+        assertThat(eventsIt.hasNext()).isTrue();
+        assertThat(eventsIt.next().hasSnapshotEnd()).isTrue();
     }
 
-    private List<TestStreamObserver<JobChangeNotification>> observeAll(ObserveJobsQuery... queries) {
-        return Stream.of(queries).map(this::observe).collect(Collectors.toList());
+    private void assertNextIsJobEvent(Iterator<JobChangeNotification> eventIt, Consumer<Job> check) {
+        assertThat(eventIt.hasNext()).isTrue();
+        JobChangeNotification event = eventIt.next();
+        assertThat(event.hasJobUpdate()).isTrue();
+        check.accept(event.getJobUpdate().getJob());
     }
 
-    private void assertEvents(TestStreamObserver<JobChangeNotification> events, Consumer<Job> jobAssertions, Consumer<Task> taskAssertions) {
-        List<JobChangeNotification> emittedItems = events.getEmittedItems();
-        assertThat(emittedItems).isNotEmpty();
-        for (JobChangeNotification notification : emittedItems) {
-            switch (notification.getNotificationCase()) {
-                case JOBUPDATE:
-                    jobAssertions.accept(notification.getJobUpdate().getJob());
-                    break;
-                case TASKUPDATE:
-                    taskAssertions.accept(notification.getTaskUpdate().getTask());
-                    break;
-            }
-        }
-        events.cancel();
+    private void assertNextIsTaskEvent(Iterator<JobChangeNotification> eventIt, Consumer<Task> check) {
+        assertThat(eventIt.hasNext()).isTrue();
+        JobChangeNotification event = eventIt.next();
+        assertThat(event.hasTaskUpdate()).isTrue();
+        check.accept(event.getTaskUpdate().getTask());
     }
 }
