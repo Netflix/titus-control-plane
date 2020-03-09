@@ -82,4 +82,10 @@ public interface DirectKubeConfiguration {
      * farzone names has pods tainted with that zone id.
      */
     List<String> getFarzones();
+
+    /**
+     * @return whether or not to add a json encoded job descriptor as a pod annotation
+     */
+    @DefaultValue("true")
+    boolean isJobDescriptorAnnotationEnabled();
 }

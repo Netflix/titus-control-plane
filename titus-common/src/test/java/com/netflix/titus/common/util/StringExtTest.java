@@ -81,4 +81,11 @@ public class StringExtTest {
                 Duration.ofMillis(1), Duration.ofMillis(2), Duration.ofMillis(3)
         );
     }
+
+    @Test
+    public void testGzipAndBase64Encode() {
+        String input = "{aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:bbbbbbbbbbbbbbbbbbbbbbbbbbb}";
+        String output = StringExt.gzipAndBase64Encode(input);
+        assertThat(output.length()).isLessThan(input.length());
+    }
 }
