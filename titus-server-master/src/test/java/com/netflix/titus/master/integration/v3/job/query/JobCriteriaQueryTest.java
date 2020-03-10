@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2020 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.integration.v3.job;
+package com.netflix.titus.master.integration.v3.job.query;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -82,7 +82,6 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
             EmbeddedTitusCell.aTitusCell()
                     .withMaster(EmbeddedTitusMasters.basicMaster(SimulatedClouds.basicCloudWithLargeInstances(20)).toBuilder()
                             .withCellName("embeddedCell")
-                            .withProperty("titus.scheduler.globalTaskLaunchingConstraintEvaluatorEnabled", "false")
                             // Set to very high value as we do not want to expire it.
                             .withProperty("titusMaster.jobManager.taskInLaunchedStateTimeoutMs", "30000000")
                             .withProperty("titusMaster.jobManager.batchTaskInStartInitiatedStateTimeoutMs", "30000000")
@@ -119,6 +118,9 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
      */
     private static final String PRE_CREATED_JOBS_LABEL = "precreatedJob";
 
+    private static final JobDescriptor<BatchJobExt> BATCH_JOB_TEMPLATE = oneTaskBatchJobDescriptor();
+    private static final JobDescriptor<ServiceJobExt> SERVICE_JOB_TEMPLATE = oneTaskServiceJobDescriptor();
+
     private static JobManagementServiceGrpc.JobManagementServiceBlockingStub client;
 
     private static final List<String> batchJobsWithCreatedTasks = new ArrayList<>();
@@ -134,12 +136,12 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
         client = titusStackResource.getGateway().getV3BlockingGrpcClient();
 
         // Jobs with launched tasks
-        JobDescriptor<BatchJobExt> batchJobDescriptor = oneTaskBatchJobDescriptor().toBuilder()
+        JobDescriptor<BatchJobExt> batchJobDescriptor = BATCH_JOB_TEMPLATE.toBuilder()
                 .withOwner(Owner.newBuilder().withTeamEmail(BATCH_OWNER).build())
                 .withApplicationName(BATCH_APPLICATION)
                 .withCapacityGroup(BATCH_CAPACITY_GROUP)
                 .withJobGroupInfo(BATCH_JOB_GROUP_INFO)
-                .withContainer(oneTaskBatchJobDescriptor().getContainer().toBuilder()
+                .withContainer(BATCH_JOB_TEMPLATE.getContainer().toBuilder()
                         .withImage(Image.newBuilder().withName(BATCH_IMAGE_NAME).withTag(BATCH_IMAGE_TAG).build())
                         .build()
                 )
@@ -154,12 +156,12 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
             String taskId = jobsScenarioBuilder.takeJob(jobId).getTaskByIndex(0).getTask().getId();
             batchTasks.add(taskId);
         });
-        JobDescriptor<ServiceJobExt> serviceJobDescriptor = oneTaskServiceJobDescriptor().toBuilder()
+        JobDescriptor<ServiceJobExt> serviceJobDescriptor = SERVICE_JOB_TEMPLATE.toBuilder()
                 .withOwner(Owner.newBuilder().withTeamEmail(SERVICE_OWNER).build())
                 .withApplicationName(SERVICE_APPLICATION)
                 .withCapacityGroup(SERVICE_CAPACITY_GROUP)
                 .withJobGroupInfo(SERVICE_JOB_GROUP_INFO)
-                .withContainer(oneTaskServiceJobDescriptor().getContainer().toBuilder()
+                .withContainer(SERVICE_JOB_TEMPLATE.getContainer().toBuilder()
                         .withImage(Image.newBuilder().withName(SERVICE_IMAGE_NAME).withTag(SERVICE_IMAGE_TAG).build())
                         .build()
                 )
@@ -177,7 +179,7 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
 
         // Finished job with 5 tasks
         int numberOfTasks = 5;
-        JobDescriptor<BatchJobExt> jobDescriptor = oneTaskBatchJobDescriptor()
+        JobDescriptor<BatchJobExt> jobDescriptor = BATCH_JOB_TEMPLATE
                 .but(jd -> jd.getExtensions().toBuilder().withSize(numberOfTasks).build());
 
         jobsScenarioBuilder.schedule(jobDescriptor, 1, jobScenarioBuilder -> jobScenarioBuilder
@@ -309,7 +311,7 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
     public void testSearchByTaskStateV3() {
         Function<Function<JobScenarioBuilder, JobScenarioBuilder>, String> jobSubmitter = template ->
                 jobsScenarioBuilder.scheduleAndReturnJob(
-                        oneTaskBatchJobDescriptor().toBuilder().withApplicationName("testSearchByTaskStateV3").build(),
+                        BATCH_JOB_TEMPLATE.toBuilder().withApplicationName("testSearchByTaskStateV3").build(),
                         jobScenarioBuilder -> jobScenarioBuilder.template(template)
                 ).getId();
 
@@ -321,6 +323,7 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
         testSearchByTaskStateV3("Launched", jobLaunchedId, jobsScenarioBuilder.takeTaskId(jobLaunchedId, 0));
         testSearchByTaskStateV3("StartInitiated", startInitiatedJobId, jobsScenarioBuilder.takeTaskId(startInitiatedJobId, 0));
         testSearchByTaskStateV3("Started", startedJobId, jobsScenarioBuilder.takeTaskId(startedJobId, 0));
+
         testSearchByTaskStateV3("KillInitiated", killInitiatedJobId, jobsScenarioBuilder.takeTaskId(killInitiatedJobId, 0));
     }
 
@@ -349,7 +352,7 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
 
     @Test(timeout = 30_000)
     public void testSearchByTaskReasonInFinishedJobV3() {
-        JobDescriptor<BatchJobExt> jobDescriptor = JobFunctions.changeBatchJobSize(oneTaskBatchJobDescriptor(), 2);
+        JobDescriptor<BatchJobExt> jobDescriptor = JobFunctions.changeBatchJobSize(BATCH_JOB_TEMPLATE, 2);
 
         String jobId = jobsScenarioBuilder.scheduleAndReturnJob(jobDescriptor, jobScenarioBuilder -> jobScenarioBuilder
                 .template(ScenarioTemplates.launchJob())
@@ -449,7 +452,7 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
     public void testSearchByJobDescriptorAttributesV3() {
         List<String> jobIds = new ArrayList<>();
         for (int i = 0; i < 3; i++) {
-            JobDescriptor<BatchJobExt> jobDescriptor = oneTaskBatchJobDescriptor().toBuilder()
+            JobDescriptor<BatchJobExt> jobDescriptor = BATCH_JOB_TEMPLATE.toBuilder()
                     .withApplicationName("testSearchByJobDescriptorAttributesV3")
                     .withAttributes(CollectionsExt.asMap(
                             String.format("job%d.key1", i), "value1",
@@ -531,7 +534,7 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
         String[] expectedTaskIds = new String[numberOfJobs];
         for (int i = 0; i < numberOfJobs; i++) {
             String jobId = jobsScenarioBuilder.scheduleAndReturnJob(
-                    oneTaskBatchJobDescriptor().toBuilder().withApplicationName("testSearchByCellV3").build(),
+                    BATCH_JOB_TEMPLATE.toBuilder().withApplicationName("testSearchByCellV3").build(),
                     jobScenarioBuilder -> jobScenarioBuilder.template(ScenarioTemplates.launchJob())
             ).getId();
             expectedJobIds[i] = jobId;
@@ -662,7 +665,7 @@ public class JobCriteriaQueryTest extends BaseIntegrationTest {
 
     @Test(timeout = 30_000)
     public void testFieldsFiltering() {
-        JobDescriptor<BatchJobExt> jobDescriptor = oneTaskBatchJobDescriptor().toBuilder()
+        JobDescriptor<BatchJobExt> jobDescriptor = BATCH_JOB_TEMPLATE.toBuilder()
                 .withApplicationName("testFieldsFiltering")
                 .withAttributes(ImmutableMap.of("keyA", "valueA", "keyB", "valueB"))
                 .build();

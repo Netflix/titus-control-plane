@@ -70,7 +70,7 @@ public class AutoScalingGrpcTest extends BaseIntegrationTest {
      *
      * @throws Exception
      */
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testGetPolicyById() throws Exception {
         String jobId = "Titus-123";
 
@@ -97,7 +97,7 @@ public class AutoScalingGrpcTest extends BaseIntegrationTest {
      *
      * @throws Exception
      */
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testDeletePolicyById() throws Exception {
         // Put a policy
         String jobId = "Titus-1";
@@ -136,7 +136,7 @@ public class AutoScalingGrpcTest extends BaseIntegrationTest {
      *
      * @throws Exception
      */
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testGetNonexistentJob() throws Exception {
         String jobId = "Titus-0";
         JobId getPolicyRequest = JobId.newBuilder().setId(jobId).build();
@@ -153,7 +153,7 @@ public class AutoScalingGrpcTest extends BaseIntegrationTest {
      *
      * @throws Exception
      */
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     @Ignore // GRPC request/response semantics requires that a value is always returned
     public void testGetNonexistentPolicy() throws Exception {
         ScalingPolicyID scalingPolicyID = ScalingPolicyID.newBuilder().setId("deadbeef").build();
@@ -170,7 +170,7 @@ public class AutoScalingGrpcTest extends BaseIntegrationTest {
      *
      * @throws Exception
      */
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void getAllPolicies() throws Exception {
         Set<ScalingPolicyID> policyIDSet = new HashSet<>();
         int numJobs = 2;
@@ -197,7 +197,7 @@ public class AutoScalingGrpcTest extends BaseIntegrationTest {
      *
      * @throws Exception
      */
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testUpdatePolicyConfigurationForTargetTracking() throws Exception {
         String jobId = "Titus-123";
         PutPolicyRequest putPolicyRequest = AutoScalingTestUtils.generatePutPolicyRequest(jobId, PolicyType.TargetTrackingScaling);
@@ -240,7 +240,7 @@ public class AutoScalingGrpcTest extends BaseIntegrationTest {
      *
      * @throws Exception
      */
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testUpdatePolicyConfigurationForStepScaling() throws Exception {
         String jobId = "Titus-123";
         PutPolicyRequest putPolicyRequest = AutoScalingTestUtils.generatePutPolicyRequest(jobId, PolicyType.StepScaling);

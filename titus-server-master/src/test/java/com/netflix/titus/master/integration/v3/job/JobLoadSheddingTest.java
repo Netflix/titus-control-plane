@@ -57,7 +57,7 @@ public class JobLoadSheddingTest extends BaseIntegrationTest {
         client = titusMasterResource.getMaster().getV3BlockingGrpcClient();
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testMasterRateLimits() {
         int counter = 0;
         try {

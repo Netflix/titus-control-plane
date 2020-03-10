@@ -40,6 +40,8 @@ import com.netflix.titus.testkit.embedded.cloud.agent.player.ContainerPlayersMan
 import com.netflix.titus.testkit.embedded.cloud.model.SimulatedAgentGroupDescriptor;
 import com.netflix.titus.testkit.embedded.cloud.resource.ComputeResources;
 import org.apache.mesos.Protos;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import rx.Observable;
 import rx.schedulers.Schedulers;
 import rx.subjects.PublishSubject;
@@ -47,6 +49,8 @@ import rx.subjects.SerializedSubject;
 import rx.subjects.Subject;
 
 public class SimulatedCloud {
+
+    private static final Logger logger = LoggerFactory.getLogger(SimulatedCloud.class);
 
     private final ComputeResources computeResources;
 
@@ -190,6 +194,7 @@ public class SimulatedCloud {
     }
 
     public void killTask(String taskId) {
+        logger.info("Task kill request: taskId={}", taskId);
         try {
             getTaskExecutorHolder(taskId).transitionTo(Protos.TaskState.TASK_KILLED);
         } catch (IllegalArgumentException e) {

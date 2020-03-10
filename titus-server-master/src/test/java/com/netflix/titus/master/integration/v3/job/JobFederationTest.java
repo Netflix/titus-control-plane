@@ -81,7 +81,7 @@ public class JobFederationTest extends BaseIntegrationTest {
         asyncClient.observeJobs(ObserveJobsQuery.newBuilder().build(), eventStreamObserver);
     }
 
-    @Test
+    @Test(timeout = LONG_TEST_TIMEOUT_MS)
     public void testJobCreateRouting() {
         Map<String, Job> jobs = new ConcurrentHashMap<>();
         Map<String, Task> tasks = new ConcurrentHashMap<>();

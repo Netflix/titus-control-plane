@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2020 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.integration;
+package com.netflix.titus.master.integration.v2;
 
 import com.netflix.titus.api.model.ApplicationSLA;
+import com.netflix.titus.master.integration.BaseIntegrationTest;
 import com.netflix.titus.testkit.client.TitusMasterClient;
 import com.netflix.titus.testkit.data.core.ApplicationSlaSample;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedClouds;

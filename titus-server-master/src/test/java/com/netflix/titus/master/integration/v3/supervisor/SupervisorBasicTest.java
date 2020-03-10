@@ -43,7 +43,7 @@ public class SupervisorBasicTest extends BaseIntegrationTest {
 
     private final SupervisorServiceBlockingStub blockingGrpcClient = titusStackResource.getMaster().getSupervisorBlockingGrpcClient();
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testGetMasterInstances() {
         MasterInstances instances = blockingGrpcClient.getMasterInstances(Empty.getDefaultInstance());
         assertThat(instances.getInstancesList()).hasSize(1);
@@ -53,7 +53,7 @@ public class SupervisorBasicTest extends BaseIntegrationTest {
         assertThat(instance.getStatus().getState()).isEqualTo(MasterStatus.MasterState.LeaderActivated);
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testObserveEvents() {
         Iterator<SupervisorEvent> it = blockingGrpcClient.observeEvents(Empty.getDefaultInstance());
 
