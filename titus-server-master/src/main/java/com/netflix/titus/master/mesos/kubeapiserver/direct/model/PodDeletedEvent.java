@@ -19,8 +19,8 @@ package com.netflix.titus.master.mesos.kubeapiserver.direct.model;
 import java.util.Objects;
 import java.util.Optional;
 
-import io.kubernetes.client.models.V1Node;
-import io.kubernetes.client.models.V1Pod;
+import io.kubernetes.client.openapi.models.V1Node;
+import io.kubernetes.client.openapi.models.V1Pod;
 
 public class PodDeletedEvent extends PodEvent {
 

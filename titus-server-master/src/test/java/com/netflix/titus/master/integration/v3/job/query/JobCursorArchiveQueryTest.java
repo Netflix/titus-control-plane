@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2020 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.integration.v3.job;
+package com.netflix.titus.master.integration.v3.job.query;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -31,6 +31,7 @@ import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.grpc.protogen.TaskStatus;
+import com.netflix.titus.master.integration.BaseIntegrationTest;
 import com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates;
 import com.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import com.netflix.titus.master.integration.v3.scenario.JobScenarioBuilder;
@@ -49,7 +50,7 @@ import static com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCells.basicCe
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Category(IntegrationTest.class)
-public class JobCursorArchiveQueryTest {
+public class JobCursorArchiveQueryTest extends BaseIntegrationTest {
 
     private static final String ALL_TASK_STATES = StringExt.concatenate(TaskStatus.TaskState.class, ",", s -> s != TaskStatus.TaskState.UNRECOGNIZED);
 
@@ -71,7 +72,7 @@ public class JobCursorArchiveQueryTest {
     private static JobScenarioBuilder jobScenarioBuilder;
 
     @BeforeClass
-    public static void setUp() throws Exception {
+    public static void setUp() {
         instanceGroupsScenarioBuilder.synchronizeWithCloud().template(InstanceGroupScenarioTemplates.basicCloudActivation());
         client = titusStackResource.getGateway().getV3BlockingGrpcClient();
 
@@ -84,7 +85,7 @@ public class JobCursorArchiveQueryTest {
         jobScenarioBuilder = jobsScenarioBuilder.schedule(jobDescriptor, ScenarioTemplates.startTasksInNewJob()).takeJob(0);
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testArchiveQuery() {
         Evaluators.times(TASKS_PER_JOB, idx -> jobScenarioBuilder.getTaskByIndex(idx).killTask());
         Evaluators.times(TASKS_PER_JOB, idx -> jobScenarioBuilder.getTaskByIndex(idx).expectStateUpdateSkipOther(TaskStatus.TaskState.Finished));

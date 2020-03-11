@@ -20,13 +20,13 @@ import com.netflix.titus.api.clustermembership.model.ClusterMember;
 import com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision;
 import com.netflix.titus.api.clustermembership.model.event.ClusterMembershipEvent;
 import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.ext.kube.clustermembership.connector.model.KubeClusterMembershipModelConverters;
 import com.netflix.titus.ext.kube.clustermembership.connector.model.KubeClusterMembershipRevision;
 import com.netflix.titus.ext.kube.clustermembership.connector.model.KubeClusterMembershipRevisionResource;
-import com.netflix.titus.ext.kube.clustermembership.connector.model.KubeClusterMembershipModelConverters;
-import io.kubernetes.client.ApiClient;
-import io.kubernetes.client.apis.CustomObjectsApi;
-import io.kubernetes.client.models.V1DeleteOptionsBuilder;
-import io.kubernetes.client.models.V1ObjectMeta;
+import io.kubernetes.client.openapi.ApiClient;
+import io.kubernetes.client.openapi.apis.CustomObjectsApi;
+import io.kubernetes.client.openapi.models.V1DeleteOptionsBuilder;
+import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -130,8 +130,9 @@ class DefaultKubeMembershipExecutor implements KubeMembershipExecutor {
                         null,
                         null,
                         Integer.MAX_VALUE,
-                        Boolean.TRUE,
                         null,
+                        null,
+                        Boolean.TRUE,
                         null
                 ),
                 KubeClientReactorAdapters.TYPE_WATCH_CLUSTER_MEMBERSHIP_REVISION_RESOURCE

@@ -42,12 +42,12 @@ import com.netflix.titus.common.util.DateTimeExt;
 import com.netflix.titus.common.util.IOExt;
 import com.netflix.titus.common.util.spectator.ActionMetrics;
 import com.netflix.titus.common.util.spectator.SpectatorExt;
-import io.kubernetes.client.ApiClient;
 import io.kubernetes.client.extended.leaderelection.LeaderElectionConfig;
 import io.kubernetes.client.extended.leaderelection.LeaderElectionRecord;
 import io.kubernetes.client.extended.leaderelection.LeaderElector;
 import io.kubernetes.client.extended.leaderelection.Lock;
 import io.kubernetes.client.extended.leaderelection.resourcelock.EndpointsLock;
+import io.kubernetes.client.openapi.ApiClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -76,6 +76,7 @@ class DefaultKubeLeaderElectionExecutor implements KubeLeaderElectionExecutor {
     private final String localMemberId;
 
     private final Duration leaseDuration;
+    private final Duration renewDeadline;
     private final Duration retryPeriod;
 
     private final ApiClient kubeApiClient;
@@ -103,7 +104,8 @@ class DefaultKubeLeaderElectionExecutor implements KubeLeaderElectionExecutor {
         this.namespace = namespace;
         this.clusterName = clusterName;
         this.leaseDuration = leaseDuration;
-        this.retryPeriod = leaseDuration.dividedBy(2);
+        this.renewDeadline = leaseDuration.dividedBy(2);
+        this.retryPeriod = leaseDuration.dividedBy(3);
         this.localMemberId = localMemberId;
 
         this.registry = titusRuntime.getRegistry();
@@ -260,7 +262,7 @@ class DefaultKubeLeaderElectionExecutor implements KubeLeaderElectionExecutor {
 
         private LeaderElectionHandler() {
             EndpointsLock lock = new EndpointsLock(namespace, clusterName, localMemberId, kubeApiClient);
-            LeaderElectionConfig leaderElectionConfig = new LeaderElectionConfig(lock, leaseDuration, null, retryPeriod);
+            LeaderElectionConfig leaderElectionConfig = new LeaderElectionConfig(lock, leaseDuration, renewDeadline, retryPeriod);
             LeaderElector leaderElector = new LeaderElector(leaderElectionConfig);
 
             this.leaderThread = new Thread("LeaderElectionHandler-" + LEADER_ELECTION_THREAD_IDX.getAndIncrement()) {

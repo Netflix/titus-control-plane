@@ -71,6 +71,11 @@ public interface TitusRuntime {
     LocalScheduler getLocalScheduler();
 
     /**
+     * If true, fatal errors cause JVM termination via System.exit.
+     */
+    boolean isSystemExitOnFailure();
+
+    /**
      * In a few places in TitusMaster a component may decide to break the bootstrap process or terminate the JVM process
      * abruptly. This method should be called before that happens, so the {@link SystemAbortListener} implementation can
      * send a signal/alert to an administrator about the incident.

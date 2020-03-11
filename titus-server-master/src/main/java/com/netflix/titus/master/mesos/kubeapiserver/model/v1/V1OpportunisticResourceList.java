@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.Objects;
 
 import com.google.gson.annotations.SerializedName;
-import io.kubernetes.client.models.V1ListMeta;
+import io.kubernetes.client.openapi.models.V1ListMeta;
 
 /**
  * GSON-compatible POJO, with a default constructor following JavaBeans conventions.

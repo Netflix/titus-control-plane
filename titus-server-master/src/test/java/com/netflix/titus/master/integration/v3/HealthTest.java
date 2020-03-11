@@ -48,7 +48,7 @@ public class HealthTest extends BaseIntegrationTest {
     @Rule
     public final RuleChain ruleChain = RuleChain.outerRule(titusStackResource);
 
-    @Test(timeout = 30_000L)
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void healthStatus() throws Exception {
         TestStreamObserver<HealthCheckResponse> testStreamObserver = new TestStreamObserver<>();
         titusStackResource.getOperations().getHealthClient().check(HealthCheckRequest.newBuilder().build(), testStreamObserver);

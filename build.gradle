@@ -17,6 +17,7 @@ plugins {
 }
 
 ext.useMavenLocal = project.hasProperty('useMavenLocal') ? project.getProperty('useMavenLocal').toBoolean() : false
+ext.integrationTestScope = project.hasProperty('integrationTestScope') ? project.getProperty('integrationTestScope') : ""
 
 allprojects {
     apply plugin: 'nebula.dependency-lock'
@@ -104,7 +105,7 @@ subprojects {
         commonsCliVersion = '1.3.+'
         caffeineVersion = '2.6.+'
         rxJavaInteropVersion = '0.13.+'
-        kubernetesClientVersion = '6.0.1'
+        kubernetesClientVersion = '7.0.0'
         commonsMath3Version = '3.6.1'
         friggaVersion = '0.+'
 
@@ -159,8 +160,10 @@ subprojects {
         testCompile "org.assertj:assertj-core:${assertjVersion}"
     }
 
+    def processorTarget = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
+
     test {
-        maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
+        maxParallelForks = processorTarget
 
         useJUnit {
             excludeCategories 'com.netflix.titus.testkit.junit.category.IntegrationTest', 'com.netflix.titus.testkit.junit.category.IntegrationNotParallelizableTest',
@@ -182,8 +185,20 @@ subprojects {
     }
 
     task integrationTest(type: Test) {
-        maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
+        maxParallelForks = processorTarget
         shouldRunAfter test
+
+        if( "excludeMaster".equalsIgnoreCase(integrationTestScope)) {
+            exclude 'com/netflix/titus/master/integration/**/*'
+        } else if( "onlyMaster1".equalsIgnoreCase(integrationTestScope)) {
+            include 'com/netflix/titus/master/integration/**/*'
+            exclude 'com/netflix/titus/master/integration/v3/job/**/*'
+        } else if( "onlyMaster2".equalsIgnoreCase(integrationTestScope)) {
+            include 'com/netflix/titus/master/integration/v3/job/**/*'
+            exclude 'com/netflix/titus/master/integration/v3/job/query/*'
+        } else if( "onlyMaster3".equalsIgnoreCase(integrationTestScope)) {
+            include 'com/netflix/titus/master/integration/v3/job/query/*'
+        }
 
         useJUnit {
             includeCategories 'com.netflix.titus.testkit.junit.category.IntegrationTest'
@@ -225,7 +240,7 @@ subprojects {
     }
 
     task remoteIntegrationTest(type: Test) {
-        maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
+        maxParallelForks = processorTarget
         shouldRunAfter test
 
         useJUnit {

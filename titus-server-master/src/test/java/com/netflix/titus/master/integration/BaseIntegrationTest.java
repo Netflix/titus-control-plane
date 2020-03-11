@@ -25,6 +25,8 @@ import org.junit.experimental.categories.Category;
 @Category(IntegrationTest.class)
 public class BaseIntegrationTest {
 
+    protected static final long SHORT_TIMEOUT_MS = 5_000;
+
     protected static final long TEST_TIMEOUT_MS = 30_000;
 
     protected static final long LONG_TEST_TIMEOUT_MS = 60_000;

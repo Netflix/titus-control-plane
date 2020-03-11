@@ -58,9 +58,12 @@ import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobStatusUpdate;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
+import com.netflix.titus.master.scheduler.SchedulingResultEvent.FailedSchedulingResultEvent;
+import com.netflix.titus.master.scheduler.SchedulingResultEvent.SuccessfulSchedulingResultEvent;
 import com.netflix.titus.master.scheduler.SchedulingService;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import com.netflix.titus.testkit.embedded.EmbeddedTitusOperations;
+import com.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgent;
 import com.netflix.titus.testkit.embedded.cloud.agent.TaskExecutorHolder;
 import com.netflix.titus.testkit.grpc.TestStreamObserver;
 import com.netflix.titus.testkit.rx.ExtTestSubscriber;
@@ -489,9 +492,31 @@ public class JobScenarioBuilder {
 
     public JobScenarioBuilder expectTasksOnAgents(int count) {
         logger.info("[{}] Expecting {} tasks to be running on agents...", discoverActiveTest(), count);
-        await().timeout(TIMEOUT_MS, TimeUnit.MILLISECONDS).until(() -> getLastTaskHolders().stream()
-                .filter(h -> h.getTaskScenarioBuilder().hasTaskExecutorHolder())
-                .count() == count);
+
+        try {
+            await().timeout(TIMEOUT_MS, TimeUnit.MILLISECONDS).until(() -> {
+                        List<TaskHolder> tasksOnAgent = getLastTaskHolders().stream()
+                                .filter(h -> h.getTaskScenarioBuilder().hasTaskExecutorHolder())
+                                .collect(Collectors.toList());
+                        if (tasksOnAgent.size() == count) {
+                            logger.info("Found expected number of tasks ({}) on agents: {}", count, tasksOnAgent);
+                            return true;
+                        }
+                        return false;
+                    }
+            );
+        } catch (Exception e) {
+            logger.error("Expected {} tasks on agent but found: {}", count, getLastTaskHolders());
+            diagnosticReporter.reportAllAgentsWithAssignments();
+            getLastTaskHolders().forEach(holder -> {
+                Task task = holder.getTaskScenarioBuilder().getTask();
+                if (task.getStatus().getState() == TaskState.Accepted) {
+                    diagnosticReporter.reportWhenTaskNotScheduled(task.getId());
+                }
+            });
+            throw e;
+        }
+
         return this;
     }
 
@@ -616,6 +641,35 @@ public class JobScenarioBuilder {
 
         private void onNext(Task task) {
             taskEventStream.onNext(task);
+        }
+
+        @Override
+        public String toString() {
+            Task task = taskScenarioBuilder.getTask();
+            SimulatedTitusAgent agent = taskScenarioBuilder.hasTaskExecutorHolder()
+                    ? taskScenarioBuilder.getTaskExecutionHolder().getAgent()
+                    : null;
+            String schedulingResult = "n/a";
+            if (agent == null) {
+                schedulingResult = schedulingService.findLastSchedulingResult(task.getId())
+                        .map(event -> {
+                            if (event instanceof SuccessfulSchedulingResultEvent) {
+                                return "scheduled";
+                            }
+                            if (event instanceof FailedSchedulingResultEvent) {
+                                FailedSchedulingResultEvent failed = (FailedSchedulingResultEvent) event;
+                                return failed.getAssignmentResults().toString();
+                            }
+                            return "unknownSchedulingResult";
+                        })
+                        .orElse("notFound");
+            }
+            return "TaskHolder{" +
+                    "taskId=" + task.getId() +
+                    ", state=" + task.getStatus().getState() +
+                    ", agentId=" + (agent == null ? "none" : agent.getId()) +
+                    ", schedulingResult=" + schedulingResult +
+                    "}";
         }
     }
 

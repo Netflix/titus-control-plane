@@ -48,9 +48,9 @@ import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodDeletedEvent
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodEvent;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodNotFoundEvent;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodUpdatedEvent;
-import io.kubernetes.client.models.V1ContainerState;
-import io.kubernetes.client.models.V1Node;
-import io.kubernetes.client.models.V1Pod;
+import io.kubernetes.client.openapi.models.V1ContainerState;
+import io.kubernetes.client.openapi.models.V1Node;
+import io.kubernetes.client.openapi.models.V1Pod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
@@ -264,9 +264,9 @@ public class KubeNotificationProcessor {
 
         acceptNotNull(node.getMetadata().getName(), nodeName -> agentAttributes.put(TaskAttributes.TASK_ATTRIBUTES_KUBE_NODE_NAME, nodeName));
 
-        if (agentAttributes.isEmpty()) {
-            return task;
-        }
+        String nodeIpAddress = KubeUtil.getNodeIpV4Address(node);
+        agentAttributes.put(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST, nodeIpAddress);
+        agentAttributes.put(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST_IP, nodeIpAddress);
 
         return task.toBuilder()
                 .withTaskContext(CollectionsExt.merge(task.getTaskContext(), agentAttributes))

@@ -18,7 +18,7 @@ package com.netflix.titus.ext.kube.clustermembership.connector;
 
 import com.netflix.titus.api.clustermembership.connector.ClusterMembershipConnectorException;
 import com.netflix.titus.common.util.ExceptionExt;
-import io.kubernetes.client.ApiException;
+import io.kubernetes.client.openapi.ApiException;
 
 public class KubeUtils {
 

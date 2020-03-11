@@ -1,9 +1,21 @@
 #!/bin/bash
 # Used as the script step on Travis
 
-if [ "$TITUS_INTEGRATION_TEST" == "true" ]; then
+if [ "$TITUS_TEST_GROUP" == "integrationExcludeMaster" ]; then
   echo -e "Running integration tests (PR=$TRAVIS_PULL_REQUEST) => Branch [$TRAVIS_BRANCH]"
-  ./gradlew testAll --parallel --stacktrace
+  ./gradlew -PintegrationTestScope=excludeMaster integrationTest --parallel --stacktrace
+elif [ "$TITUS_TEST_GROUP" == "integrationOnlyMaster1" ]; then
+  echo -e "Running integration tests (PR=$TRAVIS_PULL_REQUEST) => Branch [$TRAVIS_BRANCH]"
+  ./gradlew -PintegrationTestScope=onlyMaster1 integrationTest --parallel --stacktrace
+elif [ "$TITUS_TEST_GROUP" == "integrationOnlyMaster2" ]; then
+  echo -e "Running integration tests (PR=$TRAVIS_PULL_REQUEST) => Branch [$TRAVIS_BRANCH]"
+  ./gradlew -PintegrationTestScope=onlyMaster2 integrationTest --parallel --stacktrace
+elif [ "$TITUS_TEST_GROUP" == "integrationOnlyMaster3" ]; then
+  echo -e "Running integration tests (PR=$TRAVIS_PULL_REQUEST) => Branch [$TRAVIS_BRANCH]"
+  ./gradlew -PintegrationTestScope=onlyMaster3 integrationTest --parallel --stacktrace
+elif [ "$TITUS_TEST_GROUP" == "integrationNotParallelizable" ]; then
+  echo -e "Running integration tests (PR=$TRAVIS_PULL_REQUEST) => Branch [$TRAVIS_BRANCH]"
+  ./gradlew integrationNotParallelizableTest --parallel --stacktrace
 elif [ "$TRAVIS_PULL_REQUEST" != "false" ]; then
   echo -e "Build Pull Request #$TRAVIS_PULL_REQUEST => Branch [$TRAVIS_BRANCH]"
   ./gradlew build --stacktrace

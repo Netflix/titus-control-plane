@@ -18,8 +18,10 @@ package com.netflix.titus.testkit.embedded.cell.gateway;
 
 import java.util.Collections;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Stopwatch;
 import com.google.inject.AbstractModule;
 import com.google.inject.Module;
 import com.google.inject.Provides;
@@ -125,6 +127,7 @@ public class EmbeddedTitusGateway {
     }
 
     public EmbeddedTitusGateway boot() {
+        Stopwatch timer = Stopwatch.createStarted();
         logger.info("Starting Titus Gateway");
 
         injector = InjectorBuilder.fromModules(
@@ -164,6 +167,9 @@ public class EmbeddedTitusGateway {
                     }
                 })
         ).createInjector();
+
+        logger.info("Embedded TitusGateway started in {}ms", timer.elapsed(TimeUnit.MILLISECONDS));
+
         return this;
     }
 

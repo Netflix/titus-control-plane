@@ -25,6 +25,7 @@ public final class TaskAttributes {
     public static final String TASK_ATTRIBUTES_AGENT_AMI = "agent.ami";
     public static final String TASK_ATTRIBUTES_AGENT_ASG = "agent.asg";
     public static final String TASK_ATTRIBUTES_AGENT_HOST = "agent.host";
+    public static final String TASK_ATTRIBUTES_AGENT_HOST_IP = "agent.hostIp";
     public static final String TASK_ATTRIBUTES_AGENT_CLUSTER = "agent.cluster";
     public static final String TASK_ATTRIBUTES_AGENT_INSTANCE_ID = "agent.instanceId";
     public static final String TASK_ATTRIBUTES_AGENT_ITYPE = "agent.itype";

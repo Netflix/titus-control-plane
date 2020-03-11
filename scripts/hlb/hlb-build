@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+set -x
+
+BUILD_USER=build
+sudo useradd -m ${BUILD_USER} && chown -R ${BUILD_USER}:${BUILD_USER} .
+
+sudo -u ${BUILD_USER} bash <<EOF
+
+. /etc/nflx/environment
+./gradlew --stacktrace $@
+
+EOF

@@ -92,7 +92,7 @@ public class JobSanitizeTest extends BaseIntegrationTest {
     /**
      * Verifies that a digest value is properly added to a job descriptor that is using tag.
      */
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testJobDigestResolution() {
         when(registryClient.getImageDigest(anyString(), anyString())).thenReturn(Mono.just(digest));
 
@@ -115,7 +115,7 @@ public class JobSanitizeTest extends BaseIntegrationTest {
     /**
      * Verifies that a NOT_FOUND image produces an invalid argument exception.
      */
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testNonexistentTag() {
         when(registryClient.getImageDigest(anyString(), anyString()))
                 .thenReturn(Mono.error(TitusRegistryException.imageNotFound(repo, tag)));
@@ -142,7 +142,7 @@ public class JobSanitizeTest extends BaseIntegrationTest {
     /**
      * Verifies that non-NOT_FOUND errors are suppressed and the original job descriptor is not modified.
      */
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testSuppressedInternalError() {
         when(registryClient.getImageDigest(anyString(), anyString()))
                 .thenReturn(

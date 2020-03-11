@@ -66,7 +66,8 @@
             "locked": "3.0.2",
             "transitive": [
                 "com.google.guava:guava",
-                "io.grpc:grpc-core"
+                "io.grpc:grpc-core",
+                "io.kubernetes:client-java-api"
             ]
         },
         "com.google.code.gson:gson": {
@@ -74,6 +75,7 @@
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core",
+                "io.gsonfire:gson-fire",
                 "io.kubernetes:client-java-api"
             ]
         },
@@ -198,37 +200,24 @@
         "com.netflix.titus:titus-common-api": {
             "project": true
         },
+        "com.squareup.okhttp3:logging-interceptor": {
+            "locked": "3.14.3",
+            "transitive": [
+                "io.kubernetes:client-java-api"
+            ]
+        },
         "com.squareup.okhttp3:okhttp": {
             "locked": "3.14.6",
             "transitive": [
-                "com.netflix.titus:titus-common"
-            ]
-        },
-        "com.squareup.okhttp:logging-interceptor": {
-            "locked": "2.7.5",
-            "transitive": [
+                "com.netflix.titus:titus-common",
+                "com.squareup.okhttp3:logging-interceptor",
                 "io.kubernetes:client-java-api"
-            ]
-        },
-        "com.squareup.okhttp:okhttp": {
-            "locked": "2.7.5",
-            "transitive": [
-                "com.squareup.okhttp:logging-interceptor",
-                "com.squareup.okhttp:okhttp-ws",
-                "io.kubernetes:client-java-api"
-            ]
-        },
-        "com.squareup.okhttp:okhttp-ws": {
-            "locked": "2.7.5",
-            "transitive": [
-                "io.kubernetes:client-java"
             ]
         },
         "com.squareup.okio:okio": {
             "locked": "1.17.2",
             "transitive": [
-                "com.squareup.okhttp3:okhttp",
-                "com.squareup.okhttp:okhttp"
+                "com.squareup.okhttp3:okhttp"
             ]
         },
         "commons-codec:commons-codec": {
@@ -275,25 +264,31 @@
                 "com.netflix.titus:titus-common"
             ]
         },
+        "io.gsonfire:gson-fire": {
+            "locked": "1.8.3",
+            "transitive": [
+                "io.kubernetes:client-java-api"
+            ]
+        },
         "io.kubernetes:client-java": {
-            "locked": "6.0.1",
+            "locked": "7.0.0",
             "transitive": [
                 "io.kubernetes:client-java-extended"
             ]
         },
         "io.kubernetes:client-java-api": {
-            "locked": "6.0.1",
+            "locked": "7.0.0",
             "transitive": [
                 "io.kubernetes:client-java",
                 "io.kubernetes:client-java-extended"
             ]
         },
         "io.kubernetes:client-java-extended": {
-            "locked": "6.0.1",
-            "requested": "6.0.1"
+            "locked": "7.0.0",
+            "requested": "7.0.0"
         },
         "io.kubernetes:client-java-proto": {
-            "locked": "6.0.1",
+            "locked": "7.0.0",
             "transitive": [
                 "io.kubernetes:client-java",
                 "io.kubernetes:client-java-extended"
@@ -452,31 +447,37 @@
             ]
         },
         "io.sundr:builder-annotations": {
-            "locked": "0.18.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.kubernetes:client-java-api"
             ]
         },
         "io.sundr:resourcecify-annotations": {
-            "locked": "0.18.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-codegen": {
-            "locked": "0.18.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-core": {
-            "locked": "0.18.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.swagger:swagger-annotations": {
             "locked": "1.5.22",
+            "transitive": [
+                "io.kubernetes:client-java-api"
+            ]
+        },
+        "javax.annotation:javax.annotation-api": {
+            "locked": "1.3.2",
             "transitive": [
                 "io.kubernetes:client-java-api"
             ]
@@ -530,8 +531,14 @@
                 "org.slf4j:slf4j-log4j12"
             ]
         },
+        "org.apache.commons:commons-collections4": {
+            "locked": "4.1",
+            "transitive": [
+                "io.kubernetes:client-java"
+            ]
+        },
         "org.apache.commons:commons-compress": {
-            "locked": "1.18",
+            "locked": "1.19",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -724,7 +731,7 @@
             ]
         },
         "org.yaml:snakeyaml": {
-            "locked": "1.19",
+            "locked": "1.25",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -797,7 +804,8 @@
             "locked": "3.0.2",
             "transitive": [
                 "com.google.guava:guava",
-                "io.grpc:grpc-core"
+                "io.grpc:grpc-core",
+                "io.kubernetes:client-java-api"
             ]
         },
         "com.google.code.gson:gson": {
@@ -805,6 +813,7 @@
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core",
+                "io.gsonfire:gson-fire",
                 "io.kubernetes:client-java-api"
             ]
         },
@@ -953,37 +962,24 @@
         "com.netflix.titus:titus-common-api": {
             "project": true
         },
+        "com.squareup.okhttp3:logging-interceptor": {
+            "locked": "3.14.3",
+            "transitive": [
+                "io.kubernetes:client-java-api"
+            ]
+        },
         "com.squareup.okhttp3:okhttp": {
             "locked": "3.14.6",
             "transitive": [
-                "com.netflix.titus:titus-common"
-            ]
-        },
-        "com.squareup.okhttp:logging-interceptor": {
-            "locked": "2.7.5",
-            "transitive": [
+                "com.netflix.titus:titus-common",
+                "com.squareup.okhttp3:logging-interceptor",
                 "io.kubernetes:client-java-api"
-            ]
-        },
-        "com.squareup.okhttp:okhttp": {
-            "locked": "2.7.5",
-            "transitive": [
-                "com.squareup.okhttp:logging-interceptor",
-                "com.squareup.okhttp:okhttp-ws",
-                "io.kubernetes:client-java-api"
-            ]
-        },
-        "com.squareup.okhttp:okhttp-ws": {
-            "locked": "2.7.5",
-            "transitive": [
-                "io.kubernetes:client-java"
             ]
         },
         "com.squareup.okio:okio": {
             "locked": "1.17.2",
             "transitive": [
-                "com.squareup.okhttp3:okhttp",
-                "com.squareup.okhttp:okhttp"
+                "com.squareup.okhttp3:okhttp"
             ]
         },
         "commons-codec:commons-codec": {
@@ -1031,25 +1027,31 @@
                 "com.netflix.titus:titus-common"
             ]
         },
+        "io.gsonfire:gson-fire": {
+            "locked": "1.8.3",
+            "transitive": [
+                "io.kubernetes:client-java-api"
+            ]
+        },
         "io.kubernetes:client-java": {
-            "locked": "6.0.1",
+            "locked": "7.0.0",
             "transitive": [
                 "io.kubernetes:client-java-extended"
             ]
         },
         "io.kubernetes:client-java-api": {
-            "locked": "6.0.1",
+            "locked": "7.0.0",
             "transitive": [
                 "io.kubernetes:client-java",
                 "io.kubernetes:client-java-extended"
             ]
         },
         "io.kubernetes:client-java-extended": {
-            "locked": "6.0.1",
-            "requested": "6.0.1"
+            "locked": "7.0.0",
+            "requested": "7.0.0"
         },
         "io.kubernetes:client-java-proto": {
-            "locked": "6.0.1",
+            "locked": "7.0.0",
             "transitive": [
                 "io.kubernetes:client-java",
                 "io.kubernetes:client-java-extended"
@@ -1208,31 +1210,37 @@
             ]
         },
         "io.sundr:builder-annotations": {
-            "locked": "0.18.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.kubernetes:client-java-api"
             ]
         },
         "io.sundr:resourcecify-annotations": {
-            "locked": "0.18.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-codegen": {
-            "locked": "0.18.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-core": {
-            "locked": "0.18.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.swagger:swagger-annotations": {
             "locked": "1.5.22",
+            "transitive": [
+                "io.kubernetes:client-java-api"
+            ]
+        },
+        "javax.annotation:javax.annotation-api": {
+            "locked": "1.3.2",
             "transitive": [
                 "io.kubernetes:client-java-api"
             ]
@@ -1288,8 +1296,14 @@
                 "org.slf4j:slf4j-log4j12"
             ]
         },
+        "org.apache.commons:commons-collections4": {
+            "locked": "4.1",
+            "transitive": [
+                "io.kubernetes:client-java"
+            ]
+        },
         "org.apache.commons:commons-compress": {
-            "locked": "1.18",
+            "locked": "1.19",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -1484,7 +1498,7 @@
             ]
         },
         "org.yaml:snakeyaml": {
-            "locked": "1.19",
+            "locked": "1.25",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -1614,7 +1628,8 @@
             "locked": "3.0.2",
             "transitive": [
                 "com.google.guava:guava",
-                "io.grpc:grpc-core"
+                "io.grpc:grpc-core",
+                "io.kubernetes:client-java-api"
             ]
         },
         "com.google.code.gson:gson": {
@@ -1622,6 +1637,7 @@
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core",
+                "io.gsonfire:gson-fire",
                 "io.kubernetes:client-java-api"
             ]
         },
@@ -1770,37 +1786,24 @@
         "com.netflix.titus:titus-common-api": {
             "project": true
         },
+        "com.squareup.okhttp3:logging-interceptor": {
+            "locked": "3.14.3",
+            "transitive": [
+                "io.kubernetes:client-java-api"
+            ]
+        },
         "com.squareup.okhttp3:okhttp": {
             "locked": "3.14.6",
             "transitive": [
-                "com.netflix.titus:titus-common"
-            ]
-        },
-        "com.squareup.okhttp:logging-interceptor": {
-            "locked": "2.7.5",
-            "transitive": [
+                "com.netflix.titus:titus-common",
+                "com.squareup.okhttp3:logging-interceptor",
                 "io.kubernetes:client-java-api"
-            ]
-        },
-        "com.squareup.okhttp:okhttp": {
-            "locked": "2.7.5",
-            "transitive": [
-                "com.squareup.okhttp:logging-interceptor",
-                "com.squareup.okhttp:okhttp-ws",
-                "io.kubernetes:client-java-api"
-            ]
-        },
-        "com.squareup.okhttp:okhttp-ws": {
-            "locked": "2.7.5",
-            "transitive": [
-                "io.kubernetes:client-java"
             ]
         },
         "com.squareup.okio:okio": {
             "locked": "1.17.2",
             "transitive": [
-                "com.squareup.okhttp3:okhttp",
-                "com.squareup.okhttp:okhttp"
+                "com.squareup.okhttp3:okhttp"
             ]
         },
         "commons-codec:commons-codec": {
@@ -1848,25 +1851,31 @@
                 "com.netflix.titus:titus-common"
             ]
         },
+        "io.gsonfire:gson-fire": {
+            "locked": "1.8.3",
+            "transitive": [
+                "io.kubernetes:client-java-api"
+            ]
+        },
         "io.kubernetes:client-java": {
-            "locked": "6.0.1",
+            "locked": "7.0.0",
             "transitive": [
                 "io.kubernetes:client-java-extended"
             ]
         },
         "io.kubernetes:client-java-api": {
-            "locked": "6.0.1",
+            "locked": "7.0.0",
             "transitive": [
                 "io.kubernetes:client-java",
                 "io.kubernetes:client-java-extended"
             ]
         },
         "io.kubernetes:client-java-extended": {
-            "locked": "6.0.1",
-            "requested": "6.0.1"
+            "locked": "7.0.0",
+            "requested": "7.0.0"
         },
         "io.kubernetes:client-java-proto": {
-            "locked": "6.0.1",
+            "locked": "7.0.0",
             "transitive": [
                 "io.kubernetes:client-java",
                 "io.kubernetes:client-java-extended"
@@ -2025,31 +2034,37 @@
             ]
         },
         "io.sundr:builder-annotations": {
-            "locked": "0.18.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.kubernetes:client-java-api"
             ]
         },
         "io.sundr:resourcecify-annotations": {
-            "locked": "0.18.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-codegen": {
-            "locked": "0.18.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-core": {
-            "locked": "0.18.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.swagger:swagger-annotations": {
             "locked": "1.5.22",
+            "transitive": [
+                "io.kubernetes:client-java-api"
+            ]
+        },
+        "javax.annotation:javax.annotation-api": {
+            "locked": "1.3.2",
             "transitive": [
                 "io.kubernetes:client-java-api"
             ]
@@ -2105,8 +2120,14 @@
                 "org.slf4j:slf4j-log4j12"
             ]
         },
+        "org.apache.commons:commons-collections4": {
+            "locked": "4.1",
+            "transitive": [
+                "io.kubernetes:client-java"
+            ]
+        },
         "org.apache.commons:commons-compress": {
-            "locked": "1.18",
+            "locked": "1.19",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -2301,7 +2322,7 @@
             ]
         },
         "org.yaml:snakeyaml": {
-            "locked": "1.19",
+            "locked": "1.25",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -2381,7 +2402,8 @@
             "transitive": [
                 "com.google.guava:guava",
                 "com.google.instrumentation:instrumentation-api",
-                "io.grpc:grpc-core"
+                "io.grpc:grpc-core",
+                "io.kubernetes:client-java-api"
             ]
         },
         "com.google.code.gson:gson": {
@@ -2389,6 +2411,7 @@
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core",
+                "io.gsonfire:gson-fire",
                 "io.kubernetes:client-java-api"
             ]
         },
@@ -2580,37 +2603,24 @@
         "com.netflix.titus:titus-common-testkit": {
             "project": true
         },
+        "com.squareup.okhttp3:logging-interceptor": {
+            "locked": "3.14.3",
+            "transitive": [
+                "io.kubernetes:client-java-api"
+            ]
+        },
         "com.squareup.okhttp3:okhttp": {
             "locked": "3.14.6",
             "transitive": [
-                "com.netflix.titus:titus-common"
-            ]
-        },
-        "com.squareup.okhttp:logging-interceptor": {
-            "locked": "2.7.5",
-            "transitive": [
+                "com.netflix.titus:titus-common",
+                "com.squareup.okhttp3:logging-interceptor",
                 "io.kubernetes:client-java-api"
-            ]
-        },
-        "com.squareup.okhttp:okhttp": {
-            "locked": "2.7.5",
-            "transitive": [
-                "com.squareup.okhttp:logging-interceptor",
-                "com.squareup.okhttp:okhttp-ws",
-                "io.kubernetes:client-java-api"
-            ]
-        },
-        "com.squareup.okhttp:okhttp-ws": {
-            "locked": "2.7.5",
-            "transitive": [
-                "io.kubernetes:client-java"
             ]
         },
         "com.squareup.okio:okio": {
             "locked": "1.17.2",
             "transitive": [
-                "com.squareup.okhttp3:okhttp",
-                "com.squareup.okhttp:okhttp"
+                "com.squareup.okhttp3:okhttp"
             ]
         },
         "commons-codec:commons-codec": {
@@ -2670,25 +2680,31 @@
                 "io.grpc:grpc-services"
             ]
         },
+        "io.gsonfire:gson-fire": {
+            "locked": "1.8.3",
+            "transitive": [
+                "io.kubernetes:client-java-api"
+            ]
+        },
         "io.kubernetes:client-java": {
-            "locked": "6.0.1",
+            "locked": "7.0.0",
             "transitive": [
                 "io.kubernetes:client-java-extended"
             ]
         },
         "io.kubernetes:client-java-api": {
-            "locked": "6.0.1",
+            "locked": "7.0.0",
             "transitive": [
                 "io.kubernetes:client-java",
                 "io.kubernetes:client-java-extended"
             ]
         },
         "io.kubernetes:client-java-extended": {
-            "locked": "6.0.1",
-            "requested": "6.0.1"
+            "locked": "7.0.0",
+            "requested": "7.0.0"
         },
         "io.kubernetes:client-java-proto": {
-            "locked": "6.0.1",
+            "locked": "7.0.0",
             "transitive": [
                 "io.kubernetes:client-java",
                 "io.kubernetes:client-java-extended"
@@ -2852,31 +2868,37 @@
             ]
         },
         "io.sundr:builder-annotations": {
-            "locked": "0.18.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.kubernetes:client-java-api"
             ]
         },
         "io.sundr:resourcecify-annotations": {
-            "locked": "0.18.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-codegen": {
-            "locked": "0.18.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-core": {
-            "locked": "0.18.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.swagger:swagger-annotations": {
             "locked": "1.5.22",
+            "transitive": [
+                "io.kubernetes:client-java-api"
+            ]
+        },
+        "javax.annotation:javax.annotation-api": {
+            "locked": "1.3.2",
             "transitive": [
                 "io.kubernetes:client-java-api"
             ]
@@ -2950,8 +2972,14 @@
                 "org.mockito:mockito-core"
             ]
         },
+        "org.apache.commons:commons-collections4": {
+            "locked": "4.1",
+            "transitive": [
+                "io.kubernetes:client-java"
+            ]
+        },
         "org.apache.commons:commons-compress": {
-            "locked": "1.18",
+            "locked": "1.19",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -3200,7 +3228,7 @@
             ]
         },
         "org.yaml:snakeyaml": {
-            "locked": "1.19",
+            "locked": "1.25",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -3280,7 +3308,8 @@
             "transitive": [
                 "com.google.guava:guava",
                 "com.google.instrumentation:instrumentation-api",
-                "io.grpc:grpc-core"
+                "io.grpc:grpc-core",
+                "io.kubernetes:client-java-api"
             ]
         },
         "com.google.code.gson:gson": {
@@ -3288,6 +3317,7 @@
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core",
+                "io.gsonfire:gson-fire",
                 "io.kubernetes:client-java-api"
             ]
         },
@@ -3497,37 +3527,24 @@
         "com.netflix.titus:titus-common-testkit": {
             "project": true
         },
+        "com.squareup.okhttp3:logging-interceptor": {
+            "locked": "3.14.3",
+            "transitive": [
+                "io.kubernetes:client-java-api"
+            ]
+        },
         "com.squareup.okhttp3:okhttp": {
             "locked": "3.14.6",
             "transitive": [
-                "com.netflix.titus:titus-common"
-            ]
-        },
-        "com.squareup.okhttp:logging-interceptor": {
-            "locked": "2.7.5",
-            "transitive": [
+                "com.netflix.titus:titus-common",
+                "com.squareup.okhttp3:logging-interceptor",
                 "io.kubernetes:client-java-api"
-            ]
-        },
-        "com.squareup.okhttp:okhttp": {
-            "locked": "2.7.5",
-            "transitive": [
-                "com.squareup.okhttp:logging-interceptor",
-                "com.squareup.okhttp:okhttp-ws",
-                "io.kubernetes:client-java-api"
-            ]
-        },
-        "com.squareup.okhttp:okhttp-ws": {
-            "locked": "2.7.5",
-            "transitive": [
-                "io.kubernetes:client-java"
             ]
         },
         "com.squareup.okio:okio": {
             "locked": "1.17.2",
             "transitive": [
-                "com.squareup.okhttp3:okhttp",
-                "com.squareup.okhttp:okhttp"
+                "com.squareup.okhttp3:okhttp"
             ]
         },
         "commons-codec:commons-codec": {
@@ -3588,25 +3605,31 @@
                 "io.grpc:grpc-services"
             ]
         },
+        "io.gsonfire:gson-fire": {
+            "locked": "1.8.3",
+            "transitive": [
+                "io.kubernetes:client-java-api"
+            ]
+        },
         "io.kubernetes:client-java": {
-            "locked": "6.0.1",
+            "locked": "7.0.0",
             "transitive": [
                 "io.kubernetes:client-java-extended"
             ]
         },
         "io.kubernetes:client-java-api": {
-            "locked": "6.0.1",
+            "locked": "7.0.0",
             "transitive": [
                 "io.kubernetes:client-java",
                 "io.kubernetes:client-java-extended"
             ]
         },
         "io.kubernetes:client-java-extended": {
-            "locked": "6.0.1",
-            "requested": "6.0.1"
+            "locked": "7.0.0",
+            "requested": "7.0.0"
         },
         "io.kubernetes:client-java-proto": {
-            "locked": "6.0.1",
+            "locked": "7.0.0",
             "transitive": [
                 "io.kubernetes:client-java",
                 "io.kubernetes:client-java-extended"
@@ -3770,31 +3793,37 @@
             ]
         },
         "io.sundr:builder-annotations": {
-            "locked": "0.18.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.kubernetes:client-java-api"
             ]
         },
         "io.sundr:resourcecify-annotations": {
-            "locked": "0.18.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-codegen": {
-            "locked": "0.18.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-core": {
-            "locked": "0.18.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.swagger:swagger-annotations": {
             "locked": "1.5.22",
+            "transitive": [
+                "io.kubernetes:client-java-api"
+            ]
+        },
+        "javax.annotation:javax.annotation-api": {
+            "locked": "1.3.2",
             "transitive": [
                 "io.kubernetes:client-java-api"
             ]
@@ -3870,8 +3899,14 @@
                 "org.mockito:mockito-core"
             ]
         },
+        "org.apache.commons:commons-collections4": {
+            "locked": "4.1",
+            "transitive": [
+                "io.kubernetes:client-java"
+            ]
+        },
         "org.apache.commons:commons-compress": {
-            "locked": "1.18",
+            "locked": "1.19",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -4122,7 +4157,7 @@
             ]
         },
         "org.yaml:snakeyaml": {
-            "locked": "1.19",
+            "locked": "1.25",
             "transitive": [
                 "io.kubernetes:client-java"
             ]

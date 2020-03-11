@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2020 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.integration.v3.job;
+package com.netflix.titus.master.integration.v3.job.query;
 
 import java.util.List;
 
@@ -85,7 +85,7 @@ public class JobCursorQueryWithUpdatesTest extends BaseIntegrationTest {
         assertThat(allTasksInOrder).hasSize(2 * JOBS_PER_ENGINE * TASKS_PER_JOB);
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testJobQueryWithRemovedItems() {
         // Page 0
         JobQueryResult result0 = client.findJobs(JobQuery.newBuilder()
@@ -111,7 +111,7 @@ public class JobCursorQueryWithUpdatesTest extends BaseIntegrationTest {
         assertThat(result2.getItemsList()).isEmpty();
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testTaskQueryWithRemovedItems() {
         // Page 0
         TaskQueryResult result0 = client.findTasks(TaskQuery.newBuilder()

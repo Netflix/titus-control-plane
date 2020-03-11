@@ -16,7 +16,7 @@
 
 package com.netflix.titus.master.mesos.kubeapiserver.direct.model;
 
-import io.kubernetes.client.models.V1Pod;
+import io.kubernetes.client.openapi.models.V1Pod;
 
 public class PodAddedEvent extends PodEvent {
 

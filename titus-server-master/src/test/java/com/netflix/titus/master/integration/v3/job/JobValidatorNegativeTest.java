@@ -25,7 +25,6 @@ import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.master.integration.BaseIntegrationTest;
 import com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates;
 import com.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
-import com.netflix.titus.runtime.endpoint.admission.AdmissionSanitizer;
 import com.netflix.titus.runtime.endpoint.admission.AdmissionValidator;
 import com.netflix.titus.runtime.endpoint.admission.AggregatingValidator;
 import com.netflix.titus.runtime.endpoint.admission.FailJobValidator;
@@ -113,18 +112,6 @@ public class JobValidatorNegativeTest extends BaseIntegrationTest {
                         .build())
                 .withDefaultGateway()
                 .withJobValidator(validator)
-                .build());
-    }
-
-    private static TitusStackResource getTitusStackResource(AdmissionSanitizer<JobDescriptor> jobSanitizer) {
-        SimulatedCloud simulatedCloud = SimulatedClouds.basicCloud(2);
-
-        return new TitusStackResource(EmbeddedTitusCell.aTitusCell()
-                .withMaster(EmbeddedTitusMasters.basicMaster(simulatedCloud).toBuilder()
-                        .withCellName("cell-name")
-                        .build())
-                .withDefaultGateway()
-                .withJobSanitizer(jobSanitizer)
                 .build());
     }
 }

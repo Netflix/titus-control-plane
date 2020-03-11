@@ -20,7 +20,7 @@ import java.util.List;
 
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
-import io.kubernetes.client.models.V1Toleration;
+import io.kubernetes.client.openapi.models.V1Toleration;
 
 /**
  * {@link TaintTolerationFactory} resolves taint tolerations for a task that should be added when a pod is created.

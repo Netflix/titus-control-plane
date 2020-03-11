@@ -63,7 +63,9 @@ import com.netflix.titus.master.jobmanager.service.common.action.task.KillInitia
 import com.netflix.titus.master.jobmanager.service.common.interceptor.RetryActionInterceptor;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
+import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeApiServerIntegrator;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeConfiguration;
 import com.netflix.titus.master.scheduler.SchedulingService;
 import com.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransformer;
 import com.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
@@ -86,6 +88,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
     private final DirectKubeApiServerIntegrator kubeApiServerIntegrator;
     private final JobManagerConfiguration configuration;
     private final FeatureActivationConfiguration featureConfiguration;
+    private final DirectKubeConfiguration kubeConfiguration;
     private final Predicate<JobDescriptor> kubeSchedulerPredicate;
     private final ApplicationSlaManagementService capacityGroupService;
     private final SchedulingService<? extends TaskRequest> schedulingService;
@@ -106,6 +109,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
             DirectKubeApiServerIntegrator kubeApiServerIntegrator,
             JobManagerConfiguration configuration,
             FeatureActivationConfiguration featureConfiguration,
+            DirectKubeConfiguration kubeConfiguration,
             @Named(FeatureRolloutPlans.KUBE_SCHEDULER_FEATURE) Predicate<JobDescriptor> kubeSchedulerPredicate,
             ApplicationSlaManagementService capacityGroupService,
             SchedulingService<? extends TaskRequest> schedulingService,
@@ -115,7 +119,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
             SystemSoftConstraint systemSoftConstraint,
             SystemHardConstraint systemHardConstraint,
             TitusRuntime titusRuntime) {
-        this(kubeApiServerIntegrator, configuration, featureConfiguration, kubeSchedulerPredicate, capacityGroupService,
+        this(kubeApiServerIntegrator, configuration, featureConfiguration, kubeConfiguration, kubeSchedulerPredicate, capacityGroupService,
                 schedulingService, vmService, jobStore, constraintEvaluatorTransformer, systemSoftConstraint,
                 systemHardConstraint, titusRuntime, Schedulers.computation()
         );
@@ -125,6 +129,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
             DirectKubeApiServerIntegrator kubeApiServerIntegrator,
             JobManagerConfiguration configuration,
             FeatureActivationConfiguration featureConfiguration,
+            DirectKubeConfiguration kubeConfiguration,
             @Named(FeatureRolloutPlans.KUBE_SCHEDULER_FEATURE) Predicate<JobDescriptor> kubeSchedulerPredicate,
             ApplicationSlaManagementService capacityGroupService,
             SchedulingService<? extends TaskRequest> schedulingService,
@@ -138,6 +143,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
         this.kubeApiServerIntegrator = kubeApiServerIntegrator;
         this.configuration = configuration;
         this.featureConfiguration = featureConfiguration;
+        this.kubeConfiguration = kubeConfiguration;
         this.kubeSchedulerPredicate = kubeSchedulerPredicate;
         this.capacityGroupService = capacityGroupService;
         this.schedulingService = schedulingService;
@@ -238,7 +244,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
         }
 
         Map<String, String> taskContext = getTaskContext(previousTask, unassignedIpAllocations);
-        if (kubeSchedulerPredicate.test(refJobView.getJob().getJobDescriptor())) {
+        if (KubeUtil.findFarzoneId(kubeConfiguration, refJobView.getJob()).isPresent() || kubeSchedulerPredicate.test(refJobView.getJob().getJobDescriptor())) {
             taskContext = CollectionsExt.copyAndAdd(taskContext, TaskAttributes.TASK_ATTRIBUTES_OWNED_BY_KUBE_SCHEDULER, "true");
         }
 

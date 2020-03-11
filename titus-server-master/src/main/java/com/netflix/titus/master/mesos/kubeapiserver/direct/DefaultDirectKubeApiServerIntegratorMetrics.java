@@ -25,7 +25,7 @@ import com.netflix.spectator.api.patterns.PolledMeter;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.master.MetricConstants;
-import io.kubernetes.client.models.V1Pod;
+import io.kubernetes.client.openapi.models.V1Pod;
 
 /**
  * Metrics companion class for {@link DefaultDirectKubeApiServerIntegrator}.

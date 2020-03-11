@@ -16,8 +16,10 @@
 
 package com.netflix.titus.master.mesos.kubeapiserver.direct.taint;
 
+import java.util.function.Function;
+
 import com.netflix.titus.master.mesos.kubeapiserver.direct.KubeConstants;
-import io.kubernetes.client.models.V1Toleration;
+import io.kubernetes.client.openapi.models.V1Toleration;
 
 public final class Tolerations {
 
@@ -29,13 +31,19 @@ public final class Tolerations {
 
     public static final V1Toleration TOLERATION_KUBE_SCHEDULER = new V1Toleration()
             .key(KubeConstants.TAINT_SCHEDULER)
-            .value("kubeScheduler")
+            .value(KubeConstants.TAINT_SCHEDULER_VALUE_KUBE)
             .operator("Equal")
             .effect("NoSchedule");
 
     public static final V1Toleration TOLERATION_TIER_FLEX = new V1Toleration()
             .key(KubeConstants.TAINT_TIER)
             .value("flex")
+            .operator("Equal")
+            .effect("NoSchedule");
+
+    public static final Function<String, V1Toleration> TOLERATION_FARZONE_FACTORY = farzoneId -> new V1Toleration()
+            .key(KubeConstants.TAINT_FARZONE)
+            .value(farzoneId)
             .operator("Equal")
             .effect("NoSchedule");
 

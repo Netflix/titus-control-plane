@@ -38,11 +38,12 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExecutorsExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.rx.ReactorExt;
+import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodEvent;
-import io.kubernetes.client.ApiException;
 import io.kubernetes.client.informer.ResourceEventHandler;
-import io.kubernetes.client.models.V1Node;
-import io.kubernetes.client.models.V1Pod;
+import io.kubernetes.client.openapi.ApiException;
+import io.kubernetes.client.openapi.models.V1Node;
+import io.kubernetes.client.openapi.models.V1Pod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.DirectProcessor;
@@ -143,7 +144,16 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
             Stopwatch timer = Stopwatch.createStarted();
             try {
                 logger.info("Deleting pod: {}", taskId);
-                kubeApiFacade.getCoreV1Api().deleteNamespacedPod(taskId, KUBERNETES_NAMESPACE, null, null, null, DELETE_GRACE_PERIOD_SECONDS, null, null);
+                kubeApiFacade.getCoreV1Api().deleteNamespacedPod(
+                        taskId,
+                        KUBERNETES_NAMESPACE,
+                        null,
+                        null,
+                        DELETE_GRACE_PERIOD_SECONDS,
+                        null,
+                        null,
+                        null
+                );
 
                 metrics.terminateSuccess(task, timer.elapsed(TimeUnit.MILLISECONDS));
             } catch (JsonSyntaxException e) {
@@ -181,6 +191,9 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
             ResourceEventHandler<V1Pod> handler = new ResourceEventHandler<V1Pod>() {
                 @Override
                 public void onAdd(V1Pod pod) {
+                    if(!KubeUtil.isOwnedByKubeScheduler(pod)) {
+                        return;
+                    }
                     logger.info("Pod Added: {}", pod);
 
                     String taskId = pod.getSpec().getContainers().get(0).getName();
@@ -199,6 +212,10 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
 
                 @Override
                 public void onUpdate(V1Pod oldPod, V1Pod newPod) {
+                    if(!KubeUtil.isOwnedByKubeScheduler(newPod)) {
+                        return;
+                    }
+
                     logger.info("Pod Updated Old: {}, New: {}", oldPod, newPod);
                     metrics.onUpdate(newPod);
 
@@ -208,6 +225,10 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
 
                 @Override
                 public void onDelete(V1Pod pod, boolean deletedFinalStateUnknown) {
+                    if(!KubeUtil.isOwnedByKubeScheduler(pod)) {
+                        return;
+                    }
+
                     logger.info("Pod Deleted: {}, deletedFinalStateUnknown={}", pod, deletedFinalStateUnknown);
                     metrics.onDelete(pod);
 

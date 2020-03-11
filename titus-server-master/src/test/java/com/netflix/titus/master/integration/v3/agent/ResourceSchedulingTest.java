@@ -56,9 +56,6 @@ public class ResourceSchedulingTest extends BaseIntegrationTest {
                             new SimulatedCloud().createAgentInstanceGroups(
                                     new SimulatedAgentGroupDescriptor("flex1", AwsInstanceType.M5_Metal.name(), 0, 1, 1, 2)
                             ))
-                            .toBuilder()
-                            .withProperty("titus.scheduler.globalTaskLaunchingConstraintEvaluatorEnabled", "false")
-                            .build()
             )
             .withDefaultGateway()
             .build()

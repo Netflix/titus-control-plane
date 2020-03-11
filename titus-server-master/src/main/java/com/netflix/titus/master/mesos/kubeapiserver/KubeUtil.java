@@ -29,27 +29,40 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.google.common.base.Strings;
+import com.netflix.titus.api.jobmanager.JobConstraints;
+import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.common.util.NetworkExt;
+import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
-import com.squareup.okhttp.Request;
-import io.kubernetes.client.ApiClient;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeConfiguration;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.KubeConstants;
 import io.kubernetes.client.informer.SharedInformerFactory;
-import io.kubernetes.client.models.V1ContainerState;
-import io.kubernetes.client.models.V1ContainerStateRunning;
-import io.kubernetes.client.models.V1ContainerStateTerminated;
-import io.kubernetes.client.models.V1ContainerStateWaiting;
-import io.kubernetes.client.models.V1ContainerStatus;
-import io.kubernetes.client.models.V1Pod;
+import io.kubernetes.client.openapi.ApiClient;
+import io.kubernetes.client.openapi.models.V1ContainerState;
+import io.kubernetes.client.openapi.models.V1ContainerStateRunning;
+import io.kubernetes.client.openapi.models.V1ContainerStateTerminated;
+import io.kubernetes.client.openapi.models.V1ContainerStateWaiting;
+import io.kubernetes.client.openapi.models.V1ContainerStatus;
+import io.kubernetes.client.openapi.models.V1Node;
+import io.kubernetes.client.openapi.models.V1NodeAddress;
+import io.kubernetes.client.openapi.models.V1Pod;
+import io.kubernetes.client.openapi.models.V1Toleration;
 import io.kubernetes.client.util.Config;
+import okhttp3.Request;
 
 public class KubeUtil {
 
     public static final Pattern UUID_PATTERN = Pattern.compile("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
+
     public static final Function<Request, String> DEFAULT_URI_MAPPER = r -> {
-        String path = r.url().getPath();
+        String path = '/' + String.join("/", r.url().pathSegments());
         Matcher matcher = UUID_PATTERN.matcher(path);
         return matcher.replaceAll("");
     };
+
+    private static final String INTERNAL_IP = "InternalIP";
 
     public static ApiClient createApiClient(String kubeApiServerUrl,
                                             String kubeConfigPath,
@@ -79,8 +92,12 @@ public class KubeUtil {
             client = Config.fromUrl(kubeApiServerUrl);
         }
 
-        client.getHttpClient().setReadTimeout(readTimeoutMs, TimeUnit.MILLISECONDS);
-        client.getHttpClient().interceptors().add(metricsInterceptor);
+        client.setHttpClient(
+                client.getHttpClient().newBuilder()
+                        .addInterceptor(metricsInterceptor)
+                        .readTimeout(readTimeoutMs, TimeUnit.SECONDS)
+                        .build()
+        );
         return client;
     }
 
@@ -147,5 +164,49 @@ public class KubeUtil {
         }
 
         return "{state=<not set>}";
+    }
+
+    /**
+     * If a job has an availability zone hard constraint with a farzone id, return this farzone id.
+     */
+    public static Optional<String> findFarzoneId(DirectKubeConfiguration configuration, Job job) {
+        List<String> farzones = configuration.getFarzones();
+        if (CollectionsExt.isNullOrEmpty(farzones)) {
+            return Optional.empty();
+        }
+
+        Map<String, String> hardConstraints = job.getJobDescriptor().getContainer().getHardConstraints();
+        String zone = hardConstraints.get(JobConstraints.AVAILABILITY_ZONE);
+        if (StringExt.isEmpty(zone)) {
+            return Optional.empty();
+        }
+
+        for (String farzone : farzones) {
+            if (zone.equalsIgnoreCase(farzone)) {
+                return Optional.of(farzone);
+            }
+        }
+        return Optional.empty();
+    }
+
+    public static boolean isOwnedByKubeScheduler(V1Pod v1Pod) {
+        List<V1Toleration> tolerations = v1Pod.getSpec().getTolerations();
+        if (CollectionsExt.isNullOrEmpty(tolerations)) {
+            return false;
+        }
+        for (V1Toleration toleration : tolerations) {
+            if (KubeConstants.TAINT_SCHEDULER.equals(toleration.getKey()) && KubeConstants.TAINT_SCHEDULER_VALUE_KUBE.equals(toleration.getValue())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static String getNodeIpV4Address(V1Node node) {
+        return node.getStatus().getAddresses().stream()
+                .filter(a -> a.getType().equalsIgnoreCase(INTERNAL_IP) && NetworkExt.isIpV4(a.getAddress()))
+                .findFirst()
+                .map(V1NodeAddress::getAddress)
+                .orElse("UnknownIpAddress");
     }
 }

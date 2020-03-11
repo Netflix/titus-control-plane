@@ -17,12 +17,11 @@
 package com.netflix.titus.ext.kube.clustermembership.connector.model;
 
 import com.google.gson.annotations.SerializedName;
-import io.kubernetes.client.models.V1ListMeta;
-import io.kubernetes.client.models.V1ObjectMeta;
-import io.kubernetes.client.models.V1StatusDetails;
+import io.kubernetes.client.openapi.models.V1ObjectMeta;
+import io.kubernetes.client.openapi.models.V1StatusDetails;
 
 /**
- * {@link io.kubernetes.client.models.V1Status} and {@link V1ListMeta} are incomplete.
+ * {@link io.kubernetes.client.openapi.models.V1Status} and {@link io.kubernetes.client.openapi.models.V1ListMeta} are incomplete.
  */
 public class KubeStatus {
 
