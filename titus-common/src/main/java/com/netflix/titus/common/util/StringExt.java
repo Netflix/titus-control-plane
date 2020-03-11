@@ -35,6 +35,8 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.netflix.titus.common.util.tuple.Either;
+
 import static java.util.Arrays.asList;
 
 /**
@@ -539,5 +541,27 @@ public final class StringExt {
             }
         }
         return Optional.of(result);
+    }
+
+    public static Either<String, IllegalArgumentException> nameFromJavaBeanGetter(String getterName) {
+        if (isEmpty(getterName)) {
+            return Either.ofError(new IllegalArgumentException("getter name is empty"));
+        }
+        int prefixLen;
+        if (getterName.startsWith("get")) {
+            prefixLen = 3;
+        } else if (getterName.startsWith("is")) {
+            prefixLen = 2;
+        } else if (getterName.startsWith("has")) {
+            prefixLen = 3;
+        } else {
+            return Either.ofError(new IllegalArgumentException(String.format("getter '%s' does not start with a valid prefix (get|is|has)", getterName)));
+        }
+
+        if (getterName.length() == prefixLen) {
+            return Either.ofError(new IllegalArgumentException(String.format("getter '%s' has only prefix with empty base name", getterName)));
+        }
+
+        return Either.ofValue(Character.toLowerCase(getterName.charAt(prefixLen)) + getterName.substring(prefixLen + 1));
     }
 }
