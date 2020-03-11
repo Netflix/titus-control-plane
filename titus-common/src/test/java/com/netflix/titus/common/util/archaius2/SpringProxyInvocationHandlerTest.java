@@ -102,6 +102,12 @@ public class SpringProxyInvocationHandlerTest {
     }
 
     @Test
+    public void testDefaultMethods() {
+        assertThat(configuration.getNumber(false)).isEqualTo(1);
+        assertThat(configuration.getNumber(true)).isEqualTo(2);
+    }
+
+    @Test
     public void testToString() {
         String[] expectedParts = {"float=4.5", "boolean=true", "double=3.3", "intWithNoDefault=11", "list=[a, b, c]", "set=[d, e, f]", "int=1", "long=2"};
         String actual = configuration.toString();
@@ -135,5 +141,9 @@ public class SpringProxyInvocationHandlerTest {
 
         @DefaultValue("d,e,f")
         List<String> getSet();
+
+        default long getNumber(boolean returnLong) {
+            return returnLong ? getLong() : getInt();
+        }
     }
 }

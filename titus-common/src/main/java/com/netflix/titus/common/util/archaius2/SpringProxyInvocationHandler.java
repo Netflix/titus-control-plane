@@ -32,6 +32,7 @@ import com.google.common.base.Preconditions;
 import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
 import com.netflix.archaius.api.annotations.PropertyName;
+import com.netflix.titus.common.util.ReflectionExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Either;
 import org.slf4j.Logger;
@@ -67,14 +68,23 @@ class SpringProxyInvocationHandler implements InvocationHandler {
 
         Map<Method, MethodHandler> methodWrappers = new HashMap<>();
         for (Method method : apiInterface.getMethods()) {
-            Preconditions.checkArgument(method.getParameterCount() == 0, "Method with no parameters expected");
-            methodWrappers.put(method, new PropertyMethodHandler(method));
+            Preconditions.checkArgument(
+                    method.getParameterCount() == 0 || method.isDefault(),
+                    "Method with no parameters expected or a default method"
+            );
+            if (!method.isDefault()) {
+                methodWrappers.put(method, new PropertyMethodHandler(method));
+            }
         }
         this.methodWrappers = methodWrappers;
     }
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        if (method.isDefault()) {
+            return ReflectionExt.invokeDefault(proxy, apiInterface, method, args);
+        }
+
         MethodHandler wrapper = methodWrappers.get(method);
         if (wrapper != null) {
             return wrapper.get();
