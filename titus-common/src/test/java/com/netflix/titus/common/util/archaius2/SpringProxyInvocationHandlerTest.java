@@ -17,6 +17,7 @@
 package com.netflix.titus.common.util.archaius2;
 
 import java.util.List;
+import java.util.Set;
 
 import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
@@ -83,10 +84,27 @@ public class SpringProxyInvocationHandlerTest {
     }
 
     @Test
+    public void testEmptyList() {
+        assertThat(configuration.getEmptyList()).isEmpty();
+    }
+
+    @Test
     public void testSet() {
         assertThat(configuration.getSet()).containsExactly("d", "e", "f");
         environment.setProperty("annotationPrefix.set", "D,E,F");
         assertThat(configuration.getSet()).containsExactly("D", "E", "F");
+    }
+
+    @Test
+    public void testEmptySet() {
+        assertThat(configuration.getEmptySet()).isEmpty();
+    }
+
+    @Test
+    public void testNullValue() {
+        assertThat(configuration.getInteger()).isNull();
+        environment.setProperty("annotationPrefix.integer", "1");
+        assertThat(configuration.getInteger()).isEqualTo(1);
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -122,6 +140,8 @@ public class SpringProxyInvocationHandlerTest {
         @DefaultValue("1")
         int getInt();
 
+        Integer getInteger();
+
         int getIntWithNoDefault();
 
         @DefaultValue("2")
@@ -139,8 +159,12 @@ public class SpringProxyInvocationHandlerTest {
         @DefaultValue("a,b,c")
         List<String> getList();
 
+        List<String> getEmptyList();
+
         @DefaultValue("d,e,f")
         List<String> getSet();
+
+        Set<String> getEmptySet();
 
         default long getNumber(boolean returnLong) {
             return returnLong ? getLong() : getInt();
