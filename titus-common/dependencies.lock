@@ -3562,6 +3562,7 @@
                 "org.springframework:spring-beans",
                 "org.springframework:spring-context",
                 "org.springframework:spring-expression",
+                "org.springframework:spring-test",
                 "org.springframework:spring-web",
                 "org.springframework:spring-webflux",
                 "org.springframework:spring-webmvc"
@@ -3581,6 +3582,10 @@
             "transitive": [
                 "org.springframework:spring-core"
             ]
+        },
+        "org.springframework:spring-test": {
+            "locked": "5.1.5.RELEASE",
+            "requested": "5.1.5.RELEASE"
         },
         "org.springframework:spring-web": {
             "locked": "5.1.5.RELEASE",
@@ -5693,6 +5698,7 @@
                 "org.springframework:spring-beans",
                 "org.springframework:spring-context",
                 "org.springframework:spring-expression",
+                "org.springframework:spring-test",
                 "org.springframework:spring-web",
                 "org.springframework:spring-webflux",
                 "org.springframework:spring-webmvc"
@@ -5712,6 +5718,10 @@
             "transitive": [
                 "org.springframework:spring-core"
             ]
+        },
+        "org.springframework:spring-test": {
+            "locked": "5.1.5.RELEASE",
+            "requested": "5.1.5.RELEASE"
         },
         "org.springframework:spring-web": {
             "locked": "5.1.5.RELEASE",
