@@ -21,6 +21,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Proxy;
 import java.lang.reflect.Type;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -183,11 +184,20 @@ class SpringProxyInvocationHandler implements InvocationHandler {
         private final Object value;
 
         private ValueHolder(Method method, String stringValue) {
-            Preconditions.checkArgument(stringValue != null, "Configuration value cannot be null");
+            Class<?> valueType = method.getReturnType();
+            Preconditions.checkArgument(!valueType.isPrimitive() || stringValue != null, "Configuration value cannot be null for primitive types");
+
             this.stringValue = stringValue;
 
-            Class<?> valueType = method.getReturnType();
-            if (String.class.equals(valueType)) {
+            if (stringValue == null) {
+                if (List.class.isAssignableFrom(valueType)) {
+                    this.value = Collections.emptyList();
+                } else if (Set.class.isAssignableFrom(valueType)) {
+                    this.value = Collections.emptySet();
+                } else {
+                    this.value = null;
+                }
+            } else if (String.class.equals(valueType)) {
                 this.value = stringValue;
             } else if (Long.class.equals(valueType) || long.class.equals(valueType)) {
                 this.value = Long.parseLong(stringValue);
