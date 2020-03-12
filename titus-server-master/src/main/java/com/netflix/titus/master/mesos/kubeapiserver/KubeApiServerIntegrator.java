@@ -18,7 +18,6 @@ package com.netflix.titus.master.mesos.kubeapiserver;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -483,11 +482,8 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         Protos.TaskInfo taskInfo = taskInfoRequest.getTaskInfo();
         String taskId = taskInfo.getName();
         String nodeName = taskInfo.getSlaveId().getValue();
-        String encodedContainerInfo = Base64.getEncoder().encodeToString(taskInfo.getData().toByteArray());
-
-        Map<String, String> annotations = new HashMap<>(taskInfoRequest.getPassthroughAttributes());
-        annotations.put("containerInfo", encodedContainerInfo);
-        annotations.putAll(PerformanceToolUtil.findPerformanceTestAnnotations(taskInfo));
+        Map<String, String> annotations = KubeUtil.createPodAnnotations(taskInfoRequest.getJob(), taskInfo.getData().toByteArray(),
+                taskInfoRequest.getPassthroughAttributes(), mesosConfiguration.isJobDescriptorAnnotationEnabled());
 
         V1ObjectMeta metadata = new V1ObjectMeta()
                 .name(taskId)

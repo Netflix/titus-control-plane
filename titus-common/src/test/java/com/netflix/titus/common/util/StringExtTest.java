@@ -84,6 +84,13 @@ public class StringExtTest {
     }
 
     @Test
+    public void testGzipAndBase64Encode() {
+        String input = "{aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:bbbbbbbbbbbbbbbbbbbbbbbbbbb}";
+        String output = StringExt.gzipAndBase64Encode(input);
+        assertThat(output.length()).isLessThan(input.length());
+    }
+  
+    @Test
     public void testNameFromJavaBeanGetter() {
         assertNameFromJavaBeanGetterReturnsName("getMyName", "myName");
         assertNameFromJavaBeanGetterReturnsName("isMyName", "myName");

@@ -16,7 +16,6 @@
 
 package com.netflix.titus.master.mesos.kubeapiserver.direct;
 
-import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -47,7 +46,7 @@ import com.netflix.titus.api.model.EfsMount;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.StringExt;
-import com.netflix.titus.master.mesos.kubeapiserver.PerformanceToolUtil;
+import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.taint.TaintTolerationFactory;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import io.kubernetes.client.custom.Quantity;
@@ -102,14 +101,10 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
 
     @Override
     public V1Pod apply(Job<?> job, Task task) {
-
         String taskId = task.getId();
         TitanProtos.ContainerInfo containerInfo = buildContainerInfo(job, task);
-        String encodedContainerInfo = Base64.getEncoder().encodeToString(containerInfo.toByteArray());
-
-        Map<String, String> annotations = new HashMap<>();
-        annotations.put("containerInfo", encodedContainerInfo);
-        annotations.putAll(PerformanceToolUtil.toAnnotations(job));
+        Map<String, String> annotations = KubeUtil.createPodAnnotations(job, containerInfo.toByteArray(),
+                containerInfo.getPassthroughAttributesMap(), configuration.isJobDescriptorAnnotationEnabled());
 
         V1ObjectMeta metadata = new V1ObjectMeta()
                 .name(taskId)

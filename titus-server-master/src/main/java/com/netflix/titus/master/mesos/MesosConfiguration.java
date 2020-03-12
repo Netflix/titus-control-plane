@@ -125,4 +125,10 @@ public interface MesosConfiguration {
      */
     @DefaultValue("true")
     boolean isGcUnknownPodsEnabled();
+
+    /**
+     * @return whether or not to add a json encoded job descriptor as a pod annotation
+     */
+    @DefaultValue("true")
+    boolean isJobDescriptorAnnotationEnabled();
 }

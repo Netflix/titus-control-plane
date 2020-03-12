@@ -17,7 +17,9 @@
 package com.netflix.titus.master.mesos.kubeapiserver;
 
 import java.io.IOException;
+import java.util.Base64;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -31,10 +33,12 @@ import java.util.regex.Pattern;
 import com.google.common.base.Strings;
 import com.netflix.titus.api.jobmanager.JobConstraints;
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.json.ObjectMappers;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.NetworkExt;
 import com.netflix.titus.common.util.StringExt;
+import com.netflix.titus.common.util.jackson.CommonObjectMappers;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeConfiguration;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.KubeConstants;
@@ -208,5 +212,25 @@ public class KubeUtil {
                 .findFirst()
                 .map(V1NodeAddress::getAddress)
                 .orElse("UnknownIpAddress");
+    }
+
+    public static Map<String, String> createPodAnnotations(
+            Job<?> job,
+            byte[] containerInfoData,
+            Map<String, String> passthroughAttributes,
+            boolean includeJobDescriptor
+    ) {
+        String encodedContainerInfo = Base64.getEncoder().encodeToString(containerInfoData);
+
+        Map<String, String> annotations = new HashMap<>(passthroughAttributes);
+        annotations.putAll(PerformanceToolUtil.toAnnotations(job));
+        annotations.put("containerInfo", encodedContainerInfo);
+
+        if (includeJobDescriptor) {
+            String jobDescriptorJson = CommonObjectMappers.writeValueAsString(ObjectMappers.storeMapper(), job.getJobDescriptor());
+            annotations.put("jobDescriptor", StringExt.gzipAndBase64Encode(jobDescriptorJson));
+        }
+
+        return annotations;
     }
 }
