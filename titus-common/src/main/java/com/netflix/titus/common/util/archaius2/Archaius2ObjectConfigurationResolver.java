@@ -40,7 +40,7 @@ class Archaius2ObjectConfigurationResolver<OBJECT, CONFIG> implements ObjectConf
 
     private final Config configuration;
     private final Function<OBJECT, String> selectorFieldAccessor;
-    private final Class<CONFIG> configType;
+    private final Function<String, CONFIG> dynamicProxyFactory;
     private final CONFIG defaultConfig;
 
     private volatile SortedMap<String, Rule<CONFIG>> configMap = Collections.emptySortedMap();
@@ -49,9 +49,20 @@ class Archaius2ObjectConfigurationResolver<OBJECT, CONFIG> implements ObjectConf
                                          Function<OBJECT, String> selectorFieldAccessor,
                                          Class<CONFIG> configType,
                                          CONFIG defaultConfig) {
+        this(configuration,
+                selectorFieldAccessor,
+                root -> Archaius2Ext.newConfiguration(configType, root, configuration),
+                defaultConfig
+        );
+    }
+
+    Archaius2ObjectConfigurationResolver(Config configuration,
+                                         Function<OBJECT, String> selectorFieldAccessor,
+                                         Function<String, CONFIG> dynamicProxyFactory,
+                                         CONFIG defaultConfig) {
         this.configuration = configuration;
         this.selectorFieldAccessor = selectorFieldAccessor;
-        this.configType = configType;
+        this.dynamicProxyFactory = dynamicProxyFactory;
         this.defaultConfig = defaultConfig;
 
         configuration.addListener(this);
@@ -138,7 +149,7 @@ class Archaius2ObjectConfigurationResolver<OBJECT, CONFIG> implements ObjectConf
             return Optional.of(new Rule<>(patternString, pattern, previous.getConfig()));
         }
 
-        return Optional.of(new Rule<>(patternString, pattern, Archaius2Ext.newConfiguration(configType, root, configuration)));
+        return Optional.of(new Rule<>(patternString, pattern, dynamicProxyFactory.apply(root)));
     }
 
     private static class Rule<CONFIG> {
