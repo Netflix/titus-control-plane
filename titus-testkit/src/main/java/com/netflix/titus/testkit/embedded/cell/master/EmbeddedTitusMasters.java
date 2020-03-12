@@ -34,6 +34,11 @@ public final class EmbeddedTitusMasters {
                 .withProperty("titus.agent.synchronizeWithInstanceCacheIntervalMs", "500")
                 .withProperty("titus.master.capacityManagement.availableCapacityUpdateIntervalMs", "10")
 
+                .withProperty("titus.scheduler.exitUponFenzoSchedulingErrorEnabled", "false")
+                // Disable launch guard
+                .withProperty("titus.scheduler.globalTaskLaunchingConstraintEvaluatorEnabled", "false")
+                .withProperty("titus.scheduler.maxLaunchingTasksPerMachine", "96")
+
                 // speed up scheduling during tests
                 .withProperty("titus.scheduler.schedulerIterationIntervalMs", "1")
                 .withProperty("titus.scheduler.schedulerMaxIdleIntervalMs", "5")

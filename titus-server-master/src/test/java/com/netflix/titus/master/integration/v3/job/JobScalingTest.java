@@ -60,7 +60,7 @@ public class JobScalingTest extends BaseIntegrationTest {
         instanceGroupsScenarioBuilder.synchronizeWithCloud().template(InstanceGroupScenarioTemplates.basicCloudActivation());
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testScaleUpAndDownServiceJob() throws Exception {
         jobsScenarioBuilder.schedule(newJob("testScaleUpAndDownServiceJob"), jobScenarioBuilder -> jobScenarioBuilder
                 .template(ScenarioTemplates.startTasksInNewJob())
@@ -71,7 +71,7 @@ public class JobScalingTest extends BaseIntegrationTest {
         );
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testScaleUpAndDownServiceJobDesired() throws Exception {
         jobsScenarioBuilder.schedule(newJob("testScaleUpAndDownServiceJob"), jobScenarioBuilder -> jobScenarioBuilder
                 .template(ScenarioTemplates.startTasksInNewJob())
@@ -82,7 +82,7 @@ public class JobScalingTest extends BaseIntegrationTest {
         );
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testScaleUpAndDownServiceJobMin() throws Exception {
         jobsScenarioBuilder.schedule(newJob("testScaleUpAndDownServiceJob"), jobScenarioBuilder -> jobScenarioBuilder
                 .template(ScenarioTemplates.startTasksInNewJob())
@@ -92,7 +92,7 @@ public class JobScalingTest extends BaseIntegrationTest {
         );
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testScaleUpAndDownServiceJobMax() throws Exception {
         jobsScenarioBuilder.schedule(newJob("testScaleUpAndDownServiceJob"), jobScenarioBuilder -> jobScenarioBuilder
                 .template(ScenarioTemplates.startTasksInNewJob())
@@ -102,7 +102,7 @@ public class JobScalingTest extends BaseIntegrationTest {
         );
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testScaleUpAndDownServiceJobDesiredInvalid() throws Exception {
         jobsScenarioBuilder.schedule(newJob("testScaleUpAndDownServiceJob"), jobScenarioBuilder -> jobScenarioBuilder
                 .template(ScenarioTemplates.startTasksInNewJob())
@@ -112,7 +112,7 @@ public class JobScalingTest extends BaseIntegrationTest {
         );
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testTerminateAndShrink() throws Exception {
         jobsScenarioBuilder.schedule(newJob("testTerminateAndShrink"), jobScenarioBuilder -> jobScenarioBuilder
                 .template(ScenarioTemplates.startTasksInNewJob())
@@ -129,7 +129,7 @@ public class JobScalingTest extends BaseIntegrationTest {
         );
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testTerminateAndShrinkNotAllowedIfDesiredToLowAndCheckEnabled() {
         try {
             jobsScenarioBuilder.schedule(newJob("testTerminateAndShrinkNotAllowed"), jobScenarioBuilder -> jobScenarioBuilder

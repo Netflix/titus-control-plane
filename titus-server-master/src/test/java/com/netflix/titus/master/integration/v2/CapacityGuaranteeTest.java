@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2020 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.integration;
+package com.netflix.titus.master.integration.v2;
 
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
@@ -25,6 +25,7 @@ import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.aws.AwsInstanceType;
+import com.netflix.titus.master.integration.BaseIntegrationTest;
 import com.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import com.netflix.titus.master.integration.v3.scenario.JobsScenarioBuilder;
 import com.netflix.titus.testkit.client.TitusMasterClient;
@@ -42,6 +43,7 @@ import static com.netflix.titus.master.endpoint.v2.rest.Representation2ModelConv
 import static com.netflix.titus.testkit.data.core.ApplicationSlaSample.fromAwsInstanceType;
 import static com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMasters.basicMaster;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskBatchJobDescriptor;
+import static org.junit.rules.RuleChain.outerRule;
 
 /**
  * Tests that capacity guarantees are enforced during task scheduling.
@@ -68,22 +70,20 @@ public class CapacityGuaranteeTest extends BaseIntegrationTest {
                     new SimulatedCloud().createAgentInstanceGroups(
                             SimulatedAgentGroupDescriptor.awsInstanceGroup("critical1", AwsInstanceType.M4_4XLarge, 2, 2, 2)
                     )
-            ).toBuilder().withProperty("titus.scheduler.globalTaskLaunchingConstraintEvaluatorEnabled", "false").build()
+            )
     );
 
     private InstanceGroupsScenarioBuilder instanceGroupsScenarioBuilder = new InstanceGroupsScenarioBuilder(titusMasterResource);
 
-    @Rule
-    public final RuleChain ruleChain = RuleChain.outerRule(titusMasterResource).around(instanceGroupsScenarioBuilder);
+    public JobsScenarioBuilder jobsScenarioBuilder = new JobsScenarioBuilder(titusMasterResource);
 
-    private JobsScenarioBuilder jobsScenarioBuilder;
+    @Rule
+    public final RuleChain ruleChain = outerRule(titusMasterResource).around(instanceGroupsScenarioBuilder).around(jobsScenarioBuilder);
 
     private TitusMasterClient v2Client;
 
     @Before
     public void setUp() throws Exception {
-        jobsScenarioBuilder = new JobsScenarioBuilder(titusMasterResource.getOperations());
-
         instanceGroupsScenarioBuilder.synchronizeWithCloud()
                 .apply("critical1", g -> g.tier(Tier.Critical).lifecycleState(InstanceGroupLifecycleState.Active));
 
@@ -108,7 +108,7 @@ public class CapacityGuaranteeTest extends BaseIntegrationTest {
     }
 
     @Test(timeout = LONG_TEST_TIMEOUT_MS)
-    public void testGuaranteesAreEnforcedInCriticalTier() throws Exception {
+    public void testGuaranteesAreEnforcedInCriticalTier() {
         JobDescriptor<BatchJobExt> c1Job = BATCH_JOB_8CPU.toBuilder().withCapacityGroup("c1").build();
         JobDescriptor<BatchJobExt> c2Job = BATCH_JOB_8CPU.toBuilder().withCapacityGroup("c2").build();
 

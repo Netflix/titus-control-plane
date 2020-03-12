@@ -31,7 +31,6 @@ import com.netflix.titus.runtime.clustermembership.service.ClusterMembershipServ
 import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorServerFactoryComponent;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolveComponent;
 import com.netflix.titus.runtime.health.AlwaysHealthyComponent;
-import com.netflix.titus.supplementary.relocation.RelocationConfiguration;
 import com.netflix.titus.supplementary.relocation.RelocationConnectorStubs;
 import com.netflix.titus.supplementary.relocation.RelocationLeaderActivator;
 import com.netflix.titus.supplementary.relocation.descheduler.DeschedulerComponent;
@@ -78,7 +77,6 @@ public class TaskRelocationSandbox {
 
         container.register(CallMetadataResolveComponent.class);
         container.register(GrpcToReactorServerFactoryComponent.class);
-        container.register(RelocationConfiguration.class);
         container.register(InMemoryRelocationStoreComponent.class);
         container.register(DeschedulerComponent.class);
         container.register(TaskRelocationWorkflowComponent.class);

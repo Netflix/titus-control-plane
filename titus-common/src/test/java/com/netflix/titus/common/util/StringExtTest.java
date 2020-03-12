@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.google.common.collect.ImmutableMap;
+import com.netflix.titus.common.util.tuple.Either;
 import org.junit.Test;
 
 import static com.netflix.titus.common.util.StringExt.parseEnumListIgnoreCase;
@@ -87,5 +88,27 @@ public class StringExtTest {
         String input = "{aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa:bbbbbbbbbbbbbbbbbbbbbbbbbbb}";
         String output = StringExt.gzipAndBase64Encode(input);
         assertThat(output.length()).isLessThan(input.length());
+    }
+  
+    @Test
+    public void testNameFromJavaBeanGetter() {
+        assertNameFromJavaBeanGetterReturnsName("getMyName", "myName");
+        assertNameFromJavaBeanGetterReturnsName("isMyName", "myName");
+        assertNameFromJavaBeanGetterReturnsName("hasMyName", "myName");
+
+        assertNameFromJavaBeanGetterReturnsError("badPrefix");
+        assertNameFromJavaBeanGetterReturnsError("");
+        assertNameFromJavaBeanGetterReturnsError("has");
+    }
+
+    private void assertNameFromJavaBeanGetterReturnsName(String methodName, String propertyName) {
+        Either<String, IllegalArgumentException> result = StringExt.nameFromJavaBeanGetter(methodName);
+        assertThat(result.hasValue()).isTrue();
+        assertThat(result.getValue()).isEqualTo(propertyName);
+    }
+
+    private void assertNameFromJavaBeanGetterReturnsError(String methodName) {
+        Either<String, IllegalArgumentException> result = StringExt.nameFromJavaBeanGetter(methodName);
+        assertThat(result.hasError()).isTrue();
     }
 }

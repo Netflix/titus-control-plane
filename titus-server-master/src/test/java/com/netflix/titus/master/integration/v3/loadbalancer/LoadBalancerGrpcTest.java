@@ -73,19 +73,19 @@ public class LoadBalancerGrpcTest extends BaseIntegrationTest {
         client = titusStackResource.getOperations().getLoadBalancerGrpcClient();
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testPutLoadBalancer() throws Exception {
         LoadBalancerTests.putLoadBalancersPerJob(1, 1, putLoadBalancerWithJobId);
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testGetLoadBalancer() throws Exception {
         String jobId = "Titus-123";
         Set<LoadBalancerId> loadBalancerIds = LoadBalancerTests.getLoadBalancersForJob(jobId, getJobLoadBalancers);
         assertThat(loadBalancerIds.size()).isEqualTo(0);
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testRmLoadBalancer() throws Exception {
         Map<String, Set<LoadBalancerId>> jobIdToLoadBalancersMap = LoadBalancerTests.putLoadBalancersPerJob(10, 50, putLoadBalancerWithJobId);
 
@@ -102,7 +102,7 @@ public class LoadBalancerGrpcTest extends BaseIntegrationTest {
         });
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testGetAllLoadBalancerPages() throws Exception {
         int numJobs = 75;
         int numLbs = 7;
@@ -136,7 +136,7 @@ public class LoadBalancerGrpcTest extends BaseIntegrationTest {
         );
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testGetAllLoadBalancerPagesWithCursor() throws Exception {
         int numJobs = 75;
         int numLbs = 7;

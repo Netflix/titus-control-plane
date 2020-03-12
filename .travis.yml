@@ -28,9 +28,17 @@ matrix:
   fast_finish: true
   include:
     - name: "Unit Tests"
-      env: TITUS_INTEGRATION_TEST=false
-    - name: "Integration Tests"
-      env: TITUS_INTEGRATION_TEST=true
+      env: TITUS_TEST_GROUP=unit
+    - name: "Integration Tests (exclude master)"
+      env: TITUS_TEST_GROUP=integrationExcludeMaster
+    - name: "Integration Tests (only master 1)"
+      env: TITUS_TEST_GROUP=integrationOnlyMaster1
+    - name: "Integration Tests (only master 2)"
+      env: TITUS_TEST_GROUP=integrationOnlyMaster2
+    - name: "Integration Tests (only master 3)"
+      env: TITUS_TEST_GROUP=integrationOnlyMaster3
+    - name: "Integration Tests (not parallelizable)"
+      env: TITUS_TEST_GROUP=integrationNotParallelizable
     - name: "Docker Compose Integration"
       sudo: required
       language: generic

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2020 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.integration.v3.job;
+package com.netflix.titus.master.integration.v3.job.query;
 
 import java.util.List;
 
@@ -87,7 +87,7 @@ public class JobCursorQueryTest extends BaseIntegrationTest {
         assertThat(allTasksInOrder).hasSize(2 * JOBS_PER_ENGINE * TASKS_PER_JOB);
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testJobQueryWithCursor() {
         // Page 0
         JobQueryResult result0 = client.findJobs(JobQuery.newBuilder()
@@ -131,12 +131,12 @@ public class JobCursorQueryTest extends BaseIntegrationTest {
                 .isEqualTo(result3.getPagination().getTotalPages());
     }
 
-    @Test(expected = StatusRuntimeException.class)
+    @Test(timeout = TEST_TIMEOUT_MS, expected = StatusRuntimeException.class)
     public void testJobQueryWithBadCursor() {
         client.findJobs(JobQuery.newBuilder().setPage(Page.newBuilder().setPageSize(4).setCursor("bad_cursor_value")).build());
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testJobQueryWithCursorAndEmptyResult() {
         JobQueryResult result = client.findJobs(JobQuery.newBuilder()
                 .setPage(Page.newBuilder().setPageSize(4))
@@ -149,7 +149,7 @@ public class JobCursorQueryTest extends BaseIntegrationTest {
         assertThat(result.getPagination().getHasMore()).isFalse();
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testTaskQueryWithCursor() {
         // Page 0
         TaskQueryResult result0 = client.findTasks(TaskQuery.newBuilder()
@@ -193,12 +193,12 @@ public class JobCursorQueryTest extends BaseIntegrationTest {
                 .isEqualTo(result3.getPagination().getTotalPages());
     }
 
-    @Test(expected = StatusRuntimeException.class)
+    @Test(timeout = TEST_TIMEOUT_MS, expected = StatusRuntimeException.class)
     public void testTaskQueryWithBadCursor() {
         client.findTasks(TaskQuery.newBuilder().setPage(Page.newBuilder().setPageSize(4).setCursor("bad_cursor_value")).build());
     }
 
-    @Test
+    @Test(timeout = TEST_TIMEOUT_MS)
     public void testTaskQueryWithCursorAndEmptyResult() {
         TaskQueryResult result = client.findTasks(TaskQuery.newBuilder()
                 .setPage(Page.newBuilder().setPageSize(4))

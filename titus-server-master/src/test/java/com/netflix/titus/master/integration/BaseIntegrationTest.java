@@ -16,13 +16,45 @@
 
 package com.netflix.titus.master.integration;
 
+import java.security.Permission;
+
 import com.netflix.titus.testkit.junit.category.IntegrationTest;
+import org.junit.BeforeClass;
 import org.junit.experimental.categories.Category;
 
 @Category(IntegrationTest.class)
 public class BaseIntegrationTest {
 
+    protected static final long SHORT_TIMEOUT_MS = 5_000;
+
     protected static final long TEST_TIMEOUT_MS = 30_000;
 
     protected static final long LONG_TEST_TIMEOUT_MS = 60_000;
+
+    static class PreventSystemExitSecurityManager extends SecurityManager {
+        @Override
+        public void checkPermission(Permission perm) {
+        }
+
+        @Override
+        public void checkPermission(Permission perm, Object context) {
+        }
+
+        @Override
+        public void checkExit(int status) {
+            if (status != 0) {
+                String message = "System exit requested with error " + status;
+                throw new IllegalStateException(message);
+            }
+        }
+    }
+
+    private static final SecurityManager securityManager = new PreventSystemExitSecurityManager();
+
+    @BeforeClass
+    public static void setSecurityManager() {
+        if (System.getSecurityManager() != securityManager) {
+            System.setSecurityManager(securityManager);
+        }
+    }
 }
