@@ -25,7 +25,7 @@ import javax.inject.Singleton;
 import com.netflix.titus.api.jobmanager.JobConstraints;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
-import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
+import com.netflix.titus.common.util.StringExt;
 import io.kubernetes.client.openapi.models.V1Affinity;
 import io.kubernetes.client.openapi.models.V1LabelSelector;
 import io.kubernetes.client.openapi.models.V1LabelSelectorRequirement;
@@ -70,7 +70,7 @@ public class DefaultPodAffinityFactory implements PodAffinityFactory {
 
             processJobConstraints(job.getJobDescriptor().getContainer().getHardConstraints(), true);
             processJobConstraints(job.getJobDescriptor().getContainer().getSoftConstraints(), false);
-            processFarzoneConstraints();
+            processZoneConstraints();
         }
 
         private void processJobConstraints(Map<String, String> constraints, boolean hard) {
@@ -141,18 +141,22 @@ public class DefaultPodAffinityFactory implements PodAffinityFactory {
         }
 
         private void addNodeAffinitySelectorConstraint(String key, String value, boolean hard) {
+            addNodeAffinitySelectorConstraint(key, Collections.singletonList(value), hard);
+        }
+
+        private void addNodeAffinitySelectorConstraint(String key, List<String> values, boolean hard) {
             if (hard) {
-                addNodeAffinityRequiredSelectorConstraint(key, value);
+                addNodeAffinityRequiredSelectorConstraint(key, values);
             } else {
-                addNodeAffinityPreferredSelectorConstraint(key, value);
+                addNodeAffinityPreferredSelectorConstraint(key, values);
             }
         }
 
-        private void addNodeAffinityRequiredSelectorConstraint(String key, String value) {
+        private void addNodeAffinityRequiredSelectorConstraint(String key, List<String> values) {
             V1NodeSelectorRequirement requirement = new V1NodeSelectorRequirement()
                     .key(key)
                     .operator("In")
-                    .values(Collections.singletonList(value));
+                    .values(values);
 
             V1NodeSelector nodeSelector = getNodeAffinity().getRequiredDuringSchedulingIgnoredDuringExecution();
             if (nodeSelector == null) {
@@ -165,7 +169,7 @@ public class DefaultPodAffinityFactory implements PodAffinityFactory {
             }
         }
 
-        private void addNodeAffinityPreferredSelectorConstraint(String key, String value) {
+        private void addNodeAffinityPreferredSelectorConstraint(String key, List<String> values) {
             List<V1PreferredSchedulingTerm> nodeSelector = getNodeAffinity().getPreferredDuringSchedulingIgnoredDuringExecution();
 
             V1NodeSelectorTerm term;
@@ -181,15 +185,21 @@ public class DefaultPodAffinityFactory implements PodAffinityFactory {
             V1NodeSelectorRequirement requirement = new V1NodeSelectorRequirement()
                     .key(key)
                     .operator("In")
-                    .values(Collections.singletonList(value));
+                    .values(values);
 
             term.addMatchExpressionsItem(requirement);
         }
 
-        private void processFarzoneConstraints() {
-            KubeUtil.findFarzoneId(configuration, job).ifPresent(farzoneId ->
-                    addNodeAffinityRequiredSelectorConstraint(KubeConstants.NODE_LABEL_ZONE, farzoneId)
-            );
+        private void processZoneConstraints() {
+            // If we have a single zone hard constraint defined, there is no need to add anything on top of this.
+            if (!StringExt.isEmpty(job.getJobDescriptor().getContainer().getHardConstraints().get(JobConstraints.AVAILABILITY_ZONE))) {
+                return;
+            }
+
+            // If there is no zone hard constraint, it defaults to placement in the primary availability zones
+            if (!configuration.getPrimaryZones().isEmpty()) {
+                addNodeAffinitySelectorConstraint(KubeConstants.NODE_LABEL_ZONE, configuration.getPrimaryZones(), true);
+            }
         }
 
         private V1NodeAffinity getNodeAffinity() {
