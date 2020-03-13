@@ -364,7 +364,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
             return false;
         }
 
-        return "fenzo".equalsIgnoreCase(CollectionsExt.first(schedulerTaintValues));
+        return KubeConstants.TAINT_SCHEDULER_VALUE_FENZO.equalsIgnoreCase(CollectionsExt.first(schedulerTaintValues));
     }
 
     private void nodeDeleted(V1Node node) {
