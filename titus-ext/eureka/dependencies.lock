@@ -309,7 +309,7 @@
             ]
         },
         "com.netflix.frigga:frigga": {
-            "locked": "0.21.0",
+            "locked": "0.22.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -1824,7 +1824,7 @@
             ]
         },
         "com.netflix.frigga:frigga": {
-            "locked": "0.21.0",
+            "locked": "0.22.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -3543,7 +3543,7 @@
             ]
         },
         "com.netflix.frigga:frigga": {
-            "locked": "0.21.0",
+            "locked": "0.22.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -5294,7 +5294,7 @@
             ]
         },
         "com.netflix.frigga:frigga": {
-            "locked": "0.21.0",
+            "locked": "0.22.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -7410,7 +7410,7 @@
             ]
         },
         "com.netflix.frigga:frigga": {
-            "locked": "0.21.0",
+            "locked": "0.22.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]

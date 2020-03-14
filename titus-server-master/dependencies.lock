@@ -301,7 +301,7 @@
             "requested": "1.1.0-rc.8"
         },
         "com.netflix.frigga:frigga": {
-            "locked": "0.21.0",
+            "locked": "0.22.0",
             "requested": "0.+"
         },
         "com.netflix.governator:governator-api": {
@@ -1743,7 +1743,7 @@
             "requested": "1.1.0-rc.8"
         },
         "com.netflix.frigga:frigga": {
-            "locked": "0.21.0",
+            "locked": "0.22.0",
             "requested": "0.+"
         },
         "com.netflix.governator:governator-api": {
@@ -3267,7 +3267,7 @@
             "requested": "1.1.0-rc.8"
         },
         "com.netflix.frigga:frigga": {
-            "locked": "0.21.0",
+            "locked": "0.22.0",
             "requested": "0.+"
         },
         "com.netflix.governator:governator-api": {
@@ -4877,7 +4877,7 @@
             ]
         },
         "com.netflix.frigga:frigga": {
-            "locked": "0.21.0",
+            "locked": "0.22.0",
             "requested": "0.+",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
@@ -7025,7 +7025,7 @@
             ]
         },
         "com.netflix.frigga:frigga": {
-            "locked": "0.21.0",
+            "locked": "0.22.0",
             "requested": "0.+",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
