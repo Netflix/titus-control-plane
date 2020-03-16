@@ -596,14 +596,14 @@
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.1.16.RELEASE",
+            "locked": "3.3.3.RELEASE",
             "transitive": [
                 "io.projectreactor:reactor-test"
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.1.16.RELEASE",
-            "requested": "3.1.+"
+            "locked": "3.3.3.RELEASE",
+            "requested": "3.3.+"
         },
         "junit:junit-dep": {
             "locked": "4.10",
@@ -652,7 +652,7 @@
             ]
         },
         "org.reactivestreams:reactive-streams": {
-            "locked": "1.0.2",
+            "locked": "1.0.3",
             "transitive": [
                 "io.projectreactor:reactor-core"
             ]
@@ -764,14 +764,14 @@
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.1.16.RELEASE",
+            "locked": "3.3.3.RELEASE",
             "transitive": [
                 "io.projectreactor:reactor-test"
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.1.16.RELEASE",
-            "requested": "3.1.+"
+            "locked": "3.3.3.RELEASE",
+            "requested": "3.3.+"
         },
         "junit:junit-dep": {
             "locked": "4.10",
@@ -820,7 +820,7 @@
             ]
         },
         "org.reactivestreams:reactive-streams": {
-            "locked": "1.0.2",
+            "locked": "1.0.3",
             "transitive": [
                 "io.projectreactor:reactor-core"
             ]
@@ -932,14 +932,14 @@
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.1.16.RELEASE",
+            "locked": "3.3.3.RELEASE",
             "transitive": [
                 "io.projectreactor:reactor-test"
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.1.16.RELEASE",
-            "requested": "3.1.+"
+            "locked": "3.3.3.RELEASE",
+            "requested": "3.3.+"
         },
         "junit:junit-dep": {
             "locked": "4.10",
@@ -994,7 +994,7 @@
             ]
         },
         "org.reactivestreams:reactive-streams": {
-            "locked": "1.0.2",
+            "locked": "1.0.3",
             "transitive": [
                 "io.projectreactor:reactor-core"
             ]

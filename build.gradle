@@ -7,7 +7,7 @@ buildscript {
     dependencies {
         // force a more recent spring since some nebula plugins were bringing an older version
         // before springboot plugins had any saying
-        classpath "org.springframework:spring-core:5.1.5.RELEASE"
+        classpath "org.springframework:spring-core:5.2.4.RELEASE"
     }
 }
 
@@ -43,7 +43,7 @@ subprojects {
             maven { url 'https://plugins.gradle.org/m2/' }
         }
         dependencies {
-            classpath "org.springframework:spring-core:5.1.5.RELEASE"
+            classpath "org.springframework:spring-core:5.2.4.RELEASE"
         }
     }
 
@@ -61,12 +61,11 @@ subprojects {
 
         awsSdkVersion = '1.11.+'
         javaxElVersion = '3.+'
-        // pinned because of SSL incompatibilities with tomcat-embed-core 9.0.17
-        springBootVersion = '2.1.3.RELEASE'
-        springCloudVersion = '2.1.3.RELEASE'
-        springReactor = '3.1.+'
-        springReactorNetty = '0.8.+'
-        springVersion = '5.1.5.RELEASE'
+        springVersion = '5.2.+'
+        springBootVersion = '2.2.5.RELEASE'
+        springCloudVersion = '2.2.+'
+        springReactor = '3.3.+'
+        springReactorNetty = '0.9.+'
         javaxInjectVersion = '1'
         guavaVersion = '20.+'
         servletVersion = '3.1.0'
