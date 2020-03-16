@@ -34,6 +34,8 @@ import com.netflix.archaius.api.PropertyRepository;
 import com.netflix.archaius.config.MapConfig;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.StringExt;
+import com.netflix.titus.common.util.closeable.CloseableReference;
+import org.springframework.core.env.Environment;
 import reactor.core.publisher.Flux;
 
 public final class Archaius2Ext {
@@ -118,6 +120,18 @@ public final class Archaius2Ext {
         return factory.newProxy(configType, prefix);
     }
 
+    public static <C> C newConfiguration(Class<C> configType, Environment environment) {
+        return SpringProxyInvocationHandler.newProxy(configType, null, environment);
+    }
+
+    /**
+     * Archaius2 dynamic proxy for Spring environment. This implementation supports only features used in Titus.
+     * To check what is, and what is not supported please check SpringProxyInvocationHandlerTest.
+     */
+    public static <C> C newConfiguration(Class<C> configType, String prefix, Environment environment) {
+        return SpringProxyInvocationHandler.newProxy(configType, prefix, environment);
+    }
+
     /**
      * Given object, return configuration associated with it. For properties:
      * a.pattern=a.*
@@ -140,6 +154,31 @@ public final class Archaius2Ext {
                 selectorFieldAccessor,
                 configType,
                 defaultConfig
+        );
+    }
+
+    /**
+     * See {@link #newObjectConfigurationResolver(Config, Function, Class, Object)}. As Spring environment does not support
+     * configuration change callbacks, so we have to make an explicit periodic updates.
+     *
+     * @param updateTrigger on each emitted item from this {@link Flux} instance, a configuration update is made
+     * @return resolver instance with a closable reference. Calling {@link CloseableReference#close()}, terminates
+     * configuration update subscription.
+     */
+    public static <OBJECT, CONFIG> CloseableReference<ObjectConfigurationResolver<OBJECT, CONFIG>> newObjectConfigurationResolver(
+            String prefix,
+            Environment environment,
+            Function<OBJECT, String> selectorFieldAccessor,
+            Class<CONFIG> configType,
+            CONFIG defaultConfig,
+            Flux<Long> updateTrigger) {
+        String formattedPrefix = SpringConfig.formatPrefix(prefix);
+        return PeriodicallyRefreshingObjectConfigurationResolver.newInstance(
+                new SpringConfig(formattedPrefix, environment),
+                selectorFieldAccessor,
+                root -> newConfiguration(configType, formattedPrefix + root, environment),
+                defaultConfig,
+                updateTrigger
         );
     }
 

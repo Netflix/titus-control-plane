@@ -16,8 +16,10 @@
 
 package com.netflix.titus.common.util;
 
+import java.io.ByteArrayOutputStream;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -34,6 +36,9 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.zip.GZIPOutputStream;
+
+import com.netflix.titus.common.util.tuple.Either;
 
 import static java.util.Arrays.asList;
 
@@ -539,5 +544,47 @@ public final class StringExt {
             }
         }
         return Optional.of(result);
+    }
+
+    /**
+     * GZip a string and base64 encode the result in order to compress a string while keeping the String type.
+     *
+     * @return gzipped and base64 encoded string.
+     */
+    public static String gzipAndBase64Encode(String s) {
+        if (StringExt.isEmpty(s)) {
+            return s;
+        }
+        try {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            GZIPOutputStream gzip = new GZIPOutputStream(out);
+            gzip.write(s.getBytes());
+            gzip.close();
+            return Base64.getEncoder().encodeToString(out.toByteArray());
+        } catch (Exception e) {
+            throw ExceptionExt.rethrow(e);
+        }
+    }
+
+    public static Either<String, IllegalArgumentException> nameFromJavaBeanGetter(String getterName) {
+        if (isEmpty(getterName)) {
+            return Either.ofError(new IllegalArgumentException("getter name is empty"));
+        }
+        int prefixLen;
+        if (getterName.startsWith("get")) {
+            prefixLen = 3;
+        } else if (getterName.startsWith("is")) {
+            prefixLen = 2;
+        } else if (getterName.startsWith("has")) {
+            prefixLen = 3;
+        } else {
+            return Either.ofError(new IllegalArgumentException(String.format("getter '%s' does not start with a valid prefix (get|is|has)", getterName)));
+        }
+
+        if (getterName.length() == prefixLen) {
+            return Either.ofError(new IllegalArgumentException(String.format("getter '%s' has only prefix with empty base name", getterName)));
+        }
+
+        return Either.ofValue(Character.toLowerCase(getterName.charAt(prefixLen)) + getterName.substring(prefixLen + 1));
     }
 }

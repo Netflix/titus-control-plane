@@ -107,10 +107,10 @@ class DefaultKubeMembershipExecutor implements KubeMembershipExecutor {
                         namespace,
                         KubeClusterMembershipModelConverters.CRD_PLURAL_MEMBERS,
                         memberId,
-                        new V1DeleteOptionsBuilder().build(),
                         0,
                         false,
                         null,
+                        new V1DeleteOptionsBuilder().build(),
                         callbackHandler
                 )
         ).ignoreElement().cast(Void.class);

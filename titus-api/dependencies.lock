@@ -2221,7 +2221,7 @@
             ]
         },
         "com.netflix.frigga:frigga": {
-            "locked": "0.21.0",
+            "locked": "0.22.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -2698,19 +2698,19 @@
             ]
         },
         "io.kubernetes:client-java": {
-            "locked": "7.0.0",
+            "locked": "8.0.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
         },
         "io.kubernetes:client-java-api": {
-            "locked": "7.0.0",
+            "locked": "8.0.0",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
         },
         "io.kubernetes:client-java-proto": {
-            "locked": "7.0.0",
+            "locked": "8.0.0",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -2895,25 +2895,25 @@
             ]
         },
         "io.sundr:builder-annotations": {
-            "locked": "0.19.2",
+            "locked": "0.21.0",
             "transitive": [
                 "io.kubernetes:client-java-api"
             ]
         },
         "io.sundr:resourcecify-annotations": {
-            "locked": "0.19.2",
+            "locked": "0.21.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-codegen": {
-            "locked": "0.19.2",
+            "locked": "0.21.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-core": {
-            "locked": "0.19.2",
+            "locked": "0.21.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
@@ -3211,6 +3211,12 @@
             "transitive": [
                 "com.netflix.titus:titus-common-testkit",
                 "com.netflix.titus:titus-testkit"
+            ]
+        },
+        "org.bitbucket.b_c:jose4j": {
+            "locked": "0.7.0",
+            "transitive": [
+                "io.kubernetes:client-java"
             ]
         },
         "org.bouncycastle:bcmail-jdk15on": {
@@ -3592,6 +3598,7 @@
                 "org.apache.cassandra:cassandra-thrift",
                 "org.apache.logging.log4j:log4j-to-slf4j",
                 "org.apache.thrift:libthrift",
+                "org.bitbucket.b_c:jose4j",
                 "org.caffinitas.ohc:ohc-core",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-client-java",
@@ -4284,7 +4291,7 @@
             ]
         },
         "com.netflix.frigga:frigga": {
-            "locked": "0.21.0",
+            "locked": "0.22.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -4768,19 +4775,19 @@
             ]
         },
         "io.kubernetes:client-java": {
-            "locked": "7.0.0",
+            "locked": "8.0.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
         },
         "io.kubernetes:client-java-api": {
-            "locked": "7.0.0",
+            "locked": "8.0.0",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
         },
         "io.kubernetes:client-java-proto": {
-            "locked": "7.0.0",
+            "locked": "8.0.0",
             "transitive": [
                 "io.kubernetes:client-java"
             ]
@@ -4965,25 +4972,25 @@
             ]
         },
         "io.sundr:builder-annotations": {
-            "locked": "0.19.2",
+            "locked": "0.21.0",
             "transitive": [
                 "io.kubernetes:client-java-api"
             ]
         },
         "io.sundr:resourcecify-annotations": {
-            "locked": "0.19.2",
+            "locked": "0.21.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-codegen": {
-            "locked": "0.19.2",
+            "locked": "0.21.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-core": {
-            "locked": "0.19.2",
+            "locked": "0.21.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
@@ -5290,6 +5297,12 @@
             "transitive": [
                 "com.netflix.titus:titus-common-testkit",
                 "com.netflix.titus:titus-testkit"
+            ]
+        },
+        "org.bitbucket.b_c:jose4j": {
+            "locked": "0.7.0",
+            "transitive": [
+                "io.kubernetes:client-java"
             ]
         },
         "org.bouncycastle:bcmail-jdk15on": {
@@ -5678,6 +5691,7 @@
                 "org.apache.cassandra:cassandra-thrift",
                 "org.apache.logging.log4j:log4j-to-slf4j",
                 "org.apache.thrift:libthrift",
+                "org.bitbucket.b_c:jose4j",
                 "org.caffinitas.ohc:ohc-core",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-client-java",

@@ -17,6 +17,10 @@
 package com.netflix.titus.common.util;
 
 import java.lang.annotation.Annotation;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -204,5 +208,54 @@ public final class ReflectionExt {
             fields.forEach(f -> f.setAccessible(true));
             return fields;
         });
+    }
+
+
+    /*
+     * Dynamic proxies with default interface methods. Based on Slack discussion here:
+     * https://stackoverflow.com/questions/26206614/java8-dynamic-proxy-and-default-methods
+     */
+
+    private static final Constructor<MethodHandles.Lookup> lookupConstructor;
+
+    static {
+        try {
+            lookupConstructor = MethodHandles.Lookup.class.getDeclaredConstructor(Class.class, int.class);
+            lookupConstructor.setAccessible(true);
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static final ConcurrentMap<Pair<Class, Method>, MethodHandle> DEFAULT_METHOD_HANDLES = new ConcurrentHashMap<>();
+
+    private static MethodHandle findDefaultMethodHandle(Class<?> apiInterface, Method method) {
+        return DEFAULT_METHOD_HANDLES.computeIfAbsent(Pair.of(apiInterface, method), k -> buildDefaultMethodHandle(apiInterface, method));
+    }
+
+    private static MethodHandle buildDefaultMethodHandle(Class<?> apiInterface, Method method) {
+        try {
+            Class<?> declaringClass = method.getDeclaringClass();
+            MethodHandles.Lookup lookup = lookupConstructor.newInstance(declaringClass, -1);
+            try {
+                return lookup.findSpecial(apiInterface, method.getName(), MethodType.methodType(method.getReturnType(), method.getParameterTypes()), declaringClass);
+            } catch (IllegalAccessException e) {
+                try {
+                    return lookup.unreflectSpecial(method, declaringClass);
+                } catch (IllegalAccessException x) {
+                    x.addSuppressed(e);
+                    throw x;
+                }
+            }
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static Object invokeDefault(Object proxy, Class<?> apiInterface, Method method, Object[] args) throws Throwable {
+        MethodHandle mh = findDefaultMethodHandle(apiInterface, method);
+        return mh.bindTo(proxy).invokeWithArguments(args);
     }
 }

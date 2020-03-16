@@ -16,49 +16,29 @@
 
 package com.netflix.titus.supplementary.relocation;
 
-import javax.inject.Inject;
+import com.netflix.archaius.api.annotations.Configuration;
+import com.netflix.archaius.api.annotations.DefaultValue;
 
-import com.netflix.titus.common.util.SpringConfigurationUtil;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.env.Environment;
-import org.springframework.stereotype.Component;
-
-@Component
-public class RelocationConfiguration {
-
-    private static final String PREFIX = "titus.relocation.";
-
-    private final Environment environment;
-
-    @Value("${titus.relocation.relocationScheduleIntervalMs:30000}")
-    private long relocationScheduleIntervalMs;
-
-    @Inject
-    public RelocationConfiguration(Environment environment) {
-        this.environment = environment;
-    }
+@Configuration(prefix = "titus.relocation")
+public interface RelocationConfiguration {
 
     /**
      * Interval at which the relocation workflow is triggered. This interval should be reasonably short, so the
      * relocation plans are up to date.
      */
-    public long getRelocationScheduleIntervalMs() {
-        return relocationScheduleIntervalMs;
-    }
+    @DefaultValue("30000")
+    long getRelocationScheduleIntervalMs();
 
     /**
      * Interval at which descheduling, and task eviction is executed. This interval must be aligned with
      * {@link #getRelocationScheduleIntervalMs()} interval, and should be a multiplication of the latter.
      */
-    public long getDeschedulingIntervalMs() {
-        return SpringConfigurationUtil.getLong(environment, PREFIX + "deschedulingIntervalMs", 120_000);
-    }
+    @DefaultValue("120000")
+    long getDeschedulingIntervalMs();
 
-    public long getRelocationTimeoutMs() {
-        return SpringConfigurationUtil.getLong(environment, PREFIX + "relocationTimeoutMs", 300_000);
-    }
+    @DefaultValue("300000")
+    long getRelocationTimeoutMs();
 
-    public long getDataStalenessThresholdMs() {
-        return SpringConfigurationUtil.getLong(environment, PREFIX + "dataStalenessThresholdMs", 30_000);
-    }
+    @DefaultValue("30000")
+    long getDataStalenessThresholdMs();
 }

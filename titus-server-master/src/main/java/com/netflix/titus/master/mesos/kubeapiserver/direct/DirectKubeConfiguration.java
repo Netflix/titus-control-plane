@@ -82,4 +82,15 @@ public interface DirectKubeConfiguration {
      * farzone names has pods tainted with that zone id.
      */
     List<String> getFarzones();
+
+    /**
+     * A list of primary/default availability zones.
+     */
+    List<String> getPrimaryZones();
+
+    /**
+     * @return whether or not to add a json encoded job descriptor as a pod annotation
+     */
+    @DefaultValue("true")
+    boolean isJobDescriptorAnnotationEnabled();
 }

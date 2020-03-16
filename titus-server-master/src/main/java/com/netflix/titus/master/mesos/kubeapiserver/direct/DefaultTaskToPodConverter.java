@@ -16,7 +16,6 @@
 
 package com.netflix.titus.master.mesos.kubeapiserver.direct;
 
-import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -30,6 +29,7 @@ import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.primitives.Ints;
 import com.netflix.titus.api.jobmanager.JobAttributes;
+import com.netflix.titus.api.jobmanager.JobConstraints;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Container;
@@ -47,15 +47,17 @@ import com.netflix.titus.api.model.EfsMount;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.StringExt;
-import com.netflix.titus.master.mesos.kubeapiserver.PerformanceToolUtil;
+import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.taint.TaintTolerationFactory;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import io.kubernetes.client.custom.Quantity;
 import io.kubernetes.client.openapi.models.V1Container;
+import io.kubernetes.client.openapi.models.V1LabelSelector;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodSpec;
 import io.kubernetes.client.openapi.models.V1ResourceRequirements;
+import io.kubernetes.client.openapi.models.V1TopologySpreadConstraint;
 import io.titanframework.messages.TitanProtos;
 
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_ALLOW_CPU_BURSTING;
@@ -82,6 +84,12 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
     private static final String ARN_SUFFIX = ":role/";
     private static final Pattern IAM_PROFILE_RE = Pattern.compile(ARN_PREFIX + "(\\d+)" + ARN_SUFFIX + "\\S+");
 
+    /**
+     * Max allowed skew for zone load balancing as a soft constraint. As we do not want to prevent placement in any
+     * case, it must be >= max job size.
+     */
+    private static final int SOFT_MAX_SKEW = 100_000;
+
     private final DirectKubeConfiguration configuration;
     private final PodAffinityFactory podAffinityFactory;
     private final TaintTolerationFactory taintTolerationFactory;
@@ -102,14 +110,10 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
 
     @Override
     public V1Pod apply(Job<?> job, Task task) {
-
         String taskId = task.getId();
         TitanProtos.ContainerInfo containerInfo = buildContainerInfo(job, task);
-        String encodedContainerInfo = Base64.getEncoder().encodeToString(containerInfo.toByteArray());
-
-        Map<String, String> annotations = new HashMap<>();
-        annotations.put("containerInfo", encodedContainerInfo);
-        annotations.putAll(PerformanceToolUtil.toAnnotations(job));
+        Map<String, String> annotations = KubeUtil.createPodAnnotations(job, containerInfo.toByteArray(),
+                containerInfo.getPassthroughAttributesMap(), configuration.isJobDescriptorAnnotationEnabled());
 
         V1ObjectMeta metadata = new V1ObjectMeta()
                 .name(taskId)
@@ -130,7 +134,8 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
                 .terminationGracePeriodSeconds(POD_TERMINATION_GRACE_PERIOD_SECONDS)
                 .restartPolicy(NEVER_RESTART_POLICY)
                 .affinity(podAffinityFactory.buildV1Affinity(job, task))
-                .tolerations(taintTolerationFactory.buildV1Toleration(job, task));
+                .tolerations(taintTolerationFactory.buildV1Toleration(job, task))
+                .topologySpreadConstraints(buildTopologySpreadConstraints(job));
 
         return new V1Pod().metadata(metadata).spec(spec);
     }
@@ -335,5 +340,25 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
                 .setEfsFsRelativeMntPoint(efsMount.getEfsRelativeMountPoint())
                 .build()
         ).collect(Collectors.toList());
+    }
+
+    private List<V1TopologySpreadConstraint> buildTopologySpreadConstraints(Job<?> job) {
+        boolean hard = Boolean.parseBoolean(job.getJobDescriptor().getContainer().getHardConstraints().get(JobConstraints.ZONE_BALANCE));
+        boolean soft = Boolean.parseBoolean(job.getJobDescriptor().getContainer().getSoftConstraints().get(JobConstraints.ZONE_BALANCE));
+        if (!hard && !soft) {
+            return Collections.emptyList();
+        }
+
+        V1TopologySpreadConstraint constraint = new V1TopologySpreadConstraint()
+                .topologyKey(KubeConstants.NODE_LABEL_ZONE)
+                .labelSelector(new V1LabelSelector().matchLabels(Collections.singletonMap(KubeConstants.POD_LABEL_JOB_ID, job.getId())));
+
+        if (hard) {
+            constraint.maxSkew(1).whenUnsatisfiable("DoNotSchedule");
+        } else {
+            constraint.maxSkew(SOFT_MAX_SKEW).whenUnsatisfiable("ScheduleAnyway");
+        }
+
+        return Collections.singletonList(constraint);
     }
 }

@@ -51,7 +51,7 @@
             ]
         },
         "com.github.vladimir-bukhtoyarov:bucket4j-core": {
-            "locked": "4.4.1",
+            "locked": "4.8.0",
             "transitive": [
                 "io.kubernetes:client-java-extended"
             ]
@@ -271,24 +271,24 @@
             ]
         },
         "io.kubernetes:client-java": {
-            "locked": "7.0.0",
+            "locked": "8.0.0",
             "transitive": [
                 "io.kubernetes:client-java-extended"
             ]
         },
         "io.kubernetes:client-java-api": {
-            "locked": "7.0.0",
+            "locked": "8.0.0",
             "transitive": [
                 "io.kubernetes:client-java",
                 "io.kubernetes:client-java-extended"
             ]
         },
         "io.kubernetes:client-java-extended": {
-            "locked": "7.0.0",
-            "requested": "7.0.0"
+            "locked": "8.0.0",
+            "requested": "8.0.0"
         },
         "io.kubernetes:client-java-proto": {
-            "locked": "7.0.0",
+            "locked": "8.0.0",
             "transitive": [
                 "io.kubernetes:client-java",
                 "io.kubernetes:client-java-extended"
@@ -447,25 +447,25 @@
             ]
         },
         "io.sundr:builder-annotations": {
-            "locked": "0.19.2",
+            "locked": "0.21.0",
             "transitive": [
                 "io.kubernetes:client-java-api"
             ]
         },
         "io.sundr:resourcecify-annotations": {
-            "locked": "0.19.2",
+            "locked": "0.21.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-codegen": {
-            "locked": "0.19.2",
+            "locked": "0.21.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-core": {
-            "locked": "0.19.2",
+            "locked": "0.21.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
@@ -552,6 +552,12 @@
                 "io.kubernetes:client-java-extended"
             ]
         },
+        "org.bitbucket.b_c:jose4j": {
+            "locked": "0.7.0",
+            "transitive": [
+                "io.kubernetes:client-java"
+            ]
+        },
         "org.bouncycastle:bcpkix-jdk15on": {
             "locked": "1.61",
             "transitive": [
@@ -635,6 +641,7 @@
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-common-api",
                 "io.kubernetes:client-java",
+                "org.bitbucket.b_c:jose4j",
                 "org.slf4j:slf4j-log4j12"
             ]
         },
@@ -789,7 +796,7 @@
             ]
         },
         "com.github.vladimir-bukhtoyarov:bucket4j-core": {
-            "locked": "4.4.1",
+            "locked": "4.8.0",
             "transitive": [
                 "io.kubernetes:client-java-extended"
             ]
@@ -1034,24 +1041,24 @@
             ]
         },
         "io.kubernetes:client-java": {
-            "locked": "7.0.0",
+            "locked": "8.0.0",
             "transitive": [
                 "io.kubernetes:client-java-extended"
             ]
         },
         "io.kubernetes:client-java-api": {
-            "locked": "7.0.0",
+            "locked": "8.0.0",
             "transitive": [
                 "io.kubernetes:client-java",
                 "io.kubernetes:client-java-extended"
             ]
         },
         "io.kubernetes:client-java-extended": {
-            "locked": "7.0.0",
-            "requested": "7.0.0"
+            "locked": "8.0.0",
+            "requested": "8.0.0"
         },
         "io.kubernetes:client-java-proto": {
-            "locked": "7.0.0",
+            "locked": "8.0.0",
             "transitive": [
                 "io.kubernetes:client-java",
                 "io.kubernetes:client-java-extended"
@@ -1210,25 +1217,25 @@
             ]
         },
         "io.sundr:builder-annotations": {
-            "locked": "0.19.2",
+            "locked": "0.21.0",
             "transitive": [
                 "io.kubernetes:client-java-api"
             ]
         },
         "io.sundr:resourcecify-annotations": {
-            "locked": "0.19.2",
+            "locked": "0.21.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-codegen": {
-            "locked": "0.19.2",
+            "locked": "0.21.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-core": {
-            "locked": "0.19.2",
+            "locked": "0.21.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
@@ -1317,6 +1324,12 @@
                 "io.kubernetes:client-java-extended"
             ]
         },
+        "org.bitbucket.b_c:jose4j": {
+            "locked": "0.7.0",
+            "transitive": [
+                "io.kubernetes:client-java"
+            ]
+        },
         "org.bouncycastle:bcpkix-jdk15on": {
             "locked": "1.61",
             "transitive": [
@@ -1401,6 +1414,7 @@
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-common-api",
                 "io.kubernetes:client-java",
+                "org.bitbucket.b_c:jose4j",
                 "org.slf4j:slf4j-log4j12"
             ]
         },
@@ -1613,7 +1627,7 @@
             ]
         },
         "com.github.vladimir-bukhtoyarov:bucket4j-core": {
-            "locked": "4.4.1",
+            "locked": "4.8.0",
             "transitive": [
                 "io.kubernetes:client-java-extended"
             ]
@@ -1858,24 +1872,24 @@
             ]
         },
         "io.kubernetes:client-java": {
-            "locked": "7.0.0",
+            "locked": "8.0.0",
             "transitive": [
                 "io.kubernetes:client-java-extended"
             ]
         },
         "io.kubernetes:client-java-api": {
-            "locked": "7.0.0",
+            "locked": "8.0.0",
             "transitive": [
                 "io.kubernetes:client-java",
                 "io.kubernetes:client-java-extended"
             ]
         },
         "io.kubernetes:client-java-extended": {
-            "locked": "7.0.0",
-            "requested": "7.0.0"
+            "locked": "8.0.0",
+            "requested": "8.0.0"
         },
         "io.kubernetes:client-java-proto": {
-            "locked": "7.0.0",
+            "locked": "8.0.0",
             "transitive": [
                 "io.kubernetes:client-java",
                 "io.kubernetes:client-java-extended"
@@ -2034,25 +2048,25 @@
             ]
         },
         "io.sundr:builder-annotations": {
-            "locked": "0.19.2",
+            "locked": "0.21.0",
             "transitive": [
                 "io.kubernetes:client-java-api"
             ]
         },
         "io.sundr:resourcecify-annotations": {
-            "locked": "0.19.2",
+            "locked": "0.21.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-codegen": {
-            "locked": "0.19.2",
+            "locked": "0.21.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-core": {
-            "locked": "0.19.2",
+            "locked": "0.21.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
@@ -2141,6 +2155,12 @@
                 "io.kubernetes:client-java-extended"
             ]
         },
+        "org.bitbucket.b_c:jose4j": {
+            "locked": "0.7.0",
+            "transitive": [
+                "io.kubernetes:client-java"
+            ]
+        },
         "org.bouncycastle:bcpkix-jdk15on": {
             "locked": "1.61",
             "transitive": [
@@ -2225,6 +2245,7 @@
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-common-api",
                 "io.kubernetes:client-java",
+                "org.bitbucket.b_c:jose4j",
                 "org.slf4j:slf4j-log4j12"
             ]
         },
@@ -2386,7 +2407,7 @@
             ]
         },
         "com.github.vladimir-bukhtoyarov:bucket4j-core": {
-            "locked": "4.4.1",
+            "locked": "4.8.0",
             "transitive": [
                 "io.kubernetes:client-java-extended"
             ]
@@ -2687,24 +2708,24 @@
             ]
         },
         "io.kubernetes:client-java": {
-            "locked": "7.0.0",
+            "locked": "8.0.0",
             "transitive": [
                 "io.kubernetes:client-java-extended"
             ]
         },
         "io.kubernetes:client-java-api": {
-            "locked": "7.0.0",
+            "locked": "8.0.0",
             "transitive": [
                 "io.kubernetes:client-java",
                 "io.kubernetes:client-java-extended"
             ]
         },
         "io.kubernetes:client-java-extended": {
-            "locked": "7.0.0",
-            "requested": "7.0.0"
+            "locked": "8.0.0",
+            "requested": "8.0.0"
         },
         "io.kubernetes:client-java-proto": {
-            "locked": "7.0.0",
+            "locked": "8.0.0",
             "transitive": [
                 "io.kubernetes:client-java",
                 "io.kubernetes:client-java-extended"
@@ -2868,25 +2889,25 @@
             ]
         },
         "io.sundr:builder-annotations": {
-            "locked": "0.19.2",
+            "locked": "0.21.0",
             "transitive": [
                 "io.kubernetes:client-java-api"
             ]
         },
         "io.sundr:resourcecify-annotations": {
-            "locked": "0.19.2",
+            "locked": "0.21.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-codegen": {
-            "locked": "0.19.2",
+            "locked": "0.21.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-core": {
-            "locked": "0.19.2",
+            "locked": "0.21.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
@@ -2998,6 +3019,12 @@
             "requested": "3.8.0",
             "transitive": [
                 "com.netflix.titus:titus-common-testkit"
+            ]
+        },
+        "org.bitbucket.b_c:jose4j": {
+            "locked": "0.7.0",
+            "transitive": [
+                "io.kubernetes:client-java"
             ]
         },
         "org.bouncycastle:bcpkix-jdk15on": {
@@ -3112,6 +3139,7 @@
                 "com.netflix.titus:titus-common-server",
                 "com.netflix.titus:titus-common-testkit",
                 "io.kubernetes:client-java",
+                "org.bitbucket.b_c:jose4j",
                 "org.slf4j:slf4j-log4j12"
             ]
         },
@@ -3292,7 +3320,7 @@
             ]
         },
         "com.github.vladimir-bukhtoyarov:bucket4j-core": {
-            "locked": "4.4.1",
+            "locked": "4.8.0",
             "transitive": [
                 "io.kubernetes:client-java-extended"
             ]
@@ -3612,24 +3640,24 @@
             ]
         },
         "io.kubernetes:client-java": {
-            "locked": "7.0.0",
+            "locked": "8.0.0",
             "transitive": [
                 "io.kubernetes:client-java-extended"
             ]
         },
         "io.kubernetes:client-java-api": {
-            "locked": "7.0.0",
+            "locked": "8.0.0",
             "transitive": [
                 "io.kubernetes:client-java",
                 "io.kubernetes:client-java-extended"
             ]
         },
         "io.kubernetes:client-java-extended": {
-            "locked": "7.0.0",
-            "requested": "7.0.0"
+            "locked": "8.0.0",
+            "requested": "8.0.0"
         },
         "io.kubernetes:client-java-proto": {
-            "locked": "7.0.0",
+            "locked": "8.0.0",
             "transitive": [
                 "io.kubernetes:client-java",
                 "io.kubernetes:client-java-extended"
@@ -3793,25 +3821,25 @@
             ]
         },
         "io.sundr:builder-annotations": {
-            "locked": "0.19.2",
+            "locked": "0.21.0",
             "transitive": [
                 "io.kubernetes:client-java-api"
             ]
         },
         "io.sundr:resourcecify-annotations": {
-            "locked": "0.19.2",
+            "locked": "0.21.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-codegen": {
-            "locked": "0.19.2",
+            "locked": "0.21.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
         },
         "io.sundr:sundr-core": {
-            "locked": "0.19.2",
+            "locked": "0.21.0",
             "transitive": [
                 "io.sundr:builder-annotations"
             ]
@@ -3927,6 +3955,12 @@
                 "com.netflix.titus:titus-common-testkit"
             ]
         },
+        "org.bitbucket.b_c:jose4j": {
+            "locked": "0.7.0",
+            "transitive": [
+                "io.kubernetes:client-java"
+            ]
+        },
         "org.bouncycastle:bcpkix-jdk15on": {
             "locked": "1.61",
             "transitive": [
@@ -4040,6 +4074,7 @@
                 "com.netflix.titus:titus-common-server",
                 "com.netflix.titus:titus-common-testkit",
                 "io.kubernetes:client-java",
+                "org.bitbucket.b_c:jose4j",
                 "org.slf4j:slf4j-log4j12"
             ]
         },
