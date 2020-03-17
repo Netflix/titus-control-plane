@@ -19,10 +19,39 @@ package com.netflix.titus.common.util.feature;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+import com.netflix.titus.common.util.feature.FeatureGuard.FeatureGuardResult;
+
 public class FeatureGuards {
 
-    public static <T> Predicate<T> toPredicate(FeatureGuard<T> featureGuard) {
-        return value -> featureGuard.matches(value) == FeatureGuard.FeatureGuardResult.Approved;
+    private static final FeatureGuard ALWAYS_APPROVED = value -> FeatureGuardResult.Approved;
+    private static final FeatureGuard ALWAYS_DENIED = value -> FeatureGuardResult.Denied;
+    private static final FeatureGuard ALWAYS_UNDECIDED = value -> FeatureGuardResult.Undecided;
+
+    /**
+     * If multiple feature guards are give, they are evaluated in order until one returns result {@link FeatureGuardResult#Approved}
+     * or {@link FeatureGuardResult#Denied}. If all of them return {@link FeatureGuardResult#Undecided}, the result is false.
+     */
+    public static <T> Predicate<T> toPredicate(FeatureGuard<T>... featureGuard) {
+        if (featureGuard.length == 0) {
+            return value -> false;
+        }
+        if (featureGuard.length == 1) {
+            return value -> featureGuard[0].matches(value) == FeatureGuardResult.Approved;
+        }
+        return value -> {
+            for (FeatureGuard<T> next : featureGuard) {
+                FeatureGuardResult result = next.matches(value);
+                switch (result) {
+                    case Approved:
+                        return true;
+                    case Denied:
+                        return false;
+                    case Undecided:
+                        // Move to the next one
+                }
+            }
+            return false;
+        };
     }
 
     public static FeatureGuardWhiteListBuilder newWhiteList() {
@@ -38,5 +67,17 @@ public class FeatureGuards {
 
     public static <T> FeatureGuard<T> fromField(Function<T, String> accessor, FeatureGuard<String> delegate) {
         return new FeatureGuardForField<>(accessor, delegate);
+    }
+
+    public static <T> FeatureGuard<T> alwaysApproved() {
+        return ALWAYS_APPROVED;
+    }
+
+    public static <T> FeatureGuard<T> alwaysDenied() {
+        return ALWAYS_DENIED;
+    }
+
+    public static <T> FeatureGuard<T> alwaysUndecided() {
+        return ALWAYS_UNDECIDED;
     }
 }

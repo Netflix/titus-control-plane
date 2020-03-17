@@ -25,9 +25,12 @@ import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.titus.api.FeatureActivationConfiguration;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
+import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.feature.FeatureGuardWhiteListConfiguration;
 import com.netflix.titus.common.util.feature.FeatureGuards;
+import com.netflix.titus.common.util.tuple.Pair;
 
 import static com.netflix.titus.api.FeatureRolloutPlans.ENVIRONMENT_VARIABLE_NAMES_STRICT_VALIDATION_FEATURE;
 import static com.netflix.titus.api.FeatureRolloutPlans.JOB_ACTIVITY_PUBLISH_FEATURE;
@@ -155,16 +158,22 @@ public class FeatureFlagModule extends AbstractModule {
     @Provides
     @Singleton
     @Named(KUBE_SCHEDULER_FEATURE)
-    public Predicate<JobDescriptor> getKubeSchedulerFeaturePredicate(@Named(KUBE_SCHEDULER_FEATURE) FeatureGuardWhiteListConfiguration configuration) {
+    public Predicate<Pair<JobDescriptor, ApplicationSLA>> getKubeSchedulerFeaturePredicate(ConfigProxyFactory factory) {
 
-        Predicate<JobDescriptor> routingPredicate = FeatureGuards.toPredicate(
-                FeatureGuards.fromField(
-                        JobDescriptor::getApplicationName,
-                        FeatureGuards.newWhiteListFromConfiguration(configuration).build()
-                )
+        FeatureGuardWhiteListConfiguration applicationConfiguration = factory.newProxy(FeatureGuardWhiteListConfiguration.class, "titus.features.jobManager." + KUBE_SCHEDULER_FEATURE + "ByApplication");
+        FeatureGuardWhiteListConfiguration capacityGroupConfiguration = factory.newProxy(FeatureGuardWhiteListConfiguration.class, "titus.features.jobManager." + KUBE_SCHEDULER_FEATURE + "ByCapacityGroup");
+        FeatureGuardWhiteListConfiguration tierConfiguration = factory.newProxy(FeatureGuardWhiteListConfiguration.class, "titus.features.jobManager." + KUBE_SCHEDULER_FEATURE + "ByTier");
+        FeatureGuardWhiteListConfiguration jobTypeConfiguration = factory.newProxy(FeatureGuardWhiteListConfiguration.class, "titus.features.jobManager." + KUBE_SCHEDULER_FEATURE + "ByJobType");
+
+        Predicate<Pair<JobDescriptor, ApplicationSLA>> routingPredicate = FeatureGuards.toPredicate(
+                FeatureGuards.fromField(p -> p.getLeft().getApplicationName(), FeatureGuards.newWhiteListFromConfiguration(applicationConfiguration).build()),
+                FeatureGuards.fromField(p -> p.getRight().getAppName(), FeatureGuards.newWhiteListFromConfiguration(capacityGroupConfiguration).build()),
+                FeatureGuards.fromField(p -> p.getRight().getTier().name(), FeatureGuards.newWhiteListFromConfiguration(tierConfiguration).build()),
+                FeatureGuards.fromField(p -> JobFunctions.isServiceJob(p.getLeft()) ? "service" : "batch", FeatureGuards.newWhiteListFromConfiguration(jobTypeConfiguration).build())
         );
 
-        return jobDescriptor -> {
+        return p -> {
+            JobDescriptor jobDescriptor = p.getLeft();
             // GPU jobs are not allowed
             if (jobDescriptor.getContainer().getContainerResources().getGpu() > 0) {
                 return false;
@@ -173,14 +182,7 @@ public class FeatureFlagModule extends AbstractModule {
             if (!CollectionsExt.isNullOrEmpty(jobDescriptor.getContainer().getContainerResources().getSignedIpAddressAllocations())) {
                 return false;
             }
-            return routingPredicate.test(jobDescriptor);
+            return routingPredicate.test(p);
         };
-    }
-
-    @Provides
-    @Singleton
-    @Named(KUBE_SCHEDULER_FEATURE)
-    public FeatureGuardWhiteListConfiguration getKubeSchedulerFeatureGuardConfiguration(ConfigProxyFactory factory) {
-        return factory.newProxy(FeatureGuardWhiteListConfiguration.class, "titus.features.jobManager." + KUBE_SCHEDULER_FEATURE);
     }
 }
