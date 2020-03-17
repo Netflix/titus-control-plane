@@ -19,10 +19,31 @@ package com.netflix.titus.common.util.feature;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
+import com.netflix.titus.common.util.feature.FeatureGuard.FeatureGuardResult;
+
 public class FeatureGuards {
 
-    public static <T> Predicate<T> toPredicate(FeatureGuard<T> featureGuard) {
-        return value -> featureGuard.matches(value) == FeatureGuard.FeatureGuardResult.Approved;
+    public static <T> Predicate<T> toPredicate(FeatureGuard<T>... featureGuard) {
+        if (featureGuard.length == 0) {
+            return value -> false;
+        }
+        if (featureGuard.length == 1) {
+            return value -> featureGuard[0].matches(value) == FeatureGuardResult.Approved;
+        }
+        return value -> {
+            for (FeatureGuard<T> next : featureGuard) {
+                FeatureGuardResult result = next.matches(value);
+                switch (result) {
+                    case Approved:
+                        return true;
+                    case Denied:
+                        return false;
+                    case Undecided:
+                        // Move to the next one
+                }
+            }
+            return false;
+        };
     }
 
     public static FeatureGuardWhiteListBuilder newWhiteList() {

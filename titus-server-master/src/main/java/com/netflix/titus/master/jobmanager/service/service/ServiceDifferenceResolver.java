@@ -44,6 +44,7 @@ import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.store.JobStore;
+import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.common.framework.reconciler.ChangeAction;
 import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
@@ -91,7 +92,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
     private final JobManagerConfiguration configuration;
     private final FeatureActivationConfiguration featureConfiguration;
     private final DirectKubeConfiguration kubeConfiguration;
-    private final Predicate<JobDescriptor> kubeSchedulerPredicate;
+    private final Predicate<Pair<JobDescriptor, ApplicationSLA>> kubeSchedulerPredicate;
     private final ApplicationSlaManagementService capacityGroupService;
     private final SchedulingService<? extends TaskRequest> schedulingService;
     private final VirtualMachineMasterService vmService;
@@ -111,7 +112,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
             JobManagerConfiguration configuration,
             FeatureActivationConfiguration featureConfiguration,
             DirectKubeConfiguration kubeConfiguration,
-            @Named(FeatureRolloutPlans.KUBE_SCHEDULER_FEATURE) Predicate<JobDescriptor> kubeSchedulerPredicate,
+            @Named(FeatureRolloutPlans.KUBE_SCHEDULER_FEATURE) Predicate<Pair<JobDescriptor, ApplicationSLA>> kubeSchedulerPredicate,
             ApplicationSlaManagementService capacityGroupService,
             SchedulingService<? extends TaskRequest> schedulingService,
             VirtualMachineMasterService vmService,
@@ -131,7 +132,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
             JobManagerConfiguration configuration,
             FeatureActivationConfiguration featureConfiguration,
             DirectKubeConfiguration kubeConfiguration,
-            @Named(FeatureRolloutPlans.KUBE_SCHEDULER_FEATURE) Predicate<JobDescriptor> kubeSchedulerPredicate,
+            @Named(FeatureRolloutPlans.KUBE_SCHEDULER_FEATURE) Predicate<Pair<JobDescriptor, ApplicationSLA>> kubeSchedulerPredicate,
             ApplicationSlaManagementService capacityGroupService,
             SchedulingService<? extends TaskRequest> schedulingService,
             VirtualMachineMasterService vmService,
@@ -267,7 +268,10 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
         }
 
         Map<String, String> taskContext = getTaskContext(previousTask, unassignedIpAllocations);
-        if (KubeUtil.findFarzoneId(kubeConfiguration, refJobView.getJob()).isPresent() || kubeSchedulerPredicate.test(refJobView.getJob().getJobDescriptor())) {
+
+        JobDescriptor jobDescriptor = refJobView.getJob().getJobDescriptor();
+        ApplicationSLA capacityGroupDescriptor = JobManagerUtil.getCapacityGroupDescriptor(jobDescriptor, capacityGroupService);
+        if (KubeUtil.findFarzoneId(kubeConfiguration, refJobView.getJob()).isPresent() || kubeSchedulerPredicate.test(Pair.of(jobDescriptor, capacityGroupDescriptor))) {
             taskContext = CollectionsExt.copyAndAdd(taskContext, TaskAttributes.TASK_ATTRIBUTES_OWNED_BY_KUBE_SCHEDULER, "true");
         }
 
