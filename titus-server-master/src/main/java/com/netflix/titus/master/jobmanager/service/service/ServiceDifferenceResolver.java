@@ -74,6 +74,7 @@ import com.netflix.titus.master.service.management.ApplicationSlaManagementServi
 import rx.Scheduler;
 import rx.schedulers.Schedulers;
 
+import static com.netflix.titus.api.jobmanager.service.JobManagerConstants.RECONCILER_CALLMETADATA;
 import static com.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils.areEquivalent;
 import static com.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils.findTaskStateTimeouts;
 import static com.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils.getTaskContext;
@@ -290,7 +291,8 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
                     missingTasks.add(BasicTaskActions.launchTaskInKube(
                             kubeApiServerIntegrator,
                             refJobView.getJob(),
-                            refTask
+                            refTask,
+                            RECONCILER_CALLMETADATA.toBuilder().withCallReason("Launching task in Kube").build()
                     ));
                 } else {
                     missingTasks.add(BasicTaskActions.scheduleTask(

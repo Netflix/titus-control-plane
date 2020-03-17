@@ -51,6 +51,7 @@ import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodUpdatedEvent
 import io.kubernetes.client.openapi.models.V1ContainerState;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1Pod;
+import io.kubernetes.client.openapi.models.V1PodStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
@@ -292,7 +293,8 @@ public class KubeNotificationProcessor {
             startAtTimestamp = containerState.getRunning().getStartedAt().getMillis();
         } else { // TaskState.Finished
             if (containerState.getTerminated() == null || containerState.getTerminated().getStartedAt() == null) {
-                return task;
+                // It must be the case where the container setup failed.
+                return fillInMissingStatesForContainerSetupFailure(pod, task);
             }
             startAtTimestamp = containerState.getTerminated().getStartedAt().getMillis();
         }
@@ -316,7 +318,38 @@ public class KubeNotificationProcessor {
         newStatusHistory.sort(Comparator.comparing(ExecutableStatus::getState));
 
         return task.toBuilder().withStatusHistory(newStatusHistory).build();
+    }
 
+    /**
+     * In case container could not be started, we do not have the container start time, only the finished time.
+     * The {@link V1PodStatus#getPhase()} is failed, and the {@link V1PodStatus#getMessage()} contains details on
+     * the nature of failure. There should be no launched state, so we add it to mark the container start attempt.
+     */
+    private Task fillInMissingStatesForContainerSetupFailure(V1Pod pod, Task task) {
+        // Sanity check. Should never be true.
+        if (JobFunctions.findTaskStatus(task, TaskState.Launched).isPresent()) {
+            return task;
+        }
+
+        long startAtTimestamp;
+        V1ContainerState containerState = KubeUtil.findContainerState(pod).orElse(null);
+        if (containerState != null && containerState.getTerminated() != null && containerState.getTerminated().getFinishedAt() != null) {
+            startAtTimestamp = containerState.getTerminated().getFinishedAt().getMillis();
+        } else {
+            startAtTimestamp = task.getStatus().getTimestamp();
+        }
+
+        List<TaskStatus> newStatusHistory = new ArrayList<>(task.getStatusHistory());
+        newStatusHistory.add(TaskStatus.newBuilder()
+                .withState(TaskState.Launched)
+                .withReasonCode(TaskStatus.REASON_STATE_MISSING)
+                .withReasonMessage("Filled in")
+                .withTimestamp(startAtTimestamp)
+                .build()
+        );
+        newStatusHistory.sort(Comparator.comparing(ExecutableStatus::getState));
+
+        return task.toBuilder().withStatusHistory(newStatusHistory).build();
     }
 
     private Optional<TaskStatus> addIfMissing(Task task, TaskState expectedState, TaskStatus.Builder statusTemplate) {

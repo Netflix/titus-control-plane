@@ -76,6 +76,7 @@ import org.slf4j.LoggerFactory;
 import rx.Scheduler;
 import rx.schedulers.Schedulers;
 
+import static com.netflix.titus.api.jobmanager.service.JobManagerConstants.RECONCILER_CALLMETADATA;
 import static com.netflix.titus.master.jobmanager.service.batch.action.CreateOrReplaceBatchTaskActions.createOrReplaceTaskAction;
 import static com.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils.getTaskContext;
 import static com.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils.getUnassignedIpAllocations;
@@ -267,7 +268,8 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
                     missingTasks.add(BasicTaskActions.launchTaskInKube(
                             kubeApiServerIntegrator,
                             runningJobView.getJob(),
-                            refTask
+                            refTask,
+                            RECONCILER_CALLMETADATA.toBuilder().withCallReason("Launching task in Kube").build()
                     ));
                 } else {
                     missingTasks.add(BasicTaskActions.scheduleTask(capacityGroupService,
