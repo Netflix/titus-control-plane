@@ -6108,13 +6108,14 @@
             "locked": "4.12",
             "transitive": [
                 "com.google.truth:truth",
+                "junit:junit-dep",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-netty"
             ]
         },
         "junit:junit-dep": {
-            "locked": "4.10",
-            "requested": "4.10",
+            "locked": "4.11",
+            "requested": "4.+",
             "transitive": [
                 "com.netflix.titus:titus-common-testkit",
                 "com.netflix.titus:titus-testkit"
@@ -6451,7 +6452,6 @@
             "transitive": [
                 "com.jayway.awaitility:awaitility",
                 "junit:junit",
-                "junit:junit-dep",
                 "org.cassandraunit:cassandra-unit",
                 "org.hamcrest:hamcrest-library"
             ]
@@ -8326,13 +8326,14 @@
             "locked": "4.12",
             "transitive": [
                 "com.google.truth:truth",
+                "junit:junit-dep",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-netty"
             ]
         },
         "junit:junit-dep": {
-            "locked": "4.10",
-            "requested": "4.10",
+            "locked": "4.11",
+            "requested": "4.+",
             "transitive": [
                 "com.netflix.titus:titus-common-testkit",
                 "com.netflix.titus:titus-testkit"
@@ -8695,7 +8696,6 @@
             "transitive": [
                 "com.jayway.awaitility:awaitility",
                 "junit:junit",
-                "junit:junit-dep",
                 "org.cassandraunit:cassandra-unit",
                 "org.hamcrest:hamcrest-library"
             ]
