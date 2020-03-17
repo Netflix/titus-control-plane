@@ -3517,12 +3517,13 @@
             "locked": "4.12",
             "transitive": [
                 "com.google.truth:truth",
+                "junit:junit-dep",
                 "org.cassandraunit:cassandra-unit"
             ]
         },
         "junit:junit-dep": {
-            "locked": "4.10",
-            "requested": "4.10"
+            "locked": "4.11",
+            "requested": "4.+"
         },
         "log4j:log4j": {
             "locked": "1.2.17",
@@ -3669,7 +3670,6 @@
             "transitive": [
                 "com.jayway.awaitility:awaitility",
                 "junit:junit",
-                "junit:junit-dep",
                 "org.cassandraunit:cassandra-unit",
                 "org.hamcrest:hamcrest-library"
             ]
@@ -4521,12 +4521,13 @@
             "locked": "4.12",
             "transitive": [
                 "com.google.truth:truth",
+                "junit:junit-dep",
                 "org.cassandraunit:cassandra-unit"
             ]
         },
         "junit:junit-dep": {
-            "locked": "4.10",
-            "requested": "4.10"
+            "locked": "4.11",
+            "requested": "4.+"
         },
         "log4j:log4j": {
             "locked": "1.2.17",
@@ -4673,7 +4674,6 @@
             "transitive": [
                 "com.jayway.awaitility:awaitility",
                 "junit:junit",
-                "junit:junit-dep",
                 "org.cassandraunit:cassandra-unit",
                 "org.hamcrest:hamcrest-library"
             ]
