@@ -28,6 +28,7 @@ import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
 import org.jooq.impl.DefaultConnectionProvider;
 import org.jooq.impl.DefaultDSLContext;
+import org.postgresql.PGProperty;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -49,19 +50,31 @@ public class JooqJobActivityConnectorComponent {
     }
 
     @Bean
-    public DataSource getDataSource(JooqConfiguration configuration) {
+    public EmbeddedPostgresService getEmbeddedPostgresService(JooqConfiguration configuration) {
+        return new EmbeddedPostgresService(configuration);
+    }
+
+    @Bean
+    public DataSource getDataSource(JooqConfiguration jooqConfiguration, EmbeddedPostgresService embeddedPostgresService) {
         HikariConfig hikariConfig = new HikariConfig();
 
         hikariConfig.setDriverClassName("org.postgresql.Driver");
-        hikariConfig.setJdbcUrl(configuration.getJdbcUrl());
-        hikariConfig.setUsername(configuration.getJdbcUsername());
-        hikariConfig.setSchema(configuration.getJdbcSchema());
+        if (jooqConfiguration.isInMemoryDb()) {
+            hikariConfig.setDataSource(embeddedPostgresService.getDataSource());
+        } else {
+            hikariConfig.addDataSourceProperty(PGProperty.SSL.getName(), "true");
+            hikariConfig.addDataSourceProperty(PGProperty.SSL_MODE.getName(), "verify-ca");
+            hikariConfig.addDataSourceProperty(PGProperty.SSL_FACTORY.getName(), RdsUtils.createRdsSSLSocketFactory().getClass().getName());
+
+            hikariConfig.setJdbcUrl(jooqConfiguration.getDatabaseUrl());
+        }
+
+
         // Connection management
         hikariConfig.setConnectionTimeout(10000);
         hikariConfig.setMaximumPoolSize(10);
         hikariConfig.setRegisterMbeans(true);
         hikariConfig.setLeakDetectionThreshold(3000);
-        hikariConfig.setPassword(configuration.getJdbcPassword());
 
         return new HikariDataSource(hikariConfig);
     }
@@ -69,7 +82,7 @@ public class JooqJobActivityConnectorComponent {
     @Bean
     @Qualifier("jobActivityDSLContext")
     public DSLContext getJobActivityDSLContext(JooqConfiguration configuration) {
-        DSLContext dslContext = DSL.using(getDataSource(configuration), dialect());
+        DSLContext dslContext = DSL.using(getDataSource(configuration, getEmbeddedPostgresService(configuration)), dialect());
         dslContext.settings().setQueryTimeout(60);
         return dslContext;
     }
