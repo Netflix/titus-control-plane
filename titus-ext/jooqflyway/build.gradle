@@ -20,10 +20,10 @@ import java.sql.Connection
 import java.sql.ResultSet
 import java.sql.Statement
 
-buildscript { dependencies { classpath 'com.opentable.components:otj-pg-embedded:0.12.+' } }
+buildscript { dependencies { classpath 'com.opentable.components:otj-pg-embedded:0.13.+' } }
 
 plugins {
-    id 'nu.studer.jooq' version '3.0.1'
+    id 'nu.studer.jooq' version '3.0.2'
     id 'org.flywaydb.flyway' version '5.2.4'
 }
 
@@ -44,6 +44,7 @@ dependencies {
     compile "org.jooq:jooq:${jooqVersion}"
     compile "org.jooq:jooq-meta:${jooqVersion}"
     compile "org.jooq:jooq-codegen:${jooqVersion}"
+
     compile 'com.opentable.components:otj-pg-embedded:0.13.+'
 
     jooqRuntime 'org.postgresql:postgresql:42.2.4'
