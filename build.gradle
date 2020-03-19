@@ -12,7 +12,7 @@ buildscript {
 }
 
 plugins {
-    id 'nebula.netflixoss' version '8.6.0'
+    id 'nebula.netflixoss' version '8.7.0'
     id 'nebula.ospackage' version '8.1.0'
 }
 
