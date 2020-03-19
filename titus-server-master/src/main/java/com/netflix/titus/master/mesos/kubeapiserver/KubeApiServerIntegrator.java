@@ -351,24 +351,49 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
      * </ul>
      */
     private boolean isNodeOwnedByFenzo(V1Node node) {
-        List<V1Taint> taints = node.getSpec().getTaints();
-        if (CollectionsExt.isNullOrEmpty(taints)) {
-            return !isFarzoneNode(node);
+        if (isFarzoneNode(node)) {
+            logger.debug("Not owned by fenzo (farzone node): {}", node.getMetadata().getName());
+            return false;
+        }
+        if (!hasFenzoSchedulerTaint(node)) {
+            logger.debug("Not owned by fenzo (non Fenzo scheduler taint): {}", node.getMetadata().getName());
+            return false;
         }
 
+        List<V1Taint> taints = node.getSpec().getTaints();
+        if (CollectionsExt.isNullOrEmpty(taints)) {
+            logger.debug("Owned by fenzo (no taint set): {}", node.getMetadata().getName());
+            return true;
+        }
+
+        Set<String> toleratedTaints = mesosConfiguration.getFenzoTaintTolerations();
+        for (V1Taint taint : taints) {
+            String taintKey = taint.getKey();
+            if (!taintKey.equals(KubeConstants.TAINT_SCHEDULER) && !toleratedTaints.contains(taintKey)) {
+                logger.debug("Not owned by fenzo (non tolerable taint found): nodeId={}, taintKey={}", node.getMetadata().getName(), taintKey);
+                return false;
+            }
+        }
+
+        logger.debug("Owned by fenzo (all taints tolerated): {}", node.getMetadata().getName());
+        return true;
+    }
+
+    /**
+     * Returns true if there is {@link KubeConstants#TAINT_SCHEDULER} taint with {@link KubeConstants#TAINT_SCHEDULER_VALUE_FENZO} value
+     * or this taint is missing (no explicit scheduler taint == Fenzo).
+     */
+    private boolean hasFenzoSchedulerTaint(V1Node node) {
+        List<V1Taint> taints = node.getSpec().getTaints();
+        if (CollectionsExt.isNullOrEmpty(taints)) {
+            return true;
+        }
         Set<String> schedulerTaintValues = taints.stream()
                 .filter(t -> KubeConstants.TAINT_SCHEDULER.equals(t.getKey()))
                 .map(t -> StringExt.safeTrim(t.getValue()))
                 .collect(Collectors.toSet());
 
-        if (schedulerTaintValues.isEmpty()) {
-            return !isFarzoneNode(node);
-        }
-        if (schedulerTaintValues.size() > 1) {
-            return false;
-        }
-
-        return KubeConstants.TAINT_SCHEDULER_VALUE_FENZO.equalsIgnoreCase(CollectionsExt.first(schedulerTaintValues));
+        return schedulerTaintValues.size() == 1 && KubeConstants.TAINT_SCHEDULER_VALUE_FENZO.equalsIgnoreCase(CollectionsExt.first(schedulerTaintValues));
     }
 
     private boolean isFarzoneNode(V1Node node) {

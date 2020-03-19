@@ -16,8 +16,11 @@
 
 package com.netflix.titus.master.mesos;
 
+import java.util.Set;
+
 import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.KubeConstants;
 
 @Configuration(prefix = "titus.mesos")
 public interface MesosConfiguration {
@@ -131,4 +134,10 @@ public interface MesosConfiguration {
      */
     @DefaultValue("true")
     boolean isJobDescriptorAnnotationEnabled();
+
+    /**
+     * Taints tolerated by Fenzo. Nodes with taints not in this set are not added to Fenzo. The exception is
+     * {@link KubeConstants#TAINT_SCHEDULER} which is checked explicitly.
+     */
+    Set<String> getFenzoTaintTolerations();
 }
