@@ -21,6 +21,7 @@ import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
+import javax.naming.ServiceUnavailableException;
 
 import com.netflix.titus.testkit.rx.ExtTestSubscriber;
 import io.reactivex.subscribers.TestSubscriber;
@@ -71,6 +72,32 @@ public class RetryHandlerBuilderTest {
 
         assertThat(testSubscriber.isUnsubscribed());
     }
+
+    @Test
+    public void testRetryOnThrowableCondition() throws Exception {
+        Func1<Observable<? extends Throwable>, Observable<?>> retryFun = builder
+                .withRetryOnThrowable(ex -> ex instanceof ServiceUnavailableException)
+                .buildExponentialBackoff();
+
+        observableOf("A", new ServiceUnavailableException("Retry me"), "B", new IllegalArgumentException("Do not retry"), "C")
+                .retryWhen(retryFun, testScheduler)
+                .subscribe(testSubscriber);
+
+        // Expect first item
+        testScheduler.triggerActions();
+        assertThat(testSubscriber.getLatestItem()).isEqualTo("A");
+
+        // Expect second item
+        testScheduler.advanceTimeBy(RETRY_DELAY_SEC, TimeUnit.SECONDS);
+        assertThat(testSubscriber.getLatestItem()).isEqualTo("B");
+
+        // Expect third item
+        testScheduler.advanceTimeBy(2 * RETRY_DELAY_SEC, TimeUnit.SECONDS);
+        testSubscriber.assertOnError(IOException.class);
+
+        assertThat(testSubscriber.isUnsubscribed());
+    }
+
 
     @Test
     public void testMaxRetryDelay() throws Exception {
