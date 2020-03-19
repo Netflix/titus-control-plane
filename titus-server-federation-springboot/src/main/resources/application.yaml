@@ -1,1 +1,1 @@
-titus.federation.cells: cell1=titusapi-devtbakcell001-gateway.cluster.us-east-1.test.cloud.netflix.net:7007
+titus.federation.cells: cell1=localhost:7007
