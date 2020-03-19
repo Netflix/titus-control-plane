@@ -14,25 +14,22 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.endpoint.resolver;
-
-import java.util.Optional;
-import javax.inject.Singleton;
-
-/**
- * {@link HostCallerIdResolver} implementation that returns always an empty response.
- */
-@Singleton
-public class NoOpHostCallerIdResolver implements HostCallerIdResolver {
-
-    private static final NoOpHostCallerIdResolver INSTANCE = new NoOpHostCallerIdResolver();
-
-    @Override
-    public Optional<String> resolve(String address) {
-        return Optional.of("Anonymous");
-    }
-
-    public static NoOpHostCallerIdResolver getInstance() {
-        return INSTANCE;
-    }
+plugins {
+    id 'org.springframework.boot' version "${springBootVersion}"
 }
+
+apply plugin: 'io.spring.dependency-management'
+
+configurations.all {
+    exclude group: 'org.apache.logging.log4j', module: 'log4j-to-slf4j'
+}
+
+dependencies {
+    compile project(':titus-server-federation')
+
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-tomcat'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+}
+
+publishNebulaPublicationToMavenLocal.enabled = false
