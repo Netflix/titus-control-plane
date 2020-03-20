@@ -163,7 +163,10 @@ public class KubeClusterMembershipConnectorTest {
     @Test
     public void testMembershipEventStreamConnectionError() throws InterruptedException {
         kubeExecutors.breakMembershipEventSource();
-        doRegister();
+        ClusterMembershipRevision<ClusterMember> sibling1 = doAddSibling("sibling1");
+
+        kubeExecutors.breakMembershipEventSource();
+        doUpdateSibling(sibling1);
     }
 
     @Test
@@ -197,7 +200,9 @@ public class KubeClusterMembershipConnectorTest {
     @Test
     public void testLeadershipEventStreamConnectionError() throws InterruptedException {
         kubeExecutors.breakLeadershipEventSource();
-        joinLeaderElectionProcess();
+        electSiblingAsLeader();
+        kubeExecutors.breakLeadershipEventSource();
+        electLocalAsLeader();
     }
 
     @Test
