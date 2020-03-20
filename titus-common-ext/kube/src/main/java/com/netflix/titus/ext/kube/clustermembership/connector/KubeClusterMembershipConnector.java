@@ -79,13 +79,11 @@ public class KubeClusterMembershipConnector implements ClusterMembershipConnecto
 
         Duration reconnectInterval = Duration.ofMillis(configuration.getKubeReconnectIntervalMs());
         this.membershipSubscription = kubeMembershipExecutor.watchMembershipEvents()
-                .onErrorResume(e -> {
-                            logger.info("Reconnecting membership event stream from Kubernetes terminated with an error: {}", e.getMessage());
-                            logger.debug("Stack trace", e);
-                            return Flux.just(ClusterMembershipEvent.disconnectedEvent(e))
-                                    .concatWith(Flux.interval(reconnectInterval).take(1).flatMap(tick -> kubeMembershipExecutor.watchMembershipEvents()));
-                        }
-                )
+                .retryWhen(errors -> errors.flatMap(e -> {
+                    logger.info("Reconnecting membership event stream from Kubernetes terminated with an error: {}", e.getMessage());
+                    logger.debug("Stack trace", e);
+                    return Flux.interval(reconnectInterval).take(1);
+                }))
                 .subscribe(
                         event -> {
                             if (event instanceof ClusterMembershipChangeEvent) {
@@ -100,13 +98,11 @@ public class KubeClusterMembershipConnector implements ClusterMembershipConnecto
                         () -> logger.info("Membership Kubernetes event stream closed")
                 );
         this.leaderElectionSubscription = kubeLeaderElectionExecutor.watchLeaderElectionProcessUpdates()
-                .onErrorResume(e -> {
-                            logger.info("Reconnecting leadership event stream from Kubernetes terminated with an error: {}", e.getMessage());
-                            logger.debug("Stack trace", e);
-                            return Flux.just(ClusterMembershipEvent.disconnectedEvent(e))
-                                    .concatWith(Flux.interval(reconnectInterval).take(1).flatMap(tick -> kubeLeaderElectionExecutor.watchLeaderElectionProcessUpdates()));
-                        }
-                )
+                .retryWhen(errors -> errors.flatMap(e -> {
+                    logger.info("Reconnecting leadership event stream from Kubernetes terminated with an error: {}", e.getMessage());
+                    logger.debug("Stack trace", e);
+                    return Flux.interval(reconnectInterval).take(1);
+                }))
                 .subscribe(
                         event -> {
                             if (event instanceof LeaderElectionChangeEvent) {

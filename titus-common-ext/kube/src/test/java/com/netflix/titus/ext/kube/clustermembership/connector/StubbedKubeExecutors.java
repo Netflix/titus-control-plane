@@ -28,11 +28,17 @@ import com.netflix.titus.api.clustermembership.model.ClusterMemberLeadershipStat
 import com.netflix.titus.api.clustermembership.model.ClusterMembershipRevision;
 import com.netflix.titus.api.clustermembership.model.event.ClusterMembershipEvent;
 import com.netflix.titus.api.clustermembership.model.event.LeaderElectionChangeEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.DirectProcessor;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import static com.jayway.awaitility.Awaitility.await;
+
 class StubbedKubeExecutors implements KubeMembershipExecutor, KubeLeaderElectionExecutor {
+
+    private static final Logger logger = LoggerFactory.getLogger(StubbedKubeExecutors.class);
 
     private final String localMemberId;
     private final AtomicInteger memberRevisionIdx = new AtomicInteger();
@@ -98,7 +104,10 @@ class StubbedKubeExecutors implements KubeMembershipExecutor, KubeLeaderElection
 
     @Override
     public Flux<ClusterMembershipEvent> watchLeaderElectionProcessUpdates() {
-        return Flux.defer(() -> leadershipEventsProcessor);
+        return Flux.defer(() -> {
+            logger.info("Resubscribing to the leader election event stream...");
+            return leadershipEventsProcessor;
+        });
     }
 
     @Override
@@ -156,12 +165,16 @@ class StubbedKubeExecutors implements KubeMembershipExecutor, KubeLeaderElection
 
     @Override
     public Flux<ClusterMembershipEvent> watchMembershipEvents() {
-        return Flux.defer(() -> membershipEventsProcessor);
+        return Flux.defer(() -> {
+            logger.info("Resubscribing to the membership event stream...");
+            return membershipEventsProcessor;
+        });
     }
 
     void breakMembershipEventSource() {
         membershipEventsProcessor.onError(new RuntimeException("Simulated membership watch error"));
         membershipEventsProcessor = DirectProcessor.create();
+        await().until(() -> membershipEventsProcessor.hasDownstreams());
     }
 
     void addOrUpdateSibling(ClusterMembershipRevision<ClusterMember> siblingRevision) {
@@ -213,5 +226,6 @@ class StubbedKubeExecutors implements KubeMembershipExecutor, KubeLeaderElection
     void breakLeadershipEventSource() {
         leadershipEventsProcessor.onError(new RuntimeException("Simulated leadership watch error"));
         leadershipEventsProcessor = DirectProcessor.create();
+        await().until(() -> leadershipEventsProcessor.hasDownstreams());
     }
 }

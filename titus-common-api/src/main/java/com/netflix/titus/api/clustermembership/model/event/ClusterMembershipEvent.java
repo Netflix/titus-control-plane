@@ -45,10 +45,6 @@ public abstract class ClusterMembershipEvent {
         return new ClusterMembershipChangeEvent(ChangeType.Updated, revision);
     }
 
-    public static ClusterMembershipEvent disconnectedEvent(Throwable cause) {
-        return new ClusterMembershipDisconnectedEvent(cause);
-    }
-
     public static LeaderElectionChangeEvent localJoinedElection(ClusterMembershipRevision<ClusterMemberLeadership> leadershipRevision) {
         return new LeaderElectionChangeEvent(LeaderElectionChangeEvent.ChangeType.LocalJoined, leadershipRevision);
     }
