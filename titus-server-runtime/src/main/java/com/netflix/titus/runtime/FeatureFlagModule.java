@@ -153,7 +153,7 @@ public class FeatureFlagModule extends AbstractModule {
      */
 
     /**
-     * TODO Kube scheduler does not support jobs that require: static IPs, GPUs
+     * TODO Kube scheduler does not support jobs that require: static IPs
      */
     @Provides
     @Singleton
@@ -174,10 +174,6 @@ public class FeatureFlagModule extends AbstractModule {
 
         return p -> {
             JobDescriptor jobDescriptor = p.getLeft();
-            // GPU jobs are not allowed
-            if (jobDescriptor.getContainer().getContainerResources().getGpu() > 0) {
-                return false;
-            }
             // Jobs with static IP addresses are not allowed.
             if (!CollectionsExt.isNullOrEmpty(jobDescriptor.getContainer().getContainerResources().getSignedIpAddressAllocations())) {
                 return false;

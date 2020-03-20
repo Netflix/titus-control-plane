@@ -80,4 +80,9 @@ public class KubeConstants {
      * the critical tiers.
      */
     public static final String TAINT_TIER = TITUS_TAINT_DOMAIN + "tier";
+
+    /**
+     * Taint added to each GPU instance.
+     */
+    public static final String TAINT_GPU_INSTANCE = TITUS_TAINT_DOMAIN + "gpu";
 }
