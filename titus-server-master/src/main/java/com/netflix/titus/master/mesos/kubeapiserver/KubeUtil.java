@@ -23,12 +23,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import com.google.common.base.Strings;
 import com.netflix.titus.api.jobmanager.JobConstraints;
@@ -52,11 +54,16 @@ import io.kubernetes.client.openapi.models.V1ContainerStatus;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1NodeAddress;
 import io.kubernetes.client.openapi.models.V1Pod;
+import io.kubernetes.client.openapi.models.V1Taint;
 import io.kubernetes.client.openapi.models.V1Toleration;
 import io.kubernetes.client.util.Config;
 import okhttp3.Request;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class KubeUtil {
+
+    private static final Logger logger = LoggerFactory.getLogger(KubeUtil.class);
 
     public static final Pattern UUID_PATTERN = Pattern.compile("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
 
@@ -232,5 +239,77 @@ public class KubeUtil {
         }
 
         return annotations;
+    }
+
+    /**
+     * A node is owned by Fenzo if:
+     * <ul>
+     *     <li>There is no taint with {@link KubeConstants#TAINT_SCHEDULER} key and it is not a farzone node</li>
+     *     <li>There is one taint with {@link KubeConstants#TAINT_SCHEDULER} key and 'fenzo' value</li>
+     * </ul>
+     */
+    public static boolean isNodeOwnedByFenzo(List<String> farzones, Set<String> toleratedTaints, V1Node node) {
+        if (isFarzoneNode(farzones, node)) {
+            logger.debug("Not owned by fenzo (farzone node): {}", node.getMetadata().getName());
+            return false;
+        }
+        if (!hasFenzoSchedulerTaint(node)) {
+            logger.debug("Not owned by fenzo (non Fenzo scheduler taint): {}", node.getMetadata().getName());
+            return false;
+        }
+
+        List<V1Taint> taints = node.getSpec().getTaints();
+        if (CollectionsExt.isNullOrEmpty(taints)) {
+            logger.debug("Owned by fenzo (no taint set): {}", node.getMetadata().getName());
+            return true;
+        }
+
+        for (V1Taint taint : taints) {
+            String taintKey = taint.getKey();
+            if (!taintKey.equals(KubeConstants.TAINT_SCHEDULER) && !toleratedTaints.contains(taintKey)) {
+                logger.debug("Not owned by fenzo (non tolerable taint found): nodeId={}, taintKey={}", node.getMetadata().getName(), taintKey);
+                return false;
+            }
+        }
+
+        logger.debug("Owned by fenzo (all taints tolerated): {}", node.getMetadata().getName());
+        return true;
+    }
+
+    /**
+     * Returns true if there is {@link KubeConstants#TAINT_SCHEDULER} taint with {@link KubeConstants#TAINT_SCHEDULER_VALUE_FENZO} value
+     * or this taint is missing (no explicit scheduler taint == Fenzo).
+     */
+    public static boolean hasFenzoSchedulerTaint(V1Node node) {
+        List<V1Taint> taints = node.getSpec().getTaints();
+        if (CollectionsExt.isNullOrEmpty(taints)) {
+            return true;
+        }
+        Set<String> schedulerTaintValues = taints.stream()
+                .filter(t -> KubeConstants.TAINT_SCHEDULER.equals(t.getKey()))
+                .map(t -> StringExt.safeTrim(t.getValue()))
+                .collect(Collectors.toSet());
+
+        if (schedulerTaintValues.isEmpty()) {
+            return true;
+        }
+
+        return schedulerTaintValues.size() == 1 && KubeConstants.TAINT_SCHEDULER_VALUE_FENZO.equalsIgnoreCase(CollectionsExt.first(schedulerTaintValues));
+    }
+
+    public static boolean isFarzoneNode(List<String> farzones, V1Node node) {
+        String nodeZone = node.getMetadata().getLabels().get(KubeConstants.NODE_LABEL_ZONE);
+        if (StringExt.isEmpty(nodeZone)) {
+            logger.debug("Node without zone label: {}", node.getMetadata().getName());
+            return false;
+        }
+        for (String farzone : farzones) {
+            if (farzone.equalsIgnoreCase(nodeZone)) {
+                logger.debug("Farzone node: nodeId={}, zoneId={}", node.getMetadata().getName(), nodeZone);
+                return true;
+            }
+        }
+        logger.debug("Non-farzone node: nodeId={}, zoneId={}", node.getMetadata().getName(), nodeZone);
+        return false;
     }
 }

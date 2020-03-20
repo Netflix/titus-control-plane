@@ -47,7 +47,6 @@ import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.common.framework.scheduler.LocalScheduler;
 import com.netflix.titus.common.framework.scheduler.model.ScheduleDescriptor;
 import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.ExecutorsExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.limiter.Limiters;
@@ -64,7 +63,6 @@ import com.netflix.titus.master.mesos.V3ContainerEvent;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeConfiguration;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.KubeApiFacade;
-import com.netflix.titus.master.mesos.kubeapiserver.direct.KubeConstants;
 import io.kubernetes.client.custom.Quantity;
 import io.kubernetes.client.informer.ResourceEventHandler;
 import io.kubernetes.client.openapi.ApiException;
@@ -78,7 +76,6 @@ import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodSpec;
 import io.kubernetes.client.openapi.models.V1PodStatus;
 import io.kubernetes.client.openapi.models.V1ResourceRequirements;
-import io.kubernetes.client.openapi.models.V1Taint;
 import org.apache.mesos.Protos;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
@@ -323,7 +320,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                     .anyMatch(c -> c.getType().equalsIgnoreCase(STOPPED) && Boolean.parseBoolean(c.getStatus()));
             boolean removeNotReady = node.getStatus().getConditions().stream()
                     .anyMatch(c -> c.getType().equalsIgnoreCase(READY) && !Boolean.parseBoolean(c.getStatus()));
-            boolean removeNotOwnedByFenzo = !isNodeOwnedByFenzo(node);
+            boolean removeNotOwnedByFenzo = !KubeUtil.isNodeOwnedByFenzo(directKubeConfiguration.getFarzones(), mesosConfiguration.getFenzoTaintTolerations(), node);
 
             if (removeStopped || removeNotReady || removeNotOwnedByFenzo) {
                 String leaseId = node.getMetadata().getName();
@@ -341,76 +338,6 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         } catch (Exception e) {
             logger.warn("Exception on node update: {}", node, e);
         }
-    }
-
-    /**
-     * A node is owned by Fenzo if:
-     * <ul>
-     *     <li>There is no taint with {@link KubeConstants#TAINT_SCHEDULER} key and it is not a farzone node</li>
-     *     <li>There is one taint with {@link KubeConstants#TAINT_SCHEDULER} key and 'fenzo' value</li>
-     * </ul>
-     */
-    private boolean isNodeOwnedByFenzo(V1Node node) {
-        if (isFarzoneNode(node)) {
-            logger.debug("Not owned by fenzo (farzone node): {}", node.getMetadata().getName());
-            return false;
-        }
-        if (!hasFenzoSchedulerTaint(node)) {
-            logger.debug("Not owned by fenzo (non Fenzo scheduler taint): {}", node.getMetadata().getName());
-            return false;
-        }
-
-        List<V1Taint> taints = node.getSpec().getTaints();
-        if (CollectionsExt.isNullOrEmpty(taints)) {
-            logger.debug("Owned by fenzo (no taint set): {}", node.getMetadata().getName());
-            return true;
-        }
-
-        Set<String> toleratedTaints = mesosConfiguration.getFenzoTaintTolerations();
-        for (V1Taint taint : taints) {
-            String taintKey = taint.getKey();
-            if (!taintKey.equals(KubeConstants.TAINT_SCHEDULER) && !toleratedTaints.contains(taintKey)) {
-                logger.debug("Not owned by fenzo (non tolerable taint found): nodeId={}, taintKey={}", node.getMetadata().getName(), taintKey);
-                return false;
-            }
-        }
-
-        logger.debug("Owned by fenzo (all taints tolerated): {}", node.getMetadata().getName());
-        return true;
-    }
-
-    /**
-     * Returns true if there is {@link KubeConstants#TAINT_SCHEDULER} taint with {@link KubeConstants#TAINT_SCHEDULER_VALUE_FENZO} value
-     * or this taint is missing (no explicit scheduler taint == Fenzo).
-     */
-    private boolean hasFenzoSchedulerTaint(V1Node node) {
-        List<V1Taint> taints = node.getSpec().getTaints();
-        if (CollectionsExt.isNullOrEmpty(taints)) {
-            return true;
-        }
-        Set<String> schedulerTaintValues = taints.stream()
-                .filter(t -> KubeConstants.TAINT_SCHEDULER.equals(t.getKey()))
-                .map(t -> StringExt.safeTrim(t.getValue()))
-                .collect(Collectors.toSet());
-
-        return schedulerTaintValues.size() == 1 && KubeConstants.TAINT_SCHEDULER_VALUE_FENZO.equalsIgnoreCase(CollectionsExt.first(schedulerTaintValues));
-    }
-
-    private boolean isFarzoneNode(V1Node node) {
-        String nodeZone = node.getMetadata().getLabels().get(KubeConstants.NODE_LABEL_ZONE);
-        if (StringExt.isEmpty(nodeZone)) {
-            logger.debug("Node without zone label: {}", node.getMetadata().getName());
-            return false;
-        }
-        List<String> farzones = directKubeConfiguration.getFarzones();
-        for (String farzone : farzones) {
-            if (farzone.equalsIgnoreCase(nodeZone)) {
-                logger.debug("Farzone node: nodeId={}, zoneId={}", node.getMetadata().getName(), nodeZone);
-                return true;
-            }
-        }
-        logger.debug("Non-farzone node: nodeId={}, zoneId={}", node.getMetadata().getName(), nodeZone);
-        return false;
     }
 
     private void nodeDeleted(V1Node node) {
