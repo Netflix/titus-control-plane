@@ -316,7 +316,7 @@
             ]
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.14.6",
+            "locked": "3.14.7",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -1267,7 +1267,7 @@
             ]
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.14.6",
+            "locked": "3.14.7",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -2280,7 +2280,7 @@
             ]
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.14.6",
+            "locked": "3.14.7",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -3222,7 +3222,7 @@
             ]
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.14.6",
+            "locked": "3.14.7",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -4223,7 +4223,7 @@
             ]
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.14.6",
+            "locked": "3.14.7",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]

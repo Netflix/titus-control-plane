@@ -207,7 +207,7 @@
             ]
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.14.6",
+            "locked": "3.14.7",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.squareup.okhttp3:logging-interceptor",
@@ -663,11 +663,11 @@
             "requested": "2.2.5.RELEASE"
         },
         "org.springframework.cloud:spring-cloud-commons": {
-            "locked": "2.2.1.RELEASE",
+            "locked": "2.2.2.RELEASE",
             "requested": "2.2.+"
         },
         "org.springframework.security:spring-security-crypto": {
-            "locked": "5.2.1.RELEASE",
+            "locked": "5.2.2.RELEASE",
             "transitive": [
                 "org.springframework.cloud:spring-cloud-commons"
             ]
@@ -976,7 +976,7 @@
             ]
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.14.6",
+            "locked": "3.14.7",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.squareup.okhttp3:logging-interceptor",
@@ -1437,11 +1437,11 @@
             "requested": "2.2.5.RELEASE"
         },
         "org.springframework.cloud:spring-cloud-commons": {
-            "locked": "2.2.1.RELEASE",
+            "locked": "2.2.2.RELEASE",
             "requested": "2.2.+"
         },
         "org.springframework.security:spring-security-crypto": {
-            "locked": "5.2.1.RELEASE",
+            "locked": "5.2.2.RELEASE",
             "transitive": [
                 "org.springframework.cloud:spring-cloud-commons"
             ]
@@ -1807,7 +1807,7 @@
             ]
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.14.6",
+            "locked": "3.14.7",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.squareup.okhttp3:logging-interceptor",
@@ -2268,11 +2268,11 @@
             "requested": "2.2.5.RELEASE"
         },
         "org.springframework.cloud:spring-cloud-commons": {
-            "locked": "2.2.1.RELEASE",
+            "locked": "2.2.2.RELEASE",
             "requested": "2.2.+"
         },
         "org.springframework.security:spring-security-crypto": {
-            "locked": "5.2.1.RELEASE",
+            "locked": "5.2.2.RELEASE",
             "transitive": [
                 "org.springframework.cloud:spring-cloud-commons"
             ]
@@ -2631,7 +2631,7 @@
             ]
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.14.6",
+            "locked": "3.14.7",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.squareup.okhttp3:logging-interceptor",
@@ -3169,11 +3169,11 @@
             ]
         },
         "org.springframework.cloud:spring-cloud-commons": {
-            "locked": "2.2.1.RELEASE",
+            "locked": "2.2.2.RELEASE",
             "requested": "2.2.+"
         },
         "org.springframework.security:spring-security-crypto": {
-            "locked": "5.2.1.RELEASE",
+            "locked": "5.2.2.RELEASE",
             "transitive": [
                 "org.springframework.cloud:spring-cloud-commons"
             ]
@@ -3562,7 +3562,7 @@
             ]
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.14.6",
+            "locked": "3.14.7",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.squareup.okhttp3:logging-interceptor",
@@ -4105,11 +4105,11 @@
             ]
         },
         "org.springframework.cloud:spring-cloud-commons": {
-            "locked": "2.2.1.RELEASE",
+            "locked": "2.2.2.RELEASE",
             "requested": "2.2.+"
         },
         "org.springframework.security:spring-security-crypto": {
-            "locked": "5.2.1.RELEASE",
+            "locked": "5.2.2.RELEASE",
             "transitive": [
                 "org.springframework.cloud:spring-cloud-commons"
             ]
