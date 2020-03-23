@@ -268,15 +268,17 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
         List<BatchJobTask> tasks = refJobView.getTasks();
         for (BatchJobTask refTask : tasks) {
             BatchJobTask runningTask = runningJobView.getTaskById(refTask.getId());
-            if (runningTask == null) {
-                if (JobFunctions.isOwnedByKubeScheduler(refTask)) {
+            if (JobFunctions.isOwnedByKubeScheduler(refTask)) {
+                if (runningTask == null || !TaskStatus.hasPod(refTask)) {
                     missingTasks.add(BasicTaskActions.launchTaskInKube(
                             kubeApiServerIntegrator,
                             runningJobView.getJob(),
                             refTask,
                             RECONCILER_CALLMETADATA.toBuilder().withCallReason("Launching task in Kube").build()
                     ));
-                } else {
+                }
+            } else {
+                if (runningTask == null) {
                     missingTasks.add(BasicTaskActions.scheduleTask(capacityGroupService,
                             schedulingService,
                             runningJobView.getJob(),
