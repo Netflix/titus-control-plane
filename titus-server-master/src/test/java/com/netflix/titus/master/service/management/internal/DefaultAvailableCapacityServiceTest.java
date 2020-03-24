@@ -19,6 +19,7 @@ package com.netflix.titus.master.service.management.internal;
 import java.util.Optional;
 
 import com.netflix.spectator.api.DefaultRegistry;
+import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.model.ResourceDimension;
@@ -40,6 +41,7 @@ import static com.netflix.titus.common.aws.AwsInstanceType.R4_8XLARGE_ID;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -91,6 +93,8 @@ public class DefaultAvailableCapacityServiceTest {
                 .build();
 
         when(agentManagementService.getInstanceGroups()).thenReturn(asList(criticalInstanceGroup, flexInstanceGroup));
+        when(agentManagementService.isOwnedByFenzo(any(AgentInstanceGroup.class))).thenReturn(true);
+        when(agentManagementService.isOwnedByFenzo(any(AgentInstance.class))).thenReturn(true);
 
         availableCapacityService.enterActiveMode();
     }

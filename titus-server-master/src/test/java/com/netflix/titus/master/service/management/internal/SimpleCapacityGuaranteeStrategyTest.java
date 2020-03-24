@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.model.ApplicationSLA;
@@ -36,6 +37,7 @@ import com.netflix.titus.master.service.management.CapacityGuaranteeStrategy.Cap
 import com.netflix.titus.master.service.management.CapacityManagementConfiguration;
 import com.netflix.titus.testkit.data.core.ApplicationSlaSample;
 import com.netflix.titus.testkit.model.agent.AgentGenerator;
+import org.junit.Before;
 import org.junit.Test;
 
 import static com.netflix.titus.common.aws.AwsInstanceType.M4_4XLARGE_ID;
@@ -47,6 +49,7 @@ import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -64,6 +67,32 @@ public class SimpleCapacityGuaranteeStrategyTest {
             agentManagementService,
             ServerInfoResolvers.fromAwsInstanceTypes()
     );
+
+    @Before
+    public void setUp() throws Exception {
+        when(agentManagementService.isOwnedByFenzo(any(AgentInstanceGroup.class))).thenReturn(true);
+        when(agentManagementService.isOwnedByFenzo(any(AgentInstance.class))).thenReturn(true);
+    }
+
+    @Test
+    public void testOnlyFenzoPartitionIsIncluded() {
+        List<AgentInstanceGroup> instanceGroups = asList(
+                getInstanceGroup(Tier.Critical, R4_8XLARGE_ID, 0, 1).toBuilder().withId("fenzo").build(),
+                getInstanceGroup(Tier.Critical, R4_8XLARGE_ID, 0, 1).toBuilder().withId("kubeScheduler").build()
+        );
+        when(agentManagementService.getInstanceGroups()).thenReturn(instanceGroups);
+        when(agentManagementService.isOwnedByFenzo(any(AgentInstanceGroup.class))).thenAnswer(invocation -> {
+            AgentInstanceGroup instanceGroup = invocation.getArgument(0);
+            return instanceGroup.getId().equals("fenzo");
+        });
+
+        ApplicationSLA bigSLA = ApplicationSlaSample.CriticalLarge.builder().withInstanceCount(100).build();
+        CapacityRequirements requirements = new CapacityRequirements(singletonMap(Tier.Critical, singletonList(bigSLA)));
+        CapacityAllocations allocations = strategy.compute(requirements);
+
+        assertThat(allocations.getInstanceGroups()).hasSize(1);
+        assertThat(CollectionsExt.first(allocations.getInstanceGroups()).getId()).isEqualTo("fenzo");
+    }
 
     @Test
     public void testSingleInstanceFitsAll() {

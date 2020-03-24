@@ -17,6 +17,7 @@
 package com.netflix.titus.master.clusteroperations;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -90,6 +91,9 @@ public class ClusterAgentAutoScalerTest {
     public void setUp() throws Exception {
         when(configuration.isAutoScalingAgentsEnabled()).thenReturn(true);
 
+        when(agentManagementService.isOwnedByFenzo(any(AgentInstanceGroup.class))).thenReturn(true);
+        when(agentManagementService.isOwnedByFenzo(any(AgentInstance.class))).thenReturn(true);
+
         when(configuration.getCriticalPrimaryInstanceType()).thenReturn("m4.16xlarge");
         when(configuration.getCriticalMinIdle()).thenReturn(5);
         when(configuration.getCriticalMaxIdle()).thenReturn(10);
@@ -119,20 +123,36 @@ public class ClusterAgentAutoScalerTest {
     }
 
     @Test
+    public void testOnlyFenzoPartitionIsScaled() {
+        List<AgentInstanceGroup> instanceGroups = Arrays.asList(
+                createPartition("fenzoPartition1", InstanceGroupLifecycleState.Active, "r4.16xlarge", 0, 0, 1),
+                createPartition("kubeSchedulerPartition", InstanceGroupLifecycleState.Active, "r4.16xlarge", 0, 0, 1),
+                createPartition("fenzoPartition2", InstanceGroupLifecycleState.Active, "r4.16xlarge", 0, 0, 1)
+        );
+        when(agentManagementService.getInstanceGroups()).thenReturn(instanceGroups);
+        when(agentManagementService.isOwnedByFenzo(any(AgentInstanceGroup.class))).thenAnswer(invocation -> {
+            AgentInstanceGroup instanceGroup = invocation.getArgument(0);
+            return instanceGroup.getId().contains("fenzo");
+        });
+
+        when(agentManagementService.scaleUp(eq("fenzoPartition1"), anyInt())).thenReturn(Completable.complete());
+        when(agentManagementService.scaleUp(eq("fenzoPartition2"), anyInt())).thenReturn(Completable.complete());
+
+        testScheduler.advanceTimeBy(6, TimeUnit.MINUTES);
+
+        ClusterAgentAutoScaler clusterAgentAutoScaler = new ClusterAgentAutoScaler(titusRuntime, configuration,
+                agentManagementService, v3JobOperations, schedulingService, testScheduler);
+
+        clusterAgentAutoScaler.doAgentScaling().await();
+
+        verify(agentManagementService).scaleUp("fenzoPartition1", 1);
+        verify(agentManagementService, times(0)).scaleUp("kubeSchedulerPartition", 1);
+        verify(agentManagementService).scaleUp("fenzoPartition2", 1);
+    }
+
+    @Test
     public void testScaleUpMinIdle() {
-        AgentInstanceGroup instanceGroup = AgentInstanceGroup.newBuilder()
-                .withId("instanceGroup1")
-                .withTier(Tier.Flex)
-                .withLifecycleStatus(InstanceGroupLifecycleStatus.newBuilder()
-                        .withState(InstanceGroupLifecycleState.Active)
-                        .withTimestamp(titusRuntime.getClock().wallTime())
-                        .build())
-                .withInstanceType("r4.16xlarge")
-                .withMin(0)
-                .withCurrent(0)
-                .withMax(10)
-                .withAttributes(Collections.emptyMap())
-                .build();
+        AgentInstanceGroup instanceGroup = createPartition("instanceGroup1", InstanceGroupLifecycleState.Active, "r4.16xlarge", 0, 0, 10);
         when(agentManagementService.getInstanceGroups()).thenReturn(singletonList(instanceGroup));
 
         when(agentManagementService.getAgentInstances("instanceGroup1")).thenReturn(Collections.emptyList());
@@ -150,19 +170,7 @@ public class ClusterAgentAutoScalerTest {
 
     @Test
     public void testScaleDownMaxIdle() {
-        AgentInstanceGroup instanceGroup = AgentInstanceGroup.newBuilder()
-                .withId("instanceGroup1")
-                .withTier(Tier.Flex)
-                .withLifecycleStatus(InstanceGroupLifecycleStatus.newBuilder()
-                        .withState(InstanceGroupLifecycleState.Active)
-                        .withTimestamp(titusRuntime.getClock().wallTime())
-                        .build())
-                .withInstanceType("r4.16xlarge")
-                .withMin(0)
-                .withCurrent(12)
-                .withMax(20)
-                .withAttributes(Collections.emptyMap())
-                .build();
+        AgentInstanceGroup instanceGroup = createPartition("instanceGroup1", InstanceGroupLifecycleState.Active, "r4.16xlarge", 0, 12, 20);
         when(agentManagementService.getInstanceGroups()).thenReturn(singletonList(instanceGroup));
 
         List<AgentInstance> agentInstances = createAgents(12, "instanceGroup1", false);
@@ -193,19 +201,7 @@ public class ClusterAgentAutoScalerTest {
         ), Tier.Flex);
         doReturn(taskPlacementFailures).when(schedulingService).getLastTaskPlacementFailures();
 
-        AgentInstanceGroup instanceGroup = AgentInstanceGroup.newBuilder()
-                .withId("instanceGroup1")
-                .withTier(Tier.Flex)
-                .withLifecycleStatus(InstanceGroupLifecycleStatus.newBuilder()
-                        .withState(InstanceGroupLifecycleState.Active)
-                        .withTimestamp(titusRuntime.getClock().wallTime())
-                        .build())
-                .withInstanceType("r4.16xlarge")
-                .withMin(0)
-                .withCurrent(0)
-                .withMax(20)
-                .withAttributes(Collections.emptyMap())
-                .build();
+        AgentInstanceGroup instanceGroup = createPartition("instanceGroup1", InstanceGroupLifecycleState.Active, "r4.16xlarge", 0, 0, 20);
         when(agentManagementService.getInstanceGroups()).thenReturn(singletonList(instanceGroup));
 
         when(agentManagementService.getAgentInstances("instanceGroup1")).thenReturn(Collections.emptyList());
@@ -237,19 +233,7 @@ public class ClusterAgentAutoScalerTest {
         ), Tier.Flex);
         doReturn(taskPlacementFailures).when(schedulingService).getLastTaskPlacementFailures();
 
-        AgentInstanceGroup instanceGroup = AgentInstanceGroup.newBuilder()
-                .withId("instanceGroup1")
-                .withTier(Tier.Flex)
-                .withLifecycleStatus(InstanceGroupLifecycleStatus.newBuilder()
-                        .withState(InstanceGroupLifecycleState.Active)
-                        .withTimestamp(titusRuntime.getClock().wallTime())
-                        .build())
-                .withInstanceType("r4.16xlarge")
-                .withMin(0)
-                .withCurrent(0)
-                .withMax(20)
-                .withAttributes(Collections.emptyMap())
-                .build();
+        AgentInstanceGroup instanceGroup = createPartition("instanceGroup1", InstanceGroupLifecycleState.Active, "r4.16xlarge", 0, 0, 20);
         when(agentManagementService.getInstanceGroups()).thenReturn(singletonList(instanceGroup));
 
         when(agentManagementService.getAgentInstances("instanceGroup1")).thenReturn(Collections.emptyList());
@@ -270,19 +254,7 @@ public class ClusterAgentAutoScalerTest {
         when(configuration.getFlexScaleUpCoolDownMs()).thenReturn(72000000L);
         when(configuration.getFlexTaskSloMs()).thenReturn(3600000L);
 
-        AgentInstanceGroup instanceGroup = AgentInstanceGroup.newBuilder()
-                .withId("instanceGroup1")
-                .withTier(Tier.Flex)
-                .withLifecycleStatus(InstanceGroupLifecycleStatus.newBuilder()
-                        .withState(InstanceGroupLifecycleState.Active)
-                        .withTimestamp(titusRuntime.getClock().wallTime())
-                        .build())
-                .withInstanceType("r4.16xlarge")
-                .withMin(0)
-                .withCurrent(0)
-                .withMax(10)
-                .withAttributes(Collections.emptyMap())
-                .build();
+        AgentInstanceGroup instanceGroup = createPartition("instanceGroup1", InstanceGroupLifecycleState.Active, "r4.16xlarge", 0, 0, 10);
         when(agentManagementService.getInstanceGroups()).thenReturn(singletonList(instanceGroup));
 
         when(agentManagementService.getAgentInstances("instanceGroup1")).thenReturn(Collections.emptyList());
@@ -324,19 +296,7 @@ public class ClusterAgentAutoScalerTest {
         when(configuration.getFlexScaleUpCoolDownMs()).thenReturn(72000000L);
         when(configuration.getFlexTaskSloMs()).thenReturn(3600000L);
 
-        AgentInstanceGroup instanceGroup = AgentInstanceGroup.newBuilder()
-                .withId("instanceGroup1")
-                .withTier(Tier.Flex)
-                .withLifecycleStatus(InstanceGroupLifecycleStatus.newBuilder()
-                        .withState(InstanceGroupLifecycleState.Active)
-                        .withTimestamp(titusRuntime.getClock().wallTime())
-                        .build())
-                .withInstanceType("r4.16xlarge")
-                .withMin(0)
-                .withCurrent(0)
-                .withMax(10)
-                .withAttributes(Collections.emptyMap())
-                .build();
+        AgentInstanceGroup instanceGroup = createPartition("instanceGroup1", InstanceGroupLifecycleState.Active, "r4.16xlarge", 0, 0, 10);
         when(agentManagementService.getInstanceGroups()).thenReturn(singletonList(instanceGroup));
 
         when(agentManagementService.getAgentInstances("instanceGroup1")).thenReturn(Collections.emptyList());
@@ -375,19 +335,7 @@ public class ClusterAgentAutoScalerTest {
 
     @Test
     public void testScaleUpForNonPrimaryInstanceType() {
-        AgentInstanceGroup instanceGroup = AgentInstanceGroup.newBuilder()
-                .withId("instanceGroup1")
-                .withTier(Tier.Flex)
-                .withLifecycleStatus(InstanceGroupLifecycleStatus.newBuilder()
-                        .withState(InstanceGroupLifecycleState.Active)
-                        .withTimestamp(titusRuntime.getClock().wallTime())
-                        .build())
-                .withInstanceType("m4.16xlarge")
-                .withMin(0)
-                .withCurrent(0)
-                .withMax(10)
-                .withAttributes(Collections.emptyMap())
-                .build();
+        AgentInstanceGroup instanceGroup = createPartition("instanceGroup1", InstanceGroupLifecycleState.Active, "m4.16xlarge", 0, 0, 10);
         when(agentManagementService.getInstanceGroups()).thenReturn(singletonList(instanceGroup));
 
         when(agentManagementService.getAgentInstances("instanceGroup1")).thenReturn(Collections.emptyList());
@@ -405,32 +353,8 @@ public class ClusterAgentAutoScalerTest {
 
     @Test
     public void testScaleUpForActiveAndPhasedOutInstanceGroups() {
-        AgentInstanceGroup activeInstanceGroup = AgentInstanceGroup.newBuilder()
-                .withId("activeInstanceGroup")
-                .withTier(Tier.Flex)
-                .withLifecycleStatus(InstanceGroupLifecycleStatus.newBuilder()
-                        .withState(InstanceGroupLifecycleState.Active)
-                        .withTimestamp(titusRuntime.getClock().wallTime())
-                        .build())
-                .withInstanceType("r4.16xlarge")
-                .withMin(0)
-                .withCurrent(0)
-                .withMax(10)
-                .withAttributes(Collections.emptyMap())
-                .build();
-        AgentInstanceGroup phasedOutInstanceGroup = AgentInstanceGroup.newBuilder()
-                .withId("phasedOutInstanceGroup")
-                .withTier(Tier.Flex)
-                .withLifecycleStatus(InstanceGroupLifecycleStatus.newBuilder()
-                        .withState(InstanceGroupLifecycleState.PhasedOut)
-                        .withTimestamp(titusRuntime.getClock().wallTime())
-                        .build())
-                .withInstanceType("r4.16xlarge")
-                .withMin(0)
-                .withCurrent(0)
-                .withMax(10)
-                .withAttributes(Collections.emptyMap())
-                .build();
+        AgentInstanceGroup activeInstanceGroup = createPartition("activeInstanceGroup", InstanceGroupLifecycleState.Active, "r4.16xlarge", 0, 0, 10);
+        AgentInstanceGroup phasedOutInstanceGroup = createPartition("phasedOutInstanceGroup", InstanceGroupLifecycleState.PhasedOut, "r4.16xlarge", 0, 0, 10);
         List<AgentInstanceGroup> instanceGroups = Lists.newArrayList(phasedOutInstanceGroup, activeInstanceGroup);
         when(agentManagementService.getInstanceGroups()).thenReturn(instanceGroups);
 
@@ -451,19 +375,7 @@ public class ClusterAgentAutoScalerTest {
 
     @Test
     public void testScaleDownForNonPrimaryInstanceType() {
-        AgentInstanceGroup instanceGroup = AgentInstanceGroup.newBuilder()
-                .withId("instanceGroup1")
-                .withTier(Tier.Flex)
-                .withLifecycleStatus(InstanceGroupLifecycleStatus.newBuilder()
-                        .withState(InstanceGroupLifecycleState.Active)
-                        .withTimestamp(titusRuntime.getClock().wallTime())
-                        .build())
-                .withInstanceType("m4.16xlarge")
-                .withMin(0)
-                .withCurrent(12)
-                .withMax(20)
-                .withAttributes(Collections.emptyMap())
-                .build();
+        AgentInstanceGroup instanceGroup = createPartition("instanceGroup1", InstanceGroupLifecycleState.Active, "m4.16xlarge", 0, 12, 20);
         when(agentManagementService.getInstanceGroups()).thenReturn(singletonList(instanceGroup));
 
         List<AgentInstance> agentInstances = createAgents(12, "instanceGroup1", false);
@@ -484,19 +396,7 @@ public class ClusterAgentAutoScalerTest {
         when(configuration.getFlexMinIdle()).thenReturn(0);
         when(configuration.getFlexMaxIdle()).thenReturn(0);
 
-        AgentInstanceGroup instanceGroup = AgentInstanceGroup.newBuilder()
-                .withId("instanceGroup1")
-                .withTier(Tier.Flex)
-                .withLifecycleStatus(InstanceGroupLifecycleStatus.newBuilder()
-                        .withState(InstanceGroupLifecycleState.Active)
-                        .withTimestamp(titusRuntime.getClock().wallTime())
-                        .build())
-                .withInstanceType("r4.16xlarge")
-                .withMin(0)
-                .withCurrent(20)
-                .withMax(20)
-                .withAttributes(Collections.emptyMap())
-                .build();
+        AgentInstanceGroup instanceGroup = createPartition("instanceGroup1", InstanceGroupLifecycleState.Active, "r4.16xlarge", 0, 20, 20);
         when(agentManagementService.getInstanceGroups()).thenReturn(singletonList(instanceGroup));
 
         List<AgentInstance> agentInstances = createAgents(20, "instanceGroup1", false);
@@ -525,32 +425,8 @@ public class ClusterAgentAutoScalerTest {
         when(configuration.getFlexMinIdle()).thenReturn(0);
         when(configuration.getFlexMaxIdle()).thenReturn(5);
 
-        AgentInstanceGroup activeInstanceGroup = AgentInstanceGroup.newBuilder()
-                .withId("activeInstanceGroup")
-                .withTier(Tier.Flex)
-                .withLifecycleStatus(InstanceGroupLifecycleStatus.newBuilder()
-                        .withState(InstanceGroupLifecycleState.Active)
-                        .withTimestamp(titusRuntime.getClock().wallTime())
-                        .build())
-                .withInstanceType("r4.16xlarge")
-                .withMin(0)
-                .withCurrent(5)
-                .withMax(10)
-                .withAttributes(Collections.emptyMap())
-                .build();
-        AgentInstanceGroup phasedOutInstanceGroup = AgentInstanceGroup.newBuilder()
-                .withId("phasedOutInstanceGroup")
-                .withTier(Tier.Flex)
-                .withLifecycleStatus(InstanceGroupLifecycleStatus.newBuilder()
-                        .withState(InstanceGroupLifecycleState.PhasedOut)
-                        .withTimestamp(titusRuntime.getClock().wallTime())
-                        .build())
-                .withInstanceType("r4.16xlarge")
-                .withMin(0)
-                .withCurrent(5)
-                .withMax(10)
-                .withAttributes(Collections.emptyMap())
-                .build();
+        AgentInstanceGroup activeInstanceGroup = createPartition("activeInstanceGroup", InstanceGroupLifecycleState.Active, "r4.16xlarge", 0, 5, 10);
+        AgentInstanceGroup phasedOutInstanceGroup = createPartition("phasedOutInstanceGroup", InstanceGroupLifecycleState.PhasedOut, "r4.16xlarge", 0, 5, 10);
         List<AgentInstanceGroup> instanceGroups = Lists.newArrayList(phasedOutInstanceGroup, activeInstanceGroup);
         when(agentManagementService.getInstanceGroups()).thenReturn(instanceGroups);
 
@@ -578,19 +454,7 @@ public class ClusterAgentAutoScalerTest {
         when(configuration.getFlexMinIdle()).thenReturn(0);
         when(configuration.getAgentInstanceRemovableTimeoutMs()).thenReturn(9999999999L);
 
-        AgentInstanceGroup instanceGroup = AgentInstanceGroup.newBuilder()
-                .withId("instanceGroup1")
-                .withTier(Tier.Flex)
-                .withLifecycleStatus(InstanceGroupLifecycleStatus.newBuilder()
-                        .withState(InstanceGroupLifecycleState.Active)
-                        .withTimestamp(titusRuntime.getClock().wallTime())
-                        .build())
-                .withInstanceType("r4.16xlarge")
-                .withMin(13)
-                .withCurrent(20)
-                .withMax(20)
-                .withAttributes(Collections.emptyMap())
-                .build();
+        AgentInstanceGroup instanceGroup = createPartition("instanceGroup1", InstanceGroupLifecycleState.Active, "r4.16xlarge", 13, 20, 20);
         when(agentManagementService.getInstanceGroups()).thenReturn(singletonList(instanceGroup));
 
         List<AgentInstance> agentInstances = CollectionsExt.merge(
@@ -674,6 +538,22 @@ public class ClusterAgentAutoScalerTest {
             tasks.add(task);
         }
         return tasks;
+    }
+
+    private AgentInstanceGroup createPartition(String id, InstanceGroupLifecycleState state, String instanceType, int min, int current, int max) {
+        return AgentInstanceGroup.newBuilder()
+                .withId(id)
+                .withTier(Tier.Flex)
+                .withLifecycleStatus(InstanceGroupLifecycleStatus.newBuilder()
+                        .withState(state)
+                        .withTimestamp(titusRuntime.getClock().wallTime())
+                        .build())
+                .withInstanceType(instanceType)
+                .withMin(min)
+                .withCurrent(current)
+                .withMax(max)
+                .withAttributes(Collections.emptyMap())
+                .build();
     }
 
     private static class StubTaskRequest implements TaskRequest {

@@ -138,6 +138,7 @@ public class ClusterRemovableInstanceGroupAgentRemover {
 
             long now = titusRuntime.getClock().wallTime();
             List<AgentInstanceGroup> eligibleInstanceGroups = agentManagementService.getInstanceGroups().stream()
+                    .filter(agentManagementService::isOwnedByFenzo)
                     .filter(ig -> ig.getLifecycleStatus().getState() == InstanceGroupLifecycleState.Removable)
                     .filter(ig -> now - ig.getLifecycleStatus().getTimestamp() >= configuration.getInstanceGroupRemovableGracePeriodMs())
                     .collect(Collectors.toList());

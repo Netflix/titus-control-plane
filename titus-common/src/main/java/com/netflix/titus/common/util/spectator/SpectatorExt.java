@@ -16,6 +16,7 @@
 
 package com.netflix.titus.common.util.spectator;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
@@ -61,6 +62,13 @@ public final class SpectatorExt {
                                                                        Function<SOURCE, Long> valueSupplier,
                                                                        Registry registry) {
         return ValueRangeMetrics.metricsOf(rootId, levels, source, valueSupplier, registry);
+    }
+
+    /**
+     * Creates a composite gauge consisting of a set of basic gauges each with a unique set of discerning tags.
+     */
+    public static MultiDimensionalGauge multiDimensionalGauge(Id rootId, Collection<String> discerningTagNames, Registry registry) {
+        return new MultiDimensionalGauge(rootId, discerningTagNames, registry);
     }
 
     /**

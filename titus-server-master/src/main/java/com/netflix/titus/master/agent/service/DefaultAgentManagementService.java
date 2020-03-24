@@ -24,7 +24,9 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import javax.annotation.PreDestroy;
 import javax.inject.Inject;
+import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.netflix.titus.api.agent.model.AgentInstance;
@@ -37,7 +39,9 @@ import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.connector.cloud.InstanceCloudConnector;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.model.Tier;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.guice.annotation.ProxyConfiguration;
 import com.netflix.titus.common.util.rx.ObservableExt;
@@ -55,25 +59,50 @@ import static com.netflix.titus.common.util.guice.ProxyType.ActiveGuard;
 @ProxyConfiguration(types = {ActiveGuard})
 public class DefaultAgentManagementService implements AgentManagementService {
 
+    public static final String KUBE_SCHEDULER_INSTANCE_GROUP_PREDICATE = "kubeSchedulerInstanceGroupPredicate";
+
     private final AgentManagementConfiguration configuration;
+    private final Predicate<AgentInstanceGroup> kubeSchedulerInstanceGroupPredicate;
     private final InstanceCloudConnector instanceCloudConnector;
     private final AgentCache agentCache;
     private final ServerInfoResolver serverInfoResolver;
+    private final TitusRuntime titusRuntime;
+
+    private InstanceGroupSchedulerAssignmentMonitor schedulerAssignmentMonitor;
 
     @Inject
     public DefaultAgentManagementService(AgentManagementConfiguration configuration,
+                                         @Named(KUBE_SCHEDULER_INSTANCE_GROUP_PREDICATE) Predicate<AgentInstanceGroup> kubeSchedulerInstanceGroupPredicate,
                                          InstanceCloudConnector instanceCloudConnector,
                                          AgentCache AgentCache,
-                                         ServerInfoResolver serverInfoResolver) {
+                                         ServerInfoResolver serverInfoResolver,
+                                         TitusRuntime titusRuntime) {
         this.configuration = configuration;
+        this.kubeSchedulerInstanceGroupPredicate = kubeSchedulerInstanceGroupPredicate;
         this.instanceCloudConnector = instanceCloudConnector;
         this.agentCache = AgentCache;
         this.serverInfoResolver = serverInfoResolver;
+        this.titusRuntime = titusRuntime;
     }
 
     @Activator
     public void enterActiveMode() {
-        // We need this empty method, to mark this service as activated.
+        this.schedulerAssignmentMonitor = new InstanceGroupSchedulerAssignmentMonitor(this, titusRuntime);
+    }
+
+    @PreDestroy
+    public void shutdown() {
+        Evaluators.acceptNotNull(schedulerAssignmentMonitor, InstanceGroupSchedulerAssignmentMonitor::shutdown);
+    }
+
+    @Override
+    public boolean isOwnedByFenzo(AgentInstanceGroup instanceGroup) {
+        return !kubeSchedulerInstanceGroupPredicate.test(instanceGroup);
+    }
+
+    @Override
+    public boolean isOwnedByFenzo(AgentInstance instance) {
+        return findInstanceGroup(instance.getInstanceGroupId()).map(this::isOwnedByFenzo).orElse(true);
     }
 
     @Override

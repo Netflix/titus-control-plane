@@ -91,7 +91,7 @@ public class SimpleCapacityGuaranteeStrategy implements CapacityGuaranteeStrateg
         List<AgentInstanceGroup> instanceGroups = agentManagementService.getInstanceGroups().stream()
                 .filter(instanceGroup -> instanceGroup.getTier() == tier &&
                         instanceGroup.getResourceDimension().getGpu() == 0 &&
-                        isAvailableToUse(instanceGroup))
+                        isAvailableToUse(agentManagementService, instanceGroup))
                 .sorted(Comparator.comparing(AgentInstanceGroup::getId))
                 .collect(Collectors.toList());
 
