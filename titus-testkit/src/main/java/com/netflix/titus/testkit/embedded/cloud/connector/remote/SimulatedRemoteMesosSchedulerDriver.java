@@ -409,6 +409,7 @@ class SimulatedRemoteMesosSchedulerDriver implements SchedulerDriver {
                     new TitusExecutorDetails.NetworkConfiguration(
                             true,
                             networkConfiguration.getIpAddress(),
+                            null,
                             networkConfiguration.getEniIPAddress(),
                             networkConfiguration.getEniID(),
                             networkConfiguration.getResourceID()

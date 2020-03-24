@@ -33,17 +33,19 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Strings;
+import com.google.protobuf.InvalidProtocolBufferException;
+import com.google.protobuf.util.JsonFormat;
 import com.netflix.titus.api.jobmanager.JobConstraints;
 import com.netflix.titus.api.jobmanager.model.job.Job;
-import com.netflix.titus.api.json.ObjectMappers;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.NetworkExt;
 import com.netflix.titus.common.util.StringExt;
-import com.netflix.titus.common.util.jackson.CommonObjectMappers;
+import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeConfiguration;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.KubeConstants;
+import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import io.kubernetes.client.informer.SharedInformerFactory;
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.models.V1ContainerState;
@@ -74,6 +76,7 @@ public class KubeUtil {
     };
 
     private static final String INTERNAL_IP = "InternalIP";
+    private static final JsonFormat.Printer grpcJsonPrinter = JsonFormat.printer().includingDefaultValueFields();
 
     public static ApiClient createApiClient(String kubeApiServerUrl,
                                             String kubeConfigPath,
@@ -129,6 +132,7 @@ public class KubeUtil {
                     new TitusExecutorDetails.NetworkConfiguration(
                             Boolean.parseBoolean(annotations.getOrDefault("IsRoutableIp", "true")),
                             annotations.getOrDefault("IpAddress", "UnknownIpAddress"),
+                            annotations.get("EniIPv6Address"),
                             annotations.getOrDefault("EniIpAddress", "UnknownEniIpAddress"),
                             annotations.getOrDefault("EniId", "UnknownEniId"),
                             annotations.getOrDefault("ResourceId", "UnknownResourceId")
@@ -234,8 +238,13 @@ public class KubeUtil {
         annotations.put("containerInfo", encodedContainerInfo);
 
         if (includeJobDescriptor) {
-            String jobDescriptorJson = CommonObjectMappers.writeValueAsString(ObjectMappers.storeMapper(), job.getJobDescriptor());
-            annotations.put("jobDescriptor", StringExt.gzipAndBase64Encode(jobDescriptorJson));
+            JobDescriptor grpcJobDescriptor = GrpcJobManagementModelConverters.toGrpcJobDescriptor(job.getJobDescriptor());
+            try {
+                String jobDescriptorJson = grpcJsonPrinter.print(grpcJobDescriptor);
+                annotations.put("jobDescriptor", StringExt.gzipAndBase64Encode(jobDescriptorJson));
+            } catch (InvalidProtocolBufferException e) {
+                logger.error("Unable to convert protobuf message into json: ", e);
+            }
         }
 
         return annotations;

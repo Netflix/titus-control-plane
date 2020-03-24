@@ -17,6 +17,7 @@
 package com.netflix.titus.master.mesos;
 
 import java.util.Map;
+import java.util.Objects;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -82,6 +83,8 @@ public class TitusExecutorDetails {
 
         private final String ipAddress;
 
+        private final String ipV6Address;
+
         private final String eniIPAddress;
 
         private final String eniID;
@@ -91,11 +94,13 @@ public class TitusExecutorDetails {
         public NetworkConfiguration(
                 @JsonProperty("IsRoutableIP") boolean isRoutableIP,
                 @JsonProperty("IPAddress") String ipAddress,
+                @JsonProperty("IPV6Address") String ipV6Address,
                 @JsonProperty("EniIPAddress") String eniIPAddress,
                 @JsonProperty("EniID") String eniID,
                 @JsonProperty("ResourceID") String resourceID) {
             this.isRoutableIP = isRoutableIP;
             this.ipAddress = ipAddress;
+            this.ipV6Address = ipV6Address;
             this.eniIPAddress = eniIPAddress;
             this.eniID = eniID;
             this.resourceID = resourceID;
@@ -109,6 +114,11 @@ public class TitusExecutorDetails {
         @JsonProperty("IPAddress")
         public String getIpAddress() {
             return ipAddress;
+        }
+
+        @JsonProperty("IPV6Address")
+        public String getIpV6Address() {
+            return ipV6Address;
         }
 
         @JsonProperty("EniIPAddress")
@@ -134,32 +144,18 @@ public class TitusExecutorDetails {
             if (o == null || getClass() != o.getClass()) {
                 return false;
             }
-
             NetworkConfiguration that = (NetworkConfiguration) o;
-
-            if (isRoutableIP != that.isRoutableIP) {
-                return false;
-            }
-            if (ipAddress != null ? !ipAddress.equals(that.ipAddress) : that.ipAddress != null) {
-                return false;
-            }
-            if (eniIPAddress != null ? !eniIPAddress.equals(that.eniIPAddress) : that.eniIPAddress != null) {
-                return false;
-            }
-            if (eniID != null ? !eniID.equals(that.eniID) : that.eniID != null) {
-                return false;
-            }
-            return resourceID != null ? resourceID.equals(that.resourceID) : that.resourceID == null;
+            return isRoutableIP == that.isRoutableIP &&
+                    Objects.equals(ipAddress, that.ipAddress) &&
+                    Objects.equals(ipV6Address, that.ipV6Address) &&
+                    Objects.equals(eniIPAddress, that.eniIPAddress) &&
+                    Objects.equals(eniID, that.eniID) &&
+                    Objects.equals(resourceID, that.resourceID);
         }
 
         @Override
         public int hashCode() {
-            int result = (isRoutableIP ? 1 : 0);
-            result = 31 * result + (ipAddress != null ? ipAddress.hashCode() : 0);
-            result = 31 * result + (eniIPAddress != null ? eniIPAddress.hashCode() : 0);
-            result = 31 * result + (eniID != null ? eniID.hashCode() : 0);
-            result = 31 * result + (resourceID != null ? resourceID.hashCode() : 0);
-            return result;
+            return Objects.hash(isRoutableIP, ipAddress, ipV6Address, eniIPAddress, eniID, resourceID);
         }
 
         @Override
@@ -167,6 +163,7 @@ public class TitusExecutorDetails {
             return "NetworkConfiguration{" +
                     "isRoutableIP=" + isRoutableIP +
                     ", ipAddress='" + ipAddress + '\'' +
+                    ", ipV6Address='" + ipV6Address + '\'' +
                     ", eniIPAddress='" + eniIPAddress + '\'' +
                     ", eniID='" + eniID + '\'' +
                     ", resourceID='" + resourceID + '\'' +

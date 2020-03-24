@@ -47,6 +47,7 @@ import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
@@ -136,6 +137,8 @@ public final class JobManagerUtil {
                 BiConsumer<String, String> contextSetter = (key, value) -> StringExt.applyIfNonEmpty(value, v -> newContext.put(key, v));
 
                 contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP, networkConfiguration.getIpAddress());
+                contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IPV4, networkConfiguration.getIpAddress());
+                Evaluators.acceptNotNull(networkConfiguration.getIpV6Address(), ipv6 -> newContext.put(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IPV6, ipv6));
                 contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_ID, networkConfiguration.getEniID());
                 parseEniResourceId(networkConfiguration.getResourceID()).ifPresent(index -> newContext.put(TaskAttributes.TASK_ATTRIBUTES_NETWORK_INTERFACE_INDEX, index));
 
