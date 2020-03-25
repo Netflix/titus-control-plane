@@ -99,4 +99,7 @@ public interface DirectKubeConfiguration {
      * instance to use. If empty, no GPU instance type constraint is set.
      */
     List<String> getDefaultGpuInstanceTypes();
+
+    @DefaultValue("default-scheduler")
+    String getKubeSchedulerName();
 }

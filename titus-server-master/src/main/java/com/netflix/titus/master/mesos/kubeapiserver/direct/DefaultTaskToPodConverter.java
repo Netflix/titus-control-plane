@@ -132,7 +132,7 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
                 .resources(buildV1ResourceRequirements(job.getJobDescriptor().getContainer().getContainerResources()));
 
         V1PodSpec spec = new V1PodSpec()
-                .schedulerName("default-scheduler")
+                .schedulerName(configuration.getKubeSchedulerName())
                 .containers(Collections.singletonList(container))
                 .terminationGracePeriodSeconds(POD_TERMINATION_GRACE_PERIOD_SECONDS)
                 .restartPolicy(NEVER_RESTART_POLICY)
