@@ -23,10 +23,12 @@ import java.util.concurrent.TimeUnit;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Session;
+import com.netflix.titus.testkit.junit.category.IntegrationNotParallelizableTest;
 import org.cassandraunit.CassandraCQLUnit;
 import org.cassandraunit.dataset.cql.ClassPathCQLDataSet;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import rx.Observable;
 import rx.schedulers.Schedulers;
 
@@ -35,6 +37,7 @@ import static com.datastax.driver.core.querybuilder.QueryBuilder.insertInto;
 import static com.datastax.driver.core.querybuilder.QueryBuilder.select;
 import static org.assertj.core.api.Assertions.assertThat;
 
+@Category(IntegrationNotParallelizableTest.class)
 public class CassStoreHelperTest {
 
     private static final long STARTUP_TIMEOUT = 60_000L;
