@@ -20,9 +20,15 @@ import java.util.Map;
 
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
+import com.netflix.titus.api.agent.service.AgentManagementService;
 
 public class CapacityManagementFunctions {
-    public static boolean isAvailableToUse(AgentInstanceGroup instanceGroup) {
+
+    public static boolean isAvailableToUse(AgentManagementService agentManagementService,
+                                           AgentInstanceGroup instanceGroup) {
+        if (!agentManagementService.isOwnedByFenzo(instanceGroup)) {
+            return false;
+        }
         if (instanceGroup.getLifecycleStatus().getState() != InstanceGroupLifecycleState.Active &&
                 instanceGroup.getLifecycleStatus().getState() != InstanceGroupLifecycleState.PhasedOut) {
             return false;

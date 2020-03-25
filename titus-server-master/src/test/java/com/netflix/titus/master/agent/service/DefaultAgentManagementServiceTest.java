@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Predicate;
 
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
@@ -35,7 +36,8 @@ import com.netflix.titus.api.agent.model.event.AgentInstanceUpdateEvent;
 import com.netflix.titus.api.connector.cloud.InstanceCloudConnector;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.model.Tier;
-import com.netflix.titus.common.data.generator.DataGenerator;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.tuple.Either;
 import com.netflix.titus.common.util.tuple.Pair;
@@ -65,34 +67,48 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class DefaultAgentManagementServiceTest {
+
+    private static final int INSTANCE_GROUP_COUNT = 2;
+
+    private final TitusRuntime titusRuntime = TitusRuntimes.internal();
+
     private final AgentManagementConfiguration configuration = mock(AgentManagementConfiguration.class);
     private final InstanceCloudConnector connector = mock(InstanceCloudConnector.class);
     private final AgentCache agentCache = mock(AgentCache.class);
     private final ServerInfoResolver serverInfoResolver = mock(ServerInfoResolver.class);
 
-    private final DefaultAgentManagementService service = new DefaultAgentManagementService(configuration, connector, agentCache, serverInfoResolver);
+    private final List<AgentInstanceGroup> instanceGroups = agentServerGroups(Tier.Flex, 5).toList(INSTANCE_GROUP_COUNT);
+    private final List<AgentInstance> instanceSet0 = new ArrayList<>();
+    private final List<AgentInstance> instanceSet1 = new ArrayList<>();
+
+    private final Predicate<AgentInstanceGroup> kubeSchedulerInstanceGroupPredicate = ig -> instanceGroups.get(INSTANCE_GROUP_COUNT - 1).getId().equals(ig.getId());
+
+    private final DefaultAgentManagementService service = new DefaultAgentManagementService(configuration,
+            kubeSchedulerInstanceGroupPredicate,
+            connector,
+            agentCache,
+            serverInfoResolver,
+            titusRuntime
+    );
 
     private final PublishSubject<CacheUpdateEvent> agentCacheEventSubject = PublishSubject.create();
     private final ExtTestSubscriber<AgentEvent> eventSubscriber = new ExtTestSubscriber<>();
 
-    private DataGenerator<AgentInstance> serverGen0;
-    private DataGenerator<AgentInstance> serverGen1;
-
-    private List<AgentInstanceGroup> instanceGroups;
-    private final List<AgentInstance> instanceSet0 = new ArrayList<>();
-    private final List<AgentInstance> instanceSet1 = new ArrayList<>();
-
     @Before
     public void setUp() throws Exception {
-        this.instanceGroups = agentServerGroups(Tier.Flex, 5).toList(2);
-        this.serverGen0 = agentInstances(instanceGroups.get(0)).apply(instanceSet0::add, 5);
-        this.serverGen1 = agentInstances(instanceGroups.get(1)).apply(instanceSet1::add, 5);
+        agentInstances(instanceGroups.get(0)).apply(instanceSet0::add, 5);
+        agentInstances(instanceGroups.get(1)).apply(instanceSet1::add, 5);
 
         when(configuration.isInstanceGroupUpdateCapacityEnabled()).thenReturn(true);
 
         when(agentCache.getInstanceGroups()).thenReturn(instanceGroups);
+
         when(agentCache.getInstanceGroup(instanceGroups.get(0).getId())).thenReturn(instanceGroups.get(0));
+        when(agentCache.findInstanceGroup(instanceGroups.get(0).getId())).thenReturn(Optional.of(instanceGroups.get(0)));
+
         when(agentCache.getInstanceGroup(instanceGroups.get(1).getId())).thenReturn(instanceGroups.get(1));
+        when(agentCache.findInstanceGroup(instanceGroups.get(1).getId())).thenReturn(Optional.of(instanceGroups.get(1)));
+
         when(agentCache.getAgentInstances(instanceGroups.get(0).getId())).thenReturn(new HashSet<>(instanceSet0));
         when(agentCache.getAgentInstances(instanceGroups.get(1).getId())).thenReturn(new HashSet<>(instanceSet1));
         for (AgentInstance instance : CollectionsExt.merge(instanceSet0, instanceSet1)) {
@@ -103,6 +119,18 @@ public class DefaultAgentManagementServiceTest {
         when(connector.updateCapacity(any(), any(), any())).thenReturn(Completable.complete());
 
         service.events(false).subscribe(eventSubscriber);
+    }
+
+    @Test
+    public void testAgentInstanceBelongsToFenzo() {
+        assertThat(service.isOwnedByFenzo(instanceGroups.get(0))).isTrue();
+        assertThat(service.isOwnedByFenzo(instanceGroups.get(1))).isFalse();
+    }
+
+    @Test
+    public void testAgentInstanceToFenzo() {
+        assertThat(service.isOwnedByFenzo(instanceSet0.get(0))).isTrue();
+        assertThat(service.isOwnedByFenzo(instanceSet1.get(0))).isFalse();
     }
 
     @Test

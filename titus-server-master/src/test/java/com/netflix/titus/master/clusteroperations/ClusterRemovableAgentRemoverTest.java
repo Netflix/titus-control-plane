@@ -59,34 +59,46 @@ public class ClusterRemovableAgentRemoverTest {
     @Before
     public void setUp() throws Exception {
         when(configuration.isRemovingAgentsEnabled()).thenReturn(true);
+        when(agentManagementService.isOwnedByFenzo(any(AgentInstanceGroup.class))).thenReturn(true);
+        when(agentManagementService.isOwnedByFenzo(any(AgentInstance.class))).thenReturn(true);
+    }
+
+    @Test
+    public void testOnlyFenzoPartitionIsIncluded() {
+        AgentInstanceGroup fenzoInstanceGroup = createInstanceGroup(0).toBuilder().withId("fenzo").build();
+        AgentInstanceGroup kubeSchedulerInstanceGroup = createInstanceGroup(0).toBuilder().withId("kubeScheduler").build();
+
+        when(agentManagementService.getInstanceGroups()).thenReturn(asList(fenzoInstanceGroup, kubeSchedulerInstanceGroup));
+        when(agentManagementService.isOwnedByFenzo(any(AgentInstanceGroup.class))).thenAnswer(invocation -> {
+            AgentInstanceGroup instanceGroup = invocation.getArgument(0);
+            return instanceGroup.getId().equals("fenzo");
+        });
+
+        AgentInstance fenzoInstance = createRemovableInstance("fenzo", "agentInstance1");
+        AgentInstance kubeSchedulerInstance = createRemovableInstance("kubeScheduler", "agentInstance2");
+
+        when(agentManagementService.getAgentInstances("fenzo")).thenReturn(Collections.singletonList(fenzoInstance));
+        when(agentManagementService.getAgentInstances("kubeScheduler")).thenReturn(Collections.singletonList(kubeSchedulerInstance));
+
+        when(agentManagementService.terminateAgents("fenzo", singletonList("agentInstance1"), true))
+                .thenReturn(Observable.just(singletonList(Either.ofValue(true))));
+
+        ClusterRemovableAgentRemover clusterRemovableAgentRemover = new ClusterRemovableAgentRemover(titusRuntime, configuration,
+                agentManagementService, v3JobOperations, testScheduler);
+
+        clusterRemovableAgentRemover.doRemoveAgents().await();
+
+        verify(agentManagementService).terminateAgents("fenzo", singletonList("agentInstance1"), true);
+        verify(agentManagementService, times(0)).terminateAgents("kubeScheduler", singletonList("agentInstance2"), true);
     }
 
     @Test
     public void testClusterAgentRemoval() {
-        AgentInstanceGroup instanceGroup = AgentInstanceGroup.newBuilder()
-                .withId("instanceGroup1")
-                .withLifecycleStatus(InstanceGroupLifecycleStatus.newBuilder()
-                        .withState(InstanceGroupLifecycleState.Active)
-                        .withTimestamp(titusRuntime.getClock().wallTime())
-                        .build())
-                .withMin(0)
-                .withCurrent(2)
-                .withDesired(2)
-                .withMax(2)
-                .build();
+        AgentInstanceGroup instanceGroup = createInstanceGroup(0);
         when(agentManagementService.getInstanceGroups()).thenReturn(singletonList(instanceGroup));
 
-        String removableTimestampValue = String.valueOf(titusRuntime.getClock().wallTime());
-        AgentInstance agentInstance1 = AgentInstance.newBuilder()
-                .withId("agentInstance1")
-                .withInstanceGroupId("instanceGroup1")
-                .withAttributes(Collections.singletonMap(ClusterOperationsAttributes.REMOVABLE, removableTimestampValue))
-                .build();
-        AgentInstance agentInstance2 = AgentInstance.newBuilder()
-                .withId("agentInstance2")
-                .withInstanceGroupId("instanceGroup1")
-                .withAttributes(Collections.emptyMap())
-                .build();
+        AgentInstance agentInstance1 = createRemovableInstance("instanceGroup1", "agentInstance1");
+        AgentInstance agentInstance2 = createActiveInstance("instanceGroup1", "agentInstance1");
 
         List<AgentInstance> agentInstances = asList(agentInstance1, agentInstance2);
         when(agentManagementService.getAgentInstances("instanceGroup1")).thenReturn(agentInstances);
@@ -109,29 +121,11 @@ public class ClusterRemovableAgentRemoverTest {
 
     @Test
     public void testDoNotRemoveMoreAgentsThanInstanceGroupMin() {
-        AgentInstanceGroup instanceGroup = AgentInstanceGroup.newBuilder()
-                .withId("instanceGroup1")
-                .withLifecycleStatus(InstanceGroupLifecycleStatus.newBuilder()
-                        .withState(InstanceGroupLifecycleState.Active)
-                        .withTimestamp(titusRuntime.getClock().wallTime())
-                        .build())
-                .withMin(2)
-                .withCurrent(2)
-                .withDesired(2)
-                .withMax(2)
-                .build();
+        AgentInstanceGroup instanceGroup = createInstanceGroup(2);
         when(agentManagementService.getInstanceGroups()).thenReturn(singletonList(instanceGroup));
 
-        AgentInstance agentInstance1 = AgentInstance.newBuilder()
-                .withId("agentInstance1")
-                .withInstanceGroupId("instanceGroup1")
-                .withAttributes(Collections.emptyMap())
-                .build();
-        AgentInstance agentInstance2 = AgentInstance.newBuilder()
-                .withId("agentInstance2")
-                .withInstanceGroupId("instanceGroup1")
-                .withAttributes(Collections.emptyMap())
-                .build();
+        AgentInstance agentInstance1 = createActiveInstance("instanceGroup1", "agentInstance1");
+        AgentInstance agentInstance2 = createActiveInstance("instanceGroup1", "agentInstance2");
 
         List<AgentInstance> agentInstances = asList(agentInstance1, agentInstance2);
         when(agentManagementService.getAgentInstances("instanceGroup1")).thenReturn(agentInstances);
@@ -155,5 +149,36 @@ public class ClusterRemovableAgentRemoverTest {
         Task task = mock(Task.class);
         when(task.getTaskContext()).thenReturn(singletonMap(TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID, agentId));
         return task;
+    }
+
+    private AgentInstanceGroup createInstanceGroup(int min) {
+        return AgentInstanceGroup.newBuilder()
+                .withId("instanceGroup1")
+                .withLifecycleStatus(InstanceGroupLifecycleStatus.newBuilder()
+                        .withState(InstanceGroupLifecycleState.Active)
+                        .withTimestamp(titusRuntime.getClock().wallTime())
+                        .build())
+                .withMin(min)
+                .withCurrent(2)
+                .withDesired(2)
+                .withMax(2)
+                .build();
+    }
+
+    private AgentInstance createActiveInstance(String instanceGroupId, String instanceId) {
+        return AgentInstance.newBuilder()
+                .withId(instanceId)
+                .withInstanceGroupId(instanceGroupId)
+                .withAttributes(Collections.emptyMap())
+                .build();
+    }
+
+    private AgentInstance createRemovableInstance(String instanceGroupId, String instanceId) {
+        String removableTimestampValue = String.valueOf(titusRuntime.getClock().wallTime());
+        return AgentInstance.newBuilder()
+                .withId(instanceId)
+                .withInstanceGroupId(instanceGroupId)
+                .withAttributes(Collections.singletonMap(ClusterOperationsAttributes.REMOVABLE, removableTimestampValue))
+                .build();
     }
 }

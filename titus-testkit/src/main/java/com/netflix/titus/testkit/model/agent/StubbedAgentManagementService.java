@@ -48,6 +48,16 @@ class StubbedAgentManagementService implements AgentManagementService {
     }
 
     @Override
+    public boolean isOwnedByFenzo(AgentInstanceGroup instanceGroup) {
+        return true;
+    }
+
+    @Override
+    public boolean isOwnedByFenzo(AgentInstance instance) {
+        return true;
+    }
+
+    @Override
     public ResourceDimension getResourceLimits(String instanceType) {
         return ResourceDimensions.fromAwsInstanceType(AwsInstanceType.withName(instanceType));
     }

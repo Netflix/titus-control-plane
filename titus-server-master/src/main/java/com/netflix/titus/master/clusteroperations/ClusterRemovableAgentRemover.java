@@ -141,6 +141,7 @@ public class ClusterRemovableAgentRemover {
 
             long now = titusRuntime.getClock().wallTime();
             List<AgentInstanceGroup> eligibleInstanceGroups = agentManagementService.getInstanceGroups().stream()
+                    .filter(agentManagementService::isOwnedByFenzo)
                     .filter(ig -> ig.getLifecycleStatus().getState() == InstanceGroupLifecycleState.Active ||
                             ig.getLifecycleStatus().getState() == InstanceGroupLifecycleState.PhasedOut)
                     .collect(Collectors.toList());

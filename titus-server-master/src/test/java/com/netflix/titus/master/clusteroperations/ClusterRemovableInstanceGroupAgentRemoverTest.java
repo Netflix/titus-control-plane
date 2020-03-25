@@ -58,21 +58,33 @@ public class ClusterRemovableInstanceGroupAgentRemoverTest {
     @Before
     public void setUp() throws Exception {
         when(configuration.isRemovingAgentsEnabled()).thenReturn(true);
+        when(agentManagementService.isOwnedByFenzo(any(AgentInstanceGroup.class))).thenReturn(true);
+        when(agentManagementService.isOwnedByFenzo(any(AgentInstance.class))).thenReturn(true);
+    }
+
+    @Test
+    public void testOnlyFenzoPartitionIsIncluded() {
+        AgentInstanceGroup instanceGroup = createRemovableInstanceGroup("instanceGroup1", 0);
+        when(agentManagementService.getInstanceGroups()).thenReturn(singletonList(instanceGroup));
+        when(agentManagementService.isOwnedByFenzo(any(AgentInstanceGroup.class))).thenReturn(false);
+
+        AgentInstance agentInstance1 = AgentInstance.newBuilder()
+                .withId("agentInstance1")
+                .withInstanceGroupId("instanceGroup1")
+                .build();
+        when(agentManagementService.getAgentInstances("instanceGroup1")).thenReturn(asList(agentInstance1));
+
+        ClusterRemovableInstanceGroupAgentRemover clusterRemovableInstanceGroupAgentRemover = new ClusterRemovableInstanceGroupAgentRemover(titusRuntime, configuration,
+                agentManagementService, v3JobOperations, testScheduler);
+
+        clusterRemovableInstanceGroupAgentRemover.doRemoveAgents().await();
+
+        verify(agentManagementService, times(0)).terminateAgents("instanceGroup1", singletonList("agentInstance1"), true);
     }
 
     @Test
     public void testClusterAgentRemoval() {
-        AgentInstanceGroup instanceGroup = AgentInstanceGroup.newBuilder()
-                .withId("instanceGroup1")
-                .withLifecycleStatus(InstanceGroupLifecycleStatus.newBuilder()
-                        .withState(InstanceGroupLifecycleState.Removable)
-                        .withTimestamp(titusRuntime.getClock().wallTime())
-                        .build())
-                .withMin(0)
-                .withCurrent(2)
-                .withDesired(2)
-                .withMax(2)
-                .build();
+        AgentInstanceGroup instanceGroup = createRemovableInstanceGroup("instanceGroup1", 0);
         when(agentManagementService.getInstanceGroups()).thenReturn(singletonList(instanceGroup));
 
         AgentInstance agentInstance1 = AgentInstance.newBuilder()
@@ -105,17 +117,7 @@ public class ClusterRemovableInstanceGroupAgentRemoverTest {
 
     @Test
     public void testDoNotRemoveMoreAgentsThanInstanceGroupMin() {
-        AgentInstanceGroup instanceGroup = AgentInstanceGroup.newBuilder()
-                .withId("instanceGroup1")
-                .withLifecycleStatus(InstanceGroupLifecycleStatus.newBuilder()
-                        .withState(InstanceGroupLifecycleState.Removable)
-                        .withTimestamp(titusRuntime.getClock().wallTime())
-                        .build())
-                .withMin(2)
-                .withCurrent(2)
-                .withDesired(2)
-                .withMax(2)
-                .build();
+        AgentInstanceGroup instanceGroup = createRemovableInstanceGroup("instanceGroup1", 2);
         when(agentManagementService.getInstanceGroups()).thenReturn(singletonList(instanceGroup));
 
         AgentInstance agentInstance1 = AgentInstance.newBuilder()
@@ -149,5 +151,19 @@ public class ClusterRemovableInstanceGroupAgentRemoverTest {
         Task task = mock(Task.class);
         when(task.getTaskContext()).thenReturn(singletonMap(TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID, agentId));
         return task;
+    }
+
+    private AgentInstanceGroup createRemovableInstanceGroup(String instanceGroupId, int min) {
+        return AgentInstanceGroup.newBuilder()
+                .withId(instanceGroupId)
+                .withLifecycleStatus(InstanceGroupLifecycleStatus.newBuilder()
+                        .withState(InstanceGroupLifecycleState.Removable)
+                        .withTimestamp(titusRuntime.getClock().wallTime())
+                        .build())
+                .withMin(min)
+                .withCurrent(2)
+                .withDesired(2)
+                .withMax(2)
+                .build();
     }
 }
