@@ -5,7 +5,7 @@ executors:
     docker:
       - image: circleci/openjdk:8-jdk-stretch
     resource_class: xlarge
-    working_directory: ~/titus-control-plane
+    working_directory: "~/workspace/titus-control-plane"
     environment:
       DEBIAN_FRONTEND: noninteractive
       _JAVA_OPTIONS: "-Xms2g -Xmx12g"
@@ -22,7 +22,7 @@ commands:
         default: true
     steps:
       - attach_workspace:
-          at: ~/titus-control-plane
+          at: "~/workspace"
       - run:
           command: ./gradlew << parameters.target >> <<# parameters.parallel >>--max-workers 4 --parallel <</ parameters.parallel >>--no-daemon --stacktrace
           no_output_timeout: 20m
@@ -54,7 +54,7 @@ jobs:
           key: v3-gradle-cache
           when: on_success
       - persist_to_workspace:
-          root: "~"
+          root: "~/workspace"
           paths:
             - titus-control-plane
 
