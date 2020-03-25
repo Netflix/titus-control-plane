@@ -49,6 +49,19 @@ public class DefaultPodAffinityFactoryTest {
     }
 
     @Test
+    public void testInstanceTypeAffinity() {
+        V1Affinity affinity = factory.buildV1Affinity(newJob(Collections.singletonMap(JobConstraints.MACHINE_TYPE, "r5.metal")), JobGenerator.oneBatchTask());
+        V1NodeSelector nodeSelector = affinity.getNodeAffinity().getRequiredDuringSchedulingIgnoredDuringExecution();
+        assertThat(nodeSelector.getNodeSelectorTerms()).hasSize(1);
+    }
+
+    @Test
+    public void testEmptyInstanceTypeIsIgnored() {
+        V1Affinity affinity = factory.buildV1Affinity(newJob(Collections.singletonMap(JobConstraints.MACHINE_TYPE, "")), JobGenerator.oneBatchTask());
+        assertThat(affinity.getNodeAffinity()).isNull();
+    }
+
+    @Test
     public void testDefaultGpuInstanceAssignment() {
         V1Affinity affinity = factory.buildV1Affinity(newGpuJob(Collections.emptyMap()), JobGenerator.oneBatchTask());
 
@@ -66,6 +79,19 @@ public class DefaultPodAffinityFactoryTest {
         V1NodeSelector nodeSelector = affinity.getNodeAffinity().getRequiredDuringSchedulingIgnoredDuringExecution();
         assertThat(nodeSelector.getNodeSelectorTerms()).hasSize(1);
         assertThat(nodeSelector.getNodeSelectorTerms().get(0).getMatchExpressions().get(0).getValues().get(0)).isEqualTo(SPECIFIC_GPU_INSTANCE_TYPE);
+    }
+
+    private Job<BatchJobExt> newJob(Map<String, String> hardConstraints) {
+        Job<BatchJobExt> template = JobGenerator.oneBatchJob();
+        JobDescriptor<BatchJobExt> jobDescriptor = template.getJobDescriptor();
+        Container container = jobDescriptor.getContainer();
+
+        return template.toBuilder()
+                .withJobDescriptor(jobDescriptor.toBuilder()
+                        .withContainer(container.toBuilder().withHardConstraints(hardConstraints).build())
+                        .build()
+                )
+                .build();
     }
 
     private Job<BatchJobExt> newGpuJob(Map<String, String> hardConstraints) {
