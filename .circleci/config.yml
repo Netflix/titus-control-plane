@@ -104,11 +104,11 @@ jobs:
 
   test-docker-compose:
     docker:
-      image: cimg/base:2020.01
+      - image: cimg/base:2020.01
     resource_class: medium
     steps:
       - checkout
-      - setup_remote_docker
+      - setup_remote_docker:
           docker_layer_caching: true
       - run: docker-compose config
       - run: docker-compose build
