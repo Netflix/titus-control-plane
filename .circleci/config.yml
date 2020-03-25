@@ -2,7 +2,7 @@ version: 2.1
 executors:
   java:
     docker:
-      - image: circleci/openjdk:8-stretch-node-browsers-legacy
+      - image: circleci/openjdk:8-jdk-stretch
 jobs:
   build:
     executor: java
@@ -11,15 +11,17 @@ jobs:
       - run:
           environment:
             DEBIAN_FRONTEND: noninteractive
+            _JAVA_OPTIONS: "-Xms2g -Xmx12g"
+            GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.workers.max=8"
           command: |
             sudo apt update
             sudo apt install -qy ca-certificates git
       - checkout
       - restore_cache:
           keys:
-            - v2-gradle-cache
+            - v3-gradle-cache
       - run:
-          command: ./gradlew testAll --no-daemon --max-workers 2 --stacktrace
+          command: ./gradlew testAll --parallel --stacktrace
           no_output_timeout: 20m
       - run:
           name: Save test results
@@ -35,6 +37,6 @@ jobs:
           paths:
             - ~/.gradle/caches
             - ~/.gradle/wrapper
-          key: v2-gradle-cache
+          key: v3-gradle-cache
           when: on_success
 
