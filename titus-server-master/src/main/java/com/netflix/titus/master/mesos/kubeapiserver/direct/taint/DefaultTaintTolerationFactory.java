@@ -55,6 +55,7 @@ public class DefaultTaintTolerationFactory implements TaintTolerationFactory {
 
         tolerations.add(resolveTierToleration(job));
         resolveAvailabilityZoneToleration(job).ifPresent(tolerations::add);
+        resolverGpuInstanceTypeToleration(job).ifPresent(tolerations::add);
 
         return tolerations;
     }
@@ -70,5 +71,11 @@ public class DefaultTaintTolerationFactory implements TaintTolerationFactory {
 
     private Optional<V1Toleration> resolveAvailabilityZoneToleration(Job job) {
         return KubeUtil.findFarzoneId(configuration, job).map(Tolerations.TOLERATION_FARZONE_FACTORY);
+    }
+
+    private Optional<V1Toleration> resolverGpuInstanceTypeToleration(Job job) {
+        return job.getJobDescriptor().getContainer().getContainerResources().getGpu() <= 0
+                ? Optional.empty()
+                : Optional.of(Tolerations.TOLERATION_GPU_INSTANCE);
     }
 }

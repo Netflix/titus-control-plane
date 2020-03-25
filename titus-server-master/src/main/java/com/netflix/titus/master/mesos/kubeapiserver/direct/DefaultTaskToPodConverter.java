@@ -150,6 +150,9 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
         requests.put("cpu", new Quantity(String.valueOf(containerResources.getCpu())));
         limits.put("cpu", new Quantity(String.valueOf(containerResources.getCpu())));
 
+        requests.put("nvidia.com/gpu", new Quantity(String.valueOf(containerResources.getGpu())));
+        limits.put("nvidia.com/gpu", new Quantity(String.valueOf(containerResources.getGpu())));
+
         requests.put("memory", new Quantity(String.valueOf(containerResources.getMemoryMB())));
         limits.put("memory", new Quantity(String.valueOf(containerResources.getMemoryMB())));
 
@@ -158,9 +161,6 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
 
         requests.put("titus/network", new Quantity(String.valueOf(containerResources.getNetworkMbps())));
         limits.put("titus/network", new Quantity(String.valueOf(containerResources.getNetworkMbps())));
-
-//        requests.put("titus/gpu", new Quantity(String.valueOf(containerResources.getGpu())));
-//        limits.put("titus/gpu", new Quantity(String.valueOf(containerResources.getGpu())));
 
         return new V1ResourceRequirements().requests(requests).limits(limits);
     }
