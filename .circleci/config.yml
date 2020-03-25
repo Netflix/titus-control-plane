@@ -12,7 +12,7 @@ jobs:
           environment:
             DEBIAN_FRONTEND: noninteractive
             _JAVA_OPTIONS: "-Xms2g -Xmx12g"
-            GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.workers.max=8"
+            GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.workers.max=4"
           command: |
             sudo apt update
             sudo apt install -qy ca-certificates git
