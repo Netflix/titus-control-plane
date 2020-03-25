@@ -12,7 +12,6 @@ jobs:
           environment:
             DEBIAN_FRONTEND: noninteractive
             _JAVA_OPTIONS: "-Xms2g -Xmx12g"
-            GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.workers.max=4"
           command: |
             sudo apt update
             sudo apt install -qy ca-certificates git
@@ -21,7 +20,7 @@ jobs:
           keys:
             - v3-gradle-cache
       - run:
-          command: ./gradlew testAll --parallel --stacktrace
+          command: ./gradlew testAll --no-daemon --max-workers 4 --parallel --stacktrace
           no_output_timeout: 20m
       - run:
           name: Save test results
