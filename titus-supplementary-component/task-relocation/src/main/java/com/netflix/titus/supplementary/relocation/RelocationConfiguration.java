@@ -41,4 +41,7 @@ public interface RelocationConfiguration {
 
     @DefaultValue("30000")
     long getDataStalenessThresholdMs();
+
+    @DefaultValue("90000")
+    long getRdsTimeoutMs();
 }
