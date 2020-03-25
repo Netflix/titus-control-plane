@@ -57,7 +57,7 @@ class StubbedVirtualMachineMasterService implements VirtualMachineMasterService 
         return new TitusExecutorDetails(
                 CollectionsExt.asMap("nfvpc", "1.2.3.4"),
                 new TitusExecutorDetails.NetworkConfiguration(
-                        true, "1.2.3.4", "1.1.1.1", "eni-12345", "eni-resource-1"
+                        true, "1.2.3.4", "2600:1f18:2772:d500:6410:ec14:39ca:30d7", "1.1.1.1", "eni-12345", "eni-resource-1"
                 ));
     }
 

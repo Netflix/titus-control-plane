@@ -69,8 +69,11 @@ import static com.netflix.titus.common.util.Evaluators.applyNotNull;
 public class DefaultV3TaskInfoRequestFactory implements TaskInfoRequestFactory {
 
     private static final String PASSTHROUGH_ATTRIBUTES_PREFIX = "titusParameter.agent.";
-    private static final String OWNER_EMAIL_ATTRIBUTE = "titus.agent.ownerEmail";
-    private static final String JOB_TYPE_ATTRIBUTE = "titus.agent.jobType";
+    private static final String TITUS_AGENT_ATTRIBUTE_PREFIX = "titus.agent.";
+    private static final String OWNER_EMAIL_ATTRIBUTE = TITUS_AGENT_ATTRIBUTE_PREFIX + "ownerEmail";
+    private static final String JOB_TYPE_ATTRIBUTE = TITUS_AGENT_ATTRIBUTE_PREFIX + "jobType";
+    private static final String JOB_ID_ATTRIBUTE = TITUS_AGENT_ATTRIBUTE_PREFIX + "jobId";
+    private static final String APPLICATION_NAME_ATTRIBUTE = TITUS_AGENT_ATTRIBUTE_PREFIX + "applicationName";
     private static final String RUNTIME_PREDICTION_ATTRIBUTE = "titus.agent.runtimePredictionSec";
     private static final String RUNTIME_PREDICTIONS_AVAILABLE_ATTRIBUTE = "titus.agent.runtimePredictionsAvailable";
     private static final String EXECUTOR_PER_TASK_LABEL = "executorpertask";
@@ -173,6 +176,8 @@ public class DefaultV3TaskInfoRequestFactory implements TaskInfoRequestFactory {
         containerInfoBuilder.putAllPassthroughAttributes(passthroughAttributes);
         containerInfoBuilder.putPassthroughAttributes(OWNER_EMAIL_ATTRIBUTE, jobDescriptor.getOwner().getTeamEmail());
         containerInfoBuilder.putPassthroughAttributes(JOB_TYPE_ATTRIBUTE, getJobType(jobDescriptor).name());
+        containerInfoBuilder.putPassthroughAttributes(JOB_ID_ATTRIBUTE, job.getId());
+        containerInfoBuilder.putPassthroughAttributes(APPLICATION_NAME_ATTRIBUTE, jobDescriptor.getApplicationName());
         Evaluators.acceptNotNull(jobAttributes.get(JobAttributes.JOB_ATTRIBUTES_RUNTIME_PREDICTION_SEC),
                 v -> containerInfoBuilder.putPassthroughAttributes(RUNTIME_PREDICTION_ATTRIBUTE, v)
         );

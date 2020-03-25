@@ -217,6 +217,7 @@ public class TaskExecutorHolder {
                     new TitusExecutorDetails.NetworkConfiguration(
                             true,
                             containerIp,
+                            null,
                             containerIp,
                             "simulatedENI-" + eniID,
                             "resource-eni-" + eniID
