@@ -128,10 +128,10 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
         RelocationTransactionLogger transactionLog = new RelocationTransactionLogger(jobOperations);
         this.relocationMetricsStep = new RelocationMetricsStep(agentOperations, jobOperations, titusRuntime);
         this.mustBeRelocatedSelfManagedTaskCollectorStep = new MustBeRelocatedSelfManagedTaskCollectorStep(agentOperations, jobOperations, titusRuntime);
-        this.mustBeRelocatedTaskStoreUpdateStep = new MustBeRelocatedTaskStoreUpdateStep(activeStore, transactionLog, titusRuntime);
+        this.mustBeRelocatedTaskStoreUpdateStep = new MustBeRelocatedTaskStoreUpdateStep(configuration, activeStore, transactionLog, titusRuntime);
         this.deschedulerStep = new DeschedulerStep(deschedulerService, transactionLog, titusRuntime);
         this.taskEvictionStep = new TaskEvictionStep(evictionServiceClient, titusRuntime, transactionLog, Schedulers.parallel());
-        this.taskEvictionResultStoreStep = new TaskEvictionResultStoreStep(archiveStore, transactionLog, titusRuntime);
+        this.taskEvictionResultStoreStep = new TaskEvictionResultStoreStep(configuration, archiveStore, transactionLog, titusRuntime);
         this.lastDeschedulingTimestamp = titusRuntime.getClock().wallTime();
         this.deschedulingResultLogger = new DeschedulingResultLogger();
     }

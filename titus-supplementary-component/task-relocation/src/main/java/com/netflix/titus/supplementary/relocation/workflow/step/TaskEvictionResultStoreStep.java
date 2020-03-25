@@ -23,8 +23,9 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Stopwatch;
-import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.api.relocation.model.TaskRelocationStatus;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.supplementary.relocation.RelocationConfiguration;
 import com.netflix.titus.supplementary.relocation.store.TaskRelocationResultStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -36,15 +37,18 @@ public class TaskEvictionResultStoreStep {
 
     private static final Logger logger = LoggerFactory.getLogger(TaskEvictionResultStoreStep.class);
 
-    private static final Duration STORE_UPDATE_TIMEOUT = Duration.ofSeconds(30);
-
     private static final String STEP_NAME = "taskEvictionResultStoreStep";
 
+    private final RelocationConfiguration configuration;
     private final TaskRelocationResultStore store;
     private final RelocationTransactionLogger transactionLog;
     private final StepMetrics metrics;
 
-    public TaskEvictionResultStoreStep(TaskRelocationResultStore store, RelocationTransactionLogger transactionLog, TitusRuntime titusRuntime) {
+    public TaskEvictionResultStoreStep(RelocationConfiguration configuration,
+                                       TaskRelocationResultStore store,
+                                       RelocationTransactionLogger transactionLog,
+                                       TitusRuntime titusRuntime) {
+        this.configuration = configuration;
         this.store = store;
         this.transactionLog = transactionLog;
         this.metrics = new StepMetrics(STEP_NAME, titusRuntime);
@@ -66,7 +70,7 @@ public class TaskEvictionResultStoreStep {
         Map<String, Optional<Throwable>> result;
         try {
             result = store.createTaskRelocationStatuses(new ArrayList<>(taskEvictionResults.values()))
-                    .timeout(STORE_UPDATE_TIMEOUT)
+                    .timeout(Duration.ofMillis(configuration.getRdsTimeoutMs()))
                     .block();
         } catch (Exception e) {
             logger.warn("Could not remove task relocation plans from the database: {}", taskEvictionResults.keySet(), e);

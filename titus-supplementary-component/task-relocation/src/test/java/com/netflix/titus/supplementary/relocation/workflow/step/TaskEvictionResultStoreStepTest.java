@@ -19,11 +19,13 @@ package com.netflix.titus.supplementary.relocation.workflow.step;
 import java.util.Collections;
 import java.util.Optional;
 
-import com.netflix.titus.supplementary.relocation.AbstractTaskRelocationTest;
-import com.netflix.titus.testkit.model.relocation.TaskRelocationPlanGenerator;
-import com.netflix.titus.supplementary.relocation.TestDataFactory;
 import com.netflix.titus.api.relocation.model.TaskRelocationStatus;
+import com.netflix.titus.common.util.archaius2.Archaius2Ext;
+import com.netflix.titus.supplementary.relocation.AbstractTaskRelocationTest;
+import com.netflix.titus.supplementary.relocation.RelocationConfiguration;
+import com.netflix.titus.supplementary.relocation.TestDataFactory;
 import com.netflix.titus.supplementary.relocation.store.TaskRelocationResultStore;
+import com.netflix.titus.testkit.model.relocation.TaskRelocationPlanGenerator;
 import org.junit.Before;
 import org.junit.Test;
 import reactor.core.publisher.Mono;
@@ -35,6 +37,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class TaskEvictionResultStoreStepTest extends AbstractTaskRelocationTest {
+
+    private final RelocationConfiguration configuration = Archaius2Ext.newConfiguration(RelocationConfiguration.class);
 
     private final RelocationTransactionLogger transactionLog = new RelocationTransactionLogger(jobOperations);
 
@@ -48,7 +52,7 @@ public class TaskEvictionResultStoreStepTest extends AbstractTaskRelocationTest 
 
     @Before
     public void setUp() {
-        this.step = new TaskEvictionResultStoreStep(store, transactionLog, titusRuntime);
+        this.step = new TaskEvictionResultStoreStep(configuration, store, transactionLog, titusRuntime);
     }
 
     @Test
