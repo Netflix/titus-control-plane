@@ -1,26 +1,30 @@
 version: 2.1
+
 executors:
   java:
     docker:
       - image: circleci/openjdk:8-jdk-stretch
-jobs:
-  build:
-    executor: java
     resource_class: xlarge
+    working_directory: "~/workspace/titus-control-plane"
+    environment:
+      DEBIAN_FRONTEND: noninteractive
+      _JAVA_OPTIONS: "-Xms2g -Xmx12g"
+
+commands:
+  run_tests:
+    description: "Run some of the tests in this repo"
+    parameters:
+      target:
+        type: string
+        default: build
+      parallel:
+        type: boolean
+        default: true
     steps:
+      - attach_workspace:
+          at: "~/workspace"
       - run:
-          environment:
-            DEBIAN_FRONTEND: noninteractive
-            _JAVA_OPTIONS: "-Xms2g -Xmx12g"
-          command: |
-            sudo apt update
-            sudo apt install -qy ca-certificates git
-      - checkout
-      - restore_cache:
-          keys:
-            - v3-gradle-cache
-      - run:
-          command: ./gradlew testAll --no-daemon --max-workers 4 --parallel --stacktrace
+          command: ./gradlew << parameters.target >> <<# parameters.parallel >>--max-workers 4 --parallel <</ parameters.parallel >>--no-daemon --stacktrace
           no_output_timeout: 20m
       - run:
           name: Save test results
@@ -32,10 +36,83 @@ jobs:
           path: ~/test-results
       - store_artifacts:
           path: ~/test-results/junit
+
+jobs:
+  build:
+    executor: java
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v3-gradle-cache
+      - run:
+          command: ./gradlew assemble --max-workers 4 --parallel --stacktrace
       - save_cache:
           paths:
             - ~/.gradle/caches
             - ~/.gradle/wrapper
           key: v3-gradle-cache
           when: on_success
+      - persist_to_workspace:
+          root: "~/workspace"
+          paths:
+            - titus-control-plane
 
+  unit:
+    executor: java
+    steps:
+      - run_tests
+
+  integration-no-master:
+    executor: java
+    steps:
+      - run_tests:
+          target: -PintegrationTestScope=excludeMaster integrationTest
+
+  integration-master-1:
+    executor: java
+    steps:
+      - run_tests:
+          target: -PintegrationTestScope=onlyMaster1 integrationTest
+
+  integration-master-2:
+    executor: java
+    steps:
+      - run_tests:
+          target: -PintegrationTestScope=onlyMaster2 integrationTest
+
+  integration-master-3:
+    executor: java
+    steps:
+      - run_tests:
+          target: -PintegrationTestScope=onlyMaster3 integrationTest
+
+  integration-not-parallelizable:
+    executor: java
+    steps:
+      - run_tests:
+          target: integrationNotParallelizableTest
+          parallel: false
+
+workflows:
+  build-test:
+    jobs:
+      - build
+      - unit:
+          requires:
+            - build
+      - integration-no-master:
+          requires:
+            - build
+      - integration-master-1:
+          requires:
+            - build
+      - integration-master-2:
+          requires:
+            - build
+      - integration-master-3:
+          requires:
+            - build
+      - integration-not-parallelizable:
+          requires:
+            - build
