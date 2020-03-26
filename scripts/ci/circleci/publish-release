@@ -13,11 +13,11 @@ fi
 case "$tag" in
 *-rc\.*)
   ./gradlew -Prelease.useLastTag=true -PbintrayUser="${bintrayUser:-}" -PbintrayKey="${bintrayKey:-}" \
-    -PsonatypeUsername="${sonatypeUsername:-}" -PsonatypePassword="${sonatypePassword:-}" candidate --stacktrace
+    -PsonatypeUsername="${sonatypeUsername:-}" -PsonatypePassword="${sonatypePassword:-}" candidate -x test --stacktrace
   ;;
 *)
   ./gradlew -Prelease.useLastTag=true -PbintrayUser="${bintrayUser:-}" -PbintrayKey="${bintrayKey:-}" \
-    -PsonatypeUsername="${sonatypeUsername:-}" -PsonatypePassword="${sonatypePassword:-}" final --stacktrace
+    -PsonatypeUsername="${sonatypeUsername:-}" -PsonatypePassword="${sonatypePassword:-}" final -x test --stacktrace
   ;;
 esac
 
