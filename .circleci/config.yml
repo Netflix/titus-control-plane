@@ -149,9 +149,7 @@ workflows:
       - integration-not-parallelizable:
           requires:
             - build
-      - test-docker-compose:
-          requires:
-            - build
+      - test-docker-compose
       - release:
           requires:
             - build
