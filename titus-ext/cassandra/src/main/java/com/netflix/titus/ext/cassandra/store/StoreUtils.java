@@ -32,6 +32,7 @@ import com.datastax.driver.core.Statement;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.netflix.titus.api.agent.store.AgentStoreException;
 import com.netflix.titus.api.json.ObjectMappers;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
@@ -69,7 +70,7 @@ final class StoreUtils {
                 public void onFailure(@Nonnull Throwable e) {
                     emitter.onError(AgentStoreException.cassandraDriverError(e));
                 }
-            });
+            }, MoreExecutors.directExecutor());
         }, Emitter.BackpressureMode.NONE);
     }
 

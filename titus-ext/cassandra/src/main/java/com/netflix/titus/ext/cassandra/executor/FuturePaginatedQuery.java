@@ -24,6 +24,7 @@ import java.util.function.Supplier;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import rx.Observable;
 import rx.Subscriber;
 import rx.subscriptions.Subscriptions;
@@ -85,7 +86,7 @@ public class FuturePaginatedQuery<PAGE, T> {
                     subscriber.onError(error);
                 }
             }
-        });
+        }, MoreExecutors.directExecutor());
     }
 
     /**
