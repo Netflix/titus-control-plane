@@ -1,13 +1,19 @@
 {
     "compileClasspath": {
+        "com.google.android:annotations": {
+            "locked": "4.1.1.4",
+            "transitive": [
+                "io.grpc:grpc-core"
+            ]
+        },
         "com.google.api.grpc:proto-google-common-protos": {
-            "locked": "1.0.0",
+            "locked": "1.12.0",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
+            "locked": "3.0.2",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
@@ -15,48 +21,44 @@
         "com.google.code.gson:gson": {
             "locked": "2.7",
             "transitive": [
-                "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.1.2",
+            "locked": "2.3.2",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.guava:guava": {
-            "locked": "19.0",
+            "locked": "25.1-jre",
             "transitive": [
-                "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core",
                 "io.grpc:grpc-protobuf",
-                "io.grpc:grpc-protobuf-lite",
-                "io.opencensus:opencensus-api"
+                "io.grpc:grpc-protobuf-lite"
+            ]
+        },
+        "com.google.j2objc:j2objc-annotations": {
+            "locked": "1.1",
+            "transitive": [
+                "com.google.guava:guava"
             ]
         },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.5.1",
+            "locked": "3.7.1",
             "requested": "3.5.+",
-            "transitive": [
-                "com.google.protobuf:protobuf-java-util",
-                "io.grpc:grpc-protobuf"
-            ]
-        },
-        "com.google.protobuf:protobuf-java-util": {
-            "locked": "3.5.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-context": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.grpc:grpc-core": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
@@ -64,28 +66,40 @@
             ]
         },
         "io.grpc:grpc-protobuf": {
-            "locked": "1.10.1",
-            "requested": "1.10.+"
+            "locked": "1.20.0",
+            "requested": "1.20.+"
         },
         "io.grpc:grpc-protobuf-lite": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-stub": {
-            "locked": "1.10.1",
-            "requested": "1.10.+"
+            "locked": "1.20.0",
+            "requested": "1.20.+"
         },
         "io.opencensus:opencensus-api": {
-            "locked": "0.11.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.grpc:grpc-core",
                 "io.opencensus:opencensus-contrib-grpc-metrics"
             ]
         },
         "io.opencensus:opencensus-contrib-grpc-metrics": {
-            "locked": "0.11.0",
+            "locked": "0.19.2",
+            "transitive": [
+                "io.grpc:grpc-core"
+            ]
+        },
+        "org.checkerframework:checker-qual": {
+            "locked": "2.0.0",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
+        "org.codehaus.mojo:animal-sniffer-annotations": {
+            "locked": "1.17",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
@@ -96,14 +110,20 @@
         }
     },
     "compileProtoPath": {
+        "com.google.android:annotations": {
+            "locked": "4.1.1.4",
+            "transitive": [
+                "io.grpc:grpc-core"
+            ]
+        },
         "com.google.api.grpc:proto-google-common-protos": {
-            "locked": "1.0.0",
+            "locked": "1.12.0",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
+            "locked": "3.0.2",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
@@ -111,48 +131,44 @@
         "com.google.code.gson:gson": {
             "locked": "2.7",
             "transitive": [
-                "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.1.2",
+            "locked": "2.3.2",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.guava:guava": {
-            "locked": "19.0",
+            "locked": "25.1-jre",
             "transitive": [
-                "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core",
                 "io.grpc:grpc-protobuf",
-                "io.grpc:grpc-protobuf-lite",
-                "io.opencensus:opencensus-api"
+                "io.grpc:grpc-protobuf-lite"
+            ]
+        },
+        "com.google.j2objc:j2objc-annotations": {
+            "locked": "1.1",
+            "transitive": [
+                "com.google.guava:guava"
             ]
         },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.5.1",
+            "locked": "3.7.1",
             "requested": "3.5.+",
-            "transitive": [
-                "com.google.protobuf:protobuf-java-util",
-                "io.grpc:grpc-protobuf"
-            ]
-        },
-        "com.google.protobuf:protobuf-java-util": {
-            "locked": "3.5.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-context": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.grpc:grpc-core": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
@@ -160,28 +176,40 @@
             ]
         },
         "io.grpc:grpc-protobuf": {
-            "locked": "1.10.1",
-            "requested": "1.10.+"
+            "locked": "1.20.0",
+            "requested": "1.20.+"
         },
         "io.grpc:grpc-protobuf-lite": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-stub": {
-            "locked": "1.10.1",
-            "requested": "1.10.+"
+            "locked": "1.20.0",
+            "requested": "1.20.+"
         },
         "io.opencensus:opencensus-api": {
-            "locked": "0.11.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.grpc:grpc-core",
                 "io.opencensus:opencensus-contrib-grpc-metrics"
             ]
         },
         "io.opencensus:opencensus-contrib-grpc-metrics": {
-            "locked": "0.11.0",
+            "locked": "0.19.2",
+            "transitive": [
+                "io.grpc:grpc-core"
+            ]
+        },
+        "org.checkerframework:checker-qual": {
+            "locked": "2.0.0",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
+        "org.codehaus.mojo:animal-sniffer-annotations": {
+            "locked": "1.17",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
@@ -192,14 +220,20 @@
         }
     },
     "default": {
+        "com.google.android:annotations": {
+            "locked": "4.1.1.4",
+            "transitive": [
+                "io.grpc:grpc-core"
+            ]
+        },
         "com.google.api.grpc:proto-google-common-protos": {
-            "locked": "1.0.0",
+            "locked": "1.12.0",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
+            "locked": "3.0.2",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
@@ -207,48 +241,44 @@
         "com.google.code.gson:gson": {
             "locked": "2.7",
             "transitive": [
-                "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.1.2",
+            "locked": "2.3.2",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.guava:guava": {
-            "locked": "19.0",
+            "locked": "25.1-jre",
             "transitive": [
-                "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core",
                 "io.grpc:grpc-protobuf",
-                "io.grpc:grpc-protobuf-lite",
-                "io.opencensus:opencensus-api"
+                "io.grpc:grpc-protobuf-lite"
+            ]
+        },
+        "com.google.j2objc:j2objc-annotations": {
+            "locked": "1.1",
+            "transitive": [
+                "com.google.guava:guava"
             ]
         },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.5.1",
+            "locked": "3.7.1",
             "requested": "3.5.+",
-            "transitive": [
-                "com.google.protobuf:protobuf-java-util",
-                "io.grpc:grpc-protobuf"
-            ]
-        },
-        "com.google.protobuf:protobuf-java-util": {
-            "locked": "3.5.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-context": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.grpc:grpc-core": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
@@ -256,28 +286,28 @@
             ]
         },
         "io.grpc:grpc-protobuf": {
-            "locked": "1.10.1",
-            "requested": "1.10.+"
+            "locked": "1.20.0",
+            "requested": "1.20.+"
         },
         "io.grpc:grpc-protobuf-lite": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-stub": {
-            "locked": "1.10.1",
-            "requested": "1.10.+"
+            "locked": "1.20.0",
+            "requested": "1.20.+"
         },
         "io.opencensus:opencensus-api": {
-            "locked": "0.11.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.grpc:grpc-core",
                 "io.opencensus:opencensus-contrib-grpc-metrics"
             ]
         },
         "io.opencensus:opencensus-contrib-grpc-metrics": {
-            "locked": "0.11.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
@@ -286,6 +316,18 @@
             "locked": "1.2.17",
             "transitive": [
                 "org.slf4j:slf4j-log4j12"
+            ]
+        },
+        "org.checkerframework:checker-qual": {
+            "locked": "2.0.0",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
+        "org.codehaus.mojo:animal-sniffer-annotations": {
+            "locked": "1.17",
+            "transitive": [
+                "io.grpc:grpc-core"
             ]
         },
         "org.slf4j:slf4j-api": {
@@ -363,8 +405,8 @@
             "requested": "3.5.+"
         },
         "io.grpc:protoc-gen-grpc-java": {
-            "locked": "1.10.1",
-            "requested": "1.10.+"
+            "locked": "1.20.0",
+            "requested": "1.20.+"
         }
     },
     "protobuf": {
@@ -375,8 +417,8 @@
     },
     "protobufToolsLocator_grpc": {
         "io.grpc:protoc-gen-grpc-java": {
-            "locked": "1.10.1",
-            "requested": "1.10.+"
+            "locked": "1.20.0",
+            "requested": "1.20.+"
         }
     },
     "protobufToolsLocator_protoc": {
@@ -386,14 +428,20 @@
         }
     },
     "runtimeClasspath": {
+        "com.google.android:annotations": {
+            "locked": "4.1.1.4",
+            "transitive": [
+                "io.grpc:grpc-core"
+            ]
+        },
         "com.google.api.grpc:proto-google-common-protos": {
-            "locked": "1.0.0",
+            "locked": "1.12.0",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
+            "locked": "3.0.2",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
@@ -401,48 +449,44 @@
         "com.google.code.gson:gson": {
             "locked": "2.7",
             "transitive": [
-                "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.1.2",
+            "locked": "2.3.2",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.guava:guava": {
-            "locked": "19.0",
+            "locked": "25.1-jre",
             "transitive": [
-                "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core",
                 "io.grpc:grpc-protobuf",
-                "io.grpc:grpc-protobuf-lite",
-                "io.opencensus:opencensus-api"
+                "io.grpc:grpc-protobuf-lite"
+            ]
+        },
+        "com.google.j2objc:j2objc-annotations": {
+            "locked": "1.1",
+            "transitive": [
+                "com.google.guava:guava"
             ]
         },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.5.1",
+            "locked": "3.7.1",
             "requested": "3.5.+",
-            "transitive": [
-                "com.google.protobuf:protobuf-java-util",
-                "io.grpc:grpc-protobuf"
-            ]
-        },
-        "com.google.protobuf:protobuf-java-util": {
-            "locked": "3.5.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-context": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.grpc:grpc-core": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
@@ -450,28 +494,28 @@
             ]
         },
         "io.grpc:grpc-protobuf": {
-            "locked": "1.10.1",
-            "requested": "1.10.+"
+            "locked": "1.20.0",
+            "requested": "1.20.+"
         },
         "io.grpc:grpc-protobuf-lite": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-stub": {
-            "locked": "1.10.1",
-            "requested": "1.10.+"
+            "locked": "1.20.0",
+            "requested": "1.20.+"
         },
         "io.opencensus:opencensus-api": {
-            "locked": "0.11.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.grpc:grpc-core",
                 "io.opencensus:opencensus-contrib-grpc-metrics"
             ]
         },
         "io.opencensus:opencensus-contrib-grpc-metrics": {
-            "locked": "0.11.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
@@ -480,6 +524,18 @@
             "locked": "1.2.17",
             "transitive": [
                 "org.slf4j:slf4j-log4j12"
+            ]
+        },
+        "org.checkerframework:checker-qual": {
+            "locked": "2.0.0",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
+        "org.codehaus.mojo:animal-sniffer-annotations": {
+            "locked": "1.17",
+            "transitive": [
+                "io.grpc:grpc-core"
             ]
         },
         "org.slf4j:slf4j-api": {
@@ -501,14 +557,20 @@
                 "com.jayway.awaitility:awaitility"
             ]
         },
+        "com.google.android:annotations": {
+            "locked": "4.1.1.4",
+            "transitive": [
+                "io.grpc:grpc-core"
+            ]
+        },
         "com.google.api.grpc:proto-google-common-protos": {
-            "locked": "1.0.0",
+            "locked": "1.12.0",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
+            "locked": "3.0.2",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
@@ -516,36 +578,32 @@
         "com.google.code.gson:gson": {
             "locked": "2.7",
             "transitive": [
-                "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.1.2",
+            "locked": "2.3.2",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.guava:guava": {
-            "locked": "19.0",
+            "locked": "25.1-jre",
             "transitive": [
-                "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core",
                 "io.grpc:grpc-protobuf",
-                "io.grpc:grpc-protobuf-lite",
-                "io.opencensus:opencensus-api"
+                "io.grpc:grpc-protobuf-lite"
+            ]
+        },
+        "com.google.j2objc:j2objc-annotations": {
+            "locked": "1.1",
+            "transitive": [
+                "com.google.guava:guava"
             ]
         },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.5.1",
+            "locked": "3.7.1",
             "requested": "3.5.+",
-            "transitive": [
-                "com.google.protobuf:protobuf-java-util",
-                "io.grpc:grpc-protobuf"
-            ]
-        },
-        "com.google.protobuf:protobuf-java-util": {
-            "locked": "3.5.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
@@ -555,13 +613,13 @@
             "requested": "1.7.0"
         },
         "io.grpc:grpc-context": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.grpc:grpc-core": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
@@ -569,40 +627,40 @@
             ]
         },
         "io.grpc:grpc-protobuf": {
-            "locked": "1.10.1",
-            "requested": "1.10.+"
+            "locked": "1.20.0",
+            "requested": "1.20.+"
         },
         "io.grpc:grpc-protobuf-lite": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-stub": {
-            "locked": "1.10.1",
-            "requested": "1.10.+"
+            "locked": "1.20.0",
+            "requested": "1.20.+"
         },
         "io.opencensus:opencensus-api": {
-            "locked": "0.11.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.grpc:grpc-core",
                 "io.opencensus:opencensus-contrib-grpc-metrics"
             ]
         },
         "io.opencensus:opencensus-contrib-grpc-metrics": {
-            "locked": "0.11.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.3.3.RELEASE",
+            "locked": "3.3.4.RELEASE",
             "transitive": [
                 "io.projectreactor:reactor-test"
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.3.3.RELEASE",
+            "locked": "3.3.4.RELEASE",
             "requested": "3.3.+"
         },
         "junit:junit": {
@@ -630,6 +688,18 @@
         "org.assertj:assertj-core": {
             "locked": "3.8.0",
             "requested": "3.8.0"
+        },
+        "org.checkerframework:checker-qual": {
+            "locked": "2.0.0",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
+        "org.codehaus.mojo:animal-sniffer-annotations": {
+            "locked": "1.17",
+            "transitive": [
+                "io.grpc:grpc-core"
+            ]
         },
         "org.hamcrest:hamcrest-core": {
             "locked": "1.3",
@@ -675,14 +745,20 @@
                 "com.jayway.awaitility:awaitility"
             ]
         },
+        "com.google.android:annotations": {
+            "locked": "4.1.1.4",
+            "transitive": [
+                "io.grpc:grpc-core"
+            ]
+        },
         "com.google.api.grpc:proto-google-common-protos": {
-            "locked": "1.0.0",
+            "locked": "1.12.0",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
+            "locked": "3.0.2",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
@@ -690,36 +766,32 @@
         "com.google.code.gson:gson": {
             "locked": "2.7",
             "transitive": [
-                "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.1.2",
+            "locked": "2.3.2",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.guava:guava": {
-            "locked": "19.0",
+            "locked": "25.1-jre",
             "transitive": [
-                "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core",
                 "io.grpc:grpc-protobuf",
-                "io.grpc:grpc-protobuf-lite",
-                "io.opencensus:opencensus-api"
+                "io.grpc:grpc-protobuf-lite"
+            ]
+        },
+        "com.google.j2objc:j2objc-annotations": {
+            "locked": "1.1",
+            "transitive": [
+                "com.google.guava:guava"
             ]
         },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.5.1",
+            "locked": "3.7.1",
             "requested": "3.5.+",
-            "transitive": [
-                "com.google.protobuf:protobuf-java-util",
-                "io.grpc:grpc-protobuf"
-            ]
-        },
-        "com.google.protobuf:protobuf-java-util": {
-            "locked": "3.5.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
@@ -729,13 +801,13 @@
             "requested": "1.7.0"
         },
         "io.grpc:grpc-context": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.grpc:grpc-core": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
@@ -743,40 +815,40 @@
             ]
         },
         "io.grpc:grpc-protobuf": {
-            "locked": "1.10.1",
-            "requested": "1.10.+"
+            "locked": "1.20.0",
+            "requested": "1.20.+"
         },
         "io.grpc:grpc-protobuf-lite": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-stub": {
-            "locked": "1.10.1",
-            "requested": "1.10.+"
+            "locked": "1.20.0",
+            "requested": "1.20.+"
         },
         "io.opencensus:opencensus-api": {
-            "locked": "0.11.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.grpc:grpc-core",
                 "io.opencensus:opencensus-contrib-grpc-metrics"
             ]
         },
         "io.opencensus:opencensus-contrib-grpc-metrics": {
-            "locked": "0.11.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.3.3.RELEASE",
+            "locked": "3.3.4.RELEASE",
             "transitive": [
                 "io.projectreactor:reactor-test"
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.3.3.RELEASE",
+            "locked": "3.3.4.RELEASE",
             "requested": "3.3.+"
         },
         "junit:junit": {
@@ -804,6 +876,18 @@
         "org.assertj:assertj-core": {
             "locked": "3.8.0",
             "requested": "3.8.0"
+        },
+        "org.checkerframework:checker-qual": {
+            "locked": "2.0.0",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
+        "org.codehaus.mojo:animal-sniffer-annotations": {
+            "locked": "1.17",
+            "transitive": [
+                "io.grpc:grpc-core"
+            ]
         },
         "org.hamcrest:hamcrest-core": {
             "locked": "1.3",
@@ -849,14 +933,20 @@
                 "com.jayway.awaitility:awaitility"
             ]
         },
+        "com.google.android:annotations": {
+            "locked": "4.1.1.4",
+            "transitive": [
+                "io.grpc:grpc-core"
+            ]
+        },
         "com.google.api.grpc:proto-google-common-protos": {
-            "locked": "1.0.0",
+            "locked": "1.12.0",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
+            "locked": "3.0.2",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
@@ -864,36 +954,32 @@
         "com.google.code.gson:gson": {
             "locked": "2.7",
             "transitive": [
-                "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.1.2",
+            "locked": "2.3.2",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "com.google.guava:guava": {
-            "locked": "19.0",
+            "locked": "25.1-jre",
             "transitive": [
-                "com.google.protobuf:protobuf-java-util",
                 "io.grpc:grpc-core",
                 "io.grpc:grpc-protobuf",
-                "io.grpc:grpc-protobuf-lite",
-                "io.opencensus:opencensus-api"
+                "io.grpc:grpc-protobuf-lite"
+            ]
+        },
+        "com.google.j2objc:j2objc-annotations": {
+            "locked": "1.1",
+            "transitive": [
+                "com.google.guava:guava"
             ]
         },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.5.1",
+            "locked": "3.7.1",
             "requested": "3.5.+",
-            "transitive": [
-                "com.google.protobuf:protobuf-java-util",
-                "io.grpc:grpc-protobuf"
-            ]
-        },
-        "com.google.protobuf:protobuf-java-util": {
-            "locked": "3.5.1",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
@@ -903,13 +989,13 @@
             "requested": "1.7.0"
         },
         "io.grpc:grpc-context": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.grpc:grpc-core": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
@@ -917,40 +1003,40 @@
             ]
         },
         "io.grpc:grpc-protobuf": {
-            "locked": "1.10.1",
-            "requested": "1.10.+"
+            "locked": "1.20.0",
+            "requested": "1.20.+"
         },
         "io.grpc:grpc-protobuf-lite": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-stub": {
-            "locked": "1.10.1",
-            "requested": "1.10.+"
+            "locked": "1.20.0",
+            "requested": "1.20.+"
         },
         "io.opencensus:opencensus-api": {
-            "locked": "0.11.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.grpc:grpc-core",
                 "io.opencensus:opencensus-contrib-grpc-metrics"
             ]
         },
         "io.opencensus:opencensus-contrib-grpc-metrics": {
-            "locked": "0.11.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.3.3.RELEASE",
+            "locked": "3.3.4.RELEASE",
             "transitive": [
                 "io.projectreactor:reactor-test"
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.3.3.RELEASE",
+            "locked": "3.3.4.RELEASE",
             "requested": "3.3.+"
         },
         "junit:junit": {
@@ -984,6 +1070,18 @@
         "org.assertj:assertj-core": {
             "locked": "3.8.0",
             "requested": "3.8.0"
+        },
+        "org.checkerframework:checker-qual": {
+            "locked": "2.0.0",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
+        "org.codehaus.mojo:animal-sniffer-annotations": {
+            "locked": "1.17",
+            "transitive": [
+                "io.grpc:grpc-core"
+            ]
         },
         "org.hamcrest:hamcrest-core": {
             "locked": "1.3",
