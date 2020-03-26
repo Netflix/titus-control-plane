@@ -219,8 +219,14 @@
                 "com.netflix.titus:titus-server-master"
             ]
         },
+        "com.google.android:annotations": {
+            "locked": "4.1.1.4",
+            "transitive": [
+                "io.grpc:grpc-core"
+            ]
+        },
         "com.google.api.grpc:proto-google-common-protos": {
-            "locked": "1.0.0",
+            "locked": "1.12.0",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
@@ -241,7 +247,6 @@
                 "com.github.fge:msg-simple",
                 "com.github.fge:uri-template",
                 "com.google.guava:guava",
-                "com.google.instrumentation:instrumentation-api",
                 "com.twitter:util-cache_2.11",
                 "com.twitter:util-collection_2.11",
                 "io.grpc:grpc-core",
@@ -262,6 +267,7 @@
             "transitive": [
                 "com.github.ben-manes.caffeine:caffeine",
                 "com.google.guava:guava",
+                "com.google.protobuf:protobuf-java-util",
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
                 "com.google.truth:truth",
@@ -276,7 +282,6 @@
                 "com.github.fge:jackson-coreutils",
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
-                "com.google.instrumentation:instrumentation-api",
                 "com.google.protobuf:protobuf-java-util",
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
@@ -290,7 +295,6 @@
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
                 "io.kubernetes:client-java",
-                "io.opencensus:opencensus-api",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-jaxrs",
                 "org.apache.cassandra:cassandra-all",
@@ -326,12 +330,6 @@
                 "com.sun.jersey.contribs:jersey-guice"
             ]
         },
-        "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.4.3",
-            "transitive": [
-                "io.grpc:grpc-services"
-            ]
-        },
         "com.google.j2objc:j2objc-annotations": {
             "locked": "1.1",
             "transitive": [
@@ -339,7 +337,7 @@
             ]
         },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.5.1",
+            "locked": "3.7.1",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
                 "com.google.truth.extensions:truth-liteproto-extension",
@@ -355,9 +353,16 @@
             ]
         },
         "com.google.protobuf:protobuf-java-util": {
-            "locked": "3.5.1",
+            "locked": "3.7.1",
             "transitive": [
-                "io.grpc:grpc-protobuf"
+                "com.netflix.titus:titus-common",
+                "io.grpc:grpc-services"
+            ]
+        },
+        "com.google.re2j:re2j": {
+            "locked": "1.2",
+            "transitive": [
+                "io.grpc:grpc-services"
             ]
         },
         "com.google.truth.extensions:truth-liteproto-extension": {
@@ -446,7 +451,7 @@
             ]
         },
         "com.netflix.frigga:frigga": {
-            "locked": "0.23.0",
+            "locked": "0.24.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -872,13 +877,13 @@
             ]
         },
         "io.grpc:grpc-context": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.grpc:grpc-core": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
@@ -886,7 +891,7 @@
             ]
         },
         "io.grpc:grpc-netty-shaded": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-common-client",
@@ -895,7 +900,7 @@
             ]
         },
         "io.grpc:grpc-protobuf": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-common-grpc-api",
@@ -904,13 +909,13 @@
             ]
         },
         "io.grpc:grpc-protobuf-lite": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-services": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "com.netflix.titus:titus-common-client",
                 "com.netflix.titus:titus-common-server",
@@ -918,7 +923,7 @@
             ]
         },
         "io.grpc:grpc-stub": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-common-grpc-api",
@@ -1082,14 +1087,14 @@
             ]
         },
         "io.opencensus:opencensus-api": {
-            "locked": "0.11.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.grpc:grpc-core",
                 "io.opencensus:opencensus-contrib-grpc-metrics"
             ]
         },
         "io.opencensus:opencensus-contrib-grpc-metrics": {
-            "locked": "0.11.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
@@ -1520,9 +1525,10 @@
             ]
         },
         "org.codehaus.mojo:animal-sniffer-annotations": {
-            "locked": "1.14",
+            "locked": "1.17",
             "transitive": [
-                "com.google.guava:guava"
+                "com.google.guava:guava",
+                "io.grpc:grpc-core"
             ]
         },
         "org.eclipse.jdt.core.compiler:ecj": {
@@ -2323,8 +2329,14 @@
                 "com.netflix.titus:titus-server-master"
             ]
         },
+        "com.google.android:annotations": {
+            "locked": "4.1.1.4",
+            "transitive": [
+                "io.grpc:grpc-core"
+            ]
+        },
         "com.google.api.grpc:proto-google-common-protos": {
-            "locked": "1.0.0",
+            "locked": "1.12.0",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
@@ -2345,7 +2357,6 @@
                 "com.github.fge:msg-simple",
                 "com.github.fge:uri-template",
                 "com.google.guava:guava",
-                "com.google.instrumentation:instrumentation-api",
                 "com.twitter:util-cache_2.11",
                 "com.twitter:util-collection_2.11",
                 "io.grpc:grpc-core",
@@ -2366,6 +2377,7 @@
             "transitive": [
                 "com.github.ben-manes.caffeine:caffeine",
                 "com.google.guava:guava",
+                "com.google.protobuf:protobuf-java-util",
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
                 "com.google.truth:truth",
@@ -2380,7 +2392,6 @@
                 "com.github.fge:jackson-coreutils",
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
-                "com.google.instrumentation:instrumentation-api",
                 "com.google.protobuf:protobuf-java-util",
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
@@ -2394,7 +2405,6 @@
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
                 "io.kubernetes:client-java",
-                "io.opencensus:opencensus-api",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-jaxrs",
                 "org.apache.cassandra:cassandra-all",
@@ -2450,12 +2460,6 @@
                 "com.sun.jersey.contribs:jersey-guice"
             ]
         },
-        "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.4.3",
-            "transitive": [
-                "io.grpc:grpc-services"
-            ]
-        },
         "com.google.j2objc:j2objc-annotations": {
             "locked": "1.1",
             "transitive": [
@@ -2463,7 +2467,7 @@
             ]
         },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.5.1",
+            "locked": "3.7.1",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
                 "com.google.truth.extensions:truth-liteproto-extension",
@@ -2479,9 +2483,16 @@
             ]
         },
         "com.google.protobuf:protobuf-java-util": {
-            "locked": "3.5.1",
+            "locked": "3.7.1",
             "transitive": [
-                "io.grpc:grpc-protobuf"
+                "com.netflix.titus:titus-common",
+                "io.grpc:grpc-services"
+            ]
+        },
+        "com.google.re2j:re2j": {
+            "locked": "1.2",
+            "transitive": [
+                "io.grpc:grpc-services"
             ]
         },
         "com.google.truth.extensions:truth-liteproto-extension": {
@@ -2570,7 +2581,7 @@
             ]
         },
         "com.netflix.frigga:frigga": {
-            "locked": "0.23.0",
+            "locked": "0.24.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -3002,13 +3013,13 @@
             ]
         },
         "io.grpc:grpc-context": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.grpc:grpc-core": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-netty-shaded",
                 "io.grpc:grpc-protobuf",
@@ -3017,7 +3028,7 @@
             ]
         },
         "io.grpc:grpc-netty-shaded": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-common-client",
@@ -3026,7 +3037,7 @@
             ]
         },
         "io.grpc:grpc-protobuf": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-common-grpc-api",
@@ -3035,13 +3046,13 @@
             ]
         },
         "io.grpc:grpc-protobuf-lite": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-services": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "com.netflix.titus:titus-common-client",
                 "com.netflix.titus:titus-common-server",
@@ -3049,7 +3060,7 @@
             ]
         },
         "io.grpc:grpc-stub": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-common-grpc-api",
@@ -3213,14 +3224,14 @@
             ]
         },
         "io.opencensus:opencensus-api": {
-            "locked": "0.11.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.grpc:grpc-core",
                 "io.opencensus:opencensus-contrib-grpc-metrics"
             ]
         },
         "io.opencensus:opencensus-contrib-grpc-metrics": {
-            "locked": "0.11.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
@@ -3660,9 +3671,10 @@
             ]
         },
         "org.codehaus.mojo:animal-sniffer-annotations": {
-            "locked": "1.14",
+            "locked": "1.17",
             "transitive": [
-                "com.google.guava:guava"
+                "com.google.guava:guava",
+                "io.grpc:grpc-core"
             ]
         },
         "org.eclipse.jdt.core.compiler:ecj": {
@@ -4530,8 +4542,14 @@
                 "com.netflix.titus:titus-server-master"
             ]
         },
+        "com.google.android:annotations": {
+            "locked": "4.1.1.4",
+            "transitive": [
+                "io.grpc:grpc-core"
+            ]
+        },
         "com.google.api.grpc:proto-google-common-protos": {
-            "locked": "1.0.0",
+            "locked": "1.12.0",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
@@ -4552,7 +4570,6 @@
                 "com.github.fge:msg-simple",
                 "com.github.fge:uri-template",
                 "com.google.guava:guava",
-                "com.google.instrumentation:instrumentation-api",
                 "com.twitter:util-cache_2.11",
                 "com.twitter:util-collection_2.11",
                 "io.grpc:grpc-core",
@@ -4573,6 +4590,7 @@
             "transitive": [
                 "com.github.ben-manes.caffeine:caffeine",
                 "com.google.guava:guava",
+                "com.google.protobuf:protobuf-java-util",
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
                 "com.google.truth:truth",
@@ -4587,7 +4605,6 @@
                 "com.github.fge:jackson-coreutils",
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
-                "com.google.instrumentation:instrumentation-api",
                 "com.google.protobuf:protobuf-java-util",
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
@@ -4601,7 +4618,6 @@
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
                 "io.kubernetes:client-java",
-                "io.opencensus:opencensus-api",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-jaxrs",
                 "org.apache.cassandra:cassandra-all",
@@ -4657,12 +4673,6 @@
                 "com.sun.jersey.contribs:jersey-guice"
             ]
         },
-        "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.4.3",
-            "transitive": [
-                "io.grpc:grpc-services"
-            ]
-        },
         "com.google.j2objc:j2objc-annotations": {
             "locked": "1.1",
             "transitive": [
@@ -4670,7 +4680,7 @@
             ]
         },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.5.1",
+            "locked": "3.7.1",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
                 "com.google.truth.extensions:truth-liteproto-extension",
@@ -4686,9 +4696,16 @@
             ]
         },
         "com.google.protobuf:protobuf-java-util": {
-            "locked": "3.5.1",
+            "locked": "3.7.1",
             "transitive": [
-                "io.grpc:grpc-protobuf"
+                "com.netflix.titus:titus-common",
+                "io.grpc:grpc-services"
+            ]
+        },
+        "com.google.re2j:re2j": {
+            "locked": "1.2",
+            "transitive": [
+                "io.grpc:grpc-services"
             ]
         },
         "com.google.truth.extensions:truth-liteproto-extension": {
@@ -4777,7 +4794,7 @@
             ]
         },
         "com.netflix.frigga:frigga": {
-            "locked": "0.23.0",
+            "locked": "0.24.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -5209,13 +5226,13 @@
             ]
         },
         "io.grpc:grpc-context": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.grpc:grpc-core": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-netty-shaded",
                 "io.grpc:grpc-protobuf",
@@ -5224,7 +5241,7 @@
             ]
         },
         "io.grpc:grpc-netty-shaded": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-common-client",
@@ -5233,7 +5250,7 @@
             ]
         },
         "io.grpc:grpc-protobuf": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-common-grpc-api",
@@ -5242,13 +5259,13 @@
             ]
         },
         "io.grpc:grpc-protobuf-lite": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-services": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "com.netflix.titus:titus-common-client",
                 "com.netflix.titus:titus-common-server",
@@ -5256,7 +5273,7 @@
             ]
         },
         "io.grpc:grpc-stub": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-common-grpc-api",
@@ -5420,14 +5437,14 @@
             ]
         },
         "io.opencensus:opencensus-api": {
-            "locked": "0.11.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.grpc:grpc-core",
                 "io.opencensus:opencensus-contrib-grpc-metrics"
             ]
         },
         "io.opencensus:opencensus-contrib-grpc-metrics": {
-            "locked": "0.11.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
@@ -5867,9 +5884,10 @@
             ]
         },
         "org.codehaus.mojo:animal-sniffer-annotations": {
-            "locked": "1.14",
+            "locked": "1.17",
             "transitive": [
-                "com.google.guava:guava"
+                "com.google.guava:guava",
+                "io.grpc:grpc-core"
             ]
         },
         "org.eclipse.jdt.core.compiler:ecj": {
@@ -6685,8 +6703,14 @@
                 "com.netflix.titus:titus-server-master"
             ]
         },
+        "com.google.android:annotations": {
+            "locked": "4.1.1.4",
+            "transitive": [
+                "io.grpc:grpc-core"
+            ]
+        },
         "com.google.api.grpc:proto-google-common-protos": {
-            "locked": "1.0.0",
+            "locked": "1.12.0",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
@@ -6707,7 +6731,6 @@
                 "com.github.fge:msg-simple",
                 "com.github.fge:uri-template",
                 "com.google.guava:guava",
-                "com.google.instrumentation:instrumentation-api",
                 "com.twitter:util-cache_2.11",
                 "com.twitter:util-collection_2.11",
                 "io.grpc:grpc-core",
@@ -6728,6 +6751,7 @@
             "transitive": [
                 "com.github.ben-manes.caffeine:caffeine",
                 "com.google.guava:guava",
+                "com.google.protobuf:protobuf-java-util",
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
                 "com.google.truth:truth",
@@ -6742,7 +6766,6 @@
                 "com.github.fge:jackson-coreutils",
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
-                "com.google.instrumentation:instrumentation-api",
                 "com.google.protobuf:protobuf-java-util",
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
@@ -6756,7 +6779,6 @@
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
                 "io.kubernetes:client-java",
-                "io.opencensus:opencensus-api",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-jaxrs",
                 "org.apache.cassandra:cassandra-all",
@@ -6792,12 +6814,6 @@
                 "com.sun.jersey.contribs:jersey-guice"
             ]
         },
-        "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.4.3",
-            "transitive": [
-                "io.grpc:grpc-services"
-            ]
-        },
         "com.google.j2objc:j2objc-annotations": {
             "locked": "1.1",
             "transitive": [
@@ -6805,7 +6821,7 @@
             ]
         },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.5.1",
+            "locked": "3.7.1",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
                 "com.google.truth.extensions:truth-liteproto-extension",
@@ -6821,9 +6837,16 @@
             ]
         },
         "com.google.protobuf:protobuf-java-util": {
-            "locked": "3.5.1",
+            "locked": "3.7.1",
             "transitive": [
-                "io.grpc:grpc-protobuf"
+                "com.netflix.titus:titus-common",
+                "io.grpc:grpc-services"
+            ]
+        },
+        "com.google.re2j:re2j": {
+            "locked": "1.2",
+            "transitive": [
+                "io.grpc:grpc-services"
             ]
         },
         "com.google.truth.extensions:truth-liteproto-extension": {
@@ -6916,7 +6939,7 @@
             ]
         },
         "com.netflix.frigga:frigga": {
-            "locked": "0.23.0",
+            "locked": "0.24.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -7342,13 +7365,13 @@
             ]
         },
         "io.grpc:grpc-context": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.grpc:grpc-core": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
@@ -7356,7 +7379,7 @@
             ]
         },
         "io.grpc:grpc-netty-shaded": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-common-client",
@@ -7365,7 +7388,7 @@
             ]
         },
         "io.grpc:grpc-protobuf": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-common-grpc-api",
@@ -7374,13 +7397,13 @@
             ]
         },
         "io.grpc:grpc-protobuf-lite": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-services": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "com.netflix.titus:titus-common-client",
                 "com.netflix.titus:titus-common-server",
@@ -7388,7 +7411,7 @@
             ]
         },
         "io.grpc:grpc-stub": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-common-grpc-api",
@@ -7552,14 +7575,14 @@
             ]
         },
         "io.opencensus:opencensus-api": {
-            "locked": "0.11.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.grpc:grpc-core",
                 "io.opencensus:opencensus-contrib-grpc-metrics"
             ]
         },
         "io.opencensus:opencensus-contrib-grpc-metrics": {
-            "locked": "0.11.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
@@ -7589,7 +7612,7 @@
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.3.3.RELEASE",
+            "locked": "3.3.4.RELEASE",
             "requested": "3.3.+"
         },
         "io.reactivex.rxjava2:rxjava": {
@@ -7997,9 +8020,10 @@
             ]
         },
         "org.codehaus.mojo:animal-sniffer-annotations": {
-            "locked": "1.14",
+            "locked": "1.17",
             "transitive": [
-                "com.google.guava:guava"
+                "com.google.guava:guava",
+                "io.grpc:grpc-core"
             ]
         },
         "org.eclipse.jdt.core.compiler:ecj": {
@@ -8805,8 +8829,14 @@
                 "com.netflix.titus:titus-server-master"
             ]
         },
+        "com.google.android:annotations": {
+            "locked": "4.1.1.4",
+            "transitive": [
+                "io.grpc:grpc-core"
+            ]
+        },
         "com.google.api.grpc:proto-google-common-protos": {
-            "locked": "1.0.0",
+            "locked": "1.12.0",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
@@ -8827,7 +8857,6 @@
                 "com.github.fge:msg-simple",
                 "com.github.fge:uri-template",
                 "com.google.guava:guava",
-                "com.google.instrumentation:instrumentation-api",
                 "com.twitter:util-cache_2.11",
                 "com.twitter:util-collection_2.11",
                 "io.grpc:grpc-core",
@@ -8848,6 +8877,7 @@
             "transitive": [
                 "com.github.ben-manes.caffeine:caffeine",
                 "com.google.guava:guava",
+                "com.google.protobuf:protobuf-java-util",
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
                 "com.google.truth:truth",
@@ -8862,7 +8892,6 @@
                 "com.github.fge:jackson-coreutils",
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
-                "com.google.instrumentation:instrumentation-api",
                 "com.google.protobuf:protobuf-java-util",
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
@@ -8876,7 +8905,6 @@
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
                 "io.kubernetes:client-java",
-                "io.opencensus:opencensus-api",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-jaxrs",
                 "org.apache.cassandra:cassandra-all",
@@ -8932,12 +8960,6 @@
                 "com.sun.jersey.contribs:jersey-guice"
             ]
         },
-        "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.4.3",
-            "transitive": [
-                "io.grpc:grpc-services"
-            ]
-        },
         "com.google.j2objc:j2objc-annotations": {
             "locked": "1.1",
             "transitive": [
@@ -8945,7 +8967,7 @@
             ]
         },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.5.1",
+            "locked": "3.7.1",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
                 "com.google.truth.extensions:truth-liteproto-extension",
@@ -8961,9 +8983,16 @@
             ]
         },
         "com.google.protobuf:protobuf-java-util": {
-            "locked": "3.5.1",
+            "locked": "3.7.1",
             "transitive": [
-                "io.grpc:grpc-protobuf"
+                "com.netflix.titus:titus-common",
+                "io.grpc:grpc-services"
+            ]
+        },
+        "com.google.re2j:re2j": {
+            "locked": "1.2",
+            "transitive": [
+                "io.grpc:grpc-services"
             ]
         },
         "com.google.truth.extensions:truth-liteproto-extension": {
@@ -9056,7 +9085,7 @@
             ]
         },
         "com.netflix.frigga:frigga": {
-            "locked": "0.23.0",
+            "locked": "0.24.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -9488,13 +9517,13 @@
             ]
         },
         "io.grpc:grpc-context": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.grpc:grpc-core": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-netty-shaded",
                 "io.grpc:grpc-protobuf",
@@ -9503,7 +9532,7 @@
             ]
         },
         "io.grpc:grpc-netty-shaded": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-common-client",
@@ -9512,7 +9541,7 @@
             ]
         },
         "io.grpc:grpc-protobuf": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-common-grpc-api",
@@ -9521,13 +9550,13 @@
             ]
         },
         "io.grpc:grpc-protobuf-lite": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-services": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "com.netflix.titus:titus-common-client",
                 "com.netflix.titus:titus-common-server",
@@ -9535,7 +9564,7 @@
             ]
         },
         "io.grpc:grpc-stub": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-common-grpc-api",
@@ -9699,14 +9728,14 @@
             ]
         },
         "io.opencensus:opencensus-api": {
-            "locked": "0.11.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.grpc:grpc-core",
                 "io.opencensus:opencensus-contrib-grpc-metrics"
             ]
         },
         "io.opencensus:opencensus-contrib-grpc-metrics": {
-            "locked": "0.11.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
@@ -9736,7 +9765,7 @@
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.3.3.RELEASE",
+            "locked": "3.3.4.RELEASE",
             "requested": "3.3.+"
         },
         "io.reactivex.rxjava2:rxjava": {
@@ -10153,9 +10182,10 @@
             ]
         },
         "org.codehaus.mojo:animal-sniffer-annotations": {
-            "locked": "1.14",
+            "locked": "1.17",
             "transitive": [
-                "com.google.guava:guava"
+                "com.google.guava:guava",
+                "io.grpc:grpc-core"
             ]
         },
         "org.eclipse.jdt.core.compiler:ecj": {

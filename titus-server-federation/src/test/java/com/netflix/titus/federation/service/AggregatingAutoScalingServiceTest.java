@@ -258,6 +258,6 @@ public class AggregatingAutoScalingServiceTest extends AggregatingAutoScalingTes
         List<Throwable> onErrorEvents = testSubscriber.getOnErrorEvents();
         assertThat(onErrorEvents).isNotNull();
         assertThat(onErrorEvents).hasSize(1);
-        assertThat(Status.fromThrowable(onErrorEvents.get(0)).getCode()).isEqualTo(Status.INTERNAL.getCode());
+        assertThat(Status.fromThrowable(onErrorEvents.get(0)).getCode()).isEqualTo(Status.CANCELLED.getCode());
     }
 }

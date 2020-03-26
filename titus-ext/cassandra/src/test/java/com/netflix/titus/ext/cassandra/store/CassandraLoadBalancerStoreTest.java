@@ -62,7 +62,7 @@ import static org.mockito.Mockito.when;
 public class CassandraLoadBalancerStoreTest {
     private static Logger logger = LoggerFactory.getLogger(CassandraLoadBalancerStoreTest.class);
 
-    private static final long STARTUP_TIMEOUT = 30_000L;
+    private static final long STARTUP_TIMEOUT = 60_000L;
     private static final String CONFIGURATION_FILE_NAME = "relocated-cassandra.yaml";
 
     private static final long TIMEOUT_MS = 30_000;

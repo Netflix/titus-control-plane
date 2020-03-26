@@ -26,6 +26,7 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.netflix.titus.api.jobmanager.store.JobStoreException;
 import rx.Emitter;
 import rx.Observable;
@@ -67,7 +68,7 @@ public class CassStoreHelper {
                         public void onFailure(@Nonnull Throwable e) {
                             emitter.onError(JobStoreException.cassandraDriverError(e));
                         }
-                    });
+                    }, MoreExecutors.directExecutor());
                 },
                 Emitter.BackpressureMode.NONE
         ).observeOn(scheduler);
