@@ -93,7 +93,7 @@ public class DefaultDeschedulerService implements DeschedulerService {
                 if (!allRequestedEvictions.containsKey(task.getId())) {
                     TaskRelocationPlan relocationPlan = plannedAheadTaskRelocationPlans.get(task.getId());
                     if (relocationPlan == null) {
-                        relocationPlan = newImmediateRelocationPlan(task);
+                        relocationPlan = newNotDelayedRelocationPlan(task, true);
                     }
                     regularEvictions.put(
                             task.getId(),
@@ -118,7 +118,7 @@ public class DefaultDeschedulerService implements DeschedulerService {
                 TaskRelocationPlan relocationPlan = plannedAheadTaskRelocationPlans.get(task.getId());
 
                 if (relocationPlan == null) {
-                    relocationPlan = newImmediateRelocationPlan(task);
+                    relocationPlan = newNotDelayedRelocationPlan(task, false);
                 }
 
                 AgentInstance agent = evacuatedAgentsAllocationTracker.getRemovableAgent(task);
@@ -137,12 +137,15 @@ public class DefaultDeschedulerService implements DeschedulerService {
         return CollectionsExt.merge(new ArrayList<>(allRequestedEvictions.values()), new ArrayList<>(regularEvictions.values()));
     }
 
-    private TaskRelocationPlan newImmediateRelocationPlan(Task task) {
+    private TaskRelocationPlan newNotDelayedRelocationPlan(Task task, boolean approved) {
         long now = clock.wallTime();
+        String reasonMessage = approved
+                ? "Enough quota to migrate the task (no migration delay configured)"
+                : "Not enough quota to migrate the task (but no migration delay configured)";
         return TaskRelocationPlan.newBuilder()
                 .withTaskId(task.getId())
                 .withReason(TaskRelocationReason.TaskMigration)
-                .withReasonMessage("Immediate task migration, as no migration constraint defined for the job")
+                .withReasonMessage(reasonMessage)
                 .withDecisionTime(now)
                 .withRelocationTime(now)
                 .build();

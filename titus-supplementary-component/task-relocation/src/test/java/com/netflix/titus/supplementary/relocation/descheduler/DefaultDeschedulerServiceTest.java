@@ -113,7 +113,7 @@ public class DefaultDeschedulerServiceTest {
             if (isImmediateJobMigration) {
                 assertThat(plan.getReasonMessage()).containsSequence("Job marked for immediate eviction");
             } else {
-                assertThat(plan.getReasonMessage()).containsSequence("Immediate task migration");
+                assertThat(plan.getReasonMessage()).containsSequence("Enough quota to migrate the task");
             }
         }
     }
