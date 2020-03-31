@@ -25,6 +25,7 @@ import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.MoreExecutors;
 import rx.Observable;
 import rx.subscriptions.Subscriptions;
 
@@ -60,7 +61,7 @@ public class UpdateOperations {
                 public void onFailure(Throwable e) {
                     subscriber.onError(e);
                 }
-            });
+            }, MoreExecutors.directExecutor());
             subscriber.add(Subscriptions.create(() -> resultSetFuture.cancel(false)));
         });
     }

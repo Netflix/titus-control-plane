@@ -16,16 +16,21 @@
 
 package com.netflix.titus.master.agent;
 
+import java.util.function.Predicate;
+import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
+import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.api.agent.service.AgentStatusMonitor;
 import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
 import com.netflix.titus.api.agent.store.AgentStore;
 import com.netflix.titus.api.connector.cloud.InstanceCloudConnector;
+import com.netflix.titus.common.util.feature.FeatureGuardWhiteListConfiguration;
+import com.netflix.titus.common.util.feature.FeatureGuards;
 import com.netflix.titus.master.agent.service.AgentManagementConfiguration;
 import com.netflix.titus.master.agent.service.DefaultAgentManagementService;
 import com.netflix.titus.master.agent.service.cache.AgentCache;
@@ -42,6 +47,7 @@ import com.netflix.titus.master.scheduler.VmOperationsInstanceCloudConnector;
 import rx.schedulers.Schedulers;
 
 public class AgentModule extends AbstractModule {
+
     @Override
     protected void configure() {
         bind(ServerInfoResolver.class).toInstance(ServerInfoResolvers.fromAwsInstanceTypes());
@@ -80,5 +86,20 @@ public class AgentModule extends AbstractModule {
                                                     LifecycleAgentStatusMonitor lifecycleAgentStatusMonitor,
                                                     AgentMonitorConfiguration config) {
         return new OnOffStatusMonitor(agentManagementService, lifecycleAgentStatusMonitor, config::isLifecycleStatusMonitorEnabled, Schedulers.computation());
+    }
+
+    @Provides
+    @Singleton
+    @Named(DefaultAgentManagementService.KUBE_SCHEDULER_INSTANCE_GROUP_PREDICATE)
+    public Predicate<AgentInstanceGroup> getKubeSchedulerInstanceGroupPredicate(ConfigProxyFactory factory) {
+        return FeatureGuards.toPredicate(
+                FeatureGuards.fromField(
+                        AgentInstanceGroup::getId,
+                        FeatureGuards.newWhiteListFromConfiguration(factory.newProxy(
+                                FeatureGuardWhiteListConfiguration.class,
+                                "titus.agent.kubeSchedulerAsgs"
+                        )).build()
+                )
+        );
     }
 }

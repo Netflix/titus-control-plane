@@ -7,28 +7,28 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.9.0",
+            "locked": "2.10.3",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind"
             ]
         },
         "com.fasterxml.jackson.core:jackson-core": {
-            "locked": "2.9.10",
+            "locked": "2.10.3",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8"
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.9.9.1",
-            "requested": "2.9.+",
+            "locked": "2.10.3",
+            "requested": "2.10.+",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
-            "locked": "2.9.10",
-            "requested": "2.9.+"
+            "locked": "2.10.3",
+            "requested": "2.10.+"
         },
         "com.fasterxml:classmate": {
             "locked": "1.3.1",
@@ -44,15 +44,22 @@
             "locked": "2.6.2",
             "requested": "2.6.+"
         },
+        "com.google.android:annotations": {
+            "locked": "4.1.1.4",
+            "transitive": [
+                "io.grpc:grpc-core"
+            ]
+        },
         "com.google.api.grpc:proto-google-common-protos": {
-            "locked": "1.0.0",
+            "locked": "1.12.0",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
+            "locked": "3.0.2",
             "transitive": [
+                "com.google.guava:guava",
                 "io.grpc:grpc-core"
             ]
         },
@@ -64,8 +71,9 @@
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.1.2",
+            "locked": "2.3.2",
             "transitive": [
+                "com.google.guava:guava",
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
                 "com.google.truth:truth",
@@ -73,8 +81,8 @@
             ]
         },
         "com.google.guava:guava": {
-            "locked": "20.0",
-            "requested": "20.+",
+            "locked": "25.1-jre",
+            "requested": "25.1-jre",
             "transitive": [
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
@@ -83,16 +91,21 @@
                 "com.google.truth:truth",
                 "io.grpc:grpc-core",
                 "io.grpc:grpc-protobuf",
-                "io.grpc:grpc-protobuf-lite",
-                "io.opencensus:opencensus-api"
+                "io.grpc:grpc-protobuf-lite"
             ]
         },
         "com.google.inject:guice": {
             "locked": "4.1.0",
             "requested": "4.1.+"
         },
+        "com.google.j2objc:j2objc-annotations": {
+            "locked": "1.1",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.5.1",
+            "locked": "3.7.1",
             "requested": "3.5.+",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
@@ -103,9 +116,7 @@
         },
         "com.google.protobuf:protobuf-java-util": {
             "locked": "3.5.1",
-            "transitive": [
-                "io.grpc:grpc-protobuf"
-            ]
+            "requested": "3.5.+"
         },
         "com.google.truth.extensions:truth-liteproto-extension": {
             "locked": "0.34",
@@ -151,7 +162,7 @@
             "requested": "0.59.+"
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.14.6",
+            "locked": "3.14.7",
             "requested": "3.+"
         },
         "com.squareup.okio:okio": {
@@ -161,13 +172,13 @@
             ]
         },
         "io.grpc:grpc-context": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.grpc:grpc-core": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
@@ -175,25 +186,25 @@
             ]
         },
         "io.grpc:grpc-netty-shaded": {
-            "locked": "1.10.1",
-            "requested": "1.10.+"
+            "locked": "1.20.0",
+            "requested": "1.20.+"
         },
         "io.grpc:grpc-protobuf": {
-            "locked": "1.10.1",
-            "requested": "1.10.+"
+            "locked": "1.20.0",
+            "requested": "1.20.+"
         },
         "io.grpc:grpc-protobuf-lite": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-stub": {
-            "locked": "1.10.1",
-            "requested": "1.10.+"
+            "locked": "1.20.0",
+            "requested": "1.20.+"
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-codec-http",
@@ -207,7 +218,7 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
@@ -217,7 +228,7 @@
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
@@ -225,19 +236,19 @@
             ]
         },
         "io.netty:netty-codec-http2": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-socks": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.netty:netty-handler-proxy"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-codec",
@@ -253,7 +264,7 @@
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
@@ -261,19 +272,20 @@
             ]
         },
         "io.netty:netty-handler-proxy": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
+                "io.netty:netty-handler",
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-codec-http",
@@ -286,41 +298,41 @@
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.netty:netty-transport-native-epoll"
             ]
         },
         "io.opencensus:opencensus-api": {
-            "locked": "0.11.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.grpc:grpc-core",
                 "io.opencensus:opencensus-contrib-grpc-metrics"
             ]
         },
         "io.opencensus:opencensus-contrib-grpc-metrics": {
-            "locked": "0.11.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.projectreactor.addons:reactor-adapter": {
-            "locked": "3.1.9.RELEASE",
-            "requested": "3.1.+"
+            "locked": "3.3.3.RELEASE",
+            "requested": "3.3.+"
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.16.RELEASE",
-            "requested": "0.8.+"
+            "locked": "0.9.6.RELEASE",
+            "requested": "0.9.+"
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.2.15.RELEASE",
-            "requested": "3.1.+",
+            "locked": "3.3.4.RELEASE",
+            "requested": "3.3.+",
             "transitive": [
                 "io.projectreactor.addons:reactor-adapter",
                 "io.projectreactor.netty:reactor-netty",
@@ -377,6 +389,19 @@
                 "com.netflix.archaius:archaius2-core"
             ]
         },
+        "org.checkerframework:checker-qual": {
+            "locked": "2.0.0",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
+        "org.codehaus.mojo:animal-sniffer-annotations": {
+            "locked": "1.17",
+            "transitive": [
+                "com.google.guava:guava",
+                "io.grpc:grpc-core"
+            ]
+        },
         "org.glassfish:javax.el": {
             "locked": "3.0.1-b11",
             "requested": "3.+"
@@ -402,7 +427,7 @@
             ]
         },
         "org.reactivestreams:reactive-streams": {
-            "locked": "1.0.2",
+            "locked": "1.0.3",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop",
                 "io.projectreactor:reactor-core",
@@ -418,13 +443,13 @@
             ]
         },
         "org.springframework:spring-aop": {
-            "locked": "5.1.5.RELEASE",
+            "locked": "5.2.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-beans": {
-            "locked": "5.1.5.RELEASE",
+            "locked": "5.2.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
                 "org.springframework:spring-context",
@@ -433,11 +458,11 @@
             ]
         },
         "org.springframework:spring-context": {
-            "locked": "5.1.5.RELEASE",
-            "requested": "5.1.5.RELEASE"
+            "locked": "5.2.5.RELEASE",
+            "requested": "5.2.+"
         },
         "org.springframework:spring-core": {
-            "locked": "5.1.5.RELEASE",
+            "locked": "5.2.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
@@ -448,27 +473,27 @@
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "5.1.5.RELEASE",
-            "requested": "5.1.5.RELEASE",
+            "locked": "5.2.5.RELEASE",
+            "requested": "5.2.+",
             "transitive": [
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-jcl": {
-            "locked": "5.1.5.RELEASE",
+            "locked": "5.2.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
             ]
         },
         "org.springframework:spring-web": {
-            "locked": "5.1.5.RELEASE",
+            "locked": "5.2.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-webflux"
             ]
         },
         "org.springframework:spring-webflux": {
-            "locked": "5.1.5.RELEASE",
-            "requested": "5.1.5.RELEASE"
+            "locked": "5.2.5.RELEASE",
+            "requested": "5.2.+"
         },
         "org.xerial.snappy:snappy-java": {
             "locked": "1.1.7.3",
@@ -483,28 +508,28 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.9.0",
+            "locked": "2.10.3",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind"
             ]
         },
         "com.fasterxml.jackson.core:jackson-core": {
-            "locked": "2.9.10",
+            "locked": "2.10.3",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8"
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.9.9.1",
-            "requested": "2.9.+",
+            "locked": "2.10.3",
+            "requested": "2.10.+",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
-            "locked": "2.9.10",
-            "requested": "2.9.+"
+            "locked": "2.10.3",
+            "requested": "2.10.+"
         },
         "com.fasterxml:classmate": {
             "locked": "1.3.1",
@@ -520,15 +545,22 @@
             "locked": "2.6.2",
             "requested": "2.6.+"
         },
+        "com.google.android:annotations": {
+            "locked": "4.1.1.4",
+            "transitive": [
+                "io.grpc:grpc-core"
+            ]
+        },
         "com.google.api.grpc:proto-google-common-protos": {
-            "locked": "1.0.0",
+            "locked": "1.12.0",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
+            "locked": "3.0.2",
             "transitive": [
+                "com.google.guava:guava",
                 "io.grpc:grpc-core"
             ]
         },
@@ -540,8 +572,9 @@
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.1.2",
+            "locked": "2.3.2",
             "transitive": [
+                "com.google.guava:guava",
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
                 "com.google.truth:truth",
@@ -549,8 +582,8 @@
             ]
         },
         "com.google.guava:guava": {
-            "locked": "20.0",
-            "requested": "20.+",
+            "locked": "25.1-jre",
+            "requested": "25.1-jre",
             "transitive": [
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
@@ -559,8 +592,7 @@
                 "com.google.truth:truth",
                 "io.grpc:grpc-core",
                 "io.grpc:grpc-protobuf",
-                "io.grpc:grpc-protobuf-lite",
-                "io.opencensus:opencensus-api"
+                "io.grpc:grpc-protobuf-lite"
             ]
         },
         "com.google.inject.extensions:guice-assistedinject": {
@@ -592,8 +624,14 @@
                 "com.netflix.governator:governator-core"
             ]
         },
+        "com.google.j2objc:j2objc-annotations": {
+            "locked": "1.1",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.5.1",
+            "locked": "3.7.1",
             "requested": "3.5.+",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
@@ -604,9 +642,7 @@
         },
         "com.google.protobuf:protobuf-java-util": {
             "locked": "3.5.1",
-            "transitive": [
-                "io.grpc:grpc-protobuf"
-            ]
+            "requested": "3.5.+"
         },
         "com.google.truth.extensions:truth-liteproto-extension": {
             "locked": "0.34",
@@ -655,7 +691,7 @@
             "requested": "0.59.+"
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.14.6",
+            "locked": "3.14.7",
             "requested": "3.+"
         },
         "com.squareup.okio:okio": {
@@ -665,13 +701,13 @@
             ]
         },
         "io.grpc:grpc-context": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.grpc:grpc-core": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-netty-shaded",
                 "io.grpc:grpc-protobuf",
@@ -680,25 +716,25 @@
             ]
         },
         "io.grpc:grpc-netty-shaded": {
-            "locked": "1.10.1",
-            "requested": "1.10.+"
+            "locked": "1.20.0",
+            "requested": "1.20.+"
         },
         "io.grpc:grpc-protobuf": {
-            "locked": "1.10.1",
-            "requested": "1.10.+"
+            "locked": "1.20.0",
+            "requested": "1.20.+"
         },
         "io.grpc:grpc-protobuf-lite": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-stub": {
-            "locked": "1.10.1",
-            "requested": "1.10.+"
+            "locked": "1.20.0",
+            "requested": "1.20.+"
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-codec-http",
@@ -712,7 +748,7 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
@@ -722,7 +758,7 @@
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
@@ -730,19 +766,19 @@
             ]
         },
         "io.netty:netty-codec-http2": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-socks": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.netty:netty-handler-proxy"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-codec",
@@ -758,7 +794,7 @@
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
@@ -766,19 +802,20 @@
             ]
         },
         "io.netty:netty-handler-proxy": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
+                "io.netty:netty-handler",
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-codec-http",
@@ -791,41 +828,41 @@
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.netty:netty-transport-native-epoll"
             ]
         },
         "io.opencensus:opencensus-api": {
-            "locked": "0.11.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.grpc:grpc-core",
                 "io.opencensus:opencensus-contrib-grpc-metrics"
             ]
         },
         "io.opencensus:opencensus-contrib-grpc-metrics": {
-            "locked": "0.11.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.projectreactor.addons:reactor-adapter": {
-            "locked": "3.1.9.RELEASE",
-            "requested": "3.1.+"
+            "locked": "3.3.3.RELEASE",
+            "requested": "3.3.+"
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.16.RELEASE",
-            "requested": "0.8.+"
+            "locked": "0.9.6.RELEASE",
+            "requested": "0.9.+"
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.2.15.RELEASE",
-            "requested": "3.1.+",
+            "locked": "3.3.4.RELEASE",
+            "requested": "3.3.+",
             "transitive": [
                 "io.projectreactor.addons:reactor-adapter",
                 "io.projectreactor.netty:reactor-netty",
@@ -890,6 +927,19 @@
                 "com.netflix.archaius:archaius2-core"
             ]
         },
+        "org.checkerframework:checker-qual": {
+            "locked": "2.0.0",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
+        "org.codehaus.mojo:animal-sniffer-annotations": {
+            "locked": "1.17",
+            "transitive": [
+                "com.google.guava:guava",
+                "io.grpc:grpc-core"
+            ]
+        },
         "org.glassfish:javax.el": {
             "locked": "3.0.1-b11",
             "requested": "3.+"
@@ -915,7 +965,7 @@
             ]
         },
         "org.reactivestreams:reactive-streams": {
-            "locked": "1.0.2",
+            "locked": "1.0.3",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop",
                 "io.projectreactor:reactor-core",
@@ -937,13 +987,13 @@
             "requested": "1.7.0"
         },
         "org.springframework:spring-aop": {
-            "locked": "5.1.5.RELEASE",
+            "locked": "5.2.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-beans": {
-            "locked": "5.1.5.RELEASE",
+            "locked": "5.2.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
                 "org.springframework:spring-context",
@@ -952,11 +1002,11 @@
             ]
         },
         "org.springframework:spring-context": {
-            "locked": "5.1.5.RELEASE",
-            "requested": "5.1.5.RELEASE"
+            "locked": "5.2.5.RELEASE",
+            "requested": "5.2.+"
         },
         "org.springframework:spring-core": {
-            "locked": "5.1.5.RELEASE",
+            "locked": "5.2.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
@@ -967,27 +1017,27 @@
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "5.1.5.RELEASE",
-            "requested": "5.1.5.RELEASE",
+            "locked": "5.2.5.RELEASE",
+            "requested": "5.2.+",
             "transitive": [
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-jcl": {
-            "locked": "5.1.5.RELEASE",
+            "locked": "5.2.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
             ]
         },
         "org.springframework:spring-web": {
-            "locked": "5.1.5.RELEASE",
+            "locked": "5.2.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-webflux"
             ]
         },
         "org.springframework:spring-webflux": {
-            "locked": "5.1.5.RELEASE",
-            "requested": "5.1.5.RELEASE"
+            "locked": "5.2.5.RELEASE",
+            "requested": "5.2.+"
         },
         "org.xerial.snappy:snappy-java": {
             "locked": "1.1.7.3",
@@ -1059,28 +1109,28 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.9.0",
+            "locked": "2.10.3",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind"
             ]
         },
         "com.fasterxml.jackson.core:jackson-core": {
-            "locked": "2.9.10",
+            "locked": "2.10.3",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8"
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.9.9.1",
-            "requested": "2.9.+",
+            "locked": "2.10.3",
+            "requested": "2.10.+",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
-            "locked": "2.9.10",
-            "requested": "2.9.+"
+            "locked": "2.10.3",
+            "requested": "2.10.+"
         },
         "com.fasterxml:classmate": {
             "locked": "1.3.1",
@@ -1096,15 +1146,22 @@
             "locked": "2.6.2",
             "requested": "2.6.+"
         },
+        "com.google.android:annotations": {
+            "locked": "4.1.1.4",
+            "transitive": [
+                "io.grpc:grpc-core"
+            ]
+        },
         "com.google.api.grpc:proto-google-common-protos": {
-            "locked": "1.0.0",
+            "locked": "1.12.0",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "com.google.code.findbugs:jsr305": {
-            "locked": "3.0.0",
+            "locked": "3.0.2",
             "transitive": [
+                "com.google.guava:guava",
                 "io.grpc:grpc-core"
             ]
         },
@@ -1116,8 +1173,9 @@
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.1.2",
+            "locked": "2.3.2",
             "transitive": [
+                "com.google.guava:guava",
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
                 "com.google.truth:truth",
@@ -1125,8 +1183,8 @@
             ]
         },
         "com.google.guava:guava": {
-            "locked": "20.0",
-            "requested": "20.+",
+            "locked": "25.1-jre",
+            "requested": "25.1-jre",
             "transitive": [
                 "com.google.inject:guice",
                 "com.google.protobuf:protobuf-java-util",
@@ -1135,8 +1193,7 @@
                 "com.google.truth:truth",
                 "io.grpc:grpc-core",
                 "io.grpc:grpc-protobuf",
-                "io.grpc:grpc-protobuf-lite",
-                "io.opencensus:opencensus-api"
+                "io.grpc:grpc-protobuf-lite"
             ]
         },
         "com.google.inject.extensions:guice-assistedinject": {
@@ -1168,8 +1225,14 @@
                 "com.netflix.governator:governator-core"
             ]
         },
+        "com.google.j2objc:j2objc-annotations": {
+            "locked": "1.1",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.5.1",
+            "locked": "3.7.1",
             "requested": "3.5.+",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
@@ -1180,9 +1243,7 @@
         },
         "com.google.protobuf:protobuf-java-util": {
             "locked": "3.5.1",
-            "transitive": [
-                "io.grpc:grpc-protobuf"
-            ]
+            "requested": "3.5.+"
         },
         "com.google.truth.extensions:truth-liteproto-extension": {
             "locked": "0.34",
@@ -1231,7 +1292,7 @@
             "requested": "0.59.+"
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.14.6",
+            "locked": "3.14.7",
             "requested": "3.+"
         },
         "com.squareup.okio:okio": {
@@ -1241,13 +1302,13 @@
             ]
         },
         "io.grpc:grpc-context": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.grpc:grpc-core": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-netty-shaded",
                 "io.grpc:grpc-protobuf",
@@ -1256,25 +1317,25 @@
             ]
         },
         "io.grpc:grpc-netty-shaded": {
-            "locked": "1.10.1",
-            "requested": "1.10.+"
+            "locked": "1.20.0",
+            "requested": "1.20.+"
         },
         "io.grpc:grpc-protobuf": {
-            "locked": "1.10.1",
-            "requested": "1.10.+"
+            "locked": "1.20.0",
+            "requested": "1.20.+"
         },
         "io.grpc:grpc-protobuf-lite": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-stub": {
-            "locked": "1.10.1",
-            "requested": "1.10.+"
+            "locked": "1.20.0",
+            "requested": "1.20.+"
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-codec-http",
@@ -1288,7 +1349,7 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
@@ -1298,7 +1359,7 @@
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
@@ -1306,19 +1367,19 @@
             ]
         },
         "io.netty:netty-codec-http2": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-socks": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.netty:netty-handler-proxy"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-codec",
@@ -1334,7 +1395,7 @@
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
@@ -1342,19 +1403,20 @@
             ]
         },
         "io.netty:netty-handler-proxy": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
+                "io.netty:netty-handler",
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-codec-http",
@@ -1367,41 +1429,41 @@
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.netty:netty-transport-native-epoll"
             ]
         },
         "io.opencensus:opencensus-api": {
-            "locked": "0.11.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.grpc:grpc-core",
                 "io.opencensus:opencensus-contrib-grpc-metrics"
             ]
         },
         "io.opencensus:opencensus-contrib-grpc-metrics": {
-            "locked": "0.11.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.projectreactor.addons:reactor-adapter": {
-            "locked": "3.1.9.RELEASE",
-            "requested": "3.1.+"
+            "locked": "3.3.3.RELEASE",
+            "requested": "3.3.+"
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.16.RELEASE",
-            "requested": "0.8.+"
+            "locked": "0.9.6.RELEASE",
+            "requested": "0.9.+"
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.2.15.RELEASE",
-            "requested": "3.1.+",
+            "locked": "3.3.4.RELEASE",
+            "requested": "3.3.+",
             "transitive": [
                 "io.projectreactor.addons:reactor-adapter",
                 "io.projectreactor.netty:reactor-netty",
@@ -1466,6 +1528,19 @@
                 "com.netflix.archaius:archaius2-core"
             ]
         },
+        "org.checkerframework:checker-qual": {
+            "locked": "2.0.0",
+            "transitive": [
+                "com.google.guava:guava"
+            ]
+        },
+        "org.codehaus.mojo:animal-sniffer-annotations": {
+            "locked": "1.17",
+            "transitive": [
+                "com.google.guava:guava",
+                "io.grpc:grpc-core"
+            ]
+        },
         "org.glassfish:javax.el": {
             "locked": "3.0.1-b11",
             "requested": "3.+"
@@ -1491,7 +1566,7 @@
             ]
         },
         "org.reactivestreams:reactive-streams": {
-            "locked": "1.0.2",
+            "locked": "1.0.3",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop",
                 "io.projectreactor:reactor-core",
@@ -1513,13 +1588,13 @@
             "requested": "1.7.0"
         },
         "org.springframework:spring-aop": {
-            "locked": "5.1.5.RELEASE",
+            "locked": "5.2.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-beans": {
-            "locked": "5.1.5.RELEASE",
+            "locked": "5.2.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
                 "org.springframework:spring-context",
@@ -1528,11 +1603,11 @@
             ]
         },
         "org.springframework:spring-context": {
-            "locked": "5.1.5.RELEASE",
-            "requested": "5.1.5.RELEASE"
+            "locked": "5.2.5.RELEASE",
+            "requested": "5.2.+"
         },
         "org.springframework:spring-core": {
-            "locked": "5.1.5.RELEASE",
+            "locked": "5.2.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
@@ -1543,27 +1618,27 @@
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "5.1.5.RELEASE",
-            "requested": "5.1.5.RELEASE",
+            "locked": "5.2.5.RELEASE",
+            "requested": "5.2.+",
             "transitive": [
                 "org.springframework:spring-context"
             ]
         },
         "org.springframework:spring-jcl": {
-            "locked": "5.1.5.RELEASE",
+            "locked": "5.2.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
             ]
         },
         "org.springframework:spring-web": {
-            "locked": "5.1.5.RELEASE",
+            "locked": "5.2.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-webflux"
             ]
         },
         "org.springframework:spring-webflux": {
-            "locked": "5.1.5.RELEASE",
-            "requested": "5.1.5.RELEASE"
+            "locked": "5.2.5.RELEASE",
+            "requested": "5.2.+"
         },
         "org.xerial.snappy:snappy-java": {
             "locked": "1.1.7.3",
@@ -1627,7 +1702,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.9.0",
+            "locked": "2.10.3",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
@@ -1637,7 +1712,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-core": {
-            "locked": "2.9.10",
+            "locked": "2.10.3",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
@@ -1648,8 +1723,8 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.9.9.1",
-            "requested": "2.9.+",
+            "locked": "2.10.3",
+            "requested": "2.10.+",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
@@ -1670,21 +1745,21 @@
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
-            "locked": "2.9.10",
-            "requested": "2.9.+",
+            "locked": "2.10.3",
+            "requested": "2.10.+",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-json"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jsr310": {
-            "locked": "2.9.8",
+            "locked": "2.10.2",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-json"
             ]
         },
         "com.fasterxml.jackson.module:jackson-module-parameter-names": {
-            "locked": "2.9.8",
+            "locked": "2.10.2",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-json"
             ]
@@ -1798,8 +1873,14 @@
                 "com.netflix.titus:titus-server-master"
             ]
         },
+        "com.google.android:annotations": {
+            "locked": "4.1.1.4",
+            "transitive": [
+                "io.grpc:grpc-core"
+            ]
+        },
         "com.google.api.grpc:proto-google-common-protos": {
-            "locked": "1.0.0",
+            "locked": "1.12.0",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
@@ -1820,7 +1901,6 @@
                 "com.github.fge:msg-simple",
                 "com.github.fge:uri-template",
                 "com.google.guava:guava",
-                "com.google.instrumentation:instrumentation-api",
                 "com.twitter:util-cache_2.11",
                 "com.twitter:util-collection_2.11",
                 "io.grpc:grpc-core",
@@ -1837,9 +1917,10 @@
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.1.3",
+            "locked": "2.3.2",
             "transitive": [
                 "com.google.guava:guava",
+                "com.google.protobuf:protobuf-java-util",
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
                 "com.google.truth:truth",
@@ -1848,14 +1929,13 @@
         },
         "com.google.guava:guava": {
             "locked": "25.1-jre",
-            "requested": "20.+",
+            "requested": "25.1-jre",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.datastax.cassandra:cassandra-driver-extras",
                 "com.github.fge:jackson-coreutils",
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
-                "com.google.instrumentation:instrumentation-api",
                 "com.google.protobuf:protobuf-java-util",
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
@@ -1869,7 +1949,6 @@
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
                 "io.kubernetes:client-java",
-                "io.opencensus:opencensus-api",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-jaxrs",
                 "org.apache.cassandra:cassandra-all",
@@ -1906,12 +1985,6 @@
                 "com.sun.jersey.contribs:jersey-guice"
             ]
         },
-        "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.4.3",
-            "transitive": [
-                "io.grpc:grpc-services"
-            ]
-        },
         "com.google.j2objc:j2objc-annotations": {
             "locked": "1.1",
             "transitive": [
@@ -1919,7 +1992,7 @@
             ]
         },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.5.1",
+            "locked": "3.7.1",
             "requested": "3.5.+",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
@@ -1936,9 +2009,17 @@
             ]
         },
         "com.google.protobuf:protobuf-java-util": {
-            "locked": "3.5.1",
+            "locked": "3.7.1",
+            "requested": "3.5.+",
             "transitive": [
-                "io.grpc:grpc-protobuf"
+                "com.netflix.titus:titus-common",
+                "io.grpc:grpc-services"
+            ]
+        },
+        "com.google.re2j:re2j": {
+            "locked": "1.2",
+            "transitive": [
+                "io.grpc:grpc-services"
             ]
         },
         "com.google.truth.extensions:truth-liteproto-extension": {
@@ -2033,7 +2114,7 @@
             ]
         },
         "com.netflix.frigga:frigga": {
-            "locked": "0.22.0",
+            "locked": "0.24.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -2239,11 +2320,11 @@
             ]
         },
         "com.squareup.okhttp3:mockwebserver": {
-            "locked": "3.14.6",
+            "locked": "3.14.7",
             "requested": "3.+"
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.14.6",
+            "locked": "3.14.7",
             "requested": "3.+",
             "transitive": [
                 "com.netflix.titus:titus-common",
@@ -2254,7 +2335,7 @@
             ]
         },
         "com.squareup.okhttp3:okhttp-tls": {
-            "locked": "3.14.6",
+            "locked": "3.14.7",
             "requested": "3.+"
         },
         "com.squareup.okio:okio": {
@@ -2464,13 +2545,13 @@
             ]
         },
         "io.grpc:grpc-context": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.grpc:grpc-core": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
@@ -2478,8 +2559,8 @@
             ]
         },
         "io.grpc:grpc-netty-shaded": {
-            "locked": "1.10.1",
-            "requested": "1.10.+",
+            "locked": "1.20.0",
+            "requested": "1.20.+",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-common-client",
@@ -2488,8 +2569,8 @@
             ]
         },
         "io.grpc:grpc-protobuf": {
-            "locked": "1.10.1",
-            "requested": "1.10.+",
+            "locked": "1.20.0",
+            "requested": "1.20.+",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-common-grpc-api",
@@ -2498,13 +2579,13 @@
             ]
         },
         "io.grpc:grpc-protobuf-lite": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-services": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "com.netflix.titus:titus-common-client",
                 "com.netflix.titus:titus-common-server",
@@ -2512,8 +2593,8 @@
             ]
         },
         "io.grpc:grpc-stub": {
-            "locked": "1.10.1",
-            "requested": "1.10.+",
+            "locked": "1.20.0",
+            "requested": "1.20.+",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-common-grpc-api",
@@ -2552,7 +2633,7 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-codec-http",
@@ -2568,7 +2649,7 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
@@ -2580,7 +2661,7 @@
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
@@ -2590,20 +2671,20 @@
             ]
         },
         "io.netty:netty-codec-http2": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-socks": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.netty:netty-handler-proxy",
                 "org.mock-server:mockserver-core"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-codec",
@@ -2620,7 +2701,7 @@
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "io.netty:netty-codec-http",
@@ -2632,19 +2713,20 @@
             ]
         },
         "io.netty:netty-handler-proxy": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
+                "io.netty:netty-handler",
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-codec-http",
@@ -2659,48 +2741,48 @@
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.netty:netty-transport-native-epoll"
             ]
         },
         "io.opencensus:opencensus-api": {
-            "locked": "0.11.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.grpc:grpc-core",
                 "io.opencensus:opencensus-contrib-grpc-metrics"
             ]
         },
         "io.opencensus:opencensus-contrib-grpc-metrics": {
-            "locked": "0.11.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.projectreactor.addons:reactor-adapter": {
-            "locked": "3.1.9.RELEASE",
-            "requested": "3.1.+",
+            "locked": "3.3.3.RELEASE",
+            "requested": "3.3.+",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.16.RELEASE",
-            "requested": "0.8.+",
+            "locked": "0.9.6.RELEASE",
+            "requested": "0.9.+",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-reactor-netty"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.2.15.RELEASE",
-            "requested": "3.1.+",
+            "locked": "3.3.4.RELEASE",
+            "requested": "3.3.+",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-testkit",
@@ -2711,8 +2793,8 @@
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.1.16.RELEASE",
-            "requested": "3.1.+"
+            "locked": "3.3.4.RELEASE",
+            "requested": "3.3.+"
         },
         "io.reactivex.rxjava2:rxjava": {
             "locked": "2.2.10",
@@ -2783,6 +2865,19 @@
                 "com.clearspring.analytics:stream"
             ]
         },
+        "jakarta.annotation:jakarta.annotation-api": {
+            "locked": "1.3.5",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter",
+                "org.springframework.boot:spring-boot-starter-tomcat"
+            ]
+        },
+        "jakarta.validation:jakarta.validation-api": {
+            "locked": "2.0.2",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-validation"
+            ]
+        },
         "javax.activation:activation": {
             "locked": "1.1",
             "transitive": [
@@ -2792,9 +2887,7 @@
         "javax.annotation:javax.annotation-api": {
             "locked": "1.3.2",
             "transitive": [
-                "io.kubernetes:client-java-api",
-                "org.springframework.boot:spring-boot-starter",
-                "org.springframework.boot:spring-boot-starter-tomcat"
+                "io.kubernetes:client-java-api"
             ]
         },
         "javax.el:javax.el-api": {
@@ -2834,10 +2927,9 @@
             ]
         },
         "javax.validation:validation-api": {
-            "locked": "2.0.1.Final",
+            "locked": "1.1.0.Final",
             "transitive": [
                 "io.swagger:swagger-core",
-                "org.hibernate.validator:hibernate-validator",
                 "org.hibernate:hibernate-validator"
             ]
         },
@@ -2863,13 +2955,14 @@
             "transitive": [
                 "com.google.truth:truth",
                 "com.squareup.okhttp3:mockwebserver",
+                "junit:junit-dep",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-netty"
             ]
         },
         "junit:junit-dep": {
-            "locked": "4.10",
-            "requested": "4.10",
+            "locked": "4.11",
+            "requested": "4.+",
             "transitive": [
                 "com.netflix.titus:titus-common-testkit",
                 "com.netflix.titus:titus-testkit"
@@ -2992,13 +3085,13 @@
             ]
         },
         "org.apache.logging.log4j:log4j-api": {
-            "locked": "2.11.2",
+            "locked": "2.12.1",
             "transitive": [
                 "org.apache.logging.log4j:log4j-to-slf4j"
             ]
         },
         "org.apache.logging.log4j:log4j-to-slf4j": {
-            "locked": "2.11.2",
+            "locked": "2.12.1",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-logging"
             ]
@@ -3019,26 +3112,26 @@
             ]
         },
         "org.apache.tomcat.embed:tomcat-embed-core": {
-            "locked": "9.0.16",
+            "locked": "9.0.31",
             "transitive": [
                 "org.apache.tomcat.embed:tomcat-embed-websocket",
                 "org.springframework.boot:spring-boot-starter-tomcat"
             ]
         },
         "org.apache.tomcat.embed:tomcat-embed-el": {
-            "locked": "9.0.16",
+            "locked": "9.0.31",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-tomcat"
             ]
         },
         "org.apache.tomcat.embed:tomcat-embed-websocket": {
-            "locked": "9.0.16",
+            "locked": "9.0.31",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-tomcat"
             ]
         },
         "org.apache.tomcat:tomcat-annotations-api": {
-            "locked": "9.0.16",
+            "locked": "9.0.31",
             "transitive": [
                 "org.apache.tomcat.embed:tomcat-embed-core"
             ]
@@ -3119,9 +3212,10 @@
             ]
         },
         "org.codehaus.mojo:animal-sniffer-annotations": {
-            "locked": "1.14",
+            "locked": "1.17",
             "transitive": [
-                "com.google.guava:guava"
+                "com.google.guava:guava",
+                "io.grpc:grpc-core"
             ]
         },
         "org.eclipse.jdt.core.compiler:ecj": {
@@ -3189,6 +3283,12 @@
                 "org.apache.cassandra:cassandra-all"
             ]
         },
+        "org.glassfish:jakarta.el": {
+            "locked": "3.0.3",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-reactor-netty"
+            ]
+        },
         "org.glassfish:javax.el": {
             "locked": "3.0.1-b11",
             "requested": "3.+",
@@ -3202,7 +3302,6 @@
             "transitive": [
                 "com.jayway.awaitility:awaitility",
                 "junit:junit",
-                "junit:junit-dep",
                 "org.cassandraunit:cassandra-unit",
                 "org.hamcrest:hamcrest-library"
             ]
@@ -3222,10 +3321,9 @@
             ]
         },
         "org.hibernate.validator:hibernate-validator": {
-            "locked": "6.0.14.Final",
+            "locked": "6.0.18.Final",
             "transitive": [
-                "org.springframework.boot:spring-boot-starter-web",
-                "org.springframework.boot:spring-boot-starter-webflux"
+                "org.springframework.boot:spring-boot-starter-validation"
             ]
         },
         "org.hibernate:hibernate-validator": {
@@ -3344,7 +3442,7 @@
             ]
         },
         "org.reactivestreams:reactive-streams": {
-            "locked": "1.0.2",
+            "locked": "1.0.3",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop",
                 "io.projectreactor:reactor-core",
@@ -3398,13 +3496,13 @@
             ]
         },
         "org.slf4j:jul-to-slf4j": {
-            "locked": "1.7.25",
+            "locked": "1.7.30",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-logging"
             ]
         },
         "org.slf4j:slf4j-api": {
-            "locked": "1.7.25",
+            "locked": "1.7.30",
             "requested": "1.7.0",
             "transitive": [
                 "com.addthis.metrics:reporter-config-base",
@@ -3476,73 +3574,81 @@
             ]
         },
         "org.springframework.boot:spring-boot": {
-            "locked": "2.1.3.RELEASE",
+            "locked": "2.2.5.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-autoconfigure",
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
         "org.springframework.boot:spring-boot-autoconfigure": {
-            "locked": "2.1.3.RELEASE",
+            "locked": "2.2.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common-server",
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
         "org.springframework.boot:spring-boot-starter": {
-            "locked": "2.1.3.RELEASE",
+            "locked": "2.2.5.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-json",
+                "org.springframework.boot:spring-boot-starter-validation",
                 "org.springframework.boot:spring-boot-starter-web",
                 "org.springframework.boot:spring-boot-starter-webflux"
             ]
         },
         "org.springframework.boot:spring-boot-starter-json": {
-            "locked": "2.1.3.RELEASE",
+            "locked": "2.2.5.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-web",
                 "org.springframework.boot:spring-boot-starter-webflux"
             ]
         },
         "org.springframework.boot:spring-boot-starter-logging": {
-            "locked": "2.1.3.RELEASE",
+            "locked": "2.2.5.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
         "org.springframework.boot:spring-boot-starter-reactor-netty": {
-            "locked": "2.1.3.RELEASE",
+            "locked": "2.2.5.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-webflux"
             ]
         },
         "org.springframework.boot:spring-boot-starter-tomcat": {
-            "locked": "2.1.3.RELEASE",
+            "locked": "2.2.5.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-web"
             ]
         },
+        "org.springframework.boot:spring-boot-starter-validation": {
+            "locked": "2.2.5.RELEASE",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-web",
+                "org.springframework.boot:spring-boot-starter-webflux"
+            ]
+        },
         "org.springframework.boot:spring-boot-starter-web": {
-            "locked": "2.1.3.RELEASE",
+            "locked": "2.2.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-testkit"
             ]
         },
         "org.springframework.boot:spring-boot-starter-webflux": {
-            "locked": "2.1.3.RELEASE",
+            "locked": "2.2.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-testkit"
             ]
         },
         "org.springframework:spring-aop": {
-            "locked": "5.1.5.RELEASE",
+            "locked": "5.2.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
         },
         "org.springframework:spring-beans": {
-            "locked": "5.1.5.RELEASE",
+            "locked": "5.2.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
                 "org.springframework:spring-context",
@@ -3552,8 +3658,8 @@
             ]
         },
         "org.springframework:spring-context": {
-            "locked": "5.1.5.RELEASE",
-            "requested": "5.1.5.RELEASE",
+            "locked": "5.2.5.RELEASE",
+            "requested": "5.2.+",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot",
@@ -3561,7 +3667,7 @@
             ]
         },
         "org.springframework:spring-core": {
-            "locked": "5.1.5.RELEASE",
+            "locked": "5.2.5.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot",
                 "org.springframework.boot:spring-boot-starter",
@@ -3576,8 +3682,8 @@
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "5.1.5.RELEASE",
-            "requested": "5.1.5.RELEASE",
+            "locked": "5.2.5.RELEASE",
+            "requested": "5.2.+",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework:spring-context",
@@ -3585,17 +3691,17 @@
             ]
         },
         "org.springframework:spring-jcl": {
-            "locked": "5.1.5.RELEASE",
+            "locked": "5.2.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
             ]
         },
         "org.springframework:spring-test": {
-            "locked": "5.1.5.RELEASE",
-            "requested": "5.1.5.RELEASE"
+            "locked": "5.2.5.RELEASE",
+            "requested": "5.2.+"
         },
         "org.springframework:spring-web": {
-            "locked": "5.1.5.RELEASE",
+            "locked": "5.2.5.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-web",
@@ -3605,15 +3711,15 @@
             ]
         },
         "org.springframework:spring-webflux": {
-            "locked": "5.1.5.RELEASE",
-            "requested": "5.1.5.RELEASE",
+            "locked": "5.2.5.RELEASE",
+            "requested": "5.2.+",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-webflux"
             ]
         },
         "org.springframework:spring-webmvc": {
-            "locked": "5.1.5.RELEASE",
+            "locked": "5.2.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common-server",
                 "org.springframework.boot:spring-boot-starter-web"
@@ -3725,7 +3831,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.9.0",
+            "locked": "2.10.3",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
@@ -3735,7 +3841,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-core": {
-            "locked": "2.9.10",
+            "locked": "2.10.3",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
@@ -3746,8 +3852,8 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.9.9.1",
-            "requested": "2.9.+",
+            "locked": "2.10.3",
+            "requested": "2.10.+",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
@@ -3768,21 +3874,21 @@
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
-            "locked": "2.9.10",
-            "requested": "2.9.+",
+            "locked": "2.10.3",
+            "requested": "2.10.+",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-json"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jsr310": {
-            "locked": "2.9.8",
+            "locked": "2.10.2",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-json"
             ]
         },
         "com.fasterxml.jackson.module:jackson-module-parameter-names": {
-            "locked": "2.9.8",
+            "locked": "2.10.2",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-json"
             ]
@@ -3896,8 +4002,14 @@
                 "com.netflix.titus:titus-server-master"
             ]
         },
+        "com.google.android:annotations": {
+            "locked": "4.1.1.4",
+            "transitive": [
+                "io.grpc:grpc-core"
+            ]
+        },
         "com.google.api.grpc:proto-google-common-protos": {
-            "locked": "1.0.0",
+            "locked": "1.12.0",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
@@ -3918,7 +4030,6 @@
                 "com.github.fge:msg-simple",
                 "com.github.fge:uri-template",
                 "com.google.guava:guava",
-                "com.google.instrumentation:instrumentation-api",
                 "com.twitter:util-cache_2.11",
                 "com.twitter:util-collection_2.11",
                 "io.grpc:grpc-core",
@@ -3935,9 +4046,10 @@
             ]
         },
         "com.google.errorprone:error_prone_annotations": {
-            "locked": "2.1.3",
+            "locked": "2.3.2",
             "transitive": [
                 "com.google.guava:guava",
+                "com.google.protobuf:protobuf-java-util",
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
                 "com.google.truth:truth",
@@ -3946,14 +4058,13 @@
         },
         "com.google.guava:guava": {
             "locked": "25.1-jre",
-            "requested": "20.+",
+            "requested": "25.1-jre",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "com.datastax.cassandra:cassandra-driver-extras",
                 "com.github.fge:jackson-coreutils",
                 "com.github.fge:uri-template",
                 "com.google.inject:guice",
-                "com.google.instrumentation:instrumentation-api",
                 "com.google.protobuf:protobuf-java-util",
                 "com.google.truth.extensions:truth-liteproto-extension",
                 "com.google.truth.extensions:truth-proto-extension",
@@ -3967,7 +4078,6 @@
                 "io.grpc:grpc-protobuf",
                 "io.grpc:grpc-protobuf-lite",
                 "io.kubernetes:client-java",
-                "io.opencensus:opencensus-api",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-jaxrs",
                 "org.apache.cassandra:cassandra-all",
@@ -4024,12 +4134,6 @@
                 "com.sun.jersey.contribs:jersey-guice"
             ]
         },
-        "com.google.instrumentation:instrumentation-api": {
-            "locked": "0.4.3",
-            "transitive": [
-                "io.grpc:grpc-services"
-            ]
-        },
         "com.google.j2objc:j2objc-annotations": {
             "locked": "1.1",
             "transitive": [
@@ -4037,7 +4141,7 @@
             ]
         },
         "com.google.protobuf:protobuf-java": {
-            "locked": "3.5.1",
+            "locked": "3.7.1",
             "requested": "3.5.+",
             "transitive": [
                 "com.google.protobuf:protobuf-java-util",
@@ -4054,9 +4158,17 @@
             ]
         },
         "com.google.protobuf:protobuf-java-util": {
-            "locked": "3.5.1",
+            "locked": "3.7.1",
+            "requested": "3.5.+",
             "transitive": [
-                "io.grpc:grpc-protobuf"
+                "com.netflix.titus:titus-common",
+                "io.grpc:grpc-services"
+            ]
+        },
+        "com.google.re2j:re2j": {
+            "locked": "1.2",
+            "transitive": [
+                "io.grpc:grpc-services"
             ]
         },
         "com.google.truth.extensions:truth-liteproto-extension": {
@@ -4151,7 +4263,7 @@
             ]
         },
         "com.netflix.frigga:frigga": {
-            "locked": "0.22.0",
+            "locked": "0.24.0",
             "transitive": [
                 "com.netflix.titus:titus-server-master"
             ]
@@ -4361,11 +4473,11 @@
             ]
         },
         "com.squareup.okhttp3:mockwebserver": {
-            "locked": "3.14.6",
+            "locked": "3.14.7",
             "requested": "3.+"
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.14.6",
+            "locked": "3.14.7",
             "requested": "3.+",
             "transitive": [
                 "com.netflix.titus:titus-common",
@@ -4376,7 +4488,7 @@
             ]
         },
         "com.squareup.okhttp3:okhttp-tls": {
-            "locked": "3.14.6",
+            "locked": "3.14.7",
             "requested": "3.+"
         },
         "com.squareup.okio:okio": {
@@ -4588,13 +4700,13 @@
             ]
         },
         "io.grpc:grpc-context": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.grpc:grpc-core": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-netty-shaded",
                 "io.grpc:grpc-protobuf",
@@ -4603,8 +4715,8 @@
             ]
         },
         "io.grpc:grpc-netty-shaded": {
-            "locked": "1.10.1",
-            "requested": "1.10.+",
+            "locked": "1.20.0",
+            "requested": "1.20.+",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-common-client",
@@ -4613,8 +4725,8 @@
             ]
         },
         "io.grpc:grpc-protobuf": {
-            "locked": "1.10.1",
-            "requested": "1.10.+",
+            "locked": "1.20.0",
+            "requested": "1.20.+",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-common-grpc-api",
@@ -4623,13 +4735,13 @@
             ]
         },
         "io.grpc:grpc-protobuf-lite": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
         },
         "io.grpc:grpc-services": {
-            "locked": "1.10.1",
+            "locked": "1.20.0",
             "transitive": [
                 "com.netflix.titus:titus-common-client",
                 "com.netflix.titus:titus-common-server",
@@ -4637,8 +4749,8 @@
             ]
         },
         "io.grpc:grpc-stub": {
-            "locked": "1.10.1",
-            "requested": "1.10.+",
+            "locked": "1.20.0",
+            "requested": "1.20.+",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-common-grpc-api",
@@ -4677,7 +4789,7 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-codec-http",
@@ -4693,7 +4805,7 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
@@ -4705,7 +4817,7 @@
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
@@ -4715,20 +4827,20 @@
             ]
         },
         "io.netty:netty-codec-http2": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-socks": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.netty:netty-handler-proxy",
                 "org.mock-server:mockserver-core"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-codec",
@@ -4745,7 +4857,7 @@
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "com.datastax.cassandra:cassandra-driver-core",
                 "io.netty:netty-codec-http",
@@ -4757,19 +4869,20 @@
             ]
         },
         "io.netty:netty-handler-proxy": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
+                "io.netty:netty-handler",
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-codec-http",
@@ -4784,48 +4897,48 @@
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
-            "locked": "4.1.45.Final",
+            "locked": "4.1.48.Final",
             "transitive": [
                 "io.netty:netty-transport-native-epoll"
             ]
         },
         "io.opencensus:opencensus-api": {
-            "locked": "0.11.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.grpc:grpc-core",
                 "io.opencensus:opencensus-contrib-grpc-metrics"
             ]
         },
         "io.opencensus:opencensus-contrib-grpc-metrics": {
-            "locked": "0.11.0",
+            "locked": "0.19.2",
             "transitive": [
                 "io.grpc:grpc-core"
             ]
         },
         "io.projectreactor.addons:reactor-adapter": {
-            "locked": "3.1.9.RELEASE",
-            "requested": "3.1.+",
+            "locked": "3.3.3.RELEASE",
+            "requested": "3.3.+",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.8.16.RELEASE",
-            "requested": "0.8.+",
+            "locked": "0.9.6.RELEASE",
+            "requested": "0.9.+",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-reactor-netty"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.2.15.RELEASE",
-            "requested": "3.1.+",
+            "locked": "3.3.4.RELEASE",
+            "requested": "3.3.+",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.netflix.titus:titus-testkit",
@@ -4836,8 +4949,8 @@
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.1.16.RELEASE",
-            "requested": "3.1.+"
+            "locked": "3.3.4.RELEASE",
+            "requested": "3.3.+"
         },
         "io.reactivex.rxjava2:rxjava": {
             "locked": "2.2.10",
@@ -4908,6 +5021,19 @@
                 "com.clearspring.analytics:stream"
             ]
         },
+        "jakarta.annotation:jakarta.annotation-api": {
+            "locked": "1.3.5",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter",
+                "org.springframework.boot:spring-boot-starter-tomcat"
+            ]
+        },
+        "jakarta.validation:jakarta.validation-api": {
+            "locked": "2.0.2",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-validation"
+            ]
+        },
         "janino:janino": {
             "locked": "2.5.10",
             "transitive": [
@@ -4923,9 +5049,7 @@
         "javax.annotation:javax.annotation-api": {
             "locked": "1.3.2",
             "transitive": [
-                "io.kubernetes:client-java-api",
-                "org.springframework.boot:spring-boot-starter",
-                "org.springframework.boot:spring-boot-starter-tomcat"
+                "io.kubernetes:client-java-api"
             ]
         },
         "javax.el:javax.el-api": {
@@ -4968,10 +5092,9 @@
             ]
         },
         "javax.validation:validation-api": {
-            "locked": "2.0.1.Final",
+            "locked": "1.1.0.Final",
             "transitive": [
                 "io.swagger:swagger-core",
-                "org.hibernate.validator:hibernate-validator",
                 "org.hibernate:hibernate-validator"
             ]
         },
@@ -4997,13 +5120,14 @@
             "transitive": [
                 "com.google.truth:truth",
                 "com.squareup.okhttp3:mockwebserver",
+                "junit:junit-dep",
                 "org.cassandraunit:cassandra-unit",
                 "org.mock-server:mockserver-netty"
             ]
         },
         "junit:junit-dep": {
-            "locked": "4.10",
-            "requested": "4.10",
+            "locked": "4.11",
+            "requested": "4.+",
             "transitive": [
                 "com.netflix.titus:titus-common-testkit",
                 "com.netflix.titus:titus-testkit"
@@ -5126,13 +5250,13 @@
             ]
         },
         "org.apache.logging.log4j:log4j-api": {
-            "locked": "2.11.2",
+            "locked": "2.12.1",
             "transitive": [
                 "org.apache.logging.log4j:log4j-to-slf4j"
             ]
         },
         "org.apache.logging.log4j:log4j-to-slf4j": {
-            "locked": "2.11.2",
+            "locked": "2.12.1",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-logging"
             ]
@@ -5153,26 +5277,26 @@
             ]
         },
         "org.apache.tomcat.embed:tomcat-embed-core": {
-            "locked": "9.0.16",
+            "locked": "9.0.31",
             "transitive": [
                 "org.apache.tomcat.embed:tomcat-embed-websocket",
                 "org.springframework.boot:spring-boot-starter-tomcat"
             ]
         },
         "org.apache.tomcat.embed:tomcat-embed-el": {
-            "locked": "9.0.16",
+            "locked": "9.0.31",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-tomcat"
             ]
         },
         "org.apache.tomcat.embed:tomcat-embed-websocket": {
-            "locked": "9.0.16",
+            "locked": "9.0.31",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-tomcat"
             ]
         },
         "org.apache.tomcat:tomcat-annotations-api": {
-            "locked": "9.0.16",
+            "locked": "9.0.31",
             "transitive": [
                 "org.apache.tomcat.embed:tomcat-embed-core"
             ]
@@ -5253,9 +5377,10 @@
             ]
         },
         "org.codehaus.mojo:animal-sniffer-annotations": {
-            "locked": "1.14",
+            "locked": "1.17",
             "transitive": [
-                "com.google.guava:guava"
+                "com.google.guava:guava",
+                "io.grpc:grpc-core"
             ]
         },
         "org.eclipse.jdt.core.compiler:ecj": {
@@ -5323,6 +5448,12 @@
                 "org.apache.cassandra:cassandra-all"
             ]
         },
+        "org.glassfish:jakarta.el": {
+            "locked": "3.0.3",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-reactor-netty"
+            ]
+        },
         "org.glassfish:javax.el": {
             "locked": "3.0.1-b11",
             "requested": "3.+",
@@ -5336,7 +5467,6 @@
             "transitive": [
                 "com.jayway.awaitility:awaitility",
                 "junit:junit",
-                "junit:junit-dep",
                 "org.cassandraunit:cassandra-unit",
                 "org.hamcrest:hamcrest-library"
             ]
@@ -5356,10 +5486,9 @@
             ]
         },
         "org.hibernate.validator:hibernate-validator": {
-            "locked": "6.0.14.Final",
+            "locked": "6.0.18.Final",
             "transitive": [
-                "org.springframework.boot:spring-boot-starter-web",
-                "org.springframework.boot:spring-boot-starter-webflux"
+                "org.springframework.boot:spring-boot-starter-validation"
             ]
         },
         "org.hibernate:hibernate-validator": {
@@ -5484,7 +5613,7 @@
             ]
         },
         "org.reactivestreams:reactive-streams": {
-            "locked": "1.0.2",
+            "locked": "1.0.3",
             "transitive": [
                 "com.github.akarnokd:rxjava2-interop",
                 "io.projectreactor:reactor-core",
@@ -5538,13 +5667,13 @@
             ]
         },
         "org.slf4j:jul-to-slf4j": {
-            "locked": "1.7.25",
+            "locked": "1.7.30",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-logging"
             ]
         },
         "org.slf4j:slf4j-api": {
-            "locked": "1.7.25",
+            "locked": "1.7.30",
             "requested": "1.7.0",
             "transitive": [
                 "com.addthis.metrics:reporter-config-base",
@@ -5619,73 +5748,81 @@
             ]
         },
         "org.springframework.boot:spring-boot": {
-            "locked": "2.1.3.RELEASE",
+            "locked": "2.2.5.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-autoconfigure",
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
         "org.springframework.boot:spring-boot-autoconfigure": {
-            "locked": "2.1.3.RELEASE",
+            "locked": "2.2.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common-server",
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
         "org.springframework.boot:spring-boot-starter": {
-            "locked": "2.1.3.RELEASE",
+            "locked": "2.2.5.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-json",
+                "org.springframework.boot:spring-boot-starter-validation",
                 "org.springframework.boot:spring-boot-starter-web",
                 "org.springframework.boot:spring-boot-starter-webflux"
             ]
         },
         "org.springframework.boot:spring-boot-starter-json": {
-            "locked": "2.1.3.RELEASE",
+            "locked": "2.2.5.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-web",
                 "org.springframework.boot:spring-boot-starter-webflux"
             ]
         },
         "org.springframework.boot:spring-boot-starter-logging": {
-            "locked": "2.1.3.RELEASE",
+            "locked": "2.2.5.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter"
             ]
         },
         "org.springframework.boot:spring-boot-starter-reactor-netty": {
-            "locked": "2.1.3.RELEASE",
+            "locked": "2.2.5.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-webflux"
             ]
         },
         "org.springframework.boot:spring-boot-starter-tomcat": {
-            "locked": "2.1.3.RELEASE",
+            "locked": "2.2.5.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-web"
             ]
         },
+        "org.springframework.boot:spring-boot-starter-validation": {
+            "locked": "2.2.5.RELEASE",
+            "transitive": [
+                "org.springframework.boot:spring-boot-starter-web",
+                "org.springframework.boot:spring-boot-starter-webflux"
+            ]
+        },
         "org.springframework.boot:spring-boot-starter-web": {
-            "locked": "2.1.3.RELEASE",
+            "locked": "2.2.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-testkit"
             ]
         },
         "org.springframework.boot:spring-boot-starter-webflux": {
-            "locked": "2.1.3.RELEASE",
+            "locked": "2.2.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-testkit"
             ]
         },
         "org.springframework:spring-aop": {
-            "locked": "5.1.5.RELEASE",
+            "locked": "5.2.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
         },
         "org.springframework:spring-beans": {
-            "locked": "5.1.5.RELEASE",
+            "locked": "5.2.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-aop",
                 "org.springframework:spring-context",
@@ -5695,8 +5832,8 @@
             ]
         },
         "org.springframework:spring-context": {
-            "locked": "5.1.5.RELEASE",
-            "requested": "5.1.5.RELEASE",
+            "locked": "5.2.5.RELEASE",
+            "requested": "5.2.+",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot",
@@ -5704,7 +5841,7 @@
             ]
         },
         "org.springframework:spring-core": {
-            "locked": "5.1.5.RELEASE",
+            "locked": "5.2.5.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot",
                 "org.springframework.boot:spring-boot-starter",
@@ -5719,8 +5856,8 @@
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "5.1.5.RELEASE",
-            "requested": "5.1.5.RELEASE",
+            "locked": "5.2.5.RELEASE",
+            "requested": "5.2.+",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework:spring-context",
@@ -5728,17 +5865,17 @@
             ]
         },
         "org.springframework:spring-jcl": {
-            "locked": "5.1.5.RELEASE",
+            "locked": "5.2.5.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
             ]
         },
         "org.springframework:spring-test": {
-            "locked": "5.1.5.RELEASE",
-            "requested": "5.1.5.RELEASE"
+            "locked": "5.2.5.RELEASE",
+            "requested": "5.2.+"
         },
         "org.springframework:spring-web": {
-            "locked": "5.1.5.RELEASE",
+            "locked": "5.2.5.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-web",
@@ -5748,15 +5885,15 @@
             ]
         },
         "org.springframework:spring-webflux": {
-            "locked": "5.1.5.RELEASE",
-            "requested": "5.1.5.RELEASE",
+            "locked": "5.2.5.RELEASE",
+            "requested": "5.2.+",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-webflux"
             ]
         },
         "org.springframework:spring-webmvc": {
-            "locked": "5.1.5.RELEASE",
+            "locked": "5.2.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common-server",
                 "org.springframework.boot:spring-boot-starter-web"

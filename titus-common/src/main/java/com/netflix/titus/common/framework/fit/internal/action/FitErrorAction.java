@@ -24,6 +24,7 @@ import java.util.function.Supplier;
 import com.google.common.base.Function;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.netflix.titus.common.framework.fit.AbstractFitAction;
 import com.netflix.titus.common.framework.fit.FitActionDescriptor;
 import com.netflix.titus.common.framework.fit.FitInjection;
@@ -110,7 +111,7 @@ public class FitErrorAction extends AbstractFitAction {
                 return source.get();
             };
         }
-        return () -> Futures.transform(source.get(), (Function<T, T>) input -> doFail(injectionPoint) ? null : input);
+        return () -> Futures.transform(source.get(), input -> doFail(injectionPoint) ? null : input, MoreExecutors.directExecutor());
     }
 
     private boolean doFail(String injectionPoint) {

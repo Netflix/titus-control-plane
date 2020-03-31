@@ -555,11 +555,12 @@ public final class StringExt {
         if (StringExt.isEmpty(s)) {
             return s;
         }
-        try {
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            GZIPOutputStream gzip = new GZIPOutputStream(out);
+        try (
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                GZIPOutputStream gzip = new GZIPOutputStream(out);
+        ) {
             gzip.write(s.getBytes());
-            gzip.close();
+            gzip.finish();
             return Base64.getEncoder().encodeToString(out.toByteArray());
         } catch (Exception e) {
             throw ExceptionExt.rethrow(e);

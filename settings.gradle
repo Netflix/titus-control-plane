@@ -12,6 +12,7 @@ include 'titus-common',\
         'titus-server-gateway',\
         'titus-server-master',\
         'titus-server-federation',\
+        'titus-server-federation-springboot',\
         'titus-server-runtime',\
         'titus-testkit'
 

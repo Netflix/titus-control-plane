@@ -41,6 +41,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
@@ -723,7 +724,7 @@ public class CassandraJobStore implements JobStore {
                         public void onFailure(@Nonnull Throwable e) {
                             emitter.onError(JobStoreException.cassandraDriverError(e));
                         }
-                    });
+                    }, MoreExecutors.directExecutor());
                     emitter.setCancellation(() -> resultSetFuture.cancel(true));
                 },
                 Emitter.BackpressureMode.NONE

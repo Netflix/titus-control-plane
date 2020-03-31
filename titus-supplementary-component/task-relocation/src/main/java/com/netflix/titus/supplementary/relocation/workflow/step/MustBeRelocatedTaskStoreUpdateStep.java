@@ -31,6 +31,7 @@ import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.supplementary.relocation.RelocationConfiguration;
 import com.netflix.titus.supplementary.relocation.store.TaskRelocationStore;
 import com.netflix.titus.supplementary.relocation.workflow.RelocationWorkflowException;
 import org.slf4j.Logger;
@@ -43,17 +44,20 @@ public class MustBeRelocatedTaskStoreUpdateStep {
 
     private static final Logger logger = LoggerFactory.getLogger(MustBeRelocatedTaskStoreUpdateStep.class);
 
-    private static final Duration STORE_UPDATE_TIMEOUT = Duration.ofSeconds(30);
-
     private static final String STEP_NAME = "mustBeRelocatedTaskStoreUpdateStep";
 
+    private final RelocationConfiguration configuration;
     private final TaskRelocationStore store;
     private final RelocationTransactionLogger transactionLog;
     private final StepMetrics metrics;
 
     private Map<String, TaskRelocationPlan> relocationsPlanInStore;
 
-    public MustBeRelocatedTaskStoreUpdateStep(TaskRelocationStore store, RelocationTransactionLogger transactionLog, TitusRuntime titusRuntime) {
+    public MustBeRelocatedTaskStoreUpdateStep(RelocationConfiguration configuration,
+                                              TaskRelocationStore store,
+                                              RelocationTransactionLogger transactionLog,
+                                              TitusRuntime titusRuntime) {
+        this.configuration = configuration;
         this.store = store;
         this.transactionLog = transactionLog;
         this.relocationsPlanInStore = new HashMap<>(loadPlanFromStore());
@@ -119,7 +123,7 @@ public class MustBeRelocatedTaskStoreUpdateStep {
         Map<String, Optional<Throwable>> result;
         try {
             result = store.createOrUpdateTaskRelocationPlans(toUpdate)
-                    .timeout(STORE_UPDATE_TIMEOUT)
+                    .timeout(Duration.ofMillis(configuration.getRdsTimeoutMs()))
                     .block();
         } catch (Exception e) {
             List<String> toUpdateIds = toUpdate.stream().map(TaskRelocationPlan::getTaskId).collect(Collectors.toList());
@@ -144,7 +148,7 @@ public class MustBeRelocatedTaskStoreUpdateStep {
         Map<String, Optional<Throwable>> result;
         try {
             result = store.removeTaskRelocationPlans(toRemove)
-                    .timeout(STORE_UPDATE_TIMEOUT)
+                    .timeout(Duration.ofMillis(configuration.getRdsTimeoutMs()))
                     .block();
         } catch (Exception e) {
             logger.warn("Could not remove task relocation plans from the database: {}", toRemove, e);

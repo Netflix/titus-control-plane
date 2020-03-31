@@ -35,6 +35,7 @@ import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobAssertions;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobConfiguration;
 import com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder;
+import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
@@ -46,6 +47,7 @@ import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.jobmanager.service.DefaultV3JobOperations;
 import com.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
+import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
 import com.netflix.titus.master.jobmanager.service.JobReconciliationFrameworkFactory;
 import com.netflix.titus.master.jobmanager.service.batch.BatchDifferenceResolver;
 import com.netflix.titus.master.jobmanager.service.integration.scenario.StubbedJobStore.StoreEvent;
@@ -91,7 +93,7 @@ public class JobsScenarioBuilder {
     private final StubbedDirectKubeApiServerIntegrator kubeApiServerIntegrator = new StubbedDirectKubeApiServerIntegrator();
     private final StubbedVirtualMachineMasterService vmService = new StubbedVirtualMachineMasterService();
     private final StubbedJobStore jobStore = new StubbedJobStore();
-    private final Predicate<JobDescriptor> kubeSchedulerPredicate;
+    private final Predicate<Pair<JobDescriptor, ApplicationSLA>> kubeSchedulerPredicate;
 
     private volatile int concurrentStoreUpdateLimit = CONCURRENT_STORE_UPDATE_LIMIT;
 
@@ -259,9 +261,11 @@ public class JobsScenarioBuilder {
             jobOperations.observeJob(job.getId()).subscribe(jobEventsSubscriber);
             jobStore.events(job.getId()).subscribe(storeEventsSubscriber);
 
+            JobDescriptor jobDescriptor = job.getJobDescriptor();
+            ApplicationSLA capacityGroupDescriptor = JobManagerUtil.getCapacityGroupDescriptor(jobDescriptor, capacityGroupService);
             JobScenarioBuilder<?> jobScenarioBuilder = new JobScenarioBuilder<>(
                     job.getId(),
-                    kubeSchedulerPredicate.test(job.getJobDescriptor()),
+                    kubeSchedulerPredicate.test(Pair.of(jobDescriptor, capacityGroupDescriptor)),
                     jobEventsSubscriber,
                     storeEventsSubscriber,
                     jobOperations,
@@ -334,9 +338,10 @@ public class JobsScenarioBuilder {
         String jobId = jobIdRef.get();
         assertThat(jobId).describedAs("Job not created").isNotNull();
 
+        ApplicationSLA capacityGroupDescriptor = JobManagerUtil.getCapacityGroupDescriptor(jobDescriptor, capacityGroupService);
         JobScenarioBuilder<E> jobScenarioBuilder = new JobScenarioBuilder<>(
                 jobId,
-                kubeSchedulerPredicate.test(jobDescriptor),
+                kubeSchedulerPredicate.test(Pair.of(jobDescriptor, capacityGroupDescriptor)),
                 jobEventsSubscriber,
                 storeEventsSubscriber,
                 jobOperations,

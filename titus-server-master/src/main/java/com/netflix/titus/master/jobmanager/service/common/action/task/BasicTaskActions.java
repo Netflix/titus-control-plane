@@ -241,7 +241,8 @@ public class BasicTaskActions {
      */
     public static TitusChangeAction launchTaskInKube(DirectKubeApiServerIntegrator kubeApiServerIntegrator,
                                                      Job<?> job,
-                                                     Task task) {
+                                                     Task task,
+                                                     CallMetadata callMetadata) {
         return TitusChangeAction.newAction("launchTaskInKube")
                 .task(task)
                 .trigger(V3JobOperations.Trigger.Reconciler)
@@ -258,13 +259,7 @@ public class BasicTaskActions {
                             .withStatusHistory(CollectionsExt.copyAndAdd(task.getStatusHistory(), task.getStatus()))
                             .build();
 
-                    TitusModelAction modelUpdateAction = TitusModelAction.newModelUpdate(self)
-                            .summary("Creating new task entity holder")
-                            .taskMaybeUpdate(jobHolder -> {
-                                EntityHolder newTaskHolder = EntityHolder.newRoot(task.getId(), taskWithPod);
-                                EntityHolder newRoot = jobHolder.addChild(newTaskHolder);
-                                return Optional.of(Pair.of(newRoot, newTaskHolder));
-                            });
+                    TitusModelAction modelUpdateAction = TitusModelAction.newModelUpdate(self).taskUpdate(taskWithPod, callMetadata);
                     List<ModelActionHolder> modelActionHolders = ModelActionHolder.referenceAndRunning(modelUpdateAction);
 
                     return ReactorExt.toCompletable(kubeApiServerIntegrator.launchTask(job, task).then()).andThen(Observable.just(modelActionHolders));

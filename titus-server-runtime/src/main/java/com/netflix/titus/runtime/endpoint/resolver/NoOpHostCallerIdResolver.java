@@ -24,8 +24,15 @@ import javax.inject.Singleton;
  */
 @Singleton
 public class NoOpHostCallerIdResolver implements HostCallerIdResolver {
+
+    private static final NoOpHostCallerIdResolver INSTANCE = new NoOpHostCallerIdResolver();
+
     @Override
     public Optional<String> resolve(String address) {
         return Optional.of("Anonymous");
+    }
+
+    public static NoOpHostCallerIdResolver getInstance() {
+        return INSTANCE;
     }
 }

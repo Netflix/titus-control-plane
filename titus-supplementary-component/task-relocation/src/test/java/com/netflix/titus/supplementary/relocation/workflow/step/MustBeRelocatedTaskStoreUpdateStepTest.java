@@ -23,14 +23,16 @@ import java.util.Optional;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
+import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.supplementary.relocation.AbstractTaskRelocationTest;
+import com.netflix.titus.supplementary.relocation.RelocationConfiguration;
 import com.netflix.titus.supplementary.relocation.TestDataFactory;
 import com.netflix.titus.supplementary.relocation.store.TaskRelocationStore;
 import org.junit.Test;
 import reactor.core.publisher.Mono;
 
-import static com.netflix.titus.testkit.model.relocation.TaskRelocationPlanGenerator.oneMigrationPlan;
 import static com.netflix.titus.supplementary.relocation.TestDataFactory.newSelfManagedDisruptionBudget;
+import static com.netflix.titus.testkit.model.relocation.TaskRelocationPlanGenerator.oneMigrationPlan;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.mock;
@@ -39,6 +41,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class MustBeRelocatedTaskStoreUpdateStepTest extends AbstractTaskRelocationTest {
+
+    private final RelocationConfiguration configuration = Archaius2Ext.newConfiguration(RelocationConfiguration.class);
 
     private final TaskRelocationStore store = mock(TaskRelocationStore.class);
 
@@ -51,7 +55,7 @@ public class MustBeRelocatedTaskStoreUpdateStepTest extends AbstractTaskRelocati
     @Test
     public void testCreateOrUpdate() {
         when(store.getAllTaskRelocationPlans()).thenReturn(Mono.just(Collections.emptyMap()));
-        MustBeRelocatedTaskStoreUpdateStep step = new MustBeRelocatedTaskStoreUpdateStep(store, transactionLog, titusRuntime);
+        MustBeRelocatedTaskStoreUpdateStep step = new MustBeRelocatedTaskStoreUpdateStep(configuration, store, transactionLog, titusRuntime);
 
         Job<BatchJobExt> job = TestDataFactory.newBatchJob("job1", 1, newSelfManagedDisruptionBudget(1_000));
         relocationConnectorStubs.addJob(job);
@@ -80,7 +84,7 @@ public class MustBeRelocatedTaskStoreUpdateStepTest extends AbstractTaskRelocati
     public void testRemove() {
         TaskRelocationPlan taskRelocationPlan = oneMigrationPlan();
         when(store.getAllTaskRelocationPlans()).thenReturn(Mono.just(Collections.singletonMap(taskRelocationPlan.getTaskId(), taskRelocationPlan)));
-        MustBeRelocatedTaskStoreUpdateStep step = new MustBeRelocatedTaskStoreUpdateStep(store, transactionLog, titusRuntime);
+        MustBeRelocatedTaskStoreUpdateStep step = new MustBeRelocatedTaskStoreUpdateStep(configuration, store, transactionLog, titusRuntime);
 
         when(store.removeTaskRelocationPlans(Collections.singleton(taskRelocationPlan.getTaskId()))).thenReturn(Mono.just(Collections.singletonMap("task1", Optional.empty())));
         step.persistChangesInStore(Collections.emptyMap());

@@ -191,7 +191,7 @@ public enum AwsInstanceType {
     R5_Metal(AwsInstanceDescriptor.newBuilder("r5.metal")
             .cpu(96)
             .memoryGB(768)
-            .storageGB(3_000)
+            .storageGB(1_500)
             .networkMbs(25_000)
             .ebsOnly()
             .ebsBandwidthMbs(14_000)

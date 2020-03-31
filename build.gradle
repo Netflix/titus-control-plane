@@ -7,12 +7,12 @@ buildscript {
     dependencies {
         // force a more recent spring since some nebula plugins were bringing an older version
         // before springboot plugins had any saying
-        classpath "org.springframework:spring-core:5.1.5.RELEASE"
+        classpath "org.springframework:spring-core:5.2.4.RELEASE"
     }
 }
 
 plugins {
-    id 'nebula.netflixoss' version '8.6.0'
+    id 'nebula.netflixoss' version '8.7.0'
     id 'nebula.ospackage' version '8.1.0'
 }
 
@@ -43,7 +43,7 @@ subprojects {
             maven { url 'https://plugins.gradle.org/m2/' }
         }
         dependencies {
-            classpath "org.springframework:spring-core:5.1.5.RELEASE"
+            classpath "org.springframework:spring-core:5.2.4.RELEASE"
         }
     }
 
@@ -61,14 +61,13 @@ subprojects {
 
         awsSdkVersion = '1.11.+'
         javaxElVersion = '3.+'
-        // pinned because of SSL incompatibilities with tomcat-embed-core 9.0.17
-        springBootVersion = '2.1.3.RELEASE'
-        springCloudVersion = '2.1.3.RELEASE'
-        springReactor = '3.1.+'
-        springReactorNetty = '0.8.+'
-        springVersion = '5.1.5.RELEASE'
+        springVersion = '5.2.+'
+        springBootVersion = '2.2.5.RELEASE'
+        springCloudVersion = '2.2.+'
+        springReactor = '3.3.+'
+        springReactorNetty = '0.9.+'
         javaxInjectVersion = '1'
-        guavaVersion = '20.+'
+        guavaVersion = '25.1-jre'
         servletVersion = '3.1.0'
         rxJava = '1.+'
         hdrhistogramVersion = '2.1.+'
@@ -78,7 +77,7 @@ subprojects {
         eurekaVersion = '1.+'
         numerusVersion = '1.1'
         snappyVersion = '1.1.+'
-        jacksonVersion = '2.9.+'
+        jacksonVersion = '2.10.+'
         slf4jVersion = '1.7.0'
         cliParserVersion = '1.1.1'
         curatorVersion = '2.13.+'
@@ -91,7 +90,8 @@ subprojects {
         mesosVersion = '1.7.2'
         protobufVersion = '3.5.+'
         postgresqlVersion = '42.2.9'
-        grpcVersion = '1.10.+'
+        grpcVersion = '1.20.+'
+        protobufJavaUtilVersion = '3.5.+'
         googleTruthVersion = '0.34' // pinned to avoid a transitive dependency on guava > 20.x
         swaggerVersion = '1.5.12'
         jsonVersion = '20140107'
@@ -110,7 +110,7 @@ subprojects {
         friggaVersion = '0.+'
 
         // Test
-        junitVersion = '4.10'
+        junitVersion = '4.+'
         mockitoVersion = '2.+'
         hamcrestVersion = '1.3'
         awaitilityVersion = '1.7.0'
@@ -137,9 +137,9 @@ subprojects {
         exclude group: 'org.mortbay.jetty', module: 'servlet-api'
         // Superceded by governator-api
         exclude group: 'com.netflix.governator', module: 'governator-annotations'
+
         resolutionStrategy {
-            // remove this pin once we fix the jackson version issues
-            force 'com.fasterxml.jackson.core:jackson-databind:2.9.9.1'
+            force "com.google.guava:guava:${guavaVersion}"
         }
 
         // We need to exclude logback as it clashes with other logging engines.

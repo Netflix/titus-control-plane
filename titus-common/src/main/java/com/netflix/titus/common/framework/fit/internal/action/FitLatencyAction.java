@@ -29,6 +29,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.SettableFuture;
 import com.netflix.titus.common.framework.fit.AbstractFitAction;
 import com.netflix.titus.common.framework.fit.FitActionDescriptor;
@@ -161,7 +162,7 @@ public class FitLatencyAction extends AbstractFitAction {
                             public void onFailure(Throwable error) {
                                 future.setException(error);
                             }
-                        });
+                        }, MoreExecutors.directExecutor());
                     }
                 });
                 return future;
@@ -181,7 +182,7 @@ public class FitLatencyAction extends AbstractFitAction {
                 public void onFailure(Throwable error) {
                     future.setException(error);
                 }
-            });
+            }, MoreExecutors.directExecutor());
             return future;
         };
     }

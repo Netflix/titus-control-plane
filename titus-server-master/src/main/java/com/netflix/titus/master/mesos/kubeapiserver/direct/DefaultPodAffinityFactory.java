@@ -94,8 +94,19 @@ public class DefaultPodAffinityFactory implements PodAffinityFactory {
                 addNodeAffinitySelectorConstraint(KubeConstants.NODE_LABEL_MACHINE_ID, constraints.get(JobConstraints.MACHINE_ID), hard);
             }
 
-            if (constraints.containsKey(JobConstraints.MACHINE_TYPE)) {
-                addNodeAffinitySelectorConstraint(KubeConstants.NODE_LABEL_INSTANCE_TYPE, constraints.get(JobConstraints.MACHINE_TYPE), hard);
+            String instanceType = constraints.get(JobConstraints.MACHINE_TYPE);
+            boolean instanceTypeRequested = !StringExt.isEmpty(instanceType);
+            if (instanceTypeRequested) {
+                addNodeAffinitySelectorConstraint(KubeConstants.NODE_LABEL_INSTANCE_TYPE, instanceType, hard);
+            }
+
+            if (hard && !instanceTypeRequested) {
+                boolean gpuRequested = job.getJobDescriptor().getContainer().getContainerResources().getGpu() > 0;
+                List<String> defaultGpuInstanceTypes = configuration.getDefaultGpuInstanceTypes();
+                if (gpuRequested && !defaultGpuInstanceTypes.isEmpty()) {
+                    // If not explicit instance type requested, restrict GPU instance types to a default set.
+                    addNodeAffinitySelectorConstraint(KubeConstants.NODE_LABEL_INSTANCE_TYPE, defaultGpuInstanceTypes, true);
+                }
             }
         }
 

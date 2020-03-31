@@ -16,6 +16,7 @@
 
 package com.netflix.titus.master.jobmanager.service.integration;
 
+import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -30,12 +31,18 @@ import com.netflix.titus.api.jobmanager.model.job.retry.ImmediateRetryPolicy;
 import com.netflix.titus.master.jobmanager.service.integration.scenario.JobScenarioBuilder;
 import com.netflix.titus.master.jobmanager.service.integration.scenario.JobsScenarioBuilder;
 import com.netflix.titus.master.jobmanager.service.integration.scenario.ScenarioTemplates;
+import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 
 import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.changeRetryPolicy;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskBatchJobDescriptor;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskServiceJobDescriptor;
 
+@RunWith(Parameterized.class)
 public class TaskRetryPolicyTest {
 
     private static final ImmediateRetryPolicy IMMEDIATE = JobModel.newImmediateRetryPolicy().withRetries(5).build();
@@ -51,7 +58,20 @@ public class TaskRetryPolicyTest {
             .build();
     private static final int[] EXPONENTIAL_DELAYS_SEC = {1, 2, 4, 8, 10, 10, 10, 10, 10, 10};
 
-    private final JobsScenarioBuilder jobsScenarioBuilder = new JobsScenarioBuilder();
+    @Parameters
+    public static Iterable<Object> data() {
+        return Arrays.asList(Boolean.TRUE, Boolean.FALSE);
+    }
+
+    @Parameter
+    public Boolean kubeMode;
+
+    private JobsScenarioBuilder jobsScenarioBuilder;
+
+    @Before
+    public void setUp() throws Exception {
+        this.jobsScenarioBuilder = new JobsScenarioBuilder(kubeMode);
+    }
 
     @Test
     public void testBatchImmediateRetry() throws Exception {

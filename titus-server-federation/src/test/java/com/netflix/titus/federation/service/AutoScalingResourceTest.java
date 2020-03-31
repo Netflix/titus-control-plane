@@ -120,7 +120,7 @@ public class AutoScalingResourceTest extends AggregatingAutoScalingTestBase {
 
         // bad id
         Assertions.assertThatCode(() -> autoScalingResource.getScalingPolicy("badPolicyId"))
-                .hasCause(Status.INTERNAL.withDescription("Completed without a response").asRuntimeException());
+                .hasCause(Status.CANCELLED.withDescription("server cancelled stream").asRuntimeException());
     }
 
 

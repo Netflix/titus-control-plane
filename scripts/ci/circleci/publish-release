@@ -1,0 +1,23 @@
+#!/bin/bash
+
+set -eu -o pipefail
+
+ci=${CI:-false}
+tag=${CIRCLE_TAG:-}
+
+if ! [[ "$ci" == true && -n "$tag" ]]; then
+  echo "$0 must run in a CI environent" >&2
+  exit 1
+fi
+
+case "$tag" in
+*-rc\.*)
+  ./gradlew -Prelease.useLastTag=true -PbintrayUser="${bintrayUser:-}" -PbintrayKey="${bintrayKey:-}" \
+    -PsonatypeUsername="${sonatypeUsername:-}" -PsonatypePassword="${sonatypePassword:-}" candidate -x test --stacktrace
+  ;;
+*)
+  ./gradlew -Prelease.useLastTag=true -PbintrayUser="${bintrayUser:-}" -PbintrayKey="${bintrayKey:-}" \
+    -PsonatypeUsername="${sonatypeUsername:-}" -PsonatypePassword="${sonatypePassword:-}" final -x test --stacktrace
+  ;;
+esac
+

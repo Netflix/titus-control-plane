@@ -21,6 +21,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import com.netflix.titus.api.agent.model.AgentInstance;
+import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleStatus;
 import com.netflix.titus.api.agent.model.event.AgentEvent;
 import com.netflix.titus.api.model.ResourceDimension;
@@ -30,6 +32,17 @@ import rx.Completable;
 import rx.Observable;
 
 public interface AgentManagementService extends ReadOnlyAgentOperations {
+
+    /**
+     * Returns true if the agent instance group is owned by Fenzo. Only Fenzo owned instance groups are scaled
+     * by the capacity management and cluster operations components.
+     */
+    boolean isOwnedByFenzo(AgentInstanceGroup instanceGroup);
+
+    /**
+     * Returns true if the agent instance owned by Fenzo.
+     */
+    boolean isOwnedByFenzo(AgentInstance instance);
 
     /**
      * For a given instance type, return the maximum amount of resources that can be allocated to a container.

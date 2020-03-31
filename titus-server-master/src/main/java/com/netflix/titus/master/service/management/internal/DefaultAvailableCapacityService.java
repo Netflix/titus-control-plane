@@ -126,7 +126,7 @@ public class DefaultAvailableCapacityService implements AvailableCapacityService
     private ResourceDimension resolveCapacityOf(Tier tier) {
         ResourceDimension total = ResourceDimension.empty();
         for (AgentInstanceGroup instanceGroup : agentManagementService.getInstanceGroups()) {
-            if (instanceGroup.getTier() == tier && isAvailableToUse(instanceGroup)) {
+            if (instanceGroup.getTier() == tier && isAvailableToUse(agentManagementService, instanceGroup)) {
                 Optional<ServerInfo> serverInfo = serverInfoResolver.resolve(instanceGroup.getInstanceType());
                 if (serverInfo.isPresent()) {
                     long maxSize = tier == Tier.Critical ? instanceGroup.getCurrent() : instanceGroup.getMax();

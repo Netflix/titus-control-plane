@@ -44,6 +44,7 @@ import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.store.JobStore;
+import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.common.framework.reconciler.ChangeAction;
 import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
@@ -76,6 +77,7 @@ import org.slf4j.LoggerFactory;
 import rx.Scheduler;
 import rx.schedulers.Schedulers;
 
+import static com.netflix.titus.api.jobmanager.service.JobManagerConstants.RECONCILER_CALLMETADATA;
 import static com.netflix.titus.master.jobmanager.service.batch.action.CreateOrReplaceBatchTaskActions.createOrReplaceTaskAction;
 import static com.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils.getTaskContext;
 import static com.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils.getUnassignedIpAllocations;
@@ -89,7 +91,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
     private final JobManagerConfiguration configuration;
     private final FeatureActivationConfiguration featureConfiguration;
     private final DirectKubeConfiguration kubeConfiguration;
-    private final Predicate<JobDescriptor> kubeSchedulerPredicate;
+    private final Predicate<Pair<JobDescriptor, ApplicationSLA>> kubeSchedulerPredicate;
     private final ApplicationSlaManagementService capacityGroupService;
     private final SchedulingService<? extends TaskRequest> schedulingService;
     private final VirtualMachineMasterService vmService;
@@ -110,7 +112,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
             JobManagerConfiguration configuration,
             FeatureActivationConfiguration featureConfiguration,
             DirectKubeConfiguration kubeConfiguration,
-            @Named(FeatureRolloutPlans.KUBE_SCHEDULER_FEATURE) Predicate<JobDescriptor> kubeSchedulerPredicate,
+            @Named(FeatureRolloutPlans.KUBE_SCHEDULER_FEATURE) Predicate<Pair<JobDescriptor, ApplicationSLA>> kubeSchedulerPredicate,
             ApplicationSlaManagementService capacityGroupService,
             SchedulingService<? extends TaskRequest> schedulingService,
             VirtualMachineMasterService vmService,
@@ -130,7 +132,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
             JobManagerConfiguration configuration,
             FeatureActivationConfiguration featureConfiguration,
             DirectKubeConfiguration kubeConfiguration,
-            @Named(FeatureRolloutPlans.KUBE_SCHEDULER_FEATURE) Predicate<JobDescriptor> kubeSchedulerPredicate,
+            @Named(FeatureRolloutPlans.KUBE_SCHEDULER_FEATURE) Predicate<Pair<JobDescriptor, ApplicationSLA>> kubeSchedulerPredicate,
             ApplicationSlaManagementService capacityGroupService,
             SchedulingService<? extends TaskRequest> schedulingService,
             VirtualMachineMasterService vmService,
@@ -244,7 +246,11 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
         }
 
         Map<String, String> taskContext = getTaskContext(previousTask, unassignedIpAllocations);
-        if (KubeUtil.findFarzoneId(kubeConfiguration, refJobView.getJob()).isPresent() || kubeSchedulerPredicate.test(refJobView.getJob().getJobDescriptor())) {
+
+        JobDescriptor jobDescriptor = refJobView.getJob().getJobDescriptor();
+        ApplicationSLA capacityGroupDescriptor = JobManagerUtil.getCapacityGroupDescriptor(jobDescriptor, capacityGroupService);
+        if (KubeUtil.findFarzoneId(kubeConfiguration, refJobView.getJob()).isPresent()
+                || kubeSchedulerPredicate.test(Pair.of(jobDescriptor, capacityGroupDescriptor))) {
             taskContext = CollectionsExt.copyAndAdd(taskContext, TaskAttributes.TASK_ATTRIBUTES_OWNED_BY_KUBE_SCHEDULER, "true");
         }
 
@@ -262,14 +268,17 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
         List<BatchJobTask> tasks = refJobView.getTasks();
         for (BatchJobTask refTask : tasks) {
             BatchJobTask runningTask = runningJobView.getTaskById(refTask.getId());
-            if (runningTask == null) {
-                if (JobFunctions.isOwnedByKubeScheduler(refTask)) {
+            if (JobFunctions.isOwnedByKubeScheduler(refTask)) {
+                if (runningTask == null || !TaskStatus.hasPod(refTask)) {
                     missingTasks.add(BasicTaskActions.launchTaskInKube(
                             kubeApiServerIntegrator,
                             runningJobView.getJob(),
-                            refTask
+                            refTask,
+                            RECONCILER_CALLMETADATA.toBuilder().withCallReason("Launching task in Kube").build()
                     ));
-                } else {
+                }
+            } else {
+                if (runningTask == null) {
                     missingTasks.add(BasicTaskActions.scheduleTask(capacityGroupService,
                             schedulingService,
                             runningJobView.getJob(),

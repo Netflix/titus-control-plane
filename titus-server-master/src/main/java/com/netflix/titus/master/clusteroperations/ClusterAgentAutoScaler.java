@@ -341,6 +341,7 @@ public class ClusterAgentAutoScaler {
         // return both active and phased out instance groups with active being first in the list
         // in order to scale up active instance groups first.
         return agentManagementService.getInstanceGroups().stream()
+                .filter(agentManagementService::isOwnedByFenzo)
                 .filter(ig -> ig.getLifecycleStatus().getState() == InstanceGroupLifecycleState.Active ||
                         ig.getLifecycleStatus().getState() == InstanceGroupLifecycleState.PhasedOut)
                 .sorted(PREFER_ACTIVE_INSTANCE_GROUP_COMPARATOR)

@@ -41,14 +41,20 @@ public final class Tolerations {
             .operator("Equal")
             .effect("NoSchedule");
 
+    public static final V1Toleration TOLERATION_TIER_CRITICAL = new V1Toleration()
+            .key(KubeConstants.TAINT_TIER)
+            .value("critical")
+            .operator("Equal")
+            .effect("NoSchedule");
+
     public static final Function<String, V1Toleration> TOLERATION_FARZONE_FACTORY = farzoneId -> new V1Toleration()
             .key(KubeConstants.TAINT_FARZONE)
             .value(farzoneId)
             .operator("Equal")
             .effect("NoSchedule");
 
-    public static final V1Toleration TOLERATION_TIER_CRITICAL = new V1Toleration()
-            .key(KubeConstants.TAINT_TIER)
-            .value("critical")
+    public static final V1Toleration TOLERATION_GPU_INSTANCE = new V1Toleration()
+            .key(KubeConstants.TAINT_GPU_INSTANCE)
+            .operator("Exists")
             .effect("NoSchedule");
 }

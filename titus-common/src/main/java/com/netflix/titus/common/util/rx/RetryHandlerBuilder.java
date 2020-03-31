@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import com.google.common.base.Preconditions;
@@ -55,6 +56,7 @@ public final class RetryHandlerBuilder {
     private Action1<Throwable> onErrorHook = e -> {
     };
     private Supplier<Boolean> retryWhenCondition;
+    private Predicate<Throwable> retryOnThrowableCondition;
 
     private RetryHandlerBuilder() {
     }
@@ -118,6 +120,11 @@ public final class RetryHandlerBuilder {
         return this;
     }
 
+    public RetryHandlerBuilder withRetryOnThrowable(Predicate<Throwable> retryOnThrowable) {
+        this.retryOnThrowableCondition = retryOnThrowable;
+        return this;
+    }
+
     public RetryHandlerBuilder but() {
         RetryHandlerBuilder newInstance = new RetryHandlerBuilder();
         newInstance.retryCount = retryCount;
@@ -144,6 +151,15 @@ public final class RetryHandlerBuilder {
                         );
                         return Observable.error(new IOException(errorMessage, retryItem.cause));
                     }
+
+                    if (retryOnThrowableCondition != null && !retryOnThrowableCondition.test(retryItem.cause)) {
+                        String errorMessage = String.format(
+                                "Retry condition for the last error not met for %s. Last error: %s. Returning an error to the caller",
+                                title, retryItem.cause.getMessage()
+                        );
+                        return Observable.error(new IOException(errorMessage, retryItem.cause));
+                    }
+
                     if (retryItem.retry == retryCount) {
                         String errorMessage = String.format(
                                 "Retry limit reached for %s. Last error: %s. Returning an error to the caller",
@@ -178,6 +194,15 @@ public final class RetryHandlerBuilder {
                         );
                         return Flux.error(new IOException(errorMessage, retryItem.cause));
                     }
+
+                    if (retryOnThrowableCondition != null && !retryOnThrowableCondition.test(retryItem.cause)) {
+                        String errorMessage = String.format(
+                                "Retry condition for the last error not met for %s. Last error: %s. Returning an error to the caller",
+                                title, retryItem.cause.getMessage()
+                        );
+                        return Flux.error(new IOException(errorMessage, retryItem.cause));
+                    }
+
                     if (retryItem.retry == retryCount) {
                         String errorMessage = String.format(
                                 "Retry limit reached for %s. Last error: %s. Returning an error to the caller",

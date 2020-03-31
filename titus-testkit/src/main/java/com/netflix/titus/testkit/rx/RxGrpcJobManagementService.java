@@ -55,7 +55,7 @@ public class RxGrpcJobManagementService {
     public Observable<JobId> createJob(JobDescriptor jobDescriptor) {
         return Observable.unsafeCreate(subscriber -> {
             ObservableClientCall.create(
-                    channel.newCall(JobManagementServiceGrpc.METHOD_CREATE_JOB, CallOptions.DEFAULT),
+                    channel.newCall(JobManagementServiceGrpc.getCreateJobMethod(), CallOptions.DEFAULT),
                     jobDescriptor
             ).subscribe(subscriber);
         });
@@ -64,7 +64,7 @@ public class RxGrpcJobManagementService {
     public Observable<JobQueryResult> findJobs(JobQuery query) {
         return Observable.unsafeCreate(subscriber -> {
             ObservableClientCall.create(
-                    channel.newCall(JobManagementServiceGrpc.METHOD_FIND_JOBS, CallOptions.DEFAULT),
+                    channel.newCall(JobManagementServiceGrpc.getFindJobsMethod(), CallOptions.DEFAULT),
                     query
             ).subscribe(subscriber);
         });
@@ -73,7 +73,7 @@ public class RxGrpcJobManagementService {
     public Observable<Job> findJob(JobId jobId) {
         return Observable.unsafeCreate(subscriber -> {
             ObservableClientCall.create(
-                    channel.newCall(JobManagementServiceGrpc.METHOD_FIND_JOB, CallOptions.DEFAULT),
+                    channel.newCall(JobManagementServiceGrpc.getFindJobMethod(), CallOptions.DEFAULT),
                     jobId
             ).subscribe(subscriber);
         });
@@ -82,7 +82,7 @@ public class RxGrpcJobManagementService {
     public Observable<TaskQueryResult> findTasks(TaskQuery query) {
         return Observable.unsafeCreate(subscriber -> {
             ObservableClientCall.create(
-                    channel.newCall(JobManagementServiceGrpc.METHOD_FIND_TASKS, CallOptions.DEFAULT),
+                    channel.newCall(JobManagementServiceGrpc.getFindTasksMethod(), CallOptions.DEFAULT),
                     query
             ).subscribe(subscriber);
         });
@@ -91,7 +91,7 @@ public class RxGrpcJobManagementService {
     public Observable<Task> findTask(TaskId taskId) {
         return Observable.unsafeCreate(subscriber -> {
             ObservableClientCall.create(
-                    channel.newCall(JobManagementServiceGrpc.METHOD_FIND_TASK, CallOptions.DEFAULT),
+                    channel.newCall(JobManagementServiceGrpc.getFindTaskMethod(), CallOptions.DEFAULT),
                     taskId
             ).subscribe(subscriber);
         });
@@ -100,7 +100,7 @@ public class RxGrpcJobManagementService {
     public Observable<Void> updateInServiceStatus(String jobId, boolean inService) {
         return Observable.unsafeCreate(subscriber -> {
             ObservableClientCall.create(
-                    channel.newCall(JobManagementServiceGrpc.METHOD_UPDATE_JOB_STATUS, CallOptions.DEFAULT),
+                    channel.newCall(JobManagementServiceGrpc.getUpdateJobStatusMethod(), CallOptions.DEFAULT),
                     JobStatusUpdate.newBuilder().setId(jobId).setEnableStatus(inService).build()
             ).ignoreElements().cast(Void.class).subscribe(subscriber);
         });
@@ -109,7 +109,7 @@ public class RxGrpcJobManagementService {
     public Observable<Void> updateJobSize(String jobId, int min, int desired, int max) {
         return Observable.unsafeCreate(subscriber -> {
             ObservableClientCall.create(
-                    channel.newCall(JobManagementServiceGrpc.METHOD_UPDATE_JOB_CAPACITY, CallOptions.DEFAULT),
+                    channel.newCall(JobManagementServiceGrpc.getUpdateJobCapacityMethod(), CallOptions.DEFAULT),
                     JobCapacityUpdate.newBuilder()
                             .setJobId(jobId)
                             .setCapacity(Capacity.newBuilder().setMin(min).setDesired(desired).setMax(max))
@@ -121,7 +121,7 @@ public class RxGrpcJobManagementService {
     public Observable<Void> updateJobProcesses(String jobId, boolean disableIncrease, boolean disableDecrease) {
         return Observable.unsafeCreate(subscriber -> {
             ObservableClientCall.create(
-                    channel.newCall(JobManagementServiceGrpc.METHOD_UPDATE_JOB_PROCESSES, CallOptions.DEFAULT),
+                    channel.newCall(JobManagementServiceGrpc.getUpdateJobProcessesMethod(), CallOptions.DEFAULT),
                     JobProcessesUpdate.newBuilder()
                             .setJobId(jobId)
                             .setServiceJobProcesses(ServiceJobSpec.ServiceJobProcesses.newBuilder()
@@ -136,7 +136,7 @@ public class RxGrpcJobManagementService {
     public Observable<Void> killJob(String jobId) {
         return Observable.unsafeCreate(subscriber -> {
             ObservableClientCall.create(
-                    channel.newCall(JobManagementServiceGrpc.METHOD_KILL_JOB, CallOptions.DEFAULT),
+                    channel.newCall(JobManagementServiceGrpc.getKillJobMethod(), CallOptions.DEFAULT),
                     JobId.newBuilder().setId(jobId).build()
             ).ignoreElements().cast(Void.class).subscribe(subscriber);
         });
@@ -145,7 +145,7 @@ public class RxGrpcJobManagementService {
     public Observable<Void> killTask(String taskId, boolean shrink) {
         return Observable.unsafeCreate(subscriber -> {
             ObservableClientCall.create(
-                    channel.newCall(JobManagementServiceGrpc.METHOD_KILL_TASK, CallOptions.DEFAULT),
+                    channel.newCall(JobManagementServiceGrpc.getKillTaskMethod(), CallOptions.DEFAULT),
                     TaskKillRequest.newBuilder().setTaskId(taskId).setShrink(shrink).build()
             ).ignoreElements().cast(Void.class).subscribe(subscriber);
         });
@@ -154,7 +154,7 @@ public class RxGrpcJobManagementService {
     public Observable<JobChangeNotification> observeJobs() {
         return Observable.unsafeCreate(subscriber -> {
             ObservableClientCall.create(
-                    channel.newCall(JobManagementServiceGrpc.METHOD_OBSERVE_JOBS, CallOptions.DEFAULT),
+                    channel.newCall(JobManagementServiceGrpc.getObserveJobsMethod(), CallOptions.DEFAULT),
                     ObserveJobsQuery.newBuilder().build()
             ).subscribe(subscriber);
         });
@@ -163,7 +163,7 @@ public class RxGrpcJobManagementService {
     public Observable<JobChangeNotification> observeJob(JobId jobId) {
         return Observable.unsafeCreate(subscriber -> {
             ObservableClientCall.create(
-                    channel.newCall(JobManagementServiceGrpc.METHOD_OBSERVE_JOB, CallOptions.DEFAULT),
+                    channel.newCall(JobManagementServiceGrpc.getObserveJobMethod(), CallOptions.DEFAULT),
                     jobId
             ).subscribe(subscriber);
         });

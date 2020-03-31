@@ -25,6 +25,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonView;
 import com.netflix.titus.api.json.ObjectMappers;
+import org.springframework.web.context.request.WebRequest;
 
 /**
  * Error representation returned as JSON document for failed REST requests.
@@ -110,6 +111,10 @@ public class ErrorResponse {
 
         public ErrorResponseBuilder clientRequest(HttpServletRequest httpRequest) {
             return withContext(CLIENT_REQUEST, ErrorResponses.buildHttpRequestContext(httpRequest));
+        }
+
+        public ErrorResponseBuilder clientRequest(WebRequest webRequest) {
+            return withContext(CLIENT_REQUEST, ErrorResponses.buildWebRequestContext(webRequest));
         }
 
         public ErrorResponseBuilder threadContext() {

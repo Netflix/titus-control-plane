@@ -20,6 +20,7 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import javax.naming.ServiceUnavailableException;
 
 import org.junit.Test;
 import reactor.core.publisher.Flux;
@@ -51,6 +52,20 @@ public class ReactorRetryHandlerBuilderTest {
                 .expectNext("C")
 
                 .verifyComplete();
+    }
+
+    @Test
+    public void testRetryOnThrowable() {
+        StepVerifier
+                .withVirtualTime(() ->
+                        streamOf("A", new ServiceUnavailableException("Retry me"), "B", new IllegalArgumentException("Do not retry me."), "C")
+                                .retryWhen(newRetryHandlerBuilder().withRetryOnThrowable(ex -> ex instanceof ServiceUnavailableException).buildReactorExponentialBackoff())
+                )
+                .expectNext("A")
+                .expectNoEvent(Duration.ofSeconds(RETRY_DELAY_SEC))
+                .expectNext("B")
+                .expectErrorMatches(e -> e instanceof IOException && e.getCause() instanceof IllegalArgumentException)
+                .verify();
     }
 
     @Test

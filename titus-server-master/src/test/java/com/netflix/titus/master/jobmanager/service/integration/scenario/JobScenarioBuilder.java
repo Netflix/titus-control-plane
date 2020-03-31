@@ -376,7 +376,12 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
     }
 
     public JobScenarioBuilder<E> expectTaskStateChangeEvent(int taskIdx, int resubmit, TaskState taskState) {
-        return expectTaskStateChangeEvent(taskIdx, resubmit, taskState, TaskStatus.REASON_NORMAL);
+        TaskUpdateEvent event = expectTaskEvent(taskIdx, resubmit);
+
+        TaskStatus status = event.getCurrent().getStatus();
+        assertThat(status.getState()).isEqualTo(taskState);
+
+        return this;
     }
 
     public JobScenarioBuilder<E> expectTaskStateChangeEvent(int taskIdx, int resubmit, TaskState taskState, String reasonCode) {
@@ -384,7 +389,7 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
 
         TaskStatus status = event.getCurrent().getStatus();
         assertThat(status.getState()).isEqualTo(taskState);
-        assertThat(reasonCode.equals(status.getReasonCode()));
+        assertThat(status.getReasonCode()).isEqualTo(reasonCode);
 
         return this;
     }
@@ -403,6 +408,8 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
             assertThat(kubeApiServerIntegrator.getPods())
                     .describedAs("Task %s (index %d) is not scheduled yet", task.getId(), taskIdx)
                     .containsKey(task.getId());
+            expectTaskStateChangeEvent(taskIdx, resubmit, TaskState.Accepted, TaskStatus.REASON_POD_CREATED);
+            expectTaskUpdatedInStore(taskIdx, resubmit, t -> assertThat(t.getStatus().getReasonCode()).isEqualTo(TaskStatus.REASON_POD_CREATED));
         } else {
             assertThat(schedulingService.getQueuableTasks().get(task.getId()))
                     .describedAs("Task %s (index %d) is not scheduled yet", task.getId(), taskIdx)

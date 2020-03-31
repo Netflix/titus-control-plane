@@ -1,25 +1,30 @@
 version: 2.1
+
 executors:
   java:
     docker:
-      - image: circleci/openjdk:8-stretch-node-browsers-legacy
-jobs:
-  build:
-    executor: java
+      - image: circleci/openjdk:8-jdk-stretch
     resource_class: xlarge
+    working_directory: "~/workspace/titus-control-plane"
+    environment:
+      DEBIAN_FRONTEND: noninteractive
+      _JAVA_OPTIONS: "-Xms2g -Xmx12g"
+
+commands:
+  run_tests:
+    description: "Run some of the tests in this repo"
+    parameters:
+      target:
+        type: string
+        default: build
+      parallel:
+        type: boolean
+        default: true
     steps:
+      - attach_workspace:
+          at: "~/workspace"
       - run:
-          environment:
-            DEBIAN_FRONTEND: noninteractive
-          command: |
-            sudo apt update
-            sudo apt install -qy ca-certificates git
-      - checkout
-      - restore_cache:
-          keys:
-            - v2-gradle-cache
-      - run:
-          command: ./gradlew testAll --no-daemon --max-workers 2 --stacktrace
+          command: ./gradlew << parameters.target >> <<# parameters.parallel >>--max-workers 4 --parallel <</ parameters.parallel >>--no-daemon --stacktrace
           no_output_timeout: 20m
       - run:
           name: Save test results
@@ -31,10 +36,126 @@ jobs:
           path: ~/test-results
       - store_artifacts:
           path: ~/test-results/junit
+
+jobs:
+  build:
+    executor: java
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v3-gradle-cache
+      - run:
+          command: ./gradlew assemble --max-workers 4 --parallel --stacktrace
       - save_cache:
           paths:
             - ~/.gradle/caches
             - ~/.gradle/wrapper
-          key: v2-gradle-cache
+          key: v3-gradle-cache
           when: on_success
+      - persist_to_workspace:
+          root: "~/workspace"
+          paths:
+            - titus-control-plane
 
+  release:
+    executor: java
+    steps:
+      - attach_workspace:
+          at: "~/workspace"
+      - run:
+          command: ./scripts/ci/circleci/publish-release
+
+  unit:
+    executor: java
+    steps:
+      - run_tests
+
+  integration-no-master:
+    executor: java
+    steps:
+      - run_tests:
+          target: -PintegrationTestScope=excludeMaster integrationTest
+
+  integration-master-1:
+    executor: java
+    steps:
+      - run_tests:
+          target: -PintegrationTestScope=onlyMaster1 integrationTest
+
+  integration-master-2:
+    executor: java
+    steps:
+      - run_tests:
+          target: -PintegrationTestScope=onlyMaster2 integrationTest
+
+  integration-master-3:
+    executor: java
+    steps:
+      - run_tests:
+          target: -PintegrationTestScope=onlyMaster3 integrationTest
+
+  integration-not-parallelizable:
+    executor: java
+    steps:
+      - run_tests:
+          target: integrationNotParallelizableTest
+          parallel: false
+
+  test-docker-compose:
+    docker:
+      - image: cimg/base:2020.01
+    resource_class: medium
+    steps:
+      - checkout
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run: docker-compose config
+      - run: docker-compose build
+      - run: docker-compose up -d
+      - run: docker-compose exec gateway /bin/bash -c "for i in {1..50}; do curl --fail --max-time 10 --connect-timeout 5 http://127.0.0.1:7001/api/v2/status && exit 0 || echo Retrying...; sleep 2; done; exit 1"
+      - run:
+          command: docker-compose logs
+          when: on_fail
+      - run:
+          command: docker-compose down
+          when: always
+
+workflows:
+  build-test:
+    jobs:
+      - build:
+          filters: # required per https://circleci.com/docs/2.0/workflows/#executing-workflows-for-a-git-tag
+            tags:
+              only: /^v.*/
+      - unit:
+          requires:
+            - build
+          filters: # required per https://circleci.com/docs/2.0/workflows/#executing-workflows-for-a-git-tag
+            tags:
+              only: /^v.*/
+      - integration-no-master:
+          requires:
+            - build
+      - integration-master-1:
+          requires:
+            - build
+      - integration-master-2:
+          requires:
+            - build
+      - integration-master-3:
+          requires:
+            - build
+      - integration-not-parallelizable:
+          requires:
+            - build
+      - test-docker-compose
+      - release:
+          requires:
+            - build
+            - unit
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v.*/

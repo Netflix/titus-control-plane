@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Netflix, Inc.
+ * Copyright 2018 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,17 +14,20 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.api.clustermembership.model.event;
+plugins {
+    id 'org.springframework.boot' version "${springBootVersion}"
+}
 
-public class ClusterMembershipDisconnectedEvent extends ClusterMembershipEvent {
+apply plugin: 'io.spring.dependency-management'
 
-    private final Throwable cause;
+configurations.all {
+    exclude group: 'org.apache.logging.log4j', module: 'log4j-to-slf4j'
+}
 
-    ClusterMembershipDisconnectedEvent(Throwable cause) {
-        this.cause = cause;
-    }
+dependencies {
+    compile project(':titus-server-federation')
 
-    public Throwable getCause() {
-        return cause;
-    }
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-tomcat'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
 }
