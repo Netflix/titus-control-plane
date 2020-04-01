@@ -22,7 +22,6 @@ import com.netflix.titus.common.runtime.InternalRuntimeComponent;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorClientFactoryComponent;
 import com.netflix.titus.runtime.connector.common.reactor.GrpcToReactorServerFactoryComponent;
-import com.netflix.titus.runtime.connector.jobmanager.JobManagementDataReplicationComponent;
 import com.netflix.titus.runtime.connector.jobmanager.JobManagerConnectorComponent;
 import com.netflix.titus.runtime.connector.titusmaster.ConfigurationLeaderResolverComponent;
 import com.netflix.titus.runtime.endpoint.common.grpc.GrpcEndpointConfiguration;
@@ -48,7 +47,6 @@ import static com.netflix.titus.runtime.connector.titusmaster.ConfigurationLeade
 
         // Job connector
         JobManagerConnectorComponent.class,
-        JobManagementDataReplicationComponent.class,
 
         RestAddOnsComponent.class
 })

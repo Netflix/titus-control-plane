@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Netflix, Inc.
+ * Copyright 2020 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,18 +16,10 @@
 
 package com.netflix.titus.ext.jooqflyway.jobactivity;
 
-import com.netflix.archaius.api.annotations.Configuration;
-import com.netflix.archaius.api.annotations.DefaultValue;
+import org.postgresql.ssl.WrappedFactory;
 
-@Configuration(prefix = "titus.ext.jooqflyway")
-public interface JooqConfiguration {
-
-    @DefaultValue("jdbc://localhost")
-    String getDatabaseUrl();
-
-    @DefaultValue("false")
-    boolean isInMemoryDb();
-
-    @DefaultValue("jdbc://localhost")
-    String getProducerDatatabaseUrl();
+public class RDSSSLSocketFactory extends WrappedFactory {
+    public RDSSSLSocketFactory() {
+        factory = RdsUtils.createRdsSSLSocketFactory();
+    }
 }

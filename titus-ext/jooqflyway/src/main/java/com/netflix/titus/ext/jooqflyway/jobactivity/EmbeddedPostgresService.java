@@ -60,4 +60,5 @@ public class EmbeddedPostgresService {
         Preconditions.checkNotNull(dataSource, "Embedded Postgres mode not enabled");
         return dataSource;
     }
+
 }

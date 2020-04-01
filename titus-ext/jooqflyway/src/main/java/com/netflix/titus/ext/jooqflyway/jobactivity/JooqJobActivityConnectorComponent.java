@@ -33,7 +33,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
-import org.springframework.stereotype.Component;
 
 
 @Configuration
@@ -64,11 +63,9 @@ public class JooqJobActivityConnectorComponent {
         } else {
             hikariConfig.addDataSourceProperty(PGProperty.SSL.getName(), "true");
             hikariConfig.addDataSourceProperty(PGProperty.SSL_MODE.getName(), "verify-ca");
-            hikariConfig.addDataSourceProperty(PGProperty.SSL_FACTORY.getName(), RdsUtils.createRdsSSLSocketFactory().getClass().getName());
-
+            hikariConfig.addDataSourceProperty(PGProperty.SSL_FACTORY.getName(), RDSSSLSocketFactory.class.getName());
             hikariConfig.setJdbcUrl(jooqConfiguration.getDatabaseUrl());
         }
-
 
         // Connection management
         hikariConfig.setConnectionTimeout(10000);
@@ -96,8 +93,6 @@ public class JooqJobActivityConnectorComponent {
         } catch (SQLException e) {
             throw new IllegalStateException("Cannot initialize connection to Postgres database", e);
         }
-        return new DefaultDSLContext(connectionProvider, SQLDialect.POSTGRES_9_5);
+        return new DefaultDSLContext(connectionProvider, SQLDialect.POSTGRES_10);
     }
-
-
 }
