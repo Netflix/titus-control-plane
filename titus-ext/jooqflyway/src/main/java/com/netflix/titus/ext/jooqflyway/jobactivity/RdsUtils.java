@@ -22,7 +22,7 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 import javax.net.ssl.TrustManagerFactory;
 
-public class RdsUtils {
+public final class RdsUtils {
     /**
      * Setting as a constant as it is not critical.
      */
