@@ -156,6 +156,20 @@ public final class JobAttributes {
     public static final String JOB_PARAMETER_ATTRIBUTES_KILL_WAIT_SECONDS =
             TITUS_PARAMETER_ATTRIBUTE_PREFIX + "agent.killWaitSeconds";
 
+    /*
+     * Log location container attributes (set in {@link Container#getAttributes()}.
+     */
+
+    /**
+     * Custom S3 bucket log location.
+     */
+    public static final String JOB_CONTAINER_ATTRIBUTE_S3_BUCKET_NAME = "titusParameter.agent.log.s3BucketName";
+
+    /**
+     * Custom S3 bucket path prefix.
+     */
+    public static final String JOB_CONTAINER_ATTRIBUTE_S3_PATH_PREFIX = "titusParameter.agent.log.s3PathPrefix";
+
     private JobAttributes() {
     }
 }

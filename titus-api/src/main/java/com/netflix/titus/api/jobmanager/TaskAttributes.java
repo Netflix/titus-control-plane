@@ -63,6 +63,14 @@ public final class TaskAttributes {
     public static final String TASK_ATTRIBUTES_IP_ALLOCATION_ID = "task.ipAllocationId";
     public static final String TASK_ATTRIBUTES_IN_USE_IP_ALLOCATION = "task.ipAllocationAlreadyInUseByTask";
 
+    /*
+     * Log location attributes.
+     */
+
+    public static final String TASK_ATTRIBUTE_S3_BUCKET_NAME = "task.log.s3BucketName";
+
+    public static final String TASK_ATTRIBUTE_S3_PATH_PREFIX = "task.log.s3PathPrefix";
+
     /**
      * Id of the opportunistic allocation used for this task
      */
