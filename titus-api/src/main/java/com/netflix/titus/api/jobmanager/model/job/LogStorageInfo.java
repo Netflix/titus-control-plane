@@ -16,6 +16,7 @@
 
 package com.netflix.titus.api.jobmanager.model.job;
 
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -84,6 +85,38 @@ public interface LogStorageInfo<TASK> {
 
         public String getKey() {
             return key;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            S3LogLocation that = (S3LogLocation) o;
+            return Objects.equals(accountName, that.accountName) &&
+                    Objects.equals(accountId, that.accountId) &&
+                    Objects.equals(region, that.region) &&
+                    Objects.equals(bucket, that.bucket) &&
+                    Objects.equals(key, that.key);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(accountName, accountId, region, bucket, key);
+        }
+
+        @Override
+        public String toString() {
+            return "S3LogLocation{" +
+                    "accountName='" + accountName + '\'' +
+                    ", accountId='" + accountId + '\'' +
+                    ", region='" + region + '\'' +
+                    ", bucket='" + bucket + '\'' +
+                    ", key='" + key + '\'' +
+                    '}';
         }
     }
 

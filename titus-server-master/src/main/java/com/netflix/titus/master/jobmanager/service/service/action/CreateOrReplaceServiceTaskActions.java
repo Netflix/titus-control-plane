@@ -24,6 +24,7 @@ import java.util.UUID;
 
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
+import com.netflix.titus.api.jobmanager.model.job.LogStorageInfos;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobTask;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
@@ -33,6 +34,7 @@ import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.jobmanager.store.JobStore;
 import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
+import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.retry.Retryer;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
@@ -81,7 +83,7 @@ public class CreateOrReplaceServiceTaskActions {
         Retryer nextTaskRetryer = timeInStartedState >= configuration.getTaskRetryerResetTimeMs()
                 ? JobFunctions.retryer(jobHolder.getEntity())
                 : TaskRetryers.getNextTaskRetryer(jobHolder.getEntity(), taskHolder);
-        ServiceJobTask newTask = createServiceTaskReplacement(oldTask, clock.wallTime(), taskContext);
+        ServiceJobTask newTask = createServiceTaskReplacement(jobHolder.getEntity(), oldTask, clock.wallTime(), taskContext);
 
         String summary = String.format(
                 "Replacing service task in DB store: resubmit=%d, originalId=%s, previousId=%s, newId=%s",
@@ -132,11 +134,11 @@ public class CreateOrReplaceServiceTaskActions {
                 .withStatus(TaskStatus.newBuilder().withState(TaskState.Accepted).withReasonCode(TaskStatus.REASON_NORMAL).withTimestamp(timestamp).build())
                 .withOriginalId(taskId)
                 .withCellInfo(job)
-                .addAllToTaskContext(taskContext)
+                .addAllToTaskContext(CollectionsExt.merge(taskContext, LogStorageInfos.toS3LogLocationTaskContext(job)))
                 .build();
     }
 
-    private static ServiceJobTask createServiceTaskReplacement(ServiceJobTask oldTask, long timestamp, Map<String, String> taskContext) {
+    private static ServiceJobTask createServiceTaskReplacement(Job<?> job, ServiceJobTask oldTask, long timestamp, Map<String, String> taskContext) {
         String taskId = UUID.randomUUID().toString();
         return ServiceJobTask.newBuilder()
                 .withId(taskId)
@@ -149,7 +151,7 @@ public class CreateOrReplaceServiceTaskActions {
                 .withSystemResubmitNumber(TaskStatus.hasSystemError(oldTask) ? oldTask.getSystemResubmitNumber() + 1 : oldTask.getSystemResubmitNumber())
                 .withEvictionResubmitNumber(TaskStatus.isEvicted(oldTask
                 ) ? oldTask.getEvictionResubmitNumber() + 1 : oldTask.getEvictionResubmitNumber())
-                .addAllToTaskContext(taskContext)
+                .addAllToTaskContext(CollectionsExt.merge(taskContext, LogStorageInfos.toS3LogLocationTaskContext(job)))
                 .build();
     }
 }

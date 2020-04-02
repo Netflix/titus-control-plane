@@ -24,6 +24,7 @@ import java.util.UUID;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
+import com.netflix.titus.api.jobmanager.model.job.LogStorageInfos;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
@@ -32,6 +33,7 @@ import com.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
 import com.netflix.titus.api.jobmanager.store.JobStore;
 import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ModelActionHolder;
+import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.retry.Retryer;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
@@ -85,7 +87,7 @@ public class CreateOrReplaceBatchTaskActions {
         Retryer nextTaskRetryer = timeInStartedState >= configuration.getTaskRetryerResetTimeMs()
                 ? JobFunctions.retryer(jobHolder.getEntity())
                 : TaskRetryers.getNextTaskRetryer(jobHolder.getEntity(), taskHolder);
-        BatchJobTask newTask = createBatchTaskReplacement(oldTask, clock, taskContext);
+        BatchJobTask newTask = createBatchTaskReplacement(jobHolder.getEntity(), oldTask, clock, taskContext);
 
         String summary = String.format(
                 "Replacing task at index %d (resubmit=%d) in DB store: old=%s, new=%s",
@@ -138,11 +140,11 @@ public class CreateOrReplaceBatchTaskActions {
                 .withStatus(TaskStatus.newBuilder().withState(TaskState.Accepted).withReasonCode(TaskStatus.REASON_NORMAL).withTimestamp(timestamp).build())
                 .withOriginalId(taskId)
                 .withCellInfo(job)
-                .addAllToTaskContext(taskContext)
+                .addAllToTaskContext(CollectionsExt.merge(taskContext, LogStorageInfos.toS3LogLocationTaskContext(job)))
                 .build();
     }
 
-    private static BatchJobTask createBatchTaskReplacement(BatchJobTask oldTask, Clock clock, Map<String, String> taskContext) {
+    private static BatchJobTask createBatchTaskReplacement(Job<?> job, BatchJobTask oldTask, Clock clock, Map<String, String> taskContext) {
         String taskId = UUID.randomUUID().toString();
         return BatchJobTask.newBuilder()
                 .withId(taskId)
@@ -155,7 +157,7 @@ public class CreateOrReplaceBatchTaskActions {
                 .withResubmitNumber(oldTask.getResubmitNumber() + 1)
                 .withSystemResubmitNumber(TaskStatus.hasSystemError(oldTask) ? oldTask.getSystemResubmitNumber() + 1 : oldTask.getSystemResubmitNumber())
                 .withEvictionResubmitNumber(TaskStatus.isEvicted(oldTask) ? oldTask.getEvictionResubmitNumber() + 1 : oldTask.getEvictionResubmitNumber())
-                .addAllToTaskContext(taskContext)
+                .addAllToTaskContext(CollectionsExt.merge(taskContext, LogStorageInfos.toS3LogLocationTaskContext(job)))
                 .build();
     }
 }
