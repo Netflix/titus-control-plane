@@ -16,7 +16,7 @@ include 'titus-common',\
         'titus-server-runtime',\
         'titus-testkit'
 
-['kube'].each {
+['kube', 'elasticsearch'].each {
     def projectName = "titus-common-ext-$it"
     include projectName
 
