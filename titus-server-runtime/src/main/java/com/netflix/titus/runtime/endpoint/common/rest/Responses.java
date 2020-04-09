@@ -24,6 +24,8 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 
 import com.netflix.titus.api.service.TitusServiceException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
@@ -57,6 +59,15 @@ public class Responses {
         }
     }
 
+    public static ResponseEntity<Void> fromVoidMono(Mono<Void> mono, HttpStatus status) {
+        try {
+            mono.timeout(REST_TIMEOUT_DURATION).ignoreElement().block();
+            return ResponseEntity.status(status).build();
+        } catch (Exception e) {
+            throw fromException(e);
+        }
+    }
+
     public static <T> T fromSingleValueObservable(Observable<?> observable) {
         List result = fromObservable(observable);
         if (result.isEmpty()) {
@@ -77,6 +88,15 @@ public class Responses {
             throw fromException(e);
         }
         return Response.status(statusCode).build();
+    }
+
+    public static ResponseEntity<Void> fromCompletable(Completable completable, HttpStatus statusCode) {
+        try {
+            completable.await(1, TimeUnit.MINUTES);
+        } catch (Exception e) {
+            throw fromException(e);
+        }
+        return ResponseEntity.status(statusCode).build();
     }
 
     private static RuntimeException fromException(Exception e) {
