@@ -1,26 +1,99 @@
+/*
+ * Copyright 2020 Netflix, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package com.netflix.titus.ext.elasticsearch;
 
+import java.text.SimpleDateFormat;
 import java.util.List;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.annotations.VisibleForTesting;
+import com.netflix.titus.common.util.jackson.CommonObjectMappers;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.MediaType;
+import org.springframework.web.reactive.function.BodyInserters;
+import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
-public class DefaultEsClient<T> implements EsClient<T> {
+public class DefaultEsClient<T extends EsDoc> implements EsClient<T> {
     private static final Logger logger = LoggerFactory.getLogger(DefaultEsClient.class);
+    private final WebClient client;
+    private final SimpleDateFormat indexDateFormat;
 
-    @Override
-    public Mono<EsIndexResp> indexTaskDocument(T taskDocument) {
-        return Mono.empty();
+    public DefaultEsClient(EsClientConfiguration esClientConfiguration, EsWebClientFactory esWebClientFactory) {
+        client = esWebClientFactory.buildWebClient();
+        indexDateFormat = new SimpleDateFormat(esClientConfiguration.getIndexDatePattern());
     }
 
     @Override
-    public Mono<BulkEsIndexResp> bulkIndexTaskDocument(List<T> taskDocuments) {
-        return Mono.empty();
+    public Mono<EsIndexResp> indexTaskDocument(T document, String indexName, String documentType) {
+        return client.put()
+                .uri(String.format("/%s/%s/%s", indexName, documentType, document.getId()))
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(BodyInserters.fromObject(document))
+                .retrieve()
+                .bodyToMono(EsIndexResp.class);
     }
 
     @Override
-    public Mono<EsRespSrc<T>> findTaskById(String taskId) {
-        return Mono.empty();
+    public Mono<BulkEsIndexResp> bulkIndexTaskDocument(List<T> taskDocuments, String index, String type) {
+        return client.post()
+                .uri("/_bulk")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(BodyInserters.fromObject(buildBulkIndexPayload(taskDocuments, index, type)))
+                .retrieve()
+                .bodyToMono(BulkEsIndexResp.class);
+    }
+
+    @Override
+    public Mono<EsRespSrc<T>> findDocumentById(String id, String index, String type) {
+        return client.get()
+                .uri(uriBuilder -> uriBuilder.path(String.format("%s/%s/%s", index, type, id)).build())
+                .accept(MediaType.APPLICATION_JSON)
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<EsRespSrc<T>>() {
+                });
+    }
+
+    @VisibleForTesting
+    String buildBulkIndexPayload(List<T> tasks, String index, String type) {
+        StringBuilder sb = new StringBuilder();
+
+        final ObjectMapper mapper = CommonObjectMappers.jacksonDefaultMapper();
+
+        tasks.forEach(taskDocument -> {
+            final IndexHeader indexHeader = new IndexHeader();
+            indexHeader.set_id(taskDocument.getId());
+            indexHeader.set_index(index);
+            indexHeader.set_type(type);
+            final IndexHeaderLine indexHeaderLine = new IndexHeaderLine();
+            indexHeaderLine.setIndex(indexHeader);
+            try {
+                final String indexLine = mapper.writeValueAsString(indexHeaderLine);
+                sb.append(indexLine);
+                sb.append("\n");
+                final String fieldsLine = mapper.writeValueAsString(taskDocument);
+                sb.append(fieldsLine);
+                sb.append("\n");
+            } catch (JsonProcessingException e) {
+                logger.error("Exception in transforming taskDocument into JSON ", e);
+            }
+        });
+        return sb.toString();
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Netflix, Inc.
+ * Copyright 2020 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import java.util.List;
 
 import reactor.core.publisher.Mono;
 
-public interface EsClient<T> {
+public interface EsClient<T extends EsDoc> {
     /**
      * Elastic search data model as defined by search API documentation
      * https://www.elastic.co/guide/en/elasticsearch/reference/5.6/search.html
@@ -179,9 +179,9 @@ public interface EsClient<T> {
     }
 
 
-    Mono<EsIndexResp> indexTaskDocument(T taskDocument);
+    Mono<EsIndexResp> indexTaskDocument(T taskDocument, String index, String type);
 
-    Mono<BulkEsIndexResp> bulkIndexTaskDocument(List<T> taskDocuments);
+    Mono<BulkEsIndexResp> bulkIndexTaskDocument(List<T> taskDocuments, String index, String type);
 
-    Mono<EsRespSrc<T>> findTaskById(String taskId);
+    Mono<EsRespSrc<T>> findDocumentById(String id, String index, String type);
 }
