@@ -2,159 +2,39 @@ package com.netflix.titus.ext.elasticsearch;
 
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.List;
 
-import com.netflix.titus.ext.elasticsearch.model.EsRespSrc;
-import org.junit.Before;
 import org.junit.Test;
-import org.springframework.core.ParameterizedTypeReference;
-import reactor.test.StepVerifier;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.Java6Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class DefaultEsClientTest {
-    public static class Payload implements EsDoc {
-        String id;
-        String state;
-        long ts;
-
-        public Payload() {
-        }
-
-        public void setId(String id) {
-            this.id = id;
-        }
-
-        public void setState(String state) {
-            this.state = state;
-        }
-
-        public void setTs(long ts) {
-            this.ts = ts;
-        }
-
-        public Payload(String id, String state, long ts) {
-            this.id = id;
-            this.state = state;
-            this.ts = ts;
-        }
-
-        public String getId() {
-            return id;
-        }
-
-        public String getState() {
-            return state;
-        }
-
-        public long getTs() {
-            return ts;
-        }
-    }
-
-    private DefaultEsClient<Payload> client;
-
-    private EsClientConfiguration localEsClientConfiguration() {
-        return new EsClientConfiguration() {
-            @Override
-            public int getReadTimeoutSeconds() {
-                return 20;
-            }
-
-            @Override
-            public int getConnectTimeoutMillis() {
-                return 1000;
-            }
-
-            @Override
-            public String getEsHostName() {
-                return "localhost";
-            }
-
-            @Override
-            public int getEsPort() {
-                return 9200;
-            }
-        };
-    }
-
-    private static ParameterizedTypeReference<EsRespSrc<Payload>> esRespTypeRef = new ParameterizedTypeReference<EsRespSrc<Payload>>() {
-    };
-
-    @Before
-    public void setup() {
-        client = new DefaultEsClient<>(new DefaultEsWebClientFactory(localEsClientConfiguration()));
+    private EsClientConfiguration getClientConfiguration() {
+        EsClientConfiguration mockConfig = mock(EsClientConfiguration.class);
+        when(mockConfig.getEsHostName()).thenReturn("localhost");
+        when(mockConfig.getEsPort()).thenReturn(9200);
+        return mockConfig;
     }
 
     @Test
-    public void indexDocument() {
-        String index = "jobs";
-        String type = "_doc";
-        String docId = "foo-13";
+    public void bulkIndexPayload() {
+        TestDoc testDoc1 = new TestDoc("id1", "Accepted", Instant.now().getEpochSecond());
+        TestDoc testDoc2 = new TestDoc("id2", "Running", Instant.now().getEpochSecond());
+        TestDoc testDoc3 = new TestDoc("id3", "Stopped", Instant.now().getEpochSecond());
 
-        Payload payload = new Payload(docId, "Accepted", Instant.now().getEpochSecond());
-        client.indexDocument(payload, index, type).block();
+        List<TestDoc> testDocs = Arrays.asList(testDoc1, testDoc2, testDoc3);
 
-        EsRespSrc<Payload> respSrc = client.findDocumentById(docId, index, type, esRespTypeRef).block();
-        assertThat(respSrc).isNotNull();
-        assertThat(respSrc.get_source()).isNotNull();
-
-        Payload payloadResp = respSrc.get_source();
-        assertThat(payloadResp.getId()).isEqualTo(docId);
-    }
-
-    @Test
-    public void bulkIndexDocument() {
-        String index = "jobs";
-        String type = "_doc";
-
-        String id1 = "foo-100";
-        String id2 = "foo-102";
-        String id3 = "foo-104";
-
-        String id1State = "Running";
-        String id2State = "Starting";
-        String id3State = "Queued";
-
-        Payload payload1 = new Payload(id1, id1State, Instant.now().getEpochSecond());
-        Payload payload2 = new Payload(id2, id2State, Instant.now().getEpochSecond());
-        Payload payload3 = new Payload(id3, id3State, Instant.now().getEpochSecond());
-
-        StepVerifier.create(client.bulkIndexDocuments(Arrays.asList(payload1, payload2, payload3), index, type))
-                .assertNext(bulkEsIndexResp -> {
-                    assertThat(bulkEsIndexResp.getItems()).isNotNull();
-                    assertThat(bulkEsIndexResp.getItems().size()).isGreaterThan(0);
-                })
-                .verifyComplete();
-
-        StepVerifier.create(client.getTotalDocumentCount(index, type))
-                .assertNext(esRespCount -> {
-                    assertThat(esRespCount).isNotNull();
-                    assertThat(esRespCount.getCount()).isGreaterThan(0);
-                })
-                .verifyComplete();
-
-        StepVerifier.create(client.findDocumentById(id1, index, type, esRespTypeRef))
-                .assertNext(payloadEsRespSrc -> {
-                    assertThat(payloadEsRespSrc.get_source()).isNotNull();
-                    assertThat(payloadEsRespSrc.get_source().getId()).isEqualTo(id1);
-                    assertThat(payloadEsRespSrc.get_source().getState()).isEqualTo(id1State);
-                })
-                .verifyComplete();
-
-        StepVerifier.create(client.findDocumentById(id2, index, type, esRespTypeRef))
-                .assertNext(payloadEsRespSrc -> {
-                    assertThat(payloadEsRespSrc.get_source()).isNotNull();
-                    assertThat(payloadEsRespSrc.get_source().getId()).isEqualTo(id2);
-                    assertThat(payloadEsRespSrc.get_source().getState()).isEqualTo(id2State);
-                })
-                .verifyComplete();
-
-        StepVerifier.create(client.findDocumentById(id3, index, type, esRespTypeRef))
-                .assertNext(payloadEsRespSrc -> {
-                    assertThat(payloadEsRespSrc.get_source()).isNotNull();
-                    assertThat(payloadEsRespSrc.get_source().getId()).isEqualTo(id3);
-                    assertThat(payloadEsRespSrc.get_source().getState()).isEqualTo(id3State);
-                })
-                .verifyComplete();
+        DefaultEsWebClientFactory defaultEsWebClientFactory = new DefaultEsWebClientFactory(getClientConfiguration());
+        DefaultEsClient<TestDoc> esClient = new DefaultEsClient<>(defaultEsWebClientFactory);
+        final String bulkIndexPayload = esClient.buildBulkIndexPayload(testDocs, "titustasks", "default");
+        assertThat(bulkIndexPayload).isNotNull();
+        assertThat(bulkIndexPayload).isNotEmpty();
+        final String[] payloadLines = bulkIndexPayload.split("\n");
+        assertThat(payloadLines.length).isEqualTo(testDocs.size() * 2);
+        assertThat(payloadLines[0]).contains("index");
+        assertThat(payloadLines[2]).contains("index");
+        assertThat(payloadLines[4]).contains("index");
     }
 }
