@@ -15,13 +15,15 @@
  */
 package com.netflix.titus.ext.elasticsearch;
 
-import java.text.SimpleDateFormat;
+import java.lang.reflect.Type;
 import java.util.List;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.netflix.titus.common.util.jackson.CommonObjectMappers;
+import com.netflix.titus.ext.elasticsearch.model.EsRespCount;
+import com.netflix.titus.ext.elasticsearch.model.EsRespSrc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.ParameterizedTypeReference;
@@ -33,40 +35,48 @@ import reactor.core.publisher.Mono;
 public class DefaultEsClient<T extends EsDoc> implements EsClient<T> {
     private static final Logger logger = LoggerFactory.getLogger(DefaultEsClient.class);
     private final WebClient client;
-    private final SimpleDateFormat indexDateFormat;
 
-    public DefaultEsClient(EsClientConfiguration esClientConfiguration, EsWebClientFactory esWebClientFactory) {
+    public DefaultEsClient(EsWebClientFactory esWebClientFactory) {
         client = esWebClientFactory.buildWebClient();
-        indexDateFormat = new SimpleDateFormat(esClientConfiguration.getIndexDatePattern());
     }
 
     @Override
-    public Mono<EsIndexResp> indexTaskDocument(T document, String indexName, String documentType) {
-        return client.put()
+    public Mono<EsIndexResp> indexDocument(T document, String indexName, String documentType) {
+        return client.post()
                 .uri(String.format("/%s/%s/%s", indexName, documentType, document.getId()))
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(BodyInserters.fromObject(document))
+                .body(BodyInserters.fromValue(document))
                 .retrieve()
                 .bodyToMono(EsIndexResp.class);
     }
 
     @Override
-    public Mono<BulkEsIndexResp> bulkIndexTaskDocument(List<T> taskDocuments, String index, String type) {
+    public Mono<BulkEsIndexResp> bulkIndexDocument(List<T> taskDocuments, String index, String type) {
         return client.post()
                 .uri("/_bulk")
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(BodyInserters.fromObject(buildBulkIndexPayload(taskDocuments, index, type)))
+                .body(BodyInserters.fromValue(buildBulkIndexPayload(taskDocuments, index, type)))
                 .retrieve()
                 .bodyToMono(BulkEsIndexResp.class);
     }
 
     @Override
-    public Mono<EsRespSrc<T>> findDocumentById(String id, String index, String type) {
+    public Mono<EsRespSrc<T>> findDocumentById(String id, String index, String type,
+                                               ParameterizedTypeReference<EsRespSrc<T>> responseTypeRef) {
         return client.get()
                 .uri(uriBuilder -> uriBuilder.path(String.format("%s/%s/%s", index, type, id)).build())
                 .accept(MediaType.APPLICATION_JSON)
                 .retrieve()
-                .bodyToMono(new ParameterizedTypeReference<EsRespSrc<T>>() {
+                .bodyToMono(responseTypeRef);
+    }
+
+    @Override
+    public Mono<EsRespCount> getTotalDocumentCount(String index, String type) {
+        return client.get()
+                .uri(uriBuilder -> uriBuilder.path(String.format("%s/%s/_count", index, type)).build())
+                .accept(MediaType.APPLICATION_JSON)
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<EsRespCount>() {
                 });
     }
 

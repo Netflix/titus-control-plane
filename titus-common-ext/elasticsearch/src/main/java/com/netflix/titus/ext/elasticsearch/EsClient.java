@@ -18,70 +18,12 @@ package com.netflix.titus.ext.elasticsearch;
 
 import java.util.List;
 
+import com.netflix.titus.ext.elasticsearch.model.EsRespCount;
+import com.netflix.titus.ext.elasticsearch.model.EsRespSrc;
+import org.springframework.core.ParameterizedTypeReference;
 import reactor.core.publisher.Mono;
 
 public interface EsClient<T extends EsDoc> {
-    /**
-     * Elastic search data model as defined by search API documentation
-     * https://www.elastic.co/guide/en/elasticsearch/reference/5.6/search.html
-     */
-    class EsSearchResp<T> {
-        EsRespHits<T> hits;
-
-        public EsRespHits getHits() {
-            return hits;
-        }
-
-        public void setHits(EsRespHits hits) {
-            this.hits = hits;
-        }
-
-        @Override
-        public String toString() {
-            return "EsSearchResp{" +
-                    "hits=" + hits +
-                    '}';
-        }
-    }
-
-    class EsRespHits<T> {
-        List<EsRespSrc<T>> hits;
-
-        public List<EsRespSrc<T>> getHits() {
-            return hits;
-        }
-
-        public void setHits(List<EsRespSrc<T>> hits) {
-            this.hits = hits;
-        }
-
-        @Override
-        public String toString() {
-            return "EsRespHits{" +
-                    "hits=" + hits +
-                    '}';
-        }
-    }
-
-    class EsRespSrc<T> {
-        T _source;
-
-        public T get_source() {
-            return _source;
-        }
-
-        public void set_source(T _source) {
-            this._source = _source;
-        }
-
-        @Override
-        public String toString() {
-            return "EsRespSrc{" +
-                    "_source=" + _source +
-                    '}';
-        }
-    }
-
     class EsIndexResp {
         boolean created;
         String result;
@@ -179,9 +121,12 @@ public interface EsClient<T extends EsDoc> {
     }
 
 
-    Mono<EsIndexResp> indexTaskDocument(T taskDocument, String index, String type);
+    Mono<EsIndexResp> indexDocument(T document, String indexName, String documentType);
 
-    Mono<BulkEsIndexResp> bulkIndexTaskDocument(List<T> taskDocuments, String index, String type);
+    Mono<BulkEsIndexResp> bulkIndexDocument(List<T> documents, String index, String type);
 
-    Mono<EsRespSrc<T>> findDocumentById(String id, String index, String type);
+    Mono<EsRespSrc<T>> findDocumentById(String id, String index, String type,
+                                        ParameterizedTypeReference<EsRespSrc<T>> responseTypeRef);
+
+    Mono<EsRespCount> getTotalDocumentCount(String index, String type);
 }
