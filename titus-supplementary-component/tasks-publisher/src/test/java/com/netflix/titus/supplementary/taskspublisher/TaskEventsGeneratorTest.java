@@ -23,10 +23,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import com.netflix.spectator.api.DefaultRegistry;
+import com.netflix.titus.ext.elasticsearch.EsClient;
+import com.netflix.titus.ext.elasticsearch.model.BulkEsIndexResp;
+import com.netflix.titus.ext.elasticsearch.model.BulkEsIndexRespItem;
+import com.netflix.titus.ext.elasticsearch.model.EsIndexResp;
 import com.netflix.titus.runtime.endpoint.common.EmptyLogStorageInfo;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import com.netflix.titus.supplementary.taskspublisher.TitusClient.JobOrTaskUpdate;
-import com.netflix.titus.supplementary.taskspublisher.es.EsClient;
+import com.netflix.titus.supplementary.taskspublisher.config.EsPublisherConfiguration;
 import com.netflix.titus.supplementary.taskspublisher.es.EsPublisher;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import org.junit.Test;
@@ -53,24 +57,31 @@ public class TaskEventsGeneratorTest {
         return titusClient;
     }
 
-    private EsClient mockElasticSearchClient() {
-        EsClient esClient = mock(EsClient.class);
-        when(esClient.bulkIndexTaskDocument(anyList())).thenAnswer((Answer<Mono<EsClient.BulkEsIndexResp>>) invocation -> {
+    private EsClient<TaskDocument> mockElasticSearchClient() {
+        EsClient<TaskDocument> esClient = mock(EsClient.class);
+        when(esClient.bulkIndexDocuments(anyList(), anyString(), anyString())).thenAnswer((Answer<Mono<BulkEsIndexResp>>) invocation -> {
             final List<TaskDocument> documents = invocation.getArgument(0);
-            final List<EsClient.BulkEsIndexRespItem> bulkEsIndexRespItemList = documents.stream().map(doc -> {
-                final EsClient.BulkEsIndexRespItem bulkEsIndexRespItem = new EsClient.BulkEsIndexRespItem();
-                bulkEsIndexRespItem.setIndex(new EsClient.EsIndexResp());
+            final List<BulkEsIndexRespItem> bulkEsIndexRespItemList = documents.stream().map(doc -> {
+                final BulkEsIndexRespItem bulkEsIndexRespItem = new BulkEsIndexRespItem();
+                bulkEsIndexRespItem.setIndex(new EsIndexResp());
                 bulkEsIndexRespItem.getIndex().setCreated(true);
                 bulkEsIndexRespItem.getIndex().setResult("created");
                 bulkEsIndexRespItem.getIndex().set_id(doc.getId());
                 return bulkEsIndexRespItem;
             }).collect(Collectors.toList());
 
-            final EsClient.BulkEsIndexResp bulkEsIndexResp = new EsClient.BulkEsIndexResp();
+            final BulkEsIndexResp bulkEsIndexResp = new BulkEsIndexResp();
             bulkEsIndexResp.setItems(bulkEsIndexRespItemList);
             return Mono.just(bulkEsIndexResp);
         });
         return esClient;
+    }
+
+    private EsPublisherConfiguration mockEsPublisherConfiguration() {
+        EsPublisherConfiguration mockConfig = mock(EsPublisherConfiguration.class);
+        when(mockConfig.getTaskDocumentEsIndexName()).thenReturn("tasks_");
+        when(mockConfig.getTaskDocumentEsIndexDateSuffixPattern()).thenReturn("yyyyMM");
+        return mockConfig;
     }
 
     @Test
@@ -80,7 +91,8 @@ public class TaskEventsGeneratorTest {
                 mockTitusClient(numTasks),
                 Collections.emptyMap());
 
-        EsPublisher esPublisher = new EsPublisher(taskEventsGenerator, mockElasticSearchClient(), new DefaultRegistry());
+        EsPublisher esPublisher = new EsPublisher(taskEventsGenerator, mockElasticSearchClient(),
+                mockEsPublisherConfiguration(), new DefaultRegistry());
         esPublisher.activate();
 
         final CountDownLatch latch = new CountDownLatch(1);

@@ -39,7 +39,7 @@ public class DefaultEsWebClientFactory implements EsWebClientFactory {
 
 
     @VisibleForTesting
-    String buildEsUrl() {
+    public String buildEsUrl() {
         return String.format("http://%s:%s", esClientConfiguration.getEsHostName(),
                 esClientConfiguration.getEsPort());
     }

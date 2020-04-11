@@ -30,12 +30,6 @@ public class EsPublisherConfiguration {
     @Value("${netflix.region}")
     private String region;
 
-    @Value("${titus.es.host}")
-    private String esHostName;
-
-    @Value("${titus.es.port}")
-    private int esPort;
-
     @Value("${titus.es.taskDocumentEsIndexDateSuffixPattern}")
     private String taskDocumentEsIndexDateSuffixPattern;
 
@@ -63,14 +57,6 @@ public class EsPublisherConfiguration {
 
     public String getRegion() {
         return region;
-    }
-
-    public String getEsHostName() {
-        return esHostName;
-    }
-
-    public int getEsPort() {
-        return esPort;
     }
 
     public boolean isEnabled() {

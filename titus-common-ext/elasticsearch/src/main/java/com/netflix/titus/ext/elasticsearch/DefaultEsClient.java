@@ -15,15 +15,17 @@
  */
 package com.netflix.titus.ext.elasticsearch;
 
-import java.lang.reflect.Type;
 import java.util.List;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.annotations.VisibleForTesting;
 import com.netflix.titus.common.util.jackson.CommonObjectMappers;
+import com.netflix.titus.ext.elasticsearch.model.BulkEsIndexResp;
+import com.netflix.titus.ext.elasticsearch.model.EsIndexResp;
 import com.netflix.titus.ext.elasticsearch.model.EsRespCount;
 import com.netflix.titus.ext.elasticsearch.model.EsRespSrc;
+import com.netflix.titus.ext.elasticsearch.model.IndexHeaderLine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.core.ParameterizedTypeReference;
@@ -51,7 +53,7 @@ public class DefaultEsClient<T extends EsDoc> implements EsClient<T> {
     }
 
     @Override
-    public Mono<BulkEsIndexResp> bulkIndexDocument(List<T> taskDocuments, String index, String type) {
+    public Mono<BulkEsIndexResp> bulkIndexDocuments(List<T> taskDocuments, String index, String type) {
         return client.post()
                 .uri("/_bulk")
                 .contentType(MediaType.APPLICATION_JSON)

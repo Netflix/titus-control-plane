@@ -40,6 +40,7 @@ import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.common.util.StringExt;
+import com.netflix.titus.ext.elasticsearch.EsDoc;
 
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_ASG;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST;
@@ -57,7 +58,7 @@ import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_NORMA
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_SCALED_DOWN;
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TASK_KILLED;
 
-public class TaskDocument {
+public class TaskDocument implements EsDoc {
 
     private String id;
     private String instanceId;

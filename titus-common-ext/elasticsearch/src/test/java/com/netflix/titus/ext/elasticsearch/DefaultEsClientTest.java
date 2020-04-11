@@ -119,10 +119,10 @@ public class DefaultEsClientTest {
         Payload payload2 = new Payload(id2, id2State, Instant.now().getEpochSecond());
         Payload payload3 = new Payload(id3, id3State, Instant.now().getEpochSecond());
 
-        StepVerifier.create(client.bulkIndexDocument(Arrays.asList(payload1, payload2, payload3), index, type))
+        StepVerifier.create(client.bulkIndexDocuments(Arrays.asList(payload1, payload2, payload3), index, type))
                 .assertNext(bulkEsIndexResp -> {
-                    assertThat(bulkEsIndexResp.items).isNotNull();
-                    assertThat(bulkEsIndexResp.items.size()).isGreaterThan(0);
+                    assertThat(bulkEsIndexResp.getItems()).isNotNull();
+                    assertThat(bulkEsIndexResp.getItems().size()).isGreaterThan(0);
                 })
                 .verifyComplete();
 

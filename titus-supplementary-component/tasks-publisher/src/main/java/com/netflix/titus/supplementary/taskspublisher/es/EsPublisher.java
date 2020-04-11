@@ -15,6 +15,7 @@
  */
 package com.netflix.titus.supplementary.taskspublisher.es;
 
+import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -24,10 +25,12 @@ import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.patterns.PolledMeter;
 import com.netflix.titus.api.common.LeaderActivationListener;
 import com.netflix.titus.common.util.rx.ReactorExt;
+import com.netflix.titus.ext.elasticsearch.EsClient;
 import com.netflix.titus.supplementary.taskspublisher.TaskDocument;
 import com.netflix.titus.supplementary.taskspublisher.TaskEventsGenerator;
 import com.netflix.titus.supplementary.taskspublisher.TaskPublisherRetryUtil;
 import com.netflix.titus.supplementary.taskspublisher.TasksPublisher;
+import com.netflix.titus.supplementary.taskspublisher.config.EsPublisherConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
@@ -36,20 +39,27 @@ import reactor.core.publisher.ConnectableFlux;
 public class EsPublisher implements TasksPublisher, LeaderActivationListener {
     private static final Logger logger = LoggerFactory.getLogger(EsPublisher.class);
     private static final int MAX_CONCURRENCY = 20;
-    private TaskEventsGenerator taskEventsGenerator;
-    private final EsClient esClient;
-    private Registry registry;
+    private static final String ES_RECORD_TYPE = "default";
+
+    private final TaskEventsGenerator taskEventsGenerator;
+    private final EsClient<TaskDocument> esClient;
+    private final EsPublisherConfiguration esPublisherConfiguration;
+    private final Registry registry;
 
     private AtomicInteger numErrors = new AtomicInteger(0);
     private AtomicInteger numTasksUpdated = new AtomicInteger(0);
     private AtomicLong lastPublishedTimestamp;
     private Disposable subscription;
     private Disposable taskEventsSourceConnection;
+    private final SimpleDateFormat indexDateFormat;
 
 
-    public EsPublisher(TaskEventsGenerator taskEventsGenerator, EsClient esClient, Registry registry) {
+    public EsPublisher(TaskEventsGenerator taskEventsGenerator, EsClient<TaskDocument> esClient,
+                       EsPublisherConfiguration esPublisherConfiguration, Registry registry) {
         this.taskEventsGenerator = taskEventsGenerator;
         this.esClient = esClient;
+        this.esPublisherConfiguration = esPublisherConfiguration;
+        this.indexDateFormat = new SimpleDateFormat(esPublisherConfiguration.getTaskDocumentEsIndexDateSuffixPattern());
         this.registry = registry;
         configureMetrics();
     }
@@ -59,7 +69,10 @@ public class EsPublisher implements TasksPublisher, LeaderActivationListener {
         ConnectableFlux<TaskDocument> taskEvents = taskEventsGenerator.getTaskEvents();
         subscription = taskEvents.bufferTimeout(100, Duration.ofSeconds(5))
                 .flatMap(taskDocuments ->
-                                esClient.bulkIndexTaskDocument(taskDocuments)
+                                esClient.bulkIndexDocuments(
+                                        taskDocuments,
+                                        ElasticSearchUtils.buildEsIndexNameCurrent(esPublisherConfiguration.getTaskDocumentEsIndexName(), indexDateFormat),
+                                        ES_RECORD_TYPE)
                                         .retryWhen(TaskPublisherRetryUtil.buildRetryHandler(
                                                 TaskPublisherRetryUtil.INITIAL_RETRY_DELAY_MS,
                                                 TaskPublisherRetryUtil.MAX_RETRY_DELAY_MS, 3)),
@@ -71,11 +84,11 @@ public class EsPublisher implements TasksPublisher, LeaderActivationListener {
                 .retryWhen(TaskPublisherRetryUtil.buildRetryHandler(TaskPublisherRetryUtil.INITIAL_RETRY_DELAY_MS,
                         TaskPublisherRetryUtil.MAX_RETRY_DELAY_MS, -1))
                 .subscribe(bulkIndexResp -> {
-                            logger.info("Received bulk response for {} items", bulkIndexResp.items.size());
+                            logger.info("Received bulk response for {} items", bulkIndexResp.getItems().size());
                             lastPublishedTimestamp.set(registry.clock().wallTime());
-                            bulkIndexResp.items.forEach(bulkEsIndexRespItem -> {
-                                String indexedItemId = bulkEsIndexRespItem.index._id;
-                                logger.info("Index result <{}> for task ID {}", bulkEsIndexRespItem.index.result, indexedItemId);
+                            bulkIndexResp.getItems().forEach(bulkEsIndexRespItem -> {
+                                String indexedItemId = bulkEsIndexRespItem.getIndex().get_id();
+                                logger.info("Index result <{}> for task ID {}", bulkEsIndexRespItem.getIndex().getResult(), indexedItemId);
                                 numTasksUpdated.incrementAndGet();
                             });
                         },

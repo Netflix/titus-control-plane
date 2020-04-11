@@ -16,7 +16,10 @@
 package com.netflix.titus.supplementary.taskspublisher.es;
 
 import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.TimeZone;
+
+import com.google.common.annotations.VisibleForTesting;
 
 public class ElasticSearchUtils {
     public static final SimpleDateFormat DATE_FORMAT;
@@ -24,5 +27,9 @@ public class ElasticSearchUtils {
     static {
         DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
         DATE_FORMAT.setTimeZone(TimeZone.getTimeZone("UTC"));
+    }
+
+    public static String buildEsIndexNameCurrent(String esIndexPrefix, SimpleDateFormat indexDateFormatSuffix) {
+        return String.format("%s%s", esIndexPrefix, indexDateFormatSuffix.format(new Date()));
     }
 }

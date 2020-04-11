@@ -9,6 +9,10 @@ import java.util.stream.Collectors;
 
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.ext.elasticsearch.DefaultEsClient;
+import com.netflix.titus.ext.elasticsearch.DefaultEsWebClientFactory;
+import com.netflix.titus.ext.elasticsearch.EsClient;
+import com.netflix.titus.ext.elasticsearch.EsClientConfiguration;
 import com.netflix.titus.supplementary.taskspublisher.TaskDocument;
 import com.netflix.titus.supplementary.taskspublisher.config.EsPublisherConfiguration;
 import com.netflix.titus.testkit.model.job.JobGenerator;
@@ -19,32 +23,18 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class EsClientHttpTest {
-    private EsPublisherConfiguration getConfig() {
+    private EsPublisherConfiguration getEsPublisherConfiguration() {
         final EsPublisherConfiguration esPublisherConfiguration = mock(EsPublisherConfiguration.class);
-        when(esPublisherConfiguration.getEsHostName()).thenReturn("localhost");
-        when(esPublisherConfiguration.getEsPort()).thenReturn(9200);
         when(esPublisherConfiguration.getTaskDocumentEsIndexDateSuffixPattern()).thenReturn("yyyyMM");
         when(esPublisherConfiguration.getTaskDocumentEsIndexName()).thenReturn("titustasks_");
         return esPublisherConfiguration;
     }
 
-    @Test
-    public void verifyEsHost() {
-        final DefaultEsWebClientFactory defaultEsWebClientFactory = new DefaultEsWebClientFactory(getConfig());
-        String esUri = defaultEsWebClientFactory.buildEsUrl();
-        assertThat(esUri).isEqualTo("http://localhost:9200");
-    }
-
-
-    @Test
-    public void verifyCurrentEsIndexName() {
-        String monthlySuffix = new SimpleDateFormat("yyyyMM").format(new Date());
-
-        final EsClientHttp esClientHttp = new EsClientHttp(getConfig(), new DefaultEsWebClientFactory(getConfig()));
-        final String esIndexNameCurrent = esClientHttp.buildEsIndexNameCurrent();
-        assertThat(esIndexNameCurrent).isNotNull();
-        assertThat(esIndexNameCurrent).isNotEmpty();
-        assertThat(esIndexNameCurrent).isEqualTo(String.format("titustasks_%s", monthlySuffix));
+    private EsClientConfiguration getClientConfiguration() {
+        EsClientConfiguration mockConfig = mock(EsClientConfiguration.class);
+        when(mockConfig.getEsHostName()).thenReturn("localhost");
+        when(mockConfig.getEsPort()).thenReturn(9200);
+        return mockConfig;
     }
 
     @Test
@@ -60,8 +50,9 @@ public class EsClientHttpTest {
                         Collections.emptyMap()))
                 .collect(Collectors.toList());
 
-        final EsClientHttp esClientHttp = new EsClientHttp(getConfig(), new DefaultEsWebClientFactory(getConfig()));
-        final String bulkIndexPayload = esClientHttp.buildBulkIndexPayload(taskDocuments, "titustasks");
+        DefaultEsWebClientFactory defaultEsWebClientFactory = new DefaultEsWebClientFactory(getClientConfiguration());
+        EsClient<TaskDocument> esClient = new DefaultEsClient<>(defaultEsWebClientFactory);
+        final String bulkIndexPayload = esClient.buildBulkIndexPayload(taskDocuments, "titustasks");
         assertThat(bulkIndexPayload).isNotNull();
         assertThat(bulkIndexPayload).isNotEmpty();
         final String[] payloadLines = bulkIndexPayload.split("\n");

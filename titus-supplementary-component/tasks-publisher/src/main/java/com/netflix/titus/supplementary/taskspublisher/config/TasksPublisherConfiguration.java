@@ -19,17 +19,19 @@ import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 
 import com.netflix.spectator.api.DefaultRegistry;
+import com.netflix.titus.ext.elasticsearch.DefaultEsClient;
+import com.netflix.titus.ext.elasticsearch.DefaultEsWebClientFactory;
+import com.netflix.titus.ext.elasticsearch.EsClient;
+import com.netflix.titus.ext.elasticsearch.EsClientConfiguration;
+import com.netflix.titus.ext.elasticsearch.EsWebClientFactory;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceFutureStub;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
-import com.netflix.titus.supplementary.taskspublisher.es.DefaultEsWebClientFactory;
-import com.netflix.titus.supplementary.taskspublisher.es.EsClient;
-import com.netflix.titus.supplementary.taskspublisher.es.EsClientHttp;
-import com.netflix.titus.supplementary.taskspublisher.es.EsPublisher;
-import com.netflix.titus.supplementary.taskspublisher.es.EsWebClientFactory;
+import com.netflix.titus.supplementary.taskspublisher.TaskDocument;
 import com.netflix.titus.supplementary.taskspublisher.TaskEventsGenerator;
 import com.netflix.titus.supplementary.taskspublisher.TitusClient;
 import com.netflix.titus.supplementary.taskspublisher.TitusClientImpl;
+import com.netflix.titus.supplementary.taskspublisher.es.EsPublisher;
 import io.grpc.ManagedChannel;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import io.grpc.util.RoundRobinLoadBalancerFactory;
@@ -59,6 +61,9 @@ public class TasksPublisherConfiguration {
     @Autowired
     private EsPublisherConfiguration esPublisherConfiguration;
 
+    @Autowired
+    private EsClientConfiguration esClientConfiguration;
+
 
     @Bean
     @ConditionalOnMissingBean
@@ -80,14 +85,14 @@ public class TasksPublisherConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public EsClient getEsClient() {
-        return new EsClientHttp(esPublisherConfiguration, getEsWebClientFactory());
+    public EsClient<TaskDocument> getEsClient() {
+        return new DefaultEsClient<>(getEsWebClientFactory());
     }
 
     @Bean
     @ConditionalOnMissingBean
     public EsWebClientFactory getEsWebClientFactory() {
-        return new DefaultEsWebClientFactory(esPublisherConfiguration);
+        return new DefaultEsWebClientFactory(esClientConfiguration);
     }
 
     @Bean
@@ -99,7 +104,7 @@ public class TasksPublisherConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public EsPublisher getEsPublisher() {
-        return new EsPublisher(getTaskEventsGenerator(), getEsClient(), new DefaultRegistry());
+        return new EsPublisher(getTaskEventsGenerator(), getEsClient(), esPublisherConfiguration, new DefaultRegistry());
     }
 
 

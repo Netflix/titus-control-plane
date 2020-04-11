@@ -18,112 +18,17 @@ package com.netflix.titus.ext.elasticsearch;
 
 import java.util.List;
 
+import com.netflix.titus.ext.elasticsearch.model.BulkEsIndexResp;
+import com.netflix.titus.ext.elasticsearch.model.EsIndexResp;
 import com.netflix.titus.ext.elasticsearch.model.EsRespCount;
 import com.netflix.titus.ext.elasticsearch.model.EsRespSrc;
 import org.springframework.core.ParameterizedTypeReference;
 import reactor.core.publisher.Mono;
 
 public interface EsClient<T extends EsDoc> {
-    class EsIndexResp {
-        boolean created;
-        String result;
-        String _id;
-
-        public boolean isCreated() {
-            return created;
-        }
-
-        public void setCreated(boolean created) {
-            this.created = created;
-        }
-
-        public String getResult() {
-            return result;
-        }
-
-        public void setResult(String result) {
-            this.result = result;
-        }
-
-        public String get_id() {
-            return _id;
-        }
-
-        public void set_id(String _id) {
-            this._id = _id;
-        }
-    }
-
-    class BulkEsIndexRespItem {
-        EsIndexResp index;
-
-        public EsIndexResp getIndex() {
-            return index;
-        }
-
-        public void setIndex(EsIndexResp index) {
-            this.index = index;
-        }
-    }
-
-    class BulkEsIndexResp {
-        List<BulkEsIndexRespItem> items;
-
-        public List<BulkEsIndexRespItem> getItems() {
-            return items;
-        }
-
-        public void setItems(List<BulkEsIndexRespItem> items) {
-            this.items = items;
-        }
-    }
-
-    class IndexHeaderLine {
-        private IndexHeader index;
-
-        public IndexHeader getIndex() {
-            return index;
-        }
-
-        public void setIndex(IndexHeader index) {
-            this.index = index;
-        }
-    }
-
-    class IndexHeader {
-        private String _index;
-        private String _type;
-        private String _id;
-
-        public String get_index() {
-            return _index;
-        }
-
-        public void set_index(String _index) {
-            this._index = _index;
-        }
-
-        public String get_type() {
-            return _type;
-        }
-
-        public void set_type(String _type) {
-            this._type = _type;
-        }
-
-        public String get_id() {
-            return _id;
-        }
-
-        public void set_id(String _id) {
-            this._id = _id;
-        }
-    }
-
-
     Mono<EsIndexResp> indexDocument(T document, String indexName, String documentType);
 
-    Mono<BulkEsIndexResp> bulkIndexDocument(List<T> documents, String index, String type);
+    Mono<BulkEsIndexResp> bulkIndexDocuments(List<T> documents, String index, String type);
 
     Mono<EsRespSrc<T>> findDocumentById(String id, String index, String type,
                                         ParameterizedTypeReference<EsRespSrc<T>> responseTypeRef);
