@@ -1,4 +1,6 @@
 To run remote elastic search client tests :
 ```bash
-$ ./gradlew clean test 
+$ export ES_HOST_NAME=<elastic search host name>
+$ export ES_PORT=<elastic search port>
+$ ./gradlew clean remoteIntegrationTest
 ```

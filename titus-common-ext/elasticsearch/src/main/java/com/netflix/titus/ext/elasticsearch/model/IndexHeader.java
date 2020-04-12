@@ -15,23 +15,33 @@
  */
 package com.netflix.titus.ext.elasticsearch.model;
 
-import java.util.List;
+public class IndexHeader {
+    private String _index;
+    private String _type;
+    private String _id;
 
-public class EsRespHits<T> {
-    List<EsRespSrc<T>> hits;
-
-    public List<EsRespSrc<T>> getHits() {
-        return hits;
+    public String get_index() {
+        return _index;
     }
 
-    public void setHits(List<EsRespSrc<T>> hits) {
-        this.hits = hits;
+    public void set_index(String _index) {
+        this._index = _index;
     }
 
-    @Override
-    public String toString() {
-        return "EsRespHits{" +
-                "hits=" + hits +
-                '}';
+    public String get_type() {
+        return _type;
+    }
+
+    public void set_type(String _type) {
+        this._type = _type;
+    }
+
+    public String get_id() {
+        return _id;
+    }
+
+    public void set_id(String _id) {
+        this._id = _id;
     }
 }
+

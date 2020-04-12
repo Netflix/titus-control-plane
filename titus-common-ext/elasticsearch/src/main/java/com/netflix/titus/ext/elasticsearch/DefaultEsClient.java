@@ -25,6 +25,7 @@ import com.netflix.titus.ext.elasticsearch.model.BulkEsIndexResp;
 import com.netflix.titus.ext.elasticsearch.model.EsIndexResp;
 import com.netflix.titus.ext.elasticsearch.model.EsRespCount;
 import com.netflix.titus.ext.elasticsearch.model.EsRespSrc;
+import com.netflix.titus.ext.elasticsearch.model.IndexHeader;
 import com.netflix.titus.ext.elasticsearch.model.IndexHeaderLine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
