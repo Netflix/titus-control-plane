@@ -19,8 +19,6 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.TimeZone;
 
-import com.google.common.annotations.VisibleForTesting;
-
 public class ElasticSearchUtils {
     public static final SimpleDateFormat DATE_FORMAT;
 

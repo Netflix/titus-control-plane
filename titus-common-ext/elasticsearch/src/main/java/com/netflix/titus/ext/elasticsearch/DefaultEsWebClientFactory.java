@@ -15,7 +15,6 @@
  */
 package com.netflix.titus.ext.elasticsearch;
 
-import com.google.common.annotations.VisibleForTesting;
 import io.netty.channel.ChannelOption;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
@@ -37,13 +36,10 @@ public class DefaultEsWebClientFactory implements EsWebClientFactory {
                 .baseUrl(buildEsUrl()).build();
     }
 
-
-    @VisibleForTesting
     public String buildEsUrl() {
         return String.format("http://%s:%s", esClientConfiguration.getEsHostName(),
                 esClientConfiguration.getEsPort());
     }
-
 
     private HttpClient buildHttpClient() {
         return HttpClient.create().tcpConfiguration(tcpClient -> {

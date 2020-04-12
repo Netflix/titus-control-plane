@@ -17,6 +17,10 @@ package com.netflix.titus.ext.elasticsearch.model;
 
 import java.util.List;
 
+/**
+ * Elastic search data model as defined by REST API documentation
+ * https://www.elastic.co/guide/en/elasticsearch/reference/master/rest-apis.html
+ */
 public class BulkEsIndexResp {
     List<BulkEsIndexRespItem> items;
 

@@ -15,6 +15,10 @@
  */
 package com.netflix.titus.ext.elasticsearch.model;
 
+/**
+ * Elastic search data model as defined by REST API documentation
+ * https://www.elastic.co/guide/en/elasticsearch/reference/master/rest-apis.html
+ */
 public class EsIndexResp {
     boolean created;
     String result;
