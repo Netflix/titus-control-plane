@@ -70,12 +70,12 @@ public class EsExternalResource extends ExternalResource {
             }
 
             @Override
-            public String getEsHostName() {
+            public String getHost() {
                 return esHostName;
             }
 
             @Override
-            public int getEsPort() {
+            public int getPort() {
                 return esPort;
             }
         };

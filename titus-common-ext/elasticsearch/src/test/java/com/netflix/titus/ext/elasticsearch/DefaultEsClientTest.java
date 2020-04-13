@@ -28,8 +28,8 @@ import static org.mockito.Mockito.when;
 public class DefaultEsClientTest {
     private EsClientConfiguration getClientConfiguration() {
         EsClientConfiguration mockConfig = mock(EsClientConfiguration.class);
-        when(mockConfig.getEsHostName()).thenReturn("localhost");
-        when(mockConfig.getEsPort()).thenReturn(9200);
+        when(mockConfig.getHost()).thenReturn("localhost");
+        when(mockConfig.getPort()).thenReturn(9200);
         return mockConfig;
     }
 

@@ -15,37 +15,21 @@
  */
 package com.netflix.titus.ext.elasticsearch;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Configuration;
+import com.netflix.archaius.api.annotations.Configuration;
+import com.netflix.archaius.api.annotations.DefaultValue;
 
-@Configuration
-public class EsClientConfiguration {
-    @Value("${titus.es.host}")
-    private String esHostName;
+@Configuration(prefix = "titus.es")
+public interface EsClientConfiguration {
+    int DEFAULT_READ_TIMEOUT_SECONDS = 20;
+    int DEFAULT_CONNECT_TIMEOUT_MILLIS = 1000;
 
-    @Value("${titus.es.port}")
-    private int esPort;
+    @DefaultValue("" + DEFAULT_READ_TIMEOUT_SECONDS)
+    int getReadTimeoutSeconds();
 
-    @Value("${titus.es.client.readTimeoutSeconds:20}")
-    private int readTimeoutSeconds;
+    @DefaultValue("" + DEFAULT_CONNECT_TIMEOUT_MILLIS)
+    int getConnectTimeoutMillis();
 
-    @Value("${titus.es.client.connectTimeoutMillis:1000}")
-    private int connectTimeoutMillis;
+    String getHost();
 
-    public int getReadTimeoutSeconds() {
-        return readTimeoutSeconds;
-    }
-
-    public int getConnectTimeoutMillis() {
-        return connectTimeoutMillis;
-    }
-
-    public String getEsHostName() {
-        return esHostName;
-    }
-
-    public int getEsPort() {
-        return esPort;
-    }
-
+    int getPort();
 }

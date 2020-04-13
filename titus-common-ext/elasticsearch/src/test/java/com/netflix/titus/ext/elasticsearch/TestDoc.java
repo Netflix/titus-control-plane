@@ -23,6 +23,12 @@ public class TestDoc implements EsDoc {
     public TestDoc() {
     }
 
+    public TestDoc(String id, String state, long ts) {
+        this.id = id;
+        this.state = state;
+        this.ts = ts;
+    }
+
     public void setId(String id) {
         this.id = id;
     }
@@ -35,11 +41,6 @@ public class TestDoc implements EsDoc {
         this.ts = ts;
     }
 
-    public TestDoc(String id, String state, long ts) {
-        this.id = id;
-        this.state = state;
-        this.ts = ts;
-    }
 
     public String getId() {
         return id;
