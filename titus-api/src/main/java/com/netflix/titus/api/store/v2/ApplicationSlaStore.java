@@ -30,6 +30,8 @@ public interface ApplicationSlaStore {
 
     Observable<ApplicationSLA> findAll();
 
+    Observable<ApplicationSLA> findBySchedulerName(String schedulerName);
+
     Observable<ApplicationSLA> findByName(String applicationName);
 
     Observable<Void> remove(String applicationName);

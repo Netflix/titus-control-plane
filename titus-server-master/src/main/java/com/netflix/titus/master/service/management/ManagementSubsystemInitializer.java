@@ -68,6 +68,7 @@ public class ManagementSubsystemInitializer {
         return ApplicationSLA.newBuilder()
                 .withAppName(ApplicationSlaManagementService.DEFAULT_APPLICATION)
                 .withTier(Tier.Flex)
+                .withSchedulerName(configuration.getDefaultSchedulerName())
                 .withInstanceCount(configuration.getDefaultApplicationInstanceCount())
                 .withResourceDimension(ResourceDimension.newBuilder()
                         .withCpus(rdConf.getCPU())

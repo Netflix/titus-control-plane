@@ -18,9 +18,13 @@ package com.netflix.titus.api.store.v2;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.common.util.guice.ProxyType;
 import com.netflix.titus.common.util.guice.annotation.Activator;
@@ -32,7 +36,7 @@ import rx.Observable;
 
 /**
  * Caching proxy for {@link ApplicationSlaStore}. It loads all data on startup in a blocking mode to fail fast,
- * in case the is any problem with the storage.
+ * in case there is any problem with the storage.
  */
 @ProxyConfiguration(types = ProxyType.ActiveGuard)
 public class ApplicationSlaStoreCache implements ApplicationSlaStore {
@@ -41,6 +45,7 @@ public class ApplicationSlaStoreCache implements ApplicationSlaStore {
 
     private final ApplicationSlaStore delegate;
     private volatile ConcurrentMap<String, ApplicationSLA> cache;
+    private volatile Multimap<String, ApplicationSLA> cacheBySchedulerName;
 
     public ApplicationSlaStoreCache(ApplicationSlaStore delegate) {
         this.delegate = delegate;
@@ -50,12 +55,17 @@ public class ApplicationSlaStoreCache implements ApplicationSlaStore {
     public Observable<Void> enterActiveMode() {
         logger.info("Entering active mode");
         this.cache = loadCache(delegate);
+        this.cacheBySchedulerName = loadSchedulerMapCache(this.cache);
         return Observable.empty();
     }
 
     @Override
     public Observable<Void> create(ApplicationSLA applicationSLA) {
-        return delegate.create(applicationSLA).doOnCompleted(() -> cache.put(applicationSLA.getAppName(), applicationSLA));
+        return delegate.create(applicationSLA).doOnCompleted(() ->
+        {
+            cache.put(applicationSLA.getAppName(), applicationSLA);
+            cacheBySchedulerName.put(applicationSLA.getSchedulerName(), applicationSLA);
+        });
     }
 
     @Override
@@ -68,6 +78,14 @@ public class ApplicationSlaStoreCache implements ApplicationSlaStore {
     }
 
     @Override
+    public Observable<ApplicationSLA> findBySchedulerName(String schedulerName) {
+        return Observable.create(subscriber -> {
+            List<ApplicationSLA> snapshot = new ArrayList<>(cacheBySchedulerName.get(schedulerName));
+            snapshot.forEach(subscriber::onNext);
+            subscriber.onCompleted();
+        });
+    }
+
     public Observable<ApplicationSLA> findByName(String applicationName) {
         return Observable.create(subscriber -> {
             ApplicationSLA applicationSLA = cache.get(applicationName);
@@ -82,12 +100,23 @@ public class ApplicationSlaStoreCache implements ApplicationSlaStore {
 
     @Override
     public Observable<Void> remove(String applicationName) {
-        return delegate.remove(applicationName).doOnCompleted(() -> cache.remove(applicationName));
+        return delegate.remove(applicationName).doOnCompleted(() -> {
+            ApplicationSLA result = cache.remove(applicationName);
+            if (result != null) {
+                cacheBySchedulerName.remove(result.getSchedulerName(), result);
+            }
+        });
     }
 
     private ConcurrentMap<String, ApplicationSLA> loadCache(ApplicationSlaStore delegate) {
         ConcurrentMap<String, ApplicationSLA> cache = new ConcurrentHashMap<>();
         delegate.findAll().doOnNext(a -> cache.put(a.getAppName(), a)).ignoreElements().toBlocking().firstOrDefault(null);
         return cache;
+    }
+
+    private Multimap<String, ApplicationSLA> loadSchedulerMapCache(Map<String, ApplicationSLA> starterCache) {
+        Multimap<String, ApplicationSLA> schedulerMapCache = Multimaps.synchronizedSetMultimap(HashMultimap.create());
+        starterCache.values().forEach(applicationSLA -> schedulerMapCache.put(applicationSLA.getSchedulerName(), applicationSLA));
+        return schedulerMapCache;
     }
 }

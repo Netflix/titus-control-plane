@@ -51,6 +51,11 @@ public class ApplicationSlaStoreSanitizer implements ApplicationSlaStore {
     }
 
     @Override
+    public Observable<ApplicationSLA> findBySchedulerName(String schedulerName) {
+        return delegate.findBySchedulerName(schedulerName).map(entity -> sanitize(entity).orElse(entity));
+    }
+
+    @Override
     public Observable<ApplicationSLA> findByName(String applicationName) {
         return delegate.findByName(applicationName).map(entity -> sanitize(entity).orElse(entity));
     }

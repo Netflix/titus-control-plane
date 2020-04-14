@@ -53,6 +53,12 @@ public class DefaultApplicationSlaManagementService implements ApplicationSlaMan
     }
 
     @Override
+    public Collection<ApplicationSLA> getApplicationSLAsForScheduler(String schedulerName) {
+        return storage.findBySchedulerName(schedulerName).onErrorReturn(t -> null)
+                .toList().toBlocking().firstOrDefault(Collections.emptyList());
+    }
+
+    @Override
     public ApplicationSLA getApplicationSLA(String applicationName) {
         return storage.findByName(applicationName).onErrorReturn(t -> null).toBlocking().firstOrDefault(null);
     }
