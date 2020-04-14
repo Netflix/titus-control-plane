@@ -15,18 +15,22 @@
  */
 package com.netflix.titus.ext.elasticsearch.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * Elastic search data model as defined by REST API documentation
  * https://www.elastic.co/guide/en/elasticsearch/reference/master/rest-apis.html
  */
 public class BulkEsIndexRespItem {
-    EsIndexResp index;
+    private EsIndexResp index;
+
+    @JsonCreator
+    public BulkEsIndexRespItem(@JsonProperty("index") EsIndexResp index) {
+        this.index = index;
+    }
 
     public EsIndexResp getIndex() {
         return index;
-    }
-
-    public void setIndex(EsIndexResp index) {
-        this.index = index;
     }
 }

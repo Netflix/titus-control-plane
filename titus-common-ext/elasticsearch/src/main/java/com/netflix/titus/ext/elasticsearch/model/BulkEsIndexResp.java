@@ -17,18 +17,22 @@ package com.netflix.titus.ext.elasticsearch.model;
 
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * Elastic search data model as defined by REST API documentation
  * https://www.elastic.co/guide/en/elasticsearch/reference/master/rest-apis.html
  */
 public class BulkEsIndexResp {
-    List<BulkEsIndexRespItem> items;
+    private final List<BulkEsIndexRespItem> items;
+
+    @JsonCreator
+    public BulkEsIndexResp(@JsonProperty("items") List<BulkEsIndexRespItem> items) {
+        this.items = items;
+    }
 
     public List<BulkEsIndexRespItem> getItems() {
         return items;
-    }
-
-    public void setItems(List<BulkEsIndexRespItem> items) {
-        this.items = items;
     }
 }

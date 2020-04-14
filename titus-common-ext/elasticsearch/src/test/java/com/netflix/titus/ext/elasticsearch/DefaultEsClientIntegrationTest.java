@@ -54,9 +54,9 @@ public class DefaultEsClientIntegrationTest {
 
         EsRespSrc<TestDoc> respSrc = client.findDocumentById(docId, index, type, esRespTypeRef).block();
         assertThat(respSrc).isNotNull();
-        assertThat(respSrc.get_source()).isNotNull();
+        assertThat(respSrc.getSource()).isNotNull();
 
-        TestDoc testDocResp = respSrc.get_source();
+        TestDoc testDocResp = respSrc.getSource();
         assertThat(testDocResp.getId()).isEqualTo(docId);
     }
 
@@ -93,25 +93,25 @@ public class DefaultEsClientIntegrationTest {
 
         StepVerifier.create(client.findDocumentById(id1, index, type, esRespTypeRef))
                 .assertNext(testDocEsRespSrc -> {
-                    assertThat(testDocEsRespSrc.get_source()).isNotNull();
-                    assertThat(testDocEsRespSrc.get_source().getId()).isEqualTo(id1);
-                    assertThat(testDocEsRespSrc.get_source().getState()).isEqualTo(id1State);
+                    assertThat(testDocEsRespSrc.getSource()).isNotNull();
+                    assertThat(testDocEsRespSrc.getSource().getId()).isEqualTo(id1);
+                    assertThat(testDocEsRespSrc.getSource().getState()).isEqualTo(id1State);
                 })
                 .verifyComplete();
 
         StepVerifier.create(client.findDocumentById(id2, index, type, esRespTypeRef))
                 .assertNext(testDocEsRespSrc -> {
-                    assertThat(testDocEsRespSrc.get_source()).isNotNull();
-                    assertThat(testDocEsRespSrc.get_source().getId()).isEqualTo(id2);
-                    assertThat(testDocEsRespSrc.get_source().getState()).isEqualTo(id2State);
+                    assertThat(testDocEsRespSrc.getSource()).isNotNull();
+                    assertThat(testDocEsRespSrc.getSource().getId()).isEqualTo(id2);
+                    assertThat(testDocEsRespSrc.getSource().getState()).isEqualTo(id2State);
                 })
                 .verifyComplete();
 
         StepVerifier.create(client.findDocumentById(id3, index, type, esRespTypeRef))
                 .assertNext(testDocEsRespSrc -> {
-                    assertThat(testDocEsRespSrc.get_source()).isNotNull();
-                    assertThat(testDocEsRespSrc.get_source().getId()).isEqualTo(id3);
-                    assertThat(testDocEsRespSrc.get_source().getState()).isEqualTo(id3State);
+                    assertThat(testDocEsRespSrc.getSource()).isNotNull();
+                    assertThat(testDocEsRespSrc.getSource().getId()).isEqualTo(id3);
+                    assertThat(testDocEsRespSrc.getSource().getState()).isEqualTo(id3State);
                 })
                 .verifyComplete();
     }

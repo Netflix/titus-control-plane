@@ -15,37 +15,39 @@
  */
 package com.netflix.titus.ext.elasticsearch.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonGetter;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * Elastic search data model as defined by REST API documentation
  * https://www.elastic.co/guide/en/elasticsearch/reference/master/rest-apis.html
  */
 public class EsIndexResp {
-    boolean created;
-    String result;
-    String _id;
+    private final boolean created;
+    private final String result;
+    private final String id;
+
+    @JsonCreator
+    public EsIndexResp(@JsonProperty("created") boolean created,
+                       @JsonProperty("result") String result,
+                       @JsonProperty("_id") String id) {
+        this.created = created;
+        this.result = result;
+        this.id = id;
+    }
 
     public boolean isCreated() {
         return created;
-    }
-
-    public void setCreated(boolean created) {
-        this.created = created;
     }
 
     public String getResult() {
         return result;
     }
 
-    public void setResult(String result) {
-        this.result = result;
-    }
-
-    public String get_id() {
-        return _id;
-    }
-
-    public void set_id(String _id) {
-        this._id = _id;
+    @JsonGetter("_id")
+    public String getId() {
+        return id;
     }
 }
 

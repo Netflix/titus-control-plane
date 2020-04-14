@@ -15,19 +15,23 @@
  */
 package com.netflix.titus.ext.elasticsearch.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * Elastic search data model as defined by REST API documentation
  * https://www.elastic.co/guide/en/elasticsearch/reference/master/rest-apis.html
  */
 public class IndexHeaderLine {
-    private IndexHeader index;
+    private final IndexHeader index;
+
+    @JsonCreator
+    public IndexHeaderLine(@JsonProperty("index") IndexHeader index) {
+        this.index = index;
+    }
 
     public IndexHeader getIndex() {
         return index;
-    }
-
-    public void setIndex(IndexHeader index) {
-        this.index = index;
     }
 }
 

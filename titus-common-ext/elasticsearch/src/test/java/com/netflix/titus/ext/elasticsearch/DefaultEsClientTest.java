@@ -48,8 +48,11 @@ public class DefaultEsClientTest {
         assertThat(bulkIndexPayload).isNotEmpty();
         final String[] payloadLines = bulkIndexPayload.split("\n");
         assertThat(payloadLines.length).isEqualTo(testDocs.size() * 2);
-        assertThat(payloadLines[0]).contains("index");
-        assertThat(payloadLines[2]).contains("index");
-        assertThat(payloadLines[4]).contains("index");
+        String line1 = "{\"index\":{\"_index\":\"titustasks\",\"_type\":\"default\",\"_id\":\"id1\"}}";
+        String line2 = "{\"index\":{\"_index\":\"titustasks\",\"_type\":\"default\",\"_id\":\"id2\"}}";
+        String line3 = "{\"index\":{\"_index\":\"titustasks\",\"_type\":\"default\",\"_id\":\"id3\"}}";
+        assertThat(payloadLines[0]).isEqualTo(line1);
+        assertThat(payloadLines[2]).isEqualTo(line2);
+        assertThat(payloadLines[4]).isEqualTo(line3);
     }
 }

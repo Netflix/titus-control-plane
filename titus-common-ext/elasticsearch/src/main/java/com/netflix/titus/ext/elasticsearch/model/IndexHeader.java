@@ -15,37 +15,42 @@
  */
 package com.netflix.titus.ext.elasticsearch.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonGetter;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * Elastic search data model as defined by REST API documentation
  * https://www.elastic.co/guide/en/elasticsearch/reference/master/rest-apis.html
  */
 public class IndexHeader {
-    private String _index;
-    private String _type;
-    private String _id;
+    private final String index;
+    private final String type;
+    private final String id;
 
-    public String get_index() {
-        return _index;
+    @JsonCreator
+    public IndexHeader(@JsonProperty("_index") String index,
+                       @JsonProperty("_type") String type,
+                       @JsonProperty("_id") String id) {
+        this.index = index;
+        this.type = type;
+        this.id = id;
     }
 
-    public void set_index(String _index) {
-        this._index = _index;
+    @JsonGetter("_index")
+    public String getIndex() {
+        return index;
     }
 
-    public String get_type() {
-        return _type;
+    @JsonGetter("_type")
+    public String getType() {
+        return type;
     }
 
-    public void set_type(String _type) {
-        this._type = _type;
+    @JsonGetter("_id")
+    public String getId() {
+        return id;
     }
 
-    public String get_id() {
-        return _id;
-    }
-
-    public void set_id(String _id) {
-        this._id = _id;
-    }
 }
 

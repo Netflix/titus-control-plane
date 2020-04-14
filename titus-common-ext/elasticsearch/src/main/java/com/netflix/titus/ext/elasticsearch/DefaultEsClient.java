@@ -90,12 +90,8 @@ public class DefaultEsClient<T extends EsDoc> implements EsClient<T> {
         final ObjectMapper mapper = CommonObjectMappers.jacksonDefaultMapper();
 
         tasks.forEach(taskDocument -> {
-            final IndexHeader indexHeader = new IndexHeader();
-            indexHeader.set_id(taskDocument.getId());
-            indexHeader.set_index(index);
-            indexHeader.set_type(type);
-            final IndexHeaderLine indexHeaderLine = new IndexHeaderLine();
-            indexHeaderLine.setIndex(indexHeader);
+            final IndexHeader indexHeader = new IndexHeader(index, type, taskDocument.getId());
+            final IndexHeaderLine indexHeaderLine = new IndexHeaderLine(indexHeader);
             try {
                 final String indexLine = mapper.writeValueAsString(indexHeaderLine);
                 sb.append(indexLine);

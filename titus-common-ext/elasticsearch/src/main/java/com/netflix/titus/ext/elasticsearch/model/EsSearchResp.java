@@ -15,25 +15,22 @@
  */
 package com.netflix.titus.ext.elasticsearch.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 /**
  * Elastic search data model as defined by REST API documentation
  * https://www.elastic.co/guide/en/elasticsearch/reference/master/rest-apis.html
  */
 public class EsSearchResp<T> {
-    EsRespHits<T> hits;
+    private final EsRespHits<T> hits;
 
-    public EsRespHits<T> getHits() {
-        return hits;
-    }
-
-    public void setHits(EsRespHits<T> hits) {
+    @JsonCreator
+    public EsSearchResp(@JsonProperty("hits") EsRespHits<T> hits) {
         this.hits = hits;
     }
 
-    @Override
-    public String toString() {
-        return "EsSearchResp{" +
-                "hits=" + hits +
-                '}';
+    public EsRespHits<T> getHits() {
+        return hits;
     }
 }

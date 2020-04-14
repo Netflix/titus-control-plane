@@ -87,7 +87,7 @@ public class EsPublisher implements TasksPublisher, LeaderActivationListener {
                             logger.info("Received bulk response for {} items", bulkIndexResp.getItems().size());
                             lastPublishedTimestamp.set(registry.clock().wallTime());
                             bulkIndexResp.getItems().forEach(bulkEsIndexRespItem -> {
-                                String indexedItemId = bulkEsIndexRespItem.getIndex().get_id();
+                                String indexedItemId = bulkEsIndexRespItem.getIndex().getId();
                                 logger.info("Index result <{}> for task ID {}", bulkEsIndexRespItem.getIndex().getResult(), indexedItemId);
                                 numTasksUpdated.incrementAndGet();
                             });

@@ -66,7 +66,7 @@ public class TaskEventsGeneratorTest {
                 bulkEsIndexRespItem.setIndex(new EsIndexResp());
                 bulkEsIndexRespItem.getIndex().setCreated(true);
                 bulkEsIndexRespItem.getIndex().setResult("created");
-                bulkEsIndexRespItem.getIndex().set_id(doc.getId());
+                bulkEsIndexRespItem.getIndex().setId(doc.getId());
                 return bulkEsIndexRespItem;
             }).collect(Collectors.toList());
 
