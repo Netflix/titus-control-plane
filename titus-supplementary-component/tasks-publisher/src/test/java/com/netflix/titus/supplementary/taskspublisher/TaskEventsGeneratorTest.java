@@ -62,16 +62,11 @@ public class TaskEventsGeneratorTest {
         when(esClient.bulkIndexDocuments(anyList(), anyString(), anyString())).thenAnswer((Answer<Mono<BulkEsIndexResp>>) invocation -> {
             final List<TaskDocument> documents = invocation.getArgument(0);
             final List<BulkEsIndexRespItem> bulkEsIndexRespItemList = documents.stream().map(doc -> {
-                final BulkEsIndexRespItem bulkEsIndexRespItem = new BulkEsIndexRespItem();
-                bulkEsIndexRespItem.setIndex(new EsIndexResp());
-                bulkEsIndexRespItem.getIndex().setCreated(true);
-                bulkEsIndexRespItem.getIndex().setResult("created");
-                bulkEsIndexRespItem.getIndex().setId(doc.getId());
-                return bulkEsIndexRespItem;
+                EsIndexResp esIndexResp = new EsIndexResp(true, "created", doc.getId());
+                return new BulkEsIndexRespItem(esIndexResp);
             }).collect(Collectors.toList());
 
-            final BulkEsIndexResp bulkEsIndexResp = new BulkEsIndexResp();
-            bulkEsIndexResp.setItems(bulkEsIndexRespItemList);
+            final BulkEsIndexResp bulkEsIndexResp = new BulkEsIndexResp(bulkEsIndexRespItemList);
             return Mono.just(bulkEsIndexResp);
         });
         return esClient;
