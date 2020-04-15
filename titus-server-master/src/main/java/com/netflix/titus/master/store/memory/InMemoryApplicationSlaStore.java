@@ -35,12 +35,16 @@ public class InMemoryApplicationSlaStore implements ApplicationSlaStore {
 
     private final Multimap<String, ApplicationSLA> applicationSLAsBySchedulerName = Multimaps.synchronizedSetMultimap(HashMultimap.create());
 
+    private final Object lock = new Object();
+
     @Override
     public Observable<Void> create(ApplicationSLA applicationSLA) {
         return Observable.create(subscriber -> {
-            applicationSLAs.put(applicationSLA.getAppName(), applicationSLA);
-            applicationSLAsBySchedulerName.put(applicationSLA.getSchedulerName(), applicationSLA);
-            subscriber.onCompleted();
+            synchronized (lock) {
+                applicationSLAs.put(applicationSLA.getAppName(), applicationSLA);
+                applicationSLAsBySchedulerName.put(applicationSLA.getSchedulerName(), applicationSLA);
+                subscriber.onCompleted();
+            }
         });
     }
 
@@ -66,12 +70,14 @@ public class InMemoryApplicationSlaStore implements ApplicationSlaStore {
     @Override
     public Observable<Void> remove(String applicationName) {
         return Observable.create(subscriber -> {
-            ApplicationSLA result = applicationSLAs.remove(applicationName);
-            if (result == null) {
-                subscriber.onError(new NotFoundException(ApplicationSLA.class, applicationName));
-            } else {
-                applicationSLAsBySchedulerName.remove(result.getSchedulerName(), result);
-                subscriber.onCompleted();
+            synchronized (lock) {
+                ApplicationSLA result = applicationSLAs.remove(applicationName);
+                if (result == null) {
+                    subscriber.onError(new NotFoundException(ApplicationSLA.class, applicationName));
+                } else {
+                    applicationSLAsBySchedulerName.remove(result.getSchedulerName(), result);
+                    subscriber.onCompleted();
+                }
             }
         });
     }

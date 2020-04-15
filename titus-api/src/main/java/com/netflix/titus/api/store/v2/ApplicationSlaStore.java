@@ -30,6 +30,15 @@ public interface ApplicationSlaStore {
 
     Observable<ApplicationSLA> findAll();
 
+    /**
+     * This API retrieves all instances of {@link ApplicationSLA} associated with the given schedulerName.
+     * <p>
+     * In case the schedulerName} is null or empty string, all {@link ApplicationSLA}
+     * instances independent of their associated scheduler is will be returned.
+     * </p>
+     * @param schedulerName name of the scheduler managing this {@link ApplicationSLA}
+     * @return
+     */
     Observable<ApplicationSLA> findBySchedulerName(String schedulerName);
 
     Observable<ApplicationSLA> findByName(String applicationName);

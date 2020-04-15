@@ -113,7 +113,6 @@ public class ApplicationSlaRepresentation {
         this.instanceCount = instanceCount;
         this.reservationUsage = reservationUsage;
         this.schedulerName = schedulerName;
-
     }
 
     public String getAppName() {

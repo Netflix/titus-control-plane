@@ -43,6 +43,7 @@ public class ApplicationSlaStoreCache implements ApplicationSlaStore {
 
     private static final Logger logger = LoggerFactory.getLogger(ApplicationSlaStoreCache.class);
 
+    private final Object lock = new Object();
     private final ApplicationSlaStore delegate;
     private volatile ConcurrentMap<String, ApplicationSLA> cache;
     private volatile Multimap<String, ApplicationSLA> cacheBySchedulerName;
@@ -63,8 +64,10 @@ public class ApplicationSlaStoreCache implements ApplicationSlaStore {
     public Observable<Void> create(ApplicationSLA applicationSLA) {
         return delegate.create(applicationSLA).doOnCompleted(() ->
         {
-            cache.put(applicationSLA.getAppName(), applicationSLA);
-            cacheBySchedulerName.put(applicationSLA.getSchedulerName(), applicationSLA);
+            synchronized (lock) {
+                cache.put(applicationSLA.getAppName(), applicationSLA);
+                cacheBySchedulerName.put(applicationSLA.getSchedulerName(), applicationSLA);
+            }
         });
     }
 
@@ -101,9 +104,11 @@ public class ApplicationSlaStoreCache implements ApplicationSlaStore {
     @Override
     public Observable<Void> remove(String applicationName) {
         return delegate.remove(applicationName).doOnCompleted(() -> {
-            ApplicationSLA result = cache.remove(applicationName);
-            if (result != null) {
-                cacheBySchedulerName.remove(result.getSchedulerName(), result);
+            synchronized (lock) {
+                ApplicationSLA result = cache.remove(applicationName);
+                if (result != null) {
+                    cacheBySchedulerName.remove(result.getSchedulerName(), result);
+                }
             }
         });
     }
