@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2020 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,21 +17,22 @@
 package com.netflix.titus.runtime.endpoint.resolver;
 
 import java.util.Optional;
-import javax.servlet.http.HttpServletRequest;
+import javax.inject.Singleton;
 
 /**
- * Extract caller id from HTTP request.
+ * {@link HostCallerIdResolver} implementation that returns always an empty response.
  */
-public class ByRemoteAddressHttpCallerIdResolver implements HttpCallerIdResolver {
+@Singleton
+public class NoOpHostCallerIdResolver implements HostCallerIdResolver {
 
-    private static final String TITUS_HEADER_CALLER_HOST_ADDRESS = "X-Titus-CallerHostAddress";
+    private static final NoOpHostCallerIdResolver INSTANCE = new NoOpHostCallerIdResolver();
 
     @Override
-    public Optional<String> resolve(HttpServletRequest httpServletRequest) {
-        String originalCallerId = httpServletRequest.getHeader(TITUS_HEADER_CALLER_HOST_ADDRESS);
-        if (originalCallerId != null) {
-            return Optional.of(originalCallerId);
-        }
-        return Optional.ofNullable(httpServletRequest.getRemoteHost());
+    public Optional<String> resolve(String address) {
+        return Optional.of("Anonymous");
+    }
+
+    public static NoOpHostCallerIdResolver getInstance() {
+        return INSTANCE;
     }
 }
