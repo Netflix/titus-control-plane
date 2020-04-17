@@ -70,10 +70,7 @@ public class FederationV2CapacityGroupSpringResource {
                 APPLICATION_SLA_LIST_TP,
                 configuration.getRestRequestTimeoutMs()
         );
-        if (result.hasError()) {
-            throw result.getError();
-        }
-        return result.getValue();
+        return result.must();
     }
 
     /**
@@ -92,9 +89,6 @@ public class FederationV2CapacityGroupSpringResource {
                 APPLICATION_SLA_TP,
                 configuration.getRestRequestTimeoutMs()
         );
-        if (result.hasError()) {
-            throw result.getError();
-        }
-        return result.getValue();
+        return result.must();
     }
 }

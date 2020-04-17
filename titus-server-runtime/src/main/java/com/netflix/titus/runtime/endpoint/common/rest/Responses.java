@@ -34,6 +34,8 @@ public class Responses {
 
     private static final Duration REST_TIMEOUT_DURATION = Duration.ofMinutes(1);
 
+    private static final long REST_TIMEOUT_DURATION_MS = REST_TIMEOUT_DURATION.toMillis();
+
     public static <T> List<T> fromObservable(Observable<?> observable) {
         try {
             return (List<T>) observable.timeout(1, TimeUnit.MINUTES).toList().toBlocking().firstOrDefault(null);
@@ -83,7 +85,7 @@ public class Responses {
 
     public static Response fromCompletable(Completable completable, Response.Status statusCode) {
         try {
-            completable.await(1, TimeUnit.MINUTES);
+            completable.await(REST_TIMEOUT_DURATION_MS, TimeUnit.MILLISECONDS);
         } catch (Exception e) {
             throw fromException(e);
         }
@@ -92,7 +94,7 @@ public class Responses {
 
     public static ResponseEntity<Void> fromCompletable(Completable completable, HttpStatus statusCode) {
         try {
-            completable.await(1, TimeUnit.MINUTES);
+            completable.await(REST_TIMEOUT_DURATION_MS, TimeUnit.MILLISECONDS);
         } catch (Exception e) {
             throw fromException(e);
         }
