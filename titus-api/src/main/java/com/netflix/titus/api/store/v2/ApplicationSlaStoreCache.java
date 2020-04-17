@@ -65,7 +65,10 @@ public class ApplicationSlaStoreCache implements ApplicationSlaStore {
         return delegate.create(applicationSLA).doOnCompleted(() ->
         {
             synchronized (lock) {
-                cache.put(applicationSLA.getAppName(), applicationSLA);
+                ApplicationSLA previous = cache.put(applicationSLA.getAppName(), applicationSLA);
+                if(previous != null){
+                    cacheBySchedulerName.remove(previous.getSchedulerName(), previous);
+                }
                 cacheBySchedulerName.put(applicationSLA.getSchedulerName(), applicationSLA);
             }
         });

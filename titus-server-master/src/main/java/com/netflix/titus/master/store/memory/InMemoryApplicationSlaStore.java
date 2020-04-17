@@ -41,7 +41,10 @@ public class InMemoryApplicationSlaStore implements ApplicationSlaStore {
     public Observable<Void> create(ApplicationSLA applicationSLA) {
         return Observable.create(subscriber -> {
             synchronized (lock) {
-                applicationSLAs.put(applicationSLA.getAppName(), applicationSLA);
+                ApplicationSLA previous = applicationSLAs.put(applicationSLA.getAppName(), applicationSLA);
+                if(previous != null) {
+                    applicationSLAsBySchedulerName.remove(previous.getSchedulerName(), previous);
+                }
                 applicationSLAsBySchedulerName.put(applicationSLA.getSchedulerName(), applicationSLA);
                 subscriber.onCompleted();
             }
