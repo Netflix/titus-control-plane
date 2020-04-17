@@ -87,6 +87,11 @@ public class ApplicationSlaRepresentation {
 
     private final ReservationUsage reservationUsage;
 
+    /**
+     * If the managing scheduler is not specified, default scheduler is used.
+     */
+    private final String schedulerName;
+
     @JsonCreator
     public ApplicationSlaRepresentation(@JsonProperty("appName") String appName,
                                         @JsonProperty("cellId") String cellId,
@@ -96,7 +101,8 @@ public class ApplicationSlaRepresentation {
                                         @JsonProperty("instanceDiskMB") Long instanceDiskMB,
                                         @JsonProperty("instanceNetworkMbs") Long instanceNetworkMbs,
                                         @JsonProperty("instanceCount") Integer instanceCount,
-                                        @JsonProperty("reservationUsage") ReservationUsage reservationUsage) {
+                                        @JsonProperty("reservationUsage") ReservationUsage reservationUsage,
+                                        @JsonProperty(value = "schedulerName", defaultValue = "fenzo") String schedulerName) {
         this.appName = appName;
         this.cellId = cellId;
         this.tier = tier;
@@ -106,6 +112,7 @@ public class ApplicationSlaRepresentation {
         this.instanceNetworkMbs = instanceNetworkMbs;
         this.instanceCount = instanceCount;
         this.reservationUsage = reservationUsage;
+        this.schedulerName = schedulerName;
     }
 
     public String getAppName() {
@@ -142,5 +149,9 @@ public class ApplicationSlaRepresentation {
 
     public ReservationUsage getReservationUsage() {
         return reservationUsage;
+    }
+
+    public String getSchedulerName() {
+        return schedulerName;
     }
 }

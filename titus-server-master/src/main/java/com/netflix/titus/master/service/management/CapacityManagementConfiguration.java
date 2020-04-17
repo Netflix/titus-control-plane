@@ -65,4 +65,8 @@ public interface CapacityManagementConfiguration {
      */
     @DefaultValue("0.05")
     double getFlexTierBuffer();
+
+    @DefaultValue("fenzo")
+    String getDefaultSchedulerName();
+
 }

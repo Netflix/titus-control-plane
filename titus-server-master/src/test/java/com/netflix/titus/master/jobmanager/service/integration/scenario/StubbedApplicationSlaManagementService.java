@@ -31,7 +31,8 @@ class StubbedApplicationSlaManagementService implements ApplicationSlaManagement
             "DEFAULT",
             Tier.Flex,
             ResourceDimension.newBuilder().withCpus(16).withMemoryMB(32 * 1024).withNetworkMbs(4096).withDiskMB(100 * 1024).build(),
-            10
+            10,
+            "fenzo"
     );
 
     @Override
@@ -45,6 +46,11 @@ class StubbedApplicationSlaManagementService implements ApplicationSlaManagement
     }
 
     @Override
+    public Collection<ApplicationSLA> getApplicationSLAsForScheduler(String schedulerName) {
+        return schedulerName.equals("fenzo") ? Collections.singletonList(DEFAULT) : Collections.emptyList();
+    }
+
+    @Override
     public Observable<Void> addApplicationSLA(ApplicationSLA applicationSLA) {
         return Observable.empty();
     }
@@ -53,4 +59,5 @@ class StubbedApplicationSlaManagementService implements ApplicationSlaManagement
     public Observable<Void> removeApplicationSLA(String applicationName) {
         return Observable.empty();
     }
+
 }

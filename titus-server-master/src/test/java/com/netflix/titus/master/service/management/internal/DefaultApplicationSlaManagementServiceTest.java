@@ -69,6 +69,18 @@ public class DefaultApplicationSlaManagementServiceTest {
 
         ApplicationSLA result = slaManagementService.getApplicationSLA(myApp.getAppName());
         assertThat(result.getAppName()).isEqualTo(myApp.getAppName());
+        assertThat(result.getSchedulerName()).isEqualTo(myApp.getSchedulerName());
+    }
+
+    @Test
+    public void testGetApplicationBySchedulerName() throws Exception {
+        ApplicationSLA myApp = ApplicationSlaSample.CriticalSmallKubeScheduler.build();
+        when(storage.findBySchedulerName(myApp.getSchedulerName())).thenReturn(Observable.just(myApp));
+
+        List<ApplicationSLA> result = new ArrayList<>(slaManagementService.getApplicationSLAsForScheduler(myApp.getSchedulerName()));
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getAppName()).isEqualTo(myApp.getAppName());
+        assertThat(result.get(0).getSchedulerName()).isEqualTo(myApp.getSchedulerName());
     }
 
     @Test

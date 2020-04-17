@@ -23,6 +23,7 @@ import javax.inject.Singleton;
 import com.datastax.driver.core.PreparedStatement;
 import com.datastax.driver.core.Session;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Strings;
 import com.netflix.titus.api.json.ObjectMappers;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.store.v2.ApplicationSlaStore;
@@ -89,6 +90,11 @@ public class CassandraApplicationSlaStore implements ApplicationSlaStore {
                 entitySanitizer,
                 configuration.isFailOnInconsistentCapacityGroupData()
         );
+    }
+
+    @Override
+    public Observable<ApplicationSLA> findBySchedulerName(String schedulerName) {
+        return findAll().filter(applicationSLA -> Strings.isNullOrEmpty(schedulerName) || applicationSLA.getSchedulerName().equals(schedulerName));
     }
 
     @Override
