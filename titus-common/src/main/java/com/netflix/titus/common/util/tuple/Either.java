@@ -62,6 +62,22 @@ public class Either<T, E> {
         return ofValue(mapper.apply(value));
     }
 
+    public T must() {
+        if (value != null) {
+            return value;
+        }
+        if (error == null) {
+            throw new IllegalStateException("neither value nor error set");
+        }
+        if (error instanceof RuntimeException) {
+            throw (RuntimeException) error;
+        }
+        if (error instanceof Throwable) {
+            throw new IllegalStateException("value not set", (Throwable) error);
+        }
+        throw new IllegalStateException("value not set");
+    }
+
     public T onErrorGet(Function<E, T> fallback) {
         if (hasValue()) {
             return value;

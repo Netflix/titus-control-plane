@@ -24,6 +24,8 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 
 import com.netflix.titus.api.service.TitusServiceException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
@@ -31,6 +33,8 @@ import rx.Observable;
 public class Responses {
 
     private static final Duration REST_TIMEOUT_DURATION = Duration.ofMinutes(1);
+
+    private static final long REST_TIMEOUT_DURATION_MS = REST_TIMEOUT_DURATION.toMillis();
 
     public static <T> List<T> fromObservable(Observable<?> observable) {
         try {
@@ -57,6 +61,15 @@ public class Responses {
         }
     }
 
+    public static ResponseEntity<Void> fromVoidMono(Mono<Void> mono, HttpStatus status) {
+        try {
+            mono.timeout(REST_TIMEOUT_DURATION).ignoreElement().block();
+            return ResponseEntity.status(status).build();
+        } catch (Exception e) {
+            throw fromException(e);
+        }
+    }
+
     public static <T> T fromSingleValueObservable(Observable<?> observable) {
         List result = fromObservable(observable);
         if (result.isEmpty()) {
@@ -72,11 +85,20 @@ public class Responses {
 
     public static Response fromCompletable(Completable completable, Response.Status statusCode) {
         try {
-            completable.await(1, TimeUnit.MINUTES);
+            completable.await(REST_TIMEOUT_DURATION_MS, TimeUnit.MILLISECONDS);
         } catch (Exception e) {
             throw fromException(e);
         }
         return Response.status(statusCode).build();
+    }
+
+    public static ResponseEntity<Void> fromCompletable(Completable completable, HttpStatus statusCode) {
+        try {
+            completable.await(REST_TIMEOUT_DURATION_MS, TimeUnit.MILLISECONDS);
+        } catch (Exception e) {
+            throw fromException(e);
+        }
+        return ResponseEntity.status(statusCode).build();
     }
 
     private static RuntimeException fromException(Exception e) {
