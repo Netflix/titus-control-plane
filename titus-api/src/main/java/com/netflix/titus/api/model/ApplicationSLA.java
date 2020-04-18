@@ -18,8 +18,6 @@ package com.netflix.titus.api.model;
 
 import java.util.Objects;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Strings;
 
 /**
@@ -46,12 +44,11 @@ public class ApplicationSLA {
      */
     private int instanceCount;
 
-    @JsonCreator
-    public ApplicationSLA(@JsonProperty("appName") String appName,
-                          @JsonProperty("tier") Tier tier,
-                          @JsonProperty("resourceDimension") ResourceDimension resourceDimension,
-                          @JsonProperty("instanceCount") int instanceCount,
-                          @JsonProperty(value = "schedulerName", defaultValue = "fenzo") String schedulerName) {
+    public ApplicationSLA(String appName,
+                          Tier tier,
+                          ResourceDimension resourceDimension,
+                          int instanceCount,
+                          String schedulerName) {
         this.appName = appName;
         this.tier = tier;
         this.resourceDimension = resourceDimension;
