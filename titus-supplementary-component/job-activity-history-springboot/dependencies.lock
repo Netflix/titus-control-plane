@@ -577,12 +577,6 @@
                 "com.twitter:util-logging_2.11"
             ]
         },
-        "com.vaadin.external.google:android-json": {
-            "locked": "0.0.20131108.vaadin1",
-            "transitive": [
-                "org.skyscreamer:jsonassert"
-            ]
-        },
         "commons-codec:commons-codec": {
             "locked": "1.13",
             "transitive": [
@@ -2045,12 +2039,6 @@
             "transitive": [
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:util-logging_2.11"
-            ]
-        },
-        "com.vaadin.external.google:android-json": {
-            "locked": "0.0.20131108.vaadin1",
-            "transitive": [
-                "org.skyscreamer:jsonassert"
             ]
         },
         "commons-codec:commons-codec": {
@@ -3594,12 +3582,6 @@
                 "com.twitter:util-logging_2.11"
             ]
         },
-        "com.vaadin.external.google:android-json": {
-            "locked": "0.0.20131108.vaadin1",
-            "transitive": [
-                "org.skyscreamer:jsonassert"
-            ]
-        },
         "commons-codec:commons-codec": {
             "locked": "1.13",
             "transitive": [
@@ -5065,12 +5047,6 @@
             "transitive": [
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:util-logging_2.11"
-            ]
-        },
-        "com.vaadin.external.google:android-json": {
-            "locked": "0.0.20131108.vaadin1",
-            "transitive": [
-                "org.skyscreamer:jsonassert"
             ]
         },
         "commons-codec:commons-codec": {
@@ -6585,12 +6561,6 @@
             "transitive": [
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:util-logging_2.11"
-            ]
-        },
-        "com.vaadin.external.google:android-json": {
-            "locked": "0.0.20131108.vaadin1",
-            "transitive": [
-                "org.skyscreamer:jsonassert"
             ]
         },
         "commons-codec:commons-codec": {

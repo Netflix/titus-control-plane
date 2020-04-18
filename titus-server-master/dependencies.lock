@@ -5265,12 +5265,6 @@
                 "com.twitter:util-logging_2.11"
             ]
         },
-        "com.vaadin.external.google:android-json": {
-            "locked": "0.0.20131108.vaadin1",
-            "transitive": [
-                "org.skyscreamer:jsonassert"
-            ]
-        },
         "commons-cli:commons-cli": {
             "locked": "1.3.1",
             "transitive": [
@@ -6489,7 +6483,9 @@
         },
         "org.springframework.boot:spring-boot-starter-test": {
             "locked": "2.2.5.RELEASE",
-            "requested": "2.2.5.RELEASE"
+            "transitive": [
+                "com.netflix.titus:titus-testkit"
+            ]
         },
         "org.springframework.boot:spring-boot-starter-tomcat": {
             "locked": "2.2.5.RELEASE",
@@ -7525,12 +7521,6 @@
             "transitive": [
                 "com.twitter:finagle-core_2.11",
                 "com.twitter:util-logging_2.11"
-            ]
-        },
-        "com.vaadin.external.google:android-json": {
-            "locked": "0.0.20131108.vaadin1",
-            "transitive": [
-                "org.skyscreamer:jsonassert"
             ]
         },
         "commons-cli:commons-cli": {
@@ -8780,7 +8770,9 @@
         },
         "org.springframework.boot:spring-boot-starter-test": {
             "locked": "2.2.5.RELEASE",
-            "requested": "2.2.5.RELEASE"
+            "transitive": [
+                "com.netflix.titus:titus-testkit"
+            ]
         },
         "org.springframework.boot:spring-boot-starter-tomcat": {
             "locked": "2.2.5.RELEASE",
