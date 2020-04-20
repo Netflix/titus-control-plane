@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2020 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,13 @@
 
 package com.netflix.titus.runtime.endpoint.resolver;
 
+import java.util.Optional;
+
 /**
- * Resolves caller id from its host name or IP address.
+ * External client (caller) id resolver. The caller data type depends on actual transport protocol used.
+ * It is also possible that for a single request, multiple caller identities exist.
  */
-public interface HostCallerIdResolver extends CallerIdResolver<String> {
+public interface CallerIdResolver<CALLER_DATA> {
+
+    Optional<String> resolve(CALLER_DATA callerData);
 }

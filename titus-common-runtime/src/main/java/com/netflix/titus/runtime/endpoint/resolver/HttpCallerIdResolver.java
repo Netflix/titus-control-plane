@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2020 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,23 +16,10 @@
 
 package com.netflix.titus.runtime.endpoint.resolver;
 
-import java.util.Optional;
-import javax.inject.Singleton;
+import javax.servlet.http.HttpServletRequest;
 
 /**
- * {@link HostCallerIdResolver} implementation that returns always an empty response.
+ * Extract from the HTTP request information about a caller.
  */
-@Singleton
-public class NoOpHostCallerIdResolver implements HostCallerIdResolver {
-
-    private static final NoOpHostCallerIdResolver INSTANCE = new NoOpHostCallerIdResolver();
-
-    @Override
-    public Optional<String> resolve(String address) {
-        return Optional.of("Anonymous");
-    }
-
-    public static NoOpHostCallerIdResolver getInstance() {
-        return INSTANCE;
-    }
+public interface HttpCallerIdResolver extends CallerIdResolver<HttpServletRequest> {
 }
