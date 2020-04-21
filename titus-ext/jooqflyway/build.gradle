@@ -39,14 +39,13 @@ dependencies {
     compile project(':titus-supplementary-component-task-relocation')
     compile project(':titus-supplementary-component-job-activity-history')
 
-    compile 'org.postgresql:postgresql:42.2.4'
-
     // JOOQ integration
     compile "org.jooq:jooq:${jooqVersion}"
     compile "org.jooq:jooq-meta:${jooqVersion}"
     compile "org.jooq:jooq-codegen:${jooqVersion}"
 
     compile 'com.opentable.components:otj-pg-embedded:0.13.+'
+    compile "org.postgresql:postgresql:42.+"
 
     jooqRuntime 'org.postgresql:postgresql:42.2.4'
 
