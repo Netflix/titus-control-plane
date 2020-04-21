@@ -65,8 +65,12 @@ public class ApplicationSlaManagementResourceTest {
     private static final ParameterizedTypeReference<List<ApplicationSlaRepresentation>> APPLICATION_SLA_REP_LIST_TR =
             new ParameterizedTypeReference<List<ApplicationSlaRepresentation>>() {
             };
+    private static final ParameterizedTypeReference<List<ApplicationSlaRepresentation>> APPLICATION_SLA_KUBE_SCHEDULER_REP_LIST_TR =
+            new ParameterizedTypeReference<List<ApplicationSlaRepresentation>>() {
+            };
 
     private static final ApplicationSLA SAMPLE_SLA = ApplicationSlaSample.CriticalSmall.build();
+    private static final ApplicationSLA SAMPLE_SLA_MANAGED_BY_KUBESCHEDULER = ApplicationSlaSample.CriticalSmallKubeScheduler.build();
     private static final ApplicationSlaRepresentation SAMPLE_SLA_REPRESENTATION = Representation2ModelConvertions.asRepresentation(SAMPLE_SLA);
 
     private static final ApplicationSlaManagementService capacityManagementService = mock(ApplicationSlaManagementService.class);
@@ -139,6 +143,17 @@ public class ApplicationSlaManagementResourceTest {
                 .expectBody(APPLICATION_SLA_REP_LIST_TR).value(result -> assertThat(result).hasSize(2));
 
         verify(capacityManagementService, times(1)).getApplicationSLAs();
+    }
+
+    @Test
+    public void getApplicationSlaBySchedulerName() {
+        when(capacityManagementService.getApplicationSLAsForScheduler("kubescheduler")).thenReturn(Arrays.asList(SAMPLE_SLA_MANAGED_BY_KUBESCHEDULER));
+        testClient.get()
+                .uri(uriBuilder -> uriBuilder.queryParam("schedulerName", "kubescheduler").build())
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(APPLICATION_SLA_KUBE_SCHEDULER_REP_LIST_TR).value(result -> assertThat(result).hasSize(1));
+        verify(capacityManagementService, times(1)).getApplicationSLAsForScheduler("kubescheduler");
     }
 
     @Test

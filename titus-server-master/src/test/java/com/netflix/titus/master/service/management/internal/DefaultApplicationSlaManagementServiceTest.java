@@ -32,6 +32,7 @@ import rx.schedulers.TestScheduler;
 
 import static com.netflix.titus.master.service.management.ApplicationSlaManagementService.DEFAULT_APPLICATION;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -81,6 +82,15 @@ public class DefaultApplicationSlaManagementServiceTest {
         assertThat(result).hasSize(1);
         assertThat(result.get(0).getAppName()).isEqualTo(myApp.getAppName());
         assertThat(result.get(0).getSchedulerName()).isEqualTo(myApp.getSchedulerName());
+    }
+
+    @Test
+    public void testGetApplicationBySchedulerNameFailure() {
+        ApplicationSLA myApp = ApplicationSlaSample.CriticalSmallKubeScheduler.build();
+        Observable observable = Observable.error(new RuntimeException("generic failure"));
+        when(storage.findBySchedulerName(myApp.getSchedulerName())).thenReturn(observable);
+
+        assertThatThrownBy(() -> slaManagementService.getApplicationSLAsForScheduler(myApp.getSchedulerName())).isInstanceOf(RuntimeException.class).hasMessage("generic failure");
     }
 
     @Test
