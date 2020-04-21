@@ -1,5 +1,5 @@
 plugins {
-    id "com.google.protobuf" version "0.8.11"
+    id "com.google.protobuf" version "0.8.12"
 }
 
 configurations {
@@ -20,13 +20,16 @@ dependencies {
 }
 
 if (project.hasProperty("idlLocal")) {
-    task extractProto {
+    tasks.register('copyProtos', Copy) {
         doLast {
             copy {
                 from '../../titus-api-definitions/src/main/proto'
                 into new File(buildDir, "extracted-protos/main")
             }
         }
+    }
+    afterEvaluate {
+        tasks.findByName('extractProto').finalizedBy tasks.copyProtos
     }
 }
 

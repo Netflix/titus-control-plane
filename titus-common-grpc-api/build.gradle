@@ -22,7 +22,7 @@ dependencies {
 }
 
 if (project.hasProperty("idlLocal")) {
-    task extractProto {
+    tasks.register('copyProtos', Copy) {
         doLast {
             copy {
                 from '../../titus-api-definitions/src/main/proto'
@@ -30,7 +30,11 @@ if (project.hasProperty("idlLocal")) {
             }
         }
     }
+    afterEvaluate {
+        tasks.findByName('extractProto').finalizedBy tasks.copyProtos
+    }
 }
+
 
 idea {
     module {
