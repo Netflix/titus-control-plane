@@ -29,7 +29,6 @@ plugins {
 
 apply plugin: 'nu.studer.jooq'
 apply plugin: 'org.flywaydb.flyway'
-apply plugin: 'nebula.facet'
 ext.flywayVersion = '6.1.+'
 ext.jooqVersion = '3.11.2'
 
@@ -40,14 +39,7 @@ dependencies {
     compile project(':titus-supplementary-component-task-relocation')
     compile project(':titus-supplementary-component-job-activity-history')
 
-    compile "org.springframework:spring-web:${springVersion}"
-    compile "org.springframework:spring-webflux:${springVersion}"
-    compile "io.projectreactor.netty:reactor-netty:${springReactorNetty}"
-
     compile 'org.postgresql:postgresql:42.2.4'
-
-    // Flyway
-    //compile "org.flywaydb:flyway-core:${flywayVersion}"
 
     // JOOQ integration
     compile "org.jooq:jooq:${jooqVersion}"
@@ -57,7 +49,6 @@ dependencies {
     compile 'com.opentable.components:otj-pg-embedded:0.13.+'
 
     jooqRuntime 'org.postgresql:postgresql:42.2.4'
-
 
     // Hikari DataSource for connection pooling to the DB
     compile 'com.zaxxer:HikariCP:3.2.0'
