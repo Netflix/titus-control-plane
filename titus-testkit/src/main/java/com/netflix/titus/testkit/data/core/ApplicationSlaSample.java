@@ -84,7 +84,7 @@ public enum ApplicationSlaSample {
     },
     CriticalSmallKubeScheduler() {
         @Override
-        public ApplicationSLA.Builder builder(){
+        public ApplicationSLA.Builder builder() {
             return CriticalSmall.builder()
                     .withAppName("criticalSmallKubeSchedulerApp")
                     .withSchedulerName("kubescheduler");

@@ -26,17 +26,17 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.netflix.titus.api.model.ApplicationSLA;
+import com.netflix.titus.api.store.v2.exception.NotFoundException;
 import com.netflix.titus.common.util.guice.ProxyType;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.guice.annotation.ProxyConfiguration;
-import com.netflix.titus.api.store.v2.exception.NotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
 
 /**
  * Caching proxy for {@link ApplicationSlaStore}. It loads all data on startup in a blocking mode to fail fast,
- * in case there is any problem with the storage.
+ * in case there are any problems with the storage.
  */
 @ProxyConfiguration(types = ProxyType.ActiveGuard)
 public class ApplicationSlaStoreCache implements ApplicationSlaStore {
@@ -62,11 +62,10 @@ public class ApplicationSlaStoreCache implements ApplicationSlaStore {
 
     @Override
     public Observable<Void> create(ApplicationSLA applicationSLA) {
-        return delegate.create(applicationSLA).doOnCompleted(() ->
-        {
+        return delegate.create(applicationSLA).doOnCompleted(() -> {
             synchronized (lock) {
                 ApplicationSLA previous = cache.put(applicationSLA.getAppName(), applicationSLA);
-                if(previous != null){
+                if (previous != null) {
                     cacheBySchedulerName.remove(previous.getSchedulerName(), previous);
                 }
                 cacheBySchedulerName.put(applicationSLA.getSchedulerName(), applicationSLA);
