@@ -81,7 +81,6 @@ public class ApplicationSlaManagementResource implements ApplicationSlaManagemen
         List<ApplicationSlaRepresentation> result = new ArrayList<>();
 
         String cellId = extended ? configuration.getCellName() : null;
-        // TODO kjoshi: if schedulerName is specified, buildUsage only for the corresponding ApplicationSLAs
         Map<String, ReservationUsage> usageMap = extended ? reservationUsageCalculator.buildUsage() : Collections.emptyMap();
         Collection<ApplicationSLA> applicationSLAs;
         if (Strings.isNullOrEmpty(schedulerName)) {
