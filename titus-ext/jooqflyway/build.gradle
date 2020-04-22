@@ -20,16 +20,17 @@ import java.sql.Connection
 import java.sql.ResultSet
 import java.sql.Statement
 
-buildscript { dependencies { classpath 'com.opentable.components:otj-pg-embedded:0.12.+' } }
+buildscript { dependencies { classpath 'com.opentable.components:otj-pg-embedded:0.13.+' } }
 
 plugins {
-    id 'nu.studer.jooq' version '3.0.1'
+    id 'nu.studer.jooq' version '3.0.2'
     id 'org.flywaydb.flyway' version '5.2.4'
 }
 
 apply plugin: 'nu.studer.jooq'
 apply plugin: 'org.flywaydb.flyway'
-
+ext.flywayVersion = '6.1.+'
+ext.jooqVersion = '3.11.2'
 
 dependencies {
 
@@ -38,19 +39,21 @@ dependencies {
     compile project(':titus-supplementary-component-task-relocation')
     compile project(':titus-supplementary-component-job-activity-history')
 
-    compile 'org.postgresql:postgresql:42.2.4'
-
     // JOOQ integration
     compile "org.jooq:jooq:${jooqVersion}"
     compile "org.jooq:jooq-meta:${jooqVersion}"
     compile "org.jooq:jooq-codegen:${jooqVersion}"
-    jooqRuntime 'org.postgresql:postgresql:42.2.4'
 
+    compile 'com.opentable.components:otj-pg-embedded:0.13.+'
+    compile "org.postgresql:postgresql:42.2.8"
+
+    jooqRuntime 'org.postgresql:postgresql:42.2.8'
 
     // Hikari DataSource for connection pooling to the DB
     compile 'com.zaxxer:HikariCP:3.2.0'
 
     testCompile project(':titus-testkit')
+    //testCompile "org.springframework.boot:spring-boot-test"
 
     jooqRuntime "org.slf4j:slf4j-log4j12:${slf4jVersion}"
 }

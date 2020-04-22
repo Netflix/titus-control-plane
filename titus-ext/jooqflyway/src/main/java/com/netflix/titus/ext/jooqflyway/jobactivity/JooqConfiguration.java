@@ -28,18 +28,6 @@ public interface JooqConfiguration {
     @DefaultValue("false")
     boolean isInMemoryDb();
 
-    @DefaultValue("jdbc:postgresql://localhost:5432/jobactivity")
-    String getJdbcUrl();
-
-    @DefaultValue("public")
-    String getJdbcSchema();
-
-    @DefaultValue("activityuser")
-    String getJdbcUsername();
-
-    @DefaultValue("activitypassword")
-    String getJdbcPassword();
-
     @DefaultValue("jdbc://localhost")
     String getProducerDatatabaseUrl();
 }

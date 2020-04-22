@@ -20,6 +20,10 @@ plugins {
 
 apply plugin: 'io.spring.dependency-management'
 
+configurations.all {
+    exclude group: 'org.apache.logging.log4j', module: 'log4j-to-slf4j'
+}
+
 configurations {
     [apiElements, runtimeElements].each {
         it.outgoing.artifacts.removeIf { it.buildDependencies.getDependencies(null).contains(jar) }

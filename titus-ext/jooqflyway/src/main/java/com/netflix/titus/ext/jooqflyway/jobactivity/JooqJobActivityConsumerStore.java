@@ -52,6 +52,7 @@ public class JooqJobActivityConsumerStore implements JobActivityConsumerStore {
         this.producerDSLContext = producerDSLContext;
         if (createIfNotExists) {
             // create schema
+            logger.info("Creating database");
         }
         logger.info("Initializing consumer");
     }
