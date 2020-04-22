@@ -20,13 +20,11 @@ dependencies {
 }
 
 if (project.hasProperty("idlLocal")) {
-    task extractProto {
-        doLast {
-            copy {
-                from '../../titus-api-definitions/src/main/proto'
-                into new File(buildDir, "extracted-protos/main")
-            }
-        }
+    tasks.register('copyProtos', Exec) {
+        commandLine "/bin/bash", "-c", "cp -R " + new File(buildDir, '../../../titus-api-definitions/src/main/proto/netflix')  + " " + new File(buildDir, "extracted-protos/main")
+    }
+    afterEvaluate {
+        tasks.findByName('extractProto').finalizedBy tasks.copyProtos
     }
 }
 
