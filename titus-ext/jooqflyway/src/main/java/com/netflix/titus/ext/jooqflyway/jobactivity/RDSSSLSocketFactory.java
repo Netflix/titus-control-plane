@@ -34,7 +34,7 @@ public class RDSSSLSocketFactory extends WrappedFactory {
             tmf.init(trustStore);
             SSLContext sslContext = SSLContext.getInstance("TLS");
             sslContext.init(null, tmf.getTrustManagers(), null);
-            _factory = sslContext.getSocketFactory();
+            factory = sslContext.getSocketFactory();
         } catch (Exception e) {
             throw new IllegalStateException("Cannot initialize RDS socket factory", e);
         }

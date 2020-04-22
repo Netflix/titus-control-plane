@@ -45,9 +45,9 @@ dependencies {
     compile "org.jooq:jooq-codegen:${jooqVersion}"
 
     compile 'com.opentable.components:otj-pg-embedded:0.13.+'
-    compile "org.postgresql:postgresql:42.+"
+    compile "org.postgresql:postgresql:42.2.8"
 
-    jooqRuntime 'org.postgresql:postgresql:42.2.4'
+    jooqRuntime 'org.postgresql:postgresql:42.2.8'
 
     // Hikari DataSource for connection pooling to the DB
     compile 'com.zaxxer:HikariCP:3.2.0'
