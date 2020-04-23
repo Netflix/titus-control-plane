@@ -26,6 +26,8 @@ import com.netflix.titus.master.service.management.ApplicationSlaManagementServi
 import com.netflix.titus.master.service.management.CapacityMonitoringService;
 import com.netflix.titus.master.service.management.ManagementSubsystemInitializer;
 import com.netflix.titus.api.store.v2.ApplicationSlaStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import rx.Observable;
 
 @Singleton
@@ -33,6 +35,7 @@ public class DefaultApplicationSlaManagementService implements ApplicationSlaMan
 
     private final CapacityMonitoringService capacityMonitoringService;
     private final ApplicationSlaStore storage;
+    private static final Logger logger = LoggerFactory.getLogger(DefaultApplicationSlaManagementService.class);
 
     /**
      * Injecting {@link ManagementSubsystemInitializer} here, to make sure everything is ready, before this service
@@ -53,8 +56,23 @@ public class DefaultApplicationSlaManagementService implements ApplicationSlaMan
     }
 
     @Override
+    public Collection<ApplicationSLA> getApplicationSLAsForScheduler(String schedulerName) {
+        return storage.findBySchedulerName(schedulerName)
+                .doOnError(t -> logger.error("Error retrieving ApplicationSLAs for schedulerName " + schedulerName, t))
+                .toList()
+                .toBlocking()
+                .firstOrDefault(Collections.emptyList());
+    }
+
+    @Override
     public ApplicationSLA getApplicationSLA(String applicationName) {
-        return storage.findByName(applicationName).onErrorReturn(t -> null).toBlocking().firstOrDefault(null);
+        return storage.findByName(applicationName)
+                .onErrorReturn(t -> {
+                    logger.info("Error retrieving ApplicationSLA for applicationName " + applicationName, t);
+                    return null;
+                })
+                .toBlocking()
+                .firstOrDefault(null);
     }
 
     @Override

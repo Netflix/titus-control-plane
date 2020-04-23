@@ -16,10 +16,16 @@
 
 package com.netflix.titus.api.model;
 
+import java.util.Objects;
+
+import com.google.common.base.Strings;
+
 /**
  * Application SLA definition.
  */
 public class ApplicationSLA {
+
+    public static final String DEFAULT_SCHEDULER_NAME = "fenzo";
 
     private final String appName;
 
@@ -30,6 +36,8 @@ public class ApplicationSLA {
 
     private final ResourceDimension resourceDimension;
 
+    private final String schedulerName;
+
     /**
      * Total number of instances required by this application. Titus will keep pre-allocated resources to always
      * fulfill this requirement.
@@ -39,11 +47,17 @@ public class ApplicationSLA {
     public ApplicationSLA(String appName,
                           Tier tier,
                           ResourceDimension resourceDimension,
-                          int instanceCount) {
+                          int instanceCount,
+                          String schedulerName) {
         this.appName = appName;
         this.tier = tier;
         this.resourceDimension = resourceDimension;
         this.instanceCount = instanceCount;
+        if (Strings.isNullOrEmpty(schedulerName)) {
+            this.schedulerName = DEFAULT_SCHEDULER_NAME;
+        } else {
+            this.schedulerName = schedulerName;
+        }
     }
 
     public String getAppName() {
@@ -73,26 +87,20 @@ public class ApplicationSLA {
 
         ApplicationSLA that = (ApplicationSLA) o;
 
-        if (instanceCount != that.instanceCount) {
-            return false;
-        }
-        if (appName != null ? !appName.equals(that.appName) : that.appName != null) {
-            return false;
-        }
-        if (tier != that.tier) {
-            return false;
-        }
-        return resourceDimension != null ? resourceDimension.equals(that.resourceDimension) : that.resourceDimension == null;
-
+        return instanceCount == that.instanceCount &&
+                Objects.equals(appName, that.appName) &&
+                tier == that.tier &&
+                Objects.equals(resourceDimension, that.resourceDimension) &&
+                Objects.equals(schedulerName, that.schedulerName);
     }
 
     @Override
     public int hashCode() {
-        int result = appName != null ? appName.hashCode() : 0;
-        result = 31 * result + (tier != null ? tier.hashCode() : 0);
-        result = 31 * result + (resourceDimension != null ? resourceDimension.hashCode() : 0);
-        result = 31 * result + instanceCount;
-        return result;
+        return Objects.hash(appName, tier, resourceDimension, schedulerName, instanceCount);
+    }
+
+    public String getSchedulerName() {
+        return schedulerName;
     }
 
     @Override
@@ -101,6 +109,7 @@ public class ApplicationSLA {
                 "appName='" + appName + '\'' +
                 ", tier=" + tier +
                 ", resourceDimension=" + resourceDimension +
+                ", schedulerName='" + schedulerName + '\'' +
                 ", instanceCount=" + instanceCount +
                 '}';
     }
@@ -111,7 +120,8 @@ public class ApplicationSLA {
 
     public static Builder newBuilder(ApplicationSLA original) {
         return newBuilder().withAppName(original.getAppName()).withTier(original.getTier())
-                .withResourceDimension(original.getResourceDimension()).withInstanceCount(original.getInstanceCount());
+                .withResourceDimension(original.getResourceDimension()).withInstanceCount(original.getInstanceCount())
+                .withSchedulerName(original.getSchedulerName());
     }
 
     public static final class Builder {
@@ -119,6 +129,7 @@ public class ApplicationSLA {
         private Tier tier;
         private ResourceDimension resourceDimension;
         private int instanceCount;
+        private String schedulerName;
 
         private Builder() {
         }
@@ -148,8 +159,13 @@ public class ApplicationSLA {
                     .withResourceDimension(resourceDimension).withInstanceCount(instanceCount);
         }
 
+        public Builder withSchedulerName(String schedulerName) {
+            this.schedulerName = schedulerName;
+            return this;
+        }
+
         public ApplicationSLA build() {
-            return new ApplicationSLA(appName, tier, resourceDimension, instanceCount);
+            return new ApplicationSLA(appName, tier, resourceDimension, instanceCount, schedulerName);
         }
     }
 }

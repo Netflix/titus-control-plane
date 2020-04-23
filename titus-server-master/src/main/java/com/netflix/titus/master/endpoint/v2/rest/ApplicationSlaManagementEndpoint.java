@@ -57,7 +57,7 @@ public interface ApplicationSlaManagementEndpoint {
      * @return a collection of application SLAs or empty array if non present
      */
     @GET
-    List<ApplicationSlaRepresentation> getApplicationSLAs(@QueryParam("extended") boolean extended);
+    List<ApplicationSlaRepresentation> getApplicationSLAs(@QueryParam("extended") boolean extended, @QueryParam("schedulerName") String schedulerName);
 
     /**
      * Returns application SLA data for a given application.

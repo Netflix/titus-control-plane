@@ -61,6 +61,11 @@ public class BeanCapacityManagementConfiguration implements CapacityManagementCo
         return flexTierBuffer;
     }
 
+    @Override
+    public String getDefaultSchedulerName() {
+        return "fenzo";
+    }
+
     public static Builder newBuilder() {
         return new Builder();
     }

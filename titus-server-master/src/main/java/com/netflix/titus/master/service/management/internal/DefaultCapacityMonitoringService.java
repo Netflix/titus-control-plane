@@ -139,7 +139,9 @@ public class DefaultCapacityMonitoringService implements CapacityMonitoringServi
 
             // Compute capacity allocations for all tiers, and for those tiers that are scaled (now only Critical).
             // We need full capacity allocation for alerting.
-            Observable<Pair<CapacityGuaranteeStrategy.CapacityAllocations, CapacityGuaranteeStrategy.CapacityAllocations>> allocationsObservable = storage.findAll().toList()
+            Observable<Pair<CapacityGuaranteeStrategy.CapacityAllocations, CapacityGuaranteeStrategy.CapacityAllocations>> allocationsObservable = storage.findAll()
+                    .filter(applicationSLA -> configuration.getDefaultSchedulerName().equals(applicationSLA.getSchedulerName()))
+                    .toList()
                     .map(allSlas -> Pair.of(recompute(allSlas), recompute(scalableSLAs(allSlas))));
 
             Observable<Void> updateStatus = allocationsObservable.flatMap(allocationPair -> {

@@ -24,7 +24,7 @@ import com.netflix.titus.api.store.v2.ApplicationSlaStore;
 import com.netflix.titus.api.store.v2.ApplicationSlaStoreCache;
 import com.netflix.titus.api.store.v2.exception.NotFoundException;
 import com.netflix.titus.testkit.data.core.ApplicationSlaGenerator;
-import com.netflix.titus.testkit.data.core.ApplicationSlaSample;
+
 import org.junit.Before;
 import org.junit.Test;
 import rx.Observable;
@@ -37,11 +37,13 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import static com.netflix.titus.testkit.data.core.ApplicationSlaSample.*;
+
 public class ApplicationSlaStoreCacheTest {
 
-    private static final int INIT_SIZE = 2;
+    private static final int INIT_SIZE = 3;
 
-    private final ApplicationSlaGenerator generator = new ApplicationSlaGenerator(ApplicationSlaSample.CriticalSmall);
+    private final ApplicationSlaGenerator generator = new ApplicationSlaGenerator(CriticalSmall, CriticalSmallKubeScheduler);
 
     private final List<ApplicationSLA> initSet = new ArrayList<>(generator.next(INIT_SIZE));
 
@@ -69,6 +71,15 @@ public class ApplicationSlaStoreCacheTest {
         ApplicationSLA applicationSLA = initSet.get(0);
         ApplicationSLA result = store.findByName(applicationSLA.getAppName()).toBlocking().first();
         assertThat(result).isEqualTo(applicationSLA);
+    }
+
+    @Test
+    public void testFindBySchedulerName() throws Exception {
+        List<ApplicationSLA> allFenzoApplicationSLAs = store.findBySchedulerName("fenzo").toList().toBlocking().first();
+        assertThat(allFenzoApplicationSLAs).hasSize(INIT_SIZE - 1);
+
+        List<ApplicationSLA> allKubeSchedulerApplicationSLAs = store.findBySchedulerName("kubescheduler").toList().toBlocking().first();
+        assertThat(allKubeSchedulerApplicationSLAs).hasSize(1);
     }
 
     @Test

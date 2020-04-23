@@ -26,9 +26,27 @@ import rx.Observable;
 @ThreadSafe
 public interface ApplicationSlaStore {
 
+    /**
+     * In addition to creating new records, this method is also used for making updates to existing ones.
+     * The assumption here is that the application name attribute does not change. This makes it possible to
+     * overwrite existing entry when the application name is used as a key in the store implementation.
+     * @param applicationSLA {@link ApplicationSLA} to be created or updated
+     * @return
+     */
     Observable<Void> create(ApplicationSLA applicationSLA);
 
     Observable<ApplicationSLA> findAll();
+
+    /**
+     * This API retrieves all instances of {@link ApplicationSLA} associated with the given schedulerName.
+     * <p>
+     * In case the schedulerName is null or empty string, all existing {@link ApplicationSLA}
+     * instances independent of their associated scheduler is will be returned.
+     * </p>
+     * @param schedulerName name of the scheduler managing this {@link ApplicationSLA}
+     * @return
+     */
+    Observable<ApplicationSLA> findBySchedulerName(String schedulerName);
 
     Observable<ApplicationSLA> findByName(String applicationName);
 

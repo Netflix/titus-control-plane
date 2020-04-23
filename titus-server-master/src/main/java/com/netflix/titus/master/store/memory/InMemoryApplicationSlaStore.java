@@ -20,6 +20,9 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.inject.Singleton;
 
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.store.v2.ApplicationSlaStore;
 import com.netflix.titus.api.store.v2.exception.NotFoundException;
@@ -30,17 +33,32 @@ public class InMemoryApplicationSlaStore implements ApplicationSlaStore {
 
     private final Map<String, ApplicationSLA> applicationSLAs = new ConcurrentHashMap<>();
 
+    private final Multimap<String, ApplicationSLA> applicationSLAsBySchedulerName = Multimaps.synchronizedSetMultimap(HashMultimap.create());
+
+    private final Object lock = new Object();
+
     @Override
     public Observable<Void> create(ApplicationSLA applicationSLA) {
         return Observable.create(subscriber -> {
-            applicationSLAs.put(applicationSLA.getAppName(), applicationSLA);
-            subscriber.onCompleted();
+            synchronized (lock) {
+                ApplicationSLA previous = applicationSLAs.put(applicationSLA.getAppName(), applicationSLA);
+                if (previous != null) {
+                    applicationSLAsBySchedulerName.remove(previous.getSchedulerName(), previous);
+                }
+                applicationSLAsBySchedulerName.put(applicationSLA.getSchedulerName(), applicationSLA);
+                subscriber.onCompleted();
+            }
         });
     }
 
     @Override
     public Observable<ApplicationSLA> findAll() {
         return Observable.from(applicationSLAs.values());
+    }
+
+    @Override
+    public Observable<ApplicationSLA> findBySchedulerName(String schedulerName) {
+        return Observable.from(applicationSLAsBySchedulerName.get(schedulerName));
     }
 
     @Override
@@ -55,11 +73,14 @@ public class InMemoryApplicationSlaStore implements ApplicationSlaStore {
     @Override
     public Observable<Void> remove(String applicationName) {
         return Observable.create(subscriber -> {
-            ApplicationSLA result = applicationSLAs.remove(applicationName);
-            if (result == null) {
-                subscriber.onError(new NotFoundException(ApplicationSLA.class, applicationName));
-            } else {
-                subscriber.onCompleted();
+            synchronized (lock) {
+                ApplicationSLA result = applicationSLAs.remove(applicationName);
+                if (result == null) {
+                    subscriber.onError(new NotFoundException(ApplicationSLA.class, applicationName));
+                } else {
+                    applicationSLAsBySchedulerName.remove(result.getSchedulerName(), result);
+                    subscriber.onCompleted();
+                }
             }
         });
     }

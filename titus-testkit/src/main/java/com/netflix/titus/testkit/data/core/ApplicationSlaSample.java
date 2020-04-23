@@ -81,6 +81,14 @@ public enum ApplicationSlaSample {
                     .withTier(Tier.Flex)
                     .withInstanceCount(2);
         }
+    },
+    CriticalSmallKubeScheduler() {
+        @Override
+        public ApplicationSLA.Builder builder() {
+            return CriticalSmall.builder()
+                    .withAppName("criticalSmallKubeSchedulerApp")
+                    .withSchedulerName("kubescheduler");
+        }
     };
 
     public abstract ApplicationSLA.Builder builder();

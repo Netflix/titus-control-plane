@@ -31,6 +31,8 @@ public interface ApplicationSlaManagementService {
 
     Collection<ApplicationSLA> getApplicationSLAs();
 
+    Collection<ApplicationSLA> getApplicationSLAsForScheduler(String schedulerName);
+
     ApplicationSLA getApplicationSLA(String applicationName);
 
     Observable<Void> addApplicationSLA(ApplicationSLA applicationSLA);

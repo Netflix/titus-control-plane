@@ -51,6 +51,7 @@ public final class Representation2ModelConvertions {
                 .withTier(tier)
                 .withResourceDimension(resourceDimension)
                 .withInstanceCount(representation.getInstanceCount())
+                .withSchedulerName(representation.getSchedulerName())
                 .build();
     }
 
@@ -71,7 +72,8 @@ public final class Representation2ModelConvertions {
                 resourceDimension.getDiskMB(),
                 resourceDimension.getNetworkMbs(),
                 coreEntity.getInstanceCount(),
-                reservationUsage
+                reservationUsage,
+                coreEntity.getSchedulerName()
         );
     }
 }

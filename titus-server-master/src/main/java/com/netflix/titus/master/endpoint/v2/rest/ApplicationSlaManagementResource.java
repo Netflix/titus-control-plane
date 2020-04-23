@@ -18,6 +18,7 @@ package com.netflix.titus.master.endpoint.v2.rest;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +41,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
+import com.google.common.base.Strings;
 import com.netflix.titus.api.endpoint.v2.rest.representation.ApplicationSlaRepresentation;
 import com.netflix.titus.api.endpoint.v2.rest.representation.ReservationUsage;
 import com.netflix.titus.api.model.ApplicationSLA;
@@ -75,13 +77,18 @@ public class ApplicationSlaManagementResource implements ApplicationSlaManagemen
 
     @GET
     @Override
-    public List<ApplicationSlaRepresentation> getApplicationSLAs(@QueryParam("extended") boolean extended) {
+    public List<ApplicationSlaRepresentation> getApplicationSLAs(@QueryParam("extended") boolean extended, @QueryParam("schedulerName") String schedulerName) {
         List<ApplicationSlaRepresentation> result = new ArrayList<>();
 
         String cellId = extended ? configuration.getCellName() : null;
         Map<String, ReservationUsage> usageMap = extended ? reservationUsageCalculator.buildUsage() : Collections.emptyMap();
-
-        applicationSlaManagementService.getApplicationSLAs().forEach(a -> result.add(asRepresentation(a, cellId, usageMap.get(a.getAppName()))));
+        Collection<ApplicationSLA> applicationSLAs;
+        if (Strings.isNullOrEmpty(schedulerName)) {
+            applicationSLAs = applicationSlaManagementService.getApplicationSLAs();
+        } else {
+            applicationSLAs = applicationSlaManagementService.getApplicationSLAsForScheduler(schedulerName);
+        }
+        applicationSLAs.forEach(a -> result.add(asRepresentation(a, cellId, usageMap.get(a.getAppName()))));
         return result;
     }
 
