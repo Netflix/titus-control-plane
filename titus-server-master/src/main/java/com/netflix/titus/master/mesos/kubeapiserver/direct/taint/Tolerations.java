@@ -18,7 +18,7 @@ package com.netflix.titus.master.mesos.kubeapiserver.direct.taint;
 
 import java.util.function.Function;
 
-import com.netflix.titus.master.mesos.kubeapiserver.direct.KubeConstants;
+import com.netflix.titus.master.mesos.kubeapiserver.KubeConstants;
 import io.kubernetes.client.openapi.models.V1Toleration;
 
 public final class Tolerations {

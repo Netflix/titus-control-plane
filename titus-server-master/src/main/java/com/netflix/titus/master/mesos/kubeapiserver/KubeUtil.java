@@ -35,16 +35,19 @@ import java.util.stream.Collectors;
 import com.google.common.base.Strings;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.util.JsonFormat;
+import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.JobConstraints;
+import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.NetworkExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeConfiguration;
-import com.netflix.titus.master.mesos.kubeapiserver.direct.KubeConstants;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import io.kubernetes.client.informer.SharedInformerFactory;
 import io.kubernetes.client.openapi.ApiClient;
@@ -227,6 +230,7 @@ public class KubeUtil {
 
     public static Map<String, String> createPodAnnotations(
             Job<?> job,
+            Task task,
             byte[] containerInfoData,
             Map<String, String> passthroughAttributes,
             boolean includeJobDescriptor
@@ -236,6 +240,18 @@ public class KubeUtil {
         Map<String, String> annotations = new HashMap<>(passthroughAttributes);
         annotations.putAll(PerformanceToolUtil.toAnnotations(job));
         annotations.put("containerInfo", encodedContainerInfo);
+        Evaluators.acceptNotNull(
+                job.getJobDescriptor().getAttributes().get(JobAttributes.JOB_ATTRIBUTES_RUNTIME_PREDICTION_SEC),
+                runtimeInSec -> annotations.put(KubeConstants.JOB_RUNTIME_PREDICTION, runtimeInSec + "s")
+        );
+        Evaluators.acceptNotNull(
+                task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT),
+                count -> annotations.put(KubeConstants.OPPORTUNISTIC_CPU_COUNT, count)
+        );
+        Evaluators.acceptNotNull(
+                task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION),
+                id -> annotations.put(KubeConstants.OPPORTUNISTIC_ID, id)
+        );
 
         if (includeJobDescriptor) {
             JobDescriptor grpcJobDescriptor = GrpcJobManagementModelConverters.toGrpcJobDescriptor(job.getJobDescriptor());

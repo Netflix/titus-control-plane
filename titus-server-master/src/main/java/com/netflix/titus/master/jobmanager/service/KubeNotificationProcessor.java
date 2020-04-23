@@ -41,6 +41,7 @@ import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
+import com.netflix.titus.master.mesos.kubeapiserver.KubeConstants;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeJobManagementReconciler;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeApiServerIntegrator;
@@ -57,9 +58,12 @@ import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.publisher.Mono;
 
+import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION;
+import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT;
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_NORMAL;
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TASK_KILLED;
 import static com.netflix.titus.common.util.Evaluators.acceptNotNull;
+import static com.netflix.titus.master.mesos.kubeapiserver.KubeConstants.NODE_ANNOTATION_PREFIX;
 
 /**
  * TODO Incorporate this into {@link DefaultV3JobOperations} once Fenzo is removed.
@@ -69,10 +73,7 @@ import static com.netflix.titus.common.util.Evaluators.acceptNotNull;
 public class KubeNotificationProcessor {
 
     private static final Logger logger = LoggerFactory.getLogger(KubeNotificationProcessor.class);
-
-    private static final String NODE_ANNOTATION_PREFIX = "com.netflix.titus.agent.attribute/";
-
-    private static CallMetadata KUBE_CALL_METADATA = CallMetadata.newBuilder().withCallerId("Kube").build();
+    private static final CallMetadata KUBE_CALL_METADATA = CallMetadata.newBuilder().withCallerId("Kube").build();
 
     private final JobManagerConfiguration configuration;
     private final DirectKubeApiServerIntegrator kubeApiServerIntegrator;
@@ -153,6 +154,7 @@ public class KubeNotificationProcessor {
 
         logger.info("Pod state change event: taskId={}, details={}", task.getId(), KubeUtil.formatV1ContainerState(containerState));
         if (containerState.getWaiting() != null) {
+            // TODO: check for updated annotations and update tasks without having to wait for a containerState transition
             logger.debug("Ignoring 'waiting' state update, as task must stay in the 'Accepted' state here");
         } else if (containerState.getRunning() != null) {
             if (TaskState.isBefore(taskState, TaskState.Started)) {
@@ -233,8 +235,9 @@ public class KubeNotificationProcessor {
                     Task fixedTask = fillInMissingStates(pod, updatedTask);
                     Task taskWithPlacementData = JobManagerUtil.attachPlacementData(fixedTask, executorDetailsOpt);
                     Task taskWithNodeMetadata = node.map(n -> attachNodeMetadata(taskWithPlacementData, n)).orElse(taskWithPlacementData);
+                    Task taskWithAnnotations = addMissingAttributes(pod, updatedTask);
 
-                    return Optional.of(taskWithNodeMetadata);
+                    return Optional.of(taskWithAnnotations);
                 },
                 V3JobOperations.Trigger.Kube,
                 "Kube pod notification",
@@ -360,4 +363,30 @@ public class KubeNotificationProcessor {
         }
         return Optional.empty();
     }
+
+    private Task addMissingAttributes(V1Pod pod, Task updatedTask) {
+        Map<String, String> taskContext = updatedTask.getTaskContext();
+
+        Optional<String> updatedCpus = getPodAnnotation(pod, KubeConstants.OPPORTUNISTIC_CPU_COUNT)
+                .filter(cpus -> !cpus.equals(taskContext.get(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT)));
+
+        Optional<String> updatedAllocation = getPodAnnotation(pod, KubeConstants.OPPORTUNISTIC_ID)
+                .filter(id -> !id.equals(taskContext.get(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION)));
+
+        if (!updatedCpus.isPresent() && !updatedAllocation.isPresent()) {
+            return updatedTask; // no updates, nothing to do
+        }
+
+        Task.TaskBuilder<?, ?> builder = updatedTask.toBuilder();
+        updatedCpus.ifPresent(cpus -> builder.addToTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT, cpus));
+        updatedAllocation.ifPresent(id -> builder.addToTaskContext(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION, id));
+        return builder.build();
+    }
+
+    private Optional<String> getPodAnnotation(V1Pod pod, String key) {
+        return Optional.ofNullable(pod.getMetadata())
+                .flatMap(meta -> Optional.ofNullable(meta.getAnnotations()))
+                .flatMap(annotations -> Optional.ofNullable(annotations.get(key)));
+    }
+
 }
