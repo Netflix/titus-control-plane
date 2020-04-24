@@ -14,16 +14,26 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.mesos.kubeapiserver.direct;
+package com.netflix.titus.master.mesos.kubeapiserver;
 
 /**
  * Miscellaneous Kube constants.
  */
-public class KubeConstants {
+public final class KubeConstants {
+    private KubeConstants() {
+    }
 
     /*
      * Standard node labels.
      */
+
+    /**
+     * Prefix used for legacy node attributes
+     *
+     * <em>Deprecated</em>: use a prefix that is a valid DNS name (rather than using Java package conventions)
+     */
+    @Deprecated
+    public static final String NODE_ANNOTATION_PREFIX = "com.netflix.titus.agent.attribute/";
 
     public static final String NODE_LABEL_REGION = "failure-domain.beta.kubernetes.io/region";
 
@@ -85,4 +95,24 @@ public class KubeConstants {
      * Taint added to each GPU instance.
      */
     public static final String TAINT_GPU_INSTANCE = TITUS_TAINT_DOMAIN + "gpu";
+
+    /*
+     * Opportunistic scheduling annotations
+     */
+
+    /**
+     * Predicted runtime for a Job in a format compatible with Go's <tt>time.Duration</tt>, e.g. <tt>10s</tt>.
+     * <p>
+     * See <a href="https://godoc.org/time#ParseDuration"><tt>time.ParseDuration</tt></a> for more details on the format.
+     */
+    public static final String JOB_RUNTIME_PREDICTION = "predictions.scheduler.titus.netflix.com/runtime";
+    /**
+     * Opportunistic CPUs allocated to Pods (uint) during scheduling
+     */
+    public static final String OPPORTUNISTIC_CPU_COUNT = "opportunistic.scheduler.titus.netflix.com/cpu";
+    /**
+     * Opportunistic resource CRD used when allocating opportunistic resources to a Pod during scheduling
+     */
+    public static final String OPPORTUNISTIC_ID = "opportunistic.scheduler.titus.netflix.com/id";
+
 }

@@ -47,6 +47,7 @@ import com.netflix.titus.api.model.EfsMount;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.StringExt;
+import com.netflix.titus.master.mesos.kubeapiserver.KubeConstants;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.taint.TaintTolerationFactory;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
@@ -115,7 +116,7 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
     public V1Pod apply(Job<?> job, Task task) {
         String taskId = task.getId();
         TitanProtos.ContainerInfo containerInfo = buildContainerInfo(job, task);
-        Map<String, String> annotations = KubeUtil.createPodAnnotations(job, containerInfo.toByteArray(),
+        Map<String, String> annotations = KubeUtil.createPodAnnotations(job, task, containerInfo.toByteArray(),
                 containerInfo.getPassthroughAttributesMap(), configuration.isJobDescriptorAnnotationEnabled());
 
         V1ObjectMeta metadata = new V1ObjectMeta()

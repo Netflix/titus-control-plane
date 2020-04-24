@@ -455,8 +455,9 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         Protos.TaskInfo taskInfo = taskInfoRequest.getTaskInfo();
         String taskId = taskInfo.getName();
         String nodeName = taskInfo.getSlaveId().getValue();
-        Map<String, String> annotations = KubeUtil.createPodAnnotations(taskInfoRequest.getJob(), taskInfo.getData().toByteArray(),
-                taskInfoRequest.getPassthroughAttributes(), mesosConfiguration.isJobDescriptorAnnotationEnabled());
+        Map<String, String> annotations = KubeUtil.createPodAnnotations(taskInfoRequest.getJob(), taskInfoRequest.getTask(),
+                taskInfo.getData().toByteArray(), taskInfoRequest.getPassthroughAttributes(),
+                mesosConfiguration.isJobDescriptorAnnotationEnabled());
 
         V1ObjectMeta metadata = new V1ObjectMeta()
                 .name(taskId)
