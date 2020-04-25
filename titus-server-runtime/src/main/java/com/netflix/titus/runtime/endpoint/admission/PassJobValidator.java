@@ -22,6 +22,8 @@ import java.util.function.UnaryOperator;
 import javax.inject.Singleton;
 
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import com.netflix.titus.common.model.admission.AdmissionSanitizer;
+import com.netflix.titus.common.model.admission.AdmissionValidator;
 import com.netflix.titus.common.model.sanitizer.ValidationError;
 import reactor.core.publisher.Mono;
 

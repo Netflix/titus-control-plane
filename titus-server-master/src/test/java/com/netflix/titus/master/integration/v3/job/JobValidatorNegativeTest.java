@@ -25,7 +25,7 @@ import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.master.integration.BaseIntegrationTest;
 import com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates;
 import com.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
-import com.netflix.titus.runtime.endpoint.admission.AdmissionValidator;
+import com.netflix.titus.common.model.admission.AdmissionValidator;
 import com.netflix.titus.runtime.endpoint.admission.AggregatingValidator;
 import com.netflix.titus.runtime.endpoint.admission.FailJobValidator;
 import com.netflix.titus.runtime.endpoint.admission.PassJobValidator;

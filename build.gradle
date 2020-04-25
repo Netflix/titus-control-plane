@@ -57,7 +57,7 @@ subprojects {
     targetCompatibility = 1.8
 
     ext {
-        titusApiDefinitionsVersion = '0.0.1-rc72'
+        titusApiDefinitionsVersion = '0.0.1-rc73'
 
         awsSdkVersion = '1.11.+'
         javaxElVersion = '3.+'
@@ -88,7 +88,7 @@ subprojects {
         fenzoVersion = '1.1.0-rc.8'
         spectatorVersion = '0.59.+'
         mesosVersion = '1.7.2'
-        protobufVersion = '3.5.+'
+        protobufVersion = '3.7.+'
         postgresqlVersion = '42.2.9'
         grpcVersion = '1.20.+'
         protobufJavaUtilVersion = '3.5.+'
