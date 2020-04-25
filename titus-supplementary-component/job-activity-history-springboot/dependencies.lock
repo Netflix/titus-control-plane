@@ -968,18 +968,6 @@
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
-        "org.apache.logging.log4j:log4j-api": {
-            "locked": "2.12.1",
-            "transitive": [
-                "org.apache.logging.log4j:log4j-to-slf4j"
-            ]
-        },
-        "org.apache.logging.log4j:log4j-to-slf4j": {
-            "locked": "2.12.1",
-            "transitive": [
-                "org.springframework.boot:spring-boot-starter-logging"
-            ]
-        },
         "org.apache.tomcat.embed:tomcat-embed-core": {
             "locked": "9.0.31",
             "transitive": [
@@ -1241,7 +1229,6 @@
                 "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
-                "org.apache.logging.log4j:log4j-to-slf4j",
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty",
@@ -2442,18 +2429,6 @@
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
-        "org.apache.logging.log4j:log4j-api": {
-            "locked": "2.12.1",
-            "transitive": [
-                "org.apache.logging.log4j:log4j-to-slf4j"
-            ]
-        },
-        "org.apache.logging.log4j:log4j-to-slf4j": {
-            "locked": "2.12.1",
-            "transitive": [
-                "org.springframework.boot:spring-boot-starter-logging"
-            ]
-        },
         "org.apache.tomcat.embed:tomcat-embed-core": {
             "locked": "9.0.31",
             "transitive": [
@@ -2722,7 +2697,6 @@
                 "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
-                "org.apache.logging.log4j:log4j-to-slf4j",
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-logging",
@@ -3983,18 +3957,6 @@
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
-        "org.apache.logging.log4j:log4j-api": {
-            "locked": "2.12.1",
-            "transitive": [
-                "org.apache.logging.log4j:log4j-to-slf4j"
-            ]
-        },
-        "org.apache.logging.log4j:log4j-to-slf4j": {
-            "locked": "2.12.1",
-            "transitive": [
-                "org.springframework.boot:spring-boot-starter-logging"
-            ]
-        },
         "org.apache.tomcat.embed:tomcat-embed-core": {
             "locked": "9.0.31",
             "transitive": [
@@ -4263,7 +4225,6 @@
                 "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
-                "org.apache.logging.log4j:log4j-to-slf4j",
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-logging",
@@ -5462,18 +5423,6 @@
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
-        "org.apache.logging.log4j:log4j-api": {
-            "locked": "2.12.1",
-            "transitive": [
-                "org.apache.logging.log4j:log4j-to-slf4j"
-            ]
-        },
-        "org.apache.logging.log4j:log4j-to-slf4j": {
-            "locked": "2.12.1",
-            "transitive": [
-                "org.springframework.boot:spring-boot-starter-logging"
-            ]
-        },
         "org.apache.tomcat.embed:tomcat-embed-core": {
             "locked": "9.0.31",
             "transitive": [
@@ -5753,7 +5702,6 @@
                 "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
-                "org.apache.logging.log4j:log4j-to-slf4j",
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty",
@@ -6986,18 +6934,6 @@
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
-        "org.apache.logging.log4j:log4j-api": {
-            "locked": "2.12.1",
-            "transitive": [
-                "org.apache.logging.log4j:log4j-to-slf4j"
-            ]
-        },
-        "org.apache.logging.log4j:log4j-to-slf4j": {
-            "locked": "2.12.1",
-            "transitive": [
-                "org.springframework.boot:spring-boot-starter-logging"
-            ]
-        },
         "org.apache.tomcat.embed:tomcat-embed-core": {
             "locked": "9.0.31",
             "transitive": [
@@ -7284,7 +7220,6 @@
                 "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
-                "org.apache.logging.log4j:log4j-to-slf4j",
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-logging",
