@@ -18,10 +18,12 @@ package com.netflix.titus.ext.jooqflyway.jobactivity;
 
 import javax.inject.Inject;
 
+import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.titus.common.util.SpringConfigurationUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 
+@Configuration(prefix = "titus.ext.jooqflyway")
 public class JooqConfiguration {
 
     private static final String PREFIX = "titus.ext.jooqflyway.";
