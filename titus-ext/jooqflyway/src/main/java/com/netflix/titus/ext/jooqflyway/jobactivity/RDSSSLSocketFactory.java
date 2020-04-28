@@ -25,18 +25,6 @@ import org.postgresql.ssl.WrappedFactory;
 
 public class RDSSSLSocketFactory extends WrappedFactory {
     public RDSSSLSocketFactory() {
-        try {
-            KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
-            try (InputStream inputStream = RdsUtils.class.getClassLoader().getResourceAsStream("RDS-2019.truststore")) {
-                trustStore.load(inputStream, "titus124".toCharArray());
-            }
-            TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-            tmf.init(trustStore);
-            SSLContext sslContext = SSLContext.getInstance("TLS");
-            sslContext.init(null, tmf.getTrustManagers(), null);
-            factory = sslContext.getSocketFactory();
-        } catch (Exception e) {
-            throw new IllegalStateException("Cannot initialize RDS socket factory", e);
-        }
+            factory = RdsUtils.createRdsSSLSocketFactory();
     }
 }

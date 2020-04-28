@@ -16,18 +16,35 @@
 
 package com.netflix.titus.ext.jooqflyway.jobactivity;
 
+import javax.inject.Inject;
+
 import com.netflix.archaius.api.annotations.Configuration;
-import com.netflix.archaius.api.annotations.DefaultValue;
+import com.netflix.titus.common.util.SpringConfigurationUtil;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 
 @Configuration(prefix = "titus.ext.jooqflyway")
-public interface JooqConfiguration {
+public class JooqConfiguration {
 
-    @DefaultValue("jdbc://localhost")
-    String getDatabaseUrl();
+    private static final String PREFIX = "titus.ext.jooqflyway.";
+    //private final Environment environment;
+    @Autowired
+    Environment environment;
 
-    @DefaultValue("false")
-    boolean isInMemoryDb();
+    /*@Inject
+    public JooqConfiguration(Environment environment) {
+        this.environment = environment;
+    }*/
 
-    @DefaultValue("jdbc://localhost")
-    String getProducerDatatabaseUrl();
+    public String getDatabaseUrl() {
+        return SpringConfigurationUtil.getString(environment, PREFIX + "databaseUrl", "jdbc://notSet");
+    }
+
+    public boolean isInMemoryDb() {
+        return SpringConfigurationUtil.getBoolean(environment, PREFIX + "inMemoryDb", false);
+    }
+
+    public String getProducerDatatabaseUrl() {
+        return SpringConfigurationUtil.getString(environment, PREFIX + "producer.databaseUrl", "jdbc://notSet");
+    }
 }
