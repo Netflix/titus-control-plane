@@ -15,32 +15,27 @@
  */
 
 package com.netflix.titus.ext.jooqflyway.jobactivity;
-import java.sql.DriverManager;
-import java.sql.SQLException;
 
 import javax.sql.DataSource;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import org.jooq.ConnectionProvider;
 import org.jooq.DSLContext;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
-import org.jooq.impl.DefaultConnectionProvider;
-import org.jooq.impl.DefaultDSLContext;
 import org.postgresql.PGProperty;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.env.Environment;
-
+import org.springframework.context.annotation.Primary;
 
 @Configuration
 public class JooqJobActivityConnectorComponent {
 
     @Bean
-    public JooqConfiguration getJooqConfiguration(Environment environment) {
-        return new JooqConfigurationBean(environment);
+    public JooqConfiguration getJooqPropertyConfiguration() {
+        return new JooqConfiguration();
     }
 
     @Bean
@@ -54,10 +49,16 @@ public class JooqJobActivityConnectorComponent {
     }
 
     @Bean
-    public DataSource getDataSource(JooqConfiguration jooqConfiguration, EmbeddedPostgresService embeddedPostgresService) {
+    public JooqContext getJooqContext(JooqConfiguration jooqConfiguration, EmbeddedPostgresService embeddedPostgresService) {
         HikariConfig hikariConfig = new HikariConfig();
 
-        hikariConfig.setDriverClassName("org.postgresql.Driver");
+        hikariConfig.setAutoCommit(true);
+
+        // Connection management
+        hikariConfig.setConnectionTimeout(10000);
+        hikariConfig.setMaximumPoolSize(10);
+        hikariConfig.setLeakDetectionThreshold(3000);
+
         if (jooqConfiguration.isInMemoryDb()) {
             hikariConfig.setDataSource(embeddedPostgresService.getDataSource());
         } else {
@@ -67,32 +68,14 @@ public class JooqJobActivityConnectorComponent {
             hikariConfig.setJdbcUrl(jooqConfiguration.getDatabaseUrl());
         }
 
-        // Connection management
-        hikariConfig.setConnectionTimeout(10000);
-        hikariConfig.setMaximumPoolSize(10);
-        hikariConfig.setRegisterMbeans(true);
-        hikariConfig.setLeakDetectionThreshold(3000);
-
-        return new HikariDataSource(hikariConfig);
+        return new JooqContext(jooqConfiguration, new HikariDataSource(hikariConfig), embeddedPostgresService);
     }
 
-    @Bean
-    @Qualifier("jobActivityDSLContext")
-    public DSLContext getJobActivityDSLContext(JooqConfiguration configuration) {
-        DSLContext dslContext = DSL.using(getDataSource(configuration, getEmbeddedPostgresService(configuration)), dialect());
+    public DSLContext getJobActivityDSLContext(JooqContext jooqContext) {
+        return jooqContext.getDslContext();
+        /*DSLContext dslContext = DSL.using(getDataSource(configuration, getEmbeddedPostgresService(configuration)), dialect());
         dslContext.settings().setQueryTimeout(60);
-        return dslContext;
+        return dslContext;*/
     }
 
-    @Bean
-    @Qualifier("producerDSLContext")
-    public DSLContext getProducerDSLContext(JooqConfiguration configuration) {
-        ConnectionProvider connectionProvider;
-        try {
-            connectionProvider = new DefaultConnectionProvider(DriverManager.getConnection(configuration.getProducerDatatabaseUrl()));
-        } catch (SQLException e) {
-            throw new IllegalStateException("Cannot initialize connection to Postgres database", e);
-        }
-        return new DefaultDSLContext(connectionProvider, SQLDialect.POSTGRES_10);
-    }
 }

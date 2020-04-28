@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Netflix, Inc.
+ * Copyright 2020 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.ext.jooqflyway.jobactivity;
+package com.netflix.titus.ext.jooqflyway.jobactivity.producer;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -23,29 +23,17 @@ import com.netflix.titus.common.util.SpringConfigurationUtil;
 import org.springframework.core.env.Environment;
 
 @Singleton
-public class JooqConfigurationBean implements JooqConfiguration {
-    private static final String PREFIX = "titus.ext.jooqflyway.";
+public class JooqProducerConfiguration {
+    private static final String PREFIX = "titus.ext.jooqflyway.producer.";
 
     private final Environment environment;
 
     @Inject
-    public JooqConfigurationBean(Environment environment) {
+    public JooqProducerConfiguration(Environment environment) {
         this.environment = environment;
     }
 
-    @Override
     public String getDatabaseUrl() {
         return SpringConfigurationUtil.getString(environment, PREFIX + "databaseUrl", "jdbc://notSet");
     }
-
-    @Override
-    public boolean isInMemoryDb() {
-        return SpringConfigurationUtil.getBoolean(environment, PREFIX + "inMemoryDb", false);
-    }
-
-    @Override
-    public String getProducerDatatabaseUrl() {
-        return SpringConfigurationUtil.getString(environment, PREFIX + "producerDatabaseUrl", "jdbc://notSet");
-    }
 }
-

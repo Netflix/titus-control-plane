@@ -39,9 +39,9 @@ public class JooqJobActivityConsumerStore implements JobActivityConsumerStore {
 
 
     @Inject
-    public JooqJobActivityConsumerStore(@Qualifier("jobActivityDSLContext") DSLContext jobActivityDSLContext,
-                                        @Qualifier("producerDSLContext") DSLContext producerDSLContext) {
-        this(jobActivityDSLContext, producerDSLContext, true);
+    public JooqJobActivityConsumerStore( JooqContext jobActivityDSLContext,
+                                         DSLContext producerDSLContext) {
+        this(jobActivityDSLContext.getDslContext(), producerDSLContext, true);
     }
 
     @VisibleForTesting
@@ -56,7 +56,6 @@ public class JooqJobActivityConsumerStore implements JobActivityConsumerStore {
         }
         logger.info("Initializing consumer");
     }
-
 
     @Override
     public Mono<Void> consumeJob(Job<?> Job) {
