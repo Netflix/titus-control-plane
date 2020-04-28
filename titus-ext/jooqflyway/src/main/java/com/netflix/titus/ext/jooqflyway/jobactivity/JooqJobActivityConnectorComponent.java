@@ -49,6 +49,7 @@ public class JooqJobActivityConnectorComponent {
     }
 
     @Bean
+    @Primary
     public JooqContext getJooqContext(JooqConfiguration jooqConfiguration, EmbeddedPostgresService embeddedPostgresService) {
         HikariConfig hikariConfig = new HikariConfig();
 
@@ -71,11 +72,41 @@ public class JooqJobActivityConnectorComponent {
         return new JooqContext(jooqConfiguration, new HikariDataSource(hikariConfig), embeddedPostgresService);
     }
 
+    @Bean
+    public JooqContext getJooqProducerContext(JooqConfiguration jooqConfiguration, EmbeddedPostgresService embeddedPostgresService) {
+        HikariConfig hikariConfig = new HikariConfig();
+
+        hikariConfig.setAutoCommit(true);
+
+        // Connection management
+        hikariConfig.setConnectionTimeout(10000);
+        hikariConfig.setMaximumPoolSize(10);
+        hikariConfig.setLeakDetectionThreshold(3000);
+
+        if (jooqConfiguration.isInMemoryDb()) {
+            hikariConfig.setDataSource(embeddedPostgresService.getDataSource());
+        } else {
+            hikariConfig.addDataSourceProperty(PGProperty.SSL.getName(), "true");
+            hikariConfig.addDataSourceProperty(PGProperty.SSL_MODE.getName(), "verify-ca");
+            hikariConfig.addDataSourceProperty(PGProperty.SSL_FACTORY.getName(), RDSSSLSocketFactory.class.getName());
+            hikariConfig.setJdbcUrl(jooqConfiguration.getProducerDatatabaseUrl());
+        }
+
+        return new JooqContext(jooqConfiguration, new HikariDataSource(hikariConfig), embeddedPostgresService);
+    }
+
+    @Bean
+    @Primary
+    @Qualifier("jobActivityDSLContext")
     public DSLContext getJobActivityDSLContext(JooqContext jooqContext) {
         return jooqContext.getDslContext();
-        /*DSLContext dslContext = DSL.using(getDataSource(configuration, getEmbeddedPostgresService(configuration)), dialect());
-        dslContext.settings().setQueryTimeout(60);
-        return dslContext;*/
+    }
+
+
+    @Bean
+    @Qualifier("producerDSLContext")
+    public DSLContext getProducerDSLContext(JooqContext jooqProducerContext) {
+        return jooqProducerContext.getDslContext();
     }
 
 }

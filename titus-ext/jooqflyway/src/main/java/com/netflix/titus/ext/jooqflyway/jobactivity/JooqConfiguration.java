@@ -43,6 +43,6 @@ public class JooqConfiguration {
     }
 
     public String getProducerDatatabaseUrl() {
-        return SpringConfigurationUtil.getString(environment, PREFIX + "producerDatabaseUrl", "jdbc://notSet");
+        return SpringConfigurationUtil.getString(environment, PREFIX + "producer.databaseUrl", "jdbc://notSet");
     }
 }
