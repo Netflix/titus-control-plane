@@ -25,6 +25,7 @@ import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo.S3LogLocation;
 import com.netflix.titus.api.jobmanager.model.job.LogStorageInfos.S3Account;
 import com.netflix.titus.api.jobmanager.model.job.LogStorageInfos.S3Bucket;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
+import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import org.junit.Test;
 
@@ -59,9 +60,12 @@ public class LogStorageInfosTest {
         assertThat(LogStorageInfos.findCustomS3Bucket(JobGenerator.oneBatchJob())).isEmpty();
 
         // Non empty context
-        S3Bucket s3Bucket = LogStorageInfos.findCustomS3Bucket(newJob("bucketA", "pathB")).orElse(null);
+        Job customizedJob = newJob("bucketA", "pathB");
+        S3Bucket s3Bucket = LogStorageInfos.findCustomS3Bucket(customizedJob).orElse(null);
         assertThat(s3Bucket.getBucketName()).isEqualTo("bucketA");
-        assertThat(s3Bucket.getPathPrefix()).isEqualTo("pathB");
+
+        String customPathPrefix = LogStorageInfos.findCustomPathPrefix(customizedJob.getJobDescriptor()).orElse(null);
+        assertThat(customPathPrefix).isEqualTo("pathB");
     }
 
     @Test
@@ -70,9 +74,12 @@ public class LogStorageInfosTest {
         assertThat(LogStorageInfos.findCustomS3Bucket(JobGenerator.oneBatchTask())).isEmpty();
 
         // Non empty context
-        S3Bucket s3Bucket = LogStorageInfos.findCustomS3Bucket(newTask("bucketA", "pathB")).orElse(null);
+        Task customizedTask = newTask("bucketA", "pathB");
+        S3Bucket s3Bucket = LogStorageInfos.findCustomS3Bucket(customizedTask).orElse(null);
         assertThat(s3Bucket.getBucketName()).isEqualTo("bucketA");
-        assertThat(s3Bucket.getPathPrefix()).isEqualTo("pathB");
+
+        String customPathPrefix = LogStorageInfos.findCustomPathPrefix(customizedTask).orElse(null);
+        assertThat(customPathPrefix).isEqualTo("pathB");
     }
 
     @Test
@@ -101,7 +108,7 @@ public class LogStorageInfosTest {
                         DEFAULT_LOG_LOCATION.getAccountId(),
                         DEFAULT_LOG_LOCATION.getRegion(),
                         "bucketA",
-                        "pathB"
+                        "pathB/defaultKey"
                 )
         );
 
@@ -115,7 +122,7 @@ public class LogStorageInfosTest {
                         "123456789012",
                         "us-west-2",
                         "arn:aws:s3:us-west-2:123456789012:accesspoint/test",
-                        "pathB"
+                        "pathB/defaultKey"
                 )
         );
     }
@@ -124,8 +131,8 @@ public class LogStorageInfosTest {
         Job<BatchJobExt> job = JobGenerator.oneBatchJob();
 
         Map<String, String> containerAttributes = new HashMap<>(job.getJobDescriptor().getContainer().getAttributes());
-        containerAttributes.put(JobAttributes.JOB_CONTAINER_ATTRIBUTE_S3_BUCKET_NAME, bucketName);
-        containerAttributes.put(JobAttributes.JOB_CONTAINER_ATTRIBUTE_S3_PATH_PREFIX, pathPrefix);
+        Evaluators.applyNotNull(bucketName, value -> containerAttributes.put(JobAttributes.JOB_CONTAINER_ATTRIBUTE_S3_BUCKET_NAME, value));
+        Evaluators.applyNotNull(pathPrefix, value -> containerAttributes.put(JobAttributes.JOB_CONTAINER_ATTRIBUTE_S3_PATH_PREFIX, value));
 
         return job.toBuilder()
                 .withJobDescriptor(job.getJobDescriptor().toBuilder()

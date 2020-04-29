@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import com.netflix.compute.validator.protogen.ComputeValidator;
@@ -31,6 +32,7 @@ import com.netflix.titus.common.model.admission.AdmissionValidator;
 import com.netflix.titus.common.model.admission.ValidatorMetrics;
 import com.netflix.titus.common.model.sanitizer.ValidationError;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.StringExt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
@@ -39,18 +41,29 @@ public class JobS3LogLocationValidator implements AdmissionValidator<JobDescript
 
     private static final Logger logger = LoggerFactory.getLogger(JobS3LogLocationValidator.class);
 
+    private static final String VALIDATOR_PATH = "/titusS3AccessValidator";
+
     private static final long RETRY_COUNT = 3;
 
     private final ReactorValidationServiceClient validationClient;
+    private final String defaultBucket;
+    private final String defaultPathPrefix;
+    private final Function<String, String> iamRoleArnResolver;
     private final Supplier<ValidationError.Type> validationErrorTypeProvider;
     private final Supplier<Boolean> enabledSupplier;
     private final ValidatorMetrics metrics;
 
     public JobS3LogLocationValidator(ReactorValidationServiceClient validationClient,
+                                     String defaultBucket,
+                                     String defaultPathPrefix,
+                                     Function<String, String> iamRoleArnResolver,
                                      Supplier<ValidationError.Type> validationErrorTypeProvider,
                                      Supplier<Boolean> enabledSupplier,
                                      TitusRuntime titusRuntime) {
         this.validationClient = validationClient;
+        this.defaultBucket = defaultBucket;
+        this.defaultPathPrefix = defaultPathPrefix;
+        this.iamRoleArnResolver = iamRoleArnResolver;
         this.validationErrorTypeProvider = validationErrorTypeProvider;
         this.enabledSupplier = enabledSupplier;
         this.metrics = new ValidatorMetrics(JobS3LogLocationValidator.class.getSimpleName(), titusRuntime.getRegistry());
@@ -64,32 +77,54 @@ public class JobS3LogLocationValidator implements AdmissionValidator<JobDescript
         }
 
         LogStorageInfos.S3Bucket s3BucketInfo = LogStorageInfos.findCustomS3Bucket(jobDescriptor).orElse(null);
-        if (s3BucketInfo == null) {
+        String customPrefix = LogStorageInfos.findCustomPathPrefix(jobDescriptor).orElse(null);
+        if (s3BucketInfo == null && customPrefix == null) {
             metrics.incrementValidationSkipped(ValidatorMetrics.REASON_NOT_APPLICABLE);
             return Mono.just(Collections.emptySet());
         }
+
+        String bucketName = s3BucketInfo == null ? defaultBucket : s3BucketInfo.getBucketName();
+        String pathPrefix = LogStorageInfos.buildPathPrefix(
+                customPrefix == null ? defaultPathPrefix : LogStorageInfos.buildPathPrefix(customPrefix, defaultPathPrefix),
+                VALIDATOR_PATH
+        );
+
+        String iamRole = jobDescriptor.getContainer().getSecurityProfile().getIamRole();
+        // This condition should never happen, but we are adding this check here just in case.
+        if (StringExt.isEmpty(iamRole)) {
+            metrics.incrementValidationError(bucketName, "access denied");
+            return Mono.just(Collections.singleton(new ValidationError("iamRole", "IAM role not set")));
+        }
+        iamRole = iamRoleArnResolver.apply(iamRole);
+
         Mono<Set<ValidationError>> action = validationClient.validateS3BucketAccess(
                 ComputeValidator.S3BucketAccessValidationRequest.newBuilder()
-                        .setBucket(s3BucketInfo.getBucketName())
-                        .setBucketPrefix(s3BucketInfo.getPathPrefix())
-                        .setIamRole(jobDescriptor.getContainer().getSecurityProfile().getIamRole())
+                        .setBucket(bucketName)
+                        .setBucketPrefix(pathPrefix)
+                        .setIamRole(iamRole)
                         .build()
         ).map(result -> {
             if (result.getResultCase() == ComputeValidator.S3BucketAccessValidationResponse.ResultCase.FAILURES) {
                 List<ValidationFailure> failures = result.getFailures().getFailuresList();
                 if (!failures.isEmpty()) {
-                    metrics.incrementValidationError(s3BucketInfo.getBucketName(), "access denied");
+                    metrics.incrementValidationError(bucketName, "access denied");
                     return toValidationError(failures);
                 }
             }
-            metrics.incrementValidationSuccess(s3BucketInfo.getBucketName());
+            metrics.incrementValidationSuccess(bucketName);
             return Collections.emptySet();
         });
         return action.retry(RETRY_COUNT)
-                .doOnError(error -> {
+                .onErrorMap(error -> {
                     logger.warn("S3 validation failure: {}", error.getMessage());
                     logger.debug("Stack trace", error);
-                    metrics.incrementValidationError(s3BucketInfo.getBucketName(), error.getMessage());
+                    metrics.incrementValidationError(bucketName, error.getMessage());
+
+                    return new IllegalArgumentException(String.format("S3 bucket validation error: bucket=%s, pathPrefix=%s, error=%s",
+                            bucketName,
+                            pathPrefix,
+                            error.getMessage()
+                    ), error);
                 });
     }
 

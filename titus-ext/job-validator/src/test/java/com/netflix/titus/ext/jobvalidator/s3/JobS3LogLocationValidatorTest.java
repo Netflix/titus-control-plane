@@ -17,6 +17,7 @@
 package com.netflix.titus.ext.jobvalidator.s3;
 
 import java.util.Set;
+import java.util.function.Function;
 
 import com.netflix.compute.validator.protogen.ComputeValidator;
 import com.netflix.compute.validator.protogen.ComputeValidator.S3BucketAccessValidationResponse;
@@ -57,6 +58,9 @@ public class JobS3LogLocationValidatorTest {
 
     private final JobS3LogLocationValidator validator = new JobS3LogLocationValidator(
             validationClient,
+            "defaultBucket",
+            "defaultPrefix",
+            Function.identity(),
             () -> ValidationError.Type.SOFT,
             () -> true,
             titusRuntime
