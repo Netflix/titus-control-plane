@@ -43,6 +43,8 @@ public class JobS3LogLocationValidator implements AdmissionValidator<JobDescript
 
     private static final String VALIDATOR_PATH = "/titusS3AccessValidator";
 
+    private static final String REASON_ACCESS_DENIED = "accessDenied";
+
     private static final long RETRY_COUNT = 3;
 
     private final ReactorValidationServiceClient validationClient;
@@ -92,7 +94,7 @@ public class JobS3LogLocationValidator implements AdmissionValidator<JobDescript
         String iamRole = jobDescriptor.getContainer().getSecurityProfile().getIamRole();
         // This condition should never happen, but we are adding this check here just in case.
         if (StringExt.isEmpty(iamRole)) {
-            metrics.incrementValidationError(bucketName, "access denied");
+            metrics.incrementValidationError(bucketName, REASON_ACCESS_DENIED);
             return Mono.just(Collections.singleton(new ValidationError("iamRole", "IAM role not set")));
         }
         iamRole = iamRoleArnResolver.apply(iamRole);
@@ -107,7 +109,7 @@ public class JobS3LogLocationValidator implements AdmissionValidator<JobDescript
             if (result.getResultCase() == ComputeValidator.S3BucketAccessValidationResponse.ResultCase.FAILURES) {
                 List<ValidationFailure> failures = result.getFailures().getFailuresList();
                 if (!failures.isEmpty()) {
-                    metrics.incrementValidationError(bucketName, "access denied");
+                    metrics.incrementValidationError(bucketName, REASON_ACCESS_DENIED);
                     return toValidationError(failures);
                 }
             }
@@ -118,7 +120,7 @@ public class JobS3LogLocationValidator implements AdmissionValidator<JobDescript
                 .onErrorMap(error -> {
                     logger.warn("S3 validation failure: {}", error.getMessage());
                     logger.debug("Stack trace", error);
-                    metrics.incrementValidationError(bucketName, error.getMessage());
+                    metrics.incrementValidationError(bucketName, error.getClass().getSimpleName());
 
                     return new IllegalArgumentException(String.format("S3 bucket validation error: bucket=%s, pathPrefix=%s, error=%s",
                             bucketName,
