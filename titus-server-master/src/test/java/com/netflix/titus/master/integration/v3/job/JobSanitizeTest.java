@@ -28,7 +28,7 @@ import com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTem
 import com.netflix.titus.master.integration.v3.scenario.InstanceGroupsScenarioBuilder;
 import com.netflix.titus.runtime.connector.registry.RegistryClient;
 import com.netflix.titus.runtime.connector.registry.TitusRegistryException;
-import com.netflix.titus.runtime.endpoint.admission.AdmissionSanitizer;
+import com.netflix.titus.common.model.admission.AdmissionSanitizer;
 import com.netflix.titus.runtime.endpoint.admission.JobImageSanitizer;
 import com.netflix.titus.runtime.endpoint.admission.JobImageValidatorConfiguration;
 import com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCell;

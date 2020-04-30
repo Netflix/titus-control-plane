@@ -46,7 +46,7 @@
         },
         "com.google.protobuf:protobuf-java": {
             "locked": "3.7.1",
-            "requested": "3.5.+",
+            "requested": "3.7.+",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
@@ -156,7 +156,7 @@
         },
         "com.google.protobuf:protobuf-java": {
             "locked": "3.7.1",
-            "requested": "3.5.+",
+            "requested": "3.7.+",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
@@ -266,7 +266,7 @@
         },
         "com.google.protobuf:protobuf-java": {
             "locked": "3.7.1",
-            "requested": "3.5.+",
+            "requested": "3.7.+",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
@@ -401,8 +401,8 @@
     },
     "protoPluginDeps": {
         "com.google.protobuf:protoc": {
-            "locked": "3.5.1-1",
-            "requested": "3.5.+"
+            "locked": "3.7.1",
+            "requested": "3.7.+"
         },
         "io.grpc:protoc-gen-grpc-java": {
             "locked": "1.20.0",
@@ -411,8 +411,8 @@
     },
     "protobuf": {
         "com.netflix.titus:titus-api-definitions": {
-            "locked": "0.0.1-rc72",
-            "requested": "0.0.1-rc72"
+            "locked": "0.0.1-rc73",
+            "requested": "0.0.1-rc73"
         }
     },
     "protobufToolsLocator_grpc": {
@@ -423,8 +423,8 @@
     },
     "protobufToolsLocator_protoc": {
         "com.google.protobuf:protoc": {
-            "locked": "3.5.1-1",
-            "requested": "3.5.+"
+            "locked": "3.7.1",
+            "requested": "3.7.+"
         }
     },
     "runtimeClasspath": {
@@ -474,7 +474,7 @@
         },
         "com.google.protobuf:protobuf-java": {
             "locked": "3.7.1",
-            "requested": "3.5.+",
+            "requested": "3.7.+",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
@@ -603,7 +603,7 @@
         },
         "com.google.protobuf:protobuf-java": {
             "locked": "3.7.1",
-            "requested": "3.5.+",
+            "requested": "3.7.+",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
@@ -654,13 +654,13 @@
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.3.4.RELEASE",
+            "locked": "3.3.5.RELEASE",
             "transitive": [
                 "io.projectreactor:reactor-test"
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.3.4.RELEASE",
+            "locked": "3.3.5.RELEASE",
             "requested": "3.3.+"
         },
         "junit:junit": {
@@ -791,7 +791,7 @@
         },
         "com.google.protobuf:protobuf-java": {
             "locked": "3.7.1",
-            "requested": "3.5.+",
+            "requested": "3.7.+",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
@@ -842,13 +842,13 @@
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.3.4.RELEASE",
+            "locked": "3.3.5.RELEASE",
             "transitive": [
                 "io.projectreactor:reactor-test"
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.3.4.RELEASE",
+            "locked": "3.3.5.RELEASE",
             "requested": "3.3.+"
         },
         "junit:junit": {
@@ -979,7 +979,7 @@
         },
         "com.google.protobuf:protobuf-java": {
             "locked": "3.7.1",
-            "requested": "3.5.+",
+            "requested": "3.7.+",
             "transitive": [
                 "io.grpc:grpc-protobuf"
             ]
@@ -1030,13 +1030,13 @@
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.3.4.RELEASE",
+            "locked": "3.3.5.RELEASE",
             "transitive": [
                 "io.projectreactor:reactor-test"
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.3.4.RELEASE",
+            "locked": "3.3.5.RELEASE",
             "requested": "3.3.+"
         },
         "junit:junit": {

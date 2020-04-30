@@ -19,6 +19,7 @@ package com.netflix.titus.runtime.endpoint.admission;
 import java.util.function.UnaryOperator;
 
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import com.netflix.titus.common.model.admission.AdmissionSanitizer;
 import reactor.core.publisher.Mono;
 
 /**

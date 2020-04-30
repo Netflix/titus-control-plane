@@ -27,6 +27,7 @@ import com.google.common.collect.ImmutableMap;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
+import com.netflix.titus.common.model.admission.AdmissionSanitizer;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.FunctionExt;

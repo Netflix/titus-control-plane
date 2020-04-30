@@ -71,7 +71,7 @@ public class LeaderResourceTest {
                 .build();
     }
 
-    @Test
+    @Test(timeout = 30_000)
     public void testLeaderReply() {
         when(masterMonitor.getLatestLeader()).thenReturn(LATEST_MASTER);
         when(mesosMasterResolver.resolveLeader()).thenReturn(Optional.of(LEADER_ADDRESS));
