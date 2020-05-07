@@ -95,6 +95,10 @@ public class DefaultPodAffinityFactory implements PodAffinityFactory {
                 addNodeAffinitySelectorConstraint(KubeConstants.NODE_LABEL_MACHINE_ID, constraints.get(JobConstraints.MACHINE_ID), hard);
             }
 
+            if (constraints.containsKey(JobConstraints.KUBE_BACKEND)) {
+                addNodeAffinitySelectorConstraint(KubeConstants.NODE_LABEL_KUBE_BACKEND, constraints.get(JobConstraints.KUBE_BACKEND), hard);
+            }
+
             String instanceType = constraints.get(JobConstraints.MACHINE_TYPE);
             boolean instanceTypeRequested = !StringExt.isEmpty(instanceType);
             if (instanceTypeRequested) {
