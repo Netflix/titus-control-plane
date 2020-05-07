@@ -55,9 +55,9 @@ public final class KubeConstants {
      * Titus pod labels.
      */
 
-    public static final String POD_LABEL_JOB_ID = TITUS_V3_JOB_DOMAIN + "jobId";
+    public static final String POD_LABEL_JOB_ID = TITUS_V3_JOB_DOMAIN + "job-id";
 
-    public static final String POD_LABEL_TASK_ID = TITUS_V3_JOB_DOMAIN + "taskId";
+    public static final String POD_LABEL_TASK_ID = TITUS_V3_JOB_DOMAIN + "task-id";
 
     /*
      * Titus node labels.
@@ -104,7 +104,8 @@ public final class KubeConstants {
     public static final String TAINT_GPU_INSTANCE = TITUS_NODE_DOMAIN + "gpu";
 
     /**
-     * Taint added to each GPU instance.
+     * Taint added to nodes with experimental backends or backends which should not be a default scheduling targets,
+     * unless explicitly requested.
      */
     public static final String TAINT_KUBE_BACKEND = TITUS_NODE_DOMAIN + "backend";
 

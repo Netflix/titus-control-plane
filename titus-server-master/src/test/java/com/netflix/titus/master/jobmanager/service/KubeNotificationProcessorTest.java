@@ -16,13 +16,17 @@
 
 package com.netflix.titus.master.jobmanager.service;
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
+import com.netflix.titus.api.jobmanager.model.job.ExecutableStatus;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.Task;
@@ -32,17 +36,24 @@ import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.mesos.ContainerEvent;
+import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeConstants;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeJobManagementReconciler;
+import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeApiServerIntegrator;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodEvent;
+import com.netflix.titus.testkit.model.job.JobGenerator;
 import io.kubernetes.client.openapi.models.V1ContainerState;
 import io.kubernetes.client.openapi.models.V1ContainerStateRunning;
 import io.kubernetes.client.openapi.models.V1ContainerStateWaiting;
 import io.kubernetes.client.openapi.models.V1ContainerStatus;
+import io.kubernetes.client.openapi.models.V1Node;
+import io.kubernetes.client.openapi.models.V1NodeAddress;
+import io.kubernetes.client.openapi.models.V1NodeStatus;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodStatus;
+import org.joda.time.DateTime;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -55,6 +66,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import rx.Completable;
 
+import static com.netflix.titus.master.mesos.kubeapiserver.KubeConstants.NODE_ANNOTATION_PREFIX;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -94,7 +106,7 @@ public class KubeNotificationProcessorTest {
     }
 
     @Test
-    public void opportunisticAnnotationsArePropagatedToTasks() {
+    public void testOpportunisticAnnotationsArePropagatedToTasks() {
         String jobId = UUID.randomUUID().toString();
         String taskId = UUID.randomUUID().toString();
         Job<JobDescriptor.JobDescriptorExt> job = Job.newBuilder().withId(jobId).build();
@@ -142,6 +154,54 @@ public class KubeNotificationProcessorTest {
         assertThat(updated.get().getTaskContext())
                 .containsEntry(TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT, "5")
                 .containsEntry(TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION, "opportunistic-resource-1234");
+    }
+
+    @Test
+    public void testUpdateTaskStatus() {
+        BatchJobTask currentTask = JobGenerator.oneBatchTask();
+        V1Pod pod = new V1Pod()
+                .metadata(new V1ObjectMeta()
+                        .name(currentTask.getId())
+                )
+                .status(new V1PodStatus()
+                        .addContainerStatusesItem(new V1ContainerStatus()
+                                .containerID(currentTask.getId())
+                                .state(new V1ContainerState()
+                                        .running(new V1ContainerStateRunning().startedAt(DateTime.now()))
+                                )
+                        )
+                );
+        V1Node node = new V1Node()
+                .metadata(new V1ObjectMeta()
+                        .annotations(Collections.singletonMap(
+                                NODE_ANNOTATION_PREFIX + "ami", "ami123"
+                        ))
+                )
+                .status(new V1NodeStatus()
+                        .addresses(Collections.singletonList(
+                                new V1NodeAddress().address("2.2.2.2").type(KubeUtil.TYPE_INTERNAL_IP)
+                        ))
+                );
+        Task updatedTask = KubeNotificationProcessor.updateTaskStatus(
+                pod,
+                TaskState.Started,
+                Optional.of(new TitusExecutorDetails(Collections.emptyMap(), new TitusExecutorDetails.NetworkConfiguration(
+                        true,
+                        "1.2.3.4",
+                        "",
+                        "1.2.3.4",
+                        "eniId123",
+                        "resourceId123"
+                ))),
+                Optional.of(node),
+                currentTask
+        );
+
+        Set<TaskState> pastStates = updatedTask.getStatusHistory().stream().map(ExecutableStatus::getState).collect(Collectors.toSet());
+        assertThat(pastStates).contains(TaskState.Accepted, TaskState.Launched, TaskState.StartInitiated);
+        assertThat(updatedTask.getTaskContext()).containsEntry(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST, "2.2.2.2");
+        assertThat(updatedTask.getTaskContext()).containsEntry(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP, "1.2.3.4");
+        assertThat(updatedTask.getTaskContext()).containsEntry(TaskAttributes.TASK_ATTRIBUTES_AGENT_AMI, "ami123");
     }
 
     private class FakeDirectKube implements DirectKubeApiServerIntegrator {
