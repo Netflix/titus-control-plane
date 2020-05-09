@@ -1399,7 +1399,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.3",
+            "locked": "1.1.7.5",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -2869,7 +2869,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.3",
+            "locked": "1.1.7.5",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -4397,7 +4397,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.3",
+            "locked": "1.1.7.5",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -5872,7 +5872,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.3",
+            "locked": "1.1.7.5",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -7392,7 +7392,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.3",
+            "locked": "1.1.7.5",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]

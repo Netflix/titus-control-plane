@@ -7,27 +7,27 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.10.3",
+            "locked": "2.10.4",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind"
             ]
         },
         "com.fasterxml.jackson.core:jackson-core": {
-            "locked": "2.10.3",
+            "locked": "2.10.4",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8"
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.10.3",
+            "locked": "2.10.4",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.netflix.titus:titus-common"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
-            "locked": "2.10.3",
+            "locked": "2.10.4",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -571,7 +571,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.3",
+            "locked": "1.1.7.5",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -585,27 +585,27 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.10.3",
+            "locked": "2.10.4",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind"
             ]
         },
         "com.fasterxml.jackson.core:jackson-core": {
-            "locked": "2.10.3",
+            "locked": "2.10.4",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8"
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.10.3",
+            "locked": "2.10.4",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.netflix.titus:titus-common"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
-            "locked": "2.10.3",
+            "locked": "2.10.4",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -1178,7 +1178,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.3",
+            "locked": "1.1.7.5",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -1249,27 +1249,27 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.10.3",
+            "locked": "2.10.4",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind"
             ]
         },
         "com.fasterxml.jackson.core:jackson-core": {
-            "locked": "2.10.3",
+            "locked": "2.10.4",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8"
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.10.3",
+            "locked": "2.10.4",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.netflix.titus:titus-common"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
-            "locked": "2.10.3",
+            "locked": "2.10.4",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -1842,7 +1842,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.3",
+            "locked": "1.1.7.5",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -1905,7 +1905,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.10.3",
+            "locked": "2.10.4",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
@@ -1915,7 +1915,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-core": {
-            "locked": "2.10.3",
+            "locked": "2.10.4",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
@@ -1926,7 +1926,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.10.3",
+            "locked": "2.10.4",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
@@ -1947,7 +1947,7 @@
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
-            "locked": "2.10.3",
+            "locked": "2.10.4",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-json"
@@ -4032,7 +4032,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.3",
+            "locked": "1.1.7.5",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
@@ -4124,7 +4124,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.10.3",
+            "locked": "2.10.4",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
@@ -4134,7 +4134,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-core": {
-            "locked": "2.10.3",
+            "locked": "2.10.4",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
@@ -4145,7 +4145,7 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.10.3",
+            "locked": "2.10.4",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
@@ -4166,7 +4166,7 @@
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
-            "locked": "2.10.3",
+            "locked": "2.10.4",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot-starter-json"
@@ -6306,7 +6306,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.3",
+            "locked": "1.1.7.5",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.apache.cassandra:cassandra-all"
