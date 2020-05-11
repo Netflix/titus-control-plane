@@ -41,21 +41,33 @@ public final class KubeConstants {
 
     public static final String NODE_LABEL_INSTANCE_TYPE = "beta.kubernetes.io/instance-type";
 
-    /*
-     * Titus node labels.
+    /**
+     * Common prefix for Titus node annotations/labels and taints.
      */
+    public static final String TITUS_NODE_DOMAIN = "node.titus.netflix.com/";
 
-    public static final String NODE_LABEL_MACHINE_ID = "titus/machine-id";
-
-    public static final String NODE_LABEL_MACHINE_GROUP = "titus/machine-group";
+    /**
+     * Common prefix for Titus V3 job API specific annotations/labels.
+     */
+    public static final String TITUS_V3_JOB_DOMAIN = "v3.job.titus.netflix.com/";
 
     /*
      * Titus pod labels.
      */
 
-    public static final String POD_LABEL_JOB_ID = "titus/jobId";
+    public static final String POD_LABEL_JOB_ID = TITUS_V3_JOB_DOMAIN + "job-id";
 
-    public static final String POD_LABEL_TASK_ID = "titus/taskId";
+    public static final String POD_LABEL_TASK_ID = TITUS_V3_JOB_DOMAIN + "task-id";
+
+    /*
+     * Titus node labels.
+     */
+
+    public static final String NODE_LABEL_MACHINE_ID = TITUS_NODE_DOMAIN + "machine-id";
+
+    public static final String NODE_LABEL_MACHINE_GROUP = TITUS_NODE_DOMAIN + "machine-group";
+
+    public static final String NODE_LABEL_KUBE_BACKEND = TITUS_NODE_DOMAIN + "backend";
 
     /*
      * Titus taints.
@@ -67,14 +79,9 @@ public final class KubeConstants {
     public static final String TAINT_VIRTUAL_KUBLET = "virtual-kubelet.io/provider";
 
     /**
-     * Common prefix for Titus taints.
-     */
-    public static final String TITUS_TAINT_DOMAIN = "node.titus.netflix.com/";
-
-    /**
      * Set value to 'fenzo' to assign a machine to Fenzo scheduler. By default all machines belong to the Kube scheduler.
      */
-    public static final String TAINT_SCHEDULER = TITUS_TAINT_DOMAIN + "scheduler";
+    public static final String TAINT_SCHEDULER = TITUS_NODE_DOMAIN + "scheduler";
 
     public static final String TAINT_SCHEDULER_VALUE_FENZO = "fenzo";
 
@@ -83,18 +90,24 @@ public final class KubeConstants {
     /**
      * Machine in a farzone have the farzone taint set with its name as a value.
      */
-    public static final String TAINT_FARZONE = TITUS_TAINT_DOMAIN + "farzone";
+    public static final String TAINT_FARZONE = TITUS_NODE_DOMAIN + "farzone";
 
     /**
      * Machines with the taint value 'flex' belong to the flex tier. Machines with the taint 'critical' belong to
      * the critical tiers.
      */
-    public static final String TAINT_TIER = TITUS_TAINT_DOMAIN + "tier";
+    public static final String TAINT_TIER = TITUS_NODE_DOMAIN + "tier";
 
     /**
      * Taint added to each GPU instance.
      */
-    public static final String TAINT_GPU_INSTANCE = TITUS_TAINT_DOMAIN + "gpu";
+    public static final String TAINT_GPU_INSTANCE = TITUS_NODE_DOMAIN + "gpu";
+
+    /**
+     * Taint added to nodes with experimental backends or backends which should not be a default scheduling targets,
+     * unless explicitly requested.
+     */
+    public static final String TAINT_KUBE_BACKEND = TITUS_NODE_DOMAIN + "backend";
 
     /*
      * Opportunistic scheduling annotations

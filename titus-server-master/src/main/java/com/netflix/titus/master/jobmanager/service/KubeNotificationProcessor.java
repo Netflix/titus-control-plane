@@ -26,6 +26,7 @@ import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.ExecutableStatus;
 import com.netflix.titus.api.jobmanager.model.job.Job;
@@ -198,54 +199,61 @@ public class KubeNotificationProcessor {
                                         Optional<V1Node> node) {
         return ReactorExt.toMono(v3JobOperations.updateTask(
                 task.getId(),
-                currentTask -> {
-                    TaskStatus newStatus;
-
-                    if (newTaskState != TaskState.Finished) {
-                        newStatus = TaskStatus.newBuilder()
-                                .withState(newTaskState)
-                                .withReasonCode(TaskStatus.REASON_NORMAL)
-                                .withReasonMessage("Kube pod notification")
-                                .build();
-                    } else {
-                        TaskStatus.Builder newStatusBuilder = TaskStatus.newBuilder().withState(TaskState.Finished);
-
-                        boolean hasDeletionTimestamp = pod.getMetadata().getDeletionTimestamp() != null;
-
-                        if ("failed".equalsIgnoreCase(pod.getStatus().getPhase())) {
-                            newStatusBuilder
-                                    .withReasonCode(hasDeletionTimestamp ? REASON_TASK_KILLED : TaskStatus.REASON_FAILED)
-                                    .withReasonMessage(Evaluators.getOrDefault(pod.getStatus().getMessage(), "Pod execution failed"));
-                        } else {
-                            newStatusBuilder
-                                    .withReasonCode(hasDeletionTimestamp ? REASON_TASK_KILLED : REASON_NORMAL)
-                                    .withReasonMessage("Kube pod notification");
-                        }
-
-                        newStatus = newStatusBuilder.build();
-                    }
-
-                    List<TaskStatus> newHistory = CollectionsExt.copyAndAdd(currentTask.getStatusHistory(), currentTask.getStatus());
-
-                    Task updatedTask = currentTask.toBuilder()
-                            .withStatus(newStatus)
-                            .withStatusHistory(newHistory)
-                            .build();
-
-                    Task fixedTask = fillInMissingStates(pod, updatedTask);
-                    Task taskWithPlacementData = JobManagerUtil.attachPlacementData(fixedTask, executorDetailsOpt);
-                    Task taskWithNodeMetadata = node.map(n -> attachNodeMetadata(taskWithPlacementData, n)).orElse(taskWithPlacementData);
-                    Task taskWithAnnotations = addMissingAttributes(pod, updatedTask);
-
-                    return Optional.of(taskWithAnnotations);
-                },
+                currentTask -> Optional.of(updateTaskStatus(pod, newTaskState, executorDetailsOpt, node, currentTask)),
                 V3JobOperations.Trigger.Kube,
                 "Kube pod notification",
                 KUBE_CALL_METADATA
         ));
     }
 
-    private Task attachNodeMetadata(Task task, V1Node node) {
+    @VisibleForTesting
+    static Task updateTaskStatus(V1Pod pod,
+                                 TaskState newTaskState,
+                                 Optional<TitusExecutorDetails> executorDetailsOpt,
+                                 Optional<V1Node> node,
+                                 Task currentTask) {
+        TaskStatus newStatus;
+
+        if (newTaskState != TaskState.Finished) {
+            newStatus = TaskStatus.newBuilder()
+                    .withState(newTaskState)
+                    .withReasonCode(TaskStatus.REASON_NORMAL)
+                    .withReasonMessage("Kube pod notification")
+                    .build();
+        } else {
+            TaskStatus.Builder newStatusBuilder = TaskStatus.newBuilder().withState(TaskState.Finished);
+
+            boolean hasDeletionTimestamp = pod.getMetadata().getDeletionTimestamp() != null;
+
+            if ("failed".equalsIgnoreCase(pod.getStatus().getPhase())) {
+                newStatusBuilder
+                        .withReasonCode(hasDeletionTimestamp ? REASON_TASK_KILLED : TaskStatus.REASON_FAILED)
+                        .withReasonMessage(Evaluators.getOrDefault(pod.getStatus().getMessage(), "Pod execution failed"));
+            } else {
+                newStatusBuilder
+                        .withReasonCode(hasDeletionTimestamp ? REASON_TASK_KILLED : REASON_NORMAL)
+                        .withReasonMessage("Kube pod notification");
+            }
+
+            newStatus = newStatusBuilder.build();
+        }
+
+        List<TaskStatus> newHistory = CollectionsExt.copyAndAdd(currentTask.getStatusHistory(), currentTask.getStatus());
+
+        Task updatedTask = currentTask.toBuilder()
+                .withStatus(newStatus)
+                .withStatusHistory(newHistory)
+                .build();
+
+        Task fixedTask = fillInMissingStates(pod, updatedTask);
+        Task taskWithPlacementData = JobManagerUtil.attachPlacementData(fixedTask, executorDetailsOpt);
+        Task taskWithNodeMetadata = node.map(n -> attachNodeMetadata(taskWithPlacementData, n)).orElse(taskWithPlacementData);
+        Task taskWithAnnotations = addMissingAttributes(pod, taskWithNodeMetadata);
+
+        return taskWithAnnotations;
+    }
+
+    private static Task attachNodeMetadata(Task task, V1Node node) {
         Map<String, String> annotations = node.getMetadata().getAnnotations();
         if (CollectionsExt.isNullOrEmpty(annotations)) {
             return task;
@@ -277,7 +285,7 @@ public class KubeNotificationProcessor {
                 .build();
     }
 
-    private Task fillInMissingStates(V1Pod pod, Task task) {
+    private static Task fillInMissingStates(V1Pod pod, Task task) {
         TaskState currentState = task.getStatus().getState();
         if (currentState != TaskState.Started && currentState != TaskState.Finished) {
             return task;
@@ -328,7 +336,7 @@ public class KubeNotificationProcessor {
      * The {@link V1PodStatus#getPhase()} is failed, and the {@link V1PodStatus#getMessage()} contains details on
      * the nature of failure. There should be no launched state, so we add it to mark the container start attempt.
      */
-    private Task fillInMissingStatesForContainerSetupFailure(V1Pod pod, Task task) {
+    private static Task fillInMissingStatesForContainerSetupFailure(V1Pod pod, Task task) {
         // Sanity check. Should never be true.
         if (JobFunctions.findTaskStatus(task, TaskState.Launched).isPresent()) {
             return task;
@@ -355,7 +363,7 @@ public class KubeNotificationProcessor {
         return task.toBuilder().withStatusHistory(newStatusHistory).build();
     }
 
-    private Optional<TaskStatus> addIfMissing(Task task, TaskState expectedState, TaskStatus.Builder statusTemplate) {
+    private static Optional<TaskStatus> addIfMissing(Task task, TaskState expectedState, TaskStatus.Builder statusTemplate) {
         Optional<TaskStatus> foundStatus = JobFunctions.findTaskStatus(task, expectedState);
         if (!foundStatus.isPresent()) {
             logger.debug("Adding missing task status: {} for task: {}", expectedState, task.getId());
@@ -364,7 +372,7 @@ public class KubeNotificationProcessor {
         return Optional.empty();
     }
 
-    private Task addMissingAttributes(V1Pod pod, Task updatedTask) {
+    private static Task addMissingAttributes(V1Pod pod, Task updatedTask) {
         Map<String, String> taskContext = updatedTask.getTaskContext();
 
         Optional<String> updatedCpus = getPodAnnotation(pod, KubeConstants.OPPORTUNISTIC_CPU_COUNT)
@@ -383,10 +391,9 @@ public class KubeNotificationProcessor {
         return builder.build();
     }
 
-    private Optional<String> getPodAnnotation(V1Pod pod, String key) {
+    private static Optional<String> getPodAnnotation(V1Pod pod, String key) {
         return Optional.ofNullable(pod.getMetadata())
                 .flatMap(meta -> Optional.ofNullable(meta.getAnnotations()))
                 .flatMap(annotations -> Optional.ofNullable(annotations.get(key)));
     }
-
 }

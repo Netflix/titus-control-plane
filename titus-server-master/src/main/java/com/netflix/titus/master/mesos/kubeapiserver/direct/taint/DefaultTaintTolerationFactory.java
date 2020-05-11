@@ -18,15 +18,18 @@ package com.netflix.titus.master.mesos.kubeapiserver.direct.taint;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.netflix.titus.api.jobmanager.JobConstraints;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.model.Tier;
+import com.netflix.titus.master.mesos.kubeapiserver.KubeConstants;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeConfiguration;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
@@ -55,7 +58,8 @@ public class DefaultTaintTolerationFactory implements TaintTolerationFactory {
 
         tolerations.add(resolveTierToleration(job));
         resolveAvailabilityZoneToleration(job).ifPresent(tolerations::add);
-        resolverGpuInstanceTypeToleration(job).ifPresent(tolerations::add);
+        resolveGpuInstanceTypeToleration(job).ifPresent(tolerations::add);
+        resolveKubeBackendToleration(job).ifPresent(tolerations::add);
 
         return tolerations;
     }
@@ -73,9 +77,23 @@ public class DefaultTaintTolerationFactory implements TaintTolerationFactory {
         return KubeUtil.findFarzoneId(configuration, job).map(Tolerations.TOLERATION_FARZONE_FACTORY);
     }
 
-    private Optional<V1Toleration> resolverGpuInstanceTypeToleration(Job job) {
+    private Optional<V1Toleration> resolveGpuInstanceTypeToleration(Job job) {
         return job.getJobDescriptor().getContainer().getContainerResources().getGpu() <= 0
                 ? Optional.empty()
                 : Optional.of(Tolerations.TOLERATION_GPU_INSTANCE);
+    }
+
+    private Optional<V1Toleration> resolveKubeBackendToleration(Job job) {
+        Map<String, String> constraints = job.getJobDescriptor().getContainer().getHardConstraints();
+        String backend = constraints.get(JobConstraints.KUBE_BACKEND);
+        if (backend == null) {
+            return Optional.empty();
+        }
+        return Optional.of(new V1Toleration()
+                .key(KubeConstants.TAINT_KUBE_BACKEND)
+                .operator("Equal")
+                .value(backend)
+                .effect("NoSchedule")
+        );
     }
 }

@@ -78,7 +78,8 @@ public class KubeUtil {
         return matcher.replaceAll("");
     };
 
-    private static final String INTERNAL_IP = "InternalIP";
+    public static final String TYPE_INTERNAL_IP = "InternalIP";
+
     private static final JsonFormat.Printer grpcJsonPrinter = JsonFormat.printer().includingDefaultValueFields();
 
     public static ApiClient createApiClient(String kubeApiServerUrl,
@@ -222,7 +223,7 @@ public class KubeUtil {
 
     public static String getNodeIpV4Address(V1Node node) {
         return node.getStatus().getAddresses().stream()
-                .filter(a -> a.getType().equalsIgnoreCase(INTERNAL_IP) && NetworkExt.isIpV4(a.getAddress()))
+                .filter(a -> a.getType().equalsIgnoreCase(TYPE_INTERNAL_IP) && NetworkExt.isIpV4(a.getAddress()))
                 .findFirst()
                 .map(V1NodeAddress::getAddress)
                 .orElse("UnknownIpAddress");
