@@ -20,8 +20,6 @@ import java.util.Set;
 import javax.inject.Inject;
 
 import com.google.common.base.Strings;
-import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
-import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.runtime.SystemLogService;
 import com.netflix.titus.common.util.StringExt;
@@ -50,7 +48,7 @@ import com.netflix.titus.grpc.protogen.TaskMoveRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.runtime.endpoint.common.rest.Responses;
-import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
+import com.netflix.titus.runtime.endpoint.metadata.spring.CallMetadataAuthentication;
 import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -77,21 +75,17 @@ public class JobManagementSpringResource {
 
     private final JobServiceGateway jobServiceGateway;
     private final SystemLogService systemLog;
-    private final CallMetadataResolver callMetadataResolver;
 
     @Inject
-    public JobManagementSpringResource(JobServiceGateway jobServiceGateway,
-                                       SystemLogService systemLog,
-                                       CallMetadataResolver callMetadataResolver) {
+    public JobManagementSpringResource(JobServiceGateway jobServiceGateway, SystemLogService systemLog) {
         this.jobServiceGateway = jobServiceGateway;
         this.systemLog = systemLog;
-        this.callMetadataResolver = callMetadataResolver;
     }
 
     @ApiOperation("Create a job")
     @PostMapping(path = "/jobs")
-    public ResponseEntity<JobId> createJob(@RequestBody JobDescriptor jobDescriptor) {
-        String jobId = Responses.fromSingleValueObservable(jobServiceGateway.createJob(jobDescriptor, resolveCallMetadata()));
+    public ResponseEntity<JobId> createJob(@RequestBody JobDescriptor jobDescriptor, CallMetadataAuthentication authentication) {
+        String jobId = Responses.fromSingleValueObservable(jobServiceGateway.createJob(jobDescriptor, authentication.getCallMetadata()));
         return ResponseEntity.status(HttpStatus.CREATED).body(JobId.newBuilder().setId(jobId).build());
     }
 
@@ -202,10 +196,10 @@ public class JobManagementSpringResource {
 
     @ApiOperation("Find jobs")
     @GetMapping(path = "/jobs", produces = MediaType.APPLICATION_JSON_VALUE)
-    public JobQueryResult findJobs(@RequestParam MultiValueMap<String, String> queryParameters) {
+    public JobQueryResult findJobs(@RequestParam MultiValueMap<String, String> queryParameters, CallMetadataAuthentication authentication) {
         JobQuery.Builder queryBuilder = JobQuery.newBuilder();
         Page page = RestUtil.createPage(queryParameters);
-        logPageNumberUsage(systemLog, callMetadataResolver, getClass().getSimpleName(), "findJobs", page);
+        logPageNumberUsage(systemLog, authentication.getCallMetadata(), getClass().getSimpleName(), "findJobs", page);
         queryBuilder.setPage(page);
         queryBuilder.putAllFilteringCriteria(RestUtil.getFilteringCriteria(queryParameters));
         queryBuilder.addAllFields(RestUtil.getFieldsParameter(queryParameters));
@@ -226,10 +220,10 @@ public class JobManagementSpringResource {
 
     @ApiOperation("Find tasks")
     @GetMapping(path = "/tasks")
-    public TaskQueryResult findTasks(@RequestParam MultiValueMap<String, String> queryParameters) {
+    public TaskQueryResult findTasks(@RequestParam MultiValueMap<String, String> queryParameters, CallMetadataAuthentication authentication) {
         TaskQuery.Builder queryBuilder = TaskQuery.newBuilder();
         Page page = RestUtil.createPage(queryParameters);
-        logPageNumberUsage(systemLog, callMetadataResolver, getClass().getSimpleName(), "findTasks", page);
+        logPageNumberUsage(systemLog, authentication.getCallMetadata(), getClass().getSimpleName(), "findTasks", page);
         queryBuilder.setPage(page);
         queryBuilder.putAllFilteringCriteria(RestUtil.getFilteringCriteria(queryParameters));
         queryBuilder.addAllFields(RestUtil.getFieldsParameter(queryParameters));
@@ -290,9 +284,5 @@ public class JobManagementSpringResource {
     @PostMapping(path = "/tasks/move")
     public ResponseEntity<Void> moveTask(@RequestBody TaskMoveRequest taskMoveRequest) {
         return Responses.fromCompletable(jobServiceGateway.moveTask(taskMoveRequest), HttpStatus.NO_CONTENT);
-    }
-
-    private CallMetadata resolveCallMetadata() {
-        return callMetadataResolver.resolve().orElse(JobManagerConstants.UNDEFINED_CALL_METADATA);
     }
 }

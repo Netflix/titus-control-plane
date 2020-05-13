@@ -27,8 +27,11 @@ import com.netflix.titus.api.model.callmetadata.CallerType;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.grpc.protogen.Page;
 import com.netflix.titus.grpc.protogen.Pagination;
+import com.netflix.titus.runtime.endpoint.metadata.spring.CallMetadataAuthentication;
 import com.netflix.titus.runtime.endpoint.v3.rest.RestConstants;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.TestingAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
@@ -53,6 +56,13 @@ public final class SpringMockMvcUtil {
                     .build())
             )
             .build();
+
+    public static final Authentication JUNIT_DELEGATE_AUTHENTICATION = new TestingAuthenticationToken("junitUser", "junitPassword");
+
+    public static final CallMetadataAuthentication JUNIT_AUTHENTICATION = new CallMetadataAuthentication(
+            JUNIT_REST_CALL_METADATA,
+            JUNIT_DELEGATE_AUTHENTICATION
+    );
 
     public static final Page FIRST_PAGE_OF_1 = pageOf(1);
     public static final Page NEXT_PAGE_OF_1 = pageOf(1, "testCursorPosition");
@@ -81,7 +91,8 @@ public final class SpringMockMvcUtil {
 
     public static <E extends Message> E doPaginatedGet(MockMvc mockMvc, String path, Class<E> entityType, Page page, String... queryParameters) throws Exception {
         MockHttpServletRequestBuilder requestBuilder = get(path)
-                .queryParam(RestConstants.PAGE_SIZE_QUERY_KEY, "" + page.getPageSize());
+                .queryParam(RestConstants.PAGE_SIZE_QUERY_KEY, "" + page.getPageSize())
+                .principal(JUNIT_AUTHENTICATION);
         for (int i = 0; i < queryParameters.length; i += 2) {
             requestBuilder.queryParam(queryParameters[i], queryParameters[i + 1]);
         }
@@ -112,7 +123,8 @@ public final class SpringMockMvcUtil {
 
         MockHttpServletRequestBuilder requestBuilder = MockMvcRequestBuilders.post(path)
                 .contentType(MediaType.APPLICATION_JSON)
-                .characterEncoding("UTF-8");
+                .characterEncoding("UTF-8")
+                .principal(JUNIT_AUTHENTICATION);
 
         if (queryParametersOptional.isPresent()) {
             String[] queryParameters = queryParametersOptional.get();
