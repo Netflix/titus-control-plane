@@ -22,6 +22,7 @@ import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.model.callmetadata.Caller;
 import com.netflix.titus.api.model.callmetadata.CallerType;
@@ -37,17 +38,16 @@ import static java.util.Arrays.asList;
  */
 public class SpringCallMetadataInterceptor extends HandlerInterceptorAdapter {
 
-    private static final String DEBUG_QUERY_PARAM = "debug";
+    @VisibleForTesting
+    static final String DEBUG_QUERY_PARAM = "debug";
 
     @Override
     public boolean preHandle(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, Object handler) throws Exception {
         String callReason = httpServletRequest.getHeader(CallMetadataHeaders.CALL_REASON_HEADER);
-        boolean debug;
-        if (httpServletRequest.getParameter(DEBUG_QUERY_PARAM) == null) {
-            debug = Boolean.parseBoolean(httpServletRequest.getHeader(CallMetadataHeaders.DEBUG_HEADER));
-        } else {
-            debug = Boolean.parseBoolean(httpServletRequest.getParameter(DEBUG_QUERY_PARAM));
-        }
+        String debugQueryParameter = httpServletRequest.getParameter(DEBUG_QUERY_PARAM);
+        boolean debug = debugQueryParameter == null
+                ? Boolean.parseBoolean(httpServletRequest.getHeader(CallMetadataHeaders.DEBUG_HEADER))
+                : Boolean.parseBoolean(debugQueryParameter);
 
         String originalCallerId = httpServletRequest.getHeader(CallMetadataHeaders.CALLER_ID_HEADER);
         Authentication delegate = SecurityContextHolder.getContext().getAuthentication();

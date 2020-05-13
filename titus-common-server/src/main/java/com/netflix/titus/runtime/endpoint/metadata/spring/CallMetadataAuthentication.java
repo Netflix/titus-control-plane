@@ -23,7 +23,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 
 /**
- * A decorator for an original {@link Authentication} object, which adds resolved request {@link CallMetadata}.
+ * A decorator for the {@link Authentication} object, which adds resolved request {@link CallMetadata}.
  */
 public class CallMetadataAuthentication implements Authentication {
 
