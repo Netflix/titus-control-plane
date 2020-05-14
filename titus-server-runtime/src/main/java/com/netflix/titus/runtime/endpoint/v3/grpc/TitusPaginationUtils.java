@@ -19,6 +19,8 @@ package com.netflix.titus.runtime.endpoint.v3.grpc;
 import java.util.Collections;
 
 import com.google.common.collect.ImmutableMap;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
+import com.netflix.titus.api.model.callmetadata.CallMetadataConstants;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.runtime.SystemLogEvent;
 import com.netflix.titus.common.runtime.SystemLogService;
@@ -55,14 +57,25 @@ public class TitusPaginationUtils {
         if (page.getPageNumber() == 0 || StringExt.isNotEmpty(page.getCursor())) {
             return;
         }
+        CallMetadata callMetadata = metadataResolver.resolve().orElse(CallMetadataConstants.UNDEFINED_CALL_METADATA);
+        logPageNumberUsage(systemLog, callMetadata, component, apiName, page);
+    }
+
+    public static void logPageNumberUsage(SystemLogService systemLog,
+                                          CallMetadata callMetadata,
+                                          String component,
+                                          String apiName,
+                                          Page page) {
+        if (page.getPageNumber() == 0 || StringExt.isNotEmpty(page.getCursor())) {
+            return;
+        }
 
         ImmutableMap.Builder<String, String> contextBuilder = new ImmutableMap.Builder<>();
         contextBuilder.put("apiName", apiName);
-        metadataResolver.resolve().ifPresent(callMetadata -> contextBuilder
+        contextBuilder
                 .put("callPath", String.join(",", callMetadata.getCallPath()))
                 .put("callerId", callMetadata.getCallerId())
-                .put("reason", callMetadata.getCallReason())
-        );
+                .put("reason", callMetadata.getCallReason());
 
         systemLog.submit(SystemLogEvent.newBuilder()
                 .withCategory(SystemLogEvent.Category.Other)

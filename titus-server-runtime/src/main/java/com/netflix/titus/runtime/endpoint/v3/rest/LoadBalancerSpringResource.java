@@ -28,7 +28,7 @@ import com.netflix.titus.grpc.protogen.LoadBalancerId;
 import com.netflix.titus.grpc.protogen.Page;
 import com.netflix.titus.grpc.protogen.RemoveLoadBalancerRequest;
 import com.netflix.titus.runtime.endpoint.common.rest.Responses;
-import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
+import com.netflix.titus.runtime.endpoint.metadata.spring.CallMetadataAuthentication;
 import com.netflix.titus.runtime.service.LoadBalancerService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -53,15 +53,11 @@ public class LoadBalancerSpringResource {
 
     private final LoadBalancerService loadBalancerService;
     private final SystemLogService systemLog;
-    private final CallMetadataResolver callMetadataResolver;
 
     @Inject
-    public LoadBalancerSpringResource(LoadBalancerService loadBalancerService,
-                                      SystemLogService systemLog,
-                                      CallMetadataResolver callMetadataResolver) {
+    public LoadBalancerSpringResource(LoadBalancerService loadBalancerService, SystemLogService systemLog) {
         this.loadBalancerService = loadBalancerService;
         this.systemLog = systemLog;
-        this.callMetadataResolver = callMetadataResolver;
     }
 
     @ApiOperation("Find the load balancer(s) with the specified ID")
@@ -75,9 +71,10 @@ public class LoadBalancerSpringResource {
 
     @ApiOperation("Get all load balancers")
     @GetMapping
-    public GetAllLoadBalancersResult getAllLoadBalancers(@RequestParam MultiValueMap<String, String> queryParameters) {
+    public GetAllLoadBalancersResult getAllLoadBalancers(@RequestParam MultiValueMap<String, String> queryParameters,
+                                                         CallMetadataAuthentication authentication) {
         Page page = RestUtil.createPage(queryParameters);
-        logPageNumberUsage(systemLog, callMetadataResolver, getClass().getSimpleName(), "getAllLoadBalancers", page);
+        logPageNumberUsage(systemLog, authentication.getCallMetadata(), getClass().getSimpleName(), "getAllLoadBalancers", page);
         return Responses.fromSingleValueObservable(
                 loadBalancerService.getAllLoadBalancers(GetAllLoadBalancersRequest.newBuilder()
                         .setPage(page)
