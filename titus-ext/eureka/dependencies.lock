@@ -10,8 +10,6 @@
             "locked": "2.10.4",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
-                "com.fasterxml.jackson.dataformat:jackson-dataformat-xml",
-                "com.fasterxml.jackson.module:jackson-module-jaxb-annotations",
                 "com.netflix.eureka:eureka-client",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
@@ -22,10 +20,8 @@
             "locked": "2.10.4",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
-                "com.fasterxml.jackson.dataformat:jackson-dataformat-xml",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
-                "com.fasterxml.jackson.module:jackson-module-jaxb-annotations",
                 "com.netflix.eureka:eureka-client",
                 "org.mock-server:mockserver-core"
             ]
@@ -33,9 +29,7 @@
         "com.fasterxml.jackson.core:jackson-databind": {
             "locked": "2.10.4",
             "transitive": [
-                "com.fasterxml.jackson.dataformat:jackson-dataformat-xml",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
-                "com.fasterxml.jackson.module:jackson-module-jaxb-annotations",
                 "com.github.fge:jackson-coreutils",
                 "com.netflix.eureka:eureka-client",
                 "com.netflix.fenzo:fenzo-core",
@@ -43,12 +37,6 @@
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-jaxrs",
                 "org.mock-server:mockserver-core"
-            ]
-        },
-        "com.fasterxml.jackson.dataformat:jackson-dataformat-xml": {
-            "locked": "2.9.10",
-            "transitive": [
-                "com.netflix.eureka:eureka-client"
             ]
         },
         "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml": {
@@ -61,19 +49,6 @@
             "locked": "2.10.4",
             "transitive": [
                 "com.netflix.titus:titus-common"
-            ]
-        },
-        "com.fasterxml.jackson.module:jackson-module-jaxb-annotations": {
-            "locked": "2.9.10",
-            "transitive": [
-                "com.fasterxml.jackson.dataformat:jackson-dataformat-xml"
-            ]
-        },
-        "com.fasterxml.woodstox:woodstox-core": {
-            "locked": "5.3.0",
-            "transitive": [
-                "com.fasterxml.jackson.dataformat:jackson-dataformat-xml",
-                "com.netflix.eureka:eureka-client"
             ]
         },
         "com.fasterxml:classmate": {
@@ -353,7 +328,7 @@
             ]
         },
         "com.netflix.eureka:eureka-client": {
-            "locked": "1.9.21",
+            "locked": "1.9.22",
             "requested": "1.+"
         },
         "com.netflix.fenzo:fenzo-core": {
@@ -1236,13 +1211,6 @@
                 "io.grpc:grpc-core"
             ]
         },
-        "org.codehaus.woodstox:stax2-api": {
-            "locked": "4.2",
-            "transitive": [
-                "com.fasterxml.jackson.dataformat:jackson-dataformat-xml",
-                "com.fasterxml.woodstox:woodstox-core"
-            ]
-        },
         "org.eclipse.jetty:jetty-http": {
             "locked": "9.2.12.v20150709",
             "transitive": [
@@ -1478,15 +1446,29 @@
             "locked": "2.2.2.RELEASE",
             "requested": "2.2.+"
         },
+        "org.springframework.security:spring-security-core": {
+            "locked": "5.2.4.RELEASE",
+            "transitive": [
+                "org.springframework.security:spring-security-web"
+            ]
+        },
         "org.springframework.security:spring-security-crypto": {
             "locked": "5.2.2.RELEASE",
             "transitive": [
                 "org.springframework.cloud:spring-cloud-commons"
             ]
         },
+        "org.springframework.security:spring-security-web": {
+            "locked": "5.2.4.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common-server"
+            ]
+        },
         "org.springframework:spring-aop": {
             "locked": "5.2.6.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
@@ -1494,6 +1476,8 @@
         "org.springframework:spring-beans": {
             "locked": "5.2.6.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-context",
                 "org.springframework:spring-web",
@@ -1506,6 +1490,8 @@
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-webmvc"
             ]
         },
@@ -1513,6 +1499,8 @@
             "locked": "5.2.6.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
                 "org.springframework:spring-context",
@@ -1526,6 +1514,8 @@
             "locked": "5.2.6.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
@@ -1539,6 +1529,7 @@
         "org.springframework:spring-web": {
             "locked": "5.2.6.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-webflux",
                 "org.springframework:spring-webmvc"
             ]
@@ -1623,8 +1614,6 @@
             "locked": "2.10.4",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
-                "com.fasterxml.jackson.dataformat:jackson-dataformat-xml",
-                "com.fasterxml.jackson.module:jackson-module-jaxb-annotations",
                 "com.netflix.archaius:archaius-core",
                 "com.netflix.eureka:eureka-client",
                 "io.swagger:swagger-core",
@@ -1636,10 +1625,8 @@
             "locked": "2.10.4",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
-                "com.fasterxml.jackson.dataformat:jackson-dataformat-xml",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
-                "com.fasterxml.jackson.module:jackson-module-jaxb-annotations",
                 "com.netflix.archaius:archaius-core",
                 "com.netflix.eureka:eureka-client",
                 "org.mock-server:mockserver-core"
@@ -1648,9 +1635,7 @@
         "com.fasterxml.jackson.core:jackson-databind": {
             "locked": "2.10.4",
             "transitive": [
-                "com.fasterxml.jackson.dataformat:jackson-dataformat-xml",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
-                "com.fasterxml.jackson.module:jackson-module-jaxb-annotations",
                 "com.github.fge:jackson-coreutils",
                 "com.netflix.archaius:archaius-core",
                 "com.netflix.eureka:eureka-client",
@@ -1659,12 +1644,6 @@
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-jaxrs",
                 "org.mock-server:mockserver-core"
-            ]
-        },
-        "com.fasterxml.jackson.dataformat:jackson-dataformat-xml": {
-            "locked": "2.9.10",
-            "transitive": [
-                "com.netflix.eureka:eureka-client"
             ]
         },
         "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml": {
@@ -1677,19 +1656,6 @@
             "locked": "2.10.4",
             "transitive": [
                 "com.netflix.titus:titus-common"
-            ]
-        },
-        "com.fasterxml.jackson.module:jackson-module-jaxb-annotations": {
-            "locked": "2.9.10",
-            "transitive": [
-                "com.fasterxml.jackson.dataformat:jackson-dataformat-xml"
-            ]
-        },
-        "com.fasterxml.woodstox:woodstox-core": {
-            "locked": "5.3.0",
-            "transitive": [
-                "com.fasterxml.jackson.dataformat:jackson-dataformat-xml",
-                "com.netflix.eureka:eureka-client"
             ]
         },
         "com.fasterxml:classmate": {
@@ -1995,7 +1961,7 @@
             ]
         },
         "com.netflix.eureka:eureka-client": {
-            "locked": "1.9.21",
+            "locked": "1.9.22",
             "requested": "1.+"
         },
         "com.netflix.fenzo:fenzo-core": {
@@ -2927,13 +2893,6 @@
                 "io.grpc:grpc-core"
             ]
         },
-        "org.codehaus.woodstox:stax2-api": {
-            "locked": "4.2",
-            "transitive": [
-                "com.fasterxml.jackson.dataformat:jackson-dataformat-xml",
-                "com.fasterxml.woodstox:woodstox-core"
-            ]
-        },
         "org.eclipse.jetty:jetty-http": {
             "locked": "9.2.12.v20150709",
             "transitive": [
@@ -3181,15 +3140,29 @@
             "locked": "2.2.2.RELEASE",
             "requested": "2.2.+"
         },
+        "org.springframework.security:spring-security-core": {
+            "locked": "5.2.4.RELEASE",
+            "transitive": [
+                "org.springframework.security:spring-security-web"
+            ]
+        },
         "org.springframework.security:spring-security-crypto": {
             "locked": "5.2.2.RELEASE",
             "transitive": [
                 "org.springframework.cloud:spring-cloud-commons"
             ]
         },
+        "org.springframework.security:spring-security-web": {
+            "locked": "5.2.4.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common-server"
+            ]
+        },
         "org.springframework:spring-aop": {
             "locked": "5.2.6.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
@@ -3197,6 +3170,8 @@
         "org.springframework:spring-beans": {
             "locked": "5.2.6.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-context",
                 "org.springframework:spring-web",
@@ -3209,6 +3184,8 @@
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-webmvc"
             ]
         },
@@ -3216,6 +3193,8 @@
             "locked": "5.2.6.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
                 "org.springframework:spring-context",
@@ -3229,6 +3208,8 @@
             "locked": "5.2.6.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
@@ -3242,6 +3223,7 @@
         "org.springframework:spring-web": {
             "locked": "5.2.6.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-webflux",
                 "org.springframework:spring-webmvc"
             ]
@@ -3383,8 +3365,6 @@
             "locked": "2.10.4",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
-                "com.fasterxml.jackson.dataformat:jackson-dataformat-xml",
-                "com.fasterxml.jackson.module:jackson-module-jaxb-annotations",
                 "com.netflix.archaius:archaius-core",
                 "com.netflix.eureka:eureka-client",
                 "io.swagger:swagger-core",
@@ -3396,10 +3376,8 @@
             "locked": "2.10.4",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
-                "com.fasterxml.jackson.dataformat:jackson-dataformat-xml",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
-                "com.fasterxml.jackson.module:jackson-module-jaxb-annotations",
                 "com.netflix.archaius:archaius-core",
                 "com.netflix.eureka:eureka-client",
                 "org.mock-server:mockserver-core"
@@ -3408,9 +3386,7 @@
         "com.fasterxml.jackson.core:jackson-databind": {
             "locked": "2.10.4",
             "transitive": [
-                "com.fasterxml.jackson.dataformat:jackson-dataformat-xml",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
-                "com.fasterxml.jackson.module:jackson-module-jaxb-annotations",
                 "com.github.fge:jackson-coreutils",
                 "com.netflix.archaius:archaius-core",
                 "com.netflix.eureka:eureka-client",
@@ -3419,12 +3395,6 @@
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-jaxrs",
                 "org.mock-server:mockserver-core"
-            ]
-        },
-        "com.fasterxml.jackson.dataformat:jackson-dataformat-xml": {
-            "locked": "2.9.10",
-            "transitive": [
-                "com.netflix.eureka:eureka-client"
             ]
         },
         "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml": {
@@ -3437,19 +3407,6 @@
             "locked": "2.10.4",
             "transitive": [
                 "com.netflix.titus:titus-common"
-            ]
-        },
-        "com.fasterxml.jackson.module:jackson-module-jaxb-annotations": {
-            "locked": "2.9.10",
-            "transitive": [
-                "com.fasterxml.jackson.dataformat:jackson-dataformat-xml"
-            ]
-        },
-        "com.fasterxml.woodstox:woodstox-core": {
-            "locked": "5.3.0",
-            "transitive": [
-                "com.fasterxml.jackson.dataformat:jackson-dataformat-xml",
-                "com.netflix.eureka:eureka-client"
             ]
         },
         "com.fasterxml:classmate": {
@@ -3755,7 +3712,7 @@
             ]
         },
         "com.netflix.eureka:eureka-client": {
-            "locked": "1.9.21",
+            "locked": "1.9.22",
             "requested": "1.+"
         },
         "com.netflix.fenzo:fenzo-core": {
@@ -4687,13 +4644,6 @@
                 "io.grpc:grpc-core"
             ]
         },
-        "org.codehaus.woodstox:stax2-api": {
-            "locked": "4.2",
-            "transitive": [
-                "com.fasterxml.jackson.dataformat:jackson-dataformat-xml",
-                "com.fasterxml.woodstox:woodstox-core"
-            ]
-        },
         "org.eclipse.jetty:jetty-http": {
             "locked": "9.2.12.v20150709",
             "transitive": [
@@ -4941,15 +4891,29 @@
             "locked": "2.2.2.RELEASE",
             "requested": "2.2.+"
         },
+        "org.springframework.security:spring-security-core": {
+            "locked": "5.2.4.RELEASE",
+            "transitive": [
+                "org.springframework.security:spring-security-web"
+            ]
+        },
         "org.springframework.security:spring-security-crypto": {
             "locked": "5.2.2.RELEASE",
             "transitive": [
                 "org.springframework.cloud:spring-cloud-commons"
             ]
         },
+        "org.springframework.security:spring-security-web": {
+            "locked": "5.2.4.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common-server"
+            ]
+        },
         "org.springframework:spring-aop": {
             "locked": "5.2.6.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
@@ -4957,6 +4921,8 @@
         "org.springframework:spring-beans": {
             "locked": "5.2.6.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-context",
                 "org.springframework:spring-web",
@@ -4969,6 +4935,8 @@
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-webmvc"
             ]
         },
@@ -4976,6 +4944,8 @@
             "locked": "5.2.6.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
                 "org.springframework:spring-context",
@@ -4989,6 +4959,8 @@
             "locked": "5.2.6.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
@@ -5002,6 +4974,7 @@
         "org.springframework:spring-web": {
             "locked": "5.2.6.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-webflux",
                 "org.springframework:spring-webmvc"
             ]
@@ -5128,9 +5101,7 @@
             "locked": "2.10.4",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
-                "com.fasterxml.jackson.dataformat:jackson-dataformat-xml",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
-                "com.fasterxml.jackson.module:jackson-module-jaxb-annotations",
                 "com.netflix.eureka:eureka-client",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
@@ -5141,11 +5112,9 @@
             "locked": "2.10.4",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
-                "com.fasterxml.jackson.dataformat:jackson-dataformat-xml",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
-                "com.fasterxml.jackson.module:jackson-module-jaxb-annotations",
                 "com.fasterxml.jackson.module:jackson-module-parameter-names",
                 "com.netflix.eureka:eureka-client",
                 "org.mock-server:mockserver-core"
@@ -5154,10 +5123,8 @@
         "com.fasterxml.jackson.core:jackson-databind": {
             "locked": "2.10.4",
             "transitive": [
-                "com.fasterxml.jackson.dataformat:jackson-dataformat-xml",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
-                "com.fasterxml.jackson.module:jackson-module-jaxb-annotations",
                 "com.fasterxml.jackson.module:jackson-module-parameter-names",
                 "com.github.fge:jackson-coreutils",
                 "com.netflix.eureka:eureka-client",
@@ -5167,12 +5134,6 @@
                 "io.swagger:swagger-jaxrs",
                 "org.mock-server:mockserver-core",
                 "org.springframework.boot:spring-boot-starter-json"
-            ]
-        },
-        "com.fasterxml.jackson.dataformat:jackson-dataformat-xml": {
-            "locked": "2.9.10",
-            "transitive": [
-                "com.netflix.eureka:eureka-client"
             ]
         },
         "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml": {
@@ -5194,23 +5155,10 @@
                 "org.springframework.boot:spring-boot-starter-json"
             ]
         },
-        "com.fasterxml.jackson.module:jackson-module-jaxb-annotations": {
-            "locked": "2.9.10",
-            "transitive": [
-                "com.fasterxml.jackson.dataformat:jackson-dataformat-xml"
-            ]
-        },
         "com.fasterxml.jackson.module:jackson-module-parameter-names": {
             "locked": "2.10.2",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-json"
-            ]
-        },
-        "com.fasterxml.woodstox:woodstox-core": {
-            "locked": "5.3.0",
-            "transitive": [
-                "com.fasterxml.jackson.dataformat:jackson-dataformat-xml",
-                "com.netflix.eureka:eureka-client"
             ]
         },
         "com.fasterxml:classmate": {
@@ -5576,7 +5524,7 @@
             ]
         },
         "com.netflix.eureka:eureka-client": {
-            "locked": "1.9.21",
+            "locked": "1.9.22",
             "requested": "1.+"
         },
         "com.netflix.fenzo:fenzo-core": {
@@ -6767,13 +6715,6 @@
                 "io.grpc:grpc-core"
             ]
         },
-        "org.codehaus.woodstox:stax2-api": {
-            "locked": "4.2",
-            "transitive": [
-                "com.fasterxml.jackson.dataformat:jackson-dataformat-xml",
-                "com.fasterxml.woodstox:woodstox-core"
-            ]
-        },
         "org.eclipse.jdt.core.compiler:ecj": {
             "locked": "4.4.2",
             "transitive": [
@@ -7281,15 +7222,29 @@
             "locked": "2.2.2.RELEASE",
             "requested": "2.2.+"
         },
+        "org.springframework.security:spring-security-core": {
+            "locked": "5.2.4.RELEASE",
+            "transitive": [
+                "org.springframework.security:spring-security-web"
+            ]
+        },
         "org.springframework.security:spring-security-crypto": {
             "locked": "5.2.2.RELEASE",
             "transitive": [
                 "org.springframework.cloud:spring-cloud-commons"
             ]
         },
+        "org.springframework.security:spring-security-web": {
+            "locked": "5.2.4.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common-server"
+            ]
+        },
         "org.springframework:spring-aop": {
             "locked": "5.2.6.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
@@ -7297,6 +7252,8 @@
         "org.springframework:spring-beans": {
             "locked": "5.2.6.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-context",
                 "org.springframework:spring-web",
@@ -7309,6 +7266,8 @@
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-webmvc"
             ]
         },
@@ -7318,6 +7277,8 @@
                 "org.springframework.boot:spring-boot",
                 "org.springframework.boot:spring-boot-starter",
                 "org.springframework.boot:spring-boot-starter-test",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
                 "org.springframework:spring-context",
@@ -7332,6 +7293,8 @@
             "locked": "5.2.6.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
@@ -7354,6 +7317,7 @@
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-web",
                 "org.springframework.boot:spring-boot-starter-webflux",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-webflux",
                 "org.springframework:spring-webmvc"
             ]
@@ -7504,9 +7468,7 @@
             "locked": "2.10.4",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
-                "com.fasterxml.jackson.dataformat:jackson-dataformat-xml",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
-                "com.fasterxml.jackson.module:jackson-module-jaxb-annotations",
                 "com.netflix.archaius:archaius-core",
                 "com.netflix.eureka:eureka-client",
                 "io.swagger:swagger-core",
@@ -7518,11 +7480,9 @@
             "locked": "2.10.4",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
-                "com.fasterxml.jackson.dataformat:jackson-dataformat-xml",
                 "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
-                "com.fasterxml.jackson.module:jackson-module-jaxb-annotations",
                 "com.fasterxml.jackson.module:jackson-module-parameter-names",
                 "com.netflix.archaius:archaius-core",
                 "com.netflix.eureka:eureka-client",
@@ -7532,10 +7492,8 @@
         "com.fasterxml.jackson.core:jackson-databind": {
             "locked": "2.10.4",
             "transitive": [
-                "com.fasterxml.jackson.dataformat:jackson-dataformat-xml",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jsr310",
-                "com.fasterxml.jackson.module:jackson-module-jaxb-annotations",
                 "com.fasterxml.jackson.module:jackson-module-parameter-names",
                 "com.github.fge:jackson-coreutils",
                 "com.netflix.archaius:archaius-core",
@@ -7546,12 +7504,6 @@
                 "io.swagger:swagger-jaxrs",
                 "org.mock-server:mockserver-core",
                 "org.springframework.boot:spring-boot-starter-json"
-            ]
-        },
-        "com.fasterxml.jackson.dataformat:jackson-dataformat-xml": {
-            "locked": "2.9.10",
-            "transitive": [
-                "com.netflix.eureka:eureka-client"
             ]
         },
         "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml": {
@@ -7573,23 +7525,10 @@
                 "org.springframework.boot:spring-boot-starter-json"
             ]
         },
-        "com.fasterxml.jackson.module:jackson-module-jaxb-annotations": {
-            "locked": "2.9.10",
-            "transitive": [
-                "com.fasterxml.jackson.dataformat:jackson-dataformat-xml"
-            ]
-        },
         "com.fasterxml.jackson.module:jackson-module-parameter-names": {
             "locked": "2.10.2",
             "transitive": [
                 "org.springframework.boot:spring-boot-starter-json"
-            ]
-        },
-        "com.fasterxml.woodstox:woodstox-core": {
-            "locked": "5.3.0",
-            "transitive": [
-                "com.fasterxml.jackson.dataformat:jackson-dataformat-xml",
-                "com.netflix.eureka:eureka-client"
             ]
         },
         "com.fasterxml:classmate": {
@@ -7981,7 +7920,7 @@
             ]
         },
         "com.netflix.eureka:eureka-client": {
-            "locked": "1.9.21",
+            "locked": "1.9.22",
             "requested": "1.+"
         },
         "com.netflix.fenzo:fenzo-core": {
@@ -9209,13 +9148,6 @@
             "transitive": [
                 "com.google.guava:guava",
                 "io.grpc:grpc-core"
-            ]
-        },
-        "org.codehaus.woodstox:stax2-api": {
-            "locked": "4.2",
-            "transitive": [
-                "com.fasterxml.jackson.dataformat:jackson-dataformat-xml",
-                "com.fasterxml.woodstox:woodstox-core"
             ]
         },
         "org.eclipse.jdt.core.compiler:ecj": {
@@ -9746,15 +9678,29 @@
             "locked": "2.2.2.RELEASE",
             "requested": "2.2.+"
         },
+        "org.springframework.security:spring-security-core": {
+            "locked": "5.2.4.RELEASE",
+            "transitive": [
+                "org.springframework.security:spring-security-web"
+            ]
+        },
         "org.springframework.security:spring-security-crypto": {
             "locked": "5.2.2.RELEASE",
             "transitive": [
                 "org.springframework.cloud:spring-cloud-commons"
             ]
         },
+        "org.springframework.security:spring-security-web": {
+            "locked": "5.2.4.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common-server"
+            ]
+        },
         "org.springframework:spring-aop": {
             "locked": "5.2.6.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
@@ -9762,6 +9708,8 @@
         "org.springframework:spring-beans": {
             "locked": "5.2.6.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-context",
                 "org.springframework:spring-web",
@@ -9774,6 +9722,8 @@
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-webmvc"
             ]
         },
@@ -9783,6 +9733,8 @@
                 "org.springframework.boot:spring-boot",
                 "org.springframework.boot:spring-boot-starter",
                 "org.springframework.boot:spring-boot-starter-test",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
                 "org.springframework:spring-context",
@@ -9797,6 +9749,8 @@
             "locked": "5.2.6.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
@@ -9819,6 +9773,7 @@
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-web",
                 "org.springframework.boot:spring-boot-starter-webflux",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-webflux",
                 "org.springframework:spring-webmvc"
             ]

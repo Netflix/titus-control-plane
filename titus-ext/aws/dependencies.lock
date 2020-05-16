@@ -7,19 +7,19 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-applicationautoscaling": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-cloudwatch": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-applicationautoscaling",
                 "com.amazonaws:aws-java-sdk-autoscaling",
@@ -31,23 +31,23 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-iam": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-sts": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-applicationautoscaling",
                 "com.amazonaws:aws-java-sdk-autoscaling",
@@ -1265,9 +1265,23 @@
                 "com.netflix.titus:titus-common-server"
             ]
         },
+        "org.springframework.security:spring-security-core": {
+            "locked": "5.2.4.RELEASE",
+            "transitive": [
+                "org.springframework.security:spring-security-web"
+            ]
+        },
+        "org.springframework.security:spring-security-web": {
+            "locked": "5.2.4.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common-server"
+            ]
+        },
         "org.springframework:spring-aop": {
             "locked": "5.2.6.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
@@ -1275,6 +1289,8 @@
         "org.springframework:spring-beans": {
             "locked": "5.2.6.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-context",
                 "org.springframework:spring-web",
@@ -1287,6 +1303,8 @@
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-webmvc"
             ]
         },
@@ -1294,6 +1312,8 @@
             "locked": "5.2.6.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
                 "org.springframework:spring-context",
@@ -1307,6 +1327,8 @@
             "locked": "5.2.6.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
@@ -1320,6 +1342,7 @@
         "org.springframework:spring-web": {
             "locked": "5.2.6.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-webflux",
                 "org.springframework:spring-webmvc"
             ]
@@ -1375,19 +1398,19 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-applicationautoscaling": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-cloudwatch": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-applicationautoscaling",
                 "com.amazonaws:aws-java-sdk-autoscaling",
@@ -1399,23 +1422,23 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-iam": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-sts": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-applicationautoscaling",
                 "com.amazonaws:aws-java-sdk-autoscaling",
@@ -2678,9 +2701,23 @@
                 "com.netflix.titus:titus-common-server"
             ]
         },
+        "org.springframework.security:spring-security-core": {
+            "locked": "5.2.4.RELEASE",
+            "transitive": [
+                "org.springframework.security:spring-security-web"
+            ]
+        },
+        "org.springframework.security:spring-security-web": {
+            "locked": "5.2.4.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common-server"
+            ]
+        },
         "org.springframework:spring-aop": {
             "locked": "5.2.6.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
@@ -2688,6 +2725,8 @@
         "org.springframework:spring-beans": {
             "locked": "5.2.6.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-context",
                 "org.springframework:spring-web",
@@ -2700,6 +2739,8 @@
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-webmvc"
             ]
         },
@@ -2707,6 +2748,8 @@
             "locked": "5.2.6.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
                 "org.springframework:spring-context",
@@ -2720,6 +2763,8 @@
             "locked": "5.2.6.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
@@ -2733,6 +2778,7 @@
         "org.springframework:spring-web": {
             "locked": "5.2.6.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-webflux",
                 "org.springframework:spring-webmvc"
             ]
@@ -2845,19 +2891,19 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-applicationautoscaling": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-cloudwatch": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-applicationautoscaling",
                 "com.amazonaws:aws-java-sdk-autoscaling",
@@ -2869,23 +2915,23 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-iam": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-sts": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-applicationautoscaling",
                 "com.amazonaws:aws-java-sdk-autoscaling",
@@ -4148,9 +4194,23 @@
                 "com.netflix.titus:titus-common-server"
             ]
         },
+        "org.springframework.security:spring-security-core": {
+            "locked": "5.2.4.RELEASE",
+            "transitive": [
+                "org.springframework.security:spring-security-web"
+            ]
+        },
+        "org.springframework.security:spring-security-web": {
+            "locked": "5.2.4.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common-server"
+            ]
+        },
         "org.springframework:spring-aop": {
             "locked": "5.2.6.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
@@ -4158,6 +4218,8 @@
         "org.springframework:spring-beans": {
             "locked": "5.2.6.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-context",
                 "org.springframework:spring-web",
@@ -4170,6 +4232,8 @@
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-webmvc"
             ]
         },
@@ -4177,6 +4241,8 @@
             "locked": "5.2.6.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
                 "org.springframework:spring-context",
@@ -4190,6 +4256,8 @@
             "locked": "5.2.6.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
@@ -4203,6 +4271,7 @@
         "org.springframework:spring-web": {
             "locked": "5.2.6.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-webflux",
                 "org.springframework:spring-webmvc"
             ]
@@ -4276,19 +4345,19 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-applicationautoscaling": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-cloudwatch": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-applicationautoscaling",
                 "com.amazonaws:aws-java-sdk-autoscaling",
@@ -4300,23 +4369,23 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-iam": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-sts": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-applicationautoscaling",
                 "com.amazonaws:aws-java-sdk-autoscaling",
@@ -6422,9 +6491,23 @@
                 "org.springframework.boot:spring-boot-starter-test"
             ]
         },
+        "org.springframework.security:spring-security-core": {
+            "locked": "5.2.4.RELEASE",
+            "transitive": [
+                "org.springframework.security:spring-security-web"
+            ]
+        },
+        "org.springframework.security:spring-security-web": {
+            "locked": "5.2.4.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common-server"
+            ]
+        },
         "org.springframework:spring-aop": {
             "locked": "5.2.6.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
@@ -6432,6 +6515,8 @@
         "org.springframework:spring-beans": {
             "locked": "5.2.6.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-context",
                 "org.springframework:spring-web",
@@ -6444,6 +6529,8 @@
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-webmvc"
             ]
         },
@@ -6453,6 +6540,8 @@
                 "org.springframework.boot:spring-boot",
                 "org.springframework.boot:spring-boot-starter",
                 "org.springframework.boot:spring-boot-starter-test",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
                 "org.springframework:spring-context",
@@ -6467,6 +6556,8 @@
             "locked": "5.2.6.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
@@ -6489,6 +6580,7 @@
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-web",
                 "org.springframework.boot:spring-boot-starter-webflux",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-webflux",
                 "org.springframework:spring-webmvc"
             ]
@@ -6593,19 +6685,19 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-applicationautoscaling": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-autoscaling": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-cloudwatch": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-core": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-applicationautoscaling",
                 "com.amazonaws:aws-java-sdk-autoscaling",
@@ -6617,23 +6709,23 @@
             ]
         },
         "com.amazonaws:aws-java-sdk-ec2": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-elasticloadbalancingv2": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-iam": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "requested": "1.11.+"
         },
         "com.amazonaws:aws-java-sdk-sts": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "requested": "1.11.+"
         },
         "com.amazonaws:jmespath-java": {
-            "locked": "1.11.779",
+            "locked": "1.11.784",
             "transitive": [
                 "com.amazonaws:aws-java-sdk-applicationautoscaling",
                 "com.amazonaws:aws-java-sdk-autoscaling",
@@ -8794,9 +8886,23 @@
                 "org.springframework.boot:spring-boot-starter-test"
             ]
         },
+        "org.springframework.security:spring-security-core": {
+            "locked": "5.2.4.RELEASE",
+            "transitive": [
+                "org.springframework.security:spring-security-web"
+            ]
+        },
+        "org.springframework.security:spring-security-web": {
+            "locked": "5.2.4.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common-server"
+            ]
+        },
         "org.springframework:spring-aop": {
             "locked": "5.2.6.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
@@ -8804,6 +8910,8 @@
         "org.springframework:spring-beans": {
             "locked": "5.2.6.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-context",
                 "org.springframework:spring-web",
@@ -8816,6 +8924,8 @@
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-webmvc"
             ]
         },
@@ -8825,6 +8935,8 @@
                 "org.springframework.boot:spring-boot",
                 "org.springframework.boot:spring-boot-starter",
                 "org.springframework.boot:spring-boot-starter-test",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
                 "org.springframework:spring-context",
@@ -8839,6 +8951,8 @@
             "locked": "5.2.6.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
@@ -8861,6 +8975,7 @@
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-web",
                 "org.springframework.boot:spring-boot-starter-webflux",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-webflux",
                 "org.springframework:spring-webmvc"
             ]
