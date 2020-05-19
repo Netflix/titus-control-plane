@@ -17,9 +17,9 @@
 package com.netflix.titus.runtime.endpoint.rest;
 
 import com.google.protobuf.util.JsonFormat;
+import com.netflix.titus.common.util.jackson.CommonObjectMappers;
 import com.netflix.titus.testing.SampleGrpcService.SampleComplexMessage;
 import com.netflix.titus.testing.SampleGrpcService.SampleComplexMessage.SampleInternalMessage;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,7 +39,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @RunWith(SpringRunner.class)
 @WebMvcTest()
-@ContextConfiguration(classes = {SampleSpringResource.class, TitusProtobufHttpMessageConverter.class})
+@ContextConfiguration(classes = {SampleSpringResource.class, CommonExceptionHandlers.class, TitusProtobufHttpMessageConverter.class})
 public class TitusProtobufHttpMessageConverterTest {
 
     private static final SampleComplexMessage SAMPLE_BASE = SampleComplexMessage.newBuilder()
@@ -79,22 +79,11 @@ public class TitusProtobufHttpMessageConverterTest {
         assertThat(result.getInternalMessage()).isEqualTo(SampleInternalMessage.getDefaultInstance());
     }
 
-    /**
-     * TODO Move ErrorResponse to titus-common-server submodule.
-     */
     @Test
-    @Ignore
     public void testErrors() throws Exception {
-        doGet("/error");
-    }
-
-    /**
-     * TODO Move ErrorResponse to titus-common-server submodule.
-     */
-    @Test
-    @Ignore
-    public void testDebug() throws Exception {
-        doGet("/error?debug=true");
+        ErrorResponse error = doGetError("/test/error");
+        assertThat(error.getStatusCode()).isEqualTo(500);
+        assertThat(error.getErrorContext()).hasSize(3);
     }
 
     private String doGetString(String baseUri) throws Exception {
@@ -112,6 +101,16 @@ public class TitusProtobufHttpMessageConverterTest {
         SampleComplexMessage.Builder resultBuilder = SampleComplexMessage.newBuilder();
         JsonFormat.parser().merge(doGetString(baseUri), resultBuilder);
         return resultBuilder.build();
+    }
+
+    private ErrorResponse doGetError(String baseUri) throws Exception {
+        MockHttpServletRequestBuilder requestBuilder = MockMvcRequestBuilders.get(baseUri);
+        MvcResult mvcResult = mockMvc.perform(requestBuilder)
+                .andDo(print())
+                .andExpect(status().isInternalServerError())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
+        return CommonObjectMappers.protobufMapper().readValue(mvcResult.getResponse().getContentAsString(), ErrorResponse.class);
     }
 
     private void doPost(SampleComplexMessage sample) throws Exception {

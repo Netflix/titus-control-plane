@@ -21,6 +21,7 @@ import org.springframework.context.annotation.Import;
 
 @Configuration
 @Import({
+        CommonExceptionHandlers.class,
         TitusProtobufHttpMessageConverter.class,
         LocalSchedulerSpringResource.class,
         FitSpringResource.class,

@@ -92,15 +92,6 @@ public class TitusProtobufHttpMessageConverter implements HttpMessageConverter<M
 
         outputMessage.getHeaders().add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
 
-        // Unless 'debug' flag is set, do not write error context
-        if (entity instanceof ErrorResponse) {
-            String debug = httpServletRequest.getParameter(DEBUG_PARAM);
-            if (debug == null || debug.equalsIgnoreCase("false")) {
-                COMPACT_ERROR_WRITER.writeValue(outputMessage.getBody(), entity);
-                return;
-            }
-        }
-
         List<String> fields = StringExt.splitByComma(httpServletRequest.getParameter(FIELDS_PARAM));
         if (fields.isEmpty()) {
             MAPPER.writeValue(outputMessage.getBody(), entity);

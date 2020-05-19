@@ -42,6 +42,7 @@ import com.fasterxml.jackson.databind.ObjectWriter;
 import com.netflix.titus.api.json.ObjectMappers;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.jackson.CommonObjectMappers;
+import com.netflix.titus.runtime.endpoint.rest.ErrorResponse;
 
 @Provider
 @Produces(MediaType.APPLICATION_JSON)

@@ -28,7 +28,7 @@ import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.master.config.MasterConfiguration;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
-import com.netflix.titus.runtime.endpoint.common.rest.ErrorResponse;
+import com.netflix.titus.runtime.endpoint.rest.ErrorResponse;
 import com.netflix.titus.runtime.endpoint.common.rest.JsonMessageReaderWriter;
 import com.netflix.titus.runtime.endpoint.common.rest.TitusExceptionMapper;
 import com.netflix.titus.testkit.data.core.ApplicationSlaSample;
