@@ -18,7 +18,6 @@ package com.netflix.titus.api.json;
 
 import java.util.Collection;
 
-import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
@@ -161,15 +160,6 @@ public class ObjectMappers {
 
     private static final ObjectMapper STORE = createStoreMapper();
     private static final ObjectMapper APP_SCALE_STORE = createAppScalePolicyMapper();
-
-    /**
-     * A helper marker class for use with {@link JsonView} annotation.
-     */
-    public static final class PublicView {
-    }
-
-    public static final class DebugView {
-    }
 
     public static ObjectMapper storeMapper() {
         return STORE;

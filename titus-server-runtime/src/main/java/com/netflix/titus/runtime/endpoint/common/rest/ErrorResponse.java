@@ -24,7 +24,7 @@ import javax.servlet.http.HttpServletRequest;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonView;
-import com.netflix.titus.api.json.ObjectMappers;
+import com.netflix.titus.common.util.jackson.CommonObjectMappers;
 import org.springframework.web.context.request.WebRequest;
 
 /**
@@ -37,16 +37,16 @@ public class ErrorResponse {
     public static final String SERVER_CONTEXT = "serverContext";
     public static final String EXCEPTION_CONTEXT = "exception";
 
-    @JsonView(ObjectMappers.PublicView.class)
+    @JsonView(CommonObjectMappers.PublicView.class)
     private final int statusCode;
 
-    @JsonView(ObjectMappers.PublicView.class)
+    @JsonView(CommonObjectMappers.PublicView.class)
     private final String message;
 
-    @JsonView(ObjectMappers.PublicView.class)
+    @JsonView(CommonObjectMappers.PublicView.class)
     private final Object errorDetails;
 
-    @JsonView(ObjectMappers.DebugView.class)
+    @JsonView(CommonObjectMappers.DebugView.class)
     private final Map<String, Object> errorContext;
 
     @JsonCreator

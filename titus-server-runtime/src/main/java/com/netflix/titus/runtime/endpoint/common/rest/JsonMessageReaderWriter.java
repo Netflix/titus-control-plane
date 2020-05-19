@@ -41,6 +41,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.netflix.titus.api.json.ObjectMappers;
 import com.netflix.titus.common.util.StringExt;
+import com.netflix.titus.common.util.jackson.CommonObjectMappers;
 
 @Provider
 @Produces(MediaType.APPLICATION_JSON)
@@ -56,9 +57,9 @@ public class JsonMessageReaderWriter implements MessageBodyReader<Object>, Messa
      */
     static final String FIELDS_PARAM = "fields";
 
-    private static final ObjectMapper MAPPER = ObjectMappers.protobufMapper();
+    private static final ObjectMapper MAPPER = CommonObjectMappers.protobufMapper();
 
-    private static final ObjectWriter COMPACT_ERROR_WRITER = MAPPER.writer().withView(ObjectMappers.PublicView.class);
+    private static final ObjectWriter COMPACT_ERROR_WRITER = MAPPER.writer().withView(CommonObjectMappers.PublicView.class);
 
     private static final Validator VALIDATION = Validation.buildDefaultValidatorFactory().getValidator();
 

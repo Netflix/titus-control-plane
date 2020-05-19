@@ -16,36 +16,14 @@
 
 package com.netflix.titus.runtime.endpoint.rest;
 
-import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.runtime.endpoint.metadata.SimpleHttpCallMetadataResolver;
-import org.springframework.boot.web.servlet.FilterRegistrationBean;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.converter.protobuf.ProtobufHttpMessageConverter;
+import org.springframework.context.annotation.Import;
 
 @Configuration
+@Import({
+        TitusProtobufHttpMessageConverter.class,
+        LocalSchedulerSpringResource.class,
+        FitSpringResource.class,
+})
 public class RestAddOnsComponent {
-
-    @Bean
-    public LocalSchedulerSpringResource getLocalSchedulerSpringResource(TitusRuntime titusRuntime) {
-        return new LocalSchedulerSpringResource(titusRuntime);
-    }
-
-    @Bean
-    public FitSpringResource getFitSpringResource(TitusRuntime titusRuntime) {
-        return new FitSpringResource(titusRuntime);
-    }
-
-    @Bean
-    public FilterRegistrationBean<SimpleHttpCallMetadataResolver.CallMetadataInterceptorFilter> CallMetadataInterceptorFilter(SimpleHttpCallMetadataResolver resolver) {
-        FilterRegistrationBean<SimpleHttpCallMetadataResolver.CallMetadataInterceptorFilter> registrationBean = new FilterRegistrationBean<>();
-        registrationBean.setFilter(new SimpleHttpCallMetadataResolver.CallMetadataInterceptorFilter(resolver));
-        registrationBean.addUrlPatterns("/*");
-        return registrationBean;
-    }
-
-    @Bean
-    public ProtobufHttpMessageConverter protobufHttpMessageConverter() {
-        return new ProtobufHttpMessageConverter();
-    }
 }
