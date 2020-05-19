@@ -577,12 +577,6 @@
                 "com.twitter:util-logging_2.11"
             ]
         },
-        "com.vaadin.external.google:android-json": {
-            "locked": "0.0.20131108.vaadin1",
-            "transitive": [
-                "org.skyscreamer:jsonassert"
-            ]
-        },
         "commons-codec:commons-codec": {
             "locked": "1.13",
             "transitive": [
@@ -974,18 +968,6 @@
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
-        "org.apache.logging.log4j:log4j-api": {
-            "locked": "2.12.1",
-            "transitive": [
-                "org.apache.logging.log4j:log4j-to-slf4j"
-            ]
-        },
-        "org.apache.logging.log4j:log4j-to-slf4j": {
-            "locked": "2.12.1",
-            "transitive": [
-                "org.springframework.boot:spring-boot-starter-logging"
-            ]
-        },
         "org.apache.tomcat.embed:tomcat-embed-core": {
             "locked": "9.0.31",
             "transitive": [
@@ -1247,7 +1229,6 @@
                 "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
-                "org.apache.logging.log4j:log4j-to-slf4j",
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty",
@@ -1339,9 +1320,23 @@
         "org.springframework.boot:spring-boot-starter-web": {
             "locked": "2.2.5.RELEASE"
         },
+        "org.springframework.security:spring-security-core": {
+            "locked": "5.2.2.RELEASE",
+            "transitive": [
+                "org.springframework.security:spring-security-web"
+            ]
+        },
+        "org.springframework.security:spring-security-web": {
+            "locked": "5.2.2.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common-server"
+            ]
+        },
         "org.springframework:spring-aop": {
             "locked": "5.2.4.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
@@ -1349,6 +1344,8 @@
         "org.springframework:spring-beans": {
             "locked": "5.2.4.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-context",
                 "org.springframework:spring-web",
@@ -1362,6 +1359,8 @@
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot",
                 "org.springframework.boot:spring-boot-actuator-autoconfigure",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-webmvc"
             ]
         },
@@ -1371,6 +1370,8 @@
                 "org.springframework.boot:spring-boot",
                 "org.springframework.boot:spring-boot-actuator-autoconfigure",
                 "org.springframework.boot:spring-boot-starter",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
                 "org.springframework:spring-context",
@@ -1384,6 +1385,8 @@
             "locked": "5.2.4.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
@@ -1400,6 +1403,7 @@
                 "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-web",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-webflux",
                 "org.springframework:spring-webmvc"
             ]
@@ -1418,7 +1422,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.3",
+            "locked": "1.1.7.5",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -2047,12 +2051,6 @@
                 "com.twitter:util-logging_2.11"
             ]
         },
-        "com.vaadin.external.google:android-json": {
-            "locked": "0.0.20131108.vaadin1",
-            "transitive": [
-                "org.skyscreamer:jsonassert"
-            ]
-        },
         "commons-codec:commons-codec": {
             "locked": "1.13",
             "transitive": [
@@ -2454,18 +2452,6 @@
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
-        "org.apache.logging.log4j:log4j-api": {
-            "locked": "2.12.1",
-            "transitive": [
-                "org.apache.logging.log4j:log4j-to-slf4j"
-            ]
-        },
-        "org.apache.logging.log4j:log4j-to-slf4j": {
-            "locked": "2.12.1",
-            "transitive": [
-                "org.springframework.boot:spring-boot-starter-logging"
-            ]
-        },
         "org.apache.tomcat.embed:tomcat-embed-core": {
             "locked": "9.0.31",
             "transitive": [
@@ -2734,7 +2720,6 @@
                 "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
-                "org.apache.logging.log4j:log4j-to-slf4j",
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-logging",
@@ -2828,9 +2813,23 @@
         "org.springframework.boot:spring-boot-starter-web": {
             "locked": "2.2.5.RELEASE"
         },
+        "org.springframework.security:spring-security-core": {
+            "locked": "5.2.2.RELEASE",
+            "transitive": [
+                "org.springframework.security:spring-security-web"
+            ]
+        },
+        "org.springframework.security:spring-security-web": {
+            "locked": "5.2.2.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common-server"
+            ]
+        },
         "org.springframework:spring-aop": {
             "locked": "5.2.4.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
@@ -2838,6 +2837,8 @@
         "org.springframework:spring-beans": {
             "locked": "5.2.4.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-context",
                 "org.springframework:spring-web",
@@ -2851,6 +2852,8 @@
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot",
                 "org.springframework.boot:spring-boot-actuator-autoconfigure",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-webmvc"
             ]
         },
@@ -2860,6 +2863,8 @@
                 "org.springframework.boot:spring-boot",
                 "org.springframework.boot:spring-boot-actuator-autoconfigure",
                 "org.springframework.boot:spring-boot-starter",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
                 "org.springframework:spring-context",
@@ -2873,6 +2878,8 @@
             "locked": "5.2.4.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
@@ -2889,6 +2896,7 @@
                 "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-web",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-webflux",
                 "org.springframework:spring-webmvc"
             ]
@@ -2907,7 +2915,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.3",
+            "locked": "1.1.7.5",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -3594,12 +3602,6 @@
                 "com.twitter:util-logging_2.11"
             ]
         },
-        "com.vaadin.external.google:android-json": {
-            "locked": "0.0.20131108.vaadin1",
-            "transitive": [
-                "org.skyscreamer:jsonassert"
-            ]
-        },
         "commons-codec:commons-codec": {
             "locked": "1.13",
             "transitive": [
@@ -4001,18 +4003,6 @@
                 "com.netflix.titus:titus-server-runtime"
             ]
         },
-        "org.apache.logging.log4j:log4j-api": {
-            "locked": "2.12.1",
-            "transitive": [
-                "org.apache.logging.log4j:log4j-to-slf4j"
-            ]
-        },
-        "org.apache.logging.log4j:log4j-to-slf4j": {
-            "locked": "2.12.1",
-            "transitive": [
-                "org.springframework.boot:spring-boot-starter-logging"
-            ]
-        },
         "org.apache.tomcat.embed:tomcat-embed-core": {
             "locked": "9.0.31",
             "transitive": [
@@ -4281,7 +4271,6 @@
                 "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
-                "org.apache.logging.log4j:log4j-to-slf4j",
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-logging",
@@ -4375,9 +4364,23 @@
         "org.springframework.boot:spring-boot-starter-web": {
             "locked": "2.2.5.RELEASE"
         },
+        "org.springframework.security:spring-security-core": {
+            "locked": "5.2.2.RELEASE",
+            "transitive": [
+                "org.springframework.security:spring-security-web"
+            ]
+        },
+        "org.springframework.security:spring-security-web": {
+            "locked": "5.2.2.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common-server"
+            ]
+        },
         "org.springframework:spring-aop": {
             "locked": "5.2.4.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
@@ -4385,6 +4388,8 @@
         "org.springframework:spring-beans": {
             "locked": "5.2.4.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-context",
                 "org.springframework:spring-web",
@@ -4398,6 +4403,8 @@
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot",
                 "org.springframework.boot:spring-boot-actuator-autoconfigure",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-webmvc"
             ]
         },
@@ -4407,6 +4414,8 @@
                 "org.springframework.boot:spring-boot",
                 "org.springframework.boot:spring-boot-actuator-autoconfigure",
                 "org.springframework.boot:spring-boot-starter",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
                 "org.springframework:spring-context",
@@ -4420,6 +4429,8 @@
             "locked": "5.2.4.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
@@ -4436,6 +4447,7 @@
                 "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-web",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-webflux",
                 "org.springframework:spring-webmvc"
             ]
@@ -4454,7 +4466,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.3",
+            "locked": "1.1.7.5",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -5067,12 +5079,6 @@
                 "com.twitter:util-logging_2.11"
             ]
         },
-        "com.vaadin.external.google:android-json": {
-            "locked": "0.0.20131108.vaadin1",
-            "transitive": [
-                "org.skyscreamer:jsonassert"
-            ]
-        },
         "commons-codec:commons-codec": {
             "locked": "1.13",
             "transitive": [
@@ -5318,7 +5324,7 @@
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.3.4.RELEASE",
+            "locked": "3.3.5.RELEASE",
             "requested": "3.3.+"
         },
         "io.reactivex.rxjava2:rxjava": {
@@ -5484,18 +5490,6 @@
             "locked": "3.6.1",
             "transitive": [
                 "com.netflix.titus:titus-server-runtime"
-            ]
-        },
-        "org.apache.logging.log4j:log4j-api": {
-            "locked": "2.12.1",
-            "transitive": [
-                "org.apache.logging.log4j:log4j-to-slf4j"
-            ]
-        },
-        "org.apache.logging.log4j:log4j-to-slf4j": {
-            "locked": "2.12.1",
-            "transitive": [
-                "org.springframework.boot:spring-boot-starter-logging"
             ]
         },
         "org.apache.tomcat.embed:tomcat-embed-core": {
@@ -5777,7 +5771,6 @@
                 "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
-                "org.apache.logging.log4j:log4j-to-slf4j",
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-netty",
@@ -5869,9 +5862,23 @@
         "org.springframework.boot:spring-boot-starter-web": {
             "locked": "2.2.5.RELEASE"
         },
+        "org.springframework.security:spring-security-core": {
+            "locked": "5.2.2.RELEASE",
+            "transitive": [
+                "org.springframework.security:spring-security-web"
+            ]
+        },
+        "org.springframework.security:spring-security-web": {
+            "locked": "5.2.2.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common-server"
+            ]
+        },
         "org.springframework:spring-aop": {
             "locked": "5.2.4.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
@@ -5879,6 +5886,8 @@
         "org.springframework:spring-beans": {
             "locked": "5.2.4.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-context",
                 "org.springframework:spring-web",
@@ -5892,6 +5901,8 @@
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot",
                 "org.springframework.boot:spring-boot-actuator-autoconfigure",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-webmvc"
             ]
         },
@@ -5901,6 +5912,8 @@
                 "org.springframework.boot:spring-boot",
                 "org.springframework.boot:spring-boot-actuator-autoconfigure",
                 "org.springframework.boot:spring-boot-starter",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
                 "org.springframework:spring-context",
@@ -5914,6 +5927,8 @@
             "locked": "5.2.4.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
@@ -5930,6 +5945,7 @@
                 "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-web",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-webflux",
                 "org.springframework:spring-webmvc"
             ]
@@ -5948,7 +5964,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.3",
+            "locked": "1.1.7.5",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -6587,12 +6603,6 @@
                 "com.twitter:util-logging_2.11"
             ]
         },
-        "com.vaadin.external.google:android-json": {
-            "locked": "0.0.20131108.vaadin1",
-            "transitive": [
-                "org.skyscreamer:jsonassert"
-            ]
-        },
         "commons-codec:commons-codec": {
             "locked": "1.13",
             "transitive": [
@@ -6839,7 +6849,7 @@
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.3.4.RELEASE",
+            "locked": "3.3.5.RELEASE",
             "requested": "3.3.+"
         },
         "io.reactivex.rxjava2:rxjava": {
@@ -7014,18 +7024,6 @@
             "locked": "3.6.1",
             "transitive": [
                 "com.netflix.titus:titus-server-runtime"
-            ]
-        },
-        "org.apache.logging.log4j:log4j-api": {
-            "locked": "2.12.1",
-            "transitive": [
-                "org.apache.logging.log4j:log4j-to-slf4j"
-            ]
-        },
-        "org.apache.logging.log4j:log4j-to-slf4j": {
-            "locked": "2.12.1",
-            "transitive": [
-                "org.springframework.boot:spring-boot-starter-logging"
             ]
         },
         "org.apache.tomcat.embed:tomcat-embed-core": {
@@ -7314,7 +7312,6 @@
                 "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "io.swagger:swagger-core",
                 "io.swagger:swagger-models",
-                "org.apache.logging.log4j:log4j-to-slf4j",
                 "org.mock-server:mockserver-client-java",
                 "org.mock-server:mockserver-core",
                 "org.mock-server:mockserver-logging",
@@ -7408,9 +7405,23 @@
         "org.springframework.boot:spring-boot-starter-web": {
             "locked": "2.2.5.RELEASE"
         },
+        "org.springframework.security:spring-security-core": {
+            "locked": "5.2.2.RELEASE",
+            "transitive": [
+                "org.springframework.security:spring-security-web"
+            ]
+        },
+        "org.springframework.security:spring-security-web": {
+            "locked": "5.2.2.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common-server"
+            ]
+        },
         "org.springframework:spring-aop": {
             "locked": "5.2.4.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
@@ -7418,6 +7429,8 @@
         "org.springframework:spring-beans": {
             "locked": "5.2.4.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-context",
                 "org.springframework:spring-web",
@@ -7431,6 +7444,8 @@
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot",
                 "org.springframework.boot:spring-boot-actuator-autoconfigure",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-webmvc"
             ]
         },
@@ -7440,6 +7455,8 @@
                 "org.springframework.boot:spring-boot",
                 "org.springframework.boot:spring-boot-actuator-autoconfigure",
                 "org.springframework.boot:spring-boot-starter",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
                 "org.springframework:spring-context",
@@ -7453,6 +7470,8 @@
             "locked": "5.2.4.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
@@ -7469,6 +7488,7 @@
                 "com.netflix.titus:titus-supplementary-component-job-activity-history",
                 "org.springframework.boot:spring-boot-starter-json",
                 "org.springframework.boot:spring-boot-starter-web",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-webflux",
                 "org.springframework:spring-webmvc"
             ]
@@ -7487,7 +7507,7 @@
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.3",
+            "locked": "1.1.7.5",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]

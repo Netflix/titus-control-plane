@@ -17,6 +17,7 @@
 package com.netflix.titus.runtime.endpoint.admission;
 
 import com.netflix.spectator.api.Registry;
+import com.netflix.titus.common.model.admission.ValidatorMetrics;
 
 class JobRuntimePredictionSanitizerMetrics {
 

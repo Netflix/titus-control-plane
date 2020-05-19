@@ -171,6 +171,7 @@ public final class JobManagerUtil {
             Map<String, Protos.Attribute> attributes = CollectionsExt.nonNull(lease.getAttributeMap());
             String hostIp = findAttribute(attributes, "hostIp").orElse(lease.hostname());
             taskContext.put(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST, hostIp);
+            taskContext.put(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST_IP, hostIp);
 
             executorUriOverrideOpt.ifPresent(v -> taskContext.put(TASK_ATTRIBUTES_EXECUTOR_URI_OVERRIDE, v));
             taskContext.put(TaskAttributes.TASK_ATTRIBUTES_TIER, tier);

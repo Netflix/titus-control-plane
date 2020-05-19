@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import com.netflix.titus.common.model.admission.AdmissionValidator;
 import com.netflix.titus.common.model.sanitizer.ValidationError;
 import org.junit.Before;
 import org.junit.Test;

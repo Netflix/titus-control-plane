@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2020 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,10 +14,17 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.endpoint.resolver;
+package com.netflix.titus.ext.jooqflyway.jobactivity;
 
-/**
- * Resolves caller id from its host name or IP address.
- */
-public interface HostCallerIdResolver extends CallerIdResolver<String> {
+import java.io.InputStream;
+import java.security.KeyStore;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
+
+import org.postgresql.ssl.WrappedFactory;
+
+public class RDSSSLSocketFactory extends WrappedFactory {
+    public RDSSSLSocketFactory() {
+            factory = RdsUtils.createRdsSSLSocketFactory();
+    }
 }

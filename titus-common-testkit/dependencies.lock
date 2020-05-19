@@ -7,27 +7,27 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.10.3",
+            "locked": "2.10.4",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind"
             ]
         },
         "com.fasterxml.jackson.core:jackson-core": {
-            "locked": "2.10.3",
+            "locked": "2.10.4",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8"
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.10.3",
+            "locked": "2.10.4",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.netflix.titus:titus-common"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
-            "locked": "2.10.3",
+            "locked": "2.10.4",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -250,7 +250,7 @@
             "project": true
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.14.7",
+            "locked": "3.14.8",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -313,7 +313,7 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-codec-http",
@@ -327,7 +327,7 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
@@ -337,7 +337,7 @@
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
@@ -345,19 +345,19 @@
             ]
         },
         "io.netty:netty-codec-http2": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-socks": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-handler-proxy"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-codec",
@@ -373,7 +373,7 @@
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
@@ -381,20 +381,20 @@
             ]
         },
         "io.netty:netty-handler-proxy": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-handler",
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-codec-http",
@@ -407,13 +407,13 @@
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-transport-native-epoll"
             ]
@@ -438,13 +438,13 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.9.6.RELEASE",
+            "locked": "0.9.7.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.3.4.RELEASE",
+            "locked": "3.3.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
@@ -635,16 +635,32 @@
                 "com.netflix.titus:titus-common-server"
             ]
         },
-        "org.springframework:spring-aop": {
-            "locked": "5.2.5.RELEASE",
+        "org.springframework.security:spring-security-core": {
+            "locked": "5.2.4.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-web"
+            ]
+        },
+        "org.springframework.security:spring-security-web": {
+            "locked": "5.2.4.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common-server"
+            ]
+        },
+        "org.springframework:spring-aop": {
+            "locked": "5.2.6.RELEASE",
+            "transitive": [
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
         },
         "org.springframework:spring-beans": {
-            "locked": "5.2.5.RELEASE",
+            "locked": "5.2.6.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-context",
                 "org.springframework:spring-web",
@@ -653,17 +669,21 @@
             ]
         },
         "org.springframework:spring-context": {
-            "locked": "5.2.5.RELEASE",
+            "locked": "5.2.6.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-webmvc"
             ]
         },
         "org.springframework:spring-core": {
-            "locked": "5.2.5.RELEASE",
+            "locked": "5.2.6.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
                 "org.springframework:spring-context",
@@ -674,40 +694,43 @@
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "5.2.5.RELEASE",
+            "locked": "5.2.6.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
         },
         "org.springframework:spring-jcl": {
-            "locked": "5.2.5.RELEASE",
+            "locked": "5.2.6.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
             ]
         },
         "org.springframework:spring-web": {
-            "locked": "5.2.5.RELEASE",
+            "locked": "5.2.6.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-webflux",
                 "org.springframework:spring-webmvc"
             ]
         },
         "org.springframework:spring-webflux": {
-            "locked": "5.2.5.RELEASE",
+            "locked": "5.2.6.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "org.springframework:spring-webmvc": {
-            "locked": "5.2.5.RELEASE",
+            "locked": "5.2.6.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common-server"
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.3",
+            "locked": "1.1.7.5",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -721,27 +744,27 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.10.3",
+            "locked": "2.10.4",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind"
             ]
         },
         "com.fasterxml.jackson.core:jackson-core": {
-            "locked": "2.10.3",
+            "locked": "2.10.4",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8"
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.10.3",
+            "locked": "2.10.4",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.netflix.titus:titus-common"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
-            "locked": "2.10.3",
+            "locked": "2.10.4",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -982,7 +1005,7 @@
             "project": true
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.14.7",
+            "locked": "3.14.8",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -1046,7 +1069,7 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-codec-http",
@@ -1060,7 +1083,7 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
@@ -1070,7 +1093,7 @@
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
@@ -1078,19 +1101,19 @@
             ]
         },
         "io.netty:netty-codec-http2": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-socks": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-handler-proxy"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-codec",
@@ -1106,7 +1129,7 @@
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
@@ -1114,20 +1137,20 @@
             ]
         },
         "io.netty:netty-handler-proxy": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-handler",
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-codec-http",
@@ -1140,13 +1163,13 @@
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-transport-native-epoll"
             ]
@@ -1171,13 +1194,13 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.9.6.RELEASE",
+            "locked": "0.9.7.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.3.4.RELEASE",
+            "locked": "3.3.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
@@ -1372,16 +1395,32 @@
                 "com.netflix.titus:titus-common-server"
             ]
         },
-        "org.springframework:spring-aop": {
-            "locked": "5.2.5.RELEASE",
+        "org.springframework.security:spring-security-core": {
+            "locked": "5.2.4.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-web"
+            ]
+        },
+        "org.springframework.security:spring-security-web": {
+            "locked": "5.2.4.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common-server"
+            ]
+        },
+        "org.springframework:spring-aop": {
+            "locked": "5.2.6.RELEASE",
+            "transitive": [
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
         },
         "org.springframework:spring-beans": {
-            "locked": "5.2.5.RELEASE",
+            "locked": "5.2.6.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-context",
                 "org.springframework:spring-web",
@@ -1390,17 +1429,21 @@
             ]
         },
         "org.springframework:spring-context": {
-            "locked": "5.2.5.RELEASE",
+            "locked": "5.2.6.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-webmvc"
             ]
         },
         "org.springframework:spring-core": {
-            "locked": "5.2.5.RELEASE",
+            "locked": "5.2.6.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
                 "org.springframework:spring-context",
@@ -1411,40 +1454,43 @@
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "5.2.5.RELEASE",
+            "locked": "5.2.6.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
         },
         "org.springframework:spring-jcl": {
-            "locked": "5.2.5.RELEASE",
+            "locked": "5.2.6.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
             ]
         },
         "org.springframework:spring-web": {
-            "locked": "5.2.5.RELEASE",
+            "locked": "5.2.6.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-webflux",
                 "org.springframework:spring-webmvc"
             ]
         },
         "org.springframework:spring-webflux": {
-            "locked": "5.2.5.RELEASE",
+            "locked": "5.2.6.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "org.springframework:spring-webmvc": {
-            "locked": "5.2.5.RELEASE",
+            "locked": "5.2.6.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common-server"
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.3",
+            "locked": "1.1.7.5",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -1515,27 +1561,27 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.10.3",
+            "locked": "2.10.4",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind"
             ]
         },
         "com.fasterxml.jackson.core:jackson-core": {
-            "locked": "2.10.3",
+            "locked": "2.10.4",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8"
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.10.3",
+            "locked": "2.10.4",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.netflix.titus:titus-common"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
-            "locked": "2.10.3",
+            "locked": "2.10.4",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -1776,7 +1822,7 @@
             "project": true
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.14.7",
+            "locked": "3.14.8",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -1840,7 +1886,7 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-codec-http",
@@ -1854,7 +1900,7 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
@@ -1864,7 +1910,7 @@
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
@@ -1872,19 +1918,19 @@
             ]
         },
         "io.netty:netty-codec-http2": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-socks": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-handler-proxy"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-codec",
@@ -1900,7 +1946,7 @@
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
@@ -1908,20 +1954,20 @@
             ]
         },
         "io.netty:netty-handler-proxy": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-handler",
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-codec-http",
@@ -1934,13 +1980,13 @@
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-transport-native-epoll"
             ]
@@ -1965,13 +2011,13 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.9.6.RELEASE",
+            "locked": "0.9.7.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.3.4.RELEASE",
+            "locked": "3.3.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
@@ -2166,16 +2212,32 @@
                 "com.netflix.titus:titus-common-server"
             ]
         },
-        "org.springframework:spring-aop": {
-            "locked": "5.2.5.RELEASE",
+        "org.springframework.security:spring-security-core": {
+            "locked": "5.2.4.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-web"
+            ]
+        },
+        "org.springframework.security:spring-security-web": {
+            "locked": "5.2.4.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common-server"
+            ]
+        },
+        "org.springframework:spring-aop": {
+            "locked": "5.2.6.RELEASE",
+            "transitive": [
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
         },
         "org.springframework:spring-beans": {
-            "locked": "5.2.5.RELEASE",
+            "locked": "5.2.6.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-context",
                 "org.springframework:spring-web",
@@ -2184,17 +2246,21 @@
             ]
         },
         "org.springframework:spring-context": {
-            "locked": "5.2.5.RELEASE",
+            "locked": "5.2.6.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-webmvc"
             ]
         },
         "org.springframework:spring-core": {
-            "locked": "5.2.5.RELEASE",
+            "locked": "5.2.6.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
                 "org.springframework:spring-context",
@@ -2205,40 +2271,43 @@
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "5.2.5.RELEASE",
+            "locked": "5.2.6.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
         },
         "org.springframework:spring-jcl": {
-            "locked": "5.2.5.RELEASE",
+            "locked": "5.2.6.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
             ]
         },
         "org.springframework:spring-web": {
-            "locked": "5.2.5.RELEASE",
+            "locked": "5.2.6.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-webflux",
                 "org.springframework:spring-webmvc"
             ]
         },
         "org.springframework:spring-webflux": {
-            "locked": "5.2.5.RELEASE",
+            "locked": "5.2.6.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "org.springframework:spring-webmvc": {
-            "locked": "5.2.5.RELEASE",
+            "locked": "5.2.6.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common-server"
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.3",
+            "locked": "1.1.7.5",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -2258,27 +2327,27 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.10.3",
+            "locked": "2.10.4",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind"
             ]
         },
         "com.fasterxml.jackson.core:jackson-core": {
-            "locked": "2.10.3",
+            "locked": "2.10.4",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8"
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.10.3",
+            "locked": "2.10.4",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.netflix.titus:titus-common"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
-            "locked": "2.10.3",
+            "locked": "2.10.4",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -2505,7 +2574,7 @@
             "project": true
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.14.7",
+            "locked": "3.14.8",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -2568,7 +2637,7 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-codec-http",
@@ -2582,7 +2651,7 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
@@ -2592,7 +2661,7 @@
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
@@ -2600,19 +2669,19 @@
             ]
         },
         "io.netty:netty-codec-http2": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-socks": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-handler-proxy"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-codec",
@@ -2628,7 +2697,7 @@
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
@@ -2636,20 +2705,20 @@
             ]
         },
         "io.netty:netty-handler-proxy": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-handler",
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-codec-http",
@@ -2662,13 +2731,13 @@
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-transport-native-epoll"
             ]
@@ -2693,13 +2762,13 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.9.6.RELEASE",
+            "locked": "0.9.7.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.3.4.RELEASE",
+            "locked": "3.3.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
@@ -2709,7 +2778,7 @@
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.3.4.RELEASE",
+            "locked": "3.3.5.RELEASE",
             "requested": "3.3.+"
         },
         "io.reactivex.rxjava2:rxjava": {
@@ -2905,16 +2974,32 @@
                 "com.netflix.titus:titus-common-server"
             ]
         },
-        "org.springframework:spring-aop": {
-            "locked": "5.2.5.RELEASE",
+        "org.springframework.security:spring-security-core": {
+            "locked": "5.2.4.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-web"
+            ]
+        },
+        "org.springframework.security:spring-security-web": {
+            "locked": "5.2.4.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common-server"
+            ]
+        },
+        "org.springframework:spring-aop": {
+            "locked": "5.2.6.RELEASE",
+            "transitive": [
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
         },
         "org.springframework:spring-beans": {
-            "locked": "5.2.5.RELEASE",
+            "locked": "5.2.6.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-context",
                 "org.springframework:spring-web",
@@ -2923,17 +3008,21 @@
             ]
         },
         "org.springframework:spring-context": {
-            "locked": "5.2.5.RELEASE",
+            "locked": "5.2.6.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-webmvc"
             ]
         },
         "org.springframework:spring-core": {
-            "locked": "5.2.5.RELEASE",
+            "locked": "5.2.6.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
                 "org.springframework:spring-context",
@@ -2944,40 +3033,43 @@
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "5.2.5.RELEASE",
+            "locked": "5.2.6.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
         },
         "org.springframework:spring-jcl": {
-            "locked": "5.2.5.RELEASE",
+            "locked": "5.2.6.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
             ]
         },
         "org.springframework:spring-web": {
-            "locked": "5.2.5.RELEASE",
+            "locked": "5.2.6.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-webflux",
                 "org.springframework:spring-webmvc"
             ]
         },
         "org.springframework:spring-webflux": {
-            "locked": "5.2.5.RELEASE",
+            "locked": "5.2.6.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "org.springframework:spring-webmvc": {
-            "locked": "5.2.5.RELEASE",
+            "locked": "5.2.6.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common-server"
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.3",
+            "locked": "1.1.7.5",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -2997,27 +3089,27 @@
             ]
         },
         "com.fasterxml.jackson.core:jackson-annotations": {
-            "locked": "2.10.3",
+            "locked": "2.10.4",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind"
             ]
         },
         "com.fasterxml.jackson.core:jackson-core": {
-            "locked": "2.10.3",
+            "locked": "2.10.4",
             "transitive": [
                 "com.fasterxml.jackson.core:jackson-databind",
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8"
             ]
         },
         "com.fasterxml.jackson.core:jackson-databind": {
-            "locked": "2.10.3",
+            "locked": "2.10.4",
             "transitive": [
                 "com.fasterxml.jackson.datatype:jackson-datatype-jdk8",
                 "com.netflix.titus:titus-common"
             ]
         },
         "com.fasterxml.jackson.datatype:jackson-datatype-jdk8": {
-            "locked": "2.10.3",
+            "locked": "2.10.4",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -3262,7 +3354,7 @@
             "project": true
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.14.7",
+            "locked": "3.14.8",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -3326,7 +3418,7 @@
             ]
         },
         "io.netty:netty-buffer": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-codec-http",
@@ -3340,7 +3432,7 @@
             ]
         },
         "io.netty:netty-codec": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
@@ -3350,7 +3442,7 @@
             ]
         },
         "io.netty:netty-codec-http": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-codec-http2",
                 "io.netty:netty-handler-proxy",
@@ -3358,19 +3450,19 @@
             ]
         },
         "io.netty:netty-codec-http2": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-codec-socks": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-handler-proxy"
             ]
         },
         "io.netty:netty-common": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-buffer",
                 "io.netty:netty-codec",
@@ -3386,7 +3478,7 @@
             ]
         },
         "io.netty:netty-handler": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-codec-http",
                 "io.netty:netty-codec-http2",
@@ -3394,20 +3486,20 @@
             ]
         },
         "io.netty:netty-handler-proxy": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-resolver": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-handler",
                 "io.netty:netty-transport"
             ]
         },
         "io.netty:netty-transport": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-codec",
                 "io.netty:netty-codec-http",
@@ -3420,13 +3512,13 @@
             ]
         },
         "io.netty:netty-transport-native-epoll": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.projectreactor.netty:reactor-netty"
             ]
         },
         "io.netty:netty-transport-native-unix-common": {
-            "locked": "4.1.48.Final",
+            "locked": "4.1.49.Final",
             "transitive": [
                 "io.netty:netty-transport-native-epoll"
             ]
@@ -3451,13 +3543,13 @@
             ]
         },
         "io.projectreactor.netty:reactor-netty": {
-            "locked": "0.9.6.RELEASE",
+            "locked": "0.9.7.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "io.projectreactor:reactor-core": {
-            "locked": "3.3.4.RELEASE",
+            "locked": "3.3.5.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "io.projectreactor.addons:reactor-adapter",
@@ -3467,7 +3559,7 @@
             ]
         },
         "io.projectreactor:reactor-test": {
-            "locked": "3.3.4.RELEASE",
+            "locked": "3.3.5.RELEASE",
             "requested": "3.3.+"
         },
         "io.reactivex.rxjava2:rxjava": {
@@ -3667,16 +3759,32 @@
                 "com.netflix.titus:titus-common-server"
             ]
         },
-        "org.springframework:spring-aop": {
-            "locked": "5.2.5.RELEASE",
+        "org.springframework.security:spring-security-core": {
+            "locked": "5.2.4.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-web"
+            ]
+        },
+        "org.springframework.security:spring-security-web": {
+            "locked": "5.2.4.RELEASE",
+            "transitive": [
+                "com.netflix.titus:titus-common-server"
+            ]
+        },
+        "org.springframework:spring-aop": {
+            "locked": "5.2.6.RELEASE",
+            "transitive": [
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
         },
         "org.springframework:spring-beans": {
-            "locked": "5.2.5.RELEASE",
+            "locked": "5.2.6.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-context",
                 "org.springframework:spring-web",
@@ -3685,17 +3793,21 @@
             ]
         },
         "org.springframework:spring-context": {
-            "locked": "5.2.5.RELEASE",
+            "locked": "5.2.6.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "org.springframework.boot:spring-boot",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-webmvc"
             ]
         },
         "org.springframework:spring-core": {
-            "locked": "5.2.5.RELEASE",
+            "locked": "5.2.6.RELEASE",
             "transitive": [
                 "org.springframework.boot:spring-boot",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-aop",
                 "org.springframework:spring-beans",
                 "org.springframework:spring-context",
@@ -3706,40 +3818,43 @@
             ]
         },
         "org.springframework:spring-expression": {
-            "locked": "5.2.5.RELEASE",
+            "locked": "5.2.6.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common",
+                "org.springframework.security:spring-security-core",
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-context",
                 "org.springframework:spring-webmvc"
             ]
         },
         "org.springframework:spring-jcl": {
-            "locked": "5.2.5.RELEASE",
+            "locked": "5.2.6.RELEASE",
             "transitive": [
                 "org.springframework:spring-core"
             ]
         },
         "org.springframework:spring-web": {
-            "locked": "5.2.5.RELEASE",
+            "locked": "5.2.6.RELEASE",
             "transitive": [
+                "org.springframework.security:spring-security-web",
                 "org.springframework:spring-webflux",
                 "org.springframework:spring-webmvc"
             ]
         },
         "org.springframework:spring-webflux": {
-            "locked": "5.2.5.RELEASE",
+            "locked": "5.2.6.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
         },
         "org.springframework:spring-webmvc": {
-            "locked": "5.2.5.RELEASE",
+            "locked": "5.2.6.RELEASE",
             "transitive": [
                 "com.netflix.titus:titus-common-server"
             ]
         },
         "org.xerial.snappy:snappy-java": {
-            "locked": "1.1.7.3",
+            "locked": "1.1.7.5",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]

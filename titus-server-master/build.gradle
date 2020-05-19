@@ -27,7 +27,6 @@ dependencies {
     compile "com.netflix.frigga:frigga:${friggaVersion}"
 
     testCompile project(':titus-testkit')
-    testCompile "org.springframework.boot:spring-boot-starter-test:${springBootVersion}"
 }
 
 ospackage {

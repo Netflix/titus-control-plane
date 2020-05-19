@@ -26,6 +26,7 @@ import com.netflix.titus.api.jobmanager.JobConstraints;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.common.util.StringExt;
+import com.netflix.titus.master.mesos.kubeapiserver.KubeConstants;
 import io.kubernetes.client.openapi.models.V1Affinity;
 import io.kubernetes.client.openapi.models.V1LabelSelector;
 import io.kubernetes.client.openapi.models.V1LabelSelectorRequirement;
@@ -92,6 +93,10 @@ public class DefaultPodAffinityFactory implements PodAffinityFactory {
 
             if (constraints.containsKey(JobConstraints.MACHINE_ID)) {
                 addNodeAffinitySelectorConstraint(KubeConstants.NODE_LABEL_MACHINE_ID, constraints.get(JobConstraints.MACHINE_ID), hard);
+            }
+
+            if (constraints.containsKey(JobConstraints.KUBE_BACKEND)) {
+                addNodeAffinitySelectorConstraint(KubeConstants.NODE_LABEL_KUBE_BACKEND, constraints.get(JobConstraints.KUBE_BACKEND), hard);
             }
 
             String instanceType = constraints.get(JobConstraints.MACHINE_TYPE);

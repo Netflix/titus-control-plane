@@ -36,6 +36,9 @@ import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Container;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
+import com.netflix.titus.common.model.admission.AdmissionSanitizer;
+import com.netflix.titus.common.model.admission.AdmissionValidator;
+import com.netflix.titus.common.model.admission.ValidatorMetrics;
 import com.netflix.titus.common.model.sanitizer.ValidationError;
 import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.common.util.rx.ReactorExt;
@@ -69,6 +72,7 @@ public class JobIamValidator implements AdmissionValidator<JobDescriptor>, Admis
     @Override
     public Mono<Set<ValidationError>> validate(JobDescriptor jobDescriptor) {
         if (isDisabled()) {
+            validatorMetrics.incrementValidationSkipped("disabled");
             return Mono.just(Collections.emptySet());
         }
 

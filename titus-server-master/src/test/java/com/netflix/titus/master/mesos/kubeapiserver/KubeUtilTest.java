@@ -21,7 +21,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-import com.netflix.titus.master.mesos.kubeapiserver.direct.KubeConstants;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1NodeSpec;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;

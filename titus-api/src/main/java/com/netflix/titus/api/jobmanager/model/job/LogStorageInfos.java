@@ -16,7 +16,6 @@
 
 package com.netflix.titus.api.jobmanager.model.job;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -28,6 +27,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo.S3LogLocation;
+import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.StringExt;
 
 /**
@@ -44,12 +44,19 @@ public final class LogStorageInfos {
      * This is an optimization that avoids reading job records from the archive store, when tasks are read.
      */
     public static <E extends JobDescriptor.JobDescriptorExt> Map<String, String> toS3LogLocationTaskContext(Job<E> job) {
-        return findCustomS3Bucket(job).map(logLocation -> {
-            Map<String, String> context = new HashMap<>();
-            context.put(TaskAttributes.TASK_ATTRIBUTE_S3_BUCKET_NAME, logLocation.getBucketName());
-            context.put(TaskAttributes.TASK_ATTRIBUTE_S3_PATH_PREFIX, logLocation.getPathPrefix());
-            return context;
-        }).orElse(Collections.emptyMap());
+        Map<String, String> context = new HashMap<>();
+
+        Map<String, String> attributes = job.getJobDescriptor().getContainer().getAttributes();
+        Evaluators.applyNotNull(
+                attributes.get(JobAttributes.JOB_CONTAINER_ATTRIBUTE_S3_BUCKET_NAME),
+                value -> context.put(TaskAttributes.TASK_ATTRIBUTE_S3_BUCKET_NAME, value)
+        );
+        Evaluators.applyNotNull(
+                attributes.get(JobAttributes.JOB_CONTAINER_ATTRIBUTE_S3_PATH_PREFIX),
+                value -> context.put(TaskAttributes.TASK_ATTRIBUTE_S3_PATH_PREFIX, value)
+        );
+
+        return context;
     }
 
     /**
@@ -57,8 +64,25 @@ public final class LogStorageInfos {
      */
     public static S3LogLocation buildLogLocation(Task task, S3LogLocation defaultLogLocation) {
         S3Bucket customS3Bucket = findCustomS3Bucket(task).orElse(null);
-        if (customS3Bucket == null) {
+        String customPathPrefix = findCustomPathPrefix(task).orElse(null);
+
+        if (customS3Bucket == null && customPathPrefix == null) {
             return defaultLogLocation;
+        }
+
+        String fullPrefix = customPathPrefix == null
+                ? defaultLogLocation.getKey()
+                : buildPathPrefix(customPathPrefix, defaultLogLocation.getKey());
+
+
+        if (customS3Bucket == null) {
+            return new S3LogLocation(
+                    defaultLogLocation.getAccountName(),
+                    defaultLogLocation.getAccountId(),
+                    defaultLogLocation.getRegion(),
+                    defaultLogLocation.getBucket(),
+                    fullPrefix
+            );
         }
 
         return customS3Bucket.getS3Account()
@@ -68,7 +92,7 @@ public final class LogStorageInfos {
                                 account.getAccountId(),
                                 account.getRegion(),
                                 customS3Bucket.getBucketName(),
-                                customS3Bucket.getPathPrefix()
+                                fullPrefix
                         ))
                 .orElseGet(() ->
                         new S3LogLocation(
@@ -76,28 +100,49 @@ public final class LogStorageInfos {
                                 defaultLogLocation.getAccountId(),
                                 defaultLogLocation.getRegion(),
                                 customS3Bucket.getBucketName(),
-                                customS3Bucket.getPathPrefix()
+                                fullPrefix
                         ));
     }
 
     public static Optional<S3Bucket> findCustomS3Bucket(Job<?> job) {
-        Map<String, String> attributes = job.getJobDescriptor().getContainer().getAttributes();
+        return findCustomS3Bucket(job.getJobDescriptor());
+    }
+
+    public static Optional<S3Bucket> findCustomS3Bucket(JobDescriptor<?> jobDescriptor) {
+        Map<String, String> attributes = jobDescriptor.getContainer().getAttributes();
         String bucketName = attributes.get(JobAttributes.JOB_CONTAINER_ATTRIBUTE_S3_BUCKET_NAME);
         String pathPrefix = attributes.get(JobAttributes.JOB_CONTAINER_ATTRIBUTE_S3_PATH_PREFIX);
         if (StringExt.isEmpty(bucketName) || StringExt.isEmpty(pathPrefix)) {
             return Optional.empty();
         }
-        return Optional.of(new S3Bucket(bucketName, pathPrefix));
+        return Optional.of(new S3Bucket(bucketName));
     }
 
     public static Optional<S3Bucket> findCustomS3Bucket(Task task) {
         Map<String, String> attributes = task.getTaskContext();
         String bucketName = attributes.get(TaskAttributes.TASK_ATTRIBUTE_S3_BUCKET_NAME);
-        String pathPrefix = attributes.get(TaskAttributes.TASK_ATTRIBUTE_S3_PATH_PREFIX);
-        if (StringExt.isEmpty(bucketName) || StringExt.isEmpty(pathPrefix)) {
-            return Optional.empty();
+
+        return StringExt.isEmpty(bucketName) ? Optional.empty() : Optional.of(new S3Bucket(bucketName));
+    }
+
+    public static Optional<String> findCustomPathPrefix(JobDescriptor<?> jobDescriptor) {
+        Map<String, String> attributes = jobDescriptor.getContainer().getAttributes();
+        String pathPrefix = attributes.get(JobAttributes.JOB_CONTAINER_ATTRIBUTE_S3_PATH_PREFIX);
+        return StringExt.isEmpty(pathPrefix) ? Optional.empty() : Optional.of(pathPrefix);
+    }
+
+    public static Optional<String> findCustomPathPrefix(Task task) {
+        return Optional.ofNullable(task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTE_S3_PATH_PREFIX));
+    }
+
+    public static String buildPathPrefix(String first, String second) {
+        if (StringExt.isEmpty(second)) {
+            return first;
         }
-        return Optional.of(new S3Bucket(bucketName, pathPrefix));
+        if (first.startsWith("/")) {
+            return first + second;
+        }
+        return first + '/' + second;
     }
 
     /**
@@ -158,12 +203,10 @@ public final class LogStorageInfos {
     public static class S3Bucket {
 
         private final String bucketName;
-        private final String pathPrefix;
         private final Optional<S3Account> s3Account;
 
-        public S3Bucket(String bucketName, String pathPrefix) {
+        public S3Bucket(String bucketName) {
             this.bucketName = bucketName;
-            this.pathPrefix = pathPrefix;
             this.s3Account = parseS3AccessPointArn(bucketName);
         }
 
@@ -173,10 +216,6 @@ public final class LogStorageInfos {
 
         public String getBucketName() {
             return bucketName;
-        }
-
-        public String getPathPrefix() {
-            return pathPrefix;
         }
 
         @Override
@@ -189,20 +228,18 @@ public final class LogStorageInfos {
             }
             S3Bucket s3Bucket = (S3Bucket) o;
             return Objects.equals(bucketName, s3Bucket.bucketName) &&
-                    Objects.equals(pathPrefix, s3Bucket.pathPrefix) &&
                     Objects.equals(s3Account, s3Bucket.s3Account);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(bucketName, pathPrefix, s3Account);
+            return Objects.hash(bucketName, s3Account);
         }
 
         @Override
         public String toString() {
             return "S3Bucket{" +
                     "bucketName='" + bucketName + '\'' +
-                    ", pathPrefix='" + pathPrefix + '\'' +
                     ", s3Account=" + s3Account +
                     '}';
         }

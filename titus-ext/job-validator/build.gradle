@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2020 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,15 +14,10 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.endpoint.resolver;
+dependencies {
+    compile project(':titus-common')
+    compile project(':titus-api')
+    compile project(':titus-common-grpc-api')
 
-import java.util.Optional;
-
-/**
- * External client (caller) id resolver. The caller data type depends on actual transport protocol used.
- * It is also possible that for a single request, multiple caller identities exist.
- */
-public interface CallerIdResolver<CALLER_DATA> {
-
-    Optional<String> resolve(CALLER_DATA callerData);
+    testCompile project(':titus-testkit')
 }

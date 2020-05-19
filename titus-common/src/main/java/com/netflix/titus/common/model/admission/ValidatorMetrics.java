@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Netflix, Inc.
+ * Copyright 2020 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.endpoint.admission;
+package com.netflix.titus.common.model.admission;
 
 import java.util.Collections;
 import java.util.Map;
@@ -23,6 +23,14 @@ import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
 
 public class ValidatorMetrics {
+
+    //
+    // Common validation codes.
+    //
+
+    public static final String REASON_DISABLED = "validationDisabled";
+    public static final String REASON_NOT_APPLICABLE = "notApplicable";
+
     private static final String VALIDATOR_METRICS_ROOT = "titus.validation.";
     private static final String VALIDATION_RESULT_TAG = "result";
     private static final String VALIDATION_RESOURCE_TAG = "resource";

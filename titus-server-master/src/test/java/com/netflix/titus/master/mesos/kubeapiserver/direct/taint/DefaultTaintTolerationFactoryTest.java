@@ -18,12 +18,14 @@ package com.netflix.titus.master.mesos.kubeapiserver.direct.taint;
 
 import java.util.List;
 
+import com.netflix.titus.api.jobmanager.JobConstraints;
 import com.netflix.titus.api.jobmanager.model.job.Container;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
+import com.netflix.titus.master.mesos.kubeapiserver.KubeConstants;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeConfiguration;
-import com.netflix.titus.master.mesos.kubeapiserver.direct.KubeConstants;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import io.kubernetes.client.openapi.models.V1Toleration;
@@ -48,6 +50,18 @@ public class DefaultTaintTolerationFactoryTest {
         List<V1Toleration> tolerations = factory.buildV1Toleration(newGpuJob(), JobGenerator.oneBatchTask());
         V1Toleration gpuToleration = tolerations.stream().filter(t -> t.getKey().equals(KubeConstants.TAINT_GPU_INSTANCE)).findFirst().orElse(null);
         assertThat(gpuToleration).isEqualTo(Tolerations.TOLERATION_GPU_INSTANCE);
+    }
+
+    @Test
+    public void testKubeBackendToleration() {
+        List<V1Toleration> tolerations = factory.buildV1Toleration(newJobWithConstraint(JobConstraints.KUBE_BACKEND, "kublet"), JobGenerator.oneBatchTask());
+        V1Toleration gpuToleration = tolerations.stream().filter(t -> t.getKey().equals(KubeConstants.TAINT_KUBE_BACKEND)).findFirst().orElse(null);
+        assertThat(gpuToleration.getKey()).isEqualTo(KubeConstants.TAINT_KUBE_BACKEND);
+        assertThat(gpuToleration.getValue()).isEqualTo("kublet");
+    }
+
+    private Job newJobWithConstraint(String name, String value) {
+        return JobFunctions.appendHardConstraint(JobGenerator.oneBatchJob(), name, value);
     }
 
     private Job<BatchJobExt> newGpuJob() {

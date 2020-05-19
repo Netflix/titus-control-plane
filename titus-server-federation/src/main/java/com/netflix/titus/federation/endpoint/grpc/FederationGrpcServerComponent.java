@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2020 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.endpoint.resolver;
+package com.netflix.titus.federation.endpoint.grpc;
 
-import javax.servlet.http.HttpServletRequest;
+import org.springframework.context.annotation.Import;
+import org.springframework.stereotype.Component;
 
-/**
- * Extract from the HTTP request information about a caller.
- */
-public interface HttpCallerIdResolver extends CallerIdResolver<HttpServletRequest> {
+@Component
+@Import(TitusFederationGrpcServer.class)
+public class FederationGrpcServerComponent {
 }

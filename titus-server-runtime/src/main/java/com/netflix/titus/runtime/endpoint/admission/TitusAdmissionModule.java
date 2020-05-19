@@ -25,6 +25,8 @@ import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
+import com.netflix.titus.common.model.admission.AdmissionSanitizer;
+import com.netflix.titus.common.model.admission.AdmissionValidator;
 import com.netflix.titus.runtime.TitusEntitySanitizerModule;
 
 /**

@@ -18,19 +18,13 @@ package com.netflix.titus.runtime.endpoint.v3.rest;
 
 import java.util.Set;
 import javax.inject.Inject;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
 
 import com.google.common.base.Strings;
-import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
-import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.runtime.SystemLogService;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.grpc.protogen.Capacity;
+import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobAttributesDeleteRequest;
 import com.netflix.titus.grpc.protogen.JobAttributesUpdate;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdate;
@@ -54,10 +48,13 @@ import com.netflix.titus.grpc.protogen.TaskMoveRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.runtime.endpoint.common.rest.Responses;
-import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
+import com.netflix.titus.runtime.endpoint.metadata.spring.CallMetadataAuthentication;
 import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -73,92 +70,88 @@ import static com.netflix.titus.runtime.endpoint.v3.grpc.TitusPaginationUtils.lo
 
 @Api(tags = "Job Management")
 @RestController
-@RequestMapping(path = "/api/v3")
+@RequestMapping(path = "/api/v3", produces = "application/json")
 public class JobManagementSpringResource {
 
     private final JobServiceGateway jobServiceGateway;
     private final SystemLogService systemLog;
-    private final CallMetadataResolver callMetadataResolver;
 
     @Inject
-    public JobManagementSpringResource(JobServiceGateway jobServiceGateway,
-                                       SystemLogService systemLog,
-                                       CallMetadataResolver callMetadataResolver) {
+    public JobManagementSpringResource(JobServiceGateway jobServiceGateway, SystemLogService systemLog) {
         this.jobServiceGateway = jobServiceGateway;
         this.systemLog = systemLog;
-        this.callMetadataResolver = callMetadataResolver;
     }
 
     @ApiOperation("Create a job")
     @PostMapping(path = "/jobs")
-    public Response createJob(JobDescriptor jobDescriptor) {
-        String jobId = Responses.fromSingleValueObservable(jobServiceGateway.createJob(jobDescriptor, resolveCallMetadata()));
-        return Response.status(Response.Status.ACCEPTED).entity(JobId.newBuilder().setId(jobId).build()).build();
+    public ResponseEntity<JobId> createJob(@RequestBody JobDescriptor jobDescriptor, CallMetadataAuthentication authentication) {
+        String jobId = Responses.fromSingleValueObservable(jobServiceGateway.createJob(jobDescriptor, authentication.getCallMetadata()));
+        return ResponseEntity.status(HttpStatus.CREATED).body(JobId.newBuilder().setId(jobId).build());
     }
 
     @ApiOperation("Update an existing job's capacity")
     @PutMapping(path = "/jobs/{jobId}/instances")
-    public Response setInstances(@PathVariable("jobId") String jobId,
-                                 Capacity capacity) {
+    public ResponseEntity<Void> setInstances(@PathVariable("jobId") String jobId,
+                                             @RequestBody Capacity capacity) {
         JobCapacityUpdate jobCapacityUpdate = JobCapacityUpdate.newBuilder()
                 .setJobId(jobId)
                 .setCapacity(capacity)
                 .build();
-        return Responses.fromCompletable(jobServiceGateway.updateJobCapacity(jobCapacityUpdate));
+        return Responses.fromCompletable(jobServiceGateway.updateJobCapacity(jobCapacityUpdate), HttpStatus.NO_CONTENT);
     }
 
     @ApiOperation("Update an existing job's capacity. Optional attributes min / max / desired are supported.")
     @PutMapping(path = "/jobs/{jobId}/capacityAttributes")
-    public Response setCapacityWithOptionalAttributes(@PathVariable("jobId") String jobId,
-                                                      JobCapacityWithOptionalAttributes capacity) {
+    public ResponseEntity<Void> setCapacityWithOptionalAttributes(@PathVariable("jobId") String jobId,
+                                                                  @RequestBody JobCapacityWithOptionalAttributes capacity) {
         JobCapacityUpdateWithOptionalAttributes jobCapacityUpdateWithOptionalAttributes = JobCapacityUpdateWithOptionalAttributes.newBuilder()
                 .setJobId(jobId)
                 .setJobCapacityWithOptionalAttributes(capacity)
                 .build();
-        return Responses.fromCompletable(jobServiceGateway.updateJobCapacityWithOptionalAttributes(jobCapacityUpdateWithOptionalAttributes));
+        return Responses.fromCompletable(jobServiceGateway.updateJobCapacityWithOptionalAttributes(jobCapacityUpdateWithOptionalAttributes), HttpStatus.NO_CONTENT);
     }
 
     @ApiOperation("Update an existing job's processes")
     @PutMapping(path = "/jobs/{jobId}/jobprocesses")
-    public Response setJobProcesses(@PathVariable("jobId") String jobId,
-                                    ServiceJobSpec.ServiceJobProcesses jobProcesses) {
+    public ResponseEntity<Void> setJobProcesses(@PathVariable("jobId") String jobId,
+                                                @RequestBody ServiceJobSpec.ServiceJobProcesses jobProcesses) {
         JobProcessesUpdate jobProcessesUpdate = JobProcessesUpdate.newBuilder()
                 .setJobId(jobId)
                 .setServiceJobProcesses(jobProcesses)
                 .build();
-        return Responses.fromCompletable(jobServiceGateway.updateJobProcesses(jobProcessesUpdate));
+        return Responses.fromCompletable(jobServiceGateway.updateJobProcesses(jobProcessesUpdate), HttpStatus.NO_CONTENT);
     }
 
     @ApiOperation("Update job's disruption budget")
     @PutMapping(path = "/jobs/{jobId}/disruptionBudget")
-    public Response setJobDisruptionBudget(@PathVariable("jobId") String jobId,
-                                           JobDisruptionBudget jobDisruptionBudget) {
+    public ResponseEntity<Void> setJobDisruptionBudget(@PathVariable("jobId") String jobId,
+                                                       @RequestBody JobDisruptionBudget jobDisruptionBudget) {
         JobDisruptionBudgetUpdate request = JobDisruptionBudgetUpdate.newBuilder()
                 .setJobId(jobId)
                 .setDisruptionBudget(jobDisruptionBudget)
                 .build();
-        return Responses.fromVoidMono(jobServiceGateway.updateJobDisruptionBudget(request));
+        return Responses.fromVoidMono(jobServiceGateway.updateJobDisruptionBudget(request), HttpStatus.NO_CONTENT);
     }
 
     @ApiOperation("Update attributes of a job")
     @PutMapping(path = "/jobs/{jobId}/attributes")
-    public Response updateJobAttributes(@PathVariable("jobId") String jobId,
-                                        JobAttributesUpdate request) {
+    public ResponseEntity<Void> updateJobAttributes(@PathVariable("jobId") String jobId,
+                                                    @RequestBody JobAttributesUpdate request) {
         JobAttributesUpdate sanitizedRequest;
         if (request.getJobId().isEmpty()) {
             sanitizedRequest = request.toBuilder().setJobId(jobId).build();
         } else {
             if (!jobId.equals(request.getJobId())) {
-                return Response.status(Response.Status.BAD_REQUEST).build();
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
             }
             sanitizedRequest = request;
         }
-        return Responses.fromVoidMono(jobServiceGateway.updateJobAttributes(sanitizedRequest));
+        return Responses.fromVoidMono(jobServiceGateway.updateJobAttributes(sanitizedRequest), HttpStatus.NO_CONTENT);
     }
 
     @ApiOperation("Delete attributes of a job with the specified key names")
     @DeleteMapping(path = "/jobs/{jobId}/attributes")
-    public Response deleteJobAttributes(@PathVariable("jobId") String jobId, @RequestParam("keys") String delimitedKeys) {
+    public ResponseEntity<Void> deleteJobAttributes(@PathVariable("jobId") String jobId, @RequestParam("keys") String delimitedKeys) {
         if (Strings.isNullOrEmpty(delimitedKeys)) {
             throw TitusServiceException.invalidArgument("Path parameter 'keys' cannot be empty");
         }
@@ -172,41 +165,41 @@ public class JobManagementSpringResource {
                 .setJobId(jobId)
                 .addAllKeys(keys)
                 .build();
-        return Responses.fromVoidMono(jobServiceGateway.deleteJobAttributes(request));
+        return Responses.fromVoidMono(jobServiceGateway.deleteJobAttributes(request), HttpStatus.NO_CONTENT);
     }
 
     @ApiOperation("Update an existing job's status")
     @PostMapping(path = "/jobs/{jobId}/enable")
-    public Response enableJob(@PathVariable("jobId") String jobId) {
+    public ResponseEntity<Void> enableJob(@PathVariable("jobId") String jobId) {
         JobStatusUpdate jobStatusUpdate = JobStatusUpdate.newBuilder()
                 .setId(jobId)
                 .setEnableStatus(true)
                 .build();
-        return Responses.fromCompletable(jobServiceGateway.updateJobStatus(jobStatusUpdate));
+        return Responses.fromCompletable(jobServiceGateway.updateJobStatus(jobStatusUpdate), HttpStatus.NO_CONTENT);
     }
 
     @ApiOperation("Update an existing job's status")
     @PostMapping(path = "/jobs/{jobId}/disable")
-    public Response disableJob(@PathVariable("jobId") String jobId) {
+    public ResponseEntity<Void> disableJob(@PathVariable("jobId") String jobId) {
         JobStatusUpdate jobStatusUpdate = JobStatusUpdate.newBuilder()
                 .setId(jobId)
                 .setEnableStatus(false)
                 .build();
-        return Responses.fromCompletable(jobServiceGateway.updateJobStatus(jobStatusUpdate));
+        return Responses.fromCompletable(jobServiceGateway.updateJobStatus(jobStatusUpdate), HttpStatus.NO_CONTENT);
     }
 
     @ApiOperation("Find the job with the specified ID")
-    @GetMapping(path = "/jobs/{jobId}", produces = MediaType.APPLICATION_JSON)
-    public Response findJob(@PathVariable("jobId") String jobId) {
+    @GetMapping(path = "/jobs/{jobId}", produces = org.springframework.http.MediaType.APPLICATION_JSON_VALUE)
+    public Job findJob(@PathVariable("jobId") String jobId) {
         return Responses.fromSingleValueObservable(jobServiceGateway.findJob(jobId));
     }
 
     @ApiOperation("Find jobs")
-    @GetMapping(path = "/jobs", produces = MediaType.APPLICATION_JSON)
-    public JobQueryResult findJobs(@RequestParam MultiValueMap<String, String> queryParameters) {
+    @GetMapping(path = "/jobs", produces = MediaType.APPLICATION_JSON_VALUE)
+    public JobQueryResult findJobs(@RequestParam MultiValueMap<String, String> queryParameters, CallMetadataAuthentication authentication) {
         JobQuery.Builder queryBuilder = JobQuery.newBuilder();
         Page page = RestUtil.createPage(queryParameters);
-        logPageNumberUsage(systemLog, callMetadataResolver, getClass().getSimpleName(), "findJobs", page);
+        logPageNumberUsage(systemLog, authentication.getCallMetadata(), getClass().getSimpleName(), "findJobs", page);
         queryBuilder.setPage(page);
         queryBuilder.putAllFilteringCriteria(RestUtil.getFilteringCriteria(queryParameters));
         queryBuilder.addAllFields(RestUtil.getFieldsParameter(queryParameters));
@@ -215,8 +208,8 @@ public class JobManagementSpringResource {
 
     @ApiOperation("Kill a job")
     @DeleteMapping(path = "/jobs/{jobId}")
-    public Response killJob(@PathVariable("jobId") String jobId) {
-        return Responses.fromCompletable(jobServiceGateway.killJob(jobId));
+    public ResponseEntity<Void> killJob(@PathVariable("jobId") String jobId) {
+        return Responses.fromCompletable(jobServiceGateway.killJob(jobId), HttpStatus.NO_CONTENT);
     }
 
     @ApiOperation("Find the task with the specified ID")
@@ -227,11 +220,10 @@ public class JobManagementSpringResource {
 
     @ApiOperation("Find tasks")
     @GetMapping(path = "/tasks")
-    public TaskQueryResult findTasks(@Context UriInfo info) {
-        MultivaluedMap<String, String> queryParameters = info.getQueryParameters(true);
+    public TaskQueryResult findTasks(@RequestParam MultiValueMap<String, String> queryParameters, CallMetadataAuthentication authentication) {
         TaskQuery.Builder queryBuilder = TaskQuery.newBuilder();
         Page page = RestUtil.createPage(queryParameters);
-        logPageNumberUsage(systemLog, callMetadataResolver, getClass().getSimpleName(), "findTasks", page);
+        logPageNumberUsage(systemLog, authentication.getCallMetadata(), getClass().getSimpleName(), "findTasks", page);
         queryBuilder.setPage(page);
         queryBuilder.putAllFilteringCriteria(RestUtil.getFilteringCriteria(queryParameters));
         queryBuilder.addAllFields(RestUtil.getFieldsParameter(queryParameters));
@@ -240,7 +232,7 @@ public class JobManagementSpringResource {
 
     @ApiOperation("Kill task")
     @DeleteMapping(path = "/tasks/{taskId}")
-    public Response killTask(
+    public ResponseEntity<Void> killTask(
             @PathVariable("taskId") String taskId,
             @RequestParam(name = "shrink", defaultValue = "false") boolean shrink,
             @RequestParam(name = "preventMinSizeUpdate", defaultValue = "false") boolean preventMinSizeUpdate
@@ -250,28 +242,28 @@ public class JobManagementSpringResource {
                 .setShrink(shrink)
                 .setPreventMinSizeUpdate(preventMinSizeUpdate)
                 .build();
-        return Responses.fromCompletable(jobServiceGateway.killTask(taskKillRequest));
+        return Responses.fromCompletable(jobServiceGateway.killTask(taskKillRequest), HttpStatus.NO_CONTENT);
     }
 
     @ApiOperation("Update attributes of a task")
     @PutMapping(path = "/tasks/{taskId}/attributes")
-    public Response updateTaskAttributes(@PathVariable("taskId") String taskId,
-                                         TaskAttributesUpdate request) {
+    public ResponseEntity<Void> updateTaskAttributes(@PathVariable("taskId") String taskId,
+                                                     @RequestBody TaskAttributesUpdate request) {
         TaskAttributesUpdate sanitizedRequest;
         if (request.getTaskId().isEmpty()) {
             sanitizedRequest = request.toBuilder().setTaskId(taskId).build();
         } else {
             if (!taskId.equals(request.getTaskId())) {
-                return Response.status(Response.Status.BAD_REQUEST).build();
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
             }
             sanitizedRequest = request;
         }
-        return Responses.fromCompletable(jobServiceGateway.updateTaskAttributes(sanitizedRequest));
+        return Responses.fromCompletable(jobServiceGateway.updateTaskAttributes(sanitizedRequest), HttpStatus.NO_CONTENT);
     }
 
     @ApiOperation("Delete attributes of a task with the specified key names")
     @DeleteMapping(path = "/tasks/{taskId}/attributes")
-    public Response deleteTaskAttributes(@PathVariable("taskId") String taskId, @RequestParam("keys") String delimitedKeys) {
+    public ResponseEntity<Void> deleteTaskAttributes(@PathVariable("taskId") String taskId, @RequestParam("keys") String delimitedKeys) {
         if (Strings.isNullOrEmpty(delimitedKeys)) {
             throw TitusServiceException.invalidArgument("Path parameter 'keys' cannot be empty");
         }
@@ -285,16 +277,12 @@ public class JobManagementSpringResource {
                 .setTaskId(taskId)
                 .addAllKeys(keys)
                 .build();
-        return Responses.fromCompletable(jobServiceGateway.deleteTaskAttributes(request));
+        return Responses.fromCompletable(jobServiceGateway.deleteTaskAttributes(request), HttpStatus.NO_CONTENT);
     }
 
     @ApiOperation("Move task to another job")
     @PostMapping(path = "/tasks/move")
-    public Response moveTask(@RequestBody TaskMoveRequest taskMoveRequest) {
-        return Responses.fromCompletable(jobServiceGateway.moveTask(taskMoveRequest));
-    }
-
-    private CallMetadata resolveCallMetadata() {
-        return callMetadataResolver.resolve().orElse(JobManagerConstants.UNDEFINED_CALL_METADATA);
+    public ResponseEntity<Void> moveTask(@RequestBody TaskMoveRequest taskMoveRequest) {
+        return Responses.fromCompletable(jobServiceGateway.moveTask(taskMoveRequest), HttpStatus.NO_CONTENT);
     }
 }

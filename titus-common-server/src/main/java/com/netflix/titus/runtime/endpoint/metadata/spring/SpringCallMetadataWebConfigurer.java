@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2020 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,22 +14,17 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.runtime.endpoint.resolver;
+package com.netflix.titus.runtime.endpoint.metadata.spring;
 
-import java.util.Optional;
-import javax.inject.Singleton;
-import javax.servlet.http.HttpServletRequest;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-/**
- * {@link HttpCallerIdResolver} implementation that returns always an empty response.
- */
-@Singleton
-public class NoOpHttpCallerIdResolver implements HttpCallerIdResolver {
-
-    public static final NoOpHttpCallerIdResolver INSTANCE = new NoOpHttpCallerIdResolver();
+@Configuration
+public class SpringCallMetadataWebConfigurer implements WebMvcConfigurer {
 
     @Override
-    public Optional<String> resolve(HttpServletRequest httpServletRequest) {
-        return Optional.empty();
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(new SpringCallMetadataInterceptor());
     }
 }

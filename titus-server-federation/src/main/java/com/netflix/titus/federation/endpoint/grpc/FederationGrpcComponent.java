@@ -27,7 +27,6 @@ import org.springframework.context.annotation.Import;
 @Configuration
 @Import({
         ReactorGatewayMachineGrpcService.class,
-        TitusFederationGrpcServer.class,
         DefaultHealthServiceGrpc.class,
         AggregatingSchedulerServiceGrpc.class,
         DefaultJobManagementServiceGrpc.class,

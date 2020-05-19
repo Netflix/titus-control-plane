@@ -66,9 +66,9 @@ public class JobConstraints {
     public static final String MACHINE_TYPE = "machinetype";
 
     /**
-     * Constraint such that workloads can prefer a machine or machine group with a specific toleration.
+     * Constrain Kubernetes pod scheduling to nodes with a given Kubernetes backend version.
      */
-    public static final String TOLERATION = "toleration";
+    public static final String KUBE_BACKEND = "kubebackend";
 
     public static final Set<String> CONSTRAINT_NAMES = asSet(
             UNIQUE_HOST,
@@ -79,6 +79,6 @@ public class JobConstraints {
             MACHINE_ID,
             MACHINE_GROUP,
             MACHINE_TYPE,
-            TOLERATION
+            KUBE_BACKEND
     );
 }
