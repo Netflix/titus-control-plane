@@ -19,6 +19,7 @@ package com.netflix.titus.common.util.limiter.tokenbucket.internal;
 import java.util.concurrent.TimeUnit;
 
 import com.netflix.spectator.api.Counter;
+import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.patterns.PolledMeter;
 import com.netflix.titus.common.runtime.TitusRuntime;
@@ -34,21 +35,31 @@ public class SpectatorRefillStrategyDecorator implements RefillStrategy {
     private final RefillStrategy delegate;
 
     private final Counter refillCounter;
+    private final Id timeUntilNextRefillId;
+
+    private final Registry registry;
 
     public SpectatorRefillStrategyDecorator(String bucketName,
                                             RefillStrategy delegate,
                                             TitusRuntime titusRuntime) {
         this.delegate = delegate;
 
-        Registry registry = titusRuntime.getRegistry();
+        this.registry = titusRuntime.getRegistry();
         this.refillCounter = registry.counter(
                 NAME_PREFIX + "refillCount",
                 "bucketName", bucketName
         );
-        PolledMeter.using(registry).withId(registry.createId(
+        this.timeUntilNextRefillId = registry.createId(
                 NAME_PREFIX + "timeUntilNextRefill",
                 "bucketName", bucketName
-        )).monitorValue(this, self -> self.getTimeUntilNextRefill(TimeUnit.MILLISECONDS));
+        );
+        PolledMeter.using(registry)
+                .withId(timeUntilNextRefillId)
+                .monitorValue(this, self -> self.getTimeUntilNextRefill(TimeUnit.MILLISECONDS));
+    }
+
+    public void shutdown() {
+        PolledMeter.remove(registry, timeUntilNextRefillId);
     }
 
     @Override

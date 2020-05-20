@@ -23,6 +23,7 @@ import java.util.function.Supplier;
 
 import com.google.common.base.Stopwatch;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.limiter.tokenbucket.FixedIntervalTokenBucketConfiguration;
 import com.netflix.titus.common.util.limiter.tokenbucket.RefillStrategy;
@@ -71,6 +72,7 @@ public class FixedIntervalTokenBucketSupplier implements Supplier<TokenBucket> {
         synchronized (lock) {
             same = activeConfiguration != null && isSame();
             if (!same) {
+                Evaluators.acceptNotNull(activeConfiguration, ActiveConfiguration::shutdown);
                 this.activeConfiguration = new ActiveConfiguration(configuration);
             }
         }
@@ -90,29 +92,36 @@ public class FixedIntervalTokenBucketSupplier implements Supplier<TokenBucket> {
         private final long intervalMs;
         private final long numberOfTokensPerInterval;
 
+        private final RefillStrategy refillStrategy;
+
         private ActiveConfiguration(FixedIntervalTokenBucketConfiguration configuration) {
             this.capacity = configuration.getCapacity();
             this.initialNumberOfTokens = configuration.getInitialNumberOfTokens();
             this.intervalMs = configuration.getIntervalMs();
             this.numberOfTokensPerInterval = configuration.getNumberOfTokensPerInterval();
 
-            RefillStrategy refillStrategy = new FixedIntervalRefillStrategy(
+            RefillStrategy baseRefillStrategy = new FixedIntervalRefillStrategy(
                     Stopwatch.createStarted(),
                     numberOfTokensPerInterval,
                     intervalMs, TimeUnit.MILLISECONDS
             );
-            TokenBucket newTokenBucket = new DefaultTokenBucket(
+
+            this.refillStrategy = titusRuntime.map(runtime ->
+                    (RefillStrategy) new SpectatorRefillStrategyDecorator(name, baseRefillStrategy, runtime))
+                    .orElse(baseRefillStrategy);
+
+            this.tokenBucket = new DefaultTokenBucket(
                     name,
                     capacity,
-                    titusRuntime.map(runtime ->
-                            (RefillStrategy) new SpectatorRefillStrategyDecorator(name, refillStrategy, runtime))
-                            .orElse(refillStrategy),
+                    refillStrategy,
                     initialNumberOfTokens
             );
+        }
 
-            this.tokenBucket = titusRuntime
-                    .map(runtime -> (TokenBucket) new SpectatorTokenBucketDecorator(newTokenBucket, runtime))
-                    .orElse(newTokenBucket);
+        private void shutdown() {
+            if (refillStrategy instanceof SpectatorRefillStrategyDecorator) {
+                ((SpectatorRefillStrategyDecorator) refillStrategy).shutdown();
+            }
         }
 
         private long getCapacity() {
