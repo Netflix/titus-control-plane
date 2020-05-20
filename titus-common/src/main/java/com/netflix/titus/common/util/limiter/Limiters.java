@@ -16,13 +16,20 @@
 
 package com.netflix.titus.common.util.limiter;
 
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import com.google.common.base.Stopwatch;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.limiter.tokenbucket.FixedIntervalTokenBucketConfiguration;
 import com.netflix.titus.common.util.limiter.tokenbucket.RefillStrategy;
 import com.netflix.titus.common.util.limiter.tokenbucket.TokenBucket;
 import com.netflix.titus.common.util.limiter.tokenbucket.internal.DefaultTokenBucket;
+import com.netflix.titus.common.util.limiter.tokenbucket.internal.DynamicTokenBucketDelegate;
 import com.netflix.titus.common.util.limiter.tokenbucket.internal.FixedIntervalRefillStrategy;
+import com.netflix.titus.common.util.limiter.tokenbucket.internal.FixedIntervalTokenBucketSupplier;
+import com.netflix.titus.common.util.limiter.tokenbucket.internal.SpectatorTokenBucketDecorator;
 
 public class Limiters {
 
@@ -41,4 +48,31 @@ public class Limiters {
         return tokenBucket;
     }
 
+    /**
+     * Create a {@link TokenBucket} with a fixed interval {@link RefillStrategy}. The token bucket configuration is
+     * checked on each invocation, and the bucket is automatically recreated if it changes.
+     */
+    public static TokenBucket createFixedIntervalTokenBucket(String name,
+                                                             FixedIntervalTokenBucketConfiguration configuration,
+                                                             Consumer<TokenBucket> onChangeListener) {
+        return new DynamicTokenBucketDelegate(
+                new FixedIntervalTokenBucketSupplier(name, configuration, onChangeListener, Optional.empty())
+        );
+    }
+
+    /**
+     * Functionally equivalent to {@link #createFixedIntervalTokenBucket(String, FixedIntervalTokenBucketConfiguration, Consumer)},
+     * but with Spectator metrics.
+     */
+    public static TokenBucket createInstrumentedFixedIntervalTokenBucket(String name,
+                                                                         FixedIntervalTokenBucketConfiguration configuration,
+                                                                         Consumer<TokenBucket> onChangeListener,
+                                                                         TitusRuntime titusRuntime) {
+        return new SpectatorTokenBucketDecorator(
+                new DynamicTokenBucketDelegate(
+                        new FixedIntervalTokenBucketSupplier(name, configuration, onChangeListener, Optional.of(titusRuntime))
+                ),
+                titusRuntime
+        );
+    }
 }

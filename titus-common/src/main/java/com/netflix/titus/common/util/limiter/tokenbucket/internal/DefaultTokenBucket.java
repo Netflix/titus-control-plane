@@ -118,4 +118,14 @@ public class DefaultTokenBucket implements TokenBucket {
     public RefillStrategy getRefillStrategy() {
         return refillStrategy;
     }
+
+    @Override
+    public String toString() {
+        return "DefaultTokenBucket{" +
+                "name='" + name + '\'' +
+                ", capacity=" + capacity +
+                ", refillStrategy=" + refillStrategy +
+                ", numberOfTokens=" + numberOfTokens +
+                '}';
+    }
 }
