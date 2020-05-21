@@ -24,11 +24,16 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.supplementary.jobactivity.store.JobActivityConsumerStore;
 import org.jooq.DSLContext;
+import org.jooq.Record1;
+import org.jooq.impl.DSL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
-import reactor.core.publisher.Mono;
-
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+//com.netflix.titus.ext.jooq.activity.schema.tables.JActivityQueue.ACTIVITY_QUEUE;
+//import static com.netflix.titus.ext.jooqflyway.activity.schema.tables.JActivityQueue.*;
+import static org.jooq.impl.DSL.*;
 
 @Singleton
 public class JooqJobActivityConsumerStore implements JobActivityConsumerStore {
@@ -54,16 +59,26 @@ public class JooqJobActivityConsumerStore implements JobActivityConsumerStore {
             // create schema
             logger.info("Creating database");
         }
-        logger.info("Initializing consumer");
+    }
+
+    // figure out how often
+    @Scheduled
+    public void consumeRecord(){
+        // figure out how to get the schema here
+        /*Record1<Long> record = DSL.using(producerDSLContext.configuration())
+                .select(min(ACTIVITY_QUEUE.QUEUE_INDEX))
+                .from(ACTIVITY_QUEUE)
+                .fetchOne();*/
+
     }
 
     @Override
-    public Mono<Void> consumeJob(Job<?> Job) {
-        return null;
+    public void consumeJob(Job<?> Job) {
+        return;
     }
 
     @Override
-    public Mono<Void> consumeTask(Task Task) {
-        return null;
+    public void consumeTask(Task Task) {
+        return;
     }
 }
