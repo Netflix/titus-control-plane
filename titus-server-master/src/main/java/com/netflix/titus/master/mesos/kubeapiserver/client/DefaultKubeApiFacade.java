@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.mesos.kubeapiserver.direct;
+package com.netflix.titus.master.mesos.kubeapiserver.client;
 
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
@@ -26,6 +26,7 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.guice.annotation.Deactivator;
 import com.netflix.titus.master.MetricConstants;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeConfiguration;
 import com.netflix.titus.master.mesos.kubeapiserver.model.v1.V1OpportunisticResource;
 import com.netflix.titus.master.mesos.kubeapiserver.model.v1.V1OpportunisticResourceList;
 import io.kubernetes.client.informer.SharedIndexInformer;
@@ -43,14 +44,14 @@ import okhttp3.Call;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.netflix.titus.master.mesos.kubeapiserver.KubeUtil.createSharedInformerFactory;
+import static com.netflix.titus.master.mesos.kubeapiserver.client.KubeApiClients.createSharedInformerFactory;
 
 @Singleton
 public class DefaultKubeApiFacade implements KubeApiFacade {
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultKubeApiFacade.class);
 
-    private static final String METRICS_ROOT = MetricConstants.METRIC_KUBERNETES + "kubeClient.";
+    static final String METRICS_ROOT = MetricConstants.METRIC_KUBERNETES + "kubeClient.";
     private static final String METRICS_INFORMER = METRICS_ROOT + "informer";
 
     private static final String KUBERNETES_NAMESPACE = "default";

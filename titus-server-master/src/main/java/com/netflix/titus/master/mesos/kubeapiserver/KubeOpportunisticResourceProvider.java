@@ -33,7 +33,7 @@ import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.ExecutorsExt;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.guice.annotation.Deactivator;
-import com.netflix.titus.master.mesos.kubeapiserver.direct.KubeApiFacade;
+import com.netflix.titus.master.mesos.kubeapiserver.client.KubeApiFacade;
 import com.netflix.titus.master.mesos.kubeapiserver.model.v1.V1OpportunisticResource;
 import com.netflix.titus.master.scheduler.opportunistic.OpportunisticCpuAvailability;
 import com.netflix.titus.master.scheduler.opportunistic.OpportunisticCpuAvailabilityProvider;

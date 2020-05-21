@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.mesos.kubeapiserver.direct;
+package com.netflix.titus.master.mesos.kubeapiserver.client;
 
 import com.netflix.titus.master.mesos.kubeapiserver.model.v1.V1OpportunisticResource;
 import io.kubernetes.client.informer.SharedIndexInformer;
