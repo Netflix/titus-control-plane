@@ -61,7 +61,8 @@ public class FixedIntervalTokenBucketSupplier implements Supplier<TokenBucket> {
     }
 
     private boolean isSame() {
-        return activeConfiguration.getCapacity() == configuration.getCapacity()
+        return activeConfiguration != null
+                && activeConfiguration.getCapacity() == configuration.getCapacity()
                 && activeConfiguration.getInitialNumberOfTokens() == configuration.getInitialNumberOfTokens()
                 && activeConfiguration.getIntervalMs() == configuration.getIntervalMs()
                 && activeConfiguration.getNumberOfTokensPerInterval() == configuration.getNumberOfTokensPerInterval();
@@ -70,7 +71,7 @@ public class FixedIntervalTokenBucketSupplier implements Supplier<TokenBucket> {
     private ActiveConfiguration reload() {
         boolean same;
         synchronized (lock) {
-            same = activeConfiguration != null && isSame();
+            same = isSame();
             if (!same) {
                 Evaluators.acceptNotNull(activeConfiguration, ActiveConfiguration::shutdown);
                 this.activeConfiguration = new ActiveConfiguration(configuration);

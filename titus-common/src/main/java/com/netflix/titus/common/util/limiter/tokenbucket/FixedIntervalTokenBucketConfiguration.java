@@ -16,8 +16,10 @@
 
 package com.netflix.titus.common.util.limiter.tokenbucket;
 
+import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
 
+@Configuration(prefix = "titus.common.tokenBucket")
 public interface FixedIntervalTokenBucketConfiguration {
 
     @DefaultValue("1")

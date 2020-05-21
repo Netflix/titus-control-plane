@@ -35,7 +35,7 @@ public class FixedIntervalTokenBucketSupplierTest {
     private final SettableConfig settableConfig = new DefaultSettableConfig();
 
     private final FixedIntervalTokenBucketConfiguration configuration = Archaius2Ext.newConfiguration(
-            FixedIntervalTokenBucketConfiguration.class, settableConfig
+            FixedIntervalTokenBucketConfiguration.class, "junit", settableConfig
     );
 
     private final List<TokenBucket> buckets = new ArrayList<>();
@@ -49,9 +49,9 @@ public class FixedIntervalTokenBucketSupplierTest {
 
     @Test
     public void testTokenBucketPersistsIfNotReconfigured() {
-        settableConfig.setProperty("initialNumberOfTokens", "1");
-        settableConfig.setProperty("capacity", "1");
-        settableConfig.setProperty("numberOfTokensPerInterval", "0");
+        settableConfig.setProperty("junit.initialNumberOfTokens", "1");
+        settableConfig.setProperty("junit.capacity", "1");
+        settableConfig.setProperty("junit.numberOfTokensPerInterval", "0");
         TokenBucket tokenBucket = supplier.get();
 
         assertThat(tokenBucket.tryTake()).isTrue();
@@ -67,16 +67,16 @@ public class FixedIntervalTokenBucketSupplierTest {
 
     @Test
     public void testTokenBucketIsRecreatedIfConfigurationChanges() {
-        settableConfig.setProperty("initialNumberOfTokens", "1");
-        settableConfig.setProperty("capacity", "1");
-        settableConfig.setProperty("numberOfTokensPerInterval", "0");
+        settableConfig.setProperty("junit.initialNumberOfTokens", "1");
+        settableConfig.setProperty("junit.capacity", "1");
+        settableConfig.setProperty("junit.numberOfTokensPerInterval", "0");
         TokenBucket first = supplier.get();
 
         assertThat(first.tryTake()).isTrue();
         assertThat(first.tryTake()).isFalse();
 
-        settableConfig.setProperty("initialNumberOfTokens", "2");
-        settableConfig.setProperty("capacity", "2");
+        settableConfig.setProperty("junit.initialNumberOfTokens", "2");
+        settableConfig.setProperty("junit.capacity", "2");
         TokenBucket second = supplier.get();
         assertThat(first != second).isTrue();
 
