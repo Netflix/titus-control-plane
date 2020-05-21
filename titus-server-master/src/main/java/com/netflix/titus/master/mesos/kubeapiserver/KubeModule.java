@@ -16,6 +16,7 @@
 
 package com.netflix.titus.master.mesos.kubeapiserver;
 
+import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.google.inject.AbstractModule;
@@ -25,6 +26,7 @@ import com.google.inject.name.Names;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.titus.api.FeatureActivationConfiguration;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.limiter.tokenbucket.FixedIntervalTokenBucketConfiguration;
 import com.netflix.titus.master.mesos.MesosConfiguration;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DefaultDirectKubeApiServerIntegrator;
@@ -42,6 +44,8 @@ import com.netflix.titus.master.mesos.kubeapiserver.direct.taint.TaintToleration
 import io.kubernetes.client.openapi.ApiClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static com.netflix.titus.master.mesos.kubeapiserver.KubeApiServerIntegrator.GC_UNKNOWN_PODS;
 
 public class KubeModule extends AbstractModule {
 
@@ -63,6 +67,13 @@ public class KubeModule extends AbstractModule {
     @Singleton
     public DirectKubeConfiguration getDirectKubeConfiguration(ConfigProxyFactory factory) {
         return factory.newProxy(DirectKubeConfiguration.class);
+    }
+
+    @Provides
+    @Singleton
+    @Named(GC_UNKNOWN_PODS)
+    public FixedIntervalTokenBucketConfiguration getGcUnknownPodsTokenBucketConfiguration(ConfigProxyFactory factory) {
+        return factory.newProxy(FixedIntervalTokenBucketConfiguration.class, "titusMaster.kube.gcUnknownPodsTokenBucket");
     }
 
     @Provides

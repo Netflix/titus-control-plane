@@ -24,10 +24,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
+import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.google.gson.JsonSyntaxException;
@@ -50,6 +50,7 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExecutorsExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.limiter.Limiters;
+import com.netflix.titus.common.util.limiter.tokenbucket.FixedIntervalTokenBucketConfiguration;
 import com.netflix.titus.common.util.limiter.tokenbucket.TokenBucket;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
@@ -125,9 +126,12 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
 
     private static final String TASK_STARTING = "TASK_STARTING";
 
+    static final String GC_UNKNOWN_PODS = "gcUnknownPods";
+
     private final TitusRuntime titusRuntime;
     private final MesosConfiguration mesosConfiguration;
     private final DirectKubeConfiguration directKubeConfiguration;
+    private final FixedIntervalTokenBucketConfiguration gcUnknownPodsTokenBucketConfiguration;
     private final LocalScheduler scheduler;
     private final Clock clock;
     private final Injector injector;
@@ -161,6 +165,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     public KubeApiServerIntegrator(TitusRuntime titusRuntime,
                                    MesosConfiguration mesosConfiguration,
                                    DirectKubeConfiguration directKubeConfiguration,
+                                   @Named(GC_UNKNOWN_PODS) FixedIntervalTokenBucketConfiguration gcUnknownPodsTokenBucketConfiguration,
                                    LocalScheduler scheduler,
                                    Injector injector,
                                    KubeApiFacade kubeApiFacade,
@@ -168,6 +173,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         this.titusRuntime = titusRuntime;
         this.mesosConfiguration = mesosConfiguration;
         this.directKubeConfiguration = directKubeConfiguration;
+        this.gcUnknownPodsTokenBucketConfiguration = gcUnknownPodsTokenBucketConfiguration;
         this.scheduler = scheduler;
         this.clock = titusRuntime.getClock();
         this.injector = injector;
@@ -202,13 +208,11 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         subscribeToNodeInformer();
         subscribeToPodInformer();
 
-        gcUnknownPodsTokenBucket = Limiters.createFixedIntervalTokenBucket(
+        gcUnknownPodsTokenBucket = Limiters.createInstrumentedFixedIntervalTokenBucket(
                 "gcUnknownPodsTokenBucket",
-                10,
-                10,
-                10,
-                1,
-                TimeUnit.MINUTES
+                gcUnknownPodsTokenBucketConfiguration,
+                currentTokenBucket -> logger.info("Detected GC unknown pods token bucket configuration update: {}", currentTokenBucket),
+                titusRuntime
         );
 
         ScheduleDescriptor reconcileSchedulerDescriptor = ScheduleDescriptor.newBuilder()
