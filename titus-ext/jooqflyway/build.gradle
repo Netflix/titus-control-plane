@@ -16,7 +16,6 @@
 
 buildscript {
     dependencies {
-        //classpath "com.netflix.spring:nebula-ospackage-application-spring-boot-plugin:latest.release"
         classpath 'com.opentable.components:otj-pg-embedded:0.13.+'
     }
 }
@@ -28,27 +27,31 @@ plugins {
 
 ext.flywayVersion = '6.1.+'
 ext.jooqVersion = '3.13.2'
+ext.psql = '42.2.8'
 
 dependencies {
-
     compile project(':titus-common')
     compile project(':titus-api')
-    compile project(':titus-supplementary-component-task-relocation')
     compile project(':titus-supplementary-component-job-activity-history')
 
-    // DB - Spring Boot jOOQ, JDBC, & Sprint Data support
-    //compile 'org.springframework.boot:spring-boot-starter-jooq:latest.release'
-
-    jdbc("org.postgresql:postgresql:42.2.8")
+    implementation("org.jooq:jooq:${jooqVersion}")
+    jdbc("org.postgresql:postgresql:${psql}")
+    // DB -  Drivers
+    compile "org.postgresql:postgresql:${psql}"
+    // DB - Hikari Connection Pool
+    compile 'com.zaxxer:HikariCP:2.7.6'
+    // DB - jOOQ
+    compile "org.jooq:jooq:${jooqVersion}"
+    compile "org.jooq:jooq-meta:${jooqVersion}"
+    compile "org.jooq:jooq-meta-extensions:${jooqVersion}"
+    compile "org.jooq:jooq-codegen:3.13.2"
 
     compile 'com.opentable.components:otj-pg-embedded:0.13.+'
-    compile "org.postgresql:postgresql:42.2.8"
-
+    compile "org.postgresql:postgresql:42.2.5"
     // Hikari DataSource for connection pooling to the DB
     compile 'com.zaxxer:HikariCP:3.2.0'
 
     testCompile project(':titus-testkit')
-    //testCompile "org.springframework.boot:spring-boot-test"
 }
 
 
@@ -64,6 +67,8 @@ tasks {
     generateJooqClasses {
         schemas = ['jobactivity', "activity_queue"]
         basePackageName = 'com.netflix.titus-ext.jooqflyway.jooqgen'
+        schemas = ['jobactivity']
+        basePackageName = 'com.netflix.titus-ext.jooqflyway.generated'
         outputDirectory.set(project.layout.buildDirectory.dir("generated-jooq"))
         inputDirectory.setFrom(project.files("src/main/resources/db/migration"))
         excludeFlywayTable = true
