@@ -32,6 +32,6 @@ CREATE TABLE IF NOT EXISTS jobactivity.tasks
     task_id          VARCHAR (64) NOT NULL,
     create_time      TIMESTAMP NOT NULL,
     record_time      TIMESTAMP NOT NULL,
-    task_record_json JSONB,
+    task_record_json jsonb,
     PRIMARY KEY (task_id)
 );

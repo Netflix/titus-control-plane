@@ -14,24 +14,20 @@
  * limitations under the License.
  */
 
-import com.opentable.db.postgres.embedded.EmbeddedPostgres
-
-import java.sql.Connection
-import java.sql.ResultSet
-import java.sql.Statement
-
 buildscript {
     dependencies {
+        //classpath "com.netflix.spring:nebula-ospackage-application-spring-boot-plugin:latest.release"
         classpath 'com.opentable.components:otj-pg-embedded:0.13.+'
     }
 }
 
 plugins {
     id "com.revolut.jooq-docker" version "0.3.3"
+    id 'org.flywaydb.flyway' version '5.2.4'
 }
 
 ext.flywayVersion = '6.1.+'
-ext.jooqVersion = '3.13.1'
+ext.jooqVersion = '3.13.2'
 
 dependencies {
 
@@ -40,8 +36,10 @@ dependencies {
     compile project(':titus-supplementary-component-task-relocation')
     compile project(':titus-supplementary-component-job-activity-history')
 
-    implementation("org.jooq:jooq:3.13.1")
-    jdbc("org.postgresql:postgresql:42.2.5")
+    // DB - Spring Boot jOOQ, JDBC, & Sprint Data support
+    //compile 'org.springframework.boot:spring-boot-starter-jooq:latest.release'
+
+    jdbc("org.postgresql:postgresql:42.2.8")
 
     compile 'com.opentable.components:otj-pg-embedded:0.13.+'
     compile "org.postgresql:postgresql:42.2.8"
@@ -71,3 +69,4 @@ tasks {
         excludeFlywayTable = true
     }
 }
+
