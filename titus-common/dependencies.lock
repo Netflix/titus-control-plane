@@ -162,7 +162,7 @@
             "requested": "0.59.+"
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.14.8",
+            "locked": "3.14.9",
             "requested": "3.+"
         },
         "com.squareup.okio:okio": {
@@ -691,7 +691,7 @@
             "requested": "0.59.+"
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.14.8",
+            "locked": "3.14.9",
             "requested": "3.+"
         },
         "com.squareup.okio:okio": {
@@ -1292,7 +1292,7 @@
             "requested": "0.59.+"
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.14.8",
+            "locked": "3.14.9",
             "requested": "3.+"
         },
         "com.squareup.okio:okio": {
@@ -2326,11 +2326,11 @@
             ]
         },
         "com.squareup.okhttp3:mockwebserver": {
-            "locked": "3.14.8",
+            "locked": "3.14.9",
             "requested": "3.+"
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.14.8",
+            "locked": "3.14.9",
             "requested": "3.+",
             "transitive": [
                 "com.netflix.titus:titus-common",
@@ -2341,7 +2341,7 @@
             ]
         },
         "com.squareup.okhttp3:okhttp-tls": {
-            "locked": "3.14.8",
+            "locked": "3.14.9",
             "requested": "3.+"
         },
         "com.squareup.okio:okio": {
@@ -4637,11 +4637,11 @@
             ]
         },
         "com.squareup.okhttp3:mockwebserver": {
-            "locked": "3.14.8",
+            "locked": "3.14.9",
             "requested": "3.+"
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.14.8",
+            "locked": "3.14.9",
             "requested": "3.+",
             "transitive": [
                 "com.netflix.titus:titus-common",
@@ -4652,7 +4652,7 @@
             ]
         },
         "com.squareup.okhttp3:okhttp-tls": {
-            "locked": "3.14.8",
+            "locked": "3.14.9",
             "requested": "3.+"
         },
         "com.squareup.okio:okio": {
