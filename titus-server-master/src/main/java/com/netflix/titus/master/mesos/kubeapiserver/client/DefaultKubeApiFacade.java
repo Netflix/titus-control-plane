@@ -154,7 +154,8 @@ public class DefaultKubeApiFacade implements KubeApiFacade {
             try {
                 this.sharedInformerFactory = createSharedInformerFactory(
                         "kube-api-server-integrator-shared-informer-",
-                        apiClient
+                        apiClient,
+                        titusRuntime
                 );
 
                 this.nodeInformer = createNodeInformer(sharedInformerFactory);

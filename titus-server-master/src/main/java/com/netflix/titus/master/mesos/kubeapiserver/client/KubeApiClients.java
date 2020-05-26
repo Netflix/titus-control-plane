@@ -17,15 +17,15 @@
 package com.netflix.titus.master.mesos.kubeapiserver.client;
 
 import java.io.IOException;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.google.common.base.Strings;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.ExecutorsExt;
 import io.kubernetes.client.informer.SharedInformerFactory;
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.util.Config;
@@ -78,12 +78,8 @@ public class KubeApiClients {
         return client;
     }
 
-    public static SharedInformerFactory createSharedInformerFactory(String threadNamePrefix, ApiClient apiClient) {
-        AtomicLong nextThreadNum = new AtomicLong(0);
-        return new SharedInformerFactory(apiClient, Executors.newCachedThreadPool(runnable -> {
-            Thread thread = new Thread(runnable, threadNamePrefix + nextThreadNum.getAndIncrement());
-            thread.setDaemon(true);
-            return thread;
-        }));
+    public static SharedInformerFactory createSharedInformerFactory(String threadNamePrefix, ApiClient apiClient, TitusRuntime titusRuntime) {
+        ExecutorService threadPool = ExecutorsExt.instrumentedCachedThreadPool(titusRuntime.getRegistry(), threadNamePrefix);
+        return new SharedInformerFactory(apiClient, threadPool);
     }
 }
