@@ -38,6 +38,8 @@ import com.netflix.fenzo.plugins.VMLeaseObject;
 import com.netflix.spectator.api.Counter;
 import com.netflix.spectator.api.Gauge;
 import com.netflix.spectator.api.Registry;
+import com.netflix.spectator.api.histogram.BucketCounter;
+import com.netflix.spectator.api.histogram.BucketFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
@@ -139,6 +141,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     private final ContainerResultCodeResolver containerResultCodeResolver;
 
     private final Counter launchTaskCounter;
+    private final BucketCounter podSizeMetrics;
     private final Counter rejectLeaseCounter;
     private final Counter killTaskCounter;
     private final Counter nodeAddCounter;
@@ -184,6 +187,11 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
 
         Registry registry = titusRuntime.getRegistry();
         launchTaskCounter = registry.counter(MetricConstants.METRIC_KUBERNETES + "launchTask");
+        this.podSizeMetrics = BucketCounter.get(
+                registry,
+                registry.createId(MetricConstants.METRIC_KUBERNETES + "podSize"),
+                BucketFunctions.bytes(32768)
+        );
         rejectLeaseCounter = registry.counter(MetricConstants.METRIC_KUBERNETES + "rejectLease");
         killTaskCounter = registry.counter(MetricConstants.METRIC_KUBERNETES + "killTask");
         nodeAddCounter = registry.counter(MetricConstants.METRIC_KUBERNETES + "nodeAdd");
@@ -233,6 +241,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                 V1Pod v1Pod = taskInfoToPod(request);
                 logger.info("creating pod: {}", v1Pod);
                 kubeApiFacade.getCoreV1Api().createNamespacedPod(KUBERNETES_NAMESPACE, v1Pod, null, null, null);
+                podSizeMetrics.record(KubeUtil.estimatePodSize(v1Pod));
             } catch (ApiException e) {
                 logger.error("Unable to create pod with error:", e);
             }

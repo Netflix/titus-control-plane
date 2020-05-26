@@ -66,7 +66,7 @@ public class DefaultTaintTolerationFactory implements TaintTolerationFactory {
 
     private V1Toleration resolveTierToleration(Job job) {
         String capacityGroupName = JobFunctions.getEffectiveCapacityGroup(job);
-        ApplicationSLA capacityGroup = capacityManagement.getApplicationSLA(capacityGroupName);
+        ApplicationSLA capacityGroup = capacityManagement.findApplicationSLA(capacityGroupName).orElse(null);
         if (capacityGroup == null) {
             return Tolerations.TOLERATION_TIER_FLEX;
         }

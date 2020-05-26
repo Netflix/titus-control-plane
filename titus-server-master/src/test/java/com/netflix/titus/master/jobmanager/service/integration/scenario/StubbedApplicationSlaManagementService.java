@@ -18,6 +18,7 @@ package com.netflix.titus.master.jobmanager.service.integration.scenario;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Optional;
 
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.model.ResourceDimension;
@@ -43,6 +44,11 @@ class StubbedApplicationSlaManagementService implements ApplicationSlaManagement
     @Override
     public ApplicationSLA getApplicationSLA(String applicationName) {
         return applicationName.equals("DEFAULT") ? DEFAULT : null;
+    }
+
+    @Override
+    public Optional<ApplicationSLA> findApplicationSLA(String applicationName) {
+        return Optional.ofNullable(getApplicationSLA(applicationName));
     }
 
     @Override
