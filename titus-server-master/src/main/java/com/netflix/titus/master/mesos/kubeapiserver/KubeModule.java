@@ -29,13 +29,14 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.limiter.tokenbucket.FixedIntervalTokenBucketConfiguration;
 import com.netflix.titus.master.mesos.MesosConfiguration;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
+import com.netflix.titus.master.mesos.kubeapiserver.client.DefaultKubeApiFacade;
+import com.netflix.titus.master.mesos.kubeapiserver.client.KubeApiClients;
+import com.netflix.titus.master.mesos.kubeapiserver.client.KubeApiFacade;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DefaultDirectKubeApiServerIntegrator;
-import com.netflix.titus.master.mesos.kubeapiserver.direct.DefaultKubeApiFacade;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DefaultPodAffinityFactory;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DefaultTaskToPodConverter;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeApiServerIntegrator;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeConfiguration;
-import com.netflix.titus.master.mesos.kubeapiserver.direct.KubeApiFacade;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.NoOpDirectKubeApiServerIntegrator;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.PodAffinityFactory;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.TaskToPodConverter;
@@ -79,7 +80,7 @@ public class KubeModule extends AbstractModule {
     @Provides
     @Singleton
     public ApiClient getKubeApiClient(MesosConfiguration configuration, TitusRuntime titusRuntime) {
-        return KubeUtil.createApiClient(
+        return KubeApiClients.createApiClient(
                 configuration.getKubeApiServerUrl(),
                 configuration.getKubeConfigPath(),
                 KubeApiServerIntegrator.CLIENT_METRICS_PREFIX,
