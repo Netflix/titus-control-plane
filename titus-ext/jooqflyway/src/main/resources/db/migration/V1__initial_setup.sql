@@ -16,7 +16,6 @@
 
 CREATE SCHEMA IF NOT EXISTS jobactivity;
 
-
 CREATE TABLE IF NOT EXISTS jobactivity.jobs
 (
     job_id          VARCHAR (64) NOT NULL,
@@ -35,3 +34,14 @@ CREATE TABLE IF NOT EXISTS jobactivity.tasks
     task_record_json varchar(64),
     PRIMARY KEY (task_id)
 );
+
+CREATE SCHEMA IF NOT EXISTS activity;
+
+CREATE TABLE IF NOT EXISTS activity.activity_queue
+(
+    queue_index BIGINT,
+    event_type  SMALLINT,
+    serialized_event jsonb,
+    PRIMARY KEY (queue_index)
+);
+

@@ -28,12 +28,10 @@ import org.jooq.Record1;
 import org.jooq.impl.DSL;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
-//com.netflix.titus.ext.jooq.activity.schema.tables.JActivityQueue.ACTIVITY_QUEUE;
-//import static com.netflix.titus.ext.jooqflyway.activity.schema.tables.JActivityQueue.*;
-import static org.jooq.impl.DSL.*;
+
+import static com.netflix.titus_ext.jooqflyway.generated.activity.tables.ActivityQueue.ACTIVITY_QUEUE;
+import static org.jooq.impl.DSL.max;
 
 @Singleton
 public class JooqJobActivityConsumerStore implements JobActivityConsumerStore {
@@ -61,15 +59,13 @@ public class JooqJobActivityConsumerStore implements JobActivityConsumerStore {
         }
     }
 
-    // figure out how often
-    @Scheduled
+    // Use titus local scheduler 
     public void consumeRecord(){
         // figure out how to get the schema here
-        /*Record1<Long> record = DSL.using(producerDSLContext.configuration())
-                .select(min(ACTIVITY_QUEUE.QUEUE_INDEX))
+        Record1<Long> record = DSL.using(producerDSLContext.configuration())
+                .select(max(ACTIVITY_QUEUE.QUEUE_INDEX))
                 .from(ACTIVITY_QUEUE)
-                .fetchOne();*/
-
+                .fetchOne();
     }
 
     @Override
