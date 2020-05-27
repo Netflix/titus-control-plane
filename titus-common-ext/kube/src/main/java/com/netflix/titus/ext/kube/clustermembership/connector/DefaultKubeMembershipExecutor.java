@@ -151,6 +151,12 @@ class DefaultKubeMembershipExecutor implements KubeMembershipExecutor {
             if (event.type.equals("MODIFIED")) {
                 return Flux.just(ClusterMembershipEvent.memberUpdatedEvent(revision));
             }
+            if (event.type.equals("ERROR")) {
+                String message = event.status != null
+                        ? "Kubernetes watch stream error: " + event.status.toString()
+                        : "Kubernetes watch stream error (no details provided)";
+                return Mono.error(new IllegalStateException(message));
+            }
             return Flux.empty();
         });
     }
