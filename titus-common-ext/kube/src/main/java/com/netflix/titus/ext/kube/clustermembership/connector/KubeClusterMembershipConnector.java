@@ -41,6 +41,7 @@ import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.publisher.SignalType;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
@@ -79,6 +80,18 @@ public class KubeClusterMembershipConnector implements ClusterMembershipConnecto
 
         Duration reconnectInterval = Duration.ofMillis(configuration.getKubeReconnectIntervalMs());
         this.membershipSubscription = kubeMembershipExecutor.watchMembershipEvents()
+                .materialize().flatMap(signal -> {
+                    if(signal.getType() == SignalType.ON_NEXT) {
+                        return Mono.just(signal.get());
+                    }
+                    if(signal.getType() == SignalType.ON_ERROR) {
+                        return Mono.error(signal.getThrowable());
+                    }
+                    if(signal.getType() == SignalType.ON_COMPLETE) {
+                        return Mono.error(new IllegalStateException("watchMembershipEvents completed, and must be restarted"));
+                    }
+                    return Mono.empty();
+                })
                 .retryWhen(errors -> errors.flatMap(e -> {
                     logger.info("Reconnecting membership event stream from Kubernetes terminated with an error: {}", e.getMessage());
                     logger.debug("Stack trace", e);
@@ -98,6 +111,18 @@ public class KubeClusterMembershipConnector implements ClusterMembershipConnecto
                         () -> logger.info("Membership Kubernetes event stream closed")
                 );
         this.leaderElectionSubscription = kubeLeaderElectionExecutor.watchLeaderElectionProcessUpdates()
+                .materialize().flatMap(signal -> {
+                    if(signal.getType() == SignalType.ON_NEXT) {
+                        return Mono.just(signal.get());
+                    }
+                    if(signal.getType() == SignalType.ON_ERROR) {
+                        return Mono.error(signal.getThrowable());
+                    }
+                    if(signal.getType() == SignalType.ON_COMPLETE) {
+                        return Mono.error(new IllegalStateException("watchLeaderElectionProcessUpdates completed, and must be restarted"));
+                    }
+                    return Mono.empty();
+                })
                 .retryWhen(errors -> errors.flatMap(e -> {
                     logger.info("Reconnecting leadership event stream from Kubernetes terminated with an error: {}", e.getMessage());
                     logger.debug("Stack trace", e);
