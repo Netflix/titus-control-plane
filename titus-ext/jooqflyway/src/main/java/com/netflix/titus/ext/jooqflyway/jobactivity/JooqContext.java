@@ -7,7 +7,7 @@ import org.jooq.impl.DefaultDSLContext;
 
 public class JooqContext {
 
-    private static final SQLDialect DEFAULT_DIALECT = SQLDialect.POSTGRES_10;
+    private static final SQLDialect DEFAULT_DIALECT = SQLDialect.POSTGRES;
 
     private final JooqConfiguration jooqConfiguration;
     private final DataSource dataSource;
