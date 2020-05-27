@@ -21,12 +21,12 @@ import java.util.Optional;
 
 import com.netflix.titus.api.eviction.model.event.EvictionEvent;
 import com.netflix.titus.api.eviction.service.EvictionException;
-import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations.Trigger;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.rx.invoker.ReactorSerializedInvoker;
 import com.netflix.titus.common.util.tuple.Pair;
@@ -43,8 +43,6 @@ class TaskTerminationExecutor {
 
     private static final Duration TASK_EXCESSIVE_RUNNING_TIMEOUT = Duration.ofSeconds(60);
 
-    private static final int MAX_QUEUE_SIZE = 50;
-
     private final V3JobOperations jobOperations;
     private final TitusQuotasManager quotasManager;
     private final ReactorSerializedInvoker<Void> serializedInvoker;
@@ -53,7 +51,8 @@ class TaskTerminationExecutor {
     private final EvictionTransactionLog transactionLog;
     private final TaskTerminationExecutorMetrics metrics;
 
-    TaskTerminationExecutor(V3JobOperations jobOperations,
+    TaskTerminationExecutor(EvictionServiceConfiguration configuration,
+                            V3JobOperations jobOperations,
                             TitusQuotasManager quotasManager,
                             TitusRuntime titusRuntime,
                             Scheduler scheduler) {
@@ -61,7 +60,7 @@ class TaskTerminationExecutor {
         this.quotasManager = quotasManager;
         this.serializedInvoker = ReactorSerializedInvoker.<Void>newBuilder()
                 .withName("taskTerminationExecutor")
-                .withMaxQueueSize(MAX_QUEUE_SIZE)
+                .withMaxQueueSize(configuration.getTerminationQueueSize())
                 .withExcessiveRunningTime(TASK_EXCESSIVE_RUNNING_TIMEOUT)
                 .withScheduler(scheduler)
                 .withClock(titusRuntime.getClock())

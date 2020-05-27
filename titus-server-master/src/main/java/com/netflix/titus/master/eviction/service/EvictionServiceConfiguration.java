@@ -24,4 +24,11 @@ public interface EvictionServiceConfiguration {
 
     @DefaultValue("100")
     long getEventStreamQuotaUpdateIntervalMs();
+
+    /**
+     * The queue size for pending task termination requests. Incoming requests above this limit are rejected.
+     * The queue depth should be equal to at least the system disruption budget capacity.
+     */
+    @DefaultValue("200")
+    int getTerminationQueueSize();
 }
