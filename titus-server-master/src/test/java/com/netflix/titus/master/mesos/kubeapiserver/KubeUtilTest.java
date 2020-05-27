@@ -24,6 +24,7 @@ import java.util.Set;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1NodeSpec;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
+import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1Taint;
 import org.junit.Test;
 
@@ -80,6 +81,11 @@ public class KubeUtilTest {
         assertThat(KubeUtil.isNodeOwnedByFenzo(FARZONES, TOLERATED_TAINTS, newNodeWithoutZone(TAINT_SCHEDULER_FENZO))).isTrue();
         assertThat(KubeUtil.isNodeOwnedByFenzo(FARZONES, TOLERATED_TAINTS, newNodeWithoutZone(TAINT_SCHEDULER_FENZO, TAINT_TOLERATED_TAINT_1, TAINT_NOT_TOLERATED_TAINT))).isFalse();
         assertThat(KubeUtil.isNodeOwnedByFenzo(FARZONES, TOLERATED_TAINTS, newNodeWithoutZone(TAINT_SCHEDULER_FENZO, TAINT_TOLERATED_TAINT_1, TAINT_TOLERATED_TAINT_2))).isTrue();
+    }
+
+    @Test
+    public void testEstimatePodSize() {
+        assertThat(KubeUtil.estimatePodSize(new V1Pod())).isGreaterThan(0);
     }
 
     private V1Node newNodeWithoutZone(V1Taint... taints) {

@@ -18,10 +18,11 @@ package com.netflix.titus.master.service.management.internal;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import com.netflix.titus.api.model.ApplicationSLA;
-import com.netflix.titus.master.service.management.CapacityMonitoringService;
 import com.netflix.titus.api.store.v2.ApplicationSlaStore;
+import com.netflix.titus.master.service.management.CapacityMonitoringService;
 import com.netflix.titus.testkit.data.core.ApplicationSlaGenerator;
 import com.netflix.titus.testkit.data.core.ApplicationSlaSample;
 import com.netflix.titus.testkit.rx.ObservableRecorder;
@@ -71,6 +72,18 @@ public class DefaultApplicationSlaManagementServiceTest {
         ApplicationSLA result = slaManagementService.getApplicationSLA(myApp.getAppName());
         assertThat(result.getAppName()).isEqualTo(myApp.getAppName());
         assertThat(result.getSchedulerName()).isEqualTo(myApp.getSchedulerName());
+    }
+
+    @Test
+    public void testFindApplicationByName() {
+        ApplicationSLA myApp = ApplicationSlaSample.CriticalSmall.build();
+        when(storage.findByName(myApp.getAppName())).thenReturn(Observable.just(myApp));
+
+        Optional<ApplicationSLA> existing = slaManagementService.findApplicationSLA(myApp.getAppName());
+        assertThat(existing).hasValueSatisfying(v -> assertThat(v.getAppName()).isEqualTo(myApp.getAppName()));
+
+        Optional<ApplicationSLA> absent = slaManagementService.findApplicationSLA("absent");
+        assertThat(absent).isEmpty();
     }
 
     @Test

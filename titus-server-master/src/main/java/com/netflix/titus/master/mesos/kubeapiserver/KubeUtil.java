@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Strings;
+import com.google.gson.Gson;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.util.JsonFormat;
 import com.netflix.titus.api.jobmanager.JobAttributes;
@@ -62,6 +63,20 @@ public class KubeUtil {
 
     private static final JsonFormat.Printer grpcJsonPrinter = JsonFormat.printer().includingDefaultValueFields();
 
+    private static final Gson GSON = new Gson();
+
+    /**
+     * As it is not possible to capture pod size at the transport level, we try to estimate it directly using the same
+     * JSON serializer as the Kube client (gson).
+     */
+    public static int estimatePodSize(V1Pod v1Pod) {
+        try {
+            String json = GSON.toJson(v1Pod);
+            return json == null ? 0 : json.length();
+        } catch (Exception e) {
+            return 0;
+        }
+    }
 
     public static Optional<TitusExecutorDetails> getTitusExecutorDetails(V1Pod pod) {
         Map<String, String> annotations = pod.getMetadata().getAnnotations();

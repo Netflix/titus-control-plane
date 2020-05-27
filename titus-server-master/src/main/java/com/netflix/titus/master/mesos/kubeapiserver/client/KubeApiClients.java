@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.google.common.base.Strings;
@@ -35,18 +34,17 @@ public class KubeApiClients {
 
     public static final Pattern UUID_PATTERN = Pattern.compile("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
 
-    public static final Function<Request, String> DEFAULT_URI_MAPPER = r -> {
-        String path = '/' + String.join("/", r.url().pathSegments());
-        Matcher matcher = UUID_PATTERN.matcher(path);
-        return matcher.replaceAll("");
-    };
+    /**
+     * An AWS instance id, consists of 'i-' prefix and 17 alpha-numeric characters following it, for example: i-07d1b67286b43458e.
+     */
+    public static final Pattern INSTANCE_ID_PATTERN = Pattern.compile("i-(\\p{Alnum}){17}+");
 
     public static ApiClient createApiClient(String kubeApiServerUrl,
                                             String kubeConfigPath,
                                             String metricsNamePrefix,
                                             TitusRuntime titusRuntime,
                                             long readTimeoutMs) {
-        return createApiClient(kubeApiServerUrl, kubeConfigPath, metricsNamePrefix, titusRuntime, DEFAULT_URI_MAPPER, readTimeoutMs);
+        return createApiClient(kubeApiServerUrl, kubeConfigPath, metricsNamePrefix, titusRuntime, KubeApiClients::mapUri, readTimeoutMs);
     }
 
     public static ApiClient createApiClient(String kubeApiServerUrl,
@@ -81,5 +79,14 @@ public class KubeApiClients {
     public static SharedInformerFactory createSharedInformerFactory(String threadNamePrefix, ApiClient apiClient, TitusRuntime titusRuntime) {
         ExecutorService threadPool = ExecutorsExt.instrumentedCachedThreadPool(titusRuntime.getRegistry(), threadNamePrefix);
         return new SharedInformerFactory(apiClient, threadPool);
+    }
+
+    static String mapUri(Request r) {
+        String path = '/' + String.join("/", r.url().pathSegments());
+        return removeAll(INSTANCE_ID_PATTERN, removeAll(UUID_PATTERN, path));
+    }
+
+    static String removeAll(Pattern pattern, String text) {
+        return pattern.matcher(text).replaceAll("");
     }
 }

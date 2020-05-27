@@ -17,6 +17,7 @@
 package com.netflix.titus.master.service.management;
 
 import java.util.Collection;
+import java.util.Optional;
 
 import com.netflix.titus.api.model.ApplicationSLA;
 import rx.Observable;
@@ -32,6 +33,8 @@ public interface ApplicationSlaManagementService {
     Collection<ApplicationSLA> getApplicationSLAs();
 
     Collection<ApplicationSLA> getApplicationSLAsForScheduler(String schedulerName);
+
+    Optional<ApplicationSLA> findApplicationSLA(String applicationName);
 
     ApplicationSLA getApplicationSLA(String applicationName);
 
