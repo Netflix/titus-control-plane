@@ -18,6 +18,7 @@ package com.netflix.titus.common.util;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.Inet6Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.ServerSocket;
@@ -134,10 +135,10 @@ public class NetworkExt {
      *
      * @return IP address list or {@link Optional#empty()} if resolution failed.
      */
-    public static Optional<List<String>> getLocalIPs() {
+    public static Optional<List<String>> getLocalIPs(boolean ipv4Only) {
         if (resolvedLocalIPsRef.get() == null) {
             try {
-                resolvedLocalIPsRef.set(Optional.of(resolveLocalIPs()));
+                resolvedLocalIPsRef.set(Optional.of(resolveLocalIPs(ipv4Only)));
             } catch (Exception e) {
                 logger.error("Cannot resolve local IP addresses");
                 resolvedLocalIPsRef.set(Optional.empty());
@@ -147,11 +148,18 @@ public class NetworkExt {
     }
 
     /**
+     * @deprecated For backward compatibility we restrict the default local addresses to IPv4.
+     */
+    public static Optional<List<String>> getLocalIPs() {
+        return getLocalIPs(true);
+    }
+
+    /**
      * Returns all local IP addresses (IPv4 and IPv6).
      *
      * @throws RuntimeException if resolution fails
      */
-    public static List<String> resolveLocalIPs() {
+    public static List<String> resolveLocalIPs(boolean ipv4Only) {
         ArrayList<String> addresses = new ArrayList<>();
         try {
             Enumeration<NetworkInterface> nics = NetworkInterface.getNetworkInterfaces();
@@ -160,7 +168,13 @@ public class NetworkExt {
                 Enumeration<InetAddress> inetAddresses = nic.getInetAddresses();
                 while (inetAddresses.hasMoreElements()) {
                     InetAddress address = inetAddresses.nextElement();
-                    addresses.add(address.getHostAddress());
+                    if (address instanceof Inet6Address) {
+                        if (!ipv4Only) {
+                            addresses.add(toIpV6AddressName((Inet6Address) address));
+                        }
+                    } else {
+                        addresses.add(address.getHostAddress());
+                    }
                 }
             }
         } catch (SocketException e) {
@@ -174,6 +188,12 @@ public class NetworkExt {
                 Long.toString(addressLong >> 16 & 0xFF) + '.' +
                 Long.toString(addressLong >> 8 & 0xFF) + '.' +
                 Long.toString(addressLong & 0xFF);
+    }
+
+    public static String toIpV6AddressName(Inet6Address inet6Address) {
+        String address = inet6Address.getHostAddress();
+        int idx = address.lastIndexOf('%');
+        return idx < 0 ? address : address.substring(0, idx);
     }
 
     public static long toNetworkBitMask(int maskLength) {
