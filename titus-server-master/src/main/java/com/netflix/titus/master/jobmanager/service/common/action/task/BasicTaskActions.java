@@ -45,6 +45,7 @@ import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.DateTimeExt;
+import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
@@ -163,26 +164,8 @@ public class BasicTaskActions {
                             List<ModelActionHolder> modelActionHolders = new ArrayList<>();
 
                             // Add retryer data to task context.
-                            EntityHolder newTaskHolder;
                             if (newTask.getStatus().getState() == TaskState.Finished) {
-                                long retryDelayMs = TaskRetryers.getCurrentRetryerDelayMs(
-                                        taskHolder, configuration.getMinRetryIntervalMs(), configuration.getTaskRetryerResetTimeMs(), titusRuntime.getClock()
-                                );
-                                String retryDelayString = DateTimeExt.toTimeUnitString(retryDelayMs);
-
-                                newTask = newTask.toBuilder()
-                                        .addToTaskContext(TaskAttributes.TASK_ATTRIBUTES_RETRY_DELAY, retryDelayString)
-                                        .build();
-                                newTaskHolder = taskHolder.
-                                        setEntity(newTask)
-                                        .addTag(JobManagerConstants.JOB_MANAGER_ATTRIBUTE_CALLMETADATA, callMetadata)
-                                        .addTag(TaskRetryers.ATTR_TASK_RETRY_DELAY_MS, retryDelayMs);
-
-                                modelActionHolders.add(
-                                        ModelActionHolder.reference(TitusModelAction.newModelUpdate(self)
-                                                .summary("Setting retry delay on task in Finished state: %s", retryDelayString)
-                                                .addTaskHolder(newTaskHolder))
-                                );
+                                modelActionHolders.add(ModelActionHolder.reference(attachRetryer(self, taskHolder, newTask, callMetadata, configuration, titusRuntime)));
                             } else {
                                 modelActionHolders.add(ModelActionHolder.reference(TitusModelAction.newModelUpdate(self).taskUpdate(newTask, callMetadata)));
                             }
@@ -240,29 +223,81 @@ public class BasicTaskActions {
      * Create pod for a task.
      */
     public static TitusChangeAction launchTaskInKube(DirectKubeApiServerIntegrator kubeApiServerIntegrator,
+                                                     JobManagerConfiguration configuration,
+                                                     ReconciliationEngine<JobManagerReconcilerEvent> engine,
                                                      Job<?> job,
                                                      Task task,
-                                                     CallMetadata callMetadata) {
+                                                     CallMetadata callMetadata,
+                                                     TitusRuntime titusRuntime) {
         return TitusChangeAction.newAction("launchTaskInKube")
                 .task(task)
                 .trigger(V3JobOperations.Trigger.Reconciler)
                 .summary("Adding task to Kube")
                 .changeWithModelUpdates(self -> {
-                    TaskStatus taskStatus = JobModel.newTaskStatus()
-                            .withState(TaskState.Accepted)
-                            .withReasonCode(TaskStatus.REASON_POD_CREATED)
-                            .withReasonMessage("Created pod in Kube")
-                            .build();
-                    Task taskWithPod = task.toBuilder()
-                            .withTaskContext(CollectionsExt.copyAndAdd(task.getTaskContext(), TaskAttributes.TASK_ATTRIBUTES_POD_CREATED, "true"))
-                            .withStatus(taskStatus)
-                            .withStatusHistory(CollectionsExt.copyAndAdd(task.getStatusHistory(), task.getStatus()))
-                            .build();
+                    EntityHolder taskHolder = JobEntityHolders.expectTaskHolder(engine, task.getId(), titusRuntime).orElse(null);
+                    if (taskHolder == null) {
+                        // This should never happen.
+                        return Observable.just(Collections.emptyList());
+                    }
 
-                    TitusModelAction modelUpdateAction = TitusModelAction.newModelUpdate(self).taskUpdate(taskWithPod, callMetadata);
-                    List<ModelActionHolder> modelActionHolders = ModelActionHolder.referenceAndRunning(modelUpdateAction);
+                    return ReactorExt.toCompletable(kubeApiServerIntegrator.launchTask(job, task).then())
+                            .andThen(Observable.fromCallable(() -> {
+                                TaskStatus taskStatus = JobModel.newTaskStatus()
+                                        .withState(TaskState.Accepted)
+                                        .withReasonCode(TaskStatus.REASON_POD_CREATED)
+                                        .withReasonMessage("Created pod in Kube")
+                                        .withTimestamp(titusRuntime.getClock().wallTime())
+                                        .build();
+                                Task taskWithPod = task.toBuilder()
+                                        .withTaskContext(CollectionsExt.copyAndAdd(task.getTaskContext(), TaskAttributes.TASK_ATTRIBUTES_POD_CREATED, "true"))
+                                        .withStatus(taskStatus)
+                                        .withStatusHistory(CollectionsExt.copyAndAdd(task.getStatusHistory(), task.getStatus()))
+                                        .build();
 
-                    return ReactorExt.toCompletable(kubeApiServerIntegrator.launchTask(job, task).then()).andThen(Observable.just(modelActionHolders));
+                                TitusModelAction modelUpdateAction = TitusModelAction.newModelUpdate(self).taskUpdate(taskWithPod, callMetadata);
+                                return ModelActionHolder.referenceAndRunning(modelUpdateAction);
+                            }))
+                            .onErrorReturn(error -> {
+                                // Move task to the finished state after we failed to create a pod object for it.
+                                String reasonCode = kubeApiServerIntegrator.resolveReasonCode(error);
+                                Task finishedTask = JobFunctions.changeTaskStatus(task, JobModel.newTaskStatus()
+                                        .withState(TaskState.Finished)
+                                        .withReasonCode(reasonCode)
+                                        .withReasonMessage("Failed to create pod: " + ExceptionExt.toMessageChain(error))
+                                        .withTimestamp(titusRuntime.getClock().wallTime())
+                                        .build()
+                                );
+
+                                List<ModelActionHolder> modelActionHolders = new ArrayList<>();
+                                modelActionHolders.add(ModelActionHolder.reference(attachRetryer(self, taskHolder, finishedTask, callMetadata, configuration, titusRuntime)));
+                                modelActionHolders.add(ModelActionHolder.running(TitusModelAction.newModelUpdate(self).taskUpdate(finishedTask, callMetadata)));
+
+                                return modelActionHolders;
+                            });
                 });
+    }
+
+    private static TitusModelAction attachRetryer(TitusChangeAction.Builder self,
+                                                  EntityHolder taskHolder,
+                                                  Task updatedTask,
+                                                  CallMetadata callMetadata,
+                                                  JobManagerConfiguration configuration,
+                                                  TitusRuntime titusRuntime) {
+        long retryDelayMs = TaskRetryers.getCurrentRetryerDelayMs(
+                taskHolder, configuration.getMinRetryIntervalMs(), configuration.getTaskRetryerResetTimeMs(), titusRuntime.getClock()
+        );
+        String retryDelayString = DateTimeExt.toTimeUnitString(retryDelayMs);
+
+        updatedTask = updatedTask.toBuilder()
+                .addToTaskContext(TaskAttributes.TASK_ATTRIBUTES_RETRY_DELAY, retryDelayString)
+                .build();
+        EntityHolder newTaskHolder = taskHolder.
+                setEntity(updatedTask)
+                .addTag(JobManagerConstants.JOB_MANAGER_ATTRIBUTE_CALLMETADATA, callMetadata)
+                .addTag(TaskRetryers.ATTR_TASK_RETRY_DELAY_MS, retryDelayMs);
+
+        return TitusModelAction.newModelUpdate(self)
+                .summary("Setting retry delay on task in Finished state: %s", retryDelayString)
+                .addTaskHolder(newTaskHolder);
     }
 }

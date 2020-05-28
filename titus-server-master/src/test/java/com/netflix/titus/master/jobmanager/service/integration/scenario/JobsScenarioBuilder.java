@@ -76,6 +76,8 @@ public class JobsScenarioBuilder {
     public static final int ACTIVE_NOT_STARTED_TASKS_LIMIT = 5;
     public static final int CONCURRENT_STORE_UPDATE_LIMIT = 5;
 
+    public static final long MIN_RETRY_INTERVAL_MS = 10;
+
     public static final long LAUNCHED_TIMEOUT_MS = 5_000;
     public static final long START_INITIATED_TIMEOUT_MS = 10_000;
     public static final long KILL_INITIATED_TIMEOUT_MS = 30_000;
@@ -116,6 +118,7 @@ public class JobsScenarioBuilder {
         when(configuration.getTaskInLaunchedStateTimeoutMs()).thenReturn(LAUNCHED_TIMEOUT_MS);
         when(configuration.getBatchTaskInStartInitiatedStateTimeoutMs()).thenReturn(START_INITIATED_TIMEOUT_MS);
         when(configuration.getTaskInKillInitiatedStateTimeoutMs()).thenReturn(KILL_INITIATED_TIMEOUT_MS);
+        when(configuration.getMinRetryIntervalMs()).thenReturn(MIN_RETRY_INTERVAL_MS);
         when(configuration.getTaskRetryerResetTimeMs()).thenReturn(TimeUnit.MINUTES.toMillis(5));
         when(configuration.getTaskKillAttempts()).thenReturn(2L);
         when(featureActivationConfiguration.isMoveTaskValidationEnabled()).thenReturn(true);

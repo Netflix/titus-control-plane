@@ -23,6 +23,7 @@ import java.util.concurrent.ConcurrentMap;
 
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeApiServerIntegrator;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodEvent;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
@@ -34,6 +35,8 @@ public class StubbedDirectKubeApiServerIntegrator implements DirectKubeApiServer
 
     private final ConcurrentMap<String, V1Pod> podHoldersByTaskId = new ConcurrentHashMap<>();
 
+    private volatile RuntimeException nextLaunchError;
+
     @Override
     public Map<String, V1Pod> getPods() {
         return new HashMap<>(podHoldersByTaskId);
@@ -42,6 +45,13 @@ public class StubbedDirectKubeApiServerIntegrator implements DirectKubeApiServer
     @Override
     public Mono<V1Pod> launchTask(Job job, Task task) {
         return Mono.fromCallable(() -> {
+            if (nextLaunchError != null) {
+                try {
+                    throw nextLaunchError;
+                } finally {
+                    nextLaunchError = null;
+                }
+            }
             V1Pod v1Pod = new V1Pod()
                     .metadata(new V1ObjectMeta()
                             .name(task.getId())
@@ -63,5 +73,14 @@ public class StubbedDirectKubeApiServerIntegrator implements DirectKubeApiServer
     @Override
     public Flux<PodEvent> events() {
         throw new IllegalStateException("not implemented"); // not used
+    }
+
+    @Override
+    public String resolveReasonCode(Throwable cause) {
+        return TaskStatus.REASON_UNKNOWN_SYSTEM_ERROR;
+    }
+
+    public void failNextTaskLaunch(RuntimeException nextLaunchError) {
+        this.nextLaunchError = nextLaunchError;
     }
 }

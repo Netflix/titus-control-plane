@@ -34,6 +34,8 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
+import com.netflix.titus.common.framework.fit.FitFramework;
+import com.netflix.titus.common.framework.fit.FitInjection;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExecutorsExt;
 import com.netflix.titus.common.util.StringExt;
@@ -70,6 +72,8 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
     private final TaskToPodConverter taskToPodConverter;
     private final DefaultDirectKubeApiServerIntegratorMetrics metrics;
 
+    private final PodCreateErrorToResultCodeResolver podCreateErrorToReasonCodeResolver;
+
     private final TitusRuntime titusRuntime;
 
     private final DirectProcessor<PodEvent> supplementaryPodEventProcessor = DirectProcessor.create();
@@ -85,6 +89,8 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
     private final ExecutorService apiClientExecutor;
     private final Scheduler apiClientScheduler;
 
+    private final Optional<FitInjection> fitKubeInjection;
+
     @Inject
     public DefaultDirectKubeApiServerIntegrator(DirectKubeConfiguration configuration,
                                                 KubeApiFacade kubeApiFacade,
@@ -93,6 +99,7 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
         this.configuration = configuration;
         this.kubeApiFacade = kubeApiFacade;
         this.taskToPodConverter = taskToPodConverter;
+        this.podCreateErrorToReasonCodeResolver = new PodCreateErrorToResultCodeResolver(configuration);
         this.titusRuntime = titusRuntime;
 
         this.metrics = new DefaultDirectKubeApiServerIntegratorMetrics(titusRuntime);
@@ -100,6 +107,17 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
 
         this.apiClientExecutor = ExecutorsExt.instrumentedFixedSizeThreadPool(titusRuntime.getRegistry(), "kube-apiclient", configuration.getApiClientThreadPoolSize());
         this.apiClientScheduler = Schedulers.fromExecutorService(apiClientExecutor);
+
+        FitFramework fit = titusRuntime.getFitFramework();
+        if (fit.isActive()) {
+            FitInjection fitKubeInjection = fit.newFitInjectionBuilder("directKubeIntegration")
+                    .withDescription("DefaultDirectKubeApiServerIntegrator injection")
+                    .build();
+            fit.getRootComponent().getChild(DirectKubeApiServerIntegrator.COMPONENT).addInjection(fitKubeInjection);
+            this.fitKubeInjection = Optional.of(fitKubeInjection);
+        } else {
+            this.fitKubeInjection = Optional.empty();
+        }
     }
 
     @PreDestroy
@@ -121,13 +139,16 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
             try {
                 V1Pod v1Pod = taskToPodConverter.apply(job, task);
                 logger.info("creating pod: {}", v1Pod);
+
+                fitKubeInjection.ifPresent(i -> i.beforeImmediate(KubeFitAction.ErrorKind.POD_CREATE_ERROR.name()));
+
                 kubeApiFacade.getCoreV1Api().createNamespacedPod(KUBERNETES_NAMESPACE, v1Pod, null, null, null);
                 pods.putIfAbsent(task.getId(), v1Pod);
 
                 metrics.launchSuccess(task, v1Pod, timer.elapsed(TimeUnit.MILLISECONDS));
 
                 return v1Pod;
-            } catch (ApiException e) {
+            } catch (Exception e) {
                 logger.error("Unable to create pod with error:", e);
 
                 metrics.launchError(task, e, timer.elapsed(TimeUnit.MILLISECONDS));
@@ -187,12 +208,17 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
         return kubeInformerEvents().mergeWith(supplementaryPodEventProcessor).compose(ReactorExt.badSubscriberHandler(logger));
     }
 
+    @Override
+    public String resolveReasonCode(Throwable cause) {
+        return podCreateErrorToReasonCodeResolver.resolveReasonCode(cause);
+    }
+
     private Flux<PodEvent> kubeInformerEvents() {
         return Flux.create(sink -> {
             ResourceEventHandler<V1Pod> handler = new ResourceEventHandler<V1Pod>() {
                 @Override
                 public void onAdd(V1Pod pod) {
-                    if(!KubeUtil.isOwnedByKubeScheduler(pod)) {
+                    if (!KubeUtil.isOwnedByKubeScheduler(pod)) {
                         return;
                     }
                     logger.info("Pod Added: {}", pod);
@@ -213,7 +239,7 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
 
                 @Override
                 public void onUpdate(V1Pod oldPod, V1Pod newPod) {
-                    if(!KubeUtil.isOwnedByKubeScheduler(newPod)) {
+                    if (!KubeUtil.isOwnedByKubeScheduler(newPod)) {
                         return;
                     }
 
@@ -226,7 +252,7 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
 
                 @Override
                 public void onDelete(V1Pod pod, boolean deletedFinalStateUnknown) {
-                    if(!KubeUtil.isOwnedByKubeScheduler(pod)) {
+                    if (!KubeUtil.isOwnedByKubeScheduler(pod)) {
                         return;
                     }
 
