@@ -16,7 +16,7 @@
 
 package com.netflix.titus.federation.endpoint.rest;
 
-import com.netflix.titus.runtime.endpoint.common.rest.TitusExceptionHandler;
+import com.netflix.titus.runtime.endpoint.common.rest.TitusExceptionHandlers;
 import com.netflix.titus.runtime.endpoint.v3.rest.AutoScalingSpringResource;
 import com.netflix.titus.runtime.endpoint.v3.rest.HealthSpringResource;
 import com.netflix.titus.runtime.endpoint.v3.rest.JobManagementSpringResource;
@@ -27,7 +27,7 @@ import org.springframework.context.annotation.Import;
 
 @Configuration
 @Import({
-        TitusExceptionHandler.class,
+        TitusExceptionHandlers.class,
 
         HealthSpringResource.class,
         FederationSchedulerSpringResource.class,

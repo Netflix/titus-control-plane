@@ -14,6 +14,17 @@ message SampleContainer {
     string stringValue = 1;
 }
 
+message SampleComplexMessage {
+
+    message SampleInternalMessage {
+        string intervalValue = 1;
+    }
+
+    map<string, string> mapValue = 1;
+
+    SampleInternalMessage internalMessage = 2;
+}
+
 // ----------------------------------------------------------------------------
 // Service
 

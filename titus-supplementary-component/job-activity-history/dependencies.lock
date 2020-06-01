@@ -399,7 +399,7 @@
             "project": true
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.14.8",
+            "locked": "3.14.9",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -1718,7 +1718,7 @@
             "project": true
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.14.8",
+            "locked": "3.14.9",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -3115,7 +3115,7 @@
             "project": true
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.14.8",
+            "locked": "3.14.9",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -4698,7 +4698,7 @@
             ]
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.14.8",
+            "locked": "3.14.9",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.squareup.okhttp3:logging-interceptor",
@@ -6966,7 +6966,7 @@
             ]
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.14.8",
+            "locked": "3.14.9",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.squareup.okhttp3:logging-interceptor",

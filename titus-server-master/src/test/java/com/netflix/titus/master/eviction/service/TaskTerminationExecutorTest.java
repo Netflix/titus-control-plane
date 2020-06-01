@@ -31,6 +31,7 @@ import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.model.reference.Reference;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
+import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.eviction.service.quota.ConsumptionResult;
 import com.netflix.titus.master.eviction.service.quota.TitusQuotasManager;
@@ -54,6 +55,8 @@ public class TaskTerminationExecutorTest {
     private static final String EVICTION_REASON = "Test eviction";
 
     private final TitusRuntime titusRuntime = TitusRuntimes.test();
+
+    private final EvictionServiceConfiguration configuration = Archaius2Ext.newConfiguration(EvictionServiceConfiguration.class);
 
     private final JobComponentStub jobComponentStub = new JobComponentStub(titusRuntime);
 
@@ -130,6 +133,7 @@ public class TaskTerminationExecutorTest {
 
     private TaskTerminationExecutor newTerminationExecutor() {
         TaskTerminationExecutor executor = new TaskTerminationExecutor(
+                configuration,
                 jobComponentStub.getJobOperations(),
                 quotasManager,
                 titusRuntime,

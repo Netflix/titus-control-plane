@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonView;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.JsonStreamContext;
@@ -58,6 +59,15 @@ import rx.exceptions.Exceptions;
  * {@link ObjectMapper} with different configuration options.
  */
 public class CommonObjectMappers {
+
+    /**
+     * A helper marker class for use with {@link JsonView} annotation.
+     */
+    public static final class PublicView {
+    }
+
+    public static final class DebugView {
+    }
 
     private static final ObjectMapper JACKSON_DEFAULT = new ObjectMapper();
     private static final ObjectMapper DEFAULT = createDefaultMapper();

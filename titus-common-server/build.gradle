@@ -32,5 +32,7 @@ dependencies {
     compile "io.grpc:grpc-services:${grpcVersion}"
 
     testCompile "io.grpc:grpc-testing:${grpcVersion}"
+    testCompile "org.springframework:spring-test:${springVersion}"
+    testCompile "org.springframework.boot:spring-boot-test-autoconfigure:${springBootVersion}"
     testCompile project(':titus-common-testkit')
 }

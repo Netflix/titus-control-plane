@@ -212,7 +212,7 @@
             ]
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.14.8",
+            "locked": "3.14.9",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.squareup.okhttp3:logging-interceptor",
@@ -670,11 +670,11 @@
             "requested": "2.2.5.RELEASE"
         },
         "org.springframework.cloud:spring-cloud-commons": {
-            "locked": "2.2.2.RELEASE",
+            "locked": "2.2.3.RELEASE",
             "requested": "2.2.+"
         },
         "org.springframework.security:spring-security-crypto": {
-            "locked": "5.2.2.RELEASE",
+            "locked": "5.3.2.RELEASE",
             "transitive": [
                 "org.springframework.cloud:spring-cloud-commons"
             ]
@@ -988,7 +988,7 @@
             ]
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.14.8",
+            "locked": "3.14.9",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.squareup.okhttp3:logging-interceptor",
@@ -1451,11 +1451,11 @@
             "requested": "2.2.5.RELEASE"
         },
         "org.springframework.cloud:spring-cloud-commons": {
-            "locked": "2.2.2.RELEASE",
+            "locked": "2.2.3.RELEASE",
             "requested": "2.2.+"
         },
         "org.springframework.security:spring-security-crypto": {
-            "locked": "5.2.2.RELEASE",
+            "locked": "5.3.2.RELEASE",
             "transitive": [
                 "org.springframework.cloud:spring-cloud-commons"
             ]
@@ -1826,7 +1826,7 @@
             ]
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.14.8",
+            "locked": "3.14.9",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.squareup.okhttp3:logging-interceptor",
@@ -2289,11 +2289,11 @@
             "requested": "2.2.5.RELEASE"
         },
         "org.springframework.cloud:spring-cloud-commons": {
-            "locked": "2.2.2.RELEASE",
+            "locked": "2.2.3.RELEASE",
             "requested": "2.2.+"
         },
         "org.springframework.security:spring-security-crypto": {
-            "locked": "5.2.2.RELEASE",
+            "locked": "5.3.2.RELEASE",
             "transitive": [
                 "org.springframework.cloud:spring-cloud-commons"
             ]
@@ -2657,7 +2657,7 @@
             ]
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.14.8",
+            "locked": "3.14.9",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.squareup.okhttp3:logging-interceptor",
@@ -3197,7 +3197,7 @@
             ]
         },
         "org.springframework.cloud:spring-cloud-commons": {
-            "locked": "2.2.2.RELEASE",
+            "locked": "2.2.3.RELEASE",
             "requested": "2.2.+"
         },
         "org.springframework.security:spring-security-core": {
@@ -3207,7 +3207,7 @@
             ]
         },
         "org.springframework.security:spring-security-crypto": {
-            "locked": "5.2.2.RELEASE",
+            "locked": "5.3.2.RELEASE",
             "transitive": [
                 "org.springframework.cloud:spring-cloud-commons"
             ]
@@ -3618,7 +3618,7 @@
             ]
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.14.8",
+            "locked": "3.14.9",
             "transitive": [
                 "com.netflix.titus:titus-common",
                 "com.squareup.okhttp3:logging-interceptor",
@@ -4163,7 +4163,7 @@
             ]
         },
         "org.springframework.cloud:spring-cloud-commons": {
-            "locked": "2.2.2.RELEASE",
+            "locked": "2.2.3.RELEASE",
             "requested": "2.2.+"
         },
         "org.springframework.security:spring-security-core": {
@@ -4173,7 +4173,7 @@
             ]
         },
         "org.springframework.security:spring-security-crypto": {
-            "locked": "5.2.2.RELEASE",
+            "locked": "5.3.2.RELEASE",
             "transitive": [
                 "org.springframework.cloud:spring-cloud-commons"
             ]

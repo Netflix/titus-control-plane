@@ -18,14 +18,15 @@ package com.netflix.titus.master.service.management.internal;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.netflix.titus.api.model.ApplicationSLA;
+import com.netflix.titus.api.store.v2.ApplicationSlaStore;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import com.netflix.titus.master.service.management.CapacityMonitoringService;
 import com.netflix.titus.master.service.management.ManagementSubsystemInitializer;
-import com.netflix.titus.api.store.v2.ApplicationSlaStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
@@ -62,6 +63,15 @@ public class DefaultApplicationSlaManagementService implements ApplicationSlaMan
                 .toList()
                 .toBlocking()
                 .firstOrDefault(Collections.emptyList());
+    }
+
+    @Override
+    public Optional<ApplicationSLA> findApplicationSLA(String applicationName) {
+        try {
+            return Optional.ofNullable(storage.findByName(applicationName).toBlocking().firstOrDefault(null));
+        } catch (Exception e) {
+            return Optional.empty();
+        }
     }
 
     @Override

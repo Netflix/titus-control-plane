@@ -22,6 +22,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import com.netflix.titus.api.endpoint.v2.rest.representation.ApplicationSlaRepresentation;
 import com.netflix.titus.api.endpoint.v2.rest.representation.TierRepresentation;
+import com.netflix.titus.runtime.endpoint.rest.ErrorResponse;
 import org.junit.Before;
 import org.junit.Test;
 

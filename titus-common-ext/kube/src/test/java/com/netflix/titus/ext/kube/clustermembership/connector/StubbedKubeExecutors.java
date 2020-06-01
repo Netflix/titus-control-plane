@@ -177,6 +177,12 @@ class StubbedKubeExecutors implements KubeMembershipExecutor, KubeLeaderElection
         await().until(() -> membershipEventsProcessor.hasDownstreams());
     }
 
+    void completeMembershipEventSource() {
+        membershipEventsProcessor.onComplete();
+        membershipEventsProcessor = DirectProcessor.create();
+        await().until(() -> membershipEventsProcessor.hasDownstreams());
+    }
+
     void addOrUpdateSibling(ClusterMembershipRevision<ClusterMember> siblingRevision) {
         String siblingId = siblingRevision.getCurrent().getMemberId();
         boolean update = siblings.containsKey(siblingId);
@@ -225,6 +231,12 @@ class StubbedKubeExecutors implements KubeMembershipExecutor, KubeLeaderElection
 
     void breakLeadershipEventSource() {
         leadershipEventsProcessor.onError(new RuntimeException("Simulated leadership watch error"));
+        leadershipEventsProcessor = DirectProcessor.create();
+        await().until(() -> leadershipEventsProcessor.hasDownstreams());
+    }
+
+    void completeLeadershipEventSource() {
+        leadershipEventsProcessor.onComplete();
         leadershipEventsProcessor = DirectProcessor.create();
         await().until(() -> leadershipEventsProcessor.hasDownstreams());
     }

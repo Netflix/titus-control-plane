@@ -36,6 +36,7 @@ import com.netflix.titus.api.scheduler.service.SchedulerException;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizerUtil;
 import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.runtime.endpoint.rest.ErrorResponse;
 import com.sun.jersey.api.NotFoundException;
 import com.sun.jersey.api.ParamException;
 

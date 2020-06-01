@@ -21,10 +21,13 @@ import java.util.concurrent.TimeUnit;
 
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
+import com.netflix.spectator.api.histogram.BucketCounter;
+import com.netflix.spectator.api.histogram.BucketFunctions;
 import com.netflix.spectator.api.patterns.PolledMeter;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.master.MetricConstants;
+import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 import io.kubernetes.client.openapi.models.V1Pod;
 
 /**
@@ -41,12 +44,20 @@ class DefaultDirectKubeApiServerIntegratorMetrics {
     private final Id terminateCounterId;
     private final Id eventCounterId;
 
+    private final BucketCounter podSizeMetrics;
+
     DefaultDirectKubeApiServerIntegratorMetrics(TitusRuntime titusRuntime) {
         this.registry = titusRuntime.getRegistry();
         this.podGaugeId = registry.createId(ROOT + "pods");
         this.launchCounterId = registry.createId(ROOT + "launches");
         this.terminateCounterId = registry.createId(ROOT + "terminates");
         this.eventCounterId = registry.createId(ROOT + "events");
+
+        this.podSizeMetrics = BucketCounter.get(
+                registry,
+                registry.createId(ROOT + "podSize"),
+                BucketFunctions.bytes(32768)
+        );
     }
 
     void shutdown() {
@@ -58,6 +69,7 @@ class DefaultDirectKubeApiServerIntegratorMetrics {
     }
 
     void launchSuccess(Task task, V1Pod v1Pod, long elapsedMs) {
+        podSizeMetrics.record(KubeUtil.estimatePodSize(v1Pod));
         registry.timer(launchCounterId.withTag("status", "success")).record(elapsedMs, TimeUnit.MILLISECONDS);
     }
 

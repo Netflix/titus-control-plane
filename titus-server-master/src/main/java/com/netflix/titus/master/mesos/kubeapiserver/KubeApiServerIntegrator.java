@@ -24,10 +24,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
+import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.google.gson.JsonSyntaxException;
@@ -38,6 +38,8 @@ import com.netflix.fenzo.plugins.VMLeaseObject;
 import com.netflix.spectator.api.Counter;
 import com.netflix.spectator.api.Gauge;
 import com.netflix.spectator.api.Registry;
+import com.netflix.spectator.api.histogram.BucketCounter;
+import com.netflix.spectator.api.histogram.BucketFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
@@ -50,6 +52,7 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExecutorsExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.limiter.Limiters;
+import com.netflix.titus.common.util.limiter.tokenbucket.FixedIntervalTokenBucketConfiguration;
 import com.netflix.titus.common.util.limiter.tokenbucket.TokenBucket;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
@@ -62,7 +65,7 @@ import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.master.mesos.V3ContainerEvent;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeConfiguration;
-import com.netflix.titus.master.mesos.kubeapiserver.direct.KubeApiFacade;
+import com.netflix.titus.master.mesos.kubeapiserver.client.KubeApiFacade;
 import io.kubernetes.client.custom.Quantity;
 import io.kubernetes.client.informer.ResourceEventHandler;
 import io.kubernetes.client.openapi.ApiException;
@@ -125,9 +128,12 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
 
     private static final String TASK_STARTING = "TASK_STARTING";
 
+    static final String GC_UNKNOWN_PODS = "gcUnknownPods";
+
     private final TitusRuntime titusRuntime;
     private final MesosConfiguration mesosConfiguration;
     private final DirectKubeConfiguration directKubeConfiguration;
+    private final FixedIntervalTokenBucketConfiguration gcUnknownPodsTokenBucketConfiguration;
     private final LocalScheduler scheduler;
     private final Clock clock;
     private final Injector injector;
@@ -135,6 +141,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     private final ContainerResultCodeResolver containerResultCodeResolver;
 
     private final Counter launchTaskCounter;
+    private final BucketCounter podSizeMetrics;
     private final Counter rejectLeaseCounter;
     private final Counter killTaskCounter;
     private final Counter nodeAddCounter;
@@ -161,6 +168,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     public KubeApiServerIntegrator(TitusRuntime titusRuntime,
                                    MesosConfiguration mesosConfiguration,
                                    DirectKubeConfiguration directKubeConfiguration,
+                                   @Named(GC_UNKNOWN_PODS) FixedIntervalTokenBucketConfiguration gcUnknownPodsTokenBucketConfiguration,
                                    LocalScheduler scheduler,
                                    Injector injector,
                                    KubeApiFacade kubeApiFacade,
@@ -168,6 +176,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         this.titusRuntime = titusRuntime;
         this.mesosConfiguration = mesosConfiguration;
         this.directKubeConfiguration = directKubeConfiguration;
+        this.gcUnknownPodsTokenBucketConfiguration = gcUnknownPodsTokenBucketConfiguration;
         this.scheduler = scheduler;
         this.clock = titusRuntime.getClock();
         this.injector = injector;
@@ -178,6 +187,11 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
 
         Registry registry = titusRuntime.getRegistry();
         launchTaskCounter = registry.counter(MetricConstants.METRIC_KUBERNETES + "launchTask");
+        this.podSizeMetrics = BucketCounter.get(
+                registry,
+                registry.createId(MetricConstants.METRIC_KUBERNETES + "podSize"),
+                BucketFunctions.bytes(32768)
+        );
         rejectLeaseCounter = registry.counter(MetricConstants.METRIC_KUBERNETES + "rejectLease");
         killTaskCounter = registry.counter(MetricConstants.METRIC_KUBERNETES + "killTask");
         nodeAddCounter = registry.counter(MetricConstants.METRIC_KUBERNETES + "nodeAdd");
@@ -202,13 +216,11 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         subscribeToNodeInformer();
         subscribeToPodInformer();
 
-        gcUnknownPodsTokenBucket = Limiters.createFixedIntervalTokenBucket(
+        gcUnknownPodsTokenBucket = Limiters.createInstrumentedFixedIntervalTokenBucket(
                 "gcUnknownPodsTokenBucket",
-                10,
-                10,
-                10,
-                1,
-                TimeUnit.MINUTES
+                gcUnknownPodsTokenBucketConfiguration,
+                currentTokenBucket -> logger.info("Detected GC unknown pods token bucket configuration update: {}", currentTokenBucket),
+                titusRuntime
         );
 
         ScheduleDescriptor reconcileSchedulerDescriptor = ScheduleDescriptor.newBuilder()
@@ -229,6 +241,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                 V1Pod v1Pod = taskInfoToPod(request);
                 logger.info("creating pod: {}", v1Pod);
                 kubeApiFacade.getCoreV1Api().createNamespacedPod(KUBERNETES_NAMESPACE, v1Pod, null, null, null);
+                podSizeMetrics.record(KubeUtil.estimatePodSize(v1Pod));
             } catch (ApiException e) {
                 logger.error("Unable to create pod with error:", e);
             }

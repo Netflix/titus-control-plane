@@ -16,6 +16,8 @@
 
 package com.netflix.titus.common.util;
 
+import java.util.List;
+
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -23,8 +25,22 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class NetworkExtTest {
 
     @Test
-    public void testToIPv4() throws Exception {
+    public void testToIPv4() {
         long address = (((((1L << 8) | 1) << 8) | 1) << 8) | 1;
         assertThat(NetworkExt.toIPv4(address)).isEqualTo("1.1.1.1");
+    }
+
+    @Test
+    public void testGetLocalIPs() {
+        List<String> allIps = NetworkExt.getLocalIPs(false).orElse(null);
+        assertThat(allIps).isNotNull();
+        assertThat(allIps).allSatisfy(address -> assertThat(NetworkExt.isIpV4(address) || NetworkExt.isIPv6(address)).isTrue());
+    }
+
+    @Test
+    public void testGetLocalIPsV4Only() {
+        List<String> allIps = NetworkExt.getLocalIPs().orElse(null);
+        assertThat(allIps).isNotNull();
+        assertThat(allIps).allSatisfy(address -> assertThat(NetworkExt.isIpV4(address)).isTrue());
     }
 }

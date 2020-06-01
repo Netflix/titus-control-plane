@@ -76,7 +76,7 @@ public class DefaultEvictionOperations implements EvictionOperations {
     @Activator
     public void enterActiveMode() {
         this.quotEventEmitter = new QuotaEventEmitter(configuration, jobOperations, quotaManager, titusRuntime);
-        this.taskTerminationExecutor = new TaskTerminationExecutor(jobOperations, quotaManager, titusRuntime, scheduler);
+        this.taskTerminationExecutor = new TaskTerminationExecutor(configuration, jobOperations, quotaManager, titusRuntime, scheduler);
     }
 
     @PreDestroy

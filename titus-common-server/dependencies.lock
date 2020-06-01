@@ -237,7 +237,7 @@
             ]
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.14.8",
+            "locked": "3.14.9",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -945,7 +945,7 @@
             ]
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.14.8",
+            "locked": "3.14.9",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -1715,7 +1715,7 @@
             ]
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.14.8",
+            "locked": "3.14.9",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -2436,7 +2436,7 @@
             "project": true
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.14.8",
+            "locked": "3.14.9",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -2847,15 +2847,27 @@
         "org.springframework.boot:spring-boot": {
             "locked": "2.2.5.RELEASE",
             "transitive": [
-                "org.springframework.boot:spring-boot-autoconfigure"
+                "org.springframework.boot:spring-boot-autoconfigure",
+                "org.springframework.boot:spring-boot-test"
             ]
         },
         "org.springframework.boot:spring-boot-autoconfigure": {
             "locked": "2.2.5.RELEASE",
             "requested": "2.2.5.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-common-server"
+                "com.netflix.titus:titus-common-server",
+                "org.springframework.boot:spring-boot-test-autoconfigure"
             ]
+        },
+        "org.springframework.boot:spring-boot-test": {
+            "locked": "2.2.5.RELEASE",
+            "transitive": [
+                "org.springframework.boot:spring-boot-test-autoconfigure"
+            ]
+        },
+        "org.springframework.boot:spring-boot-test-autoconfigure": {
+            "locked": "2.2.5.RELEASE",
+            "requested": "2.2.5.RELEASE"
         },
         "org.springframework.security:spring-security-core": {
             "locked": "5.2.4.RELEASE",
@@ -2911,6 +2923,7 @@
                 "org.springframework:spring-beans",
                 "org.springframework:spring-context",
                 "org.springframework:spring-expression",
+                "org.springframework:spring-test",
                 "org.springframework:spring-web",
                 "org.springframework:spring-webflux",
                 "org.springframework:spring-webmvc"
@@ -2931,6 +2944,10 @@
             "transitive": [
                 "org.springframework:spring-core"
             ]
+        },
+        "org.springframework:spring-test": {
+            "locked": "5.2.6.RELEASE",
+            "requested": "5.2.+"
         },
         "org.springframework:spring-web": {
             "locked": "5.2.6.RELEASE",
@@ -3248,7 +3265,7 @@
             "project": true
         },
         "com.squareup.okhttp3:okhttp": {
-            "locked": "3.14.8",
+            "locked": "3.14.9",
             "transitive": [
                 "com.netflix.titus:titus-common"
             ]
@@ -3664,15 +3681,27 @@
         "org.springframework.boot:spring-boot": {
             "locked": "2.2.5.RELEASE",
             "transitive": [
-                "org.springframework.boot:spring-boot-autoconfigure"
+                "org.springframework.boot:spring-boot-autoconfigure",
+                "org.springframework.boot:spring-boot-test"
             ]
         },
         "org.springframework.boot:spring-boot-autoconfigure": {
             "locked": "2.2.5.RELEASE",
             "requested": "2.2.5.RELEASE",
             "transitive": [
-                "com.netflix.titus:titus-common-server"
+                "com.netflix.titus:titus-common-server",
+                "org.springframework.boot:spring-boot-test-autoconfigure"
             ]
+        },
+        "org.springframework.boot:spring-boot-test": {
+            "locked": "2.2.5.RELEASE",
+            "transitive": [
+                "org.springframework.boot:spring-boot-test-autoconfigure"
+            ]
+        },
+        "org.springframework.boot:spring-boot-test-autoconfigure": {
+            "locked": "2.2.5.RELEASE",
+            "requested": "2.2.5.RELEASE"
         },
         "org.springframework.security:spring-security-core": {
             "locked": "5.2.4.RELEASE",
@@ -3728,6 +3757,7 @@
                 "org.springframework:spring-beans",
                 "org.springframework:spring-context",
                 "org.springframework:spring-expression",
+                "org.springframework:spring-test",
                 "org.springframework:spring-web",
                 "org.springframework:spring-webflux",
                 "org.springframework:spring-webmvc"
@@ -3748,6 +3778,10 @@
             "transitive": [
                 "org.springframework:spring-core"
             ]
+        },
+        "org.springframework:spring-test": {
+            "locked": "5.2.6.RELEASE",
+            "requested": "5.2.+"
         },
         "org.springframework:spring-web": {
             "locked": "5.2.6.RELEASE",

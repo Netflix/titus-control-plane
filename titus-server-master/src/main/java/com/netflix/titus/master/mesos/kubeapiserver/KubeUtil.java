@@ -16,7 +16,6 @@
 
 package com.netflix.titus.master.mesos.kubeapiserver;
 
-import java.io.IOException;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
@@ -24,15 +23,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Function;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Strings;
+import com.google.gson.Gson;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.util.JsonFormat;
 import com.netflix.titus.api.jobmanager.JobAttributes;
@@ -40,7 +34,6 @@ import com.netflix.titus.api.jobmanager.JobConstraints;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
-import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.NetworkExt;
@@ -49,8 +42,6 @@ import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeConfiguration;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
-import io.kubernetes.client.informer.SharedInformerFactory;
-import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.models.V1ContainerState;
 import io.kubernetes.client.openapi.models.V1ContainerStateRunning;
 import io.kubernetes.client.openapi.models.V1ContainerStateTerminated;
@@ -61,8 +52,6 @@ import io.kubernetes.client.openapi.models.V1NodeAddress;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1Taint;
 import io.kubernetes.client.openapi.models.V1Toleration;
-import io.kubernetes.client.util.Config;
-import okhttp3.Request;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,62 +59,23 @@ public class KubeUtil {
 
     private static final Logger logger = LoggerFactory.getLogger(KubeUtil.class);
 
-    public static final Pattern UUID_PATTERN = Pattern.compile("[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}");
-
-    public static final Function<Request, String> DEFAULT_URI_MAPPER = r -> {
-        String path = '/' + String.join("/", r.url().pathSegments());
-        Matcher matcher = UUID_PATTERN.matcher(path);
-        return matcher.replaceAll("");
-    };
-
     public static final String TYPE_INTERNAL_IP = "InternalIP";
 
     private static final JsonFormat.Printer grpcJsonPrinter = JsonFormat.printer().includingDefaultValueFields();
 
-    public static ApiClient createApiClient(String kubeApiServerUrl,
-                                            String kubeConfigPath,
-                                            String metricsNamePrefix,
-                                            TitusRuntime titusRuntime,
-                                            long readTimeoutMs) {
-        return createApiClient(kubeApiServerUrl, kubeConfigPath, metricsNamePrefix, titusRuntime, DEFAULT_URI_MAPPER, readTimeoutMs);
-    }
+    private static final Gson GSON = new Gson();
 
-    public static ApiClient createApiClient(String kubeApiServerUrl,
-                                            String kubeConfigPath,
-                                            String metricsNamePrefix,
-                                            TitusRuntime titusRuntime,
-                                            Function<Request, String> uriMapper,
-                                            long readTimeoutMs) {
-        OkHttpMetricsInterceptor metricsInterceptor = new OkHttpMetricsInterceptor(metricsNamePrefix, titusRuntime.getRegistry(),
-                titusRuntime.getClock(), uriMapper);
-
-        ApiClient client;
-        if (Strings.isNullOrEmpty(kubeApiServerUrl)) {
-            try {
-                client = Config.fromConfig(kubeConfigPath);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        } else {
-            client = Config.fromUrl(kubeApiServerUrl);
+    /**
+     * As it is not possible to capture pod size at the transport level, we try to estimate it directly using the same
+     * JSON serializer as the Kube client (gson).
+     */
+    public static int estimatePodSize(V1Pod v1Pod) {
+        try {
+            String json = GSON.toJson(v1Pod);
+            return json == null ? 0 : json.length();
+        } catch (Exception e) {
+            return 0;
         }
-
-        client.setHttpClient(
-                client.getHttpClient().newBuilder()
-                        .addInterceptor(metricsInterceptor)
-                        .readTimeout(readTimeoutMs, TimeUnit.SECONDS)
-                        .build()
-        );
-        return client;
-    }
-
-    public static SharedInformerFactory createSharedInformerFactory(String threadNamePrefix, ApiClient apiClient) {
-        AtomicLong nextThreadNum = new AtomicLong(0);
-        return new SharedInformerFactory(apiClient, Executors.newCachedThreadPool(runnable -> {
-            Thread thread = new Thread(runnable, threadNamePrefix + nextThreadNum.getAndIncrement());
-            thread.setDaemon(true);
-            return thread;
-        }));
     }
 
     public static Optional<TitusExecutorDetails> getTitusExecutorDetails(V1Pod pod) {

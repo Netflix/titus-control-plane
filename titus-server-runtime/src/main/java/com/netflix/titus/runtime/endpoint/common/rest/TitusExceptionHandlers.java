@@ -25,31 +25,16 @@ import com.netflix.titus.api.scheduler.service.SchedulerException;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizerUtil;
 import com.netflix.titus.common.util.CollectionsExt;
-import org.springframework.http.HttpStatus;
+import com.netflix.titus.runtime.endpoint.rest.ErrorResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
 
 @ControllerAdvice
-public class TitusExceptionHandler {
+public class TitusExceptionHandlers {
 
     private static final int TOO_MANY_REQUESTS = 429;
-
-    @ExceptionHandler(value = {Exception.class})
-    protected ResponseEntity<ErrorResponse> handleException(Exception e, WebRequest request) {
-        int status = HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
-
-        Throwable cause = e.getCause() == null ? e : e.getCause();
-
-        ErrorResponse errorResponse = ErrorResponse.newError(status, cause.getMessage())
-                .clientRequest(request)
-                .serverContext()
-                .exceptionContext(cause)
-                .build();
-
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
-    }
 
     @ExceptionHandler(value = {TitusServiceException.class})
     protected ResponseEntity<ErrorResponse> handleException(TitusServiceException e, WebRequest request) {
