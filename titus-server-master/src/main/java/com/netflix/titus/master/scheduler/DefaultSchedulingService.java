@@ -256,6 +256,7 @@ public class DefaultSchedulingService implements SchedulingService<V3QueueableTa
         TaskScheduler.Builder schedulerBuilder = new TaskScheduler.Builder()
                 .withLeaseRejectAction(virtualMachineService::rejectLease)
                 .withLeaseOfferExpirySecs(masterConfiguration.getMesosLeaseOfferExpirySecs())
+                .withMaxOffersToReject(masterConfiguration.getMesosLeaseMaxRejectCount())
                 .withFitnessCalculator(new TitusFitnessCalculator(schedulerConfiguration, agentManagementFitnessCalculator, agentResourceCache))
                 .withFitnessGoodEnoughFunction(TitusFitnessCalculator.fitnessGoodEnoughFunction)
                 .withPreferentialNamedConsumableResourceEvaluator(preferentialNamedConsumableResourceEvaluator)
