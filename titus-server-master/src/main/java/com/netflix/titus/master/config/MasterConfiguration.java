@@ -85,6 +85,10 @@ public interface MasterConfiguration {
     @DefaultValue("300")
     long getMesosLeaseOfferExpirySecs();
 
+    @PropertyName(name = "mesos.lease.offer.max.reject.count")
+    @DefaultValue("4")
+    int getMesosLeaseMaxRejectCount();
+
     @PropertyName(name = "mesos.slave.attribute.zone.name")
     @DefaultValue("zone")
     String getHostZoneAttributeName();
