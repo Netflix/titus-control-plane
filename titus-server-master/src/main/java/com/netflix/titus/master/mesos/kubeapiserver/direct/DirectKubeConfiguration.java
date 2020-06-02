@@ -102,4 +102,10 @@ public interface DirectKubeConfiguration {
 
     @DefaultValue("default-scheduler")
     String getKubeSchedulerName();
+
+    /**
+     * Amount of time to wait before a pod for a completed task should be removed.
+     */
+    @DefaultValue("0")
+    long getTerminatedPodGcDelayMs();
 }

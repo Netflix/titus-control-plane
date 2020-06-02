@@ -59,6 +59,10 @@ public class KubeUtil {
 
     private static final Logger logger = LoggerFactory.getLogger(KubeUtil.class);
 
+    private static final String SUCCEEDED = "Succeeded";
+
+    private static final String FAILED = "Failed";
+
     public static final String TYPE_INTERNAL_IP = "InternalIP";
 
     private static final JsonFormat.Printer grpcJsonPrinter = JsonFormat.printer().includingDefaultValueFields();
@@ -76,6 +80,20 @@ public class KubeUtil {
         } catch (Exception e) {
             return 0;
         }
+    }
+
+    public static boolean isPodPhaseTerminal(String phase) {
+        return SUCCEEDED.equals(phase) || FAILED.equals(phase);
+    }
+
+    public static Optional<Long> findFinishedTimestamp(V1Pod pod) {
+        if (pod.getStatus() == null || pod.getStatus().getContainerStatuses() == null) {
+            return Optional.empty();
+        }
+        return pod.getStatus().getContainerStatuses().stream()
+                .filter(status -> status.getState() != null && status.getState().getTerminated() != null && status.getState().getTerminated().getFinishedAt() != null)
+                .findFirst()
+                .map(terminatedState -> terminatedState.getState().getTerminated().getFinishedAt().getMillis());
     }
 
     public static Optional<TitusExecutorDetails> getTitusExecutorDetails(V1Pod pod) {

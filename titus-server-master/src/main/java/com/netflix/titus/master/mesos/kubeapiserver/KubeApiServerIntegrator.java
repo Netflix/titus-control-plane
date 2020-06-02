@@ -64,8 +64,8 @@ import com.netflix.titus.master.mesos.TaskInfoRequest;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.master.mesos.V3ContainerEvent;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
-import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeConfiguration;
 import com.netflix.titus.master.mesos.kubeapiserver.client.KubeApiFacade;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeConfiguration;
 import io.kubernetes.client.custom.Quantity;
 import io.kubernetes.client.informer.ResourceEventHandler;
 import io.kubernetes.client.openapi.ApiException;
@@ -767,16 +767,25 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
      * GC pods that have a task in a terminal state in job management or not in job management with a terminal pod phase.
      */
     private void gcTerminalPods(List<V1Pod> pods, Map<String, Task> currentTasks) {
+        long now = clock.wallTime();
+
         List<V1Pod> terminalPodsToGc = pods.stream()
                 .filter(p -> {
                     Task task = currentTasks.get(p.getMetadata().getName());
                     if (task != null) {
-                        return TaskState.isTerminalState(task.getStatus().getState());
+                        if (TaskState.isTerminalState(task.getStatus().getState())) {
+                            return task.getStatus().getTimestamp() + directKubeConfiguration.getTerminatedPodGcDelayMs() <= now;
+                        }
+                        return false;
                     }
-                    return isPodPhaseTerminal(p.getStatus().getPhase());
+                    if (KubeUtil.isPodPhaseTerminal(p.getStatus().getPhase())) {
+                        return KubeUtil.findFinishedTimestamp(p)
+                                .map(timestamp -> timestamp + directKubeConfiguration.getTerminatedPodGcDelayMs() <= now)
+                                .orElse(true);
+                    }
+                    return false;
                 })
                 .collect(Collectors.toList());
-
 
         logger.info("Attempting to GC {} terminal pods: {}", terminalPodsToGc.size(), terminalPodsToGc);
         terminalPodsToGcGauge.set(terminalPodsToGc.size());
@@ -792,7 +801,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     private void gcUnknownPods(List<V1Pod> pods, Map<String, Task> currentTasks) {
         List<V1Pod> potentialUnknownPodsToGc = pods.stream()
                 .filter(p -> {
-                    if (isPodPhaseTerminal(p.getStatus().getPhase()) || currentTasks.containsKey(p.getMetadata().getName())) {
+                    if (KubeUtil.isPodPhaseTerminal(p.getStatus().getPhase()) || currentTasks.containsKey(p.getMetadata().getName())) {
                         return false;
                     }
                     DateTime creationTimestamp = p.getMetadata().getCreationTimestamp();
@@ -863,10 +872,6 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
             publishContainerEvent(pod.getMetadata().getName(), Finished, REASON_TASK_KILLED, "", Optional.empty());
         }
         logger.info("Finished pending pods with deletion timestamp GC");
-    }
-
-    private boolean isPodPhaseTerminal(String phase) {
-        return SUCCEEDED.equals(phase) || FAILED.equals(phase);
     }
 
     private boolean taskKilledInAccepted(String taskId) {
