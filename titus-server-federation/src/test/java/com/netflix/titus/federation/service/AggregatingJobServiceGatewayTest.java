@@ -39,6 +39,7 @@ import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.time.Clocks;
 import com.netflix.titus.common.util.time.TestClock;
 import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.federation.service.router.ApplicationCellRouter;
 import com.netflix.titus.federation.startup.GrpcConfiguration;
 import com.netflix.titus.federation.startup.TitusFederationConfiguration;
 import com.netflix.titus.grpc.protogen.Capacity;
@@ -123,7 +124,7 @@ public class AggregatingJobServiceGatewayTest {
         when(titusFederationConfiguration.getRoutingRules()).thenReturn("one=(app1.*|app2.*);two=(app3.*)");
 
         CellInfoResolver cellInfoResolver = new DefaultCellInfoResolver(titusFederationConfiguration);
-        DefaultCellRouter cellRouter = new DefaultCellRouter(cellInfoResolver, titusFederationConfiguration);
+        ApplicationCellRouter cellRouter = new ApplicationCellRouter(cellInfoResolver, titusFederationConfiguration);
         cells = cellInfoResolver.resolve();
         cellToServiceMap = ImmutableMap.of(
                 cells.get(0), cellOne,

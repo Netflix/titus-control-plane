@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2020 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.federation.service;
+package com.netflix.titus.federation.service.router;
+
+import java.util.Optional;
 
 import com.netflix.titus.api.federation.model.Cell;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
@@ -31,5 +33,5 @@ public interface CellRouter {
      * @param jobDescriptor
      * @return Cell
      */
-    Cell routeKey(JobDescriptor jobDescriptor);
+    Optional<Cell> routeKey(JobDescriptor jobDescriptor);
 }

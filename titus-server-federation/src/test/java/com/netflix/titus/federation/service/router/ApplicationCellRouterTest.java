@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2020 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,17 +14,17 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.federation.service;
+package com.netflix.titus.federation.service.router;
 
 import java.util.regex.PatternSyntaxException;
 
 import com.netflix.titus.api.federation.model.Cell;
 import com.netflix.titus.api.jobmanager.JobAttributes;
+import com.netflix.titus.federation.service.CellInfoResolver;
+import com.netflix.titus.federation.service.DefaultCellInfoResolver;
 import com.netflix.titus.federation.startup.TitusFederationConfiguration;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import org.junit.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -32,7 +32,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.when;
 
-public class DefaultCellRouterTest {
+public class ApplicationCellRouterTest {
     private static final JobDescriptor APP_2 = JobDescriptor.newBuilder().setApplicationName("app2foobar").build();
     private static final JobDescriptor APP_3 = JobDescriptor.newBuilder().setApplicationName("app3foobar").build();
     private static final JobDescriptor APP_4 = JobDescriptor.newBuilder().setApplicationName("app4foobar").build();
@@ -45,12 +45,12 @@ public class DefaultCellRouterTest {
         when(titusFederationConfiguration.getRoutingRules()).thenReturn("cell1=(app1.*|app2.*);cell2=(app3.*)");
 
         CellInfoResolver cellInfoResolver = new DefaultCellInfoResolver(titusFederationConfiguration);
-        DefaultCellRouter cellRouter = new DefaultCellRouter(cellInfoResolver, titusFederationConfiguration);
+        ApplicationCellRouter cellRouter = new ApplicationCellRouter(cellInfoResolver, titusFederationConfiguration);
 
-        assertThat(cellRouter.routeKey(APP_3).getName()).isEqualTo("cell2");
-        assertThat(cellRouter.routeKey(APP_2).getName()).isEqualTo("cell1");
+        assertThat(cellRouter.routeKey(APP_3).get().getName()).isEqualTo("cell2");
+        assertThat(cellRouter.routeKey(APP_2).get().getName()).isEqualTo("cell1");
         // if not rules, by default go to the first configured in titus.federation.cells
-        assertThat(cellRouter.routeKey(OTHER).getName()).isEqualTo("cell1");
+        assertThat(cellRouter.routeKey(OTHER).get().getName()).isEqualTo("cell1");
     }
 
     @Test
@@ -61,8 +61,8 @@ public class DefaultCellRouterTest {
 
         CellInfoResolver cellInfoResolver = new DefaultCellInfoResolver(titusFederationConfiguration);
 
-        DefaultCellRouter cellRouter = new DefaultCellRouter(cellInfoResolver, titusFederationConfiguration);
-        Cell cell = cellRouter.routeKey(APP_2);
+        ApplicationCellRouter cellRouter = new ApplicationCellRouter(cellInfoResolver, titusFederationConfiguration);
+        Cell cell = cellRouter.routeKey(APP_2).get();
         assertThat(cell.getName()).isEqualTo("cell1");
     }
 
@@ -74,8 +74,8 @@ public class DefaultCellRouterTest {
 
         CellInfoResolver cellInfoResolver = new DefaultCellInfoResolver(titusFederationConfiguration);
 
-        DefaultCellRouter cellRouter = new DefaultCellRouter(cellInfoResolver, titusFederationConfiguration);
-        Cell cell = cellRouter.routeKey(APP_4);
+        ApplicationCellRouter cellRouter = new ApplicationCellRouter(cellInfoResolver, titusFederationConfiguration);
+        Cell cell = cellRouter.routeKey(APP_4).get();
         assertThat(cell.getName()).isEqualTo("cell1"); // no rules default to first
     }
 
@@ -87,7 +87,7 @@ public class DefaultCellRouterTest {
 
         CellInfoResolver cellInfoResolver = new DefaultCellInfoResolver(titusFederationConfiguration);
 
-        assertThatThrownBy(() -> new DefaultCellRouter(cellInfoResolver, titusFederationConfiguration))
+        assertThatThrownBy(() -> new ApplicationCellRouter(cellInfoResolver, titusFederationConfiguration))
                 .isInstanceOf(PatternSyntaxException.class);
     }
 
@@ -98,22 +98,22 @@ public class DefaultCellRouterTest {
         when(titusFederationConfiguration.getRoutingRules()).thenReturn("cell1=(app1.*|app2.*);cell2=(app3.*)");
 
         CellInfoResolver cellInfoResolver = new DefaultCellInfoResolver(titusFederationConfiguration);
-        DefaultCellRouter cellRouter = new DefaultCellRouter(cellInfoResolver, titusFederationConfiguration);
+        ApplicationCellRouter cellRouter = new ApplicationCellRouter(cellInfoResolver, titusFederationConfiguration);
 
-        assertThat(cellRouter.routeKey(APP_3).getName()).isEqualTo("cell2");
-        assertThat(cellRouter.routeKey(APP_2).getName()).isEqualTo("cell1");
+        assertThat(cellRouter.routeKey(APP_3).get().getName()).isEqualTo("cell2");
+        assertThat(cellRouter.routeKey(APP_2).get().getName()).isEqualTo("cell1");
         // if not rules, by default go to the first configured in titus.federation.cells
-        assertThat(cellRouter.routeKey(OTHER).getName()).isEqualTo("cell1");
+        assertThat(cellRouter.routeKey(OTHER).get().getName()).isEqualTo("cell1");
 
         // flip rules
         reset(titusFederationConfiguration);
         when(titusFederationConfiguration.getCells()).thenReturn("cell1=hostName1:7001;cell2=hostName2:7002");
         when(titusFederationConfiguration.getRoutingRules()).thenReturn("cell2=(app1.*|app2.*);cell1=(app3.*)");
 
-        assertThat(cellRouter.routeKey(APP_3).getName()).isEqualTo("cell1");
-        assertThat(cellRouter.routeKey(APP_2).getName()).isEqualTo("cell2");
+        assertThat(cellRouter.routeKey(APP_3).get().getName()).isEqualTo("cell1");
+        assertThat(cellRouter.routeKey(APP_2).get().getName()).isEqualTo("cell2");
         // if not rules, by default go to the first configured in titus.federation.cells
-        assertThat(cellRouter.routeKey(OTHER).getName()).isEqualTo("cell1");
+        assertThat(cellRouter.routeKey(OTHER).get().getName()).isEqualTo("cell1");
     }
 
     @Test
@@ -127,9 +127,9 @@ public class DefaultCellRouterTest {
         when(titusFederationConfiguration.getRoutingRules()).thenReturn("cell1=(app1.*|app2.*);cell2=(app3.*)");
 
         CellInfoResolver cellInfoResolver = new DefaultCellInfoResolver(titusFederationConfiguration);
-        DefaultCellRouter cellRouter = new DefaultCellRouter(cellInfoResolver, titusFederationConfiguration);
+        ApplicationCellRouter cellRouter = new ApplicationCellRouter(cellInfoResolver, titusFederationConfiguration);
 
-        assertThat(cellRouter.routeKey(withCellAffinity).getName()).isEqualTo("cell2");
+        assertThat(cellRouter.routeKey(withCellAffinity).get().getName()).isEqualTo("cell2");
     }
 
     @Test
@@ -146,10 +146,9 @@ public class DefaultCellRouterTest {
         when(titusFederationConfiguration.getRoutingRules()).thenReturn("cell1=(app1.*|app2.*);cell2=(app3.*)");
 
         CellInfoResolver cellInfoResolver = new DefaultCellInfoResolver(titusFederationConfiguration);
-        DefaultCellRouter cellRouter = new DefaultCellRouter(cellInfoResolver, titusFederationConfiguration);
+        ApplicationCellRouter cellRouter = new ApplicationCellRouter(cellInfoResolver, titusFederationConfiguration);
 
-        assertThat(cellRouter.routeKey(withCellAntiAffinity).getName()).isEqualTo("cell2");
-        assertThat(cellRouter.routeKey(allRejectedGoesToDefault).getName()).isEqualTo("cell1");
+        assertThat(cellRouter.routeKey(withCellAntiAffinity).get().getName()).isEqualTo("cell2");
+        assertThat(cellRouter.routeKey(allRejectedGoesToDefault)).isEmpty();
     }
-
 }

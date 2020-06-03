@@ -16,6 +16,7 @@
 
 package com.netflix.titus.federation.startup;
 
+import java.util.Arrays;
 import javax.inject.Singleton;
 
 import com.google.inject.AbstractModule;
@@ -43,15 +44,18 @@ import com.netflix.titus.common.util.guice.ContainerEventBusModule;
 import com.netflix.titus.federation.endpoint.FederationEndpointModule;
 import com.netflix.titus.federation.service.CellConnector;
 import com.netflix.titus.federation.service.CellInfoResolver;
-import com.netflix.titus.federation.service.CellRouter;
 import com.netflix.titus.federation.service.CellWebClientConnector;
 import com.netflix.titus.federation.service.DefaultCellConnector;
 import com.netflix.titus.federation.service.DefaultCellInfoResolver;
-import com.netflix.titus.federation.service.DefaultCellRouter;
 import com.netflix.titus.federation.service.DefaultCellWebClientConnector;
 import com.netflix.titus.federation.service.ServiceModule;
 import com.netflix.titus.federation.service.SimpleWebClientFactory;
 import com.netflix.titus.federation.service.WebClientFactory;
+import com.netflix.titus.federation.service.router.ApplicationCellRouter;
+import com.netflix.titus.federation.service.router.CellRouter;
+import com.netflix.titus.federation.service.router.ChainCellRouter;
+import com.netflix.titus.federation.service.router.FallbackCellRouter;
+import com.netflix.titus.federation.service.router.SpecialInstanceTypeRouter;
 import com.netflix.titus.runtime.TitusEntitySanitizerModule;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.resolver.HostCallerIdResolver;
@@ -76,7 +80,6 @@ public class TitusFederationModule extends AbstractModule {
         bind(CellWebClientConnector.class).to(DefaultCellWebClientConnector.class);
         bind(WebClientFactory.class).toInstance(SimpleWebClientFactory.getInstance());
         bind(CellInfoResolver.class).to(DefaultCellInfoResolver.class);
-        bind(CellRouter.class).to(DefaultCellRouter.class);
 
         install(new FederationEndpointModule());
         install(new ServiceModule());
@@ -111,5 +114,15 @@ public class TitusFederationModule extends AbstractModule {
                 CallMetadata.class,
                 () -> callMetadataResolver.resolve().orElse(CallMetadataConstants.UNDEFINED_CALL_METADATA)
         );
+    }
+
+    @Provides
+    @Singleton
+    public CellRouter getCellRouter(CellInfoResolver cellInfoResolver, TitusFederationConfiguration federationConfiguration) {
+        return new ChainCellRouter(Arrays.asList(
+                SpecialInstanceTypeRouter.getGpuInstanceTypeRouter(cellInfoResolver, federationConfiguration),
+                new ApplicationCellRouter(cellInfoResolver, federationConfiguration),
+                new FallbackCellRouter(cellInfoResolver)
+        ));
     }
 }

@@ -28,7 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 
-class CellInfoUtil {
+public class CellInfoUtil {
     private static final Logger logger = LoggerFactory.getLogger(CellInfoUtil.class);
 
     private static final String CELL_HOST_DELIM = ";";
@@ -46,7 +46,7 @@ class CellInfoUtil {
      *
      * @return {@link Cell cells} indexed by their name
      */
-    static List<Cell> extractCellsFromCellSpecification(String cellsSpecification) {
+    public static List<Cell> extractCellsFromCellSpecification(String cellsSpecification) {
         return Arrays.stream(cellsSpecification.split(CELL_HOST_DELIM))
                 .filter(cellSpec -> cellSpec.contains(CELL_HOST_RULE_DELIM))
                 .map(cellSpec -> cellSpec.split(CELL_HOST_RULE_DELIM))
@@ -60,7 +60,7 @@ class CellInfoUtil {
      * Iteration on the returned {@link Map} will respect the order entries appear in the <tt>cellRoutingSpecification</tt>
      * argument.
      */
-    static Map<Cell, String> extractCellRoutingFromCellSpecification(List<Cell> cells, String cellRoutingSpecification) {
+    public static Map<Cell, String> extractCellRoutingFromCellSpecification(List<Cell> cells, String cellRoutingSpecification) {
         Map<String, Cell> cellsByName = CollectionsExt.indexBy(cells, Cell::getName);
 
         return Arrays.stream(cellRoutingSpecification.split(CELL_ROUTE_DELIM))
