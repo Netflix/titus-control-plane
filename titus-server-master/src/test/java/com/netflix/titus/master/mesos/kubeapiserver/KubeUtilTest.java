@@ -75,18 +75,14 @@ public class KubeUtilTest {
 
     @Test
     public void testIsNodeOwnedByFenzo() {
-        assertThat(KubeUtil.isNodeOwnedByFenzo(FARZONES, TOLERATED_TAINTS, newNodeInZone(FARZONE_A))).isFalse();
-        assertThat(KubeUtil.isNodeOwnedByFenzo(FARZONES, TOLERATED_TAINTS, newNodeInZone(NOT_FARZONE))).isTrue();
+        assertThat(KubeUtil.isNodeOwnedByFenzo(FARZONES, newNodeInZone(FARZONE_A))).isFalse();
+        assertThat(KubeUtil.isNodeOwnedByFenzo(FARZONES, newNodeInZone(NOT_FARZONE))).isTrue();
 
-        assertThat(KubeUtil.isNodeOwnedByFenzo(FARZONES, TOLERATED_TAINTS, newNodeWithoutZone())).isTrue();
+        assertThat(KubeUtil.isNodeOwnedByFenzo(FARZONES, newNodeWithoutZone())).isTrue();
 
-        assertThat(KubeUtil.isNodeOwnedByFenzo(FARZONES, TOLERATED_TAINTS, newNodeWithoutZone(TAINT_SCHEDULER_OTHER))).isFalse();
-        assertThat(KubeUtil.isNodeOwnedByFenzo(FARZONES, TOLERATED_TAINTS, newNodeWithoutZone(TAINT_SCHEDULER_OTHER, TAINT_TOLERATED_TAINT_1, TAINT_NOT_TOLERATED_TAINT))).isFalse();
-        assertThat(KubeUtil.isNodeOwnedByFenzo(FARZONES, TOLERATED_TAINTS, newNodeWithoutZone(TAINT_SCHEDULER_OTHER, TAINT_TOLERATED_TAINT_1, TAINT_TOLERATED_TAINT_2))).isFalse();
+        assertThat(KubeUtil.isNodeOwnedByFenzo(FARZONES, newNodeWithoutZone(TAINT_SCHEDULER_OTHER))).isFalse();
 
-        assertThat(KubeUtil.isNodeOwnedByFenzo(FARZONES, TOLERATED_TAINTS, newNodeWithoutZone(TAINT_SCHEDULER_FENZO))).isTrue();
-        assertThat(KubeUtil.isNodeOwnedByFenzo(FARZONES, TOLERATED_TAINTS, newNodeWithoutZone(TAINT_SCHEDULER_FENZO, TAINT_TOLERATED_TAINT_1, TAINT_NOT_TOLERATED_TAINT))).isFalse();
-        assertThat(KubeUtil.isNodeOwnedByFenzo(FARZONES, TOLERATED_TAINTS, newNodeWithoutZone(TAINT_SCHEDULER_FENZO, TAINT_TOLERATED_TAINT_1, TAINT_TOLERATED_TAINT_2))).isTrue();
+        assertThat(KubeUtil.isNodeOwnedByFenzo(FARZONES, newNodeWithoutZone(TAINT_SCHEDULER_FENZO))).isTrue();
     }
 
     @Test

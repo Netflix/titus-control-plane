@@ -242,31 +242,18 @@ public class KubeUtil {
      *     <li>There is one taint with {@link KubeConstants#TAINT_SCHEDULER} key and 'fenzo' value</li>
      * </ul>
      */
-    public static boolean isNodeOwnedByFenzo(List<String> farzones, Set<String> toleratedTaints, V1Node node) {
+    public static boolean isNodeOwnedByFenzo(List<String> farzones, V1Node node) {
         if (isFarzoneNode(farzones, node)) {
             logger.debug("Not owned by fenzo (farzone node): {}", node.getMetadata().getName());
             return false;
         }
+
         if (!hasFenzoSchedulerTaint(node)) {
             logger.debug("Not owned by fenzo (non Fenzo scheduler taint): {}", node.getMetadata().getName());
             return false;
         }
 
-        List<V1Taint> taints = node.getSpec().getTaints();
-        if (CollectionsExt.isNullOrEmpty(taints)) {
-            logger.debug("Owned by fenzo (no taint set): {}", node.getMetadata().getName());
-            return true;
-        }
-
-        for (V1Taint taint : taints) {
-            String taintKey = taint.getKey();
-            if (!taintKey.equals(KubeConstants.TAINT_SCHEDULER) && !toleratedTaints.contains(taintKey)) {
-                logger.debug("Not owned by fenzo (non tolerable taint found): nodeId={}, taintKey={}", node.getMetadata().getName(), taintKey);
-                return false;
-            }
-        }
-
-        logger.debug("Owned by fenzo (all taints tolerated): {}", node.getMetadata().getName());
+        logger.debug("Owned by fenzo");
         return true;
     }
 
