@@ -329,18 +329,10 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
 
     private void nodeUpdated(V1Node node) {
         try {
-            boolean removeStopped = node.getStatus().getConditions().stream()
-                    .anyMatch(c -> c.getType().equalsIgnoreCase(STOPPED) && Boolean.parseBoolean(c.getStatus()));
-            boolean removeNotReady = node.getStatus().getConditions().stream()
-                    .anyMatch(c -> c.getType().equalsIgnoreCase(READY) && !Boolean.parseBoolean(c.getStatus()));
-            boolean removeNotOwnedByFenzo = !KubeUtil.isNodeOwnedByFenzo(directKubeConfiguration.getFarzones(), mesosConfiguration.getFenzoTaintTolerations(), node);
-
-            if (removeStopped || removeNotReady || removeNotOwnedByFenzo) {
-                String leaseId = node.getMetadata().getName();
-                logger.debug("Removing lease on node update: nodeId={} (removeStopped: {}, removeNotReady={}, removeNotOwnedByFenzo={})",
-                        leaseId, removeStopped, removeNotReady, removeNotOwnedByFenzo
-                );
-                rescindLeaseHandler.call(Collections.singletonList(LeaseRescindedEvent.leaseIdEvent(leaseId)));
+            boolean notOwnedByFenzo = !KubeUtil.isNodeOwnedByFenzo(directKubeConfiguration.getFarzones(), node);
+            if (notOwnedByFenzo) {
+                String nodeName = node.getMetadata().getName();
+                logger.debug("Ignoring node: {} as it is not owned by fenzo", nodeName);
             } else {
                 VirtualMachineLease lease = nodeToLease(node);
                 if (lease != null) {
