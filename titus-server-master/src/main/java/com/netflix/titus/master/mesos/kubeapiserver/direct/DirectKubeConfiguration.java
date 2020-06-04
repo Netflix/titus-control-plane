@@ -108,4 +108,34 @@ public interface DirectKubeConfiguration {
      */
     @DefaultValue("0")
     long getTerminatedPodGcDelayMs();
+
+    /**
+     * The grace period on the pod object to use when the pod is created.
+     */
+    @DefaultValue("600")
+    long getPodTerminationGracePeriodSeconds();
+
+    /**
+     * Amount of time to wait before GC'ing a pod with deletion timestamp.
+     */
+    @DefaultValue("1800000")
+    long getPodTerminationGcTimeoutMs();
+
+    /**
+     * Amount of grace period to set when deleting a namespace pod.
+     */
+    @DefaultValue("300")
+    int getDeleteGracePeriodSeconds();
+
+    /**
+     * Amount of time past the last node ready condition heartbeat to wait until a node is deleted.
+     */
+    @DefaultValue("300000")
+    long getNodeGcTtlMs();
+
+    /**
+     * Amount of time to wait after the pod creation timestamp for unknown pods before deleting the pod.
+     */
+    @DefaultValue("300000")
+    long getUnknownPodGcTimeoutMs();
 }

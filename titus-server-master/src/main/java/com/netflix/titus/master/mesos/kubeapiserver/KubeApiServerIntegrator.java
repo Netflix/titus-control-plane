@@ -108,12 +108,6 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
 
     public static final String CLIENT_METRICS_PREFIX = "titusMaster.mesos.kubeApiServerIntegration";
 
-    private static final long POD_TERMINATION_GRACE_PERIOD_SECONDS = 600L;
-    private static final int POD_TERMINATION_GC_TIMEOUT_MS = 1_800_000;
-    private static final int DELETE_GRACE_PERIOD_SECONDS = 300;
-    private static final int NODE_GC_TTL_MS = 60_000;
-    private static final int ORPHANED_POD_TIMEOUT_MS = 60_000;
-    private static final int UNKNOWN_POD_GC_TIMEOUT_MS = 300_000;
     private static final String NEVER_RESTART_POLICY = "Never";
     private static final Quantity DEFAULT_QUANTITY = Quantity.fromString("0");
 
@@ -263,7 +257,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                     KUBERNETES_NAMESPACE,
                     null,
                     null,
-                    DELETE_GRACE_PERIOD_SECONDS,
+                    directKubeConfiguration.getDeleteGracePeriodSeconds(),
                     null,
                     null,
                     null
@@ -476,7 +470,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         V1PodSpec spec = new V1PodSpec()
                 .nodeName(nodeName)
                 .containers(Collections.singletonList(container))
-                .terminationGracePeriodSeconds(POD_TERMINATION_GRACE_PERIOD_SECONDS)
+                .terminationGracePeriodSeconds(directKubeConfiguration.getPodTerminationGracePeriodSeconds())
                 .restartPolicy(NEVER_RESTART_POLICY);
 
         return new V1Pod()
@@ -691,7 +685,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         DateTime lastHeartbeatTime = readyCondition.getLastHeartbeatTime();
         return !status &&
                 lastHeartbeatTime != null &&
-                clock.isPast(lastHeartbeatTime.getMillis() + NODE_GC_TTL_MS);
+                clock.isPast(lastHeartbeatTime.getMillis() + directKubeConfiguration.getNodeGcTtlMs());
     }
 
     private void gcPod(V1Pod pod) {
@@ -798,7 +792,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                     }
                     DateTime creationTimestamp = p.getMetadata().getCreationTimestamp();
                     return creationTimestamp != null &&
-                            clock.isPast(creationTimestamp.getMillis() + UNKNOWN_POD_GC_TIMEOUT_MS);
+                            clock.isPast(creationTimestamp.getMillis() + directKubeConfiguration.getUnknownPodGcTimeoutMs());
                 })
                 .collect(Collectors.toList());
 
@@ -832,7 +826,8 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                 .filter(p -> {
                     DateTime deletionTimestamp = p.getMetadata().getDeletionTimestamp();
                     return deletionTimestamp != null &&
-                            clock.isPast(deletionTimestamp.getMillis() + DELETE_GRACE_PERIOD_SECONDS + POD_TERMINATION_GC_TIMEOUT_MS);
+                            clock.isPast(deletionTimestamp.getMillis() + directKubeConfiguration.getDeleteGracePeriodSeconds()
+                                    + directKubeConfiguration.getPodTerminationGcTimeoutMs());
                 })
                 .collect(Collectors.toList());
 
