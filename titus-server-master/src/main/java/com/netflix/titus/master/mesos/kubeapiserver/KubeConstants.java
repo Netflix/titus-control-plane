@@ -63,9 +63,9 @@ public final class KubeConstants {
      * Titus node labels.
      */
 
-    public static final String NODE_LABEL_MACHINE_ID = TITUS_NODE_DOMAIN + "machine-id";
+    public static final String NODE_LABEL_MACHINE_ID = TITUS_NODE_DOMAIN + "id";
 
-    public static final String NODE_LABEL_MACHINE_GROUP = TITUS_NODE_DOMAIN + "machine-group";
+    public static final String NODE_LABEL_MACHINE_GROUP = TITUS_NODE_DOMAIN + "asg";
 
     public static final String NODE_LABEL_KUBE_BACKEND = TITUS_NODE_DOMAIN + "backend";
 
