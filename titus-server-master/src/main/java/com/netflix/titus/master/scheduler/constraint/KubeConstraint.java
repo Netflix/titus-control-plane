@@ -44,8 +44,9 @@ import io.kubernetes.client.openapi.models.V1Taint;
 public class KubeConstraint implements SystemConstraint {
 
     public static final String NAME = "KubeConstraint";
-    public static final String INSTANCE_NOT_FOUND_REASON = "Instance for node not found";
-    public static final String NOT_NOT_READY_REASON = "Node's ready node condition is not true";
+    public static final String INSTANCE_NOT_FOUND_REASON = "Instance for node not found in agent management";
+    public static final String NODE_NOT_FOUND_REASON = "Node not found in shared informer";
+    public static final String NODE_NOT_READY_REASON = "Node ready condition is not true";
     public static final String TAINT_NOT_TOLERATED_IN_CONFIGURATION_REASON = "Node has a taint that is not configured to be tolerated";
     public static final String READY = "Ready";
 
@@ -53,7 +54,8 @@ public class KubeConstraint implements SystemConstraint {
 
     private enum Failure {
         INSTANCE_NOT_FOUND(INSTANCE_NOT_FOUND_REASON),
-        NODE_NOT_READY(NOT_NOT_READY_REASON),
+        NODE_NOT_FOUND(NODE_NOT_FOUND_REASON),
+        NODE_NOT_READY(NODE_NOT_READY_REASON),
         TAINT_NOT_TOLERATED_IN_CONFIGURATION(TAINT_NOT_TOLERATED_IN_CONFIGURATION_REASON);
 
         private final Result result;
@@ -114,6 +116,9 @@ public class KubeConstraint implements SystemConstraint {
 
         String instanceId = instanceOpt.get().getId();
         V1Node node = kubeApiFacade.getNodeInformer().getIndexer().getByKey(instanceId);
+        if (node == null) {
+            return Failure.NODE_NOT_FOUND.toResult();
+        }
 
         V1NodeCondition readyCondition = null;
         if (node.getStatus() != null) {

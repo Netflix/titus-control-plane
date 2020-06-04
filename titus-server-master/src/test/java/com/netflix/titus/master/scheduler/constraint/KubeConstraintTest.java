@@ -79,6 +79,21 @@ public class KubeConstraintTest {
     }
 
     @Test
+    public void nodeNotFound() {
+        AgentInstance agentInstance = createAgentInstance(INSTANCE_ID, INSTANCE_GROUP_ID);
+        when(agentManagementService.findAgentInstance(INSTANCE_ID)).thenReturn(Optional.of(agentInstance));
+
+        when(indexer.getByKey(INSTANCE_ID)).thenReturn(null);
+
+        ConstraintEvaluator.Result result = kubeConstraint.evaluate(
+                createTaskRequest(TASK_ID),
+                createVirtualMachineCurrentStateMock(INSTANCE_ID, Collections.emptyList(), Collections.emptyList()),
+                taskTrackerState);
+        assertThat(result.isSuccessful()).isFalse();
+        assertThat(result.getFailureReason()).isEqualToIgnoringCase(KubeConstraint.NODE_NOT_FOUND_REASON);
+    }
+
+    @Test
     public void nodeNotReady() {
         AgentInstance agentInstance = createAgentInstance(INSTANCE_ID, INSTANCE_GROUP_ID);
         when(agentManagementService.findAgentInstance(INSTANCE_ID)).thenReturn(Optional.of(agentInstance));
@@ -91,7 +106,7 @@ public class KubeConstraintTest {
                 createVirtualMachineCurrentStateMock(INSTANCE_ID, Collections.emptyList(), Collections.emptyList()),
                 taskTrackerState);
         assertThat(result.isSuccessful()).isFalse();
-        assertThat(result.getFailureReason()).isEqualToIgnoringCase(KubeConstraint.NOT_NOT_READY_REASON);
+        assertThat(result.getFailureReason()).isEqualToIgnoringCase(KubeConstraint.NODE_NOT_READY_REASON);
     }
 
     @Test
