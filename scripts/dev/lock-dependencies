@@ -7,4 +7,4 @@ set -eu -o pipefail
 # Typically this is executed periodically by a bot in a CI environment, but it can be useful lock dependencies and pick
 # new versions as part of a PR, so changes can be built/published before being merged into master.
 
-./gradlew generateLock saveLock -PdependencyLock.includeTransitives=true -Pstatus=release
+./gradlew dependenciesForAll --write-locks
