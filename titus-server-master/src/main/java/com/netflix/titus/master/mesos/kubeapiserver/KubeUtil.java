@@ -59,6 +59,10 @@ public class KubeUtil {
 
     private static final Logger logger = LoggerFactory.getLogger(KubeUtil.class);
 
+    private static final String SUCCEEDED = "Succeeded";
+
+    private static final String FAILED = "Failed";
+
     public static final String TYPE_INTERNAL_IP = "InternalIP";
 
     private static final JsonFormat.Printer grpcJsonPrinter = JsonFormat.printer().includingDefaultValueFields();
@@ -76,6 +80,20 @@ public class KubeUtil {
         } catch (Exception e) {
             return 0;
         }
+    }
+
+    public static boolean isPodPhaseTerminal(String phase) {
+        return SUCCEEDED.equals(phase) || FAILED.equals(phase);
+    }
+
+    public static Optional<Long> findFinishedTimestamp(V1Pod pod) {
+        if (pod.getStatus() == null || pod.getStatus().getContainerStatuses() == null) {
+            return Optional.empty();
+        }
+        return pod.getStatus().getContainerStatuses().stream()
+                .filter(status -> status.getState() != null && status.getState().getTerminated() != null && status.getState().getTerminated().getFinishedAt() != null)
+                .findFirst()
+                .map(terminatedState -> terminatedState.getState().getTerminated().getFinishedAt().getMillis());
     }
 
     public static Optional<TitusExecutorDetails> getTitusExecutorDetails(V1Pod pod) {
@@ -224,31 +242,18 @@ public class KubeUtil {
      *     <li>There is one taint with {@link KubeConstants#TAINT_SCHEDULER} key and 'fenzo' value</li>
      * </ul>
      */
-    public static boolean isNodeOwnedByFenzo(List<String> farzones, Set<String> toleratedTaints, V1Node node) {
+    public static boolean isNodeOwnedByFenzo(List<String> farzones, V1Node node) {
         if (isFarzoneNode(farzones, node)) {
             logger.debug("Not owned by fenzo (farzone node): {}", node.getMetadata().getName());
             return false;
         }
+
         if (!hasFenzoSchedulerTaint(node)) {
             logger.debug("Not owned by fenzo (non Fenzo scheduler taint): {}", node.getMetadata().getName());
             return false;
         }
 
-        List<V1Taint> taints = node.getSpec().getTaints();
-        if (CollectionsExt.isNullOrEmpty(taints)) {
-            logger.debug("Owned by fenzo (no taint set): {}", node.getMetadata().getName());
-            return true;
-        }
-
-        for (V1Taint taint : taints) {
-            String taintKey = taint.getKey();
-            if (!taintKey.equals(KubeConstants.TAINT_SCHEDULER) && !toleratedTaints.contains(taintKey)) {
-                logger.debug("Not owned by fenzo (non tolerable taint found): nodeId={}, taintKey={}", node.getMetadata().getName(), taintKey);
-                return false;
-            }
-        }
-
-        logger.debug("Owned by fenzo (all taints tolerated): {}", node.getMetadata().getName());
+        logger.debug("Owned by fenzo");
         return true;
     }
 

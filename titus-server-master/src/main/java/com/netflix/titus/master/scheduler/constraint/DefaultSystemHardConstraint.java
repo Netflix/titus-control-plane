@@ -17,6 +17,7 @@
 package com.netflix.titus.master.scheduler.constraint;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.google.common.base.Preconditions;
@@ -26,6 +27,7 @@ import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.master.scheduler.systemselector.SystemSelectorConstraintEvaluator;
 
+import static com.netflix.titus.master.scheduler.SchedulerModule.KUBE_CONSTRAINT;
 import static java.util.Arrays.asList;
 
 @Singleton
@@ -39,6 +41,7 @@ public class DefaultSystemHardConstraint implements SystemHardConstraint {
     private final SystemSelectorConstraintEvaluator systemSelectorConstraintEvaluator;
     private final IpAllocationConstraint ipAllocationConstraint;
     private final OpportunisticCpuConstraint opportunisticCpuConstraint;
+    private final SystemConstraint kubeConstraint;
 
     private CompositeSystemConstraint delegate;
 
@@ -48,13 +51,15 @@ public class DefaultSystemHardConstraint implements SystemHardConstraint {
                                        AgentContainerLimitSystemConstraint agentContainerLimitSystemConstraint,
                                        SystemSelectorConstraintEvaluator systemSelectorConstraintEvaluator,
                                        IpAllocationConstraint ipAllocationConstraint,
-                                       OpportunisticCpuConstraint opportunisticCpuConstraint) {
+                                       OpportunisticCpuConstraint opportunisticCpuConstraint,
+                                       @Named(KUBE_CONSTRAINT) SystemConstraint kubeConstraint) {
         this.agentManagementConstraint = agentManagementConstraint;
         this.agentLaunchGuardConstraint = agentLaunchGuardConstraint;
         this.agentContainerLimitSystemConstraint = agentContainerLimitSystemConstraint;
         this.systemSelectorConstraintEvaluator = systemSelectorConstraintEvaluator;
         this.ipAllocationConstraint = ipAllocationConstraint;
         this.opportunisticCpuConstraint = opportunisticCpuConstraint;
+        this.kubeConstraint = kubeConstraint;
     }
 
     @Activator
@@ -65,7 +70,8 @@ public class DefaultSystemHardConstraint implements SystemHardConstraint {
                 agentContainerLimitSystemConstraint,
                 systemSelectorConstraintEvaluator,
                 ipAllocationConstraint,
-                opportunisticCpuConstraint
+                opportunisticCpuConstraint,
+                kubeConstraint
         ));
     }
 

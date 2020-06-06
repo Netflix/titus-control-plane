@@ -64,8 +64,8 @@ import com.netflix.titus.master.mesos.TaskInfoRequest;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.master.mesos.V3ContainerEvent;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
-import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeConfiguration;
 import com.netflix.titus.master.mesos.kubeapiserver.client.KubeApiFacade;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeConfiguration;
 import io.kubernetes.client.custom.Quantity;
 import io.kubernetes.client.informer.ResourceEventHandler;
 import io.kubernetes.client.openapi.ApiException;
@@ -108,12 +108,6 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
 
     public static final String CLIENT_METRICS_PREFIX = "titusMaster.mesos.kubeApiServerIntegration";
 
-    private static final long POD_TERMINATION_GRACE_PERIOD_SECONDS = 600L;
-    private static final int POD_TERMINATION_GC_TIMEOUT_MS = 1_800_000;
-    private static final int DELETE_GRACE_PERIOD_SECONDS = 300;
-    private static final int NODE_GC_TTL_MS = 60_000;
-    private static final int ORPHANED_POD_TIMEOUT_MS = 60_000;
-    private static final int UNKNOWN_POD_GC_TIMEOUT_MS = 300_000;
     private static final String NEVER_RESTART_POLICY = "Never";
     private static final Quantity DEFAULT_QUANTITY = Quantity.fromString("0");
 
@@ -263,7 +257,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                     KUBERNETES_NAMESPACE,
                     null,
                     null,
-                    DELETE_GRACE_PERIOD_SECONDS,
+                    directKubeConfiguration.getDeleteGracePeriodSeconds(),
                     null,
                     null,
                     null
@@ -329,18 +323,10 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
 
     private void nodeUpdated(V1Node node) {
         try {
-            boolean removeStopped = node.getStatus().getConditions().stream()
-                    .anyMatch(c -> c.getType().equalsIgnoreCase(STOPPED) && Boolean.parseBoolean(c.getStatus()));
-            boolean removeNotReady = node.getStatus().getConditions().stream()
-                    .anyMatch(c -> c.getType().equalsIgnoreCase(READY) && !Boolean.parseBoolean(c.getStatus()));
-            boolean removeNotOwnedByFenzo = !KubeUtil.isNodeOwnedByFenzo(directKubeConfiguration.getFarzones(), mesosConfiguration.getFenzoTaintTolerations(), node);
-
-            if (removeStopped || removeNotReady || removeNotOwnedByFenzo) {
-                String leaseId = node.getMetadata().getName();
-                logger.debug("Removing lease on node update: nodeId={} (removeStopped: {}, removeNotReady={}, removeNotOwnedByFenzo={})",
-                        leaseId, removeStopped, removeNotReady, removeNotOwnedByFenzo
-                );
-                rescindLeaseHandler.call(Collections.singletonList(LeaseRescindedEvent.leaseIdEvent(leaseId)));
+            boolean notOwnedByFenzo = !KubeUtil.isNodeOwnedByFenzo(directKubeConfiguration.getFarzones(), node);
+            if (notOwnedByFenzo) {
+                String nodeName = node.getMetadata().getName();
+                logger.debug("Ignoring node: {} as it is not owned by fenzo", nodeName);
             } else {
                 VirtualMachineLease lease = nodeToLease(node);
                 if (lease != null) {
@@ -484,7 +470,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         V1PodSpec spec = new V1PodSpec()
                 .nodeName(nodeName)
                 .containers(Collections.singletonList(container))
-                .terminationGracePeriodSeconds(POD_TERMINATION_GRACE_PERIOD_SECONDS)
+                .terminationGracePeriodSeconds(directKubeConfiguration.getPodTerminationGracePeriodSeconds())
                 .restartPolicy(NEVER_RESTART_POLICY);
 
         return new V1Pod()
@@ -699,7 +685,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         DateTime lastHeartbeatTime = readyCondition.getLastHeartbeatTime();
         return !status &&
                 lastHeartbeatTime != null &&
-                clock.isPast(lastHeartbeatTime.getMillis() + NODE_GC_TTL_MS);
+                clock.isPast(lastHeartbeatTime.getMillis() + directKubeConfiguration.getNodeGcTtlMs());
     }
 
     private void gcPod(V1Pod pod) {
@@ -767,16 +753,25 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
      * GC pods that have a task in a terminal state in job management or not in job management with a terminal pod phase.
      */
     private void gcTerminalPods(List<V1Pod> pods, Map<String, Task> currentTasks) {
+        long now = clock.wallTime();
+
         List<V1Pod> terminalPodsToGc = pods.stream()
                 .filter(p -> {
                     Task task = currentTasks.get(p.getMetadata().getName());
                     if (task != null) {
-                        return TaskState.isTerminalState(task.getStatus().getState());
+                        if (TaskState.isTerminalState(task.getStatus().getState())) {
+                            return task.getStatus().getTimestamp() + directKubeConfiguration.getTerminatedPodGcDelayMs() <= now;
+                        }
+                        return false;
                     }
-                    return isPodPhaseTerminal(p.getStatus().getPhase());
+                    if (KubeUtil.isPodPhaseTerminal(p.getStatus().getPhase())) {
+                        return KubeUtil.findFinishedTimestamp(p)
+                                .map(timestamp -> timestamp + directKubeConfiguration.getTerminatedPodGcDelayMs() <= now)
+                                .orElse(true);
+                    }
+                    return false;
                 })
                 .collect(Collectors.toList());
-
 
         logger.info("Attempting to GC {} terminal pods: {}", terminalPodsToGc.size(), terminalPodsToGc);
         terminalPodsToGcGauge.set(terminalPodsToGc.size());
@@ -792,12 +787,12 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     private void gcUnknownPods(List<V1Pod> pods, Map<String, Task> currentTasks) {
         List<V1Pod> potentialUnknownPodsToGc = pods.stream()
                 .filter(p -> {
-                    if (isPodPhaseTerminal(p.getStatus().getPhase()) || currentTasks.containsKey(p.getMetadata().getName())) {
+                    if (KubeUtil.isPodPhaseTerminal(p.getStatus().getPhase()) || currentTasks.containsKey(p.getMetadata().getName())) {
                         return false;
                     }
                     DateTime creationTimestamp = p.getMetadata().getCreationTimestamp();
                     return creationTimestamp != null &&
-                            clock.isPast(creationTimestamp.getMillis() + UNKNOWN_POD_GC_TIMEOUT_MS);
+                            clock.isPast(creationTimestamp.getMillis() + directKubeConfiguration.getUnknownPodGcTimeoutMs());
                 })
                 .collect(Collectors.toList());
 
@@ -831,7 +826,8 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                 .filter(p -> {
                     DateTime deletionTimestamp = p.getMetadata().getDeletionTimestamp();
                     return deletionTimestamp != null &&
-                            clock.isPast(deletionTimestamp.getMillis() + DELETE_GRACE_PERIOD_SECONDS + POD_TERMINATION_GC_TIMEOUT_MS);
+                            clock.isPast(deletionTimestamp.getMillis() + directKubeConfiguration.getDeleteGracePeriodSeconds()
+                                    + directKubeConfiguration.getPodTerminationGcTimeoutMs());
                 })
                 .collect(Collectors.toList());
 
@@ -863,10 +859,6 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
             publishContainerEvent(pod.getMetadata().getName(), Finished, REASON_TASK_KILLED, "", Optional.empty());
         }
         logger.info("Finished pending pods with deletion timestamp GC");
-    }
-
-    private boolean isPodPhaseTerminal(String phase) {
-        return SUCCEEDED.equals(phase) || FAILED.equals(phase);
     }
 
     private boolean taskKilledInAccepted(String taskId) {

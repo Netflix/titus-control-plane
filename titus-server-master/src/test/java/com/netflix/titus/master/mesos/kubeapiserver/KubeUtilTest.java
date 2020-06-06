@@ -21,11 +21,17 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
+import io.kubernetes.client.openapi.models.V1ContainerState;
+import io.kubernetes.client.openapi.models.V1ContainerStateRunning;
+import io.kubernetes.client.openapi.models.V1ContainerStateTerminated;
+import io.kubernetes.client.openapi.models.V1ContainerStatus;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1NodeSpec;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1Pod;
+import io.kubernetes.client.openapi.models.V1PodStatus;
 import io.kubernetes.client.openapi.models.V1Taint;
+import org.joda.time.DateTime;
 import org.junit.Test;
 
 import static com.netflix.titus.common.util.CollectionsExt.asSet;
@@ -69,23 +75,39 @@ public class KubeUtilTest {
 
     @Test
     public void testIsNodeOwnedByFenzo() {
-        assertThat(KubeUtil.isNodeOwnedByFenzo(FARZONES, TOLERATED_TAINTS, newNodeInZone(FARZONE_A))).isFalse();
-        assertThat(KubeUtil.isNodeOwnedByFenzo(FARZONES, TOLERATED_TAINTS, newNodeInZone(NOT_FARZONE))).isTrue();
+        assertThat(KubeUtil.isNodeOwnedByFenzo(FARZONES, newNodeInZone(FARZONE_A))).isFalse();
+        assertThat(KubeUtil.isNodeOwnedByFenzo(FARZONES, newNodeInZone(NOT_FARZONE))).isTrue();
 
-        assertThat(KubeUtil.isNodeOwnedByFenzo(FARZONES, TOLERATED_TAINTS, newNodeWithoutZone())).isTrue();
+        assertThat(KubeUtil.isNodeOwnedByFenzo(FARZONES, newNodeWithoutZone())).isTrue();
 
-        assertThat(KubeUtil.isNodeOwnedByFenzo(FARZONES, TOLERATED_TAINTS, newNodeWithoutZone(TAINT_SCHEDULER_OTHER))).isFalse();
-        assertThat(KubeUtil.isNodeOwnedByFenzo(FARZONES, TOLERATED_TAINTS, newNodeWithoutZone(TAINT_SCHEDULER_OTHER, TAINT_TOLERATED_TAINT_1, TAINT_NOT_TOLERATED_TAINT))).isFalse();
-        assertThat(KubeUtil.isNodeOwnedByFenzo(FARZONES, TOLERATED_TAINTS, newNodeWithoutZone(TAINT_SCHEDULER_OTHER, TAINT_TOLERATED_TAINT_1, TAINT_TOLERATED_TAINT_2))).isFalse();
+        assertThat(KubeUtil.isNodeOwnedByFenzo(FARZONES, newNodeWithoutZone(TAINT_SCHEDULER_OTHER))).isFalse();
 
-        assertThat(KubeUtil.isNodeOwnedByFenzo(FARZONES, TOLERATED_TAINTS, newNodeWithoutZone(TAINT_SCHEDULER_FENZO))).isTrue();
-        assertThat(KubeUtil.isNodeOwnedByFenzo(FARZONES, TOLERATED_TAINTS, newNodeWithoutZone(TAINT_SCHEDULER_FENZO, TAINT_TOLERATED_TAINT_1, TAINT_NOT_TOLERATED_TAINT))).isFalse();
-        assertThat(KubeUtil.isNodeOwnedByFenzo(FARZONES, TOLERATED_TAINTS, newNodeWithoutZone(TAINT_SCHEDULER_FENZO, TAINT_TOLERATED_TAINT_1, TAINT_TOLERATED_TAINT_2))).isTrue();
+        assertThat(KubeUtil.isNodeOwnedByFenzo(FARZONES, newNodeWithoutZone(TAINT_SCHEDULER_FENZO))).isTrue();
     }
 
     @Test
     public void testEstimatePodSize() {
         assertThat(KubeUtil.estimatePodSize(new V1Pod())).isGreaterThan(0);
+    }
+
+    @Test
+    public void testFindFinishedTimestamp() {
+        // Test running pod
+        V1Pod pod = new V1Pod().status(new V1PodStatus().containerStatuses(new ArrayList<>()));
+        pod.getStatus().getContainerStatuses().add(new V1ContainerStatus()
+                .state(new V1ContainerState().running(new V1ContainerStateRunning()))
+        );
+        assertThat(KubeUtil.findFinishedTimestamp(pod)).isEmpty();
+
+        // Test finished pod
+        pod.getStatus().getContainerStatuses().add(new V1ContainerStatus()
+                .state(new V1ContainerState().terminated(new V1ContainerStateTerminated()))
+        );
+        assertThat(KubeUtil.findFinishedTimestamp(pod)).isEmpty();
+
+        DateTime now = DateTime.now();
+        pod.getStatus().getContainerStatuses().get(1).getState().getTerminated().finishedAt(now);
+        assertThat(KubeUtil.findFinishedTimestamp(pod)).contains(now.getMillis());
     }
 
     private V1Node newNodeWithoutZone(V1Taint... taints) {

@@ -50,6 +50,7 @@ import com.netflix.titus.master.scheduler.constraint.AgentContainerLimitSystemCo
 import com.netflix.titus.master.scheduler.constraint.AgentLaunchGuardConstraint;
 import com.netflix.titus.master.scheduler.constraint.AgentManagementConstraint;
 import com.netflix.titus.master.scheduler.constraint.IpAllocationConstraint;
+import com.netflix.titus.master.scheduler.constraint.KubeConstraint;
 import com.netflix.titus.master.scheduler.constraint.OpportunisticCpuConstraint;
 import com.netflix.titus.master.scheduler.constraint.V3UniqueHostConstraint;
 import com.netflix.titus.master.scheduler.constraint.V3ZoneBalancedHardConstraintEvaluator;
@@ -144,7 +145,7 @@ class TaskPlacementFailureClassifier<T extends TaskRequest> {
     private boolean processNoActiveAgent(T taskRequest, List<TaskAssignmentResult> assignmentResults,
                                          Map<FailureKind, Map<T, List<TaskPlacementFailure>>> resultCollector) {
         for (TaskAssignmentResult assignmentResult : assignmentResults) {
-            if (canScheduleOnAgent(assignmentResult)) {
+            if (canScheduleOnAgent(assignmentResult) && canScheduleOnKubeNode(assignmentResult)) {
                 return false;
             }
         }
@@ -308,6 +309,14 @@ class TaskPlacementFailureClassifier<T extends TaskRequest> {
             return true;
         }
         return !AgentManagementConstraint.isAgentManagementConstraintReason(constraintFailure.getReason());
+    }
+
+    private boolean canScheduleOnKubeNode(TaskAssignmentResult assignmentResult) {
+        ConstraintFailure constraintFailure = assignmentResult.getConstraintFailure();
+        if (constraintFailure == null || StringExt.isEmpty(constraintFailure.getReason())) {
+            return true;
+        }
+        return !KubeConstraint.isKubeConstraintReason(constraintFailure.getReason());
     }
 
     private boolean isLaunchGuard(TaskAssignmentResult assignmentResult) {
