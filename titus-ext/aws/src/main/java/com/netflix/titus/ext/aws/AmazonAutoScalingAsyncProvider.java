@@ -25,6 +25,7 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.autoscaling.AmazonAutoScalingAsync;
 import com.amazonaws.services.autoscaling.AmazonAutoScalingAsyncClientBuilder;
+import com.netflix.titus.common.util.StringExt;
 
 @Singleton
 public class AmazonAutoScalingAsyncProvider implements Provider<AmazonAutoScalingAsync> {
@@ -33,7 +34,11 @@ public class AmazonAutoScalingAsyncProvider implements Provider<AmazonAutoScalin
 
     @Inject
     public AmazonAutoScalingAsyncProvider(AwsConfiguration configuration, AWSCredentialsProvider credentialProvider) {
-        String region = configuration.getRegion().trim().toLowerCase();
+        String region = configuration.getDataPlaneRegion().trim().toLowerCase();
+        if (StringExt.isEmpty(region)) {
+            region = configuration.getRegion().trim().toLowerCase();
+        }
+
         this.amazonAutoScaling = AmazonAutoScalingAsyncClientBuilder.standard()
                 .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration("autoscaling." + region + ".amazonaws.com", region))
                 .withCredentials(credentialProvider)

@@ -22,6 +22,12 @@ import com.netflix.archaius.api.annotations.DefaultValue;
 @Configuration(prefix = "titus.ext.aws")
 public interface AwsConfiguration {
 
+    /**
+     * If set, this region value is used when building {@link com.amazonaws.services.ec2.AmazonEC2Client} and
+     * {@link com.amazonaws.services.autoscaling.AmazonAutoScalingClient}.
+     */
+    String getDataPlaneRegion();
+
     String getRegion();
 
     /**

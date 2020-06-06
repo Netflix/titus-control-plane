@@ -25,6 +25,7 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.ec2.AmazonEC2Async;
 import com.amazonaws.services.ec2.AmazonEC2AsyncClientBuilder;
+import com.netflix.titus.common.util.StringExt;
 
 @Singleton
 public class AmazonEC2AsyncProvider implements Provider<AmazonEC2Async> {
@@ -33,7 +34,11 @@ public class AmazonEC2AsyncProvider implements Provider<AmazonEC2Async> {
 
     @Inject
     public AmazonEC2AsyncProvider(AwsConfiguration configuration, AWSCredentialsProvider credentialProvider) {
-        String region = configuration.getRegion().trim().toLowerCase();
+        String region = configuration.getDataPlaneRegion().trim().toLowerCase();
+        if (StringExt.isEmpty(region)) {
+            region = configuration.getRegion().trim().toLowerCase();
+        }
+
         this.amazonEC2Async = AmazonEC2AsyncClientBuilder.standard()
                 .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration("ec2." + region + ".amazonaws.com", region))
                 .withCredentials(credentialProvider)
