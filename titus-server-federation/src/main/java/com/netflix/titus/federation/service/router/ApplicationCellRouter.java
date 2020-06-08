@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2020 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,58 +14,32 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.federation.service;
+package com.netflix.titus.federation.service.router;
 
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
-import java.util.regex.Pattern;
-import java.util.regex.PatternSyntaxException;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 import com.netflix.titus.api.federation.model.Cell;
 import com.netflix.titus.api.jobmanager.JobAttributes;
-import com.netflix.titus.common.util.CollectionsExt;
-import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.StringExt;
+import com.netflix.titus.federation.service.CellInfoResolver;
 import com.netflix.titus.federation.startup.TitusFederationConfiguration;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-@Singleton
-public class DefaultCellRouter implements CellRouter {
-    private static final Logger logger = LoggerFactory.getLogger(DefaultCellRouter.class);
+/**
+ * Route using the application name or a capacity group.
+ */
+public class ApplicationCellRouter implements CellRouter {
+
     // The key used to route jobs if no other key could be determined.
     private static final String DEFAULT_ROUTE_KEY = "DEFAULT_FEDERATION_ROUTE_KEY";
 
     private final CellInfoResolver cellInfoResolver;
-    private final TitusFederationConfiguration federationConfiguration;
-    private final Function<String, Map<Cell, Pattern>> compileRoutingPatterns;
+    private final RoutingRuleSelector selector;
 
-    @Inject
-    public DefaultCellRouter(CellInfoResolver cellInfoResolver, TitusFederationConfiguration federationConfiguration) {
+    public ApplicationCellRouter(CellInfoResolver cellInfoResolver, TitusFederationConfiguration federationConfiguration) {
         this.cellInfoResolver = cellInfoResolver;
-        this.federationConfiguration = federationConfiguration;
-
-        compileRoutingPatterns = Evaluators.memoizeLast((spec, lastCompiledPatterns) -> {
-            logger.info("Detected new routing rules, compiling them: {}", spec);
-            List<Cell> cells = cellInfoResolver.resolve();
-            Map<Cell, String> cellRoutingRules = CellInfoUtil.extractCellRoutingFromCellSpecification(cells, spec);
-            try {
-                return CollectionsExt.mapValues(cellRoutingRules, Pattern::compile, LinkedHashMap::new);
-            } catch (PatternSyntaxException e) {
-                logger.error("Bad cell routing spec, ignoring: {}", spec);
-                return lastCompiledPatterns.orElseThrow(() -> e /* there is nothing to do if the first spec is bad */);
-            }
-        });
-
-        // ensure the initial spec can be compiled or fail fast
-        compileRoutingPatterns.apply(federationConfiguration.getRoutingRules());
+        this.selector = new RoutingRuleSelector(cellInfoResolver, federationConfiguration::getRoutingRules);
     }
 
     /**
@@ -91,34 +65,26 @@ public class DefaultCellRouter implements CellRouter {
      * @param jobDescriptor
      */
     @Override
-    public Cell routeKey(JobDescriptor jobDescriptor) {
+    public Optional<Cell> routeKey(JobDescriptor jobDescriptor) {
         Optional<Cell> pinnedCell = getCellPinnedToJob(jobDescriptor);
         if (pinnedCell.isPresent()) {
-            return pinnedCell.get();
+            return pinnedCell;
         }
 
         String routeKey = routeKeyFor(jobDescriptor);
-        Map<Cell, Pattern> cellRoutingPatterns = compileRoutingPatterns.apply(federationConfiguration.getRoutingRules());
         Set<String> antiAffinityNames = StringExt.splitByCommaIntoSet(
                 jobDescriptor.getAttributesMap().get(JobAttributes.JOB_PARAMETER_ATTRIBUTES_CELL_AVOID)
         );
 
-
-        Optional<Cell> found = cellRoutingPatterns.entrySet().stream()
-                .filter(entry -> entry.getValue().matcher(routeKey).matches() &&
-                        !antiAffinityNames.contains(entry.getKey().getName()))
-                .findFirst()
-                .map(Map.Entry::getKey);
-
+        Optional<Cell> found = selector.select(routeKey, cell -> !antiAffinityNames.contains(cell.getName()));
         if (found.isPresent()) {
-            return found.get();
+            return found;
         }
 
         // fallback to any cell that is not in the anti affinity list, or the default when all available cells are rejected
         return cellInfoResolver.resolve().stream()
                 .filter(cell -> !antiAffinityNames.contains(cell.getName()))
-                .findAny()
-                .orElseGet(cellInfoResolver::getDefault);
+                .findAny();
     }
 
     private Optional<Cell> getCellPinnedToJob(JobDescriptor jobDescriptor) {
@@ -130,5 +96,4 @@ public class DefaultCellRouter implements CellRouter {
                 .filter(cell -> cell.getName().equals(requestedCell))
                 .findAny();
     }
-
 }
