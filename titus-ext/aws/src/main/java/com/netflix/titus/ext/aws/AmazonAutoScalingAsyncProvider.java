@@ -33,7 +33,8 @@ public class AmazonAutoScalingAsyncProvider implements Provider<AmazonAutoScalin
 
     @Inject
     public AmazonAutoScalingAsyncProvider(AwsConfiguration configuration, AWSCredentialsProvider credentialProvider) {
-        String region = configuration.getRegion().trim().toLowerCase();
+        String region = AwsRegionConfigurationUtil.resolveDataPlaneRegion(configuration);
+
         this.amazonAutoScaling = AmazonAutoScalingAsyncClientBuilder.standard()
                 .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration("autoscaling." + region + ".amazonaws.com", region))
                 .withCredentials(credentialProvider)

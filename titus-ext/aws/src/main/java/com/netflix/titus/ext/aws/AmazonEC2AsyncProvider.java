@@ -33,7 +33,8 @@ public class AmazonEC2AsyncProvider implements Provider<AmazonEC2Async> {
 
     @Inject
     public AmazonEC2AsyncProvider(AwsConfiguration configuration, AWSCredentialsProvider credentialProvider) {
-        String region = configuration.getRegion().trim().toLowerCase();
+        String region = AwsRegionConfigurationUtil.resolveDataPlaneRegion(configuration);
+
         this.amazonEC2Async = AmazonEC2AsyncClientBuilder.standard()
                 .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration("ec2." + region + ".amazonaws.com", region))
                 .withCredentials(credentialProvider)

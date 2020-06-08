@@ -18,8 +18,8 @@ public class AmazonClientProvider {
     private final AwsConfiguration configuration;
     private final AWSSecurityTokenServiceAsync stsClient;
 
-    private Map<String, AWSCredentialsProvider> awsCredentialsByAccountId = new HashMap<>();
-    private Map<String, AmazonElasticLoadBalancingAsync> loadBalancerClients = new HashMap<>();
+    private final Map<String, AWSCredentialsProvider> awsCredentialsByAccountId = new HashMap<>();
+    private final Map<String, AmazonElasticLoadBalancingAsync> loadBalancerClients = new HashMap<>();
 
     @Inject
     public AmazonClientProvider(AwsConfiguration configuration,
@@ -34,7 +34,7 @@ public class AmazonClientProvider {
             synchronized (this) {
                 client = loadBalancerClients.get(accountId);
                 if (client == null) {
-                    String region = configuration.getRegion().trim().toLowerCase();
+                    String region = AwsRegionConfigurationUtil.resolveDataPlaneRegion(configuration);
                     AWSCredentialsProvider credentialsProvider = getAwsCredentialsProvider(accountId);
                     client = AmazonElasticLoadBalancingAsyncClientBuilder.standard()
                             .withCredentials(credentialsProvider)
