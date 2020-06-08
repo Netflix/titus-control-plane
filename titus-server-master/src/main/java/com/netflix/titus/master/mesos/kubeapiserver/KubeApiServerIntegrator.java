@@ -236,8 +236,8 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                 logger.info("creating pod: {}", v1Pod);
                 kubeApiFacade.getCoreV1Api().createNamespacedPod(KUBERNETES_NAMESPACE, v1Pod, null, null, null);
                 podSizeMetrics.record(KubeUtil.estimatePodSize(v1Pod));
-            } catch (ApiException e) {
-                logger.error("Unable to create pod with error:", e);
+            } catch (Exception e) {
+                logger.error("Unable to create pod with error: {}", KubeUtil.toErrorDetails(e), e);
             }
         }
     }
@@ -268,10 +268,10 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
             if (e.getMessage().equalsIgnoreCase(NOT_FOUND) && taskKilledInAccepted(taskId)) {
                 publishContainerEvent(taskId, Finished, REASON_TASK_KILLED, "", Optional.empty());
             } else {
-                logger.error("Failed to kill task: {} with error: ", taskId, e);
+                logger.error("Failed to kill task: {} with error: {}", taskId, KubeUtil.toErrorDetails(e), e);
             }
         } catch (Exception e) {
-            logger.error("Failed to kill task: {} with error: ", taskId, e);
+            logger.error("Failed to kill task: {} with error: {}", taskId, KubeUtil.toErrorDetails(e), e);
         }
     }
 

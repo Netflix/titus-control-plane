@@ -149,7 +149,7 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
 
                 return v1Pod;
             } catch (Exception e) {
-                logger.error("Unable to create pod with error:", e);
+                logger.error("Unable to create pod with error: {}", KubeUtil.toErrorDetails(e), e);
 
                 metrics.launchError(task, e, timer.elapsed(TimeUnit.MILLISECONDS));
 
@@ -194,10 +194,10 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
                                     .build()
                     ));
                 } else {
-                    logger.error("Failed to kill task: {} with error: ", taskId, e);
+                    logger.error("Failed to kill task: {} with error: {}", taskId, KubeUtil.toErrorDetails(e), e);
                 }
             } catch (Exception e) {
-                logger.error("Failed to kill task: {} with error: ", taskId, e);
+                logger.error("Failed to kill task: {} with error: {}", taskId, KubeUtil.toErrorDetails(e), e);
                 metrics.terminateError(task, e, timer.elapsed(TimeUnit.MILLISECONDS));
             }
         }).subscribeOn(apiClientScheduler).timeout(Duration.ofMillis(configuration.getKubeApiClientTimeoutMs()));
