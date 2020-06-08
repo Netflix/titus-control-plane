@@ -132,7 +132,7 @@ class TaskPlacementFailureClassifier<T extends TaskRequest> {
                          Map<FailureKind, Map<T, List<TaskPlacementFailure>>> resultCollector) {
 
         if (!processNoActiveAgent(taskRequest, assignmentResults, resultCollector)
-                && !processKubeAbiNotReady(taskRequest, assignmentResults, resultCollector)
+                && !processKubeApiNotReady(taskRequest, assignmentResults, resultCollector)
                 && !processAboveCapacityLimit(taskRequest, assignmentResults, resultCollector)
                 && !processTooLargeToFit(taskRequest, assignmentResults, resultCollector)
                 && !processLaunchGuard(taskRequest, assignmentResults, resultCollector)
@@ -155,7 +155,7 @@ class TaskPlacementFailureClassifier<T extends TaskRequest> {
         return true;
     }
 
-    private boolean processKubeAbiNotReady(T taskRequest, List<TaskAssignmentResult> assignmentResults,
+    private boolean processKubeApiNotReady(T taskRequest, List<TaskAssignmentResult> assignmentResults,
                                            Map<FailureKind, Map<T, List<TaskPlacementFailure>>> resultCollector) {
         int count = 0;
         for (TaskAssignmentResult assignmentResult : assignmentResults) {
