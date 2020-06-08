@@ -35,11 +35,18 @@ public class StubbedDirectKubeApiServerIntegrator implements DirectKubeApiServer
 
     private final ConcurrentMap<String, V1Pod> podHoldersByTaskId = new ConcurrentHashMap<>();
 
+    private volatile boolean enabled = true;
+
     private volatile RuntimeException nextLaunchError;
 
     @Override
     public Map<String, V1Pod> getPods() {
         return new HashMap<>(podHoldersByTaskId);
+    }
+
+    @Override
+    public boolean isReadyForScheduling() {
+        return enabled;
     }
 
     @Override
@@ -78,6 +85,10 @@ public class StubbedDirectKubeApiServerIntegrator implements DirectKubeApiServer
     @Override
     public String resolveReasonCode(Throwable cause) {
         return TaskStatus.REASON_UNKNOWN_SYSTEM_ERROR;
+    }
+
+    public void enableKubeIntegration(boolean enabled) {
+        this.enabled = enabled;
     }
 
     public void failNextTaskLaunch(RuntimeException nextLaunchError) {

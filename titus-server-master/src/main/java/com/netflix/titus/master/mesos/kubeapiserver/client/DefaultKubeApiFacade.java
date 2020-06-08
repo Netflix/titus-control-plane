@@ -136,6 +136,17 @@ public class DefaultKubeApiFacade implements KubeApiFacade {
     }
 
     @Override
+    public long getPodInformerStaleness() {
+        // TODO synced is set to true on first successful execution. We need to change this logic, once we have better insight into the informer loop.
+        return podInformer != null && podInformer.hasSynced() ? 0 : -1;
+    }
+
+    @Override
+    public boolean isReadyForScheduling() {
+        return getPodInformerStaleness() == 0;
+    }
+
+    @Override
     public SharedIndexInformer<V1OpportunisticResource> getOpportunisticResourceInformer() {
         activate();
         return opportunisticResourceInformer;
@@ -158,9 +169,15 @@ public class DefaultKubeApiFacade implements KubeApiFacade {
                         titusRuntime
                 );
 
-                this.nodeInformer = createNodeInformer(sharedInformerFactory);
-                this.podInformer = createPodInformer(sharedInformerFactory);
-                this.opportunisticResourceInformer = createOpportunisticResourceInformer(sharedInformerFactory);
+                if (titusRuntime.getFitFramework().isActive()) {
+                    this.nodeInformer = new FitSharedIndexInformer<>("nodeInformer", createNodeInformer(sharedInformerFactory), titusRuntime);
+                    this.podInformer = new FitSharedIndexInformer<>("podInformer", createPodInformer(sharedInformerFactory), titusRuntime);
+                    this.opportunisticResourceInformer = new FitSharedIndexInformer<>("opportunisticInformer", createOpportunisticResourceInformer(sharedInformerFactory), titusRuntime);
+                } else {
+                    this.nodeInformer = createNodeInformer(sharedInformerFactory);
+                    this.podInformer = createPodInformer(sharedInformerFactory);
+                    this.opportunisticResourceInformer = createOpportunisticResourceInformer(sharedInformerFactory);
+                }
 
                 this.nodeInformerMetrics = new KubeInformerMetrics<>("node", nodeInformer, titusRuntime);
                 this.podInformerMetrics = new KubeInformerMetrics<>("pod", podInformer, titusRuntime);

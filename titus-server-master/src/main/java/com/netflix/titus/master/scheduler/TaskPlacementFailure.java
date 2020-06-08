@@ -39,6 +39,11 @@ public class TaskPlacementFailure {
         AllAgentsFull,
 
         /**
+         * Kube API not ready.
+         */
+        KubeApiNotReady,
+
+        /**
          * Task in a capacity group, that reached its capacity limit.
          */
         AboveCapacityLimit,

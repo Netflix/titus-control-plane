@@ -36,6 +36,7 @@ public class DefaultSystemHardConstraint implements SystemHardConstraint {
     public static final String NAME = "DefaultSystemHardConstraint";
 
     private final AgentManagementConstraint agentManagementConstraint;
+    private final KubeApiNotReadySystemConstraint kubeApiNotReadySystemConstraint;
     private final AgentLaunchGuardConstraint agentLaunchGuardConstraint;
     private final AgentContainerLimitSystemConstraint agentContainerLimitSystemConstraint;
     private final SystemSelectorConstraintEvaluator systemSelectorConstraintEvaluator;
@@ -47,6 +48,7 @@ public class DefaultSystemHardConstraint implements SystemHardConstraint {
 
     @Inject
     public DefaultSystemHardConstraint(AgentManagementConstraint agentManagementConstraint,
+                                       KubeApiNotReadySystemConstraint kubeApiNotReadySystemConstraint,
                                        AgentLaunchGuardConstraint agentLaunchGuardConstraint,
                                        AgentContainerLimitSystemConstraint agentContainerLimitSystemConstraint,
                                        SystemSelectorConstraintEvaluator systemSelectorConstraintEvaluator,
@@ -54,6 +56,7 @@ public class DefaultSystemHardConstraint implements SystemHardConstraint {
                                        OpportunisticCpuConstraint opportunisticCpuConstraint,
                                        @Named(KUBE_CONSTRAINT) SystemConstraint kubeConstraint) {
         this.agentManagementConstraint = agentManagementConstraint;
+        this.kubeApiNotReadySystemConstraint = kubeApiNotReadySystemConstraint;
         this.agentLaunchGuardConstraint = agentLaunchGuardConstraint;
         this.agentContainerLimitSystemConstraint = agentContainerLimitSystemConstraint;
         this.systemSelectorConstraintEvaluator = systemSelectorConstraintEvaluator;
@@ -66,6 +69,7 @@ public class DefaultSystemHardConstraint implements SystemHardConstraint {
     public void enterActiveMode() {
         this.delegate = new CompositeSystemConstraint(asList(
                 agentManagementConstraint,
+                kubeApiNotReadySystemConstraint,
                 agentLaunchGuardConstraint,
                 agentContainerLimitSystemConstraint,
                 systemSelectorConstraintEvaluator,

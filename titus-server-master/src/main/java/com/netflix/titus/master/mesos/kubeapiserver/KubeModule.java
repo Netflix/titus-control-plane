@@ -32,6 +32,7 @@ import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.mesos.kubeapiserver.client.DefaultKubeApiFacade;
 import com.netflix.titus.master.mesos.kubeapiserver.client.KubeApiClients;
 import com.netflix.titus.master.mesos.kubeapiserver.client.KubeApiFacade;
+import com.netflix.titus.master.mesos.kubeapiserver.client.NoOpKubeApiFacade;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DefaultDirectKubeApiServerIntegrator;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DefaultPodAffinityFactory;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DefaultTaskToPodConverter;
@@ -57,7 +58,6 @@ public class KubeModule extends AbstractModule {
     @Override
     protected void configure() {
         bind(TaskToPodConverter.class).to(DefaultTaskToPodConverter.class);
-        bind(KubeApiFacade.class).to(DefaultKubeApiFacade.class);
         bind(ContainerResultCodeResolver.class).to(DefaultContainerResultCodeResolver.class);
         bind(PodAffinityFactory.class).to(DefaultPodAffinityFactory.class);
         bind(TaintTolerationFactory.class).to(DefaultTaintTolerationFactory.class);
@@ -87,6 +87,15 @@ public class KubeModule extends AbstractModule {
                 titusRuntime,
                 0L
         );
+    }
+
+    @Provides
+    @Singleton
+    public KubeApiFacade getKubeApiFacade(MesosConfiguration mesosConfiguration, Injector injector) {
+        if(mesosConfiguration.isKubeApiServerIntegrationEnabled()) {
+            return injector.getInstance(DefaultKubeApiFacade.class);
+        }
+        return new NoOpKubeApiFacade();
     }
 
     @Provides

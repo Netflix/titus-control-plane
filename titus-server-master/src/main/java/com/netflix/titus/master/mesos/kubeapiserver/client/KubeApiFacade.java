@@ -36,5 +36,22 @@ public interface KubeApiFacade {
 
     SharedIndexInformer<V1Pod> getPodInformer();
 
+    /**
+     * Provide information about how up to date the pod informer data is. If the pod informer is connected, and synced
+     * the staleness is 0.
+     *
+     * @return -1 if the pod informer was never synced or the data staleness time
+     */
+    default long getPodInformerStaleness() {
+        return 0;
+    }
+
+    /**
+     * Returns true, if the Kubernetes integration subsystem is ready for scheduling.
+     */
+    default boolean isReadyForScheduling() {
+        return true;
+    }
+
     SharedIndexInformer<V1OpportunisticResource> getOpportunisticResourceInformer();
 }

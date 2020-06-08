@@ -133,6 +133,11 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
     }
 
     @Override
+    public boolean isReadyForScheduling() {
+        return kubeApiFacade.isReadyForScheduling();
+    }
+
+    @Override
     public Mono<V1Pod> launchTask(Job job, Task task) {
         return Mono.fromCallable(() -> {
             Stopwatch timer = Stopwatch.createStarted();
