@@ -50,6 +50,7 @@ import com.netflix.titus.master.scheduler.constraint.AgentContainerLimitSystemCo
 import com.netflix.titus.master.scheduler.constraint.AgentLaunchGuardConstraint;
 import com.netflix.titus.master.scheduler.constraint.AgentManagementConstraint;
 import com.netflix.titus.master.scheduler.constraint.IpAllocationConstraint;
+import com.netflix.titus.master.scheduler.constraint.KubeApiNotReadySystemConstraint;
 import com.netflix.titus.master.scheduler.constraint.KubeConstraint;
 import com.netflix.titus.master.scheduler.constraint.OpportunisticCpuConstraint;
 import com.netflix.titus.master.scheduler.constraint.V3UniqueHostConstraint;
@@ -131,6 +132,7 @@ class TaskPlacementFailureClassifier<T extends TaskRequest> {
                          Map<FailureKind, Map<T, List<TaskPlacementFailure>>> resultCollector) {
 
         if (!processNoActiveAgent(taskRequest, assignmentResults, resultCollector)
+                && !processKubeAbiNotReady(taskRequest, assignmentResults, resultCollector)
                 && !processAboveCapacityLimit(taskRequest, assignmentResults, resultCollector)
                 && !processTooLargeToFit(taskRequest, assignmentResults, resultCollector)
                 && !processLaunchGuard(taskRequest, assignmentResults, resultCollector)
@@ -150,6 +152,23 @@ class TaskPlacementFailureClassifier<T extends TaskRequest> {
             }
         }
         addToResultCollector(taskRequest, assignmentResults, resultCollector, -1, FailureKind.NoActiveAgents);
+        return true;
+    }
+
+    private boolean processKubeAbiNotReady(T taskRequest, List<TaskAssignmentResult> assignmentResults,
+                                           Map<FailureKind, Map<T, List<TaskPlacementFailure>>> resultCollector) {
+        int count = 0;
+        for (TaskAssignmentResult assignmentResult : assignmentResults) {
+            if (isKubeApiNotReady(assignmentResult)) {
+                count++;
+            }
+        }
+        if (count == 0) {
+            return false;
+        }
+
+        addToResultCollector(taskRequest, assignmentResults, resultCollector, count, FailureKind.KubeApiNotReady);
+
         return true;
     }
 
@@ -317,6 +336,14 @@ class TaskPlacementFailureClassifier<T extends TaskRequest> {
             return true;
         }
         return !KubeConstraint.isKubeConstraintReason(constraintFailure.getReason());
+    }
+
+    private boolean isKubeApiNotReady(TaskAssignmentResult assignmentResult) {
+        ConstraintFailure constraintFailure = assignmentResult.getConstraintFailure();
+        if (constraintFailure == null || StringExt.isEmpty(constraintFailure.getReason())) {
+            return false;
+        }
+        return KubeApiNotReadySystemConstraint.isKubeApiNotReadySystemConstraintReason(constraintFailure.getReason());
     }
 
     private boolean isLaunchGuard(TaskAssignmentResult assignmentResult) {

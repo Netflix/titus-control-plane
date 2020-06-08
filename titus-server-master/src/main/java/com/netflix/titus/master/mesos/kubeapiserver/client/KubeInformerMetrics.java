@@ -30,8 +30,11 @@ class KubeInformerMetrics<ApiType> {
 
     private static final String METRICS_INFORMER_SYNCED = METRICS_ROOT + "informerSynced";
 
+    private static final String METRICS_INFORMER_STALENESS = METRICS_ROOT + "informerStaleness";
+
     private final Id sizeGaugeId;
     private final Id syncedGaugeId;
+    private final Id stalenessGaugeId;
 
     private final TitusRuntime titusRuntime;
 
@@ -41,6 +44,7 @@ class KubeInformerMetrics<ApiType> {
         this.titusRuntime = titusRuntime;
         this.sizeGaugeId = titusRuntime.getRegistry().createId(METRICS_INFORMER, "type", type);
         this.syncedGaugeId = titusRuntime.getRegistry().createId(METRICS_INFORMER_SYNCED, "type", type);
+        this.stalenessGaugeId = titusRuntime.getRegistry().createId(METRICS_INFORMER_STALENESS, "type", type);
 
         PolledMeter.using(titusRuntime.getRegistry())
                 .withId(sizeGaugeId)
@@ -48,10 +52,14 @@ class KubeInformerMetrics<ApiType> {
         PolledMeter.using(titusRuntime.getRegistry())
                 .withId(syncedGaugeId)
                 .monitorValue(informer, i -> i.hasSynced() ? 1 : 0);
+        PolledMeter.using(titusRuntime.getRegistry())
+                .withId(stalenessGaugeId)
+                .monitorValue(informer, i -> informer.hasSynced() ? 0 : -1);
     }
 
     void shutdown() {
         PolledMeter.remove(titusRuntime.getRegistry(), sizeGaugeId);
         PolledMeter.remove(titusRuntime.getRegistry(), syncedGaugeId);
+        PolledMeter.remove(titusRuntime.getRegistry(), stalenessGaugeId);
     }
 }

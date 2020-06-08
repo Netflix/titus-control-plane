@@ -41,4 +41,11 @@ public interface DirectKubeApiServerIntegrator {
      * Given a KubeAPI pod create error, resolve it to a reason code defined in {@link com.netflix.titus.api.jobmanager.model.job.TaskStatus}.
      */
     String resolveReasonCode(Throwable cause);
+
+    /**
+     * Returns true, if the Kubernetes integration subsystem is ready for scheduling.
+     */
+    default boolean isReadyForScheduling() {
+        return true;
+    }
 }
