@@ -20,6 +20,7 @@ import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
+import com.netflix.titus.master.jobmanager.service.integration.scenario.JobScenarioBuilder;
 import com.netflix.titus.master.jobmanager.service.integration.scenario.JobsScenarioBuilder;
 import com.netflix.titus.master.jobmanager.service.integration.scenario.ScenarioTemplates;
 import org.junit.Test;
@@ -75,6 +76,42 @@ public class KubeSchedulerTest {
                 .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
                 .template(ScenarioTemplates.startTask(0, 0, TaskState.Started))
                 .template(ScenarioTemplates.killKubeTask(0, 0))
+        );
+    }
+
+    @Test
+    public void testBatchPodCreateFailure() {
+        JobScenarioBuilder<JobDescriptor.JobDescriptorExt> js = jobsScenarioBuilder.scheduleJob(oneTaskBatchJobDescriptor(), jobScenario -> jobScenario
+                .failNextPodCreate(new IllegalStateException("simulated pod create error"))
+                .expectJobEvent()
+                .expectTaskStateChangeEvent(0, 0, TaskState.Accepted)
+                .allTasks(allTasks -> assertThat(allTasks).hasSize(1))
+                .advance()
+                .expectTaskStateChangeEvent(0, 0, TaskState.Finished)
+        ).getJobScenario(0);
+
+        for (int resubmit = 1; resubmit < 10; resubmit++) {
+            js.failNextPodCreate(new IllegalStateException("simulated pod create error"))
+                    .advance()
+                    .expectTaskStateChangeEvent(0, resubmit, TaskState.Accepted)
+                    .allTasks(allTasks -> assertThat(allTasks).hasSize(1))
+                    .advance()
+                    .expectTaskStateChangeEvent(0, resubmit, TaskState.Finished)
+                    .advance();
+        }
+    }
+
+    @Test
+    public void testServicePodCreateFailure() {
+        jobsScenarioBuilder.scheduleJob(oneTaskServiceJobDescriptor(), jobScenario -> jobScenario
+                .failNextPodCreate(new IllegalStateException("simulated pod create error"))
+                .expectJobEvent()
+                .expectTaskStateChangeEvent(0, 0, TaskState.Accepted)
+                .advance()
+                .expectTaskStateChangeEvent(0, 0, TaskState.Finished)
+                .advance()
+                .expectTaskStateChangeEvent(0, 1, TaskState.Accepted)
+                .allTasks(allTasks -> assertThat(allTasks).hasSize(1))
         );
     }
 }

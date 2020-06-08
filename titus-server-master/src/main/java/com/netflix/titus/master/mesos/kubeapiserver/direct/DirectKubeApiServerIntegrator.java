@@ -27,6 +27,8 @@ import reactor.core.publisher.Mono;
 
 public interface DirectKubeApiServerIntegrator {
 
+    String COMPONENT = "kubernetesIntegrator";
+
     Map<String, V1Pod> getPods();
 
     Mono<V1Pod> launchTask(Job job, Task task);
@@ -34,4 +36,9 @@ public interface DirectKubeApiServerIntegrator {
     Mono<Void> terminateTask(Task task);
 
     Flux<PodEvent> events();
+
+    /**
+     * Given a KubeAPI pod create error, resolve it to a reason code defined in {@link com.netflix.titus.api.jobmanager.model.job.TaskStatus}.
+     */
+    String resolveReasonCode(Throwable cause);
 }

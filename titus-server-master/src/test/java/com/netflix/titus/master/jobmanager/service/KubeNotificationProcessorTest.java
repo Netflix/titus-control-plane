@@ -224,6 +224,11 @@ public class KubeNotificationProcessorTest {
         public Mono<Void> terminateTask(Task task) {
             throw new UnsupportedOperationException("not needed");
         }
+
+        @Override
+        public String resolveReasonCode(Throwable cause) {
+            return TaskStatus.REASON_UNKNOWN_SYSTEM_ERROR;
+        }
     }
 
     private class FakeReconciler implements KubeJobManagementReconciler {

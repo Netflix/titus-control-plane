@@ -300,6 +300,11 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         return this;
     }
 
+    public JobScenarioBuilder<E> failNextPodCreate(RuntimeException simulatedError) {
+        kubeApiServerIntegrator.failNextTaskLaunch(simulatedError);
+        return this;
+    }
+
     public JobScenarioBuilder<E> assertServiceJob(Consumer<Job<ServiceJobExt>> serviceJob) {
         Job<?> job = jobOperations.getJob(jobId).orElseThrow(() -> new IllegalStateException("Unknown job: " + jobId));
         assertThat(JobFunctions.isServiceJob(job)).describedAs("Not a service job: %s", jobId).isTrue();
@@ -500,7 +505,8 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
                 Optional.empty(),
                 vmService.buildAttributesMap(task.getId()),
                 buildOpportunisticResourcesContext(task),
-                "Flex"
+                "Flex",
+                titusRuntime
         );
 
         AtomicBoolean done = new AtomicBoolean();
@@ -525,7 +531,8 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
                 Optional.empty(),
                 vmService.buildAttributesMap(task.getId()),
                 buildOpportunisticResourcesContext(task),
-                "Flex"
+                "Flex",
+                titusRuntime
         );
 
         AtomicReference<Throwable> failed = new AtomicReference<>();

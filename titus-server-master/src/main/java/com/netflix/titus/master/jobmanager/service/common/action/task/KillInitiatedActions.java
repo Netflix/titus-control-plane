@@ -117,7 +117,7 @@ public class KillInitiatedActions {
                                 }
                             }
 
-                            Task taskWithKillInitiated = JobFunctions.changeTaskStatus(task, TaskState.KillInitiated, reasonCode, reason);
+                            Task taskWithKillInitiated = JobFunctions.changeTaskStatus(task, TaskState.KillInitiated, reasonCode, reason, titusRuntime.getClock());
 
                             Callable<List<ModelActionHolder>> modelUpdateActions = () -> JobEntityHolders.expectTask(engine, task.getId(), titusRuntime).map(current -> {
                                 List<ModelActionHolder> updateActions = new ArrayList<>();
@@ -161,7 +161,7 @@ public class KillInitiatedActions {
                                 return Observable.just(Collections.<ModelActionHolder>emptyList());
                             }
 
-                            Task taskWithKillInitiated = JobFunctions.changeTaskStatus(currentTask, TaskState.KillInitiated, reasonCode, reason);
+                            Task taskWithKillInitiated = JobFunctions.changeTaskStatus(currentTask, TaskState.KillInitiated, reasonCode, reason, titusRuntime.getClock());
                             TitusModelAction taskUpdateAction = TitusModelAction.newModelUpdate(self).taskUpdate(taskWithKillInitiated,
                                     JobManagerConstants.RECONCILER_CALLMETADATA.toBuilder().withCallReason(reason).build());
 
@@ -209,7 +209,7 @@ public class KillInitiatedActions {
                 result.add(BasicTaskActions.updateTaskAndWriteItToStore(
                         task.getId(),
                         engine,
-                        taskRef -> JobFunctions.changeTaskStatus(taskRef, TaskState.Finished, reasonCode, reason),
+                        taskRef -> JobFunctions.changeTaskStatus(taskRef, TaskState.Finished, reasonCode, reason, titusRuntime.getClock()),
                         jobStore,
                         V3JobOperations.Trigger.Reconciler,
                         reason,
