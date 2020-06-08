@@ -11,7 +11,6 @@ import com.amazonaws.auth.STSAssumeRoleSessionCredentialsProvider;
 import com.amazonaws.services.elasticloadbalancingv2.AmazonElasticLoadBalancingAsync;
 import com.amazonaws.services.elasticloadbalancingv2.AmazonElasticLoadBalancingAsyncClientBuilder;
 import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceAsync;
-import com.netflix.titus.common.util.StringExt;
 
 @Singleton
 public class AmazonClientProvider {
@@ -35,10 +34,7 @@ public class AmazonClientProvider {
             synchronized (this) {
                 client = loadBalancerClients.get(accountId);
                 if (client == null) {
-                    String region = configuration.getDataPlaneRegion().trim().toLowerCase();
-                    if (StringExt.isEmpty(region)) {
-                        region = configuration.getRegion().trim().toLowerCase();
-                    }
+                    String region = AwsRegionConfigurationUtil.resolveDataPlaneRegion(configuration);
                     AWSCredentialsProvider credentialsProvider = getAwsCredentialsProvider(accountId);
                     client = AmazonElasticLoadBalancingAsyncClientBuilder.standard()
                             .withCredentials(credentialsProvider)
