@@ -158,7 +158,8 @@ class TaskPlacementRecorder {
                     fenzoTask.getId(),
                     oldTask -> JobManagerUtil.newTaskLaunchConfigurationUpdater(
                             masterConfiguration.getHostZoneAttributeName(), lease, consumeResult,
-                            executorUriOverrideOpt, attributesMap, opportunisticResourcesContext, getTierName(fenzoTask)
+                            executorUriOverrideOpt, attributesMap, opportunisticResourcesContext, getTierName(fenzoTask),
+                            titusRuntime
                     ).apply(oldTask),
                     JobManagerConstants.SCHEDULER_CALLMETADATA.toBuilder().withCallReason("Record task placement").build()
             ).toObservable().cast(TaskInfoRequest.class).concatWith(Observable.fromCallable(() -> {

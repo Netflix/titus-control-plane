@@ -161,7 +161,8 @@ public final class JobManagerUtil {
                                                                          Optional<String> executorUriOverrideOpt,
                                                                          Map<String, String> attributesMap,
                                                                          Map<String, String> opportunisticResourcesContext,
-                                                                         String tier) {
+                                                                         String tier,
+                                                                         TitusRuntime titusRuntime) {
         return oldTask -> {
             if (oldTask.getStatus().getState() != TaskState.Accepted) {
                 throw JobManagerException.unexpectedTaskState(oldTask, TaskState.Accepted);
@@ -192,6 +193,7 @@ public final class JobManagerUtil {
                     .withState(TaskState.Launched)
                     .withReasonCode("scheduled")
                     .withReasonMessage("Fenzo task placement")
+                    .withTimestamp(titusRuntime.getClock().wallTime())
                     .build();
 
             TwoLevelResource twoLevelResource = TwoLevelResource.newBuilder()

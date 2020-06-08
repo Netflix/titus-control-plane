@@ -305,6 +305,7 @@ public class BatchJobSchedulingTest {
                 .template(ScenarioTemplates.startTask(0, 0, TaskState.StartInitiated))
                 // Task will time out and move to KillInitiated by the system
                 .advance(120, TimeUnit.SECONDS)
+                .advance(JobsScenarioBuilder.MIN_RETRY_INTERVAL_MS, TimeUnit.MILLISECONDS)
                 .expectTaskStateChangeEvent(0, 1, TaskState.Accepted)
         );
     }

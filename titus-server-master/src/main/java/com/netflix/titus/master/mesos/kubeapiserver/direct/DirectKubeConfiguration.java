@@ -104,6 +104,18 @@ public interface DirectKubeConfiguration {
     String getKubeSchedulerName();
 
     /**
+     * Regular expression to match pod create errors for rejected pods.
+     */
+    @DefaultValue(".*")
+    String getInvalidPodMessagePattern();
+
+    /**
+     * Regular expression to match pod create errors there are recoverable.
+     */
+    @DefaultValue("NONE")
+    String getTransientSystemErrorMessagePattern();
+
+    /**
      * Amount of time to wait before a pod for a completed task should be removed.
      */
     @DefaultValue("0")

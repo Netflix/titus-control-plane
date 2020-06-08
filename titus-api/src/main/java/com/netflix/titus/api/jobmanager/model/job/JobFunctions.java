@@ -300,11 +300,12 @@ public final class JobFunctions {
         return taskStatusChangeBuilder(task, status).build();
     }
 
-    public static Task changeTaskStatus(Task task, TaskState taskState, String reasonCode, String reasonMessage) {
+    public static Task changeTaskStatus(Task task, TaskState taskState, String reasonCode, String reasonMessage, Clock clock) {
         TaskStatus newStatus = JobModel.newTaskStatus()
                 .withState(taskState)
                 .withReasonCode(reasonCode)
                 .withReasonMessage(reasonMessage)
+                .withTimestamp(clock.wallTime())
                 .build();
         return taskStatusChangeBuilder(task, newStatus).build();
     }

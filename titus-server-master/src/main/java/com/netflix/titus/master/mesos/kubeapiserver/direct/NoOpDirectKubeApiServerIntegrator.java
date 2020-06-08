@@ -21,6 +21,7 @@ import java.util.Map;
 
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodEvent;
 import io.kubernetes.client.openapi.models.V1Pod;
 import reactor.core.publisher.Flux;
@@ -46,5 +47,10 @@ public class NoOpDirectKubeApiServerIntegrator implements DirectKubeApiServerInt
     @Override
     public Flux<PodEvent> events() {
         return Flux.never();
+    }
+
+    @Override
+    public String resolveReasonCode(Throwable cause) {
+        return TaskStatus.REASON_UNKNOWN_SYSTEM_ERROR;
     }
 }
