@@ -20,20 +20,13 @@ package com.netflix.titus.master.mesos.kubeapiserver;
  * Miscellaneous Kube constants.
  */
 public final class KubeConstants {
+
     private KubeConstants() {
     }
 
     /*
      * Standard node labels.
      */
-
-    /**
-     * Prefix used for legacy node attributes
-     *
-     * <em>Deprecated</em>: use a prefix that is a valid DNS name (rather than using Java package conventions)
-     */
-    @Deprecated
-    public static final String NODE_ANNOTATION_PREFIX = "com.netflix.titus.agent.attribute/";
 
     public static final String NODE_LABEL_REGION = "failure-domain.beta.kubernetes.io/region";
 
