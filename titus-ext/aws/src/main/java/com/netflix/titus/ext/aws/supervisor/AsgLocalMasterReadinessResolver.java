@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
+import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.amazonaws.services.autoscaling.AmazonAutoScalingAsync;
@@ -39,6 +40,7 @@ import com.netflix.titus.common.util.retry.Retryers;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.ext.aws.AwsConfiguration;
 import com.netflix.titus.ext.aws.AwsReactorExt;
+import com.netflix.titus.ext.aws.ControlPlaneAmazonAutoScalingAsyncProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -76,7 +78,7 @@ public class AsgLocalMasterReadinessResolver implements LocalMasterReadinessReso
 
     @Inject
     public AsgLocalMasterReadinessResolver(AwsConfiguration configuration,
-                                           AmazonAutoScalingAsync autoScalingClient,
+                                           @Named(ControlPlaneAmazonAutoScalingAsyncProvider.NAME) AmazonAutoScalingAsync autoScalingClient,
                                            TitusRuntime titusRuntime) {
         this(configuration, autoScalingClient, REFRESH_SCHEDULER_DESCRIPTOR, titusRuntime, Schedulers.parallel());
     }

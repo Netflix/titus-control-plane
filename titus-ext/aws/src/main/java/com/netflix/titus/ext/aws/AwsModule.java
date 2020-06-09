@@ -41,10 +41,14 @@ public class AwsModule extends AbstractModule {
     protected void configure() {
         bind(AWSSecurityTokenServiceAsync.class).toProvider(AmazonStsAsyncProvider.class);
         bind(AmazonEC2Async.class).toProvider(AmazonEC2AsyncProvider.class);
-        bind(AmazonAutoScalingAsync.class).toProvider(AmazonAutoScalingAsyncProvider.class);
         bind(AmazonElasticLoadBalancingAsync.class).toProvider(AmazonElasticLoadBalancingAsyncProvider.class);
         bind(AmazonAutoScaling.class).toProvider(AmazonAutoScalingProvider.class);
         bind(AmazonIdentityManagementAsync.class).toProvider(AmazonIamAsyncProvider.class);
+
+        bind(AmazonAutoScalingAsync.class).annotatedWith(Names.named(DataPlaneAmazonAutoScalingAsyncProvider.NAME))
+                .toProvider(DataPlaneAmazonAutoScalingAsyncProvider.class);
+        bind(AmazonAutoScalingAsync.class).annotatedWith(Names.named(ControlPlaneAmazonAutoScalingAsyncProvider.NAME))
+                .toProvider(ControlPlaneAmazonAutoScalingAsyncProvider.class);
 
         bind(AWSCredentialsProvider.class)
                 .annotatedWith(Names.named(DataPlaneControllerCredentialsProvider.NAME))
@@ -77,7 +81,7 @@ public class AwsModule extends AbstractModule {
         return new AwsInstanceCloudConnector(
                 configuration,
                 new AmazonEC2AsyncProvider(configuration, dataPlaneControllerCredentials).get(),
-                new AmazonAutoScalingAsyncProvider(configuration, dataPlaneControllerCredentials).get()
+                new DataPlaneAmazonAutoScalingAsyncProvider(configuration, dataPlaneControllerCredentials).get()
         );
     }
 

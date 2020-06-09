@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Netflix, Inc.
+ * Copyright 2020 Netflix, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,38 +16,20 @@
 
 package com.netflix.titus.ext.aws;
 
-import javax.annotation.PreDestroy;
-import javax.inject.Inject;
 import javax.inject.Provider;
-import javax.inject.Singleton;
 
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.autoscaling.AmazonAutoScalingAsync;
 import com.amazonaws.services.autoscaling.AmazonAutoScalingAsyncClientBuilder;
 
-@Singleton
-public class AmazonAutoScalingAsyncProvider implements Provider<AmazonAutoScalingAsync> {
+public abstract class AmazonAutoScalingAsyncProvider implements Provider<AmazonAutoScalingAsync> {
 
-    private final AmazonAutoScalingAsync amazonAutoScaling;
-
-    @Inject
-    public AmazonAutoScalingAsyncProvider(AwsConfiguration configuration, AWSCredentialsProvider credentialProvider) {
-        String region = AwsRegionConfigurationUtil.resolveDataPlaneRegion(configuration);
-
-        this.amazonAutoScaling = AmazonAutoScalingAsyncClientBuilder.standard()
+    protected AmazonAutoScalingAsync buildAmazonAutoScalingAsyncClient(String region, AWSCredentialsProvider credentialProvider) {
+        return AmazonAutoScalingAsyncClientBuilder.standard()
                 .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration("autoscaling." + region + ".amazonaws.com", region))
                 .withCredentials(credentialProvider)
                 .build();
     }
 
-    @Override
-    public AmazonAutoScalingAsync get() {
-        return amazonAutoScaling;
-    }
-
-    @PreDestroy
-    public void shutdown() {
-        amazonAutoScaling.shutdown();
-    }
 }
