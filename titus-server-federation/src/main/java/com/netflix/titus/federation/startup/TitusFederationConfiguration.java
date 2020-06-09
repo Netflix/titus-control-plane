@@ -30,4 +30,7 @@ public interface TitusFederationConfiguration {
 
     @DefaultValue("cell1=(app1.*|app2.*);cell2=(.*)")
     String getRoutingRules();
+
+    @DefaultValue("cell1=(gpu.*)")
+    String getInstanceTypeRoutingRules();
 }

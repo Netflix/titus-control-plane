@@ -269,17 +269,19 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
         for (BatchJobTask refTask : tasks) {
             BatchJobTask runningTask = runningJobView.getTaskById(refTask.getId());
             if (JobFunctions.isOwnedByKubeScheduler(refTask)) {
-                // TODO This complexity exists due to the way Fenzo is initialized on bootstrap. This code can be simplified one we move off Fenzo.
-                if (runningTask == null || (refTask.getStatus().getState() == TaskState.Accepted && !TaskStatus.hasPod(refTask))) {
-                    missingTasks.add(BasicTaskActions.launchTaskInKube(
-                            kubeApiServerIntegrator,
-                            configuration,
-                            engine,
-                            runningJobView.getJob(),
-                            refTask,
-                            RECONCILER_CALLMETADATA.toBuilder().withCallReason("Launching task in Kube").build(),
-                            titusRuntime
-                    ));
+                if (kubeApiServerIntegrator.isReadyForScheduling()) {
+                    // TODO This complexity exists due to the way Fenzo is initialized on bootstrap. This code can be simplified one we move off Fenzo.
+                    if (runningTask == null || (refTask.getStatus().getState() == TaskState.Accepted && !TaskStatus.hasPod(refTask))) {
+                        missingTasks.add(BasicTaskActions.launchTaskInKube(
+                                kubeApiServerIntegrator,
+                                configuration,
+                                engine,
+                                runningJobView.getJob(),
+                                refTask,
+                                RECONCILER_CALLMETADATA.toBuilder().withCallReason("Launching task in Kube").build(),
+                                titusRuntime
+                        ));
+                    }
                 }
             } else {
                 if (runningTask == null) {

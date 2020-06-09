@@ -114,4 +114,18 @@ public class KubeSchedulerTest {
                 .allTasks(allTasks -> assertThat(allTasks).hasSize(1))
         );
     }
+
+    @Test
+    public void testPodIsNotScheduledIfKubeIntegratorNotReady() {
+        jobsScenarioBuilder.scheduleJob(oneTaskBatchJobDescriptor(), jobScenario -> jobScenario
+                .enableKubeIntegration(false)
+                .expectJobEvent()
+                .expectTaskStateChangeEvent(0, 0, TaskState.Accepted)
+                .advance()
+                .expectNoTaskStateChangeEvent()
+                .enableKubeIntegration(true)
+                .advance()
+                .expectTaskStateChangeEvent(0, 0, TaskState.Accepted, TaskStatus.REASON_POD_CREATED)
+        );
+    }
 }

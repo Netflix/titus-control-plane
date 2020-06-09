@@ -30,6 +30,7 @@ import javax.inject.Singleton;
 
 import com.google.protobuf.Empty;
 import com.netflix.titus.api.federation.model.Cell;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.ProtobufExt;
@@ -38,6 +39,7 @@ import com.netflix.titus.common.util.concurrency.CallbackCountDownLatch;
 import com.netflix.titus.common.util.rx.EmitterWithMultipleSubscriptions;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.federation.service.router.CellRouter;
 import com.netflix.titus.federation.startup.GrpcConfiguration;
 import com.netflix.titus.federation.startup.TitusFederationConfiguration;
 import com.netflix.titus.grpc.protogen.Job;
@@ -67,12 +69,11 @@ import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskMoveRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
-import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway;
 import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
-import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor;
 import com.netflix.titus.runtime.jobmanager.JobManagerCursors;
+import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,9 +87,9 @@ import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_ST
 import static com.netflix.titus.federation.service.CellConnectorUtil.callToCell;
 import static com.netflix.titus.federation.service.PageAggregationUtil.combinePagination;
 import static com.netflix.titus.federation.service.PageAggregationUtil.takeCombinedPage;
-import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobQueryModelConverters.emptyGrpcPagination;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createRequestObservable;
 import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createWrappedStub;
+import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobQueryModelConverters.emptyGrpcPagination;
 
 @Singleton
 public class AggregatingJobServiceGateway implements JobServiceGateway {
@@ -126,7 +127,11 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
 
     @Override
     public Observable<String> createJob(JobDescriptor jobDescriptor, CallMetadata callMetadata) {
-        Cell cell = router.routeKey(jobDescriptor);
+        Cell cell = router.routeKey(jobDescriptor).orElse(null);
+        if (cell == null) {
+            // This should never happen in a correctly setup system.
+            return Observable.error(new IllegalStateException("Internal system error. Routing rule not found"));
+        }
         logger.debug("Routing JobDescriptor {} to Cell {}", jobDescriptor, cell);
 
         Optional<JobManagementServiceStub> optionalClient = CellConnectorUtil.toStub(cell, connector, JobManagementServiceGrpc::newStub);

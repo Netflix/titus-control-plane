@@ -36,12 +36,14 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.Evaluators;
+import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.NetworkExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.grpc.protogen.JobDescriptor;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeConfiguration;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
+import io.kubernetes.client.openapi.ApiException;
 import io.kubernetes.client.openapi.models.V1ContainerState;
 import io.kubernetes.client.openapi.models.V1ContainerStateRunning;
 import io.kubernetes.client.openapi.models.V1ContainerStateTerminated;
@@ -292,5 +294,18 @@ public class KubeUtil {
         }
         logger.debug("Non-farzone node: nodeId={}, zoneId={}", node.getMetadata().getName(), nodeZone);
         return false;
+    }
+
+    public static String toErrorDetails(Exception e) {
+        if (!(e instanceof ApiException)) {
+            return ExceptionExt.toMessageChain(e);
+        }
+
+        ApiException apiException = (ApiException) e;
+        return String.format("{message=%s, httpCode=%d, responseBody=%s",
+                Evaluators.getOrDefault(apiException.getMessage(), "<not set>"),
+                apiException.getCode(),
+                Evaluators.getOrDefault(apiException.getResponseBody(), "<not set>")
+        );
     }
 }

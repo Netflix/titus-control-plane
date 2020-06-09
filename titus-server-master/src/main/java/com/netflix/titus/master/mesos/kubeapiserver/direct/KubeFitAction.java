@@ -57,6 +57,11 @@ public class KubeFitAction extends AbstractFitAction {
          * Do not call KubeAPI, just fail the pod create request immediately.
          */
         POD_CREATE_ERROR,
+
+        /**
+         * Report an informer data to be stale.
+         */
+        INFORMER_NOT_SYNCED,
     }
 
     @Override
@@ -66,6 +71,8 @@ public class KubeFitAction extends AbstractFitAction {
             switch (errorKind) {
                 case POD_CREATE_ERROR:
                     throw new IllegalStateException("Simulating pod create error");
+                case INFORMER_NOT_SYNCED:
+                    throw new IllegalStateException("Simulating informer data staleness");
             }
         }
     }

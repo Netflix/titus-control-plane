@@ -125,6 +125,11 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         return kubeScheduler;
     }
 
+    public JobScenarioBuilder<E> enableKubeIntegration(boolean enabled) {
+        kubeApiServerIntegrator.enableKubeIntegration(enabled);
+        return this;
+    }
+
     public JobScenarioBuilder<E> advance() {
         testScheduler.advanceTimeBy(RECONCILER_ACTIVE_TIMEOUT_MS, TimeUnit.MILLISECONDS);
         return this;

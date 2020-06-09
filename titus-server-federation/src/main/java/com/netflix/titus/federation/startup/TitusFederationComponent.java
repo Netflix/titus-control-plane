@@ -16,14 +16,21 @@
 
 package com.netflix.titus.federation.startup;
 
+import java.util.Arrays;
+
 import com.netflix.titus.federation.endpoint.FederationEndpointComponent;
+import com.netflix.titus.federation.service.CellInfoResolver;
 import com.netflix.titus.federation.service.DefaultCellConnector;
 import com.netflix.titus.federation.service.DefaultCellInfoResolver;
-import com.netflix.titus.federation.service.DefaultCellRouter;
 import com.netflix.titus.federation.service.DefaultCellWebClientConnector;
 import com.netflix.titus.federation.service.ServiceComponent;
 import com.netflix.titus.federation.service.SimpleWebClientFactory;
 import com.netflix.titus.federation.service.WebClientFactory;
+import com.netflix.titus.federation.service.router.ApplicationCellRouter;
+import com.netflix.titus.federation.service.router.CellRouter;
+import com.netflix.titus.federation.service.router.ChainCellRouter;
+import com.netflix.titus.federation.service.router.FallbackCellRouter;
+import com.netflix.titus.federation.service.router.SpecialInstanceTypeRouter;
 import com.netflix.titus.runtime.TitusEntitySanitizerComponent;
 import com.netflix.titus.runtime.endpoint.resolver.HostCallerIdResolver;
 import com.netflix.titus.runtime.endpoint.resolver.NoOpHostCallerIdResolver;
@@ -37,7 +44,6 @@ import org.springframework.context.annotation.Import;
 
         DefaultCellInfoResolver.class,
         DefaultCellConnector.class,
-        DefaultCellRouter.class,
         DefaultCellWebClientConnector.class,
 
         ServiceComponent.class,
@@ -53,5 +59,14 @@ public class TitusFederationComponent {
     @Bean
     public WebClientFactory getWebClientFactory() {
         return SimpleWebClientFactory.getInstance();
+    }
+
+    @Bean
+    public CellRouter getCellRouter(CellInfoResolver cellInfoResolver, TitusFederationConfiguration federationConfiguration) {
+        return new ChainCellRouter(Arrays.asList(
+                SpecialInstanceTypeRouter.getGpuInstanceTypeRouter(cellInfoResolver, federationConfiguration),
+                new ApplicationCellRouter(cellInfoResolver, federationConfiguration),
+                new FallbackCellRouter(cellInfoResolver)
+        ));
     }
 }
