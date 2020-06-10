@@ -144,7 +144,7 @@ public class KubeNotificationProcessor {
         PodWrapper podWrapper = new PodWrapper(event.getPod());
 
         if (!podWrapper.hasContainers()) {
-            if (podWrapper.getPodPhase() == PodPhase.FAILED || podWrapper.getPodPhase() == PodPhase.SUCCEEDED) {
+            if (podWrapper.isTerminated()) {
                 return handleTerminalPodPhaseWithoutContainer(podWrapper, job, task);
             }
 

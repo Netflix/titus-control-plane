@@ -83,4 +83,9 @@ public class PodWrapper {
         return v1Pod.getMetadata() != null && v1Pod.getMetadata().getDeletionTimestamp() != null;
 
     }
+
+    public boolean isTerminated() {
+        PodPhase podPhase = getPodPhase();
+        return podPhase == PodPhase.FAILED || podPhase == PodPhase.SUCCEEDED;
+    }
 }
