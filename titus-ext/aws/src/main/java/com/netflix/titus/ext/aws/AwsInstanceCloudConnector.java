@@ -29,6 +29,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
+import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.amazonaws.AmazonWebServiceRequest;
@@ -131,7 +132,7 @@ public class AwsInstanceCloudConnector implements InstanceCloudConnector {
     @Inject
     public AwsInstanceCloudConnector(AwsConfiguration configuration,
                                      AmazonEC2Async ec2Client,
-                                     AmazonAutoScalingAsync autoScalingClient) {
+                                     @Named(DataPlaneAmazonAutoScalingAsyncProvider.NAME) AmazonAutoScalingAsync autoScalingClient) {
         this(configuration, ec2Client, autoScalingClient, Schedulers.computation());
     }
 
