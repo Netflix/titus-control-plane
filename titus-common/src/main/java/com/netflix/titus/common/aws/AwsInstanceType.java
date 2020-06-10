@@ -197,7 +197,15 @@ public enum AwsInstanceType {
             .ebsBandwidthMbs(14_000)
             .build()
     ),
-
+    R5_24XLarge(AwsInstanceDescriptor.newBuilder("r5.24xlarge")
+            .cpu(96)
+            .memoryGB(768)
+            .storageGB(1_500)
+            .networkMbs(25_000)
+            .ebsOnly()
+            .ebsBandwidthMbs(14_000)
+            .build()
+    ),
     /*
      * G2 family
      */
