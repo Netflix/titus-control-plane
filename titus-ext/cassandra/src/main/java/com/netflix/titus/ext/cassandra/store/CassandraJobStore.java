@@ -604,6 +604,15 @@ public class CassandraJobStore implements JobStore {
         ).toCompletable();
     }
 
+    /**
+     * This method reads data from the archive table, and if not found checks the active table for its existence.
+     * The latter is needed as sometimes a job may not be correctly archived, and we do not have a reconciliation process
+     * that would fix it.
+     * <p>
+     * This method should be only used to get state of a finished job. It would return a persisted state for an active job
+     * as well, as a side effect for the workaround implemented here. A caller should not piggyback on this behavior, as
+     * it may change at any point in time.
+     */
     @Override
     public Observable<Job<?>> retrieveArchivedJob(String jobId) {
         Observable<Job> action = retrieveEntityById(jobId, Job.class, retrieveArchivedJobStatement)
@@ -612,13 +621,22 @@ public class CassandraJobStore implements JobStore {
         return (Observable) action;
     }
 
+    /**
+     * This method reads data from the archive table, and if not found checks the active table for its existence.
+     * The latter is needed as sometimes a job may not be correctly archived, and we do not have a reconciliation process
+     * that would fix it.
+     * <p>
+     * This method should be only used to get state of a finished job. It would return a persisted state for an active job
+     * as well, as a side effect for the workaround implemented here. A caller should not piggyback on this behavior, as
+     * it may change at any point in time.
+     */
     @Override
     public Observable<Task> retrieveArchivedTasksForJob(String jobId) {
-        return retrieveArchivedTasksForJob(jobId, retrieveArchivedTaskIdsForJobStatement, retrieveArchivedTaskStatement)
-                .switchIfEmpty(retrieveArchivedTasksForJob(jobId, retrieveActiveTaskIdsForJobStatement, retrieveActiveTaskStatement));
+        return retrieveTasksForJob(jobId, retrieveArchivedTaskIdsForJobStatement, retrieveArchivedTaskStatement)
+                .switchIfEmpty(retrieveTasksForJob(jobId, retrieveActiveTaskIdsForJobStatement, retrieveActiveTaskStatement));
     }
 
-    private Observable<Task> retrieveArchivedTasksForJob(String jobId, PreparedStatement taskIdStatement, PreparedStatement taskStatement) {
+    private Observable<Task> retrieveTasksForJob(String jobId, PreparedStatement taskIdStatement, PreparedStatement taskStatement) {
         return Observable.fromCallable(() -> taskIdStatement.bind(jobId).setFetchSize(Integer.MAX_VALUE))
                 .flatMap(retrieveActiveTaskIdsForJob ->
                         execute(retrieveActiveTaskIdsForJob).flatMap(taskIdsResultSet -> {
@@ -637,6 +655,15 @@ public class CassandraJobStore implements JobStore {
                         }));
     }
 
+    /**
+     * This method reads data from the archive table, and if not found checks the active table for its existence.
+     * The latter is needed as sometimes a task may not be correctly archived, and we do not have a reconciliation process
+     * that would fix it.
+     * <p>
+     * This method should be only used to get state of a task belonging to a finished job. It would return a persisted
+     * state for a task belonging to an active job as well, as a side effect for the workaround implemented here.
+     * A caller should not piggyback on this behavior, as it may change at any point in time.
+     */
     @Override
     public Observable<Task> retrieveArchivedTask(String taskId) {
         return retrieveEntityById(taskId, Task.class, retrieveArchivedTaskStatement)
