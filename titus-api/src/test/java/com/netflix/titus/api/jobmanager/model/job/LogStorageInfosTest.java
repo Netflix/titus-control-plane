@@ -59,13 +59,14 @@ public class LogStorageInfosTest {
         // Empty context
         assertThat(LogStorageInfos.findCustomS3Bucket(JobGenerator.oneBatchJob())).isEmpty();
 
-        // Non empty context
-        Job customizedJob = newJob("bucketA", "pathB");
-        S3Bucket s3Bucket = LogStorageInfos.findCustomS3Bucket(customizedJob).orElse(null);
-        assertThat(s3Bucket.getBucketName()).isEqualTo("bucketA");
+        // Bucket only
+        Job bucketOnlyJob = newJob("bucketA", null);
+        assertThat(LogStorageInfos.findCustomS3Bucket(bucketOnlyJob)).contains(new S3Bucket("bucketA"));
 
-        String customPathPrefix = LogStorageInfos.findCustomPathPrefix(customizedJob.getJobDescriptor()).orElse(null);
-        assertThat(customPathPrefix).isEqualTo("pathB");
+        // Bucket and path
+        Job customizedJob = newJob("bucketA", "pathB");
+        assertThat(LogStorageInfos.findCustomS3Bucket(customizedJob)).contains(new S3Bucket("bucketA"));
+        assertThat(LogStorageInfos.findCustomPathPrefix(customizedJob.getJobDescriptor())).contains("pathB");
     }
 
     @Test
