@@ -17,7 +17,6 @@
 package com.netflix.titus.master.mesos.kubeapiserver;
 
 import java.util.Base64;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -25,7 +24,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import com.google.common.base.Strings;
 import com.google.gson.Gson;
@@ -194,9 +192,7 @@ public class KubeUtil {
     }
 
     public static String getNodeIpV4Address(V1Node node) {
-        return Optional.ofNullable(node.getStatus().getAddresses())
-                .map(Collection::stream)
-                .orElseGet(Stream::empty)
+        return node.getStatus().getAddresses().stream()
                 .filter(a -> a.getType().equalsIgnoreCase(TYPE_INTERNAL_IP) && NetworkExt.isIpV4(a.getAddress()))
                 .findFirst()
                 .map(V1NodeAddress::getAddress)
@@ -285,11 +281,7 @@ public class KubeUtil {
     }
 
     public static boolean isFarzoneNode(List<String> farzones, V1Node node) {
-        Map<String, String> labels = node.getMetadata().getLabels();
-        if (CollectionsExt.isNullOrEmpty(labels)) {
-            return false;
-        }
-        String nodeZone = labels.get(KubeConstants.NODE_LABEL_ZONE);
+        String nodeZone = node.getMetadata().getLabels().get(KubeConstants.NODE_LABEL_ZONE);
         if (StringExt.isEmpty(nodeZone)) {
             logger.debug("Node without zone label: {}", node.getMetadata().getName());
             return false;
