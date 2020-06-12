@@ -604,45 +604,91 @@ public class CassandraJobStore implements JobStore {
         ).toCompletable();
     }
 
+    /**
+     * This method reads data from the archive table, and if not found checks the active table for its existence.
+     * The latter is needed as sometimes a job may not be correctly archived, and we do not have a reconciliation process
+     * that would fix it.
+     * <p>
+     * This method should be only used to get state of a finished job. It would return a persisted state for an active job
+     * as well, as a side effect for the workaround implemented here. A caller should not piggyback on this behavior, as
+     * it may change at any point in time.
+     */
     @Override
     public Observable<Job<?>> retrieveArchivedJob(String jobId) {
-        return Observable.fromCallable((Callable<Statement>) () -> retrieveArchivedJobStatement.bind(jobId)).flatMap(statement -> execute(statement)
-                .map(resultSet -> {
-                    Row row = resultSet.one();
-                    if (row == null) {
-                        throw JobStoreException.jobDoesNotExist(jobId);
-                    }
-                    String value = row.getString(0);
-                    return (Job<?>) ObjectMappers.readValue(mapper, value, Job.class);
-                }));
+        Observable<Job> action = retrieveEntityById(jobId, Job.class, retrieveArchivedJobStatement)
+                .switchIfEmpty(retrieveEntityById(jobId, Job.class, retrieveActiveJobStatement))
+                .switchIfEmpty(Observable.error(JobStoreException.jobDoesNotExist(jobId)));
+        return (Observable) action;
     }
 
+    /**
+     * This method reads data from the archive table, and if not found checks the active table for its existence.
+     * The latter is needed as sometimes a job may not be correctly archived, and we do not have a reconciliation process
+     * that would fix it.
+     * <p>
+     * This method should be only used to get state of a finished job. It would return a persisted state for an active job
+     * as well, as a side effect for the workaround implemented here. A caller should not piggyback on this behavior, as
+     * it may change at any point in time.
+     */
     @Override
     public Observable<Task> retrieveArchivedTasksForJob(String jobId) {
-        return Observable.fromCallable(() -> retrieveArchivedTaskIdsForJobStatement.bind(jobId).setFetchSize(Integer.MAX_VALUE))
-                .flatMap(retrieveActiveTaskIdsForJob -> execute(retrieveActiveTaskIdsForJob).flatMap(taskIdsResultSet -> {
-                    List<String> taskIds = taskIdsResultSet.all().stream().map(row -> row.getString(0)).collect(Collectors.toList());
-                    List<Observable<ResultSet>> observables = taskIds.stream().map(retrieveArchivedTaskStatement::bind).map(this::execute).collect(Collectors.toList());
-                    return Observable.merge(observables, getConcurrencyLimit()).flatMapIterable(tasksResultSet -> tasksResultSet.all().stream()
-                            .map(row -> row.getString(0))
-                            .map(value -> deserializeTask(value))
-                            .collect(Collectors.toList()));
-                }));
+        return retrieveTasksForJob(jobId, retrieveArchivedTaskIdsForJobStatement, retrieveArchivedTaskStatement)
+                .switchIfEmpty(retrieveTasksForJob(jobId, retrieveActiveTaskIdsForJobStatement, retrieveActiveTaskStatement));
     }
 
+    private Observable<Task> retrieveTasksForJob(String jobId, PreparedStatement taskIdStatement, PreparedStatement taskStatement) {
+        return Observable.fromCallable(() -> taskIdStatement.bind(jobId).setFetchSize(Integer.MAX_VALUE))
+                .flatMap(retrieveActiveTaskIdsForJob ->
+                        execute(retrieveActiveTaskIdsForJob).flatMap(taskIdsResultSet -> {
+                            List<String> taskIds = taskIdsResultSet.all().stream().map(row -> row.getString(0)).collect(Collectors.toList());
+                            if (taskIds.isEmpty()) {
+                                return Observable.empty();
+                            }
+                            List<Observable<ResultSet>> observables = taskIds.stream()
+                                    .map(taskStatement::bind)
+                                    .map(this::execute)
+                                    .collect(Collectors.toList());
+                            return Observable.merge(observables, getConcurrencyLimit()).flatMapIterable(tasksResultSet -> tasksResultSet.all().stream()
+                                    .map(row -> row.getString(0))
+                                    .map(this::deserializeTask)
+                                    .collect(Collectors.toList()));
+                        }));
+    }
+
+    /**
+     * This method reads data from the archive table, and if not found checks the active table for its existence.
+     * The latter is needed as sometimes a task may not be correctly archived, and we do not have a reconciliation process
+     * that would fix it.
+     * <p>
+     * This method should be only used to get state of a task belonging to a finished job. It would return a persisted
+     * state for a task belonging to an active job as well, as a side effect for the workaround implemented here.
+     * A caller should not piggyback on this behavior, as it may change at any point in time.
+     */
     @Override
     public Observable<Task> retrieveArchivedTask(String taskId) {
-        return Observable.fromCallable((Callable<Statement>) () -> retrieveArchivedTaskStatement.bind(taskId))
-                .flatMap(statement -> execute(statement).flatMap(resultSet -> {
+        return retrieveEntityById(taskId, Task.class, retrieveArchivedTaskStatement)
+                .switchIfEmpty(retrieveEntityById(taskId, Task.class, retrieveActiveTaskStatement))
+                .switchIfEmpty(Observable.error(JobStoreException.taskDoesNotExist(taskId)));
+    }
+
+    private <T> Observable<T> retrieveEntityById(String id, Class<T> type, PreparedStatement preparedStatement) {
+        return Observable.fromCallable((Callable<Statement>) () -> preparedStatement.bind(id))
+                .flatMap(this::execute)
+                .flatMap(resultSet -> {
                     Row row = resultSet.one();
-                    if (row != null) {
-                        String value = row.getString(0);
-                        Task task = deserializeTask(value);
-                        return Observable.just(task);
-                    } else {
-                        return Observable.error(JobStoreException.taskDoesNotExist(taskId));
+                    if (row == null) {
+                        return Observable.empty();
                     }
-                }));
+                    try {
+                        String value = row.getString(0);
+                        if (type.isAssignableFrom(Task.class)) {
+                            return Observable.just((T) deserializeTask(value));
+                        }
+                        return Observable.just(ObjectMappers.readValue(mapper, value, type));
+                    } catch (Exception e) {
+                        return Observable.error(e);
+                    }
+                });
     }
 
     private Task deserializeTask(String value) {

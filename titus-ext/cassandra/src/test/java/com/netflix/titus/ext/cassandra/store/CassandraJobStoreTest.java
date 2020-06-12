@@ -302,17 +302,37 @@ public class CassandraJobStoreTest {
 
     @Test
     public void testRetrieveArchivedJob() {
+        testRetrieveArchivedJob(true);
+    }
+
+    @Test
+    public void testRetrieveArchivedJobFromActiveTable() {
+        testRetrieveArchivedJob(false);
+    }
+
+    private void testRetrieveArchivedJob(boolean archive) {
         JobStore store = getJobStore();
         Job<BatchJobExt> job = createBatchJobObject();
         store.init().await();
         store.storeJob(job).await();
-        store.deleteJob(job).await();
+        if (archive) {
+            store.deleteJob(job).await();
+        }
         Job archivedJob = store.retrieveArchivedJob(job.getId()).toBlocking().first();
         assertThat(archivedJob).isEqualTo(job);
     }
 
     @Test
     public void testRetrieveArchivedTasksForJob() {
+        testRetrieveArchivedTasksForJob(true);
+    }
+
+    @Test
+    public void testRetrieveArchivedTasksForJobFromActiveTable() {
+        testRetrieveArchivedTasksForJob(false);
+    }
+
+    private void testRetrieveArchivedTasksForJob(boolean archive) {
         JobStore store = getJobStore();
         Job<BatchJobExt> job = createBatchJobObject();
         store.init().await();
@@ -321,13 +341,24 @@ public class CassandraJobStoreTest {
         assertThat(jobsAndErrors.getLeft().get(0)).isEqualTo(job);
         Task task = createTaskObject(job);
         store.storeTask(task).await();
-        store.deleteTask(task).await();
+        if (archive) {
+            store.deleteTask(task).await();
+        }
         Task archivedTask = store.retrieveArchivedTasksForJob(job.getId()).toBlocking().first();
         assertThat(archivedTask).isEqualTo(task);
     }
 
     @Test
     public void testRetrieveArchivedTask() {
+        testRetrieveArchivedTask(true);
+    }
+
+    @Test
+    public void testRetrieveArchivedTaskFromActiveTable() {
+        testRetrieveArchivedTask(false);
+    }
+
+    private void testRetrieveArchivedTask(boolean archive) {
         JobStore store = getJobStore();
         Job<BatchJobExt> job = createBatchJobObject();
         store.init().await();
@@ -336,7 +367,9 @@ public class CassandraJobStoreTest {
         assertThat(jobsAndErrors.getLeft().get(0)).isEqualTo(job);
         Task task = createTaskObject(job);
         store.storeTask(task).await();
-        store.deleteTask(task).await();
+        if (archive) {
+            store.deleteTask(task).await();
+        }
         Task archivedTask = store.retrieveArchivedTask(task.getId()).toBlocking().first();
         assertThat(archivedTask).isEqualTo(task);
     }
