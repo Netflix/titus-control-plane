@@ -37,6 +37,7 @@ import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.model.job.retry.ExponentialBackoffRetryPolicy;
 import com.netflix.titus.api.jobmanager.store.JobStore;
+import com.netflix.titus.api.jobmanager.store.JobStoreException;
 import com.netflix.titus.api.json.ObjectMappers;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.tuple.Pair;
@@ -52,6 +53,7 @@ import rx.Completable;
 import rx.Observable;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 @Category(IntegrationNotParallelizableTest.class)
 public class CassandraJobStoreTest {
@@ -88,6 +90,14 @@ public class CassandraJobStoreTest {
         assertThat(jobsAndErrors.getLeft()).hasSize(1);
         assertThat(jobsAndErrors.getRight()).isEqualTo(0);
         assertThat(jobsAndErrors.getLeft().get(0)).isEqualTo(job);
+
+        // Check that archive access does not return anything.
+        try {
+            store.retrieveArchivedJob(job.getId()).toBlocking().first();
+            fail("Should not return active job");
+        } catch (JobStoreException e) {
+            assertThat(e.getErrorCode()).isEqualTo(JobStoreException.ErrorCode.JOB_DOES_NOT_EXIST);
+        }
     }
 
     @Test
@@ -213,6 +223,10 @@ public class CassandraJobStoreTest {
         store.storeTask(task).await();
         Pair<List<Task>, Integer> tasks = store.retrieveTasksForJob(job.getId()).toBlocking().first();
         assertThat(tasks.getLeft().get(0)).isEqualTo(task);
+
+        // Check that archive access does not return anything.
+        Task archivedTask = store.retrieveArchivedTasksForJob(job.getId()).toBlocking().firstOrDefault(null);
+        assertThat(archivedTask).isNull();
     }
 
     @Test
@@ -227,6 +241,14 @@ public class CassandraJobStoreTest {
         store.storeTask(task).await();
         Task retrievedTask = store.retrieveTask(task.getId()).toBlocking().first();
         assertThat(task).isEqualTo(retrievedTask);
+
+        // Check that archive access does not return anything.
+        try {
+            store.retrieveArchivedTask(task.getId()).toBlocking().first();
+            fail("Should not return active task");
+        } catch (JobStoreException e) {
+            assertThat(e.getErrorCode()).isEqualTo(JobStoreException.ErrorCode.TASK_DOES_NOT_EXIST);
+        }
     }
 
     @Test
@@ -312,7 +334,8 @@ public class CassandraJobStoreTest {
 
     private void testRetrieveArchivedJob(boolean archive) {
         JobStore store = getJobStore();
-        Job<BatchJobExt> job = createBatchJobObject();
+        Job<BatchJobExt> job = createFinishedBatchJobObject();
+
         store.init().await();
         store.storeJob(job).await();
         if (archive) {
@@ -334,12 +357,12 @@ public class CassandraJobStoreTest {
 
     private void testRetrieveArchivedTasksForJob(boolean archive) {
         JobStore store = getJobStore();
-        Job<BatchJobExt> job = createBatchJobObject();
+        Job<BatchJobExt> job = createFinishedBatchJobObject();
         store.init().await();
         store.storeJob(job).await();
         Pair<List<Job<?>>, Integer> jobsAndErrors = store.retrieveJobs().toBlocking().first();
         assertThat(jobsAndErrors.getLeft().get(0)).isEqualTo(job);
-        Task task = createTaskObject(job);
+        Task task = createFinishedTaskObject(job);
         store.storeTask(task).await();
         if (archive) {
             store.deleteTask(task).await();
@@ -360,12 +383,12 @@ public class CassandraJobStoreTest {
 
     private void testRetrieveArchivedTask(boolean archive) {
         JobStore store = getJobStore();
-        Job<BatchJobExt> job = createBatchJobObject();
+        Job<BatchJobExt> job = createFinishedBatchJobObject();
         store.init().await();
         store.storeJob(job).await();
         Pair<List<Job<?>>, Integer> jobsAndErrors = store.retrieveJobs().toBlocking().first();
         assertThat(jobsAndErrors.getLeft().get(0)).isEqualTo(job);
-        Task task = createTaskObject(job);
+        Task task = createFinishedTaskObject(job);
         store.storeTask(task).await();
         if (archive) {
             store.deleteTask(task).await();
@@ -425,6 +448,13 @@ public class CassandraJobStoreTest {
         return JobGenerator.batchJobs(JobDescriptorGenerator.oneTaskBatchJobDescriptor()).getValue();
     }
 
+    private Job createFinishedBatchJobObject() {
+        return JobFunctions.changeJobStatus(
+                createBatchJobObject(),
+                JobStatus.newBuilder().withState(JobState.Finished).build()
+        );
+    }
+
     private Job<ServiceJobExt> createServiceJobObject() {
         ExponentialBackoffRetryPolicy exponential = JobModel.newExponentialBackoffRetryPolicy()
                 .withInitialDelayMs(10)
@@ -438,11 +468,11 @@ public class CassandraJobStoreTest {
     }
 
     private Task createTaskObject(Job<BatchJobExt> job) {
-        String taskId = UUID.randomUUID().toString();
-        return BatchJobTask.newBuilder()
-                .withId(taskId)
-                .withJobId(job.getId())
-                .build();
+        return JobGenerator.oneBatchTask().toBuilder().withJobId(job.getId()).build();
+    }
+
+    private Task createFinishedTaskObject(Job<BatchJobExt> job) {
+        return JobFunctions.changeTaskStatus(createTaskObject(job), TaskStatus.newBuilder().withState(TaskState.Finished).build());
     }
 
     private Task createServiceTaskObject(Job<ServiceJobExt> job) {

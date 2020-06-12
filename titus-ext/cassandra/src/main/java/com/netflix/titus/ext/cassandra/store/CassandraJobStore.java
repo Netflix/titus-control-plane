@@ -44,6 +44,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
+import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
@@ -608,15 +609,13 @@ public class CassandraJobStore implements JobStore {
      * This method reads data from the archive table, and if not found checks the active table for its existence.
      * The latter is needed as sometimes a job may not be correctly archived, and we do not have a reconciliation process
      * that would fix it.
-     * <p>
-     * This method should be only used to get state of a finished job. It would return a persisted state for an active job
-     * as well, as a side effect for the workaround implemented here. A caller should not piggyback on this behavior, as
-     * it may change at any point in time.
      */
     @Override
     public Observable<Job<?>> retrieveArchivedJob(String jobId) {
         Observable<Job> action = retrieveEntityById(jobId, Job.class, retrieveArchivedJobStatement)
-                .switchIfEmpty(retrieveEntityById(jobId, Job.class, retrieveActiveJobStatement))
+                .switchIfEmpty(retrieveEntityById(jobId, Job.class, retrieveActiveJobStatement)
+                        .filter(job -> job.getStatus().getState() == JobState.Finished)
+                )
                 .switchIfEmpty(Observable.error(JobStoreException.jobDoesNotExist(jobId)));
         return (Observable) action;
     }
@@ -625,15 +624,13 @@ public class CassandraJobStore implements JobStore {
      * This method reads data from the archive table, and if not found checks the active table for its existence.
      * The latter is needed as sometimes a job may not be correctly archived, and we do not have a reconciliation process
      * that would fix it.
-     * <p>
-     * This method should be only used to get state of a finished job. It would return a persisted state for an active job
-     * as well, as a side effect for the workaround implemented here. A caller should not piggyback on this behavior, as
-     * it may change at any point in time.
      */
     @Override
     public Observable<Task> retrieveArchivedTasksForJob(String jobId) {
         return retrieveTasksForJob(jobId, retrieveArchivedTaskIdsForJobStatement, retrieveArchivedTaskStatement)
-                .switchIfEmpty(retrieveTasksForJob(jobId, retrieveActiveTaskIdsForJobStatement, retrieveActiveTaskStatement));
+                .switchIfEmpty(retrieveTasksForJob(jobId, retrieveActiveTaskIdsForJobStatement, retrieveActiveTaskStatement)
+                        .filter(task -> task.getStatus().getState() == TaskState.Finished)
+                );
     }
 
     private Observable<Task> retrieveTasksForJob(String jobId, PreparedStatement taskIdStatement, PreparedStatement taskStatement) {
@@ -667,7 +664,9 @@ public class CassandraJobStore implements JobStore {
     @Override
     public Observable<Task> retrieveArchivedTask(String taskId) {
         return retrieveEntityById(taskId, Task.class, retrieveArchivedTaskStatement)
-                .switchIfEmpty(retrieveEntityById(taskId, Task.class, retrieveActiveTaskStatement))
+                .switchIfEmpty(retrieveEntityById(taskId, Task.class, retrieveActiveTaskStatement)
+                        .filter(task -> task.getStatus().getState() == TaskState.Finished)
+                )
                 .switchIfEmpty(Observable.error(JobStoreException.taskDoesNotExist(taskId)));
     }
 
