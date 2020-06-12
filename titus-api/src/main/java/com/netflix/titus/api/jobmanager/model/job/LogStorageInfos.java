@@ -111,17 +111,12 @@ public final class LogStorageInfos {
     public static Optional<S3Bucket> findCustomS3Bucket(JobDescriptor<?> jobDescriptor) {
         Map<String, String> attributes = jobDescriptor.getContainer().getAttributes();
         String bucketName = attributes.get(JobAttributes.JOB_CONTAINER_ATTRIBUTE_S3_BUCKET_NAME);
-        String pathPrefix = attributes.get(JobAttributes.JOB_CONTAINER_ATTRIBUTE_S3_PATH_PREFIX);
-        if (StringExt.isEmpty(bucketName) || StringExt.isEmpty(pathPrefix)) {
-            return Optional.empty();
-        }
-        return Optional.of(new S3Bucket(bucketName));
+        return StringExt.isEmpty(bucketName) ? Optional.empty() : Optional.of(new S3Bucket(bucketName));
     }
 
     public static Optional<S3Bucket> findCustomS3Bucket(Task task) {
         Map<String, String> attributes = task.getTaskContext();
         String bucketName = attributes.get(TaskAttributes.TASK_ATTRIBUTE_S3_BUCKET_NAME);
-
         return StringExt.isEmpty(bucketName) ? Optional.empty() : Optional.of(new S3Bucket(bucketName));
     }
 
