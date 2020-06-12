@@ -401,6 +401,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                         .build();
             }
         } catch (Exception ignore) {
+            logger.info("Failed to convert node to offer for node {}", node, ignore);
         }
         return null;
     }
