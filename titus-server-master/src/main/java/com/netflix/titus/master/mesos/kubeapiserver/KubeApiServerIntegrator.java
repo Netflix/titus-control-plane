@@ -30,6 +30,7 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.gson.JsonSyntaxException;
 import com.google.inject.Injector;
 import com.netflix.fenzo.VirtualMachineLease;
@@ -49,6 +50,7 @@ import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.common.framework.scheduler.LocalScheduler;
 import com.netflix.titus.common.framework.scheduler.model.ScheduleDescriptor;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.ExecutorsExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.limiter.Limiters;
@@ -123,6 +125,15 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     private static final String TASK_STARTING = "TASK_STARTING";
 
     static final String GC_UNKNOWN_PODS = "gcUnknownPods";
+
+    static final String NODE_ATTRIBUTE_ID = "id";
+    static final String NODE_ATTRIBUTE_HOST_IP = "hostIp";
+    static final String NODE_ATTRIBUTE_RES = "res";
+    private static final Set<String> REQUIRED_NODE_ATTRIBUTES = CollectionsExt.asSet(
+            NODE_ATTRIBUTE_ID,
+            NODE_ATTRIBUTE_HOST_IP,
+            NODE_ATTRIBUTE_RES
+    );
 
     private final TitusRuntime titusRuntime;
     private final MesosConfiguration mesosConfiguration;
@@ -391,14 +402,20 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
             boolean hasTrueReadyCondition = status.getConditions().stream()
                     .anyMatch(c -> c.getType().equalsIgnoreCase(READY) && Boolean.parseBoolean(c.getStatus()));
             if (hasTrueReadyCondition) {
-                return Protos.Offer.newBuilder()
-                        .setId(Protos.OfferID.newBuilder().setValue(nodeName).build())
-                        .setSlaveId(Protos.SlaveID.newBuilder().setValue(nodeName).build())
-                        .setHostname(nodeName)
-                        .setFrameworkId(Protos.FrameworkID.newBuilder().setValue("TitusFramework").build())
-                        .addAllResources(nodeToResources(node))
-                        .addAllAttributes(nodeToAttributes(node))
-                        .build();
+                List<Protos.Attribute> nodeAttributes = nodeToAttributes(node);
+                if (hasRequiredNodeAttributes(nodeAttributes)) {
+                    return Protos.Offer.newBuilder()
+                            .setId(Protos.OfferID.newBuilder().setValue(nodeName).build())
+                            .setSlaveId(Protos.SlaveID.newBuilder().setValue(nodeName).build())
+                            .setHostname(nodeName)
+                            .setFrameworkId(Protos.FrameworkID.newBuilder().setValue("TitusFramework").build())
+                            .addAllResources(nodeToResources(node))
+                            .addAllAttributes(nodeAttributes)
+                            .build();
+                } else {
+                    logger.debug("Ignoring node {}, as not all required attributes are set: nodeAttributes={}",
+                            node.getMetadata().getName(), nodeAttributes);
+                }
             }
         } catch (Exception ignore) {
             logger.info("Failed to convert node to offer for node {}", node, ignore);
@@ -426,18 +443,23 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                 .build();
     }
 
-    private Iterable<? extends Protos.Attribute> nodeToAttributes(V1Node node) {
+    private List<Protos.Attribute> nodeToAttributes(V1Node node) {
         V1ObjectMeta metadata = node.getMetadata();
-        String nodeIp = KubeUtil.getNodeIpV4Address(node);
 
         List<Protos.Attribute> attributes = new ArrayList<>();
-        attributes.add(createAttribute("hostIp", nodeIp));
+        KubeUtil.getNodeIpV4Address(node).ifPresent(nodeIp -> attributes.add(createAttribute(NODE_ATTRIBUTE_HOST_IP, nodeIp)));
 
         for (Map.Entry<String, String> entry : metadata.getAnnotations().entrySet()) {
             attributes.add(createAttribute(entry.getKey(), entry.getValue()));
 
         }
         return attributes;
+    }
+
+    @VisibleForTesting
+    static boolean hasRequiredNodeAttributes(List<Protos.Attribute> nodeAttributes) {
+        Set<String> names = nodeAttributes.stream().map(Protos.Attribute::getName).collect(Collectors.toSet());
+        return names.containsAll(REQUIRED_NODE_ATTRIBUTES);
     }
 
     private Protos.Attribute createAttribute(String name, String value) {

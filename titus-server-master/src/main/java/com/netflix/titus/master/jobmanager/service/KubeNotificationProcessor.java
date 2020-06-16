@@ -310,7 +310,7 @@ public class KubeNotificationProcessor {
 
         acceptNotNull(node.getMetadata().getName(), nodeName -> agentAttributes.put(TaskAttributes.TASK_ATTRIBUTES_KUBE_NODE_NAME, nodeName));
 
-        String nodeIpAddress = KubeUtil.getNodeIpV4Address(node);
+        String nodeIpAddress = KubeUtil.getNodeIpV4Address(node).orElse("UnknownIpAddress");
         agentAttributes.put(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST, nodeIpAddress);
         agentAttributes.put(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST_IP, nodeIpAddress);
 
