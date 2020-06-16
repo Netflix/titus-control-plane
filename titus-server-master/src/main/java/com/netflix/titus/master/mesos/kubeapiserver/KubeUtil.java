@@ -193,14 +193,13 @@ public class KubeUtil {
         return false;
     }
 
-    public static String getNodeIpV4Address(V1Node node) {
+    public static Optional<String> getNodeIpV4Address(V1Node node) {
         return Optional.ofNullable(node.getStatus().getAddresses())
                 .map(Collection::stream)
                 .orElseGet(Stream::empty)
                 .filter(a -> a.getType().equalsIgnoreCase(TYPE_INTERNAL_IP) && NetworkExt.isIpV4(a.getAddress()))
                 .findFirst()
-                .map(V1NodeAddress::getAddress)
-                .orElse("UnknownIpAddress");
+                .map(V1NodeAddress::getAddress);
     }
 
     public static Map<String, String> createPodAnnotations(
