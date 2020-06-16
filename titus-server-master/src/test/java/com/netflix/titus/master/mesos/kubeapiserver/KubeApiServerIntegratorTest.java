@@ -34,6 +34,9 @@ public class KubeApiServerIntegratorTest {
         attributes.add(Protos.Attribute.newBuilder().setName(KubeApiServerIntegrator.NODE_ATTRIBUTE_ID).setType(Protos.Value.Type.TEXT).build());
         attributes.add(Protos.Attribute.newBuilder().setName(KubeApiServerIntegrator.NODE_ATTRIBUTE_HOST_IP).setType(Protos.Value.Type.TEXT).build());
         attributes.add(Protos.Attribute.newBuilder().setName(KubeApiServerIntegrator.NODE_ATTRIBUTE_RES).setType(Protos.Value.Type.TEXT).build());
+        attributes.add(Protos.Attribute.newBuilder().setName(KubeApiServerIntegrator.NODE_ATTRIBUTE_REGION).setType(Protos.Value.Type.TEXT).build());
+        attributes.add(Protos.Attribute.newBuilder().setName(KubeApiServerIntegrator.NODE_ATTRIBUTE_ZONE).setType(Protos.Value.Type.TEXT).build());
+        attributes.add(Protos.Attribute.newBuilder().setName(KubeApiServerIntegrator.NODE_ATTRIBUTE_I_TYPE).setType(Protos.Value.Type.TEXT).build());
         assertThat(KubeApiServerIntegrator.hasRequiredNodeAttributes(attributes)).isTrue();
     }
 }

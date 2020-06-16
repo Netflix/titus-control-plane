@@ -129,10 +129,16 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     static final String NODE_ATTRIBUTE_ID = "id";
     static final String NODE_ATTRIBUTE_HOST_IP = "hostIp";
     static final String NODE_ATTRIBUTE_RES = "res";
+    static final String NODE_ATTRIBUTE_REGION = "region";
+    static final String NODE_ATTRIBUTE_ZONE = "zone";
+    static final String NODE_ATTRIBUTE_I_TYPE = "itype";
     private static final Set<String> REQUIRED_NODE_ATTRIBUTES = CollectionsExt.asSet(
             NODE_ATTRIBUTE_ID,
             NODE_ATTRIBUTE_HOST_IP,
-            NODE_ATTRIBUTE_RES
+            NODE_ATTRIBUTE_RES,
+            NODE_ATTRIBUTE_REGION,
+            NODE_ATTRIBUTE_ZONE,
+            NODE_ATTRIBUTE_I_TYPE
     );
 
     private final TitusRuntime titusRuntime;
