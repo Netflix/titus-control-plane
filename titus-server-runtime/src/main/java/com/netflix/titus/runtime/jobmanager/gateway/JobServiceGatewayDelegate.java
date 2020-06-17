@@ -55,92 +55,93 @@ public class JobServiceGatewayDelegate implements JobServiceGateway {
     }
 
     @Override
-    public Completable updateJobCapacity(JobCapacityUpdate jobCapacityUpdate) {
-        return delegate.updateJobCapacity(jobCapacityUpdate);
+    public Completable updateJobCapacity(JobCapacityUpdate jobCapacityUpdate, CallMetadata callMetadata) {
+        return delegate.updateJobCapacity(jobCapacityUpdate, callMetadata);
     }
 
     @Override
-    public Completable updateJobCapacityWithOptionalAttributes(JobCapacityUpdateWithOptionalAttributes jobCapacityUpdateWithOptionalAttributes) {
-        return delegate.updateJobCapacityWithOptionalAttributes(jobCapacityUpdateWithOptionalAttributes);
+    public Completable updateJobCapacityWithOptionalAttributes(JobCapacityUpdateWithOptionalAttributes jobCapacityUpdateWithOptionalAttributes,
+                                                               CallMetadata callMetadata) {
+        return delegate.updateJobCapacityWithOptionalAttributes(jobCapacityUpdateWithOptionalAttributes, callMetadata);
     }
 
     @Override
-    public Completable updateJobProcesses(JobProcessesUpdate jobProcessesUpdate) {
-        return delegate.updateJobProcesses(jobProcessesUpdate);
+    public Completable updateJobProcesses(JobProcessesUpdate jobProcessesUpdate, CallMetadata callMetadata) {
+        return delegate.updateJobProcesses(jobProcessesUpdate, callMetadata);
     }
 
     @Override
-    public Completable updateJobStatus(JobStatusUpdate statusUpdate) {
-        return delegate.updateJobStatus(statusUpdate);
+    public Completable updateJobStatus(JobStatusUpdate statusUpdate, CallMetadata callMetadata) {
+        return delegate.updateJobStatus(statusUpdate, callMetadata);
     }
 
     @Override
-    public Mono<Void> updateJobDisruptionBudget(JobDisruptionBudgetUpdate request) {
-        return delegate.updateJobDisruptionBudget(request);
+    public Mono<Void> updateJobDisruptionBudget(JobDisruptionBudgetUpdate request, CallMetadata callMetadata) {
+        return delegate.updateJobDisruptionBudget(request, callMetadata);
     }
 
     @Override
-    public Mono<Void> updateJobAttributes(JobAttributesUpdate request) {
-        return delegate.updateJobAttributes(request);
+    public Mono<Void> updateJobAttributes(JobAttributesUpdate request, CallMetadata callMetadata) {
+        return delegate.updateJobAttributes(request, callMetadata);
     }
 
     @Override
-    public Mono<Void> deleteJobAttributes(JobAttributesDeleteRequest request) {
-        return delegate.deleteJobAttributes(request);
+    public Mono<Void> deleteJobAttributes(JobAttributesDeleteRequest request, CallMetadata callMetadata) {
+        return delegate.deleteJobAttributes(request, callMetadata);
     }
 
     @Override
-    public Observable<Job> findJob(String jobId) {
-        return delegate.findJob(jobId);
+    public Observable<Job> findJob(String jobId, CallMetadata callMetadata) {
+        return delegate.findJob(jobId, callMetadata);
     }
 
     @Override
-    public Observable<JobQueryResult> findJobs(JobQuery jobQuery) {
-        return delegate.findJobs(jobQuery);
+    public Observable<JobQueryResult> findJobs(JobQuery jobQuery, CallMetadata callMetadata) {
+        return delegate.findJobs(jobQuery, callMetadata);
     }
 
     @Override
-    public Observable<JobChangeNotification> observeJob(String jobId) {
-        return delegate.observeJob(jobId);
+    public Observable<JobChangeNotification> observeJob(String jobId, CallMetadata callMetadata) {
+        return delegate.observeJob(jobId, callMetadata);
     }
 
     @Override
-    public Observable<JobChangeNotification> observeJobs(ObserveJobsQuery query) {
-        return delegate.observeJobs(query);
+    public Observable<JobChangeNotification> observeJobs(ObserveJobsQuery query, CallMetadata callMetadata) {
+        return delegate.observeJobs(query, callMetadata);
     }
 
     @Override
-    public Completable killJob(String jobId) {
-        return delegate.killJob(jobId);
+    public Completable killJob(String jobId, CallMetadata callMetadata) {
+        return delegate.killJob(jobId, callMetadata);
     }
 
     @Override
-    public Observable<Task> findTask(String taskId) {
-        return delegate.findTask(taskId);
+    public Observable<Task> findTask(String taskId, CallMetadata callMetadata) {
+        return delegate.findTask(taskId, callMetadata);
     }
 
     @Override
-    public Observable<TaskQueryResult> findTasks(TaskQuery taskQuery) {
-        return delegate.findTasks(taskQuery);
+    public Observable<TaskQueryResult> findTasks(TaskQuery taskQuery, CallMetadata callMetadata) {
+        return delegate.findTasks(taskQuery, callMetadata);
     }
 
     @Override
-    public Completable killTask(TaskKillRequest taskKillRequest) {
-        return delegate.killTask(taskKillRequest);
+    public Completable killTask(TaskKillRequest taskKillRequest, CallMetadata callMetadata) {
+        return delegate.killTask(taskKillRequest, callMetadata);
     }
 
     @Override
-    public Completable updateTaskAttributes(TaskAttributesUpdate attributesUpdate) {
-        return delegate.updateTaskAttributes(attributesUpdate);
+    public Completable updateTaskAttributes(TaskAttributesUpdate attributesUpdate, CallMetadata callMetadata) {
+        return delegate.updateTaskAttributes(attributesUpdate, callMetadata);
     }
 
     @Override
-    public Completable deleteTaskAttributes(TaskAttributesDeleteRequest deleteRequest) {
-        return delegate.deleteTaskAttributes(deleteRequest);
+    public Completable deleteTaskAttributes(TaskAttributesDeleteRequest deleteRequest, CallMetadata callMetadata) {
+        return delegate.deleteTaskAttributes(deleteRequest, callMetadata);
     }
 
     @Override
-    public Completable moveTask(TaskMoveRequest taskMoveRequest) {
-        return delegate.moveTask(taskMoveRequest);
+    public Completable moveTask(TaskMoveRequest taskMoveRequest, CallMetadata callMetadata) {
+        return delegate.moveTask(taskMoveRequest, callMetadata);
     }
 }

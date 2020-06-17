@@ -36,8 +36,8 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
 import com.google.common.base.Strings;
-import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.runtime.SystemLogService;
 import com.netflix.titus.common.util.StringExt;
@@ -110,7 +110,7 @@ public class JobManagementResource {
                 .setJobId(jobId)
                 .setCapacity(capacity)
                 .build();
-        return Responses.fromCompletable(jobServiceGateway.updateJobCapacity(jobCapacityUpdate));
+        return Responses.fromCompletable(jobServiceGateway.updateJobCapacity(jobCapacityUpdate, resolveCallMetadata()));
     }
 
     @PUT
@@ -122,7 +122,7 @@ public class JobManagementResource {
                 .setJobId(jobId)
                 .setJobCapacityWithOptionalAttributes(capacity)
                 .build();
-        return Responses.fromCompletable(jobServiceGateway.updateJobCapacityWithOptionalAttributes(jobCapacityUpdateWithOptionalAttributes));
+        return Responses.fromCompletable(jobServiceGateway.updateJobCapacityWithOptionalAttributes(jobCapacityUpdateWithOptionalAttributes, resolveCallMetadata()));
     }
 
     @PUT
@@ -134,7 +134,7 @@ public class JobManagementResource {
                 .setJobId(jobId)
                 .setServiceJobProcesses(jobProcesses)
                 .build();
-        return Responses.fromCompletable(jobServiceGateway.updateJobProcesses(jobProcessesUpdate));
+        return Responses.fromCompletable(jobServiceGateway.updateJobProcesses(jobProcessesUpdate, resolveCallMetadata()));
     }
 
     @PUT
@@ -146,7 +146,7 @@ public class JobManagementResource {
                 .setJobId(jobId)
                 .setDisruptionBudget(jobDisruptionBudget)
                 .build();
-        return Responses.fromVoidMono(jobServiceGateway.updateJobDisruptionBudget(request));
+        return Responses.fromVoidMono(jobServiceGateway.updateJobDisruptionBudget(request, resolveCallMetadata()));
     }
 
     @PUT
@@ -163,7 +163,7 @@ public class JobManagementResource {
             }
             sanitizedRequest = request;
         }
-        return Responses.fromVoidMono(jobServiceGateway.updateJobAttributes(sanitizedRequest));
+        return Responses.fromVoidMono(jobServiceGateway.updateJobAttributes(sanitizedRequest, resolveCallMetadata()));
     }
 
     @DELETE
@@ -183,7 +183,7 @@ public class JobManagementResource {
                 .setJobId(jobId)
                 .addAllKeys(keys)
                 .build();
-        return Responses.fromVoidMono(jobServiceGateway.deleteJobAttributes(request));
+        return Responses.fromVoidMono(jobServiceGateway.deleteJobAttributes(request, resolveCallMetadata()));
     }
 
     @POST
@@ -194,7 +194,7 @@ public class JobManagementResource {
                 .setId(jobId)
                 .setEnableStatus(true)
                 .build();
-        return Responses.fromCompletable(jobServiceGateway.updateJobStatus(jobStatusUpdate));
+        return Responses.fromCompletable(jobServiceGateway.updateJobStatus(jobStatusUpdate, resolveCallMetadata()));
     }
 
     @POST
@@ -205,14 +205,14 @@ public class JobManagementResource {
                 .setId(jobId)
                 .setEnableStatus(false)
                 .build();
-        return Responses.fromCompletable(jobServiceGateway.updateJobStatus(jobStatusUpdate));
+        return Responses.fromCompletable(jobServiceGateway.updateJobStatus(jobStatusUpdate, resolveCallMetadata()));
     }
 
     @GET
     @ApiOperation("Find the job with the specified ID")
     @Path("/jobs/{jobId}")
     public Job findJob(@PathParam("jobId") String jobId) {
-        return Responses.fromSingleValueObservable(jobServiceGateway.findJob(jobId));
+        return Responses.fromSingleValueObservable(jobServiceGateway.findJob(jobId, resolveCallMetadata()));
     }
 
     @GET
@@ -222,25 +222,26 @@ public class JobManagementResource {
         MultivaluedMap<String, String> queryParameters = info.getQueryParameters(true);
         JobQuery.Builder queryBuilder = JobQuery.newBuilder();
         Page page = RestUtil.createPage(queryParameters);
-        logPageNumberUsage(systemLog, callMetadataResolver, getClass().getSimpleName(), "findJobs", page);
+        CallMetadata callMetadata = resolveCallMetadata();
+        logPageNumberUsage(systemLog, callMetadata, getClass().getSimpleName(), "findJobs", page);
         queryBuilder.setPage(page);
         queryBuilder.putAllFilteringCriteria(RestUtil.getFilteringCriteria(queryParameters));
         queryBuilder.addAllFields(RestUtil.getFieldsParameter(queryParameters));
-        return Responses.fromSingleValueObservable(jobServiceGateway.findJobs(queryBuilder.build()));
+        return Responses.fromSingleValueObservable(jobServiceGateway.findJobs(queryBuilder.build(), callMetadata));
     }
 
     @DELETE
     @ApiOperation("Kill a job")
     @Path("/jobs/{jobId}")
     public Response killJob(@PathParam("jobId") String jobId) {
-        return Responses.fromCompletable(jobServiceGateway.killJob(jobId));
+        return Responses.fromCompletable(jobServiceGateway.killJob(jobId, resolveCallMetadata()));
     }
 
     @GET
     @ApiOperation("Find the task with the specified ID")
     @Path("/tasks/{taskId}")
     public Task findTask(@PathParam("taskId") String taskId) {
-        return Responses.fromSingleValueObservable(jobServiceGateway.findTask(taskId));
+        return Responses.fromSingleValueObservable(jobServiceGateway.findTask(taskId, resolveCallMetadata()));
     }
 
     @GET
@@ -250,11 +251,12 @@ public class JobManagementResource {
         MultivaluedMap<String, String> queryParameters = info.getQueryParameters(true);
         TaskQuery.Builder queryBuilder = TaskQuery.newBuilder();
         Page page = RestUtil.createPage(queryParameters);
-        logPageNumberUsage(systemLog, callMetadataResolver, getClass().getSimpleName(), "findTasks", page);
+        CallMetadata callMetadata = resolveCallMetadata();
+        logPageNumberUsage(systemLog, callMetadata, getClass().getSimpleName(), "findTasks", page);
         queryBuilder.setPage(page);
         queryBuilder.putAllFilteringCriteria(RestUtil.getFilteringCriteria(queryParameters));
         queryBuilder.addAllFields(RestUtil.getFieldsParameter(queryParameters));
-        return Responses.fromSingleValueObservable(jobServiceGateway.findTasks(queryBuilder.build()));
+        return Responses.fromSingleValueObservable(jobServiceGateway.findTasks(queryBuilder.build(), callMetadata));
     }
 
     @DELETE
@@ -270,7 +272,7 @@ public class JobManagementResource {
                 .setShrink(shrink)
                 .setPreventMinSizeUpdate(preventMinSizeUpdate)
                 .build();
-        return Responses.fromCompletable(jobServiceGateway.killTask(taskKillRequest));
+        return Responses.fromCompletable(jobServiceGateway.killTask(taskKillRequest, resolveCallMetadata()));
     }
 
     @PUT
@@ -287,7 +289,7 @@ public class JobManagementResource {
             }
             sanitizedRequest = request;
         }
-        return Responses.fromCompletable(jobServiceGateway.updateTaskAttributes(sanitizedRequest));
+        return Responses.fromCompletable(jobServiceGateway.updateTaskAttributes(sanitizedRequest, resolveCallMetadata()));
     }
 
     @DELETE
@@ -307,14 +309,14 @@ public class JobManagementResource {
                 .setTaskId(taskId)
                 .addAllKeys(keys)
                 .build();
-        return Responses.fromCompletable(jobServiceGateway.deleteTaskAttributes(request));
+        return Responses.fromCompletable(jobServiceGateway.deleteTaskAttributes(request, resolveCallMetadata()));
     }
 
     @POST
     @ApiOperation("Move task to another job")
     @Path("/tasks/move")
     public Response moveTask(TaskMoveRequest taskMoveRequest) {
-        return Responses.fromCompletable(jobServiceGateway.moveTask(taskMoveRequest));
+        return Responses.fromCompletable(jobServiceGateway.moveTask(taskMoveRequest, resolveCallMetadata()));
     }
 
     private CallMetadata resolveCallMetadata() {

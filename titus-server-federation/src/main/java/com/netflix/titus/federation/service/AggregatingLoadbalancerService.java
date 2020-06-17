@@ -24,8 +24,8 @@ import javax.inject.Singleton;
 import com.google.protobuf.Empty;
 import com.netflix.titus.api.federation.model.Cell;
 import com.netflix.titus.api.loadbalancer.model.JobLoadBalancer;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.service.TitusServiceException;
-import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.federation.startup.GrpcConfiguration;
@@ -38,30 +38,28 @@ import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc;
 import com.netflix.titus.grpc.protogen.LoadBalancerServiceGrpc.LoadBalancerServiceStub;
 import com.netflix.titus.grpc.protogen.Pagination;
 import com.netflix.titus.grpc.protogen.RemoveLoadBalancerRequest;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.loadbalancer.GrpcModelConverters;
 import com.netflix.titus.runtime.loadbalancer.LoadBalancerCursors;
 import com.netflix.titus.runtime.service.LoadBalancerService;
 import io.grpc.stub.AbstractStub;
 import io.grpc.stub.StreamObserver;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import rx.Completable;
 import rx.Observable;
 
-import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createWrappedStub;
 import static com.netflix.titus.federation.service.CellConnectorUtil.callToCell;
 import static com.netflix.titus.federation.service.PageAggregationUtil.combinePagination;
 import static com.netflix.titus.federation.service.PageAggregationUtil.takeCombinedPage;
+import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createWrappedStub;
 import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobQueryModelConverters.emptyGrpcPagination;
 import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobQueryModelConverters.toPagination;
 
 @Singleton
 public class AggregatingLoadbalancerService implements LoadBalancerService {
-    private static final Logger logger = LoggerFactory.getLogger(AggregatingLoadbalancerService.class);
+
     private final AggregatingCellClient aggregatingClient;
     private final AggregatingJobManagementServiceHelper jobManagementServiceHelper;
-    private CellConnector connector;
-    private final CallMetadataResolver callMetadataResolver;
+    private final CellConnector connector;
     private final GrpcConfiguration grpcConfiguration;
 
     @Inject
@@ -71,30 +69,29 @@ public class AggregatingLoadbalancerService implements LoadBalancerService {
                                           AggregatingCellClient aggregatingClient,
                                           AggregatingJobManagementServiceHelper jobManagementServiceHelper) {
         this.connector = connector;
-        this.callMetadataResolver = callMetadataResolver;
         this.grpcConfiguration = grpcConfiguration;
         this.aggregatingClient = aggregatingClient;
         this.jobManagementServiceHelper = jobManagementServiceHelper;
     }
 
     @Override
-    public Observable<GetAllLoadBalancersResult> getAllLoadBalancers(GetAllLoadBalancersRequest request) {
+    public Observable<GetAllLoadBalancersResult> getAllLoadBalancers(GetAllLoadBalancersRequest request, CallMetadata callMetadata) {
         if (request.getPage().getPageSize() <= 0) {
             return Observable.just(GetAllLoadBalancersResult.newBuilder()
                     .setPagination(emptyGrpcPagination(request.getPage()))
                     .build());
         }
         if (StringExt.isNotEmpty(request.getPage().getCursor()) || request.getPage().getPageNumber() == 0) {
-            return findLoadBalancersWithCursorPagination(request);
+            return findLoadBalancersWithCursorPagination(request, callMetadata);
         }
         return Observable.error(TitusServiceException.invalidArgument("pageNumbers are not supported, please use cursors"));
     }
 
 
     @Override
-    public Observable<GetJobLoadBalancersResult> getLoadBalancers(JobId jobId) {
+    public Observable<GetJobLoadBalancersResult> getLoadBalancers(JobId jobId, CallMetadata callMetadata) {
         ClientCall<GetJobLoadBalancersResult> getLoadBalancersForJob =
-                (client, responseObserver) -> wrap(client).getJobLoadBalancers(jobId, responseObserver);
+                (client, responseObserver) -> wrap(client, callMetadata).getJobLoadBalancers(jobId, responseObserver);
 
         return aggregatingClient.callExpectingErrors(LoadBalancerServiceGrpc::newStub, getLoadBalancersForJob)
                 .filter(response -> response.getResult().hasError() || response.getResult().getValue().getLoadBalancersCount() > 0)
@@ -105,42 +102,44 @@ public class AggregatingLoadbalancerService implements LoadBalancerService {
     }
 
     @Override
-    public Completable addLoadBalancer(AddLoadBalancerRequest request) {
+    public Completable addLoadBalancer(AddLoadBalancerRequest request, CallMetadata callMetadata) {
         JobId jobId = JobId.newBuilder().setId(request.getJobId()).build();
-        final Observable<Empty> responseObservable = jobManagementServiceHelper.findJobInAllCells(jobId.getId())
+        final Observable<Empty> responseObservable = jobManagementServiceHelper.findJobInAllCells(jobId.getId(), callMetadata)
                 .flatMap(response -> singleCellCall(response.getCell(),
-                        (client, responseObserver) -> client.addLoadBalancer(request, responseObserver)));
+                        (client, responseObserver) -> client.addLoadBalancer(request, responseObserver),
+                        callMetadata));
         return responseObservable.toCompletable();
     }
 
     @Override
-    public Completable removeLoadBalancer(RemoveLoadBalancerRequest removeLoadBalancerRequest) {
+    public Completable removeLoadBalancer(RemoveLoadBalancerRequest removeLoadBalancerRequest, CallMetadata callMetadata) {
         JobId jobId = JobId.newBuilder().setId(removeLoadBalancerRequest.getJobId()).build();
-        final Observable<Empty> responseObservable = jobManagementServiceHelper.findJobInAllCells(jobId.getId())
+        final Observable<Empty> responseObservable = jobManagementServiceHelper.findJobInAllCells(jobId.getId(), callMetadata)
                 .flatMap(response -> singleCellCall(response.getCell(),
-                        (client, responseObserver) -> client.removeLoadBalancer(removeLoadBalancerRequest, responseObserver)));
+                        (client, responseObserver) -> client.removeLoadBalancer(removeLoadBalancerRequest, responseObserver),
+                        callMetadata));
         return responseObservable.toCompletable();
     }
 
-    private <STUB extends AbstractStub<STUB>> STUB wrap(STUB stub) {
-        return createWrappedStub(stub, callMetadataResolver, grpcConfiguration.getRequestTimeoutMs());
+    private <STUB extends AbstractStub<STUB>> STUB wrap(STUB stub, CallMetadata callMetadata) {
+        return createWrappedStub(stub, callMetadata, grpcConfiguration.getRequestTimeoutMs());
     }
 
-    private <T> Observable<T> singleCellCall(Cell cell, ClientCall<T> clientCall) {
+    private <T> Observable<T> singleCellCall(Cell cell, ClientCall<T> clientCall, CallMetadata callMetadata) {
         return callToCell(cell, connector, LoadBalancerServiceGrpc::newStub,
-                (client, streamObserver) -> clientCall.accept(wrap(client), streamObserver));
+                (client, streamObserver) -> clientCall.accept(wrap(client, callMetadata), streamObserver));
     }
 
     private interface ClientCall<T> extends BiConsumer<LoadBalancerServiceStub, StreamObserver<T>> {
         // generics sanity
     }
 
-    private ClientCall<GetAllLoadBalancersResult> getAllLoadBalancersInCell(GetAllLoadBalancersRequest request) {
-        return (client, streamObserver) -> wrap(client).getAllLoadBalancers(request, streamObserver);
+    private ClientCall<GetAllLoadBalancersResult> getAllLoadBalancersInCell(GetAllLoadBalancersRequest request, CallMetadata callMetadata) {
+        return (client, streamObserver) -> wrap(client, callMetadata).getAllLoadBalancers(request, streamObserver);
     }
 
-    private Observable<GetAllLoadBalancersResult> findLoadBalancersWithCursorPagination(GetAllLoadBalancersRequest request) {
-        return aggregatingClient.call(LoadBalancerServiceGrpc::newStub, getAllLoadBalancersInCell(request))
+    private Observable<GetAllLoadBalancersResult> findLoadBalancersWithCursorPagination(GetAllLoadBalancersRequest request, CallMetadata callMetadata) {
+        return aggregatingClient.call(LoadBalancerServiceGrpc::newStub, getAllLoadBalancersInCell(request, callMetadata))
                 .map(CellResponse::getResult)
                 .reduce(this::combineGetAllJobLoadBalancersResult)
                 .map(combinedResults -> {
@@ -165,7 +164,6 @@ public class AggregatingLoadbalancerService implements LoadBalancerService {
                 .build();
     }
 
-
     private List<JobLoadBalancer> toListOfJobLoadBalancer(GetAllLoadBalancersResult result) {
         return result.getJobLoadBalancersList().stream()
                 .flatMap(jobLoadBalancersResult -> {
@@ -175,6 +173,4 @@ public class AggregatingLoadbalancerService implements LoadBalancerService {
                 })
                 .collect(Collectors.toList());
     }
-
-
 }

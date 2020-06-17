@@ -25,6 +25,7 @@ import com.netflix.titus.grpc.protogen.PutPolicyRequest;
 import com.netflix.titus.grpc.protogen.ScalingPolicyID;
 import com.netflix.titus.grpc.protogen.UpdatePolicyRequest;
 import com.netflix.titus.runtime.endpoint.common.rest.Responses;
+import com.netflix.titus.runtime.endpoint.metadata.spring.CallMetadataAuthentication;
 import com.netflix.titus.runtime.service.AutoScalingService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -59,21 +60,21 @@ public class AutoScalingSpringResource {
 
     @ApiOperation("Find scaling policies for a job")
     @GetMapping(path = "/scalingPolicies")
-    public GetPolicyResult getAllScalingPolicies() {
-        return Responses.fromSingleValueObservable(autoScalingService.getAllScalingPolicies());
+    public GetPolicyResult getAllScalingPolicies(CallMetadataAuthentication authentication) {
+        return Responses.fromSingleValueObservable(autoScalingService.getAllScalingPolicies(authentication.getCallMetadata()));
     }
 
     @ApiOperation("Find scaling policies for a job")
     @GetMapping(path = "/scalingPolicies/{jobId}")
-    public GetPolicyResult getScalingPolicyForJob(@PathVariable("jobId") String jobId) {
+    public GetPolicyResult getScalingPolicyForJob(@PathVariable("jobId") String jobId, CallMetadataAuthentication authentication) {
         JobId request = JobId.newBuilder().setId(jobId).build();
-        return Responses.fromSingleValueObservable(autoScalingService.getJobScalingPolicies(request));
+        return Responses.fromSingleValueObservable(autoScalingService.getJobScalingPolicies(request, authentication.getCallMetadata()));
     }
 
     @ApiOperation("Create or Update scaling policy")
     @PostMapping(path = "/scalingPolicy")
-    public ScalingPolicyID setScalingPolicy(@RequestBody PutPolicyRequest putPolicyRequest) {
-        Observable<ScalingPolicyID> putPolicyResult = autoScalingService.setAutoScalingPolicy(putPolicyRequest);
+    public ScalingPolicyID setScalingPolicy(@RequestBody PutPolicyRequest putPolicyRequest, CallMetadataAuthentication authentication) {
+        Observable<ScalingPolicyID> putPolicyResult = autoScalingService.setAutoScalingPolicy(putPolicyRequest, authentication.getCallMetadata());
         ScalingPolicyID policyId = Responses.fromSingleValueObservable(putPolicyResult);
         log.info("New policy created {}", policyId);
         return policyId;
@@ -81,22 +82,22 @@ public class AutoScalingSpringResource {
 
     @ApiOperation("Find scaling policy for a policy Id")
     @GetMapping(path = "scalingPolicy/{policyId}")
-    public GetPolicyResult getScalingPolicy(@PathVariable("policyId") String policyId) {
+    public GetPolicyResult getScalingPolicy(@PathVariable("policyId") String policyId, CallMetadataAuthentication authentication) {
         ScalingPolicyID scalingPolicyId = ScalingPolicyID.newBuilder().setId(policyId).build();
-        return Responses.fromSingleValueObservable(autoScalingService.getScalingPolicy(scalingPolicyId));
+        return Responses.fromSingleValueObservable(autoScalingService.getScalingPolicy(scalingPolicyId, authentication.getCallMetadata()));
     }
 
     @ApiOperation("Delete scaling policy")
     @DeleteMapping(path = "scalingPolicy/{policyId}")
-    public ResponseEntity<Void> removePolicy(@PathVariable("policyId") String policyId) {
+    public ResponseEntity<Void> removePolicy(@PathVariable("policyId") String policyId, CallMetadataAuthentication authentication) {
         ScalingPolicyID scalingPolicyId = ScalingPolicyID.newBuilder().setId(policyId).build();
         DeletePolicyRequest deletePolicyRequest = DeletePolicyRequest.newBuilder().setId(scalingPolicyId).build();
-        return Responses.fromCompletable(autoScalingService.deleteAutoScalingPolicy(deletePolicyRequest), HttpStatus.NO_CONTENT);
+        return Responses.fromCompletable(autoScalingService.deleteAutoScalingPolicy(deletePolicyRequest, authentication.getCallMetadata()), HttpStatus.NO_CONTENT);
     }
 
     @ApiOperation("Update scaling policy")
     @PutMapping("scalingPolicy")
-    public ResponseEntity<Void> updateScalingPolicy(@RequestBody UpdatePolicyRequest updatePolicyRequest) {
-        return Responses.fromCompletable(autoScalingService.updateAutoScalingPolicy(updatePolicyRequest), HttpStatus.NO_CONTENT);
+    public ResponseEntity<Void> updateScalingPolicy(@RequestBody UpdatePolicyRequest updatePolicyRequest, CallMetadataAuthentication authentication) {
+        return Responses.fromCompletable(autoScalingService.updateAutoScalingPolicy(updatePolicyRequest, authentication.getCallMetadata()), HttpStatus.NO_CONTENT);
     }
 }

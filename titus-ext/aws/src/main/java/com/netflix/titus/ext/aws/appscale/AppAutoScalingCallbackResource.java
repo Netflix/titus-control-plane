@@ -27,11 +27,12 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.runtime.endpoint.common.rest.Responses;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import io.swagger.annotations.Api;
 import io.swagger.jaxrs.PATCH;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 
 @Produces(MediaType.APPLICATION_JSON)
@@ -40,19 +41,23 @@ import org.slf4j.LoggerFactory;
 @Path("/v1/scalableTargetDimensions")
 @Singleton
 public class AppAutoScalingCallbackResource {
-    private static final Logger logger = LoggerFactory.getLogger(AppAutoScalingCallbackResource.class);
+
     private final AppAutoScalingCallbackService awsGatewayCallbackService;
 
+    private final CallMetadataResolver callMetadataResolver;
+
     @Inject
-    public AppAutoScalingCallbackResource(AppAutoScalingCallbackService awsGatewayCallbackService) {
+    public AppAutoScalingCallbackResource(AppAutoScalingCallbackService awsGatewayCallbackService,
+                                          CallMetadataResolver callMetadataResolver) {
         this.awsGatewayCallbackService = awsGatewayCallbackService;
+        this.callMetadataResolver = callMetadataResolver;
     }
 
     @Path("{scalableTargetDimensionId}")
     @GET
     @Produces({MediaType.APPLICATION_JSON})
     public ScalableTargetResourceInfo getScalableTargetResourceInfo(@PathParam("scalableTargetDimensionId") String jobId) {
-        return Responses.fromSingleValueObservable(awsGatewayCallbackService.getScalableTargetResourceInfo(jobId));
+        return Responses.fromSingleValueObservable(awsGatewayCallbackService.getScalableTargetResourceInfo(jobId, resolveCallMetadata()));
     }
 
     @Path("{scalableTargetDimensionId}")
@@ -63,6 +68,10 @@ public class AppAutoScalingCallbackResource {
         if (scalableTargetResourceInfo.getDesiredCapacity() < 0) {
             throw new WebApplicationException(Response.Status.BAD_REQUEST);
         }
-        return Responses.fromSingleValueObservable(awsGatewayCallbackService.setScalableTargetResourceInfo(jobId, scalableTargetResourceInfo));
+        return Responses.fromSingleValueObservable(awsGatewayCallbackService.setScalableTargetResourceInfo(jobId, scalableTargetResourceInfo, resolveCallMetadata()));
+    }
+
+    private CallMetadata resolveCallMetadata() {
+        return callMetadataResolver.resolve().orElse(JobManagerConstants.UNDEFINED_CALL_METADATA);
     }
 }

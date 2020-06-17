@@ -61,7 +61,6 @@ import com.netflix.titus.grpc.protogen.Task;
 import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
-import com.netflix.titus.runtime.endpoint.metadata.AnonymousCallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import com.netflix.titus.runtime.jobmanager.JobManagerCursors;
 import com.netflix.titus.testkit.grpc.TestStreamObserver;
@@ -77,6 +76,7 @@ import rx.subjects.PublishSubject;
 
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_CELL;
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_ATTRIBUTES_STACK;
+import static com.netflix.titus.api.jobmanager.service.JobManagerConstants.UNDEFINED_CALL_METADATA;
 import static com.netflix.titus.federation.service.ServiceTests.walkAllPages;
 import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobQueryModelConverters.toGrpcPage;
 import static io.grpc.Status.DEADLINE_EXCEEDED;
@@ -141,15 +141,13 @@ public class AggregatingJobServiceGatewayTest {
         );
 
         final AggregatingCellClient aggregatingCellClient = new AggregatingCellClient(connector);
-        final AnonymousCallMetadataResolver anonymousCallMetadataResolver = new AnonymousCallMetadataResolver();
         service = new AggregatingJobServiceGateway(
                 grpcConfiguration,
                 titusFederationConfiguration,
                 connector,
                 cellRouter,
-                anonymousCallMetadataResolver,
                 aggregatingCellClient,
-                new AggregatingJobManagementServiceHelper(aggregatingCellClient, grpcConfiguration, anonymousCallMetadataResolver)
+                new AggregatingJobManagementServiceHelper(aggregatingCellClient, grpcConfiguration)
         );
 
         clock = Clocks.test();
@@ -190,7 +188,7 @@ public class AggregatingJobServiceGatewayTest {
                 .setPage(toGrpcPage(Page.unlimited()))
                 .build();
 
-        final AssertableSubscriber<JobQueryResult> testSubscriber = service.findJobs(query).test();
+        final AssertableSubscriber<JobQueryResult> testSubscriber = service.findJobs(query, UNDEFINED_CALL_METADATA).test();
         testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
         testSubscriber.assertNoErrors().assertCompleted();
         testSubscriber.assertValueCount(1);
@@ -228,7 +226,7 @@ public class AggregatingJobServiceGatewayTest {
                 .setPage(toGrpcPage(Page.empty()))
                 .build();
 
-        final AssertableSubscriber<JobQueryResult> testSubscriber = service.findJobs(query).test();
+        final AssertableSubscriber<JobQueryResult> testSubscriber = service.findJobs(query, UNDEFINED_CALL_METADATA).test();
         testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
         testSubscriber.assertNoErrors().assertCompleted();
         testSubscriber.assertValueCount(1);
@@ -335,7 +333,7 @@ public class AggregatingJobServiceGatewayTest {
                 .setPage(toGrpcPage(Page.unlimited()))
                 .build();
 
-        final AssertableSubscriber<JobQueryResult> testSubscriber = service.findJobs(query).test();
+        final AssertableSubscriber<JobQueryResult> testSubscriber = service.findJobs(query, UNDEFINED_CALL_METADATA).test();
         testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
         testSubscriber.assertError(Status.INTERNAL.asRuntimeException().getClass());
         testSubscriber.assertNoValues();
@@ -346,7 +344,7 @@ public class AggregatingJobServiceGatewayTest {
         Pair<List<Job>, List<Job>> cellSnapshots = generateTestJobs();
         List<Job> allJobs = walkAllPages(
                 10,
-                service::findJobs,
+                request -> service.findJobs(request, UNDEFINED_CALL_METADATA),
                 page -> JobQuery.newBuilder()
                         .setPage(page)
                         .addFields("jobDescriptor.owner")
@@ -371,7 +369,7 @@ public class AggregatingJobServiceGatewayTest {
         cellTwo.getServiceRegistry().addService(new CellWithFixedJobsService(Collections.emptyList(), cellTwoUpdates.serialize()));
 
         Job expected = withStackName(cellOneSnapshot.get(random.nextInt(cellOneSnapshot.size())));
-        AssertableSubscriber<Job> testSubscriber = service.findJob(expected.getId()).test();
+        AssertableSubscriber<Job> testSubscriber = service.findJob(expected.getId(), UNDEFINED_CALL_METADATA).test();
         testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
         testSubscriber.assertNoErrors();
         testSubscriber.assertValueCount(1);
@@ -386,7 +384,7 @@ public class AggregatingJobServiceGatewayTest {
         cellTwo.getServiceRegistry().addService(new CellWithFailingJobManagementService());
 
         Job expected = withStackName(cellOneSnapshot.get(random.nextInt(cellOneSnapshot.size())));
-        AssertableSubscriber<Job> testSubscriber = service.findJob(expected.getId()).test();
+        AssertableSubscriber<Job> testSubscriber = service.findJob(expected.getId(), UNDEFINED_CALL_METADATA).test();
         testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
         testSubscriber.assertNoErrors();
         testSubscriber.assertValueCount(1);
@@ -398,7 +396,7 @@ public class AggregatingJobServiceGatewayTest {
         cellOne.getServiceRegistry().addService(new CellWithFailingJobManagementService(NOT_FOUND));
         cellTwo.getServiceRegistry().addService(new CellWithFailingJobManagementService(UNAVAILABLE));
 
-        AssertableSubscriber<Job> testSubscriber = service.findJob("any").test();
+        AssertableSubscriber<Job> testSubscriber = service.findJob("any", UNDEFINED_CALL_METADATA).test();
         testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
         // transient errors have higher precedence than not found
         testSubscriber.assertError(StatusRuntimeException.class);
@@ -420,7 +418,7 @@ public class AggregatingJobServiceGatewayTest {
         assertThat(cellOneService.currentJobs()).containsKey(killInCellOne.getId());
         assertThat(cellTwoService.currentJobs()).containsKey(killInCellTwo.getId());
 
-        AssertableSubscriber<Void> testSubscriber = service.killJob(killInCellOne.getId()).test();
+        AssertableSubscriber<Void> testSubscriber = service.killJob(killInCellOne.getId(), UNDEFINED_CALL_METADATA).test();
         testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
         testSubscriber.assertNoErrors();
         testSubscriber.assertNoValues();
@@ -429,7 +427,7 @@ public class AggregatingJobServiceGatewayTest {
         assertThat(cellTwoService.currentJobs()).doesNotContainKey(killInCellOne.getId());
         testSubscriber.unsubscribe();
 
-        testSubscriber = service.killJob(killInCellTwo.getId()).test();
+        testSubscriber = service.killJob(killInCellTwo.getId(), UNDEFINED_CALL_METADATA).test();
         testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
         testSubscriber.assertNoErrors();
         testSubscriber.assertNoValues();
@@ -464,7 +462,7 @@ public class AggregatingJobServiceGatewayTest {
                         .setMax(1).setDesired(2).setMax(3)
                         .build())
                 .build();
-        AssertableSubscriber<Void> testSubscriber = service.updateJobCapacity(cellOneUpdate).test();
+        AssertableSubscriber<Void> testSubscriber = service.updateJobCapacity(cellOneUpdate, UNDEFINED_CALL_METADATA).test();
         testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
         testSubscriber.assertNoErrors();
         testSubscriber.assertNoValues();
@@ -479,7 +477,7 @@ public class AggregatingJobServiceGatewayTest {
                         .setMax(2).setDesired(2).setMax(2)
                         .build())
                 .build();
-        testSubscriber = service.updateJobCapacity(cellTwoUpdate).test();
+        testSubscriber = service.updateJobCapacity(cellTwoUpdate, UNDEFINED_CALL_METADATA).test();
         testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
         testSubscriber.assertNoErrors();
         testSubscriber.assertNoValues();
@@ -508,7 +506,7 @@ public class AggregatingJobServiceGatewayTest {
                 .setTaskId(killInCellOne.getId())
                 .setShrink(false)
                 .build();
-        AssertableSubscriber<Void> testSubscriber = service.killTask(cellOneRequest).test();
+        AssertableSubscriber<Void> testSubscriber = service.killTask(cellOneRequest, UNDEFINED_CALL_METADATA).test();
         testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
         testSubscriber.assertNoErrors();
         testSubscriber.assertNoValues();
@@ -521,7 +519,7 @@ public class AggregatingJobServiceGatewayTest {
                 .setTaskId(killInCellTwo.getId())
                 .setShrink(false)
                 .build();
-        testSubscriber = service.killTask(cellTwoRequest).test();
+        testSubscriber = service.killTask(cellTwoRequest, UNDEFINED_CALL_METADATA).test();
         testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
         testSubscriber.assertNoErrors();
         testSubscriber.assertNoValues();
@@ -539,7 +537,7 @@ public class AggregatingJobServiceGatewayTest {
         cellTwo.getServiceRegistry().addService(new CellWithFixedTasksService(Collections.emptyList()));
 
         Task expected = withStackName(cellOneSnapshot.get(random.nextInt(cellOneSnapshot.size())));
-        AssertableSubscriber<Task> testSubscriber = service.findTask(expected.getId()).test();
+        AssertableSubscriber<Task> testSubscriber = service.findTask(expected.getId(), UNDEFINED_CALL_METADATA).test();
         testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
         testSubscriber.assertNoErrors();
         testSubscriber.assertValueCount(1);
@@ -554,7 +552,7 @@ public class AggregatingJobServiceGatewayTest {
         cellTwo.getServiceRegistry().addService(new CellWithFailingJobManagementService(DEADLINE_EXCEEDED));
 
         Task expected = withStackName(cellOneSnapshot.get(random.nextInt(cellOneSnapshot.size())));
-        AssertableSubscriber<Task> testSubscriber = service.findTask(expected.getId()).test();
+        AssertableSubscriber<Task> testSubscriber = service.findTask(expected.getId(), UNDEFINED_CALL_METADATA).test();
         testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
         testSubscriber.assertNoErrors();
         testSubscriber.assertValueCount(1);
@@ -566,7 +564,7 @@ public class AggregatingJobServiceGatewayTest {
         cellOne.getServiceRegistry().addService(new CellWithFailingJobManagementService(INTERNAL));
         cellTwo.getServiceRegistry().addService(new CellWithFailingJobManagementService(UNAVAILABLE));
 
-        AssertableSubscriber<Task> testSubscriber = service.findTask("any").test();
+        AssertableSubscriber<Task> testSubscriber = service.findTask("any", UNDEFINED_CALL_METADATA).test();
         testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
         // unexpected errors have higher precedence than transient
         testSubscriber.assertError(StatusRuntimeException.class);
@@ -592,7 +590,7 @@ public class AggregatingJobServiceGatewayTest {
 
         List<Task> allTasks = walkAllPages(
                 6,
-                service::findTasks,
+                request -> service.findTasks(request, UNDEFINED_CALL_METADATA),
                 page -> TaskQuery.newBuilder()
                         .setPage(page)
                         .addFields("jobId")
@@ -625,7 +623,7 @@ public class AggregatingJobServiceGatewayTest {
         cellOne.getServiceRegistry().addService(new CellWithFixedJobsService(cellOneSnapshot, cellOneUpdates.serialize()));
         cellTwo.getServiceRegistry().addService(new CellWithFixedJobsService(cellTwoSnapshot, cellTwoUpdates.serialize()));
 
-        final AssertableSubscriber<JobChangeNotification> testSubscriber = service.observeJobs(ObserveJobsQuery.getDefaultInstance()).test();
+        final AssertableSubscriber<JobChangeNotification> testSubscriber = service.observeJobs(ObserveJobsQuery.getDefaultInstance(), UNDEFINED_CALL_METADATA).test();
         List<JobChangeNotification> expected = Stream.concat(
                 cellOneSnapshot.stream().map(this::toNotification).map(this::withStackName),
                 cellTwoSnapshot.stream().map(this::toNotification).map(this::withStackName)
@@ -656,7 +654,7 @@ public class AggregatingJobServiceGatewayTest {
         cellOne.getServiceRegistry().addService(new CellWithFixedJobsService(Collections.emptyList(), cellOneUpdates.serialize()));
         cellTwo.getServiceRegistry().addService(new CellWithFixedJobsService(Collections.emptyList(), cellTwoUpdates.serialize()));
 
-        final AssertableSubscriber<JobChangeNotification> testSubscriber = service.observeJobs(ObserveJobsQuery.getDefaultInstance()).test();
+        final AssertableSubscriber<JobChangeNotification> testSubscriber = service.observeJobs(ObserveJobsQuery.getDefaultInstance(), UNDEFINED_CALL_METADATA).test();
 
         final JobChangeNotification cellOneUpdate = toNotification(Job.newBuilder().setId("cell-1-job-100").setStatus(ACCEPTED_STATE).build());
         final JobChangeNotification cellTwoUpdate = toNotification(Job.newBuilder().setId("cell-2-job-200").setStatus(ACCEPTED_STATE).build());
@@ -682,7 +680,7 @@ public class AggregatingJobServiceGatewayTest {
         cellOne.getServiceRegistry().addService(new CellWithFixedJobsService(Collections.emptyList(), cellOneUpdates.serialize()));
         cellTwo.getServiceRegistry().addService(new CellWithFixedJobsService(Collections.emptyList(), cellTwoUpdates.serialize()));
 
-        final AssertableSubscriber<JobChangeNotification> testSubscriber = service.observeJobs(ObserveJobsQuery.getDefaultInstance()).test();
+        final AssertableSubscriber<JobChangeNotification> testSubscriber = service.observeJobs(ObserveJobsQuery.getDefaultInstance(), UNDEFINED_CALL_METADATA).test();
 
         final JobChangeNotification cellOneUpdate = toNotification(Job.newBuilder().setId("cell-1-job-100").setStatus(ACCEPTED_STATE).build());
         final JobChangeNotification cellTwoUpdate = toNotification(Job.newBuilder().setId("cell-2-job-200").setStatus(ACCEPTED_STATE).build());
@@ -710,8 +708,8 @@ public class AggregatingJobServiceGatewayTest {
         cellOne.getServiceRegistry().addService(new CellWithJobStream(cellOneJobId, cellOneUpdates.serialize()));
         cellTwo.getServiceRegistry().addService(new CellWithJobStream(cellTwoJobId, cellTwoUpdates.serialize()));
 
-        AssertableSubscriber<JobChangeNotification> subscriber1 = service.observeJob(cellOneJobId).test();
-        AssertableSubscriber<JobChangeNotification> subscriber2 = service.observeJob(cellTwoJobId).test();
+        AssertableSubscriber<JobChangeNotification> subscriber1 = service.observeJob(cellOneJobId, UNDEFINED_CALL_METADATA).test();
+        AssertableSubscriber<JobChangeNotification> subscriber2 = service.observeJob(cellTwoJobId, UNDEFINED_CALL_METADATA).test();
 
         cellOneUpdates.onNext(toNotification(Job.newBuilder().setId(cellOneJobId).setStatus(ACCEPTED_STATE).build()));
         cellOneUpdates.onNext(toNotification(Job.newBuilder().setId(cellOneJobId).setStatus(KILL_INITIATED_STATE).build()));
@@ -751,8 +749,8 @@ public class AggregatingJobServiceGatewayTest {
         cellTwo.getServiceRegistry().addService(new CellWithJobStream(cellTwoJobId, cellTwoUpdates.serialize()));
 
         List<AssertableSubscriber<JobChangeNotification>> subscribers = new LinkedList<>();
-        subscribers.add(service.observeJob(cellOneJobId).test());
-        subscribers.add(service.observeJob(cellTwoJobId).test());
+        subscribers.add(service.observeJob(cellOneJobId, UNDEFINED_CALL_METADATA).test());
+        subscribers.add(service.observeJob(cellTwoJobId, UNDEFINED_CALL_METADATA).test());
 
         // TODO: make it easier to extract the Deadline for each cell call
         Thread.sleep(2 * GRPC_REQUEST_TIMEOUT_MS);
@@ -769,7 +767,7 @@ public class AggregatingJobServiceGatewayTest {
         cellOne.getServiceRegistry().addService(new CellWithFixedJobsService(Collections.emptyList(), cellOneUpdates.serialize()));
         cellTwo.getServiceRegistry().addService(new CellWithFixedJobsService(Collections.emptyList(), cellTwoUpdates.serialize()));
 
-        AssertableSubscriber<JobChangeNotification> subscriber = service.observeJobs(ObserveJobsQuery.getDefaultInstance()).test();
+        AssertableSubscriber<JobChangeNotification> subscriber = service.observeJobs(ObserveJobsQuery.getDefaultInstance(), UNDEFINED_CALL_METADATA).test();
 
         // TODO: make it easier to extract the Deadline for each cell call
         Thread.sleep(2 * GRPC_REQUEST_TIMEOUT_MS);
@@ -838,7 +836,7 @@ public class AggregatingJobServiceGatewayTest {
     private List<Job> walkAllFindJobsPages(int pageWalkSize) {
         return walkAllPages(
                 pageWalkSize,
-                service::findJobs,
+                request -> service.findJobs(request, UNDEFINED_CALL_METADATA),
                 page -> JobQuery.newBuilder().setPage(page).build(),
                 JobQueryResult::getPagination,
                 JobQueryResult::getItemsList
@@ -848,7 +846,7 @@ public class AggregatingJobServiceGatewayTest {
     private List<Task> walkAllFindTasksPages(int pageWalkSize) {
         return walkAllPages(
                 pageWalkSize,
-                service::findTasks,
+                request -> service.findTasks(request, UNDEFINED_CALL_METADATA),
                 page -> TaskQuery.newBuilder().setPage(page).build(),
                 TaskQueryResult::getPagination,
                 TaskQueryResult::getItemsList

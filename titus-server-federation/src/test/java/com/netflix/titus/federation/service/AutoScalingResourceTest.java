@@ -29,6 +29,8 @@ import com.netflix.titus.grpc.protogen.ScalingPolicyResult;
 import com.netflix.titus.grpc.protogen.TargetTrackingPolicyDescriptor;
 import com.netflix.titus.grpc.protogen.UpdatePolicyRequest;
 import com.netflix.titus.runtime.endpoint.common.rest.RestException;
+import com.netflix.titus.runtime.endpoint.metadata.AnonymousCallMetadataResolver;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.v3.rest.AutoScalingResource;
 import io.grpc.Status;
 import org.assertj.core.api.Assertions;
@@ -38,6 +40,8 @@ import static org.assertj.core.api.Java6Assertions.assertThat;
 
 
 public class AutoScalingResourceTest extends AggregatingAutoScalingTestBase {
+
+    private final CallMetadataResolver callMetadataResolver = new AnonymousCallMetadataResolver();
 
     @Test
     public void getPoliciesFromTwoCells() {
@@ -54,7 +58,7 @@ public class AutoScalingResourceTest extends AggregatingAutoScalingTestBase {
         cellOne.getServiceRegistry().addService(cellOneService);
         cellTwo.getServiceRegistry().addService(cellTwoService);
 
-        final AutoScalingResource autoScalingResource = new AutoScalingResource(service);
+        final AutoScalingResource autoScalingResource = new AutoScalingResource(service, callMetadataResolver);
         final GetPolicyResult allScalingPolicies = autoScalingResource.getAllScalingPolicies();
         assertThat(allScalingPolicies).isNotNull();
         assertThat(allScalingPolicies.getItemsCount()).isEqualTo(2);
@@ -73,7 +77,7 @@ public class AutoScalingResourceTest extends AggregatingAutoScalingTestBase {
         cellOne.getServiceRegistry().addService(cellOneService);
         cellTwo.getServiceRegistry().addService(badCell);
 
-        final AutoScalingResource autoScalingResource = new AutoScalingResource(service);
+        final AutoScalingResource autoScalingResource = new AutoScalingResource(service, callMetadataResolver);
         autoScalingResource.getAllScalingPolicies();
         assertThat(false).isTrue();
     }
@@ -92,7 +96,7 @@ public class AutoScalingResourceTest extends AggregatingAutoScalingTestBase {
         cellOne.getServiceRegistry().addService(cellOneService);
         cellTwo.getServiceRegistry().addService(cellTwoService);
 
-        final AutoScalingResource autoScalingResource = new AutoScalingResource(service);
+        final AutoScalingResource autoScalingResource = new AutoScalingResource(service, callMetadataResolver);
         final GetPolicyResult scalingPolicyForJob = autoScalingResource.getScalingPolicyForJob(JOB_2);
         assertThat(scalingPolicyForJob).isNotNull();
         assertThat(scalingPolicyForJob.getItemsCount()).isEqualTo(1);
@@ -113,7 +117,7 @@ public class AutoScalingResourceTest extends AggregatingAutoScalingTestBase {
         cellOne.getServiceRegistry().addService(cellOneService);
         cellTwo.getServiceRegistry().addService(cellTwoService);
 
-        final AutoScalingResource autoScalingResource = new AutoScalingResource(service);
+        final AutoScalingResource autoScalingResource = new AutoScalingResource(service, callMetadataResolver);
         final GetPolicyResult scalingPolicy = autoScalingResource.getScalingPolicy(POLICY_2);
         assertThat(scalingPolicy.getItemsCount()).isEqualTo(1);
         assertThat(scalingPolicy.getItems(0).getId().getId()).isEqualTo(POLICY_2);
@@ -142,7 +146,7 @@ public class AutoScalingResourceTest extends AggregatingAutoScalingTestBase {
         cellTwo.getServiceRegistry().addService(cellTwoService);
         cellTwo.getServiceRegistry().addService(cellTwoJobsService);
 
-        final AutoScalingResource autoScalingResource = new AutoScalingResource(service);
+        final AutoScalingResource autoScalingResource = new AutoScalingResource(service, callMetadataResolver);
         final ScalingPolicyID scalingPolicyID = autoScalingResource.setScalingPolicy(PutPolicyRequest.newBuilder().setJobId(JOB_2).build());
 
         assertThat(scalingPolicyID).isNotNull();
@@ -190,7 +194,7 @@ public class AutoScalingResourceTest extends AggregatingAutoScalingTestBase {
         cellTwo.getServiceRegistry().addService(cellTwoService);
         cellTwo.getServiceRegistry().addService(cellTwoJobsService);
 
-        final AutoScalingResource autoScalingResource = new AutoScalingResource(service);
+        final AutoScalingResource autoScalingResource = new AutoScalingResource(service, callMetadataResolver);
         final ScalingPolicyID scalingPolicyId = autoScalingResource.setScalingPolicy(PutPolicyRequest.newBuilder().setJobId(JOB_2).build());
 
         assertThat(scalingPolicyId).isNotNull();
@@ -210,6 +214,4 @@ public class AutoScalingResourceTest extends AggregatingAutoScalingTestBase {
         assertThat(scalingPolicyForJobResult.getItemsCount()).isEqualTo(1);
         assertThat(scalingPolicyForJobResult.getItems(0).getJobId()).isEqualTo(JOB_2);
     }
-
-
 }

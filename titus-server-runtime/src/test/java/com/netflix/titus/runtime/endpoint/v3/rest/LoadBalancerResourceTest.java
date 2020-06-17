@@ -70,7 +70,7 @@ public class LoadBalancerResourceTest {
     @Test
     public void getJobLoadBalancersTest() {
         GetJobLoadBalancersResult expectedResult = GetJobLoadBalancersResult.newBuilder().build();
-        when(loadBalancerService.getLoadBalancers(any())).thenReturn(Observable.just(expectedResult));
+        when(loadBalancerService.getLoadBalancers(any(), any())).thenReturn(Observable.just(expectedResult));
 
         GetJobLoadBalancersResult actualResult = loadBalancerResource.getJobLoadBalancers(TEST_JOB_ID);
 
@@ -81,7 +81,7 @@ public class LoadBalancerResourceTest {
     public void getAllJobsTest() {
         GetAllLoadBalancersResult expectedResult = GetAllLoadBalancersResult.newBuilder().build();
         when(uriInfo.getQueryParameters()).thenReturn(getDefaultPageParameters());
-        when(loadBalancerService.getAllLoadBalancers(any())).thenReturn(Observable.just(expectedResult));
+        when(loadBalancerService.getAllLoadBalancers(any(), any())).thenReturn(Observable.just(expectedResult));
 
         GetAllLoadBalancersResult actualResult = loadBalancerResource.getAllLoadBalancers(uriInfo);
 
@@ -90,7 +90,7 @@ public class LoadBalancerResourceTest {
 
     @Test
     public void addLoadBalancerSucceededTest() {
-        when(loadBalancerService.addLoadBalancer(any())).thenReturn(Completable.complete());
+        when(loadBalancerService.addLoadBalancer(any(), any())).thenReturn(Completable.complete());
 
         Response response = loadBalancerResource.addLoadBalancer(TEST_JOB_ID, TEST_LOAD_BALANCER_ID);
         assertEquals(200, response.getStatus());
@@ -99,14 +99,14 @@ public class LoadBalancerResourceTest {
     @Test(expected = TitusServiceException.class)
     public void addLoadBalancerFailedTest() {
         TitusServiceException exception = TitusServiceException.jobNotFound(TEST_JOB_ID);
-        when(loadBalancerService.addLoadBalancer(any())).thenReturn(Completable.error(exception));
+        when(loadBalancerService.addLoadBalancer(any(), any())).thenReturn(Completable.error(exception));
 
         loadBalancerResource.addLoadBalancer(TEST_JOB_ID, TEST_LOAD_BALANCER_ID);
     }
 
     @Test
     public void removeLoadBalancerSucceededTest() {
-        when(loadBalancerService.removeLoadBalancer(any())).thenReturn(Completable.complete());
+        when(loadBalancerService.removeLoadBalancer(any(), any())).thenReturn(Completable.complete());
 
         Response response = loadBalancerResource.removeLoadBalancer(TEST_JOB_ID, TEST_LOAD_BALANCER_ID);
         assertEquals(200, response.getStatus());
@@ -115,7 +115,7 @@ public class LoadBalancerResourceTest {
     @Test(expected = TitusServiceException.class)
     public void removeLoadBalancerFailedTest() {
         TitusServiceException exception = TitusServiceException.jobNotFound(TEST_JOB_ID);
-        when(loadBalancerService.removeLoadBalancer(any())).thenReturn(Completable.error(exception));
+        when(loadBalancerService.removeLoadBalancer(any(), any())).thenReturn(Completable.error(exception));
 
         loadBalancerResource.removeLoadBalancer(TEST_JOB_ID, TEST_LOAD_BALANCER_ID);
     }

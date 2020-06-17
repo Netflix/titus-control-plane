@@ -29,6 +29,7 @@ import com.netflix.titus.grpc.protogen.v4.MachineServiceGrpc;
 import com.netflix.titus.grpc.protogen.v4.MachineServiceGrpc.MachineServiceStub;
 import com.netflix.titus.grpc.protogen.v4.QueryRequest;
 import com.netflix.titus.runtime.connector.machine.ReactorMachineServiceStub;
+import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import io.grpc.stub.StreamObserver;
 import reactor.core.publisher.Mono;
@@ -89,7 +90,7 @@ public class AggregatingReactorMachineServiceStub implements ReactorMachineServi
     }
 
     private MachineServiceStub wrap(MachineServiceStub client) {
-        return createWrappedStub(client, callMetadataResolver, grpcConfiguration.getRequestTimeoutMs());
+        return GrpcUtil.createWrappedStubWithResolver(client, callMetadataResolver, grpcConfiguration.getRequestTimeoutMs());
     }
 
     private interface ClientCall<T> extends BiConsumer<MachineServiceStub, StreamObserver<T>> {

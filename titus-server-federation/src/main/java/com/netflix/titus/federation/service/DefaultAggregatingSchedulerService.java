@@ -25,6 +25,7 @@ import com.netflix.titus.federation.startup.GrpcConfiguration;
 import com.netflix.titus.grpc.protogen.SchedulerServiceGrpc;
 import com.netflix.titus.grpc.protogen.SchedulingResultEvent;
 import com.netflix.titus.grpc.protogen.SchedulingResultRequest;
+import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import io.grpc.stub.StreamObserver;
 import reactor.core.publisher.Mono;
@@ -69,7 +70,7 @@ public class DefaultAggregatingSchedulerService implements AggregatingSchedulerS
     }
 
     private SchedulerServiceGrpc.SchedulerServiceStub wrap(SchedulerServiceGrpc.SchedulerServiceStub client) {
-        return createWrappedStub(client, callMetadataResolver, grpcConfiguration.getRequestTimeoutMs());
+        return GrpcUtil.createWrappedStubWithResolver(client, callMetadataResolver, grpcConfiguration.getRequestTimeoutMs());
     }
 
     private interface ClientCall<T> extends BiConsumer<SchedulerServiceGrpc.SchedulerServiceStub, StreamObserver<T>> {

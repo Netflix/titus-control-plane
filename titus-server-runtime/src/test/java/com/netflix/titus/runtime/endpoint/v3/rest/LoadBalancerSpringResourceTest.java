@@ -26,7 +26,6 @@ import com.netflix.titus.grpc.protogen.GetJobLoadBalancersResult;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.LoadBalancerId;
 import com.netflix.titus.grpc.protogen.RemoveLoadBalancerRequest;
-import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.service.LoadBalancerService;
 import com.netflix.titus.testkit.junit.spring.SpringMockMvcUtil;
 import org.junit.Test;
@@ -41,6 +40,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import rx.Completable;
 import rx.Observable;
 
+import static com.netflix.titus.testkit.junit.spring.SpringMockMvcUtil.JUNIT_REST_CALL_METADATA;
 import static com.netflix.titus.testkit.junit.spring.SpringMockMvcUtil.NEXT_PAGE_OF_1;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.times;
@@ -66,20 +66,17 @@ public class LoadBalancerSpringResourceTest {
     @MockBean
     private SystemLogService systemLogService;
 
-    @MockBean
-    private CallMetadataResolver callMetadataResolver;
-
     @Autowired
     private MockMvc mockMvc;
 
     @Test
     public void testGetJobLoadBalancers() throws Exception {
         JobId jobIdWrapper = JobId.newBuilder().setId(JOB_ID).build();
-        when(serviceMock.getLoadBalancers(jobIdWrapper)).thenReturn(Observable.just(GET_JOB_LOAD_BALANCERS_RESULT));
+        when(serviceMock.getLoadBalancers(jobIdWrapper, JUNIT_REST_CALL_METADATA)).thenReturn(Observable.just(GET_JOB_LOAD_BALANCERS_RESULT));
         GetJobLoadBalancersResult entity = SpringMockMvcUtil.doGet(mockMvc, String.format("/api/v3/loadBalancers/%s", JOB_ID), GetJobLoadBalancersResult.class);
         assertThat(entity).isEqualTo(GET_JOB_LOAD_BALANCERS_RESULT);
 
-        verify(serviceMock, times(1)).getLoadBalancers(jobIdWrapper);
+        verify(serviceMock, times(1)).getLoadBalancers(jobIdWrapper, JUNIT_REST_CALL_METADATA);
     }
 
     @Test
@@ -89,12 +86,12 @@ public class LoadBalancerSpringResourceTest {
                 .setPagination(SpringMockMvcUtil.paginationOf(NEXT_PAGE_OF_1))
                 .addJobLoadBalancers(GET_JOB_LOAD_BALANCERS_RESULT)
                 .build();
-        when(serviceMock.getAllLoadBalancers(request)).thenReturn(Observable.just(response));
+        when(serviceMock.getAllLoadBalancers(request, JUNIT_REST_CALL_METADATA)).thenReturn(Observable.just(response));
 
         GetAllLoadBalancersResult entity = SpringMockMvcUtil.doPaginatedGet(mockMvc, "/api/v3/loadBalancers", GetAllLoadBalancersResult.class, NEXT_PAGE_OF_1);
         assertThat(entity).isEqualTo(response);
 
-        verify(serviceMock, times(1)).getAllLoadBalancers(request);
+        verify(serviceMock, times(1)).getAllLoadBalancers(request, JUNIT_REST_CALL_METADATA);
     }
 
     @Test
@@ -103,7 +100,7 @@ public class LoadBalancerSpringResourceTest {
                 .setJobId(JOB_ID)
                 .setLoadBalancerId(LoadBalancerId.newBuilder().setId(LOAD_BALANCER_ID).build())
                 .build();
-        when(serviceMock.addLoadBalancer(forwardedRequest)).thenReturn(Completable.complete());
+        when(serviceMock.addLoadBalancer(forwardedRequest, JUNIT_REST_CALL_METADATA)).thenReturn(Completable.complete());
 
         SpringMockMvcUtil.doPost(
                 mockMvc,
@@ -113,7 +110,7 @@ public class LoadBalancerSpringResourceTest {
                 Optional.of(new String[]{"jobId", JOB_ID, "loadBalancerId", LOAD_BALANCER_ID})
         );
 
-        verify(serviceMock, times(1)).addLoadBalancer(forwardedRequest);
+        verify(serviceMock, times(1)).addLoadBalancer(forwardedRequest, JUNIT_REST_CALL_METADATA);
     }
 
     @Test
@@ -122,7 +119,7 @@ public class LoadBalancerSpringResourceTest {
                 .setJobId(JOB_ID)
                 .setLoadBalancerId(LoadBalancerId.newBuilder().setId(LOAD_BALANCER_ID).build())
                 .build();
-        when(serviceMock.removeLoadBalancer(forwardedRequest)).thenReturn(Completable.complete());
+        when(serviceMock.removeLoadBalancer(forwardedRequest, JUNIT_REST_CALL_METADATA)).thenReturn(Completable.complete());
 
         SpringMockMvcUtil.doDelete(
                 mockMvc,
@@ -130,6 +127,6 @@ public class LoadBalancerSpringResourceTest {
                 "jobId", JOB_ID, "loadBalancerId", LOAD_BALANCER_ID
         );
 
-        verify(serviceMock, times(1)).removeLoadBalancer(forwardedRequest);
+        verify(serviceMock, times(1)).removeLoadBalancer(forwardedRequest, JUNIT_REST_CALL_METADATA);
     }
 }

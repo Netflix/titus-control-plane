@@ -55,7 +55,7 @@ public class GrpcSupervisorClient implements SupervisorClient {
     public Observable<MasterInstances> getMasterInstances() {
         return createRequestObservable(emitter -> {
             StreamObserver<MasterInstances> streamObserver = createSimpleClientResponseObserver(emitter);
-            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).getMasterInstances(Empty.getDefaultInstance(), streamObserver);
+            createWrappedStubWithResolver(client, callMetadataResolver, configuration.getRequestTimeout()).getMasterInstances(Empty.getDefaultInstance(), streamObserver);
         }, configuration.getRequestTimeout());
     }
 
@@ -63,7 +63,7 @@ public class GrpcSupervisorClient implements SupervisorClient {
     public Observable<MasterInstance> getMasterInstance(String instanceId) {
         return createRequestObservable(emitter -> {
             StreamObserver<MasterInstance> streamObserver = createSimpleClientResponseObserver(emitter);
-            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout())
+            createWrappedStubWithResolver(client, callMetadataResolver, configuration.getRequestTimeout())
                     .getMasterInstance(MasterInstanceId.newBuilder().setInstanceId(instanceId).build(), streamObserver);
         }, configuration.getRequestTimeout());
     }
@@ -72,7 +72,7 @@ public class GrpcSupervisorClient implements SupervisorClient {
     public Observable<SupervisorEvent> observeEvents() {
         return createRequestObservable(emitter -> {
             StreamObserver<SupervisorEvent> streamObserver = createSimpleClientResponseObserver(emitter);
-            createWrappedStub(client, callMetadataResolver).observeEvents(Empty.getDefaultInstance(), streamObserver);
+            createWrappedStubWithResolver(client, callMetadataResolver).observeEvents(Empty.getDefaultInstance(), streamObserver);
         });
     }
 
@@ -80,7 +80,7 @@ public class GrpcSupervisorClient implements SupervisorClient {
     public Completable stopBeingLeader() {
         return createRequestCompletable(emitter -> {
             StreamObserver<Empty> streamObserver = GrpcUtil.createEmptyClientResponseObserver(emitter);
-            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).stopBeingLeader(Empty.getDefaultInstance(), streamObserver);
+            createWrappedStubWithResolver(client, callMetadataResolver, configuration.getRequestTimeout()).stopBeingLeader(Empty.getDefaultInstance(), streamObserver);
         }, configuration.getRequestTimeout());
     }
 }

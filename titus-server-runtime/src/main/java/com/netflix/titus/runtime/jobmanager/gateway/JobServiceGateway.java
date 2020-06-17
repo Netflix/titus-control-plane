@@ -56,39 +56,40 @@ public interface JobServiceGateway {
 
     Observable<String> createJob(JobDescriptor jobDescriptor, CallMetadata callMetadata);
 
-    Completable updateJobCapacity(JobCapacityUpdate jobCapacityUpdate);
+    Completable updateJobCapacity(JobCapacityUpdate jobCapacityUpdate, CallMetadata callMetadata);
 
-    Completable updateJobCapacityWithOptionalAttributes(JobCapacityUpdateWithOptionalAttributes jobCapacityUpdateWithOptionalAttributes);
+    Completable updateJobCapacityWithOptionalAttributes(JobCapacityUpdateWithOptionalAttributes jobCapacityUpdateWithOptionalAttributes,
+                                                        CallMetadata callMetadata);
 
-    Completable updateJobProcesses(JobProcessesUpdate jobProcessesUpdate);
+    Completable updateJobProcesses(JobProcessesUpdate jobProcessesUpdate, CallMetadata callMetadata);
 
-    Completable updateJobStatus(JobStatusUpdate statusUpdate);
+    Completable updateJobStatus(JobStatusUpdate statusUpdate, CallMetadata callMetadata);
 
-    Mono<Void> updateJobDisruptionBudget(JobDisruptionBudgetUpdate request);
+    Mono<Void> updateJobDisruptionBudget(JobDisruptionBudgetUpdate request, CallMetadata callMetadata);
 
-    Mono<Void> updateJobAttributes(JobAttributesUpdate request);
+    Mono<Void> updateJobAttributes(JobAttributesUpdate request, CallMetadata callMetadata);
 
-    Mono<Void> deleteJobAttributes(JobAttributesDeleteRequest request);
+    Mono<Void> deleteJobAttributes(JobAttributesDeleteRequest request, CallMetadata callMetadata);
 
-    Observable<Job> findJob(String jobId);
+    Observable<Job> findJob(String jobId, CallMetadata callMetadata);
 
-    Observable<JobQueryResult> findJobs(JobQuery jobQuery);
+    Observable<JobQueryResult> findJobs(JobQuery jobQuery, CallMetadata callMetadata);
 
-    Observable<JobChangeNotification> observeJob(String jobId);
+    Observable<JobChangeNotification> observeJob(String jobId, CallMetadata callMetadata);
 
-    Observable<JobChangeNotification> observeJobs(ObserveJobsQuery query);
+    Observable<JobChangeNotification> observeJobs(ObserveJobsQuery query, CallMetadata callMetadata);
 
-    Completable killJob(String jobId);
+    Completable killJob(String jobId, CallMetadata callMetadata);
 
-    Observable<Task> findTask(String taskId);
+    Observable<Task> findTask(String taskId, CallMetadata callMetadata);
 
-    Observable<TaskQueryResult> findTasks(TaskQuery taskQuery);
+    Observable<TaskQueryResult> findTasks(TaskQuery taskQuery, CallMetadata callMetadata);
 
-    Completable killTask(TaskKillRequest taskKillRequest);
+    Completable killTask(TaskKillRequest taskKillRequest, CallMetadata callMetadata);
 
-    Completable updateTaskAttributes(TaskAttributesUpdate request);
+    Completable updateTaskAttributes(TaskAttributesUpdate request, CallMetadata callMetadata);
 
-    Completable deleteTaskAttributes(TaskAttributesDeleteRequest request);
+    Completable deleteTaskAttributes(TaskAttributesDeleteRequest request, CallMetadata callMetadata);
 
-    Completable moveTask(TaskMoveRequest taskMoveRequest);
+    Completable moveTask(TaskMoveRequest taskMoveRequest, CallMetadata callMetadata);
 }

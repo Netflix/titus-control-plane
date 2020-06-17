@@ -51,6 +51,7 @@ import org.junit.Test;
 import rx.observers.AssertableSubscriber;
 import rx.subjects.PublishSubject;
 
+import static com.netflix.titus.api.jobmanager.service.JobManagerConstants.UNDEFINED_CALL_METADATA;
 import static com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobQueryModelConverters.toGrpcPage;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.any;
@@ -102,9 +103,8 @@ public class AggregatingJobServiceGatewayWithSingleCellTest {
                 titusFederationConfiguration,
                 connector,
                 cellRouter,
-                anonymousCallMetadataResolver,
                 aggregatingCellClient,
-                new AggregatingJobManagementServiceHelper(aggregatingCellClient, grpcClientConfiguration, anonymousCallMetadataResolver)
+                new AggregatingJobManagementServiceHelper(aggregatingCellClient, grpcClientConfiguration)
         );
 
         clock = Clocks.test();
@@ -120,13 +120,13 @@ public class AggregatingJobServiceGatewayWithSingleCellTest {
             cellSnapshot.addAll(dataGenerator.newServiceJobs(random.nextInt(10), GrpcJobManagementModelConverters::toGrpcJob));
             clock.advanceTime(1, TimeUnit.MINUTES);
         }
-        cell.getServiceRegistry().addService(new CellWithFixedJobsService(cellSnapshot, PublishSubject.<JobChangeNotification>create()));
+        cell.getServiceRegistry().addService(new CellWithFixedJobsService(cellSnapshot, PublishSubject.create()));
 
         JobQuery query = JobQuery.newBuilder()
                 .setPage(toGrpcPage(Page.unlimited()))
                 .build();
 
-        final AssertableSubscriber<JobQueryResult> testSubscriber = service.findJobs(query).test();
+        final AssertableSubscriber<JobQueryResult> testSubscriber = service.findJobs(query, UNDEFINED_CALL_METADATA).test();
         testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
         testSubscriber.assertNoErrors().assertCompleted();
         testSubscriber.assertValueCount(1);
@@ -156,7 +156,7 @@ public class AggregatingJobServiceGatewayWithSingleCellTest {
                 .setPage(toGrpcPage(Page.unlimited()))
                 .build();
 
-        final AssertableSubscriber<TaskQueryResult> testSubscriber = service.findTasks(query).test();
+        final AssertableSubscriber<TaskQueryResult> testSubscriber = service.findTasks(query, UNDEFINED_CALL_METADATA).test();
         testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
         testSubscriber.assertNoErrors().assertCompleted();
         testSubscriber.assertValueCount(1);
