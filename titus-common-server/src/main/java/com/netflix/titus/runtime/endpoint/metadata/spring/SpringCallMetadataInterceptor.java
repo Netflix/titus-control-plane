@@ -43,6 +43,11 @@ public class SpringCallMetadataInterceptor extends HandlerInterceptorAdapter {
 
     @Override
     public boolean preHandle(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, Object handler) throws Exception {
+        Authentication delegate = SecurityContextHolder.getContext().getAuthentication();
+        if (delegate == null) {
+            return super.preHandle(httpServletRequest, httpServletResponse, handler);
+        }
+
         String callReason = httpServletRequest.getHeader(CallMetadataHeaders.CALL_REASON_HEADER);
         String debugQueryParameter = httpServletRequest.getParameter(DEBUG_QUERY_PARAM);
         boolean debug = debugQueryParameter == null
@@ -50,7 +55,6 @@ public class SpringCallMetadataInterceptor extends HandlerInterceptorAdapter {
                 : Boolean.parseBoolean(debugQueryParameter);
 
         String originalCallerId = httpServletRequest.getHeader(CallMetadataHeaders.CALLER_ID_HEADER);
-        Authentication delegate = SecurityContextHolder.getContext().getAuthentication();
 
         Caller directCaller = getDirectCaller(httpServletRequest, delegate);
 
