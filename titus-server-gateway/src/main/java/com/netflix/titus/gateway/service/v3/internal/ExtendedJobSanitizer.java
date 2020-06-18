@@ -25,6 +25,7 @@ import javax.inject.Named;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.netflix.titus.api.FeatureRolloutPlans;
+import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.SecurityProfile;
@@ -34,12 +35,15 @@ import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.model.sanitizer.ValidationError;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.feature.FeatureCompliance;
 import com.netflix.titus.common.util.feature.FeatureCompliance.NonCompliance;
 import com.netflix.titus.runtime.jobmanager.JobManagerConfiguration;
 
+import static com.netflix.titus.api.FeatureRolloutPlans.CONTAINER_ACCOUNT_ID_REQUIRED_FEATURE;
 import static com.netflix.titus.api.FeatureRolloutPlans.ENVIRONMENT_VARIABLE_NAMES_STRICT_VALIDATION_FEATURE;
 import static com.netflix.titus.api.FeatureRolloutPlans.SECURITY_GROUPS_REQUIRED_FEATURE;
+import static com.netflix.titus.api.FeatureRolloutPlans.SUBNETS_REQUIRED_FEATURE;
 import static com.netflix.titus.api.jobmanager.model.job.sanitizer.JobSanitizerBuilder.JOB_STRICT_SANITIZER;
 import static com.netflix.titus.common.util.feature.FeatureComplianceTypes.collectComplianceMetrics;
 import static com.netflix.titus.common.util.feature.FeatureComplianceTypes.logNonCompliant;
@@ -84,7 +88,9 @@ class ExtendedJobSanitizer implements EntitySanitizer {
                         JobFeatureComplianceChecks.environmentVariablesNames(jobAssertions),
                         JobFeatureComplianceChecks.entryPointViolations(),
                         JobFeatureComplianceChecks.minDiskSize(jobManagerConfiguration),
-                        JobFeatureComplianceChecks.noDisruptionBudget()
+                        JobFeatureComplianceChecks.noDisruptionBudget(),
+                        JobFeatureComplianceChecks.missingContainerAccountId(jobManagerConfiguration),
+                        JobFeatureComplianceChecks.missingSubnets(jobManagerConfiguration)
                 ))
         );
     }
@@ -150,6 +156,26 @@ class ExtendedJobSanitizer implements EntitySanitizer {
                     throw TitusServiceException.invalidArgument(nonCompliance.toErrorMessage());
                 }
             });
+
+            Map<String, String> defaultContainerAttributes = new HashMap<>();
+            violations.findViolation(CONTAINER_ACCOUNT_ID_REQUIRED_FEATURE).ifPresent(nonCompliance -> {
+                if (!StringExt.isEmpty(jobManagerConfiguration.getDefaultContainerAccountId())) {
+                    defaultContainerAttributes.put(JobAttributes.JOB_CONTAINER_ATTRIBUTE_ACCOUNT_ID, jobManagerConfiguration.getDefaultContainerAccountId());
+                }
+            });
+            violations.findViolation(SUBNETS_REQUIRED_FEATURE).ifPresent(nonCompliance -> {
+                if (!StringExt.isEmpty(jobManagerConfiguration.getDefaultSubnets())) {
+                    defaultContainerAttributes.put(JobAttributes.JOB_CONTAINER_ATTRIBUTE_SUBNETS, jobManagerConfiguration.getDefaultSubnets());
+                }
+            });
+            if (!CollectionsExt.isNullOrEmpty(defaultContainerAttributes)) {
+                Map<String, String> sanitizedContainerAttributes = new HashMap<>(sanitized.getContainer().getAttributes());
+                sanitizedContainerAttributes.putAll(defaultContainerAttributes);
+                sanitized = sanitized
+                        .toBuilder()
+                        .withContainer(sanitized.getContainer().toBuilder().withAttributes(sanitizedContainerAttributes).build())
+                        .build();
+            }
 
             // Set default disruption budget if not set
             sanitized = disruptionBudgetSanitizer.sanitize(sanitized);
