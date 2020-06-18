@@ -62,11 +62,11 @@ public class LoadBalancerSpringResource {
 
     @ApiOperation("Find the load balancer(s) with the specified ID")
     @GetMapping(path = "/{jobId}")
-    public GetJobLoadBalancersResult getJobLoadBalancers(@PathVariable("jobId") String jobId) {
+    public GetJobLoadBalancersResult getJobLoadBalancers(@PathVariable("jobId") String jobId, CallMetadataAuthentication authentication) {
         return Responses.fromSingleValueObservable(loadBalancerService.getLoadBalancers(
-                JobId.newBuilder()
-                        .setId(jobId)
-                        .build()));
+                JobId.newBuilder().setId(jobId).build(),
+                authentication.getCallMetadata()
+        ));
     }
 
     @ApiOperation("Get all load balancers")
@@ -75,23 +75,25 @@ public class LoadBalancerSpringResource {
                                                          CallMetadataAuthentication authentication) {
         Page page = RestUtil.createPage(queryParameters);
         logPageNumberUsage(systemLog, authentication.getCallMetadata(), getClass().getSimpleName(), "getAllLoadBalancers", page);
-        return Responses.fromSingleValueObservable(
-                loadBalancerService.getAllLoadBalancers(GetAllLoadBalancersRequest.newBuilder()
-                        .setPage(page)
-                        .build()));
+        return Responses.fromSingleValueObservable(loadBalancerService.getAllLoadBalancers(
+                GetAllLoadBalancersRequest.newBuilder().setPage(page).build(),
+                authentication.getCallMetadata()
+        ));
     }
 
     @ApiOperation("Add a load balancer")
     @PostMapping
     public ResponseEntity<Void> addLoadBalancer(
             @RequestParam("jobId") String jobId,
-            @RequestParam("loadBalancerId") String loadBalancerId) {
+            @RequestParam("loadBalancerId") String loadBalancerId,
+            CallMetadataAuthentication authentication) {
         return Responses.fromCompletable(
                 loadBalancerService.addLoadBalancer(
                         AddLoadBalancerRequest.newBuilder()
                                 .setJobId(jobId)
                                 .setLoadBalancerId(LoadBalancerId.newBuilder().setId(loadBalancerId).build())
-                                .build()
+                                .build(),
+                        authentication.getCallMetadata()
                 ),
                 HttpStatus.NO_CONTENT
         );
@@ -101,13 +103,15 @@ public class LoadBalancerSpringResource {
     @DeleteMapping
     public ResponseEntity<Void> removeLoadBalancer(
             @RequestParam("jobId") String jobId,
-            @RequestParam("loadBalancerId") String loadBalancerId) {
+            @RequestParam("loadBalancerId") String loadBalancerId,
+            CallMetadataAuthentication authentication) {
         return Responses.fromCompletable(
                 loadBalancerService.removeLoadBalancer(
                         RemoveLoadBalancerRequest.newBuilder()
                                 .setJobId(jobId)
                                 .setLoadBalancerId(LoadBalancerId.newBuilder().setId(loadBalancerId).build())
-                                .build()
+                                .build(),
+                        authentication.getCallMetadata()
                 ),
                 HttpStatus.NO_CONTENT
         );

@@ -22,6 +22,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import com.google.protobuf.Empty;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor;
 import io.grpc.CallOptions;
@@ -136,12 +137,24 @@ public class GrpcUtil {
     }
 
     public static <STUB extends AbstractStub<STUB>> STUB createWrappedStub(STUB client,
-                                                                           CallMetadataResolver callMetadataResolver,
+                                                                           CallMetadata callMetadata,
                                                                            long deadlineMs) {
-        return createWrappedStub(client, callMetadataResolver).withDeadlineAfter(deadlineMs, TimeUnit.MILLISECONDS);
+        return createWrappedStub(client, callMetadata).withDeadlineAfter(deadlineMs, TimeUnit.MILLISECONDS);
     }
 
-    public static <STUB extends AbstractStub<STUB>> STUB createWrappedStub(STUB client, CallMetadataResolver callMetadataResolver) {
+    public static <STUB extends AbstractStub<STUB>> STUB createWrappedStub(STUB client, CallMetadata callMetadata) {
+        return V3HeaderInterceptor.attachCallMetadata(client, callMetadata);
+    }
+
+    @Deprecated
+    public static <STUB extends AbstractStub<STUB>> STUB createWrappedStubWithResolver(STUB client,
+                                                                                       CallMetadataResolver callMetadataResolver,
+                                                                                       long deadlineMs) {
+        return createWrappedStubWithResolver(client, callMetadataResolver).withDeadlineAfter(deadlineMs, TimeUnit.MILLISECONDS);
+    }
+
+    @Deprecated
+    public static <STUB extends AbstractStub<STUB>> STUB createWrappedStubWithResolver(STUB client, CallMetadataResolver callMetadataResolver) {
         return callMetadataResolver.resolve()
                 .map(caller -> V3HeaderInterceptor.attachCallMetadata(client, caller))
                 .orElse(client);
@@ -171,19 +184,6 @@ public class GrpcUtil {
             };
             grpcServiceMethod.accept(input, streamObserver);
         }, Emitter.BackpressureMode.NONE);
-    }
-
-    public static <STUB extends AbstractStub<STUB>, ReqT, RespT> ClientCall call(CallMetadataResolver callMetadataResolver,
-                                                                                 STUB client,
-                                                                                 MethodDescriptor<ReqT, RespT> methodDescriptor,
-                                                                                 ReqT request,
-                                                                                 long deadlineMs,
-                                                                                 StreamObserver<RespT> responseObserver) {
-        STUB wrappedStub = createWrappedStub(client, callMetadataResolver);
-        CallOptions callOptions = wrappedStub.getCallOptions().withDeadlineAfter(deadlineMs, TimeUnit.MILLISECONDS);
-        ClientCall<ReqT, RespT> clientCall = wrappedStub.getChannel().newCall(methodDescriptor, callOptions);
-        asyncUnaryCall(clientCall, request, responseObserver);
-        return clientCall;
     }
 
     public static void attachCancellingCallback(Emitter emitter, ClientCall... clientCalls) {

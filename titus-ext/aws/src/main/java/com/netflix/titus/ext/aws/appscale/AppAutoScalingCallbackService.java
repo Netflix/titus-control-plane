@@ -15,10 +15,13 @@
  */
 package com.netflix.titus.ext.aws.appscale;
 
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import rx.Observable;
 
 public interface AppAutoScalingCallbackService {
-    Observable<ScalableTargetResourceInfo> getScalableTargetResourceInfo(String jobId);
+    Observable<ScalableTargetResourceInfo> getScalableTargetResourceInfo(String jobId, CallMetadata callMetadata);
 
-    Observable<ScalableTargetResourceInfo> setScalableTargetResourceInfo(String jobId, ScalableTargetResourceInfo scalableTargetResourceInfo);
+    Observable<ScalableTargetResourceInfo> setScalableTargetResourceInfo(String jobId,
+                                                                         ScalableTargetResourceInfo scalableTargetResourceInfo,
+                                                                         CallMetadata callMetadata);
 }

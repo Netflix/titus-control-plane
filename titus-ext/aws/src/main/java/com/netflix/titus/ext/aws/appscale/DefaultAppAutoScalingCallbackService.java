@@ -23,6 +23,7 @@ import javax.inject.Singleton;
 
 import com.google.protobuf.UInt32Value;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobCapacityUpdateWithOptionalAttributes;
@@ -54,15 +55,15 @@ public class DefaultAppAutoScalingCallbackService implements AppAutoScalingCallb
     }
 
     @Override
-    public Observable<ScalableTargetResourceInfo> getScalableTargetResourceInfo(String jobId) {
+    public Observable<ScalableTargetResourceInfo> getScalableTargetResourceInfo(String jobId, CallMetadata callMetadata) {
         TaskQuery taskQuery = TaskQuery.newBuilder()
                 .putFilteringCriteria("jobIds", jobId)
                 .putFilteringCriteria("taskStates", "Started")
                 .setPage(Page.newBuilder().setPageSize(1).build()).build();
 
-        return jobServiceGateway.findTasks(taskQuery)
+        return jobServiceGateway.findTasks(taskQuery, callMetadata)
                 .map(taskQueryResult -> taskQueryResult.getPagination().getTotalItems())
-                .flatMap(numStartedTasks -> jobServiceGateway.findJob(jobId).map(job -> Pair.of(job, numStartedTasks)))
+                .flatMap(numStartedTasks -> jobServiceGateway.findJob(jobId, callMetadata).map(job -> Pair.of(job, numStartedTasks)))
                 .flatMap(jobTasksPair -> {
                     Job job = jobTasksPair.getLeft();
                     Integer numRunningTasks = jobTasksPair.getRight();
@@ -87,15 +88,17 @@ public class DefaultAppAutoScalingCallbackService implements AppAutoScalingCallb
     }
 
     @Override
-    public Observable<ScalableTargetResourceInfo> setScalableTargetResourceInfo(String jobId, ScalableTargetResourceInfo scalableTargetResourceInfo) {
+    public Observable<ScalableTargetResourceInfo> setScalableTargetResourceInfo(String jobId,
+                                                                                ScalableTargetResourceInfo scalableTargetResourceInfo,
+                                                                                CallMetadata callMetadata) {
         logger.info("(BEFORE setting job instances) for jobId {} :: {}", jobId, scalableTargetResourceInfo);
         JobCapacityWithOptionalAttributes jobCapacityWithOptionalAttributes = JobCapacityWithOptionalAttributes.newBuilder()
                 .setDesired(UInt32Value.newBuilder().setValue(scalableTargetResourceInfo.getDesiredCapacity()).build()).build();
         JobCapacityUpdateWithOptionalAttributes jobCapacityRequest = JobCapacityUpdateWithOptionalAttributes.newBuilder()
                 .setJobId(jobId)
                 .setJobCapacityWithOptionalAttributes(jobCapacityWithOptionalAttributes).build();
-        return jobServiceGateway.updateJobCapacityWithOptionalAttributes(jobCapacityRequest)
-                .andThen(getScalableTargetResourceInfo(jobId).map(scalableTargetResourceInfoReturned -> {
+        return jobServiceGateway.updateJobCapacityWithOptionalAttributes(jobCapacityRequest, callMetadata)
+                .andThen(getScalableTargetResourceInfo(jobId, callMetadata).map(scalableTargetResourceInfoReturned -> {
                     scalableTargetResourceInfoReturned.setScalingStatus(ScalingStatus.Pending.name());
                     logger.info("(set job instances) Returning value Instances for jobId {} :: {}", jobId, scalableTargetResourceInfo);
                     return scalableTargetResourceInfoReturned;

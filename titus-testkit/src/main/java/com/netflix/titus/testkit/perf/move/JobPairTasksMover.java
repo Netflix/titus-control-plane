@@ -68,7 +68,7 @@ class JobPairTasksMover {
     }
 
     Flux<Void> waitForTasksToStart() {
-        Observable<Void> jobObservable = client.observeJob(jobId1)
+        Observable<Void> jobObservable = client.observeJob(jobId1, JobManagerConstants.UNDEFINED_CALL_METADATA)
                 .doOnNext(event -> {
                     switch (event.getNotificationCase()) {
                         case JOBUPDATE:
@@ -94,7 +94,10 @@ class JobPairTasksMover {
         logger.info("Moving tasks: job1={}, job2={}...", jobId1, jobId2);
 
         List<Completable> moveActions = tasks.keySet().stream()
-                .map(taskId -> client.moveTask(TaskMoveRequest.newBuilder().setTaskId(taskId).setTargetJobId(jobId2).build()))
+                .map(taskId -> client.moveTask(
+                        TaskMoveRequest.newBuilder().setTaskId(taskId).setTargetJobId(jobId2).build(),
+                        JobManagerConstants.UNDEFINED_CALL_METADATA
+                ))
                 .collect(Collectors.toList());
 
         return ReactorExt.toFlux(Completable.merge(Observable.from(moveActions), batchSize).toObservable().cast(Void.class))
@@ -102,7 +105,10 @@ class JobPairTasksMover {
     }
 
     void shutdown() {
-        Throwable error = Completable.merge(client.killJob(jobId1), client.killJob(jobId2)).get();
+        Throwable error = Completable.merge(
+                client.killJob(jobId1, JobManagerConstants.UNDEFINED_CALL_METADATA),
+                client.killJob(jobId2, JobManagerConstants.UNDEFINED_CALL_METADATA)
+        ).get();
         if (error != null) {
             logger.warn("Job cleanup error for jobs: job1={}, job2={}", jobId1, jobId2);
         } else {

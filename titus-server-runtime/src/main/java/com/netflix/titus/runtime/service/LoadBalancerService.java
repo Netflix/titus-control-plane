@@ -16,6 +16,7 @@
 
 package com.netflix.titus.runtime.service;
 
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.grpc.protogen.AddLoadBalancerRequest;
 import com.netflix.titus.grpc.protogen.GetAllLoadBalancersRequest;
 import com.netflix.titus.grpc.protogen.GetAllLoadBalancersResult;
@@ -26,11 +27,11 @@ import rx.Completable;
 import rx.Observable;
 
 public interface LoadBalancerService {
-    Observable<GetJobLoadBalancersResult> getLoadBalancers(JobId jobId);
+    Observable<GetJobLoadBalancersResult> getLoadBalancers(JobId jobId, CallMetadata callMetadata);
 
-    Observable<GetAllLoadBalancersResult> getAllLoadBalancers(GetAllLoadBalancersRequest request);
+    Observable<GetAllLoadBalancersResult> getAllLoadBalancers(GetAllLoadBalancersRequest request, CallMetadata callMetadata);
 
-    Completable addLoadBalancer(AddLoadBalancerRequest request);
+    Completable addLoadBalancer(AddLoadBalancerRequest request, CallMetadata callMetadata);
 
-    Completable removeLoadBalancer(RemoveLoadBalancerRequest removeLoadBalancerRequest);
+    Completable removeLoadBalancer(RemoveLoadBalancerRequest removeLoadBalancerRequest, CallMetadata callMetadata);
 }

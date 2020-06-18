@@ -40,7 +40,10 @@ import com.netflix.titus.api.jobmanager.store.JobStoreException;
 import com.netflix.titus.api.model.PageResult;
 import com.netflix.titus.api.model.Pagination;
 import com.netflix.titus.api.model.PaginationUtil;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.service.TitusServiceException;
+import com.netflix.titus.common.model.admission.AdmissionSanitizer;
+import com.netflix.titus.common.model.admission.AdmissionValidator;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExceptionExt;
@@ -59,9 +62,6 @@ import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.runtime.connector.GrpcRequestConfiguration;
 import com.netflix.titus.runtime.endpoint.JobQueryCriteria;
-import com.netflix.titus.common.model.admission.AdmissionSanitizer;
-import com.netflix.titus.common.model.admission.AdmissionValidator;
-import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobQueryModelConverters;
 import com.netflix.titus.runtime.jobmanager.JobManagerConfiguration;
@@ -100,7 +100,6 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
     private final GrpcRequestConfiguration tunablesConfiguration;
     private final GatewayConfiguration gatewayConfiguration;
     private final JobManagementServiceStub client;
-    private final CallMetadataResolver callMetadataResolver;
     private final JobStore store;
     private final LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo;
     private final TaskRelocationDataInjector taskRelocationDataInjector;
@@ -112,7 +111,6 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
                                     GatewayConfiguration gatewayConfiguration,
                                     JobManagerConfiguration jobManagerConfiguration,
                                     JobManagementServiceStub client,
-                                    CallMetadataResolver callMetadataResolver,
                                     JobStore store,
                                     LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo,
                                     TaskRelocationDataInjector taskRelocationDataInjector,
@@ -126,7 +124,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
                                     AdmissionSanitizer<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> sanitizer,
                                     TitusRuntime titusRuntime) {
         super(new SanitizingJobServiceGateway(
-                new GrpcJobServiceGateway(client, callMetadataResolver, tunablesConfiguration),
+                new GrpcJobServiceGateway(client, tunablesConfiguration),
                 new ExtendedJobSanitizer(
                         jobManagerConfiguration,
                         jobAssertions,
@@ -140,7 +138,6 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
         this.tunablesConfiguration = tunablesConfiguration;
         this.gatewayConfiguration = gatewayConfiguration;
         this.client = client;
-        this.callMetadataResolver = callMetadataResolver;
         this.store = store;
         this.logStorageInfo = logStorageInfo;
         this.taskRelocationDataInjector = taskRelocationDataInjector;
@@ -149,10 +146,10 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
     }
 
     @Override
-    public Observable<Job> findJob(String jobId) {
+    public Observable<Job> findJob(String jobId, CallMetadata callMetadata) {
         Observable<Job> observable = createRequestObservable(emitter -> {
             StreamObserver<Job> streamObserver = createSimpleClientResponseObserver(emitter);
-            createWrappedStub(client, callMetadataResolver, tunablesConfiguration.getRequestTimeoutMs()).findJob(JobId.newBuilder().setId(jobId).build(), streamObserver);
+            createWrappedStub(client, callMetadata, tunablesConfiguration.getRequestTimeoutMs()).findJob(JobId.newBuilder().setId(jobId).build(), streamObserver);
         }, tunablesConfiguration.getRequestTimeoutMs());
 
         return observable.onErrorResumeNext(e -> {
@@ -166,11 +163,11 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
     }
 
     @Override
-    public Observable<Task> findTask(String taskId) {
+    public Observable<Task> findTask(String taskId, CallMetadata callMetadata) {
         Observable<Task> observable = createRequestObservable(
                 emitter -> {
                     StreamObserver<Task> streamObserver = createSimpleClientResponseObserver(emitter);
-                    createWrappedStub(client, callMetadataResolver, tunablesConfiguration.getRequestTimeoutMs()).findTask(TaskId.newBuilder().setId(taskId).build(), streamObserver);
+                    createWrappedStub(client, callMetadata, tunablesConfiguration.getRequestTimeoutMs()).findTask(TaskId.newBuilder().setId(taskId).build(), streamObserver);
                 },
                 tunablesConfiguration.getRequestTimeoutMs()
         );
@@ -189,7 +186,7 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
     }
 
     @Override
-    public Observable<TaskQueryResult> findTasks(TaskQuery taskQuery) {
+    public Observable<TaskQueryResult> findTasks(TaskQuery taskQuery, CallMetadata callMetadata) {
         Map<String, String> filteringCriteriaMap = taskQuery.getFilteringCriteriaMap();
         Set<String> v3JobIds = new HashSet<>(StringExt.splitByComma(filteringCriteriaMap.getOrDefault("jobIds", "")));
         boolean needsMigrationFilter = "true".equalsIgnoreCase(filteringCriteriaMap.getOrDefault("needsMigration", "false"));
@@ -207,13 +204,13 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
         Observable<TaskQueryResult> observable;
         if (v3JobIds.isEmpty()) {
             // Active task set only
-            observable = newActiveTaskQueryAction(taskQuery);
+            observable = newActiveTaskQueryAction(taskQuery, callMetadata);
         } else {
             Set<String> taskStates = Sets.newHashSet(StringExt.splitByComma(taskQuery.getFilteringCriteriaMap().getOrDefault("taskStates", "")));
 
             if (!taskStates.contains(TaskState.Finished.name())) {
                 // Active task set only
-                observable = newActiveTaskQueryAction(taskQuery);
+                observable = newActiveTaskQueryAction(taskQuery, callMetadata);
             } else {
                 Page page = taskQuery.getPage();
                 boolean nextPageByNumber = StringExt.isEmpty(page.getCursor()) && page.getPageNumber() > 0;
@@ -223,9 +220,9 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
                     // we have to fetch as much tasks from master as we can. Tasks that we do not fetch, will not be
                     // visible to the client.
                     TaskQuery largePageQuery = taskQuery.toBuilder().setPage(taskQuery.getPage().toBuilder().setPageNumber(0).setPageSize(gatewayConfiguration.getMaxTaskPageSize())).build();
-                    observable = newActiveTaskQueryAction(largePageQuery);
+                    observable = newActiveTaskQueryAction(largePageQuery, callMetadata);
                 } else {
-                    observable = newActiveTaskQueryAction(taskQuery);
+                    observable = newActiveTaskQueryAction(taskQuery, callMetadata);
                 }
 
                 observable = observable.flatMap(result ->
@@ -237,10 +234,10 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
         return taskRelocationDataInjector.injectIntoTaskQueryResult(observable.timeout(tunablesConfiguration.getRequestTimeoutMs(), TimeUnit.MILLISECONDS));
     }
 
-    private Observable<TaskQueryResult> newActiveTaskQueryAction(TaskQuery taskQuery) {
+    private Observable<TaskQueryResult> newActiveTaskQueryAction(TaskQuery taskQuery, CallMetadata callMetadata) {
         return createRequestObservable(emitter -> {
             StreamObserver<TaskQueryResult> streamObserver = createSimpleClientResponseObserver(emitter);
-            createWrappedStub(client, callMetadataResolver, tunablesConfiguration.getRequestTimeoutMs()).findTasks(taskQuery, streamObserver);
+            createWrappedStub(client, callMetadata, tunablesConfiguration.getRequestTimeoutMs()).findTasks(taskQuery, streamObserver);
         }, tunablesConfiguration.getRequestTimeoutMs());
     }
 
@@ -271,8 +268,8 @@ public class GatewayJobServiceGateway extends JobServiceGatewayDelegate {
                     if (!expectedStateReasons.isEmpty() && !expectedStateReasons.contains(task.getStatus().getReasonCode())) {
                         return false;
                     }
-                    if(taskQueryCriteria.isSkipSystemFailures()) {
-                        if(com.netflix.titus.api.jobmanager.model.job.TaskStatus.isSystemError(task.getStatus())) {
+                    if (taskQueryCriteria.isSkipSystemFailures()) {
+                        if (com.netflix.titus.api.jobmanager.model.job.TaskStatus.isSystemError(task.getStatus())) {
                             return false;
                         }
                     }

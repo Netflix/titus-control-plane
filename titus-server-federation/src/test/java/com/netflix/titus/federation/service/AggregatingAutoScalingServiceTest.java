@@ -34,6 +34,7 @@ import io.grpc.StatusRuntimeException;
 import org.junit.Test;
 import rx.observers.AssertableSubscriber;
 
+import static com.netflix.titus.testkit.junit.spring.SpringMockMvcUtil.JUNIT_REST_CALL_METADATA;
 import static org.assertj.core.api.Java6Assertions.assertThat;
 
 public class AggregatingAutoScalingServiceTest extends AggregatingAutoScalingTestBase {
@@ -52,7 +53,7 @@ public class AggregatingAutoScalingServiceTest extends AggregatingAutoScalingTes
         cellOne.getServiceRegistry().addService(cellOneService);
         cellTwo.getServiceRegistry().addService(cellTwoService);
 
-        final AssertableSubscriber<GetPolicyResult> testSubscriber = service.getAllScalingPolicies().test();
+        final AssertableSubscriber<GetPolicyResult> testSubscriber = service.getAllScalingPolicies(JUNIT_REST_CALL_METADATA).test();
         testSubscriber.awaitValueCount(1, 1, TimeUnit.SECONDS);
         List<GetPolicyResult> onNextEvents = testSubscriber.getOnNextEvents();
         assertThat(onNextEvents).isNotNull();
@@ -71,7 +72,7 @@ public class AggregatingAutoScalingServiceTest extends AggregatingAutoScalingTes
         cellOne.getServiceRegistry().addService(cellOneService);
         cellTwo.getServiceRegistry().addService(badCell);
 
-        final AssertableSubscriber<GetPolicyResult> testSubscriber = service.getAllScalingPolicies().test();
+        final AssertableSubscriber<GetPolicyResult> testSubscriber = service.getAllScalingPolicies(JUNIT_REST_CALL_METADATA).test();
         testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
         testSubscriber.assertNoValues();
         testSubscriber.assertError(StatusRuntimeException.class);
@@ -93,7 +94,7 @@ public class AggregatingAutoScalingServiceTest extends AggregatingAutoScalingTes
         cellOne.getServiceRegistry().addService(cellOneService);
         cellTwo.getServiceRegistry().addService(cellTwoService);
 
-        AssertableSubscriber<GetPolicyResult> testSubscriber = service.getJobScalingPolicies(JobId.newBuilder().setId(JOB_2).build()).test();
+        AssertableSubscriber<GetPolicyResult> testSubscriber = service.getJobScalingPolicies(JobId.newBuilder().setId(JOB_2).build(), JUNIT_REST_CALL_METADATA).test();
 
         testSubscriber.awaitValueCount(1, 1, TimeUnit.SECONDS);
 
@@ -104,7 +105,7 @@ public class AggregatingAutoScalingServiceTest extends AggregatingAutoScalingTes
         assertThat(onNextEvents.get(0).getItems(0).getJobId()).isEqualTo(JOB_2);
 
         // Bad policy id, currently each Cell returns an empty result
-        testSubscriber = service.getJobScalingPolicies(JobId.newBuilder().setId("badID").build()).test();
+        testSubscriber = service.getJobScalingPolicies(JobId.newBuilder().setId("badID").build(), JUNIT_REST_CALL_METADATA).test();
         testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
         testSubscriber.assertNoErrors();
         onNextEvents = testSubscriber.getOnNextEvents();
@@ -131,7 +132,7 @@ public class AggregatingAutoScalingServiceTest extends AggregatingAutoScalingTes
         cellTwo.getServiceRegistry().addService(cellTwoService);
         cellTwo.getServiceRegistry().addService(cellTwoJobsService);
 
-        AssertableSubscriber<ScalingPolicyID> testSubscriber = service.setAutoScalingPolicy(PutPolicyRequest.newBuilder().setJobId(JOB_2).build()).test();
+        AssertableSubscriber<ScalingPolicyID> testSubscriber = service.setAutoScalingPolicy(PutPolicyRequest.newBuilder().setJobId(JOB_2).build(), JUNIT_REST_CALL_METADATA).test();
         testSubscriber.awaitValueCount(1, 1, TimeUnit.SECONDS);
         testSubscriber.assertNoErrors();
 
@@ -140,7 +141,7 @@ public class AggregatingAutoScalingServiceTest extends AggregatingAutoScalingTes
         assertThat(onNextEvents.size()).isEqualTo(1);
         assertThat(onNextEvents.get(0).getId()).isNotEmpty();
 
-        AssertableSubscriber<GetPolicyResult> testSubscriber2 = service.getJobScalingPolicies(JobId.newBuilder().setId(JOB_2).build()).test();
+        AssertableSubscriber<GetPolicyResult> testSubscriber2 = service.getJobScalingPolicies(JobId.newBuilder().setId(JOB_2).build(), JUNIT_REST_CALL_METADATA).test();
         testSubscriber2.awaitValueCount(1, 1, TimeUnit.SECONDS);
 
         List<GetPolicyResult> onNextEvents1 = testSubscriber2.getOnNextEvents();
@@ -156,10 +157,10 @@ public class AggregatingAutoScalingServiceTest extends AggregatingAutoScalingTes
                         .setTargetPolicyDescriptor(TargetTrackingPolicyDescriptor.newBuilder()
                                 .setTargetValue(DoubleValue.newBuilder().setValue(100.0).build()).build()).build()).build();
 
-        AssertableSubscriber<Void> testSubscriber3 = service.updateAutoScalingPolicy(updatePolicyRequest).test();
+        AssertableSubscriber<Void> testSubscriber3 = service.updateAutoScalingPolicy(updatePolicyRequest, JUNIT_REST_CALL_METADATA).test();
         testSubscriber3.assertNoErrors();
 
-        AssertableSubscriber<GetPolicyResult> testSubscriber4 = service.getScalingPolicy(ScalingPolicyID.newBuilder().setId(POLICY_2).build()).test();
+        AssertableSubscriber<GetPolicyResult> testSubscriber4 = service.getScalingPolicy(ScalingPolicyID.newBuilder().setId(POLICY_2).build(), JUNIT_REST_CALL_METADATA).test();
         testSubscriber2.awaitValueCount(1, 1, TimeUnit.SECONDS);
 
         List<GetPolicyResult> onNextEvents2 = testSubscriber4.getOnNextEvents();
@@ -191,7 +192,7 @@ public class AggregatingAutoScalingServiceTest extends AggregatingAutoScalingTes
         cellTwo.getServiceRegistry().addService(cellTwoService);
         cellTwo.getServiceRegistry().addService(cellTwoJobsService);
 
-        AssertableSubscriber<ScalingPolicyID> testSubscriber = service.setAutoScalingPolicy(PutPolicyRequest.newBuilder().setJobId(JOB_2).build()).test();
+        AssertableSubscriber<ScalingPolicyID> testSubscriber = service.setAutoScalingPolicy(PutPolicyRequest.newBuilder().setJobId(JOB_2).build(), JUNIT_REST_CALL_METADATA).test();
         testSubscriber.awaitValueCount(1, 1, TimeUnit.SECONDS);
         assertThat(testSubscriber.getOnErrorEvents().isEmpty()).isTrue();
 
@@ -201,7 +202,7 @@ public class AggregatingAutoScalingServiceTest extends AggregatingAutoScalingTes
         assertThat(onNextEvents.get(0).getId()).isNotEmpty();
 
         String newPolicyId = onNextEvents.get(0).getId();
-        AssertableSubscriber<GetPolicyResult> testSubscriber2 = service.getJobScalingPolicies(JobId.newBuilder().setId(JOB_2).build()).test();
+        AssertableSubscriber<GetPolicyResult> testSubscriber2 = service.getJobScalingPolicies(JobId.newBuilder().setId(JOB_2).build(), JUNIT_REST_CALL_METADATA).test();
         testSubscriber2.awaitValueCount(1, 1, TimeUnit.SECONDS);
 
         List<GetPolicyResult> onNextEvents1 = testSubscriber2.getOnNextEvents();
@@ -212,10 +213,10 @@ public class AggregatingAutoScalingServiceTest extends AggregatingAutoScalingTes
         assertThat(onNextEvents1.get(0).getItems(1).getJobId()).isEqualTo(JOB_2);
 
         DeletePolicyRequest deletePolicyRequest = DeletePolicyRequest.newBuilder().setId(ScalingPolicyID.newBuilder().setId(newPolicyId).build()).build();
-        AssertableSubscriber<Void> testSubscriber3 = service.deleteAutoScalingPolicy(deletePolicyRequest).test();
+        AssertableSubscriber<Void> testSubscriber3 = service.deleteAutoScalingPolicy(deletePolicyRequest, JUNIT_REST_CALL_METADATA).test();
         testSubscriber3.assertNoErrors();
 
-        AssertableSubscriber<GetPolicyResult> testSubscriber4 = service.getJobScalingPolicies(JobId.newBuilder().setId(JOB_2).build()).test();
+        AssertableSubscriber<GetPolicyResult> testSubscriber4 = service.getJobScalingPolicies(JobId.newBuilder().setId(JOB_2).build(), JUNIT_REST_CALL_METADATA).test();
         testSubscriber2.awaitValueCount(1, 1, TimeUnit.SECONDS);
 
         List<GetPolicyResult> onNextEvents2 = testSubscriber4.getOnNextEvents();
@@ -241,7 +242,7 @@ public class AggregatingAutoScalingServiceTest extends AggregatingAutoScalingTes
         cellTwo.getServiceRegistry().addService(cellTwoService);
 
         AssertableSubscriber<GetPolicyResult> testSubscriber = service.getScalingPolicy(
-                ScalingPolicyID.newBuilder().setId(POLICY_2).build()).test();
+                ScalingPolicyID.newBuilder().setId(POLICY_2).build(), JUNIT_REST_CALL_METADATA).test();
 
         testSubscriber.awaitValueCount(1, 1, TimeUnit.SECONDS);
 
@@ -251,7 +252,7 @@ public class AggregatingAutoScalingServiceTest extends AggregatingAutoScalingTes
         assertThat(onNextEvents.get(0).getItemsCount()).isEqualTo(1);
 
         // Bad id. The current behavior is "INTERNAL: Completed without a response", but it will change to NOT_FOUND someday
-        testSubscriber = service.getScalingPolicy(ScalingPolicyID.newBuilder().setId("badID").build()).test();
+        testSubscriber = service.getScalingPolicy(ScalingPolicyID.newBuilder().setId("badID").build(), JUNIT_REST_CALL_METADATA).test();
         testSubscriber.awaitTerminalEvent(1, TimeUnit.SECONDS);
         testSubscriber.assertError(StatusRuntimeException.class);
         testSubscriber.assertNoValues();

@@ -36,6 +36,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import rx.Completable;
 import rx.Observable;
 
+import static com.netflix.titus.testkit.junit.spring.SpringMockMvcUtil.JUNIT_REST_CALL_METADATA;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -58,61 +59,61 @@ public class AutoScalingSpringResourceTest {
 
     @Test
     public void testGetAllScalingPolicies() throws Exception {
-        when(serviceMock.getAllScalingPolicies()).thenReturn(Observable.just(GET_POLICY_RESULT));
+        when(serviceMock.getAllScalingPolicies(JUNIT_REST_CALL_METADATA)).thenReturn(Observable.just(GET_POLICY_RESULT));
         GetPolicyResult entity = SpringMockMvcUtil.doGet(mockMvc, "/api/v3/autoscaling/scalingPolicies", GetPolicyResult.class);
         assertThat(entity).isEqualTo(GET_POLICY_RESULT);
 
-        verify(serviceMock, times(1)).getAllScalingPolicies();
+        verify(serviceMock, times(1)).getAllScalingPolicies(JUNIT_REST_CALL_METADATA);
     }
 
     @Test
     public void testGetScalingPolicyForJob() throws Exception {
         JobId jobId = JobId.newBuilder().setId("myJobId").build();
-        when(serviceMock.getJobScalingPolicies(jobId)).thenReturn(Observable.just(GET_POLICY_RESULT));
+        when(serviceMock.getJobScalingPolicies(jobId, JUNIT_REST_CALL_METADATA)).thenReturn(Observable.just(GET_POLICY_RESULT));
         GetPolicyResult entity = SpringMockMvcUtil.doGet(mockMvc, String.format("/api/v3/autoscaling/scalingPolicies/%s", jobId.getId()), GetPolicyResult.class);
         assertThat(entity).isEqualTo(GET_POLICY_RESULT);
 
-        verify(serviceMock, times(1)).getJobScalingPolicies(jobId);
+        verify(serviceMock, times(1)).getJobScalingPolicies(jobId, JUNIT_REST_CALL_METADATA);
     }
 
     @Test
     public void testSetScalingPolicy() throws Exception {
         PutPolicyRequest request = PutPolicyRequest.newBuilder().build();
 
-        when(serviceMock.setAutoScalingPolicy(request)).thenReturn(Observable.just(SCALING_POLICY_ID));
+        when(serviceMock.setAutoScalingPolicy(request, JUNIT_REST_CALL_METADATA)).thenReturn(Observable.just(SCALING_POLICY_ID));
         ScalingPolicyID entity = SpringMockMvcUtil.doPost(mockMvc, "/api/v3/autoscaling/scalingPolicy", request, ScalingPolicyID.class);
         assertThat(entity).isEqualTo(SCALING_POLICY_ID);
 
-        verify(serviceMock, times(1)).setAutoScalingPolicy(request);
+        verify(serviceMock, times(1)).setAutoScalingPolicy(request, JUNIT_REST_CALL_METADATA);
     }
 
     @Test
     public void testGetScalingPolicy() throws Exception {
-        when(serviceMock.getScalingPolicy(SCALING_POLICY_ID)).thenReturn(Observable.just(GET_POLICY_RESULT));
+        when(serviceMock.getScalingPolicy(SCALING_POLICY_ID, JUNIT_REST_CALL_METADATA)).thenReturn(Observable.just(GET_POLICY_RESULT));
         GetPolicyResult entity = SpringMockMvcUtil.doGet(mockMvc, String.format("/api/v3/autoscaling/scalingPolicy/%s", SCALING_POLICY_ID.getId()), GetPolicyResult.class);
         assertThat(entity).isEqualTo(GET_POLICY_RESULT);
 
-        verify(serviceMock, times(1)).getScalingPolicy(SCALING_POLICY_ID);
+        verify(serviceMock, times(1)).getScalingPolicy(SCALING_POLICY_ID, JUNIT_REST_CALL_METADATA);
     }
 
     @Test
     public void testRemovePolicy() throws Exception {
         DeletePolicyRequest request = DeletePolicyRequest.newBuilder().setId(SCALING_POLICY_ID).build();
 
-        when(serviceMock.deleteAutoScalingPolicy(request)).thenReturn(Completable.complete());
+        when(serviceMock.deleteAutoScalingPolicy(request, JUNIT_REST_CALL_METADATA)).thenReturn(Completable.complete());
         SpringMockMvcUtil.doDelete(mockMvc, String.format("/api/v3/autoscaling/scalingPolicy/%s", SCALING_POLICY_ID.getId()));
 
-        verify(serviceMock, times(1)).deleteAutoScalingPolicy(request);
+        verify(serviceMock, times(1)).deleteAutoScalingPolicy(request, JUNIT_REST_CALL_METADATA);
     }
 
     @Test
     public void testUpdateScalingPolicy() throws Exception {
         UpdatePolicyRequest request = UpdatePolicyRequest.newBuilder().build();
 
-        when(serviceMock.updateAutoScalingPolicy(request)).thenReturn(Completable.complete());
+        when(serviceMock.updateAutoScalingPolicy(request, JUNIT_REST_CALL_METADATA)).thenReturn(Completable.complete());
         SpringMockMvcUtil.doPut(mockMvc, "/api/v3/autoscaling/scalingPolicy", request);
 
-        verify(serviceMock, times(1)).updateAutoScalingPolicy(request);
+        verify(serviceMock, times(1)).updateAutoScalingPolicy(request, JUNIT_REST_CALL_METADATA);
 
     }
 }

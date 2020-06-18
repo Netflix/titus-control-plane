@@ -34,6 +34,7 @@ import com.netflix.titus.grpc.protogen.SystemSelector;
 import com.netflix.titus.grpc.protogen.SystemSelectorId;
 import com.netflix.titus.grpc.protogen.SystemSelectorUpdate;
 import com.netflix.titus.grpc.protogen.SystemSelectors;
+import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcSchedulerModelConverters;
 import io.grpc.stub.StreamObserver;
@@ -69,7 +70,7 @@ public class DefaultSchedulerService implements SchedulerService {
     public Observable<SystemSelectors> getSystemSelectors() {
         return createRequestObservable(emitter -> {
             StreamObserver<SystemSelectors> streamObserver = createSimpleClientResponseObserver(emitter);
-            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).getSystemSelectors(Empty.getDefaultInstance(), streamObserver);
+            GrpcUtil.createWrappedStubWithResolver(client, callMetadataResolver, configuration.getRequestTimeout()).getSystemSelectors(Empty.getDefaultInstance(), streamObserver);
         }, configuration.getRequestTimeout());
     }
 
@@ -77,7 +78,7 @@ public class DefaultSchedulerService implements SchedulerService {
     public Observable<SystemSelector> getSystemSelector(String id) {
         return createRequestObservable(emitter -> {
             StreamObserver<SystemSelector> streamObserver = createSimpleClientResponseObserver(emitter);
-            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).getSystemSelector(SystemSelectorId.newBuilder().setId(id).build(), streamObserver);
+            GrpcUtil.createWrappedStubWithResolver(client, callMetadataResolver, configuration.getRequestTimeout()).getSystemSelector(SystemSelectorId.newBuilder().setId(id).build(), streamObserver);
         }, configuration.getRequestTimeout());
     }
 
@@ -91,7 +92,7 @@ public class DefaultSchedulerService implements SchedulerService {
 
         return createRequestCompletable(emitter -> {
             StreamObserver<Empty> streamObserver = createEmptyClientResponseObserver(emitter);
-            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).createSystemSelector(systemSelector, streamObserver);
+            GrpcUtil.createWrappedStubWithResolver(client, callMetadataResolver, configuration.getRequestTimeout()).createSystemSelector(systemSelector, streamObserver);
         }, configuration.getRequestTimeout());
     }
 
@@ -106,7 +107,7 @@ public class DefaultSchedulerService implements SchedulerService {
         return createRequestCompletable(emitter -> {
             StreamObserver<Empty> streamObserver = createEmptyClientResponseObserver(emitter);
             SystemSelectorUpdate systemSelectorUpdate = SystemSelectorUpdate.newBuilder().setId(id).setSystemSelector(systemSelector).build();
-            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).updateSystemSelector(systemSelectorUpdate, streamObserver);
+            GrpcUtil.createWrappedStubWithResolver(client, callMetadataResolver, configuration.getRequestTimeout()).updateSystemSelector(systemSelectorUpdate, streamObserver);
         }, configuration.getRequestTimeout());
     }
 
@@ -114,7 +115,7 @@ public class DefaultSchedulerService implements SchedulerService {
     public Completable deleteSystemSelector(String id) {
         return createRequestCompletable(emitter -> {
             StreamObserver<Empty> streamObserver = createEmptyClientResponseObserver(emitter);
-            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).deleteSystemSelector(SystemSelectorId.newBuilder().setId(id).build(), streamObserver);
+            GrpcUtil.createWrappedStubWithResolver(client, callMetadataResolver, configuration.getRequestTimeout()).deleteSystemSelector(SystemSelectorId.newBuilder().setId(id).build(), streamObserver);
         }, configuration.getRequestTimeout());
     }
 
@@ -122,7 +123,7 @@ public class DefaultSchedulerService implements SchedulerService {
     public Observable<SchedulingResultEvent> findLastSchedulingResult(String taskId) {
         return createRequestObservable(emitter -> {
             StreamObserver<SchedulingResultEvent> streamObserver = createSimpleClientResponseObserver(emitter);
-            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).getSchedulingResult(SchedulingResultRequest.newBuilder().setTaskId(taskId).build(), streamObserver);
+            GrpcUtil.createWrappedStubWithResolver(client, callMetadataResolver, configuration.getRequestTimeout()).getSchedulingResult(SchedulingResultRequest.newBuilder().setTaskId(taskId).build(), streamObserver);
         }, configuration.getRequestTimeout());
     }
 
@@ -130,7 +131,7 @@ public class DefaultSchedulerService implements SchedulerService {
     public Observable<SchedulingResultEvent> observeSchedulingResults(String taskId) {
         return createRequestObservable(emitter -> {
             StreamObserver<SchedulingResultEvent> streamObserver = createSimpleClientResponseObserver(emitter);
-            createWrappedStub(client, callMetadataResolver).observeSchedulingResults(SchedulingResultRequest.newBuilder().setTaskId(taskId).build(), streamObserver);
+            GrpcUtil.createWrappedStubWithResolver(client, callMetadataResolver).observeSchedulingResults(SchedulingResultRequest.newBuilder().setTaskId(taskId).build(), streamObserver);
         });
     }
 }

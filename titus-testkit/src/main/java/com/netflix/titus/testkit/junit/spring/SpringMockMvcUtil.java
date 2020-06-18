@@ -86,7 +86,7 @@ public final class SpringMockMvcUtil {
     }
 
     public static <E extends Message> E doGet(MockMvc mockMvc, String path, Class<E> entityType) throws Exception {
-        return executeGet(mockMvc, newBuilder(entityType), get(path));
+        return executeGet(mockMvc, newBuilder(entityType), MockMvcRequestBuilders.get(path).principal(JUNIT_AUTHENTICATION));
     }
 
     public static <E extends Message> E doPaginatedGet(MockMvc mockMvc, String path, Class<E> entityType, Page page, String... queryParameters) throws Exception {
@@ -160,6 +160,7 @@ public final class SpringMockMvcUtil {
         MockHttpServletRequestBuilder requestBuilder = MockMvcRequestBuilders.put(path)
                 .contentType(MediaType.APPLICATION_JSON)
                 .characterEncoding("UTF-8")
+                .principal(JUNIT_AUTHENTICATION)
                 .content(JsonFormat.printer().print(body));
         mockMvc.perform(requestBuilder)
                 .andDo(print())
@@ -167,10 +168,11 @@ public final class SpringMockMvcUtil {
                 .andReturn();
     }
 
-    public static <B extends Message> void doDelete(MockMvc mockMvc, String path, String... queryParameters) throws Exception {
+    public static void doDelete(MockMvc mockMvc, String path, String... queryParameters) throws Exception {
         MockHttpServletRequestBuilder requestBuilder = MockMvcRequestBuilders.delete(path)
                 .contentType(MediaType.APPLICATION_JSON)
-                .characterEncoding("UTF-8");
+                .characterEncoding("UTF-8")
+                .principal(JUNIT_AUTHENTICATION);
         for (int i = 0; i < queryParameters.length; i += 2) {
             requestBuilder.queryParam(queryParameters[i], queryParameters[i + 1]);
         }

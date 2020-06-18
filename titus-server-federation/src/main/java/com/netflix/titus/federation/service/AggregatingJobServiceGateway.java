@@ -70,8 +70,6 @@ import com.netflix.titus.grpc.protogen.TaskMoveRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
 import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
-import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
-import com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor;
 import com.netflix.titus.runtime.jobmanager.JobManagerCursors;
 import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway;
 import io.grpc.stub.StreamObserver;
@@ -105,14 +103,12 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
     private final AggregatingCellClient aggregatingClient;
     private AggregatingJobManagementServiceHelper jobManagementServiceHelper;
     private final CellRouter router;
-    private final CallMetadataResolver callMetadataResolver;
 
     @Inject
     public AggregatingJobServiceGateway(GrpcConfiguration grpcConfiguration,
                                         TitusFederationConfiguration federationConfiguration,
                                         CellConnector connector,
                                         CellRouter router,
-                                        CallMetadataResolver callMetadataResolver,
                                         AggregatingCellClient aggregatingClient,
                                         AggregatingJobManagementServiceHelper jobManagementServiceHelper) {
 
@@ -120,7 +116,6 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
         this.federationConfiguration = federationConfiguration;
         this.connector = connector;
         this.router = router;
-        this.callMetadataResolver = callMetadataResolver;
         this.aggregatingClient = aggregatingClient;
         this.jobManagementServiceHelper = jobManagementServiceHelper;
     }
@@ -138,7 +133,7 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
         if (!optionalClient.isPresent()) {
             return Observable.error(TitusServiceException.cellNotFound(cell.getName()));
         }
-        JobManagementServiceStub client = wrap(optionalClient.get());
+        JobManagementServiceStub client = optionalClient.get();
 
         JobDescriptor withStackName = addStackName(jobDescriptor);
         return createRequestObservable(emitter -> {
@@ -148,95 +143,89 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
                     emitter::onError,
                     emitter::onCompleted
             );
-            wrap(Optional.ofNullable(callMetadata), client).createJob(withStackName, streamObserver);
+            wrap(client, callMetadata).createJob(withStackName, streamObserver);
         }, grpcConfiguration.getRequestTimeoutMs());
     }
 
     @Override
-    public Completable updateJobCapacity(JobCapacityUpdate request) {
-        Optional<CallMetadata> context = callMetadataResolver.resolve();
-
-        Observable<Empty> result = jobManagementServiceHelper.findJobInAllCells(request.getJobId())
+    public Completable updateJobCapacity(JobCapacityUpdate request, CallMetadata callMetadata) {
+        Observable<Empty> result = jobManagementServiceHelper.findJobInAllCells(request.getJobId(), callMetadata)
                 .flatMap(response -> singleCellCall(response.getCell(),
-                        (client, streamObserver) -> wrap(context, client).updateJobCapacity(request, streamObserver))
+                        (client, streamObserver) -> client.updateJobCapacity(request, streamObserver),
+                        callMetadata)
                 );
         return result.toCompletable();
     }
 
     @Override
-    public Completable updateJobCapacityWithOptionalAttributes(JobCapacityUpdateWithOptionalAttributes request) {
-        Optional<CallMetadata> context = callMetadataResolver.resolve();
-        Observable<Empty> result = jobManagementServiceHelper.findJobInAllCells(request.getJobId())
+    public Completable updateJobCapacityWithOptionalAttributes(JobCapacityUpdateWithOptionalAttributes request, CallMetadata callMetadata) {
+        Observable<Empty> result = jobManagementServiceHelper.findJobInAllCells(request.getJobId(), callMetadata)
                 .flatMap(response -> singleCellCall(response.getCell(),
-                        (client, streamObserver) -> wrap(context, client).updateJobCapacityWithOptionalAttributes(request, streamObserver))
+                        (client, streamObserver) -> client.updateJobCapacityWithOptionalAttributes(request, streamObserver),
+                        callMetadata)
                 );
         return result.toCompletable();
     }
 
     @Override
-    public Completable updateJobProcesses(JobProcessesUpdate request) {
-        Optional<CallMetadata> context = callMetadataResolver.resolve();
-
-        Observable<Empty> result = jobManagementServiceHelper.findJobInAllCells(request.getJobId())
+    public Completable updateJobProcesses(JobProcessesUpdate request, CallMetadata callMetadata) {
+        Observable<Empty> result = jobManagementServiceHelper.findJobInAllCells(request.getJobId(), callMetadata)
                 .flatMap(response -> singleCellCall(response.getCell(),
-                        (client, streamObserver) -> wrap(context, client).updateJobProcesses(request, streamObserver))
+                        (client, streamObserver) -> client.updateJobProcesses(request, streamObserver),
+                        callMetadata)
                 );
         return result.toCompletable();
     }
 
     @Override
-    public Completable updateJobStatus(JobStatusUpdate request) {
-        Optional<CallMetadata> context = callMetadataResolver.resolve();
-
-        Observable<Empty> result = jobManagementServiceHelper.findJobInAllCells(request.getId())
+    public Completable updateJobStatus(JobStatusUpdate request, CallMetadata callMetadata) {
+        Observable<Empty> result = jobManagementServiceHelper.findJobInAllCells(request.getId(), callMetadata)
                 .flatMap(response -> singleCellCall(response.getCell(),
-                        (client, streamObserver) -> wrap(context, client).updateJobStatus(request, streamObserver))
+                        (client, streamObserver) -> client.updateJobStatus(request, streamObserver),
+                        callMetadata)
                 );
         return result.toCompletable();
     }
 
     @Override
-    public Mono<Void> updateJobDisruptionBudget(JobDisruptionBudgetUpdate request) {
-        Optional<CallMetadata> context = callMetadataResolver.resolve();
-
-        Mono<Empty> result = jobManagementServiceHelper.findJobInAllCellsReact(request.getJobId())
+    public Mono<Void> updateJobDisruptionBudget(JobDisruptionBudgetUpdate request, CallMetadata callMetadata) {
+        Mono<Empty> result = jobManagementServiceHelper.findJobInAllCellsReact(request.getJobId(), callMetadata)
                 .flatMap(response -> singleCellCallReact(response.getCell(),
-                        (client, streamObserver) -> wrap(context, client).updateJobDisruptionBudget(request, streamObserver))
+                        (client, streamObserver) -> client.updateJobDisruptionBudget(request, streamObserver),
+                        callMetadata)
                 );
         return result.ignoreElement().cast(Void.class);
     }
 
     @Override
-    public Mono<Void> updateJobAttributes(JobAttributesUpdate request) {
-        Optional<CallMetadata> context = callMetadataResolver.resolve();
-
-        Mono<Empty> result = jobManagementServiceHelper.findJobInAllCellsReact(request.getJobId())
+    public Mono<Void> updateJobAttributes(JobAttributesUpdate request, CallMetadata callMetadata) {
+        Mono<Empty> result = jobManagementServiceHelper.findJobInAllCellsReact(request.getJobId(), callMetadata)
                 .flatMap(response -> singleCellCallReact(response.getCell(),
-                        (client, streamObserver) -> wrap(context, client).updateJobAttributes(request, streamObserver))
+                        (client, streamObserver) -> client.updateJobAttributes(request, streamObserver),
+                        callMetadata)
                 );
         return result.ignoreElement().cast(Void.class);
     }
 
     @Override
-    public Mono<Void> deleteJobAttributes(JobAttributesDeleteRequest request) {
-        Optional<CallMetadata> context = callMetadataResolver.resolve();
-
-        Mono<Empty> result = jobManagementServiceHelper.findJobInAllCellsReact(request.getJobId())
+    public Mono<Void> deleteJobAttributes(JobAttributesDeleteRequest request, CallMetadata callMetadata) {
+        Mono<Empty> result = jobManagementServiceHelper.findJobInAllCellsReact(request.getJobId(), callMetadata)
                 .flatMap(response -> singleCellCallReact(response.getCell(),
-                        (client, streamObserver) -> wrap(context, client).deleteJobAttributes(request, streamObserver))
+                        (client, streamObserver) -> client.deleteJobAttributes(request, streamObserver),
+                        callMetadata)
                 );
         return result.ignoreElement().cast(Void.class);
     }
 
     @Override
-    public Observable<Job> findJob(String jobId) {
-        return jobManagementServiceHelper.findJobInAllCells(jobId)
+    public Observable<Job> findJob(String jobId, CallMetadata callMetadata) {
+        return jobManagementServiceHelper.findJobInAllCells(jobId, callMetadata)
                 .map(CellResponse::getResult)
                 .map(this::addStackName);
     }
 
     @Override
-    public Observable<JobQueryResult> findJobs(JobQuery request) {
+    public Observable<JobQueryResult> findJobs(JobQuery request, CallMetadata callMetadata) {
         if (request.getPage().getPageSize() <= 0) {
             return Observable.just(JobQueryResult.newBuilder()
                     .setPagination(emptyGrpcPagination(request.getPage()))
@@ -254,14 +243,14 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
         }
 
         if (StringExt.isNotEmpty(request.getPage().getCursor()) || request.getPage().getPageNumber() == 0) {
-            return findJobsWithCursorPagination(request, fieldsFilter);
+            return findJobsWithCursorPagination(request, fieldsFilter, callMetadata);
         }
         // TODO: page number pagination
         return Observable.error(TitusServiceException.invalidArgument("pageNumbers are not supported, please use cursors"));
     }
 
-    private Observable<JobQueryResult> findJobsWithCursorPagination(JobQuery request, Set<String> fields) {
-        return aggregatingClient.call(JobManagementServiceGrpc::newStub, findJobsInCell(request))
+    private Observable<JobQueryResult> findJobsWithCursorPagination(JobQuery request, Set<String> fields, CallMetadata callMetadata) {
+        return aggregatingClient.call(JobManagementServiceGrpc::newStub, findJobsInCell(request, callMetadata))
                 .map(CellResponse::getResult)
                 .map(this::addStackName)
                 .reduce(this::combineJobResults)
@@ -288,8 +277,8 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
                 });
     }
 
-    private ClientCall<JobQueryResult> findJobsInCell(JobQuery request) {
-        return (client, streamObserver) -> wrap(client).findJobs(request, streamObserver);
+    private ClientCall<JobQueryResult> findJobsInCell(JobQuery request, CallMetadata callMetadata) {
+        return (client, streamObserver) -> wrap(client, callMetadata).findJobs(request, streamObserver);
     }
 
     private JobQueryResult combineJobResults(JobQueryResult one, JobQueryResult other) {
@@ -302,16 +291,17 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
     }
 
     @Override
-    public Observable<JobChangeNotification> observeJob(String jobId) {
+    public Observable<JobChangeNotification> observeJob(String jobId, CallMetadata callMetadata) {
         JobId request = JobId.newBuilder().setId(jobId).build();
-        return jobManagementServiceHelper.findJobInAllCells(jobId)
+        return jobManagementServiceHelper.findJobInAllCells(jobId, callMetadata)
                 .flatMap(response -> singleCellCallWithNoDeadline(response.getCell(),
-                        (client, streamObserver) -> client.observeJob(request, streamObserver))
+                        (client, streamObserver) -> client.observeJob(request, streamObserver),
+                        callMetadata)
                 );
     }
 
     @Override
-    public Observable<JobChangeNotification> observeJobs(ObserveJobsQuery query) {
+    public Observable<JobChangeNotification> observeJobs(ObserveJobsQuery query, CallMetadata callMetadata) {
         final Observable<JobChangeNotification> observable = createRequestObservable(delegate -> {
             Emitter<JobChangeNotification> emitter = new EmitterWithMultipleSubscriptions<>(delegate);
             Map<Cell, JobManagementServiceStub> clients = CellConnectorUtil.stubs(connector, JobManagementServiceGrpc::newStub);
@@ -320,31 +310,30 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
             );
             clients.forEach((cell, client) -> {
                 StreamObserver<JobChangeNotification> streamObserver = new FilterOutFirstMarker(emitter, markersEmitted);
-                wrapWithNoDeadline(client).observeJobs(query, streamObserver);
+                wrapWithNoDeadline(client, callMetadata).observeJobs(query, streamObserver);
             });
         });
         return observable.map(this::addStackName);
     }
 
     @Override
-    public Completable killJob(String jobId) {
-        Optional<CallMetadata> context = callMetadataResolver.resolve();
-
+    public Completable killJob(String jobId, CallMetadata callMetadata) {
         JobId id = JobId.newBuilder().setId(jobId).build();
-        Observable<Empty> result = jobManagementServiceHelper.findJobInAllCells(jobId)
+        Observable<Empty> result = jobManagementServiceHelper.findJobInAllCells(jobId, callMetadata)
                 .flatMap(response -> singleCellCall(response.getCell(),
-                        (client, streamObserver) -> wrap(context, client).killJob(id, streamObserver))
+                        (client, streamObserver) -> client.killJob(id, streamObserver),
+                        callMetadata)
                 );
         return result.toCompletable();
     }
 
     @Override
-    public Observable<Task> findTask(String taskId) {
-        return findTaskInAllCells(taskId).map(CellResponse::getResult).map(this::addStackName);
+    public Observable<Task> findTask(String taskId, CallMetadata callMetadata) {
+        return findTaskInAllCells(taskId, callMetadata).map(CellResponse::getResult).map(this::addStackName);
     }
 
-    private Observable<CellResponse<JobManagementServiceStub, Task>> findTaskInAllCells(String taskId) {
-        return aggregatingClient.callExpectingErrors(JobManagementServiceGrpc::newStub, findTaskInCell(taskId))
+    private Observable<CellResponse<JobManagementServiceStub, Task>> findTaskInAllCells(String taskId, CallMetadata callMetadata) {
+        return aggregatingClient.callExpectingErrors(JobManagementServiceGrpc::newStub, findTaskInCell(taskId, callMetadata))
                 .reduce(ResponseMerger.singleValue())
                 .flatMap(response -> response.getResult()
                         .map(v -> Observable.just(CellResponse.ofValue(response)))
@@ -352,13 +341,13 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
                 );
     }
 
-    private ClientCall<Task> findTaskInCell(String taskId) {
+    private ClientCall<Task> findTaskInCell(String taskId, CallMetadata callMetadata) {
         TaskId id = TaskId.newBuilder().setId(taskId).build();
-        return (client, streamObserver) -> wrap(client).findTask(id, streamObserver);
+        return (client, streamObserver) -> wrap(client, callMetadata).findTask(id, streamObserver);
     }
 
     @Override
-    public Observable<TaskQueryResult> findTasks(TaskQuery request) {
+    public Observable<TaskQueryResult> findTasks(TaskQuery request, CallMetadata callMetadata) {
         if (request.getPage().getPageSize() <= 0) {
             return Observable.just(TaskQueryResult.newBuilder()
                     .setPagination(emptyGrpcPagination(request.getPage()))
@@ -376,14 +365,14 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
         }
 
         if (StringExt.isNotEmpty(request.getPage().getCursor()) || request.getPage().getPageNumber() == 0) {
-            return findTasksWithCursorPagination(request, fieldsFilter);
+            return findTasksWithCursorPagination(request, fieldsFilter, callMetadata);
         }
         // TODO: page number pagination
         return Observable.error(TitusServiceException.invalidArgument("pageNumbers are not supported, please use cursors"));
     }
 
-    private Observable<TaskQueryResult> findTasksWithCursorPagination(TaskQuery request, Set<String> fields) {
-        return aggregatingClient.call(JobManagementServiceGrpc::newStub, findTasksInCell(request))
+    private Observable<TaskQueryResult> findTasksWithCursorPagination(TaskQuery request, Set<String> fields, CallMetadata callMetadata) {
+        return aggregatingClient.call(JobManagementServiceGrpc::newStub, findTasksInCell(request, callMetadata))
                 .map(CellResponse::getResult)
                 .map(this::addStackName)
                 .reduce(this::combineTaskResults)
@@ -410,8 +399,8 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
                 });
     }
 
-    private ClientCall<TaskQueryResult> findTasksInCell(TaskQuery request) {
-        return (client, streamObserver) -> wrap(client).findTasks(request, streamObserver);
+    private ClientCall<TaskQueryResult> findTasksInCell(TaskQuery request, CallMetadata callMetadata) {
+        return (client, streamObserver) -> wrap(client, callMetadata).findTasks(request, streamObserver);
     }
 
     private TaskQueryResult combineTaskResults(TaskQueryResult one, TaskQueryResult other) {
@@ -424,37 +413,39 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
     }
 
     @Override
-    public Completable killTask(TaskKillRequest request) {
-        Optional<CallMetadata> context = callMetadataResolver.resolve();
-
-        Observable<Empty> result = findTaskInAllCells(request.getTaskId())
+    public Completable killTask(TaskKillRequest request, CallMetadata callMetadata) {
+        Observable<Empty> result = findTaskInAllCells(request.getTaskId(), callMetadata)
                 .flatMap(response -> singleCellCall(response.getCell(),
-                        (client, streamObserver) -> wrap(context, client).killTask(request, streamObserver))
+                        (client, streamObserver) -> client.killTask(request, streamObserver),
+                        callMetadata)
                 );
         return result.toCompletable();
     }
 
     @Override
-    public Completable updateTaskAttributes(TaskAttributesUpdate attributesUpdate) {
-        Observable<Empty> result = findTaskInAllCells(attributesUpdate.getTaskId())
+    public Completable updateTaskAttributes(TaskAttributesUpdate attributesUpdate, CallMetadata callMetadata) {
+        Observable<Empty> result = findTaskInAllCells(attributesUpdate.getTaskId(), callMetadata)
                 .flatMap(response -> singleCellCall(response.getCell(),
-                        (client, streamObserver) -> client.updateTaskAttributes(attributesUpdate, streamObserver)));
+                        (client, streamObserver) -> client.updateTaskAttributes(attributesUpdate, streamObserver),
+                        callMetadata));
         return result.toCompletable();
     }
 
     @Override
-    public Completable deleteTaskAttributes(TaskAttributesDeleteRequest deleteRequest) {
-        Observable<Empty> result = findTaskInAllCells(deleteRequest.getTaskId())
+    public Completable deleteTaskAttributes(TaskAttributesDeleteRequest deleteRequest, CallMetadata callMetadata) {
+        Observable<Empty> result = findTaskInAllCells(deleteRequest.getTaskId(), callMetadata)
                 .flatMap(response -> singleCellCall(response.getCell(),
-                        (client, streamObserver) -> client.deleteTaskAttributes(deleteRequest, streamObserver)));
+                        (client, streamObserver) -> client.deleteTaskAttributes(deleteRequest, streamObserver),
+                        callMetadata));
         return result.toCompletable();
     }
 
     @Override
-    public Completable moveTask(TaskMoveRequest taskMoveRequest) {
-        Observable<Empty> result = findTaskInAllCells(taskMoveRequest.getTaskId())
+    public Completable moveTask(TaskMoveRequest taskMoveRequest, CallMetadata callMetadata) {
+        Observable<Empty> result = findTaskInAllCells(taskMoveRequest.getTaskId(), callMetadata)
                 .flatMap(response -> singleCellCall(response.getCell(),
-                        (client, streamObserver) -> client.moveTask(taskMoveRequest, streamObserver)));
+                        (client, streamObserver) -> client.moveTask(taskMoveRequest, streamObserver),
+                        callMetadata));
         return result.toCompletable();
     }
 
@@ -505,30 +496,26 @@ public class AggregatingJobServiceGateway implements JobServiceGateway {
         return JobChangeNotification.newBuilder().setSnapshotEnd(marker).build();
     }
 
-    private JobManagementServiceStub wrap(Optional<CallMetadata> context, JobManagementServiceStub client) {
-        return context.map(c -> V3HeaderInterceptor.attachCallMetadata(client, c)).orElse(client);
+    private JobManagementServiceStub wrap(JobManagementServiceStub client, CallMetadata callMetadata) {
+        return createWrappedStub(client, callMetadata, grpcConfiguration.getRequestTimeoutMs());
     }
 
-    private JobManagementServiceStub wrap(JobManagementServiceStub client) {
-        return createWrappedStub(client, callMetadataResolver, grpcConfiguration.getRequestTimeoutMs());
+    private JobManagementServiceStub wrapWithNoDeadline(JobManagementServiceStub client, CallMetadata callMetadata) {
+        return createWrappedStub(client, callMetadata);
     }
 
-    private JobManagementServiceStub wrapWithNoDeadline(JobManagementServiceStub client) {
-        return createWrappedStub(client, callMetadataResolver);
-    }
-
-    private <T> Observable<T> singleCellCall(Cell cell, ClientCall<T> clientCall) {
+    private <T> Observable<T> singleCellCall(Cell cell, ClientCall<T> clientCall, CallMetadata callMetadata) {
         return callToCell(cell, connector, JobManagementServiceGrpc::newStub,
-                (client, streamObserver) -> clientCall.accept(wrap(client), streamObserver));
+                (client, streamObserver) -> clientCall.accept(wrap(client, callMetadata), streamObserver));
     }
 
-    private <T> Mono<T> singleCellCallReact(Cell cell, ClientCall<T> clientCall) {
-        return ReactorExt.toMono(singleCellCall(cell, clientCall).toSingle());
+    private <T> Mono<T> singleCellCallReact(Cell cell, ClientCall<T> clientCall, CallMetadata callMetadata) {
+        return ReactorExt.toMono(singleCellCall(cell, clientCall, callMetadata).toSingle());
     }
 
-    private <T> Observable<T> singleCellCallWithNoDeadline(Cell cell, ClientCall<T> clientCall) {
+    private <T> Observable<T> singleCellCallWithNoDeadline(Cell cell, ClientCall<T> clientCall, CallMetadata callMetadata) {
         return callToCell(cell, connector, JobManagementServiceGrpc::newStub,
-                (client, streamObserver) -> clientCall.accept(wrapWithNoDeadline(client), streamObserver));
+                (client, streamObserver) -> clientCall.accept(wrapWithNoDeadline(client, callMetadata), streamObserver));
     }
 
     private interface ClientCall<T> extends BiConsumer<JobManagementServiceStub, StreamObserver<T>> {

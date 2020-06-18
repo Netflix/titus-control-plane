@@ -20,8 +20,8 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.protobuf.Empty;
-import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.common.runtime.SystemLogService;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobAttributesDeleteRequest;
@@ -46,8 +46,8 @@ import com.netflix.titus.grpc.protogen.TaskKillRequest;
 import com.netflix.titus.grpc.protogen.TaskMoveRequest;
 import com.netflix.titus.grpc.protogen.TaskQuery;
 import com.netflix.titus.grpc.protogen.TaskQueryResult;
-import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
+import com.netflix.titus.runtime.jobmanager.gateway.JobServiceGateway;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -81,9 +81,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void createJob(JobDescriptor request, StreamObserver<JobId> responseObserver) {
-        CallMetadata callMetadata = callMetadataResolver.resolve().orElse(JobManagerConstants.UNDEFINED_CALL_METADATA);
-        
-        Subscription subscription = jobServiceGateway.createJob(request, callMetadata).subscribe(
+        Subscription subscription = jobServiceGateway.createJob(request, resolveCallMetadata()).subscribe(
                 jobId -> responseObserver.onNext(JobId.newBuilder().setId(jobId).build()),
                 e -> safeOnError(logger, e, responseObserver),
                 responseObserver::onCompleted
@@ -93,17 +91,17 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void updateJobCapacity(JobCapacityUpdate request, StreamObserver<Empty> responseObserver) {
-        streamCompletableResponse(jobServiceGateway.updateJobCapacity(request), responseObserver);
+        streamCompletableResponse(jobServiceGateway.updateJobCapacity(request, resolveCallMetadata()), responseObserver);
     }
 
     @Override
     public void updateJobCapacityWithOptionalAttributes(JobCapacityUpdateWithOptionalAttributes request, StreamObserver<Empty> responseObserver) {
-        streamCompletableResponse(jobServiceGateway.updateJobCapacityWithOptionalAttributes(request), responseObserver);
+        streamCompletableResponse(jobServiceGateway.updateJobCapacityWithOptionalAttributes(request, resolveCallMetadata()), responseObserver);
     }
 
     @Override
     public void updateJobProcesses(JobProcessesUpdate request, StreamObserver<Empty> responseObserver) {
-        streamCompletableResponse(jobServiceGateway.updateJobProcesses(request), responseObserver);
+        streamCompletableResponse(jobServiceGateway.updateJobProcesses(request, resolveCallMetadata()), responseObserver);
     }
 
     @Override
@@ -111,8 +109,9 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
         if (!checkPageIsValid(jobQuery.getPage(), responseObserver)) {
             return;
         }
-        logPageNumberUsage(systemLog, callMetadataResolver, getClass().getSimpleName(), "findJobs", jobQuery.getPage());
-        Subscription subscription = jobServiceGateway.findJobs(jobQuery).subscribe(
+        CallMetadata callMetadata = resolveCallMetadata();
+        logPageNumberUsage(systemLog, callMetadata, getClass().getSimpleName(), "findJobs", jobQuery.getPage());
+        Subscription subscription = jobServiceGateway.findJobs(jobQuery, callMetadata).subscribe(
                 responseObserver::onNext,
                 e -> safeOnError(logger, e, responseObserver),
                 responseObserver::onCompleted
@@ -122,7 +121,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void findJob(JobId request, StreamObserver<Job> responseObserver) {
-        Subscription subscription = jobServiceGateway.findJob(request.getId()).subscribe(
+        Subscription subscription = jobServiceGateway.findJob(request.getId(), resolveCallMetadata()).subscribe(
                 responseObserver::onNext,
                 e -> safeOnError(logger, e, responseObserver),
                 responseObserver::onCompleted
@@ -132,27 +131,27 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void updateJobStatus(JobStatusUpdate request, StreamObserver<Empty> responseObserver) {
-        streamCompletableResponse(jobServiceGateway.updateJobStatus(request), responseObserver);
+        streamCompletableResponse(jobServiceGateway.updateJobStatus(request, resolveCallMetadata()), responseObserver);
     }
 
     @Override
     public void updateJobDisruptionBudget(JobDisruptionBudgetUpdate request, StreamObserver<Empty> responseObserver) {
-        streamMonoResponse(jobServiceGateway.updateJobDisruptionBudget(request), responseObserver);
+        streamMonoResponse(jobServiceGateway.updateJobDisruptionBudget(request, resolveCallMetadata()), responseObserver);
     }
 
     @Override
     public void updateJobAttributes(JobAttributesUpdate request, StreamObserver<Empty> responseObserver) {
-        streamMonoResponse(jobServiceGateway.updateJobAttributes(request), responseObserver);
+        streamMonoResponse(jobServiceGateway.updateJobAttributes(request, resolveCallMetadata()), responseObserver);
     }
 
     @Override
     public void deleteJobAttributes(JobAttributesDeleteRequest request, StreamObserver<Empty> responseObserver) {
-        streamMonoResponse(jobServiceGateway.deleteJobAttributes(request), responseObserver);
+        streamMonoResponse(jobServiceGateway.deleteJobAttributes(request, resolveCallMetadata()), responseObserver);
     }
 
     @Override
     public void observeJobs(ObserveJobsQuery request, StreamObserver<JobChangeNotification> responseObserver) {
-        Subscription subscription = jobServiceGateway.observeJobs(request).subscribe(
+        Subscription subscription = jobServiceGateway.observeJobs(request, resolveCallMetadata()).subscribe(
                 responseObserver::onNext,
                 e -> safeOnError(logger, e, responseObserver),
                 responseObserver::onCompleted
@@ -162,7 +161,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void observeJob(JobId request, StreamObserver<JobChangeNotification> responseObserver) {
-        Subscription subscription = jobServiceGateway.observeJob(request.getId()).subscribe(
+        Subscription subscription = jobServiceGateway.observeJob(request.getId(), resolveCallMetadata()).subscribe(
                 responseObserver::onNext,
                 e -> safeOnError(logger, e, responseObserver),
                 responseObserver::onCompleted
@@ -172,12 +171,12 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void killJob(JobId request, StreamObserver<Empty> responseObserver) {
-        streamCompletableResponse(jobServiceGateway.killJob(request.getId()), responseObserver);
+        streamCompletableResponse(jobServiceGateway.killJob(request.getId(), resolveCallMetadata()), responseObserver);
     }
 
     @Override
     public void findTask(TaskId request, StreamObserver<Task> responseObserver) {
-        Subscription subscription = jobServiceGateway.findTask(request.getId()).subscribe(
+        Subscription subscription = jobServiceGateway.findTask(request.getId(), resolveCallMetadata()).subscribe(
                 responseObserver::onNext,
                 e -> safeOnError(logger, e, responseObserver),
                 responseObserver::onCompleted
@@ -190,8 +189,9 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
         if (!checkPageIsValid(request.getPage(), responseObserver)) {
             return;
         }
-        logPageNumberUsage(systemLog, callMetadataResolver, getClass().getSimpleName(), "findTasks", request.getPage());
-        Subscription subscription = jobServiceGateway.findTasks(request).subscribe(
+        CallMetadata callMetadata = resolveCallMetadata();
+        logPageNumberUsage(systemLog, callMetadata, getClass().getSimpleName(), "findTasks", request.getPage());
+        Subscription subscription = jobServiceGateway.findTasks(request, callMetadata).subscribe(
                 responseObserver::onNext,
                 e -> safeOnError(logger, e, responseObserver),
                 responseObserver::onCompleted
@@ -201,22 +201,22 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void killTask(TaskKillRequest request, StreamObserver<Empty> responseObserver) {
-        streamCompletableResponse(jobServiceGateway.killTask(request), responseObserver);
+        streamCompletableResponse(jobServiceGateway.killTask(request, resolveCallMetadata()), responseObserver);
     }
 
     @Override
     public void updateTaskAttributes(TaskAttributesUpdate request, StreamObserver<Empty> responseObserver) {
-        streamCompletableResponse(jobServiceGateway.updateTaskAttributes(request), responseObserver);
+        streamCompletableResponse(jobServiceGateway.updateTaskAttributes(request, resolveCallMetadata()), responseObserver);
     }
 
     @Override
     public void deleteTaskAttributes(TaskAttributesDeleteRequest request, StreamObserver<Empty> responseObserver) {
-        streamCompletableResponse(jobServiceGateway.deleteTaskAttributes(request), responseObserver);
+        streamCompletableResponse(jobServiceGateway.deleteTaskAttributes(request, resolveCallMetadata()), responseObserver);
     }
 
     @Override
     public void moveTask(TaskMoveRequest request, StreamObserver<Empty> responseObserver) {
-        streamCompletableResponse(jobServiceGateway.moveTask(request), responseObserver);
+        streamCompletableResponse(jobServiceGateway.moveTask(request, resolveCallMetadata()), responseObserver);
     }
 
     private static void streamCompletableResponse(Completable completable, StreamObserver<Empty> responseObserver) {
@@ -241,5 +241,9 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
                 }
         );
         attachCancellingCallback(responseObserver, subscription);
+    }
+
+    private CallMetadata resolveCallMetadata() {
+        return callMetadataResolver.resolve().orElse(JobManagerConstants.UNDEFINED_CALL_METADATA);
     }
 }

@@ -26,6 +26,7 @@ import com.netflix.titus.grpc.protogen.HealthCheckResponse;
 import com.netflix.titus.grpc.protogen.HealthCheckResponse.ServingStatus;
 import com.netflix.titus.grpc.protogen.HealthCheckResponse.Unknown;
 import com.netflix.titus.grpc.protogen.HealthGrpc;
+import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.service.HealthService;
 import io.grpc.Status;
@@ -98,7 +99,7 @@ public class AggregatingHealthService implements HealthService {
     }
 
     private <STUB extends AbstractStub<STUB>> STUB wrap(STUB stub) {
-        return createWrappedStub(stub, callMetadataResolver, grpcConfiguration.getRequestTimeoutMs());
+        return GrpcUtil.createWrappedStubWithResolver(stub, callMetadataResolver, grpcConfiguration.getRequestTimeoutMs());
     }
 
     private interface ClientCall<T> extends BiConsumer<HealthGrpc.HealthStub, StreamObserver<T>> {

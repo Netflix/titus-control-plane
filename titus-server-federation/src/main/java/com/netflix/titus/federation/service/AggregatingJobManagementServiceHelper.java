@@ -19,17 +19,15 @@ import java.util.function.BiConsumer;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.federation.startup.GrpcConfiguration;
 import com.netflix.titus.grpc.protogen.Job;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc;
 import com.netflix.titus.grpc.protogen.JobManagementServiceGrpc.JobManagementServiceStub;
-import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import io.grpc.stub.AbstractStub;
 import io.grpc.stub.StreamObserver;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 import rx.Observable;
 
@@ -38,27 +36,24 @@ import static com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil.createWrap
 
 @Singleton
 public class AggregatingJobManagementServiceHelper {
-    private static final Logger logger = LoggerFactory.getLogger(AggregatingJobManagementServiceHelper.class);
-    private AggregatingCellClient aggregatingCellClient;
+
+    private final AggregatingCellClient aggregatingCellClient;
     private final GrpcConfiguration grpcConfiguration;
-    private final CallMetadataResolver callMetadataResolver;
 
     @Inject
     public AggregatingJobManagementServiceHelper(AggregatingCellClient aggregatingCellClient,
-                                                 GrpcConfiguration grpcConfiguration,
-                                                 CallMetadataResolver callMetadataResolver) {
+                                                 GrpcConfiguration grpcConfiguration) {
         this.aggregatingCellClient = aggregatingCellClient;
         this.grpcConfiguration = grpcConfiguration;
-        this.callMetadataResolver = callMetadataResolver;
 
     }
 
-    private <STUB extends AbstractStub<STUB>> STUB wrap(STUB stub) {
-        return createWrappedStub(stub, callMetadataResolver, grpcConfiguration.getRequestTimeoutMs());
+    private <STUB extends AbstractStub<STUB>> STUB wrap(STUB stub, CallMetadata callMetadata) {
+        return createWrappedStub(stub, callMetadata, grpcConfiguration.getRequestTimeoutMs());
     }
 
-    public Observable<CellResponse<JobManagementServiceStub, Job>> findJobInAllCells(String jobId) {
-        return aggregatingCellClient.callExpectingErrors(JobManagementServiceGrpc::newStub, findJobInCell(jobId))
+    public Observable<CellResponse<JobManagementServiceStub, Job>> findJobInAllCells(String jobId, CallMetadata callMetadata) {
+        return aggregatingCellClient.callExpectingErrors(JobManagementServiceGrpc::newStub, findJobInCell(jobId, callMetadata))
                 .reduce(ResponseMerger.singleValue())
                 .flatMap(response -> response.getResult()
                         .map(v -> Observable.just(CellResponse.ofValue(response)))
@@ -66,13 +61,13 @@ public class AggregatingJobManagementServiceHelper {
                 );
     }
 
-    public Mono<CellResponse<JobManagementServiceStub, Job>> findJobInAllCellsReact(String jobId) {
-        return ReactorExt.toMono(findJobInAllCells(jobId).toSingle());
+    public Mono<CellResponse<JobManagementServiceStub, Job>> findJobInAllCellsReact(String jobId, CallMetadata callMetadata) {
+        return ReactorExt.toMono(findJobInAllCells(jobId, callMetadata).toSingle());
     }
 
-    public ClientCall<Job> findJobInCell(String jobId) {
+    public ClientCall<Job> findJobInCell(String jobId, CallMetadata callMetadata) {
         JobId id = JobId.newBuilder().setId(jobId).build();
-        return (client, streamObserver) -> wrap(client).findJob(id, streamObserver);
+        return (client, streamObserver) -> wrap(client, callMetadata).findJob(id, streamObserver);
     }
 
     public interface ClientCall<T> extends BiConsumer<JobManagementServiceStub, StreamObserver<T>> {

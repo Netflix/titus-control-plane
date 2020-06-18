@@ -21,10 +21,13 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.protobuf.Empty;
+import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.grpc.protogen.AutoScalingServiceGrpc;
 import com.netflix.titus.grpc.protogen.GetPolicyResult;
 import com.netflix.titus.grpc.protogen.JobId;
 import com.netflix.titus.grpc.protogen.UpdatePolicyRequest;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.service.AutoScalingService;
 import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
@@ -39,16 +42,19 @@ public class DefaultAutoScalingServiceGrpc extends AutoScalingServiceGrpc.AutoSc
     private static final Logger logger = LoggerFactory.getLogger(DefaultAutoScalingServiceGrpc.class);
 
     private final AutoScalingService autoScalingService;
+    private final CallMetadataResolver callMetadataResolver;
 
     @Inject
-    public DefaultAutoScalingServiceGrpc(AutoScalingService autoScalingService) {
+    public DefaultAutoScalingServiceGrpc(AutoScalingService autoScalingService,
+                                         CallMetadataResolver callMetadataResolver) {
         this.autoScalingService = autoScalingService;
+        this.callMetadataResolver = callMetadataResolver;
     }
 
     @Override
     public void getAllScalingPolicies(com.google.protobuf.Empty request,
                                       io.grpc.stub.StreamObserver<com.netflix.titus.grpc.protogen.GetPolicyResult> responseObserver) {
-        Subscription subscription = autoScalingService.getAllScalingPolicies().subscribe(
+        Subscription subscription = autoScalingService.getAllScalingPolicies(resolveCallMetadata()).subscribe(
                 responseObserver::onNext,
                 e -> safeOnError(logger, e, responseObserver),
                 responseObserver::onCompleted
@@ -60,7 +66,7 @@ public class DefaultAutoScalingServiceGrpc extends AutoScalingServiceGrpc.AutoSc
     @Override
     public void getScalingPolicy(com.netflix.titus.grpc.protogen.ScalingPolicyID request,
                                  io.grpc.stub.StreamObserver<com.netflix.titus.grpc.protogen.GetPolicyResult> responseObserver) {
-        Subscription subscription = autoScalingService.getScalingPolicy(request).subscribe(
+        Subscription subscription = autoScalingService.getScalingPolicy(request, resolveCallMetadata()).subscribe(
                 responseObserver::onNext,
                 e -> safeOnError(logger, e, responseObserver),
                 responseObserver::onCompleted
@@ -70,7 +76,7 @@ public class DefaultAutoScalingServiceGrpc extends AutoScalingServiceGrpc.AutoSc
 
     @Override
     public void getJobScalingPolicies(JobId request, StreamObserver<GetPolicyResult> responseObserver) {
-        Subscription subscription = autoScalingService.getJobScalingPolicies(request).subscribe(
+        Subscription subscription = autoScalingService.getJobScalingPolicies(request, resolveCallMetadata()).subscribe(
                 responseObserver::onNext,
                 e -> safeOnError(logger, e, responseObserver),
                 responseObserver::onCompleted
@@ -81,7 +87,7 @@ public class DefaultAutoScalingServiceGrpc extends AutoScalingServiceGrpc.AutoSc
     @Override
     public void setAutoScalingPolicy(com.netflix.titus.grpc.protogen.PutPolicyRequest request,
                                      io.grpc.stub.StreamObserver<com.netflix.titus.grpc.protogen.ScalingPolicyID> responseObserver) {
-        Subscription subscription = autoScalingService.setAutoScalingPolicy(request).subscribe(
+        Subscription subscription = autoScalingService.setAutoScalingPolicy(request, resolveCallMetadata()).subscribe(
                 responseObserver::onNext,
                 e -> safeOnError(logger, e, responseObserver),
                 responseObserver::onCompleted
@@ -92,7 +98,7 @@ public class DefaultAutoScalingServiceGrpc extends AutoScalingServiceGrpc.AutoSc
     @Override
     public void deleteAutoScalingPolicy(com.netflix.titus.grpc.protogen.DeletePolicyRequest request,
                                         io.grpc.stub.StreamObserver<com.google.protobuf.Empty> responseObserver) {
-        Subscription subscription = autoScalingService.deleteAutoScalingPolicy(request).subscribe(
+        Subscription subscription = autoScalingService.deleteAutoScalingPolicy(request, resolveCallMetadata()).subscribe(
                 () -> {
                     responseObserver.onNext(Empty.getDefaultInstance());
                     responseObserver.onCompleted();
@@ -104,7 +110,7 @@ public class DefaultAutoScalingServiceGrpc extends AutoScalingServiceGrpc.AutoSc
 
     @Override
     public void updateAutoScalingPolicy(UpdatePolicyRequest request, io.grpc.stub.StreamObserver<com.google.protobuf.Empty> responseObserver) {
-        Subscription subscription = autoScalingService.updateAutoScalingPolicy(request).subscribe(
+        Subscription subscription = autoScalingService.updateAutoScalingPolicy(request, resolveCallMetadata()).subscribe(
                 () -> {
                     responseObserver.onNext(Empty.getDefaultInstance());
                     responseObserver.onCompleted();
@@ -112,5 +118,9 @@ public class DefaultAutoScalingServiceGrpc extends AutoScalingServiceGrpc.AutoSc
                 e -> safeOnError(logger, e, responseObserver)
         );
         attachCancellingCallback(responseObserver, subscription);
+    }
+
+    private CallMetadata resolveCallMetadata() {
+        return callMetadataResolver.resolve().orElse(JobManagerConstants.UNDEFINED_CALL_METADATA);
     }
 }

@@ -16,6 +16,7 @@
 
 package com.netflix.titus.runtime.service;
 
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.grpc.protogen.DeletePolicyRequest;
 import com.netflix.titus.grpc.protogen.GetPolicyResult;
 import com.netflix.titus.grpc.protogen.JobId;
@@ -27,15 +28,15 @@ import rx.Observable;
 
 public interface AutoScalingService {
 
-    Observable<GetPolicyResult> getJobScalingPolicies(JobId jobId);
+    Observable<GetPolicyResult> getJobScalingPolicies(JobId jobId, CallMetadata callMetadata);
 
-    Observable<ScalingPolicyID> setAutoScalingPolicy(PutPolicyRequest request);
+    Observable<ScalingPolicyID> setAutoScalingPolicy(PutPolicyRequest request, CallMetadata callMetadata);
 
-    Observable<GetPolicyResult> getScalingPolicy(ScalingPolicyID request);
+    Observable<GetPolicyResult> getScalingPolicy(ScalingPolicyID request, CallMetadata callMetadata);
 
-    Observable<GetPolicyResult> getAllScalingPolicies();
+    Observable<GetPolicyResult> getAllScalingPolicies(CallMetadata callMetadata);
 
-    Completable deleteAutoScalingPolicy(DeletePolicyRequest request);
+    Completable deleteAutoScalingPolicy(DeletePolicyRequest request, CallMetadata callMetadata);
 
-    Completable updateAutoScalingPolicy(UpdatePolicyRequest request);
+    Completable updateAutoScalingPolicy(UpdatePolicyRequest request, CallMetadata callMetadata);
 }

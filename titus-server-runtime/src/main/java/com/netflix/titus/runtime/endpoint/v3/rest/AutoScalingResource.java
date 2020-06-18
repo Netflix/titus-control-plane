@@ -29,7 +29,8 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-import com.netflix.titus.runtime.service.AutoScalingService;
+import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.grpc.protogen.DeletePolicyRequest;
 import com.netflix.titus.grpc.protogen.GetPolicyResult;
 import com.netflix.titus.grpc.protogen.JobId;
@@ -37,6 +38,8 @@ import com.netflix.titus.grpc.protogen.PutPolicyRequest;
 import com.netflix.titus.grpc.protogen.ScalingPolicyID;
 import com.netflix.titus.grpc.protogen.UpdatePolicyRequest;
 import com.netflix.titus.runtime.endpoint.common.rest.Responses;
+import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
+import com.netflix.titus.runtime.service.AutoScalingService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import org.slf4j.Logger;
@@ -51,18 +54,22 @@ import rx.Observable;
 @Singleton
 public class AutoScalingResource {
     private static Logger log = LoggerFactory.getLogger(AutoScalingResource.class);
+
     private AutoScalingService autoScalingService;
+    private final CallMetadataResolver callMetadataResolver;
 
     @Inject
-    public AutoScalingResource(AutoScalingService autoScalingService) {
+    public AutoScalingResource(AutoScalingService autoScalingService,
+                               CallMetadataResolver callMetadataResolver) {
         this.autoScalingService = autoScalingService;
+        this.callMetadataResolver = callMetadataResolver;
     }
 
     @GET
     @ApiOperation("Find scaling policies for a job")
     @Path("scalingPolicies")
     public GetPolicyResult getAllScalingPolicies() {
-        GetPolicyResult getPolicyResult = Responses.fromSingleValueObservable(autoScalingService.getAllScalingPolicies());
+        GetPolicyResult getPolicyResult = Responses.fromSingleValueObservable(autoScalingService.getAllScalingPolicies(resolveCallMetadata()));
         return getPolicyResult;
     }
 
@@ -71,7 +78,7 @@ public class AutoScalingResource {
     @Path("scalingPolicies/{jobId}")
     public GetPolicyResult getScalingPolicyForJob(@PathParam("jobId") String jobId) {
         JobId request = JobId.newBuilder().setId(jobId).build();
-        GetPolicyResult getPolicyResult = Responses.fromSingleValueObservable(autoScalingService.getJobScalingPolicies(request));
+        GetPolicyResult getPolicyResult = Responses.fromSingleValueObservable(autoScalingService.getJobScalingPolicies(request, resolveCallMetadata()));
         return getPolicyResult;
     }
 
@@ -79,19 +86,18 @@ public class AutoScalingResource {
     @ApiOperation("Create or Update scaling policy")
     @Path("scalingPolicy")
     public ScalingPolicyID setScalingPolicy(PutPolicyRequest putPolicyRequest) {
-        Observable<ScalingPolicyID> putPolicyResult = autoScalingService.setAutoScalingPolicy(putPolicyRequest);
+        Observable<ScalingPolicyID> putPolicyResult = autoScalingService.setAutoScalingPolicy(putPolicyRequest, resolveCallMetadata());
         ScalingPolicyID policyId = Responses.fromSingleValueObservable(putPolicyResult);
         log.info("New policy created {}", policyId);
         return policyId;
     }
-
 
     @GET
     @ApiOperation("Find scaling policy for a policy Id")
     @Path("scalingPolicy/{policyId}")
     public GetPolicyResult getScalingPolicy(@PathParam("policyId") String policyId) {
         ScalingPolicyID scalingPolicyId = ScalingPolicyID.newBuilder().setId(policyId).build();
-        return Responses.fromSingleValueObservable(autoScalingService.getScalingPolicy(scalingPolicyId));
+        return Responses.fromSingleValueObservable(autoScalingService.getScalingPolicy(scalingPolicyId, resolveCallMetadata()));
     }
 
     @DELETE
@@ -100,14 +106,17 @@ public class AutoScalingResource {
     public javax.ws.rs.core.Response removePolicy(@PathParam("policyId") String policyId) {
         ScalingPolicyID scalingPolicyId = ScalingPolicyID.newBuilder().setId(policyId).build();
         DeletePolicyRequest deletePolicyRequest = DeletePolicyRequest.newBuilder().setId(scalingPolicyId).build();
-        return Responses.fromCompletable(autoScalingService.deleteAutoScalingPolicy(deletePolicyRequest));
+        return Responses.fromCompletable(autoScalingService.deleteAutoScalingPolicy(deletePolicyRequest, resolveCallMetadata()));
     }
-
 
     @PUT
     @ApiOperation("Update scaling policy")
     @Path("scalingPolicy")
     public javax.ws.rs.core.Response updateScalingPolicy(UpdatePolicyRequest updatePolicyRequest) {
-        return Responses.fromCompletable(autoScalingService.updateAutoScalingPolicy(updatePolicyRequest));
+        return Responses.fromCompletable(autoScalingService.updateAutoScalingPolicy(updatePolicyRequest, resolveCallMetadata()));
+    }
+
+    private CallMetadata resolveCallMetadata() {
+        return callMetadataResolver.resolve().orElse(JobManagerConstants.UNDEFINED_CALL_METADATA);
     }
 }

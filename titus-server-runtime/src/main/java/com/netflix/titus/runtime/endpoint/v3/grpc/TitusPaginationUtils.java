@@ -20,13 +20,11 @@ import java.util.Collections;
 
 import com.google.common.collect.ImmutableMap;
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
-import com.netflix.titus.api.model.callmetadata.CallMetadataConstants;
 import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.runtime.SystemLogEvent;
 import com.netflix.titus.common.runtime.SystemLogService;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.grpc.protogen.Page;
-import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import io.grpc.stub.StreamObserver;
 
 /**
@@ -47,18 +45,6 @@ public class TitusPaginationUtils {
             return false;
         }
         return true;
-    }
-
-    public static void logPageNumberUsage(SystemLogService systemLog,
-                                          CallMetadataResolver metadataResolver,
-                                          String component,
-                                          String apiName,
-                                          Page page) {
-        if (page.getPageNumber() == 0 || StringExt.isNotEmpty(page.getCursor())) {
-            return;
-        }
-        CallMetadata callMetadata = metadataResolver.resolve().orElse(CallMetadataConstants.UNDEFINED_CALL_METADATA);
-        logPageNumberUsage(systemLog, callMetadata, component, apiName, page);
     }
 
     public static void logPageNumberUsage(SystemLogService systemLog,

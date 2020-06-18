@@ -20,6 +20,8 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.protobuf.Empty;
+import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.common.runtime.SystemLogService;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.service.LoadBalancerService;
@@ -57,7 +59,7 @@ public class DefaultLoadBalancerServiceGrpc extends LoadBalancerServiceGrpc.Load
     @Override
     public void getJobLoadBalancers(JobId request, StreamObserver<GetJobLoadBalancersResult> responseObserver) {
         logger.debug("Received get load balancer request {}", request);
-        Subscription subscription = loadBalancerService.getLoadBalancers(request).subscribe(
+        Subscription subscription = loadBalancerService.getLoadBalancers(request, resolveCallMetadata()).subscribe(
                 responseObserver::onNext,
                 e -> safeOnError(logger, e, responseObserver),
                 responseObserver::onCompleted
@@ -69,8 +71,9 @@ public class DefaultLoadBalancerServiceGrpc extends LoadBalancerServiceGrpc.Load
     public void getAllLoadBalancers(com.netflix.titus.grpc.protogen.GetAllLoadBalancersRequest request,
                                     StreamObserver<GetAllLoadBalancersResult> responseObserver) {
         logger.debug("Received get all load balancer request {}", request);
-        logPageNumberUsage(systemLog, callMetadataResolver, getClass().getSimpleName(), "getAllLoadBalancers", request.getPage());
-        Subscription subscription = loadBalancerService.getAllLoadBalancers(request).subscribe(
+        CallMetadata callMetadata = resolveCallMetadata();
+        logPageNumberUsage(systemLog, callMetadata, getClass().getSimpleName(), "getAllLoadBalancers", request.getPage());
+        Subscription subscription = loadBalancerService.getAllLoadBalancers(request, callMetadata).subscribe(
                 responseObserver::onNext,
                 e -> safeOnError(logger, e, responseObserver),
                 responseObserver::onCompleted
@@ -81,7 +84,7 @@ public class DefaultLoadBalancerServiceGrpc extends LoadBalancerServiceGrpc.Load
     @Override
     public void addLoadBalancer(AddLoadBalancerRequest request, StreamObserver<Empty> responseObserver) {
         logger.debug("Received add load balancer request {}", request);
-        Subscription subscription = loadBalancerService.addLoadBalancer(request).subscribe(
+        Subscription subscription = loadBalancerService.addLoadBalancer(request, resolveCallMetadata()).subscribe(
                 () -> {
                     responseObserver.onNext(Empty.getDefaultInstance());
                     responseObserver.onCompleted();
@@ -94,7 +97,7 @@ public class DefaultLoadBalancerServiceGrpc extends LoadBalancerServiceGrpc.Load
     @Override
     public void removeLoadBalancer(RemoveLoadBalancerRequest request, StreamObserver<Empty> responseObserver) {
         logger.debug("Received remove load balancer request {}", request);
-        Subscription subscription = loadBalancerService.removeLoadBalancer(request).subscribe(
+        Subscription subscription = loadBalancerService.removeLoadBalancer(request, resolveCallMetadata()).subscribe(
                 () -> {
                     responseObserver.onNext(Empty.getDefaultInstance());
                     responseObserver.onCompleted();
@@ -102,5 +105,9 @@ public class DefaultLoadBalancerServiceGrpc extends LoadBalancerServiceGrpc.Load
                 e -> safeOnError(logger, e, responseObserver)
         );
         attachCancellingCallback(responseObserver, subscription);
+    }
+
+    private CallMetadata resolveCallMetadata() {
+        return callMetadataResolver.resolve().orElse(JobManagerConstants.UNDEFINED_CALL_METADATA);
     }
 }

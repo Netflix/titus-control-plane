@@ -100,15 +100,11 @@ public class JobManagementSpringResourceTest {
     @MockBean
     public SystemLogService systemLog;
 
-    @MockBean
-    public CallMetadataResolver callMetadataResolver;
-
     @Autowired
     private MockMvc mockMvc;
 
     @Before
     public void setUp() {
-        when(callMetadataResolver.resolve()).thenReturn(Optional.of(JUNIT_REST_CALL_METADATA));
     }
 
     @Test
@@ -125,10 +121,10 @@ public class JobManagementSpringResourceTest {
         Capacity capacity = Capacity.newBuilder().setMin(1).setDesired(2).setMax(3).build();
         JobCapacityUpdate forwardedRequest = JobCapacityUpdate.newBuilder().setJobId(JOB_ID_1).setCapacity(capacity).build();
 
-        when(jobServiceGatewayMock.updateJobCapacity(forwardedRequest)).thenReturn(Completable.complete());
+        when(jobServiceGatewayMock.updateJobCapacity(forwardedRequest, JUNIT_REST_CALL_METADATA)).thenReturn(Completable.complete());
         SpringMockMvcUtil.doPut(mockMvc, String.format("/api/v3/jobs/%s/instances", JOB_ID_1), capacity);
 
-        verify(jobServiceGatewayMock, times(1)).updateJobCapacity(forwardedRequest);
+        verify(jobServiceGatewayMock, times(1)).updateJobCapacity(forwardedRequest, JUNIT_REST_CALL_METADATA);
     }
 
     @Test
@@ -143,10 +139,10 @@ public class JobManagementSpringResourceTest {
                 .setJobCapacityWithOptionalAttributes(restRequest)
                 .build();
 
-        when(jobServiceGatewayMock.updateJobCapacityWithOptionalAttributes(forwardedRequest)).thenReturn(Completable.complete());
+        when(jobServiceGatewayMock.updateJobCapacityWithOptionalAttributes(forwardedRequest, JUNIT_REST_CALL_METADATA)).thenReturn(Completable.complete());
         SpringMockMvcUtil.doPut(mockMvc, String.format("/api/v3/jobs/%s/capacityAttributes", JOB_ID_1), restRequest);
 
-        verify(jobServiceGatewayMock, times(1)).updateJobCapacityWithOptionalAttributes(forwardedRequest);
+        verify(jobServiceGatewayMock, times(1)).updateJobCapacityWithOptionalAttributes(forwardedRequest, JUNIT_REST_CALL_METADATA);
     }
 
     @Test
@@ -161,10 +157,10 @@ public class JobManagementSpringResourceTest {
                 .setServiceJobProcesses(restRequest)
                 .build();
 
-        when(jobServiceGatewayMock.updateJobProcesses(forwardedRequest)).thenReturn(Completable.complete());
+        when(jobServiceGatewayMock.updateJobProcesses(forwardedRequest, JUNIT_REST_CALL_METADATA)).thenReturn(Completable.complete());
         SpringMockMvcUtil.doPut(mockMvc, String.format("/api/v3/jobs/%s/jobprocesses", JOB_ID_1), restRequest);
 
-        verify(jobServiceGatewayMock, times(1)).updateJobProcesses(forwardedRequest);
+        verify(jobServiceGatewayMock, times(1)).updateJobProcesses(forwardedRequest, JUNIT_REST_CALL_METADATA);
     }
 
     @Test
@@ -176,10 +172,10 @@ public class JobManagementSpringResourceTest {
                 .setDisruptionBudget(restRequest)
                 .build();
 
-        when(jobServiceGatewayMock.updateJobDisruptionBudget(forwardedRequest)).thenReturn(Mono.empty());
+        when(jobServiceGatewayMock.updateJobDisruptionBudget(forwardedRequest, JUNIT_REST_CALL_METADATA)).thenReturn(Mono.empty());
         SpringMockMvcUtil.doPut(mockMvc, String.format("/api/v3/jobs/%s/disruptionBudget", JOB_ID_1), restRequest);
 
-        verify(jobServiceGatewayMock, times(1)).updateJobDisruptionBudget(forwardedRequest);
+        verify(jobServiceGatewayMock, times(1)).updateJobDisruptionBudget(forwardedRequest, JUNIT_REST_CALL_METADATA);
     }
 
     @Test
@@ -189,10 +185,10 @@ public class JobManagementSpringResourceTest {
                 .putAttributes("keyA", "valueA")
                 .build();
 
-        when(jobServiceGatewayMock.updateJobAttributes(restRequest)).thenReturn(Mono.empty());
+        when(jobServiceGatewayMock.updateJobAttributes(restRequest, JUNIT_REST_CALL_METADATA)).thenReturn(Mono.empty());
         SpringMockMvcUtil.doPut(mockMvc, String.format("/api/v3/jobs/%s/attributes", JOB_ID_1), restRequest);
 
-        verify(jobServiceGatewayMock, times(1)).updateJobAttributes(restRequest);
+        verify(jobServiceGatewayMock, times(1)).updateJobAttributes(restRequest, JUNIT_REST_CALL_METADATA);
     }
 
     @Test
@@ -201,10 +197,10 @@ public class JobManagementSpringResourceTest {
                 .setJobId(JOB_ID_1)
                 .addKeys("keyA")
                 .build();
-        when(jobServiceGatewayMock.deleteJobAttributes(forwardedRequest)).thenReturn(Mono.empty());
+        when(jobServiceGatewayMock.deleteJobAttributes(forwardedRequest, JUNIT_REST_CALL_METADATA)).thenReturn(Mono.empty());
         SpringMockMvcUtil.doDelete(mockMvc, String.format("/api/v3/jobs/%s/attributes", JOB_ID_1), "keys", "keyA");
 
-        verify(jobServiceGatewayMock, times(1)).deleteJobAttributes(forwardedRequest);
+        verify(jobServiceGatewayMock, times(1)).deleteJobAttributes(forwardedRequest, JUNIT_REST_CALL_METADATA);
     }
 
     @Test
@@ -213,10 +209,10 @@ public class JobManagementSpringResourceTest {
                 .setId(JOB_ID_1)
                 .setEnableStatus(true)
                 .build();
-        when(jobServiceGatewayMock.updateJobStatus(forwardedRequest)).thenReturn(Completable.complete());
+        when(jobServiceGatewayMock.updateJobStatus(forwardedRequest, JUNIT_REST_CALL_METADATA)).thenReturn(Completable.complete());
         SpringMockMvcUtil.doPost(mockMvc, String.format("/api/v3/jobs/%s/enable", JOB_ID_1));
 
-        verify(jobServiceGatewayMock, times(1)).updateJobStatus(forwardedRequest);
+        verify(jobServiceGatewayMock, times(1)).updateJobStatus(forwardedRequest, JUNIT_REST_CALL_METADATA);
     }
 
     @Test
@@ -225,19 +221,19 @@ public class JobManagementSpringResourceTest {
                 .setId(JOB_ID_1)
                 .setEnableStatus(false)
                 .build();
-        when(jobServiceGatewayMock.updateJobStatus(forwardedRequest)).thenReturn(Completable.complete());
+        when(jobServiceGatewayMock.updateJobStatus(forwardedRequest, JUNIT_REST_CALL_METADATA)).thenReturn(Completable.complete());
         SpringMockMvcUtil.doPost(mockMvc, String.format("/api/v3/jobs/%s/disable", JOB_ID_1));
 
-        verify(jobServiceGatewayMock, times(1)).updateJobStatus(forwardedRequest);
+        verify(jobServiceGatewayMock, times(1)).updateJobStatus(forwardedRequest, JUNIT_REST_CALL_METADATA);
     }
 
     @Test
     public void testFindJob() throws Exception {
-        when(jobServiceGatewayMock.findJob(JOB_ID_1)).thenReturn(Observable.just(JOB_1));
+        when(jobServiceGatewayMock.findJob(JOB_ID_1, JUNIT_REST_CALL_METADATA)).thenReturn(Observable.just(JOB_1));
         Job entity = SpringMockMvcUtil.doGet(mockMvc, String.format("/api/v3/jobs/%s", JOB_ID_1), Job.class);
         assertThat(entity).isEqualTo(JOB_1);
 
-        verify(jobServiceGatewayMock, times(1)).findJob(JOB_ID_1);
+        verify(jobServiceGatewayMock, times(1)).findJob(JOB_ID_1, JUNIT_REST_CALL_METADATA);
     }
 
     @Test
@@ -250,28 +246,28 @@ public class JobManagementSpringResourceTest {
                 .setPagination(paginationOf(NEXT_PAGE_OF_2))
                 .addAllItems(asList(JOB_1, JOB_2))
                 .build();
-        when(jobServiceGatewayMock.findJobs(forwardedRequest)).thenReturn(Observable.just(expectedResult));
+        when(jobServiceGatewayMock.findJobs(forwardedRequest, JUNIT_REST_CALL_METADATA)).thenReturn(Observable.just(expectedResult));
         JobQueryResult entity = SpringMockMvcUtil.doPaginatedGet(mockMvc, "/api/v3/jobs", JobQueryResult.class, NEXT_PAGE_OF_2, "filter1", "value1");
         assertThat(entity).isEqualTo(expectedResult);
 
-        verify(jobServiceGatewayMock, times(1)).findJobs(forwardedRequest);
+        verify(jobServiceGatewayMock, times(1)).findJobs(forwardedRequest, JUNIT_REST_CALL_METADATA);
     }
 
     @Test
     public void testKillJob() throws Exception {
-        when(jobServiceGatewayMock.killJob(JOB_ID_1)).thenReturn(Completable.complete());
+        when(jobServiceGatewayMock.killJob(JOB_ID_1, JUNIT_REST_CALL_METADATA)).thenReturn(Completable.complete());
         SpringMockMvcUtil.doDelete(mockMvc, String.format("/api/v3/jobs/%s", JOB_ID_1));
 
-        verify(jobServiceGatewayMock, times(1)).killJob(JOB_ID_1);
+        verify(jobServiceGatewayMock, times(1)).killJob(JOB_ID_1, JUNIT_REST_CALL_METADATA);
     }
 
     @Test
     public void testFindTask() throws Exception {
-        when(jobServiceGatewayMock.findTask(TASK_ID_1)).thenReturn(Observable.just(TASK_1));
+        when(jobServiceGatewayMock.findTask(TASK_ID_1, JUNIT_REST_CALL_METADATA)).thenReturn(Observable.just(TASK_1));
         Task entity = SpringMockMvcUtil.doGet(mockMvc, String.format("/api/v3/tasks/%s", TASK_ID_1), Task.class);
         assertThat(entity).isEqualTo(TASK_1);
 
-        verify(jobServiceGatewayMock, times(1)).findTask(TASK_ID_1);
+        verify(jobServiceGatewayMock, times(1)).findTask(TASK_ID_1, JUNIT_REST_CALL_METADATA);
     }
 
     @Test
@@ -284,11 +280,11 @@ public class JobManagementSpringResourceTest {
                 .setPagination(paginationOf(NEXT_PAGE_OF_2))
                 .addAllItems(asList(TASK_1, TASK_2))
                 .build();
-        when(jobServiceGatewayMock.findTasks(forwardedRequest)).thenReturn(Observable.just(expectedResult));
+        when(jobServiceGatewayMock.findTasks(forwardedRequest, JUNIT_REST_CALL_METADATA)).thenReturn(Observable.just(expectedResult));
         TaskQueryResult entity = SpringMockMvcUtil.doPaginatedGet(mockMvc, "/api/v3/tasks", TaskQueryResult.class, NEXT_PAGE_OF_2, "filter1", "value1");
         assertThat(entity).isEqualTo(expectedResult);
 
-        verify(jobServiceGatewayMock, times(1)).findTasks(forwardedRequest);
+        verify(jobServiceGatewayMock, times(1)).findTasks(forwardedRequest, JUNIT_REST_CALL_METADATA);
     }
 
     @Test
@@ -298,10 +294,10 @@ public class JobManagementSpringResourceTest {
                 .setShrink(true)
                 .setPreventMinSizeUpdate(true)
                 .build();
-        when(jobServiceGatewayMock.killTask(forwardedRequest)).thenReturn(Completable.complete());
+        when(jobServiceGatewayMock.killTask(forwardedRequest, JUNIT_REST_CALL_METADATA)).thenReturn(Completable.complete());
         SpringMockMvcUtil.doDelete(mockMvc, String.format("/api/v3/tasks/%s", TASK_ID_1), "shrink", "true", "preventMinSizeUpdate", "true");
 
-        verify(jobServiceGatewayMock, times(1)).killTask(forwardedRequest);
+        verify(jobServiceGatewayMock, times(1)).killTask(forwardedRequest, JUNIT_REST_CALL_METADATA);
     }
 
     @Test
@@ -311,10 +307,10 @@ public class JobManagementSpringResourceTest {
                 .putAttributes("keyA", "valueA")
                 .build();
 
-        when(jobServiceGatewayMock.updateTaskAttributes(restRequest)).thenReturn(Completable.complete());
+        when(jobServiceGatewayMock.updateTaskAttributes(restRequest, JUNIT_REST_CALL_METADATA)).thenReturn(Completable.complete());
         SpringMockMvcUtil.doPut(mockMvc, String.format("/api/v3/tasks/%s/attributes", TASK_ID_1), restRequest);
 
-        verify(jobServiceGatewayMock, times(1)).updateTaskAttributes(restRequest);
+        verify(jobServiceGatewayMock, times(1)).updateTaskAttributes(restRequest, JUNIT_REST_CALL_METADATA);
     }
 
     @Test
@@ -323,10 +319,10 @@ public class JobManagementSpringResourceTest {
                 .setTaskId(TASK_ID_1)
                 .addKeys("keyA")
                 .build();
-        when(jobServiceGatewayMock.deleteTaskAttributes(forwardedRequest)).thenReturn(Completable.complete());
+        when(jobServiceGatewayMock.deleteTaskAttributes(forwardedRequest, JUNIT_REST_CALL_METADATA)).thenReturn(Completable.complete());
         SpringMockMvcUtil.doDelete(mockMvc, String.format("/api/v3/tasks/%s/attributes", TASK_ID_1), "keys", "keyA");
 
-        verify(jobServiceGatewayMock, times(1)).deleteTaskAttributes(forwardedRequest);
+        verify(jobServiceGatewayMock, times(1)).deleteTaskAttributes(forwardedRequest, JUNIT_REST_CALL_METADATA);
     }
 
     @Test
@@ -336,9 +332,9 @@ public class JobManagementSpringResourceTest {
                 .setTargetJobId(JOB_2.getId())
                 .setTaskId(TASK_ID_1)
                 .build();
-        when(jobServiceGatewayMock.moveTask(request)).thenReturn(Completable.complete());
+        when(jobServiceGatewayMock.moveTask(request, JUNIT_REST_CALL_METADATA)).thenReturn(Completable.complete());
         SpringMockMvcUtil.doPost(mockMvc, "/api/v3/tasks/move", request);
 
-        verify(jobServiceGatewayMock, times(1)).moveTask(request);
+        verify(jobServiceGatewayMock, times(1)).moveTask(request, JUNIT_REST_CALL_METADATA);
     }
 }

@@ -31,6 +31,8 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 
+import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
+import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.common.runtime.SystemLogService;
 import com.netflix.titus.grpc.protogen.AddLoadBalancerRequest;
 import com.netflix.titus.grpc.protogen.GetAllLoadBalancersRequest;
@@ -71,21 +73,20 @@ public class LoadBalancerResource {
     @ApiOperation("Find the load balancer(s) with the specified ID")
     @Path("/{jobId}")
     public GetJobLoadBalancersResult getJobLoadBalancers(@PathParam("jobId") String jobId) {
-        return Responses.fromSingleValueObservable(loadBalancerService.getLoadBalancers(
-                JobId.newBuilder()
-                        .setId(jobId)
-                        .build()));
+        return Responses.fromSingleValueObservable(
+                loadBalancerService.getLoadBalancers(JobId.newBuilder().setId(jobId).build(), resolveCallMetadata())
+        );
     }
 
     @GET
     @ApiOperation("Get all load balancers")
     public GetAllLoadBalancersResult getAllLoadBalancers(@Context UriInfo info) {
         Page page = RestUtil.createPage(info.getQueryParameters());
-        logPageNumberUsage(systemLog, callMetadataResolver, getClass().getSimpleName(), "getAllLoadBalancers", page);
+        CallMetadata callMetadata = resolveCallMetadata();
+        logPageNumberUsage(systemLog, callMetadata, getClass().getSimpleName(), "getAllLoadBalancers", page);
         return Responses.fromSingleValueObservable(
-                loadBalancerService.getAllLoadBalancers(GetAllLoadBalancersRequest.newBuilder()
-                        .setPage(page)
-                        .build()));
+                loadBalancerService.getAllLoadBalancers(GetAllLoadBalancersRequest.newBuilder().setPage(page).build(), callMetadata)
+        );
     }
 
     @POST
@@ -94,10 +95,9 @@ public class LoadBalancerResource {
             @QueryParam("jobId") String jobId,
             @QueryParam("loadBalancerId") String loadBalancerId) {
         return Responses.fromCompletable(loadBalancerService.addLoadBalancer(
-                AddLoadBalancerRequest.newBuilder()
-                        .setJobId(jobId)
-                        .setLoadBalancerId(LoadBalancerId.newBuilder().setId(loadBalancerId).build())
-                        .build()));
+                AddLoadBalancerRequest.newBuilder().setJobId(jobId).setLoadBalancerId(LoadBalancerId.newBuilder().setId(loadBalancerId).build()).build(),
+                resolveCallMetadata())
+        );
     }
 
     @DELETE
@@ -109,6 +109,12 @@ public class LoadBalancerResource {
                 RemoveLoadBalancerRequest.newBuilder()
                         .setJobId(jobId)
                         .setLoadBalancerId(LoadBalancerId.newBuilder().setId(loadBalancerId).build())
-                        .build()));
+                        .build(),
+                resolveCallMetadata())
+        );
+    }
+
+    private CallMetadata resolveCallMetadata() {
+        return callMetadataResolver.resolve().orElse(JobManagerConstants.UNDEFINED_CALL_METADATA);
     }
 }

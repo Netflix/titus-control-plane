@@ -23,6 +23,7 @@ import com.netflix.titus.grpc.protogen.HealthCheckRequest;
 import com.netflix.titus.grpc.protogen.HealthCheckResponse;
 import com.netflix.titus.grpc.protogen.HealthGrpc;
 import com.netflix.titus.runtime.connector.GrpcClientConfiguration;
+import com.netflix.titus.runtime.endpoint.common.grpc.GrpcUtil;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolver;
 import com.netflix.titus.runtime.service.HealthService;
 import io.grpc.stub.StreamObserver;
@@ -49,7 +50,7 @@ public class DefaultHealthService implements HealthService {
     public Observable<HealthCheckResponse> check(HealthCheckRequest request) {
         return createRequestObservable(emitter -> {
             StreamObserver<HealthCheckResponse> streamObserver = createSimpleClientResponseObserver(emitter);
-            createWrappedStub(client, callMetadataResolver, configuration.getRequestTimeout()).check(request, streamObserver);
+            GrpcUtil.createWrappedStubWithResolver(client, callMetadataResolver, configuration.getRequestTimeout()).check(request, streamObserver);
         }, configuration.getRequestTimeout());
     }
 }
