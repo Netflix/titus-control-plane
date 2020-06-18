@@ -16,6 +16,7 @@
 
 package com.netflix.titus.runtime.endpoint.rest;
 
+import com.netflix.titus.runtime.endpoint.rest.spring.SpringSpectatorComponent;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 
@@ -23,6 +24,7 @@ import org.springframework.context.annotation.Import;
 @Import({
         CommonExceptionHandlers.class,
         TitusProtobufHttpMessageConverter.class,
+        SpringSpectatorComponent.class,
         LocalSchedulerSpringResource.class,
         FitSpringResource.class,
 })
