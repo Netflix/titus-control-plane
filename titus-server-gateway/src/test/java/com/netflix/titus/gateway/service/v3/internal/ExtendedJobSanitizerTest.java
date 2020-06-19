@@ -17,14 +17,12 @@
 package com.netflix.titus.gateway.service.v3.internal;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 import com.google.common.collect.ImmutableMap;
 import com.netflix.titus.api.FeatureRolloutPlans;
-import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.SecurityProfile;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
@@ -40,7 +38,6 @@ import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.CollectionsExt;
-import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.runtime.jobmanager.JobManagerConfiguration;
 import com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator;
@@ -49,6 +46,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static com.netflix.titus.api.FeatureRolloutPlans.ENVIRONMENT_VARIABLE_NAMES_STRICT_VALIDATION_FEATURE;
+import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_CONTAINER_ATTRIBUTE_ACCOUNT_ID;
+import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_CONTAINER_ATTRIBUTE_SUBNETS;
 import static com.netflix.titus.gateway.service.v3.internal.DisruptionBudgetSanitizer.BATCH_RUNTIME_LIMIT_FACTOR;
 import static com.netflix.titus.gateway.service.v3.internal.ExtendedJobSanitizer.TITUS_NON_COMPLIANT_FEATURES;
 import static java.util.Arrays.asList;
@@ -99,112 +98,83 @@ public class ExtendedJobSanitizerTest {
     }
 
     private void testSecurityGroupValidation(boolean doNotAddIfMissing, List<String> expected) {
-        JobDescriptor jobDescriptor = newJobDescriptorWithSecurityProfile(Collections.emptyList(), "myIamRole");
+        JobDescriptor<BatchJobExt> jobDescriptor = newJobDescriptorWithSecurityProfile(Collections.emptyList(), "myIamRole");
         ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, disruptionBudgetSanitizer, jd -> doNotAddIfMissing, jd -> false, titusRuntime);
 
         when(configuration.getDefaultSecurityGroups()).thenReturn(asList("sg-1", "sg-2"));
 
-        Optional<JobDescriptor> sanitized = sanitizer.sanitize(jobDescriptor);
+        Optional<JobDescriptor<BatchJobExt>> sanitized = sanitizer.sanitize(jobDescriptor);
 
         assertThat(sanitized).isPresent();
         assertThat(sanitized.get().getContainer().getSecurityProfile().getSecurityGroups()).isEqualTo(expected);
     }
 
     @Test
-    /** Irrespective of what the default value in {@link JobManagerConfiguration} is, we expect the container attribute to be preserved. */
-    public void testContainerAccountIdWhenInputHasAValue() {
-        testContainerAccountIdValidationNoViolationExpected("", "1001");
-        testContainerAccountIdValidationNoViolationExpected(null, "1001");
+    public void testAccountIdSubnetsWithViolationCondition() {
+        String defaultAccountId = "1000";
+        String defaultSubnets = "subnet-1,subnet-2";
+        when(configuration.getDefaultContainerAccountId()).thenReturn(defaultAccountId);
+        when(configuration.getDefaultSubnets()).thenReturn(defaultSubnets);
+
+        // No accountId and subnets attributes in the job descriptor
+        testAccountIdSubnetsValidationViolationExpected(defaultAccountId, defaultSubnets, newBatchJob().getValue(), defaultAccountId, defaultSubnets);
+        testAccountIdSubnetsValidationViolationExpected(defaultAccountId, defaultSubnets,
+                newBatchJobDescriptorWithContainerAttributes(ImmutableMap.of(JOB_CONTAINER_ATTRIBUTE_ACCOUNT_ID, defaultAccountId)), defaultAccountId, defaultSubnets);
+    }
+
+    private void testAccountIdSubnetsValidationViolationExpected(String defaultAccountId, String defaultSubnets, JobDescriptor<BatchJobExt> jobDescriptor, String expectedAccountId, String expectedSubnets) {
+        Optional<JobDescriptor<BatchJobExt>> jobDescriptorOptional = testAccountIdSubnetsValidation(defaultAccountId, defaultSubnets, jobDescriptor);
+        assertThat(jobDescriptorOptional).isPresent();
+        Map<String, String> containerAttributes = jobDescriptorOptional.get().getContainer().getAttributes();
+        assertThat(containerAttributes.get(JOB_CONTAINER_ATTRIBUTE_ACCOUNT_ID)).isEqualTo(expectedAccountId);
+        assertThat(containerAttributes.get(JOB_CONTAINER_ATTRIBUTE_SUBNETS)).isEqualTo(expectedSubnets);
     }
 
     @Test
-    /**
-     * When {@link com.netflix.titus.api.jobmanager.model.job.JobDescriptor} does not contain a non-empty accountId,
-     * the default value from the {@link JobManagerConfiguration} should be set by the sanitizer.
-     */
-    public void testContainerAccountIdWhenInputIsEmptyWithConfigurationDefault() {
-        testContainerAccountIdValidationWithViolationExpected("1000", "", "1000");
-        testContainerAccountIdValidationWithViolationExpected("1000", null, "1000");
+    public void testAccountIdSubnetsWithNoViolationCondition() {
+        // No violation is expected for each condition below
+        // 1. No defaults are specified for the accountId and subnets
+        testAccountIdSubnetsValidationNoViolationExpected("", "", newBatchJob().getValue());
+        // 2 and 3. Default is defined for only one of the two attributes
+        testAccountIdSubnetsValidationNoViolationExpected("1000", "", newBatchJob().getValue());
+        testAccountIdSubnetsValidationNoViolationExpected("", "subnet-1", newBatchJob().getValue());
+        // 4. JobDescriptor only has accountId and it is different from the default accountId. No violation despite having no subnets defined
+        testAccountIdSubnetsValidationNoViolationExpected("1000", "subnet-1",
+                newBatchJobDescriptorWithContainerAttributes(ImmutableMap.of(JOB_CONTAINER_ATTRIBUTE_ACCOUNT_ID, "1001")));
+        // 5. JobDescriptor only has subnets and no accountId.
+        testAccountIdSubnetsValidationNoViolationExpected("1000", "subnet-1",
+                newBatchJobDescriptorWithContainerAttributes(ImmutableMap.of(JOB_CONTAINER_ATTRIBUTE_SUBNETS, "subnet-2")));
+        // 6. JobDescriptor contains accountId and subnets different from the defaults
+        testAccountIdSubnetsValidationNoViolationExpected("1000", "subnet-1", newBatchJobDescriptorWithContainerAttributes("1001", "subnet-2"));
+        // 7. JobDescriptor contains default values for both attributes
+        testAccountIdSubnetsValidationNoViolationExpected("1000", "subnet-1", newBatchJobDescriptorWithContainerAttributes("1000", "subnet-1"));
     }
 
-    private void testContainerAccountIdValidationNoViolationExpected(String defaultContainerAccountId, String containerAccountIdInDescriptor) {
-        Optional<JobDescriptor> sanitized = testContainerAccountIdValidation(defaultContainerAccountId, containerAccountIdInDescriptor);
-        assertThat(sanitized).isEmpty();
+    private void testAccountIdSubnetsValidationNoViolationExpected(String defaultAccountId, String defaultSubnets, JobDescriptor<BatchJobExt> jobDescriptor) {
+        assertThat(testAccountIdSubnetsValidation(defaultAccountId, defaultSubnets, jobDescriptor)).isEmpty();
     }
 
-    private void testContainerAccountIdValidationWithViolationExpected(String defaultContainerAccountId, String containerAccountIdInDescriptor, String expected) {
-        Optional<JobDescriptor> sanitized = testContainerAccountIdValidation(defaultContainerAccountId, containerAccountIdInDescriptor);
-        assertThat(sanitized).isPresent();
-        assertThat(sanitized.get().getContainer().getAttributes().get(JobAttributes.JOB_CONTAINER_ATTRIBUTE_ACCOUNT_ID)).isEqualTo(expected);
-    }
-
-    private Optional<JobDescriptor> testContainerAccountIdValidation(String defaultContainerAccountId, String containerAccountIdInDescriptor) {
-        when(configuration.getDefaultContainerAccountId()).thenReturn(defaultContainerAccountId);
-        JobDescriptor jobDescriptor = createJobDescriptorWithContainerAttributeContainerAccountId(containerAccountIdInDescriptor);
+    private Optional<JobDescriptor<BatchJobExt>> testAccountIdSubnetsValidation(String defaultAccountId, String defaultSubnets, JobDescriptor<BatchJobExt> jobDescriptor) {
+        when(configuration.getDefaultContainerAccountId()).thenReturn(defaultAccountId);
+        when(configuration.getDefaultSubnets()).thenReturn(defaultSubnets);
 
         ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, disruptionBudgetSanitizer, jd -> false, jd -> false, titusRuntime);
         return sanitizer.sanitize(jobDescriptor);
     }
 
-    private JobDescriptor createJobDescriptorWithContainerAttributeContainerAccountId(String accountId) {
-        Map<String, String> containerAttributes = new HashMap<>();
-        if (!StringExt.isEmpty(accountId)) {
-            containerAttributes.put(JobAttributes.JOB_CONTAINER_ATTRIBUTE_ACCOUNT_ID, accountId);
-        }
-        return createJobDescriptorWithContainerAttributes(containerAttributes);
+    private JobDescriptor<BatchJobExt> newBatchJobDescriptorWithContainerAttributes(String accountId, String subnets) {
+        return newBatchJobDescriptorWithContainerAttributes(ImmutableMap.of(JOB_CONTAINER_ATTRIBUTE_ACCOUNT_ID, accountId, JOB_CONTAINER_ATTRIBUTE_SUBNETS, subnets));
     }
 
-    private JobDescriptor createJobDescriptorWithContainerAttributeSubnets(String subnets) {
-        Map<String, String> containerAttributes = new HashMap<>();
-        if (!StringExt.isEmpty(subnets)) {
-            containerAttributes.put(JobAttributes.JOB_CONTAINER_ATTRIBUTE_SUBNETS, subnets);
-        }
-        return createJobDescriptorWithContainerAttributes(containerAttributes);
-    }
-
-    private JobDescriptor createJobDescriptorWithContainerAttributes(Map<String, String> containerAttributes) {
+    private JobDescriptor<BatchJobExt> newBatchJobDescriptorWithContainerAttributes(Map<String, String> containerAttributes) {
         DataGenerator<JobDescriptor<BatchJobExt>> jobDescriptorDataGenerator = newBatchJob();
-        JobDescriptor jobDescriptor;
+        JobDescriptor<BatchJobExt> jobDescriptor;
         if (!CollectionsExt.isNullOrEmpty(containerAttributes)) {
             jobDescriptor = jobDescriptorDataGenerator.map(jd -> jd.but(d -> d.getContainer().toBuilder().withAttributes(containerAttributes))).getValue();
         } else {
             jobDescriptor = jobDescriptorDataGenerator.getValue();
         }
         return jobDescriptor;
-    }
-
-    @Test
-    public void testSubnetsWhenInputIsEmptyWithConfigurationDefault() {
-        testSubnetsValidationWithViolationExpected("subnet-1", "", "subnet-1");
-    }
-
-    @Test
-    public void testSubnetsWhenInputIsNotEmptyWithConfigurationDefault() {
-        testSubnetsValidationWithNoViolationExpected("subnet-1", "subnet-2");
-    }
-
-    @Test
-    public void testSubnetsWhenInputIsNotEmptyWithNoConfiguration() {
-        testSubnetsValidationWithNoViolationExpected(null, "subnet-2");
-    }
-
-    private void testSubnetsValidationWithNoViolationExpected(String defaultSubnets, String subnetsInJobDescriptor) {
-        Optional<JobDescriptor> sanitized = testSubnetValidation(defaultSubnets, subnetsInJobDescriptor);
-        assertThat(sanitized).isEmpty();
-    }
-
-    private void testSubnetsValidationWithViolationExpected(String defaultSubnets, String subnetsInJobDescriptor, String expected) {
-        Optional<JobDescriptor> sanitized = testSubnetValidation(defaultSubnets, subnetsInJobDescriptor);
-        assertThat(sanitized).isPresent();
-        assertThat(sanitized.get().getContainer().getAttributes().get(JobAttributes.JOB_CONTAINER_ATTRIBUTE_SUBNETS)).isEqualTo(expected);
-    }
-
-    private Optional<JobDescriptor> testSubnetValidation(String defaultSubnets, String subnetsInJobDescriptor) {
-        when(configuration.getDefaultSubnets()).thenReturn(defaultSubnets);
-        JobDescriptor jobDescriptor = createJobDescriptorWithContainerAttributeSubnets(subnetsInJobDescriptor);
-
-        ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, disruptionBudgetSanitizer, jd -> false, jd -> false, titusRuntime);
-        return sanitizer.sanitize(jobDescriptor);
     }
 
     @Test
@@ -218,12 +188,12 @@ public class ExtendedJobSanitizerTest {
     }
 
     private void testIamRoleValidation(boolean doNotAddIfMissing, String expected) {
-        JobDescriptor jobDescriptor = newJobDescriptorWithSecurityProfile(DEFAULT_SECURITY_GROUPS, "");
+        JobDescriptor<BatchJobExt> jobDescriptor = newJobDescriptorWithSecurityProfile(DEFAULT_SECURITY_GROUPS, "");
         ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, disruptionBudgetSanitizer, jd -> doNotAddIfMissing, jd -> false, titusRuntime);
 
         when(configuration.getDefaultIamRole()).thenReturn(DEFAULT_IAM_ROLE);
 
-        Optional<JobDescriptor> sanitized = sanitizer.sanitize(jobDescriptor);
+        Optional<JobDescriptor<BatchJobExt>> sanitized = sanitizer.sanitize(jobDescriptor);
 
         assertThat(sanitized).isPresent();
         assertThat(sanitized.get().getContainer().getSecurityProfile().getIamRole()).isEqualTo(expected);
@@ -231,29 +201,29 @@ public class ExtendedJobSanitizerTest {
 
     @Test
     public void testDiskSizeIsChangedToMin() {
-        JobDescriptor jobDescriptor = newJobDescriptorWithDiskSize(100);
+        JobDescriptor<BatchJobExt> jobDescriptor = newJobDescriptorWithDiskSize(100);
 
         when(configuration.getMinDiskSizeMB()).thenReturn(MIN_DISK_SIZE);
         when(entitySanitizer.sanitize(any())).thenReturn(Optional.of(jobDescriptor));
 
         ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, disruptionBudgetSanitizer, jd -> false, jd -> false, titusRuntime);
-        Optional<JobDescriptor> sanitizedJobDescriptorOpt = sanitizer.sanitize(jobDescriptor);
-        JobDescriptor sanitizedJobDescriptor = sanitizedJobDescriptorOpt.get();
+        Optional<JobDescriptor<BatchJobExt>> sanitizedJobDescriptorOpt = sanitizer.sanitize(jobDescriptor);
+        JobDescriptor<BatchJobExt> sanitizedJobDescriptor = sanitizedJobDescriptorOpt.get();
         assertThat(sanitizedJobDescriptor).isNotNull();
         assertThat(sanitizedJobDescriptor.getContainer().getContainerResources().getDiskMB()).isEqualTo(MIN_DISK_SIZE);
-        String nonCompliant = (String) sanitizedJobDescriptor.getAttributes().get(TITUS_NON_COMPLIANT_FEATURES);
+        String nonCompliant = sanitizedJobDescriptor.getAttributes().get(TITUS_NON_COMPLIANT_FEATURES);
         assertThat(nonCompliant).contains(FeatureRolloutPlans.MIN_DISK_SIZE_STRICT_VALIDATION_FEATURE);
     }
 
     @Test
     public void testDiskSizeIsNotChanged() {
-        JobDescriptor jobDescriptor = newJobDescriptorWithDiskSize(11_000);
+        JobDescriptor<BatchJobExt> jobDescriptor = newJobDescriptorWithDiskSize(11_000);
 
         when(configuration.getMinDiskSizeMB()).thenReturn(MIN_DISK_SIZE);
         when(entitySanitizer.sanitize(any())).thenReturn(Optional.of(jobDescriptor));
 
         ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, disruptionBudgetSanitizer, jd -> false, jd -> false, titusRuntime);
-        Optional<JobDescriptor> sanitizedJobDescriptorOpt = sanitizer.sanitize(jobDescriptor);
+        Optional<JobDescriptor<BatchJobExt>> sanitizedJobDescriptorOpt = sanitizer.sanitize(jobDescriptor);
         assertThat(sanitizedJobDescriptorOpt).isEmpty();
     }
 
@@ -303,17 +273,17 @@ public class ExtendedJobSanitizerTest {
 
     @Test
     public void testEnvironmentNamesWithInvalidCharactersAndNoValidationFailures() {
-        JobDescriptor jobDescriptor = newJobDescriptorWithEnvironment(";;;", "value");
+        JobDescriptor<BatchJobExt> jobDescriptor = newJobDescriptorWithEnvironment(";;;", "value");
         ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, disruptionBudgetSanitizer, jd -> false, jd -> false, titusRuntime);
 
-        Optional<JobDescriptor> sanitized = sanitizer.sanitize(jobDescriptor);
+        Optional<JobDescriptor<BatchJobExt>> sanitized = sanitizer.sanitize(jobDescriptor);
         assertThat(sanitized).isNotEmpty();
         assertThat(sanitized.get().getAttributes().get(TITUS_NON_COMPLIANT_FEATURES)).isEqualTo(ENVIRONMENT_VARIABLE_NAMES_STRICT_VALIDATION_FEATURE);
     }
 
     @Test(expected = TitusServiceException.class)
     public void testEnvironmentNamesWithInvalidCharactersAndWithValidationFailures() {
-        JobDescriptor jobDescriptor = newJobDescriptorWithEnvironment(";;;", "value");
+        JobDescriptor<BatchJobExt> jobDescriptor = newJobDescriptorWithEnvironment(";;;", "value");
         ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, disruptionBudgetSanitizer, jd -> false, jd -> true, titusRuntime);
 
         sanitizer.sanitize(jobDescriptor);
@@ -321,7 +291,7 @@ public class ExtendedJobSanitizerTest {
 
     @Test
     public void testTitusAttributesAreResetIfProvidedByUser() {
-        JobDescriptor jobDescriptor = newBatchJob().getValue().toBuilder()
+        JobDescriptor<BatchJobExt> jobDescriptor = newBatchJob().getValue().toBuilder()
                 .withAttributes(ImmutableMap.<String, String>builder()
                         .put("myApp.a", "b")
                         .put(TITUS_NON_COMPLIANT_FEATURES + "a", "b")
@@ -331,7 +301,7 @@ public class ExtendedJobSanitizerTest {
 
         ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, disruptionBudgetSanitizer, jd -> false, jd -> false, titusRuntime);
 
-        Optional<JobDescriptor> sanitized = sanitizer.sanitize(jobDescriptor);
+        Optional<JobDescriptor<BatchJobExt>> sanitized = sanitizer.sanitize(jobDescriptor);
         assertThat(sanitized).isNotEmpty();
         assertThat(sanitized.get().getAttributes()).containsOnlyKeys("myApp.a");
     }
@@ -343,11 +313,11 @@ public class ExtendedJobSanitizerTest {
                 .build();
         ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, disruptionBudgetSanitizer, jd -> false, jd -> false, titusRuntime);
 
-        Optional<JobDescriptor> sanitizedOpt = sanitizer.sanitize(jobDescriptor);
+        Optional<JobDescriptor<ServiceJobExt>> sanitizedOpt = sanitizer.sanitize(jobDescriptor);
         assertThat(sanitizedOpt).isNotEmpty();
-        JobDescriptor sanitized = sanitizedOpt.get();
+        JobDescriptor<ServiceJobExt> sanitized = sanitizedOpt.get();
 
-        String nonCompliant = (String) sanitized.getAttributes().get(TITUS_NON_COMPLIANT_FEATURES);
+        String nonCompliant = sanitized.getAttributes().get(TITUS_NON_COMPLIANT_FEATURES);
         assertThat(nonCompliant).contains(JobFeatureComplianceChecks.DISRUPTION_BUDGET_FEATURE);
 
         SelfManagedDisruptionBudgetPolicy policy = (SelfManagedDisruptionBudgetPolicy) sanitized.getDisruptionBudget().getDisruptionBudgetPolicy();
@@ -361,11 +331,11 @@ public class ExtendedJobSanitizerTest {
                 .build();
         ExtendedJobSanitizer sanitizer = new ExtendedJobSanitizer(configuration, jobAssertions, entitySanitizer, disruptionBudgetSanitizer, jd -> false, jd -> false, titusRuntime);
 
-        Optional<JobDescriptor> sanitizedOpt = sanitizer.sanitize(jobDescriptor);
+        Optional<JobDescriptor<BatchJobExt>> sanitizedOpt = sanitizer.sanitize(jobDescriptor);
         assertThat(sanitizedOpt).isNotEmpty();
-        JobDescriptor sanitized = sanitizedOpt.get();
+        JobDescriptor<BatchJobExt> sanitized = sanitizedOpt.get();
 
-        String nonCompliant = (String) sanitized.getAttributes().get(TITUS_NON_COMPLIANT_FEATURES);
+        String nonCompliant = sanitized.getAttributes().get(TITUS_NON_COMPLIANT_FEATURES);
         assertThat(nonCompliant).contains(JobFeatureComplianceChecks.DISRUPTION_BUDGET_FEATURE);
 
         SelfManagedDisruptionBudgetPolicy policy = (SelfManagedDisruptionBudgetPolicy) sanitized.getDisruptionBudget().getDisruptionBudgetPolicy();
@@ -387,7 +357,7 @@ public class ExtendedJobSanitizerTest {
         );
     }
 
-    private JobDescriptor newJobDescriptorWithSecurityProfile(List<String> securityGroups, String iamRole) {
+    private JobDescriptor<BatchJobExt> newJobDescriptorWithSecurityProfile(List<String> securityGroups, String iamRole) {
         SecurityProfile securityProfile = SecurityProfile.newBuilder()
                 .withIamRole(iamRole)
                 .withSecurityGroups(securityGroups)
@@ -397,7 +367,7 @@ public class ExtendedJobSanitizerTest {
                 .getValue();
     }
 
-    private JobDescriptor newJobDescriptorWithEnvironment(String key, String value) {
+    private JobDescriptor<BatchJobExt> newJobDescriptorWithEnvironment(String key, String value) {
         return newBatchJob()
                 .map(jd -> jd.but(d -> d.getContainer().but(c -> c.toBuilder().withEnv(Collections.singletonMap(key, value)).build())))
                 .getValue();

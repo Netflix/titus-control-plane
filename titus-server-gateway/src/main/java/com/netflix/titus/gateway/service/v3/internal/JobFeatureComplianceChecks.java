@@ -25,7 +25,6 @@ import java.util.regex.Pattern;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.netflix.titus.api.FeatureRolloutPlans;
-import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
@@ -39,21 +38,21 @@ import com.netflix.titus.common.util.feature.FeatureCompliance;
 import com.netflix.titus.common.util.feature.FeatureCompliance.NonComplianceList;
 import com.netflix.titus.runtime.jobmanager.JobManagerConfiguration;
 
-import static com.netflix.titus.api.FeatureRolloutPlans.CONTAINER_ACCOUNT_ID_REQUIRED_FEATURE;
+import static com.netflix.titus.api.FeatureRolloutPlans.CONTAINER_ACCOUNT_ID_AND_SUBNETS_REQUIRED_FEATURE;
 import static com.netflix.titus.api.FeatureRolloutPlans.ENTRY_POINT_STRICT_VALIDATION_FEATURE;
 import static com.netflix.titus.api.FeatureRolloutPlans.ENVIRONMENT_VARIABLE_NAMES_STRICT_VALIDATION_FEATURE;
 import static com.netflix.titus.api.FeatureRolloutPlans.IAM_ROLE_REQUIRED_FEATURE;
 import static com.netflix.titus.api.FeatureRolloutPlans.MIN_DISK_SIZE_STRICT_VALIDATION_FEATURE;
 import static com.netflix.titus.api.FeatureRolloutPlans.SECURITY_GROUPS_REQUIRED_FEATURE;
-import static com.netflix.titus.api.FeatureRolloutPlans.SUBNETS_REQUIRED_FEATURE;
+import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_CONTAINER_ATTRIBUTE_ACCOUNT_ID;
+import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_CONTAINER_ATTRIBUTE_SUBNETS;
 
 class JobFeatureComplianceChecks {
 
     @VisibleForTesting
     static final String DISRUPTION_BUDGET_FEATURE = "disruptionBudget";
 
-    private static final Map<String, String> NO_CONTAINER_ACCOUNT_ID = Collections.singletonMap("noContainerAccountId", "Container accountId not set");
-    private static final Map<String, String> NO_SUBNETS = Collections.singletonMap("noSubnets", "Subnets for the container accountId not set");
+    private static final Map<String, String> NO_ACCOUNT_ID_AND_SUBNETS_CONTAINER_ATTRIBUTES_CONTEXT = Collections.singletonMap("noContainerAccountIdAndSubnets", "Container accountId and/or subnet container attributes are empty/inconsistent");
     private static final Map<String, String> NO_IAM_ROLE_CONTEXT = Collections.singletonMap("noIamRole", "IAM role not set");
     private static final Map<String, String> NO_SECURITY_GROUPS_CONTEXT = Collections.singletonMap("noSecurityGroups", "Security groups not set");
     private static final Map<String, String> ENTRY_POINT_WITH_SPACES_CONTEXT = Collections.singletonMap("entryPointBinaryWithSpaces", "Entry point contains spaces");
@@ -113,50 +112,37 @@ class JobFeatureComplianceChecks {
     }
 
     /**
-     * A feature compliance is violated if there is a default accountId supported in the Configuration for the deployment stack
-     * and the JobDescriptor container attribute map does not contain a value, we treat that as a violation.
-     * As a result of the violation, the job descriptor will be sanitized with the default found in the configuration.
-     * @param jobManagerConfiguration Configuration to check whether there is a default value for the container accountId
+     * A feature compliance is violated if there is a default accountId and subnets combination present in the {@link JobManagerConfiguration} for the deployment stack
+     * but the container attributes in the {@link JobDescriptor} are missing one or both values.
+     * @param jobManagerConfiguration {@link JobManagerConfiguration}
      * @return feature compliance evaluation
      */
-    static FeatureCompliance<JobDescriptor<?>> missingContainerAccountId(JobManagerConfiguration jobManagerConfiguration) {
+    static FeatureCompliance<JobDescriptor<?>> missingContainerAccountIdAndSubnets(JobManagerConfiguration jobManagerConfiguration) {
         return jobDescriptor -> {
-            if (!StringExt.isEmpty(jobManagerConfiguration.getDefaultContainerAccountId()) &&
-                    StringExt.isEmpty(jobDescriptor.getContainer().getAttributes().get(JobAttributes.JOB_CONTAINER_ATTRIBUTE_ACCOUNT_ID))) {
-                return Optional.of(NonComplianceList.of(
-                        CONTAINER_ACCOUNT_ID_REQUIRED_FEATURE,
-                        jobDescriptor,
-                        NO_CONTAINER_ACCOUNT_ID,
-                        "AccountId container attribute is not set"
-                ));
-            } else {
+            String defaultAccountId = jobManagerConfiguration.getDefaultContainerAccountId();
+            String defaultSubnets = jobManagerConfiguration.getDefaultSubnets();
+            // Ignore this compliance check unless both default accountId and subnet configuration properties are set implying our
+            // intent to aid the job descriptor sanitization
+            if (StringExt.isEmpty(defaultAccountId) || StringExt.isEmpty(defaultSubnets)) {
                 return Optional.empty();
             }
-        };
-    }
 
-    /**
-     * Feature compliance for subnets container attribute is violated if the configuration defined for the deployment stack
-     * has an non-empty default value but the input job descriptor does not contain a value.
-     * @param jobManagerConfiguration Configuration to check if there is a default value for the subnets
-     * @return feature compliance evaluation
-     */
-    static FeatureCompliance<JobDescriptor<?>> missingSubnets(JobManagerConfiguration jobManagerConfiguration) {
-        return jobDescriptor -> {
-            if (!StringExt.isEmpty(jobManagerConfiguration.getDefaultSubnets()) &&
-                    StringExt.isEmpty(jobDescriptor.getContainer().getAttributes().get(JobAttributes.JOB_CONTAINER_ATTRIBUTE_SUBNETS))) {
+            String accountIdContainerAttribute = jobDescriptor.getContainer().getAttributes().get(JOB_CONTAINER_ATTRIBUTE_ACCOUNT_ID);
+            String subnetContainerAttribute = jobDescriptor.getContainer().getAttributes().get(JOB_CONTAINER_ATTRIBUTE_SUBNETS);
+
+            // Feature compliance is violated if either (i) both attributes are not set, or (ii) accountId is set to the default value but the subnets value is not set.
+            // In either case, we should take action in response to this violation.
+            if ((StringExt.isEmpty(accountIdContainerAttribute) || defaultAccountId.equals(accountIdContainerAttribute)) && StringExt.isEmpty(subnetContainerAttribute)) {
                 return Optional.of(NonComplianceList.of(
-                        SUBNETS_REQUIRED_FEATURE,
+                        CONTAINER_ACCOUNT_ID_AND_SUBNETS_REQUIRED_FEATURE,
                         jobDescriptor,
-                        NO_SUBNETS,
-                        "List of subnets for the container accountId is not set"
+                        NO_ACCOUNT_ID_AND_SUBNETS_CONTAINER_ATTRIBUTES_CONTEXT,
+                        "accountId and/or subnets container attributes are not set"
                 ));
-            } else {
-                return Optional.empty();
             }
+            return Optional.empty();
         };
     }
-
 
     /**
      * See {@link FeatureRolloutPlans#ENTRY_POINT_STRICT_VALIDATION_FEATURE}.
