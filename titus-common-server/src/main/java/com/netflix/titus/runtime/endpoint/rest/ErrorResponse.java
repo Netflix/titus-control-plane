@@ -32,6 +32,11 @@ import org.springframework.web.context.request.WebRequest;
  */
 public class ErrorResponse {
 
+    /**
+     * If 'debug' parameter is included in query, include error context.
+     */
+    public static final String DEBUG_PARAM = "debug";
+
     public static final String CLIENT_REQUEST = "clientRequest";
     public static final String THREAD_CONTEXT = "threadContext";
     public static final String SERVER_CONTEXT = "serverContext";
@@ -93,6 +98,7 @@ public class ErrorResponse {
         private String message;
         private Map<String, Object> errorContext = new TreeMap<>();
         private Object errorDetails;
+        private boolean debug;
 
         public ErrorResponseBuilder status(int statusCode) {
             this.statusCode = statusCode;
@@ -110,10 +116,12 @@ public class ErrorResponse {
         }
 
         public ErrorResponseBuilder clientRequest(HttpServletRequest httpRequest) {
+            setDebugFromRequest(httpRequest.getParameterMap());
             return withContext(CLIENT_REQUEST, ErrorResponses.buildHttpRequestContext(httpRequest));
         }
 
         public ErrorResponseBuilder clientRequest(WebRequest webRequest) {
+            setDebugFromRequest(webRequest.getParameterMap());
             return withContext(CLIENT_REQUEST, ErrorResponses.buildWebRequestContext(webRequest));
         }
 
@@ -139,12 +147,30 @@ public class ErrorResponse {
         }
 
         public ErrorResponse build() {
+            if (debug) {
+                return new ErrorResponse(
+                        statusCode,
+                        message,
+                        errorDetails,
+                        errorContext.isEmpty() ? null : Collections.unmodifiableMap(errorContext)
+                );
+
+            }
             return new ErrorResponse(
                     statusCode,
                     message,
-                    errorDetails,
-                    errorContext.isEmpty() ? null : Collections.unmodifiableMap(errorContext)
+                    null,
+                    null
             );
+        }
+
+        private void setDebugFromRequest(Map<String, String[]> parameters) {
+            if (parameters == null) {
+                this.debug = false;
+            } else {
+                String[] debugParamValue = parameters.get(DEBUG_PARAM);
+                this.debug = debugParamValue != null && debugParamValue.length > 0 && Boolean.parseBoolean(debugParamValue[0]);
+            }
         }
     }
 }

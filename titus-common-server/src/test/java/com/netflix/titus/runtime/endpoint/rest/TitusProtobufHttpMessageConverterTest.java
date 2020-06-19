@@ -72,18 +72,16 @@ public class TitusProtobufHttpMessageConverterTest {
     }
 
     @Test
-    public void testFieldFilter() throws Exception {
-        doPost(SAMPLE_BASE);
-        SampleComplexMessage result = doGet("/test?fields=mapValue");
-        assertThat(result.getMapValueMap()).isEqualTo(SAMPLE_BASE.getMapValueMap());
-        assertThat(result.getInternalMessage()).isEqualTo(SampleInternalMessage.getDefaultInstance());
-    }
-
-    @Test
     public void testErrors() throws Exception {
+        // None debug mode
         ErrorResponse error = doGetError("/test/error");
         assertThat(error.getStatusCode()).isEqualTo(500);
-        assertThat(error.getErrorContext()).hasSize(3);
+        assertThat(error.getErrorContext()).isNull();
+
+        // Debug mode
+        ErrorResponse errorWithContext = doGetError("/test/error?debug=true");
+        assertThat(errorWithContext.getStatusCode()).isEqualTo(500);
+        assertThat(errorWithContext.getErrorContext()).hasSize(3);
     }
 
     private String doGetString(String baseUri) throws Exception {
