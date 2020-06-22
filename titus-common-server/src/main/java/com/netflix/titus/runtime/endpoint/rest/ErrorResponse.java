@@ -96,12 +96,17 @@ public class ErrorResponse {
     public static class ErrorResponseBuilder {
         private int statusCode;
         private String message;
-        private Map<String, Object> errorContext = new TreeMap<>();
+        private final Map<String, Object> errorContext = new TreeMap<>();
         private Object errorDetails;
         private boolean debug;
 
         public ErrorResponseBuilder status(int statusCode) {
             this.statusCode = statusCode;
+            return this;
+        }
+
+        public ErrorResponseBuilder debug(boolean debug) {
+            this.debug = debug;
             return this;
         }
 
