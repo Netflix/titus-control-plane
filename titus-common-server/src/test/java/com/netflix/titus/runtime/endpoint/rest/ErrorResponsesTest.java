@@ -115,7 +115,7 @@ public class ErrorResponsesTest {
 
     @Test
     public void testBuildOfThreadContext() throws Exception {
-        ErrorResponse errorResponse = ErrorResponse.newError(500).threadContext().build();
+        ErrorResponse errorResponse = ErrorResponse.newError(500).debug(true).threadContext().build();
         List<String> threadContext = (List<String>) errorResponse.getErrorContext().get(ErrorResponse.THREAD_CONTEXT);
         assertThat(threadContext.get(0), containsString(ErrorResponsesTest.class.getName()));
     }

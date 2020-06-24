@@ -34,6 +34,7 @@ import static org.mockito.Mockito.when;
 public class JsonMessageReaderWriterTest {
 
     private static final ErrorResponse ERROR_RESPONSE = ErrorResponse.newError(404, "simulated error")
+            .debug(true)
             .withContext("testContext", singletonMap("key", "value"))
             .build();
 

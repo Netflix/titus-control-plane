@@ -36,6 +36,16 @@ public class TitusExceptionHandlers {
 
     private static final int TOO_MANY_REQUESTS = 429;
 
+    @ExceptionHandler(value = {RestException.class})
+    protected ResponseEntity<ErrorResponse> handleException(RestException e, WebRequest request) {
+        ErrorResponse.ErrorResponseBuilder errorBuilder = ErrorResponse.newError(e.getStatusCode(), e.getMessage())
+                .clientRequest(request)
+                .serverContext()
+                .exceptionContext(e);
+        ErrorResponse errorResponse = errorBuilder.build();
+        return ResponseEntity.status(e.getStatusCode()).body(errorResponse);
+    }
+
     @ExceptionHandler(value = {TitusServiceException.class})
     protected ResponseEntity<ErrorResponse> handleException(TitusServiceException e, WebRequest request) {
         ErrorResponse.ErrorResponseBuilder errorBuilder = ErrorResponse.newError(HttpServletResponse.SC_BAD_REQUEST, e.getMessage())
