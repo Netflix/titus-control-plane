@@ -77,6 +77,9 @@ public interface DirectKubeConfiguration {
     @DefaultValue("5000")
     long getKubeApiClientTimeoutMs();
 
+    @DefaultValue("false")
+    boolean isAsyncApiEnabled();
+
     /**
      * Get list of farzone names. A job associated with a zone hard constraint, where the zone id is one of the
      * farzone names has pods tainted with that zone id.
