@@ -90,6 +90,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.concurrent.Queues;
 import rx.Observable;
 import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
@@ -255,7 +256,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     public void launchTasks(List<TaskInfoRequest> requests, List<VirtualMachineLease> leases) {
         Stopwatch stopwatch = Stopwatch.createStarted();
         if (directKubeConfiguration.isAsyncApiEnabled()) {
-            launchTasksAsync(requests);
+            launchTasksConcurrently(requests);
             logger.info("Async pod launches completed: pods={}, elapsed={}[ms]", requests.size(), stopwatch.elapsed(TimeUnit.MILLISECONDS));
         } else {
             launchTasksSync(requests);
@@ -278,7 +279,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         }
     }
 
-    private void launchTasksAsync(List<TaskInfoRequest> requests) {
+    private void launchTasksConcurrently(List<TaskInfoRequest> requests) {
         List<Mono<Void>> podAddActions = new ArrayList<>(requests.size());
         for (TaskInfoRequest request : requests) {
             V1Pod v1Pod = taskInfoToPod(request);
@@ -302,7 +303,10 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         }
 
         try {
-            Flux.merge(podAddActions).blockLast();
+            Flux.mergeSequentialDelayError(Flux.fromIterable(podAddActions),
+                    directKubeConfiguration.getPodCreateConcurrencyLimit(),
+                    Queues.XS_BUFFER_SIZE
+            ).blockLast();
         } catch (Exception e) {
             logger.error("Async pod create error: {}", KubeUtil.toErrorDetails(e), e);
         }

@@ -153,4 +153,10 @@ public interface DirectKubeConfiguration {
      */
     @DefaultValue("300000")
     long getUnknownPodGcTimeoutMs();
+
+    /**
+     * Maximum number of concurrent pod create requests.
+     */
+    @DefaultValue("200")
+    int getPodCreateConcurrencyLimit();
 }
