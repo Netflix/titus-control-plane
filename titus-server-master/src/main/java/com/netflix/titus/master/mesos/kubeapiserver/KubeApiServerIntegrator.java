@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
@@ -31,6 +32,7 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Stopwatch;
 import com.google.gson.JsonSyntaxException;
 import com.google.inject.Injector;
 import com.netflix.fenzo.VirtualMachineLease;
@@ -39,6 +41,7 @@ import com.netflix.fenzo.plugins.VMLeaseObject;
 import com.netflix.spectator.api.Counter;
 import com.netflix.spectator.api.Gauge;
 import com.netflix.spectator.api.Registry;
+import com.netflix.spectator.api.Timer;
 import com.netflix.spectator.api.histogram.BucketCounter;
 import com.netflix.spectator.api.histogram.BucketFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Job;
@@ -85,6 +88,9 @@ import org.apache.mesos.Protos;
 import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.util.concurrent.Queues;
 import rx.Observable;
 import rx.subjects.PublishSubject;
 import rx.subjects.Subject;
@@ -152,6 +158,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     private final ContainerResultCodeResolver containerResultCodeResolver;
 
     private final Counter launchTaskCounter;
+    private final Timer launchTasksTimer;
     private final BucketCounter podSizeMetrics;
     private final Counter rejectLeaseCounter;
     private final Counter killTaskCounter;
@@ -198,6 +205,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
 
         Registry registry = titusRuntime.getRegistry();
         launchTaskCounter = registry.counter(MetricConstants.METRIC_KUBERNETES + "launchTask");
+        launchTasksTimer = registry.timer(MetricConstants.METRIC_KUBERNETES + "launchTasksLatency");
         this.podSizeMetrics = BucketCounter.get(
                 registry,
                 registry.createId(MetricConstants.METRIC_KUBERNETES + "podSize"),
@@ -246,9 +254,21 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
 
     @Override
     public void launchTasks(List<TaskInfoRequest> requests, List<VirtualMachineLease> leases) {
-        launchTaskCounter.increment();
+        Stopwatch stopwatch = Stopwatch.createStarted();
+        if (directKubeConfiguration.isAsyncApiEnabled()) {
+            launchTasksConcurrently(requests);
+            logger.info("Async pod launches completed: pods={}, elapsed={}[ms]", requests.size(), stopwatch.elapsed(TimeUnit.MILLISECONDS));
+        } else {
+            launchTasksSync(requests);
+            logger.info("Sync pod launches completed: pods={}, elapsed={}[ms]", requests.size(), stopwatch.elapsed(TimeUnit.MILLISECONDS));
+        }
+        launchTasksTimer.record(stopwatch.elapsed(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
+    }
+
+    private void launchTasksSync(List<TaskInfoRequest> requests) {
         for (TaskInfoRequest request : requests) {
             try {
+                launchTaskCounter.increment();
                 V1Pod v1Pod = taskInfoToPod(request);
                 logger.info("creating pod: {}", v1Pod);
                 kubeApiFacade.getCoreV1Api().createNamespacedPod(KUBERNETES_NAMESPACE, v1Pod, null, null, null);
@@ -256,6 +276,39 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
             } catch (Exception e) {
                 logger.error("Unable to create pod with error: {}", KubeUtil.toErrorDetails(e), e);
             }
+        }
+    }
+
+    private void launchTasksConcurrently(List<TaskInfoRequest> requests) {
+        List<Mono<Void>> podAddActions = new ArrayList<>(requests.size());
+        for (TaskInfoRequest request : requests) {
+            V1Pod v1Pod = taskInfoToPod(request);
+            Mono<Void> podAddAction = KubeUtil
+                    .<V1Pod>toReact(handler -> kubeApiFacade.getCoreV1Api().createNamespacedPodAsync(
+                            KUBERNETES_NAMESPACE, v1Pod, null, null, null, handler
+                    ))
+                    .doOnSubscribe(subscription -> {
+                        launchTaskCounter.increment();
+                        logger.info("creating pod: {}", v1Pod);
+                        podSizeMetrics.record(KubeUtil.estimatePodSize(v1Pod));
+                    })
+                    .timeout(Duration.ofMillis(directKubeConfiguration.getKubeApiClientTimeoutMs()))
+                    .ignoreElement()
+                    .cast(Void.class)
+                    .onErrorResume(error -> {
+                        logger.error("Unable to create pod with error: {}", KubeUtil.toErrorDetails(error), error);
+                        return Mono.empty();
+                    });
+            podAddActions.add(podAddAction);
+        }
+
+        try {
+            Flux.mergeSequentialDelayError(Flux.fromIterable(podAddActions),
+                    directKubeConfiguration.getPodCreateConcurrencyLimit(),
+                    Queues.XS_BUFFER_SIZE
+            ).blockLast();
+        } catch (Exception e) {
+            logger.error("Async pod create error: {}", KubeUtil.toErrorDetails(e), e);
         }
     }
 
