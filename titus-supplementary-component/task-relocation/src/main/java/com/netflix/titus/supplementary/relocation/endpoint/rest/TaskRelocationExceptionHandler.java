@@ -17,6 +17,8 @@
 package com.netflix.titus.supplementary.relocation.endpoint.rest;
 
 import com.netflix.titus.supplementary.relocation.workflow.RelocationWorkflowException;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -27,6 +29,7 @@ import org.springframework.web.context.request.WebRequest;
 public class TaskRelocationExceptionHandler {
 
     @ExceptionHandler(value = {RelocationWorkflowException.class})
+    @Order(Ordered.HIGHEST_PRECEDENCE)
     protected ResponseEntity<Object> handleRelocationWorkflowException(RelocationWorkflowException ex, WebRequest request) {
         switch (ex.getErrorCode()) {
             case NotReady:
