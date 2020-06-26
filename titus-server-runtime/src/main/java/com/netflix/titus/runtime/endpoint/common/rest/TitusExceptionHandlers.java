@@ -26,6 +26,8 @@ import com.netflix.titus.api.service.TitusServiceException;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizerUtil;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.runtime.endpoint.rest.ErrorResponse;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -37,7 +39,8 @@ public class TitusExceptionHandlers {
     private static final int TOO_MANY_REQUESTS = 429;
 
     @ExceptionHandler(value = {RestException.class})
-    protected ResponseEntity<ErrorResponse> handleException(RestException e, WebRequest request) {
+    @Order(Ordered.HIGHEST_PRECEDENCE)
+    public ResponseEntity<ErrorResponse> handleException(RestException e, WebRequest request) {
         ErrorResponse.ErrorResponseBuilder errorBuilder = ErrorResponse.newError(e.getStatusCode(), e.getMessage())
                 .clientRequest(request)
                 .serverContext()
@@ -47,7 +50,8 @@ public class TitusExceptionHandlers {
     }
 
     @ExceptionHandler(value = {TitusServiceException.class})
-    protected ResponseEntity<ErrorResponse> handleException(TitusServiceException e, WebRequest request) {
+    @Order(Ordered.HIGHEST_PRECEDENCE)
+    public ResponseEntity<ErrorResponse> handleException(TitusServiceException e, WebRequest request) {
         ErrorResponse.ErrorResponseBuilder errorBuilder = ErrorResponse.newError(HttpServletResponse.SC_BAD_REQUEST, e.getMessage())
                 .clientRequest(request)
                 .serverContext()
@@ -83,7 +87,8 @@ public class TitusExceptionHandlers {
     }
 
     @ExceptionHandler(value = {JobManagerException.class})
-    protected ResponseEntity<ErrorResponse> handleException(JobManagerException e, WebRequest request) {
+    @Order(Ordered.HIGHEST_PRECEDENCE)
+    public ResponseEntity<ErrorResponse> handleException(JobManagerException e, WebRequest request) {
         ErrorResponse.ErrorResponseBuilder errorBuilder = ErrorResponse.newError(HttpServletResponse.SC_BAD_REQUEST, e.getMessage())
                 .clientRequest(request)
                 .serverContext()
@@ -127,7 +132,8 @@ public class TitusExceptionHandlers {
     }
 
     @ExceptionHandler(value = {EvictionException.class})
-    private ResponseEntity<ErrorResponse> handleException(EvictionException e, WebRequest request) {
+    @Order(Ordered.HIGHEST_PRECEDENCE)
+    public ResponseEntity<ErrorResponse> handleException(EvictionException e, WebRequest request) {
         ErrorResponse.ErrorResponseBuilder errorBuilder = ErrorResponse.newError(HttpServletResponse.SC_BAD_REQUEST, e.getMessage())
                 .clientRequest(request)
                 .serverContext()
@@ -154,7 +160,8 @@ public class TitusExceptionHandlers {
     }
 
     @ExceptionHandler(value = {SchedulerException.class})
-    private ResponseEntity<ErrorResponse> handleException(SchedulerException e, WebRequest request) {
+    @Order(Ordered.HIGHEST_PRECEDENCE)
+    public ResponseEntity<ErrorResponse> handleException(SchedulerException e, WebRequest request) {
         ErrorResponse.ErrorResponseBuilder errorBuilder = ErrorResponse.newError(HttpServletResponse.SC_BAD_REQUEST, e.getMessage())
                 .clientRequest(request)
                 .serverContext()

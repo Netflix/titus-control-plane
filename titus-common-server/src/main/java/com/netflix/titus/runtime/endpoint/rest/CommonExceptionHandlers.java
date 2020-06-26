@@ -18,6 +18,8 @@ package com.netflix.titus.runtime.endpoint.rest;
 
 import javax.servlet.http.HttpServletResponse;
 
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -29,6 +31,7 @@ import org.springframework.web.context.request.WebRequest;
 public class CommonExceptionHandlers {
 
     @ExceptionHandler(value = {Exception.class})
+    @Order(Ordered.LOWEST_PRECEDENCE)
     public ResponseEntity<ErrorResponse> handleException(Exception e, WebRequest request) {
         int status = HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
 
