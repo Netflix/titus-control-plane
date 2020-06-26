@@ -76,4 +76,12 @@ public interface FeatureRolloutPlans {
             description = "Integrate Kube scheduler"
     )
     String KUBE_SCHEDULER_FEATURE = "kubeSchedulerFeature";
+
+    @FeatureRollout(
+            featureId = "accountIdAndSubnetsFeature",
+            deadline = "10/01/2020",
+            description = "Jobs should provide AWS accountId and corresponding subnets the container should launch in"
+    )
+    String CONTAINER_ACCOUNT_ID_AND_SUBNETS_REQUIRED_FEATURE = "accountIdAndSubnetsFeature";
+    
 }

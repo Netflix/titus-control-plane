@@ -170,6 +170,16 @@ public final class JobAttributes {
      */
     public static final String JOB_CONTAINER_ATTRIBUTE_S3_PATH_PREFIX = "titusParameter.agent.log.s3PathPrefix";
 
+    /**
+     * Subnets to launch the container in.
+     */
+    public static final String JOB_CONTAINER_ATTRIBUTE_SUBNETS = "titusParameter.agent.subnets";
+
+    /**
+     * AccountId to launch the container in.
+     */
+    public static final String JOB_CONTAINER_ATTRIBUTE_ACCOUNT_ID = "titusParameter.agent.accountId";
+
     private JobAttributes() {
     }
 }

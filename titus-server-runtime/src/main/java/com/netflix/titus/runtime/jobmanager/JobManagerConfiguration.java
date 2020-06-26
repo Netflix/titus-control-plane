@@ -29,6 +29,17 @@ public interface JobManagerConfiguration {
 
     List<String> getDefaultSecurityGroups();
 
+    /**
+     * @return A comma separated string of one or more subnets to launch the container in. This string is set as an annotation on the pod.
+     */
+    String getDefaultSubnets();
+
+    /**
+     *
+     * @return Default account to launch containers in. This value is used when not explicitly provided by the caller.
+     */
+    String getDefaultContainerAccountId();
+
     @DefaultValue("_none_")
     String getNoncompliantClientWhiteList();
 
