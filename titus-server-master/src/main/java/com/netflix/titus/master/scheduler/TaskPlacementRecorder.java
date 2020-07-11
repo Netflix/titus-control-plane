@@ -22,7 +22,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
@@ -50,8 +49,9 @@ import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.config.MasterConfiguration;
 import com.netflix.titus.master.jobmanager.service.JobManagerUtil;
-import com.netflix.titus.master.mesos.TaskInfoRequestFactory;
+import com.netflix.titus.master.mesos.TaskAssignments;
 import com.netflix.titus.master.mesos.TaskInfoRequest;
+import com.netflix.titus.master.mesos.TaskInfoRequestFactory;
 import com.netflix.titus.master.model.job.TitusQueuableTask;
 import com.netflix.titus.master.scheduler.opportunistic.OpportunisticCpuAvailability;
 import com.netflix.titus.master.scheduler.resourcecache.OpportunisticCpuCache;
@@ -93,7 +93,7 @@ class TaskPlacementRecorder {
         this.titusRuntime = titusRuntime;
     }
 
-    List<Pair<List<VirtualMachineLease>, List<TaskInfoRequest>>> record(SchedulingResult schedulingResult) {
+    TaskAssignments record(SchedulingResult schedulingResult) {
         List<AgentAssignment> assignments = schedulingResult.getResultMap().entrySet().stream()
                 .map(entry -> new AgentAssignment(entry.getKey(), entry.getValue()))
                 .collect(Collectors.toList());
@@ -101,12 +101,14 @@ class TaskPlacementRecorder {
         long startTime = wallTime();
         try {
             Map<AgentAssignment, List<TaskInfoRequest>> v3Result = processV3Assignments(assignments);
-
-            Set<AgentAssignment> allAssignments = v3Result.keySet();
-
-            return allAssignments.stream()
-                    .map(a -> Pair.of(a.getLeases(), v3Result.get(a)))
-                    .collect(Collectors.toList());
+            return new TaskAssignments(
+                    v3Result.entrySet().stream()
+                            .map(entry -> Pair.of(
+                                    new TaskAssignments.Machine(entry.getKey().hostname, entry.getKey().getLeases()),
+                                    entry.getValue()
+                            ))
+                            .collect(Collectors.toList())
+            );
         } finally {
             int taskCount = schedulingResult.getResultMap().values().stream().mapToInt(a -> a.getTasksAssigned().size()).sum();
             if (taskCount > 0) {
