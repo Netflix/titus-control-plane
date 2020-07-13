@@ -79,6 +79,11 @@ public class TaskPlacementFailure {
          */
         OpportunisticResource,
 
+        /**
+         * Task not launched due to other tasks with the exclusiveHost hard constraint on the same agent. It has the lowest priority.
+         */
+        ExclusiveHost,
+
         Unrecognized;
 
         /**
@@ -91,8 +96,8 @@ public class TaskPlacementFailure {
         );
 
         /**
-         * <tt>TRANSIENT</tt>, <tt>AgentContainerLimit</tt>, and <tt>NoActiveAgent</tt> (all agents are non-schedulable
-         * for a task) must never modify opportunistic scheduling behavior.
+         * Super set of <tt>TRANSIENT</tt> failures that must never modify opportunistic scheduling behavior. It
+         * includes failures that are expected to disappear after more capacity is added by {@link ClusterAgentAutoScaler}
          *
          * @see DefaultSchedulingService
          */
@@ -100,6 +105,8 @@ public class TaskPlacementFailure {
                 .addAll(TRANSIENT)
                 .add(AgentContainerLimit)
                 .add(NoActiveAgents)
+                .add(JobHardConstraint)
+                .add(ExclusiveHost)
                 .build();
 
         /**
