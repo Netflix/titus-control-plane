@@ -65,6 +65,7 @@ import com.netflix.titus.master.MetricConstants;
 import com.netflix.titus.master.mesos.ContainerEvent;
 import com.netflix.titus.master.mesos.LeaseRescindedEvent;
 import com.netflix.titus.master.mesos.MesosConfiguration;
+import com.netflix.titus.master.mesos.TaskAssignments;
 import com.netflix.titus.master.mesos.TaskInfoRequest;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.master.mesos.V3ContainerEvent;
@@ -253,20 +254,20 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     }
 
     @Override
-    public void launchTasks(List<TaskInfoRequest> requests, List<VirtualMachineLease> leases) {
+    public void launchTasks(TaskAssignments assignments) {
         Stopwatch stopwatch = Stopwatch.createStarted();
         if (directKubeConfiguration.isAsyncApiEnabled()) {
-            launchTasksConcurrently(requests);
-            logger.info("Async pod launches completed: pods={}, elapsed={}[ms]", requests.size(), stopwatch.elapsed(TimeUnit.MILLISECONDS));
+            launchTasksConcurrently(assignments);
+            logger.info("Async pod launches completed: pods={}, elapsed={}[ms]", assignments.getCount(), stopwatch.elapsed(TimeUnit.MILLISECONDS));
         } else {
-            launchTasksSync(requests);
-            logger.info("Sync pod launches completed: pods={}, elapsed={}[ms]", requests.size(), stopwatch.elapsed(TimeUnit.MILLISECONDS));
+            launchTasksSync(assignments);
+            logger.info("Sync pod launches completed: pods={}, elapsed={}[ms]", assignments.getCount(), stopwatch.elapsed(TimeUnit.MILLISECONDS));
         }
         launchTasksTimer.record(stopwatch.elapsed(TimeUnit.MILLISECONDS), TimeUnit.MILLISECONDS);
     }
 
-    private void launchTasksSync(List<TaskInfoRequest> requests) {
-        for (TaskInfoRequest request : requests) {
+    private void launchTasksSync(TaskAssignments assignments) {
+        for (TaskInfoRequest request : assignments) {
             try {
                 launchTaskCounter.increment();
                 V1Pod v1Pod = taskInfoToPod(request);
@@ -279,9 +280,9 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         }
     }
 
-    private void launchTasksConcurrently(List<TaskInfoRequest> requests) {
-        List<Mono<Void>> podAddActions = new ArrayList<>(requests.size());
-        for (TaskInfoRequest request : requests) {
+    private void launchTasksConcurrently(TaskAssignments assignments) {
+        List<Mono<Void>> podAddActions = new ArrayList<>(assignments.getCount());
+        for (TaskInfoRequest request : assignments) {
             V1Pod v1Pod = taskInfoToPod(request);
             Mono<Void> podAddAction = KubeUtil
                     .<V1Pod>toReact(handler -> kubeApiFacade.getCoreV1Api().createNamespacedPodAsync(

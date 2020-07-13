@@ -132,13 +132,30 @@ public class VirtualMachineMasterServiceMesosImpl implements VirtualMachineMaste
         return Optional.empty();
     }
 
-    // NOTE: all leases are for the same slave
     @Override
-    public void launchTasks(List<TaskInfoRequest> taskInfoRequests, List<VirtualMachineLease> leases) {
+    public void launchTasks(TaskAssignments taskAssignments) {
         if (!isActivatedAndRunning()) {
             logger.error("Not in leader mode, not launching tasks");
             return;
         }
+        taskAssignments.forEach((machine, taskInfoRequests) -> launchTasks(taskInfoRequests, machine));
+    }
+
+    // NOTE: all leases are for the same machine
+    private void launchTasks(List<TaskInfoRequest> taskInfoRequests, TaskAssignments.Machine machine) {
+        List<VirtualMachineLease> leases = machine.getLeases();
+        if (taskInfoRequests.isEmpty()) {
+            for (VirtualMachineLease lease : leases) {
+                try {
+                    rejectLease(lease);
+                } catch (RuntimeException e) {
+                    logger.error("Failed rejecting lease for hostname " + lease.hostname(), e);
+                }
+            }
+            logger.info("Rejected offers as no task effectively placed on the agent {}. Offers={}", machine.getId(), leases.size());
+            return;
+        }
+
         List<Protos.TaskInfo> taskInfos = taskInfoRequests.stream().map(TaskInfoRequest::getTaskInfo).collect(Collectors.toList());
         List<Protos.OfferID> offerIds = leases.stream().map(l -> l.getOffer().getId()).collect(Collectors.toList());
 

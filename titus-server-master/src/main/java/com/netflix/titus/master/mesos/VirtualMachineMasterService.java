@@ -20,7 +20,6 @@ import java.util.List;
 
 import com.netflix.fenzo.VirtualMachineLease;
 import com.netflix.fenzo.functions.Action1;
-import org.apache.mesos.Protos;
 import rx.Observable;
 
 public interface VirtualMachineMasterService {
@@ -29,7 +28,7 @@ public interface VirtualMachineMasterService {
 
     void enterActiveMode();
 
-    void launchTasks(List<TaskInfoRequest> requests, List<VirtualMachineLease> leases);
+    void launchTasks(TaskAssignments taskAssignments);
 
     void rejectLease(VirtualMachineLease lease);
 

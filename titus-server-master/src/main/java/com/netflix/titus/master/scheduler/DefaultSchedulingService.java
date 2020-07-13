@@ -78,7 +78,7 @@ import com.netflix.titus.master.jobmanager.service.common.V3QAttributes;
 import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import com.netflix.titus.master.mesos.LeaseRescindedEvent;
 import com.netflix.titus.master.mesos.MesosConfiguration;
-import com.netflix.titus.master.mesos.TaskInfoRequest;
+import com.netflix.titus.master.mesos.TaskAssignments;
 import com.netflix.titus.master.mesos.TaskInfoRequestFactory;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.scheduler.TaskPlacementFailure.FailureKind;
@@ -481,21 +481,18 @@ public class DefaultSchedulingService implements SchedulingService<V3QueueableTa
             return;
         }
 
-        int assignedDuringSchedulingResult = 0;
         int failedTasksDuringSchedulingResult = schedulingResult.getFailures().size();
-
         long recordingStart = titusRuntime.getClock().wallTime();
-        List<Pair<List<VirtualMachineLease>, List<TaskInfoRequest>>> taskInfoRequests = taskPlacementRecorder.record(schedulingResult);
+        TaskAssignments taskAssignments = taskPlacementRecorder.record(schedulingResult);
         recordTaskPlacementLatencyTimer.record(titusRuntime.getClock().wallTime() - recordingStart, TimeUnit.MILLISECONDS);
-        taskInfoRequests.forEach(ts -> launchTasks(ts.getLeft(), ts.getRight()));
-        assignedDuringSchedulingResult += taskInfoRequests.stream().mapToInt(p -> p.getRight().size()).sum();
+        launchTasks(taskAssignments);
 
         recordLastSchedulingResult(schedulingResult);
         taskPlacementFailureClassifier.update(schedulingResult);
         processTaskSchedulingFailureCallbacks(taskPlacementFailureClassifier.getLastTaskPlacementFailures());
 
-        totalTasksPerIterationGauge.set(assignedDuringSchedulingResult + failedTasksDuringSchedulingResult);
-        assignedTasksPerIterationGauge.set(assignedDuringSchedulingResult);
+        totalTasksPerIterationGauge.set(taskAssignments.getCount() + failedTasksDuringSchedulingResult);
+        assignedTasksPerIterationGauge.set(taskAssignments.getCount());
         failedTasksPerIterationGauge.set(failedTasksDuringSchedulingResult);
         taskAndAgentEvaluationsPerIterationGauge.set(schedulingResult.getNumAllocations());
         offersReceivedGauge.set(schedulingResult.getLeasesAdded());
@@ -533,24 +530,14 @@ public class DefaultSchedulingService implements SchedulingService<V3QueueableTa
         }
     }
 
-    private void launchTasks(List<VirtualMachineLease> leases, List<TaskInfoRequest> taskInfoRequests) {
+    private void launchTasks(TaskAssignments taskAssignments) {
         long mesosStartTime = titusRuntime.getClock().wallTime();
-        if (taskInfoRequests.isEmpty()) {
-            try {
-                leases.forEach(virtualMachineService::rejectLease);
-            } finally {
-                long mesosLatency = titusRuntime.getClock().wallTime() - mesosStartTime;
-                totalSchedulingIterationMesosLatency.addAndGet(mesosLatency);
-                logger.info("Rejected offers as no task effectively placed on the agent in {}ms: offers={}", mesosLatency, leases.size());
-            }
-        } else {
-            try {
-                virtualMachineService.launchTasks(taskInfoRequests, leases);
-            } finally {
-                long mesosLatency = titusRuntime.getClock().wallTime() - mesosStartTime;
-                totalSchedulingIterationMesosLatency.addAndGet(mesosLatency);
-                logger.info("Launched tasks on Mesos in {}ms: tasks={}, offers={}", mesosLatency, taskInfoRequests.size(), leases.size());
-            }
+        try {
+            virtualMachineService.launchTasks(taskAssignments);
+        } finally {
+            long mesosLatency = titusRuntime.getClock().wallTime() - mesosStartTime;
+            totalSchedulingIterationMesosLatency.addAndGet(mesosLatency);
+            logger.info("Launched tasks on Mesos in {}ms: tasks={}", mesosLatency, taskAssignments.getCount());
         }
     }
 
