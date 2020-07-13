@@ -84,11 +84,15 @@ public class TaskPlacementFailure {
         /**
          * Failures that are expected to go away, and should not be acted upon
          */
-        public static final Set<FailureKind> TRANSIENT = Sets.immutableEnumSet(WaitingForInUseIpAllocation, LaunchGuard);
+        public static final Set<FailureKind> TRANSIENT = Sets.immutableEnumSet(
+                WaitingForInUseIpAllocation,
+                LaunchGuard,
+                KubeApiNotReady
+        );
 
         /**
-         * <tt>TRANSIENT</tt> and <tt>NoActiveAgent</tt> (all agents are non-schedulable for a task) must never modify
-         * opportunistic scheduling behavior.
+         * <tt>TRANSIENT</tt>, <tt>AgentContainerLimit</tt>, and <tt>NoActiveAgent</tt> (all agents are non-schedulable
+         * for a task) must never modify opportunistic scheduling behavior.
          *
          * @see DefaultSchedulingService
          */
@@ -103,7 +107,11 @@ public class TaskPlacementFailure {
          *
          * @see ClusterAgentAutoScaler
          */
-        public static final Set<FailureKind> NEVER_TRIGGER_AUTOSCALING = Sets.immutableEnumSet(WaitingForInUseIpAllocation, OpportunisticResource);
+        public static final Set<FailureKind> NEVER_TRIGGER_AUTOSCALING = Sets.immutableEnumSet(
+                WaitingForInUseIpAllocation,
+                OpportunisticResource,
+                KubeApiNotReady
+        );
     }
 
     private final String taskId;
