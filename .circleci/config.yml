@@ -46,7 +46,7 @@ jobs:
           keys:
             - v3-gradle-cache
       - run:
-          command: ./gradlew assemble --max-workers 4 --parallel --stacktrace
+          command: ./gradlew assemble --max-workers 4 --parallel --no-daemon --stacktrace
       - save_cache:
           paths:
             - ~/.gradle/caches
