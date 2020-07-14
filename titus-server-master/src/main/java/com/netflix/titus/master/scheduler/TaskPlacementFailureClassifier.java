@@ -139,7 +139,8 @@ class TaskPlacementFailureClassifier<T extends TaskRequest> {
                 && !processAgentContainerLimit(taskRequest, assignmentResults, resultCollector)
                 && !processJobHardConstraints(taskRequest, assignmentResults, resultCollector)
                 && !processInUseIpAllocation(taskRequest, assignmentResults, resultCollector)
-                && !processOpportunisticResources(taskRequest, assignmentResults, resultCollector)) {
+                && !processOpportunisticResources(taskRequest, assignmentResults, resultCollector)
+                && !processExclusiveHost(taskRequest, assignmentResults, resultCollector)) {
             addToResultCollector(taskRequest, assignmentResults, resultCollector, -1, FailureKind.Unrecognized);
         }
     }
@@ -250,7 +251,7 @@ class TaskPlacementFailureClassifier<T extends TaskRequest> {
         int count = 0;
         Set<String> hardConstraints = new HashSet<>();
         for (TaskAssignmentResult assignmentResult : assignmentResults) {
-            if (isJobHardConstraint(assignmentResult, hardConstraints)) {
+            if (isJobHardConstraint(taskRequest, assignmentResult, hardConstraints)) {
                 count++;
             }
         }
@@ -261,7 +262,38 @@ class TaskPlacementFailureClassifier<T extends TaskRequest> {
         resultCollector.computeIfAbsent(FailureKind.JobHardConstraint, k -> new HashMap<>())
                 .computeIfAbsent(taskRequest, k -> new ArrayList<>())
                 .add(new JobHardConstraintPlacementFailure(taskRequest.getId(), count, hardConstraints, SchedulerUtils.getTier((QueuableTask) taskRequest), buildRawDataMap(taskRequest, assignmentResults)));
+        return true;
+    }
 
+    /**
+     * Failures on agents that already contain other tasks with ExclusiveHost hard constraints.
+     * <p>
+     * {@link FailureKind#ExclusiveHost} is the lowest priority and needs to be last in the chain since it only matters
+     * when it is the only failure on all agents.
+     */
+    private boolean processExclusiveHost(T taskRequest, List<TaskAssignmentResult> assignmentResults,
+                                         Map<FailureKind, Map<T, List<TaskPlacementFailure>>> resultCollector) {
+        if (SchedulerUtils.hasExclusiveHostHardConstraint(taskRequest)) {
+            return false; // should have been handled by processJobHardConstraints
+        }
+
+        int count = 0;
+        for (TaskAssignmentResult assignmentResult : assignmentResults) {
+            if (EXCLUSIVE_HOST_CONSTRAINT_NAME.equals(assignmentResult.getConstraintFailure().getName())) {
+                count++;
+            }
+        }
+        if (count == 0) {
+            return false;
+        }
+
+        resultCollector.computeIfAbsent(FailureKind.ExclusiveHost, k -> new HashMap<>())
+                .computeIfAbsent(taskRequest, k -> new ArrayList<>())
+                .add(new JobHardConstraintPlacementFailure(taskRequest.getId(), count,
+                        Collections.singleton(EXCLUSIVE_HOST_CONSTRAINT_NAME),
+                        SchedulerUtils.getTier((QueuableTask) taskRequest),
+                        buildRawDataMap(taskRequest, assignmentResults)
+                ));
         return true;
     }
 
@@ -375,7 +407,7 @@ class TaskPlacementFailureClassifier<T extends TaskRequest> {
         return false;
     }
 
-    private boolean isJobHardConstraint(TaskAssignmentResult assignmentResult, Set<String> constraintCollector) {
+    private boolean isJobHardConstraint(T taskRequest, TaskAssignmentResult assignmentResult, Set<String> constraintCollector) {
         ConstraintFailure constraintFailure = assignmentResult.getConstraintFailure();
         if (constraintFailure == null || StringExt.isEmpty(constraintFailure.getName())) {
             return false;
@@ -384,7 +416,11 @@ class TaskPlacementFailureClassifier<T extends TaskRequest> {
         String name = constraintFailure.getName();
         if (name.equals(V3UniqueHostConstraint.NAME)
                 || name.equals(V3ZoneBalancedHardConstraintEvaluator.NAME)
-                || name.equals(EXCLUSIVE_HOST_CONSTRAINT_NAME)) {
+                // ExclusiveHost failures apply both to tasks with the hard constraint, and tasks that didn't have the
+                // constraint, but were evaluated on agents already containing other tasks with the constraint. The
+                // former is classified as a JobHardConstraint failure, the latter is left to be marked as ExclusiveHost
+                // later in the chain
+                || (name.equals(EXCLUSIVE_HOST_CONSTRAINT_NAME) && SchedulerUtils.hasExclusiveHostHardConstraint(taskRequest))) {
             constraintCollector.add(name);
             return true;
         }

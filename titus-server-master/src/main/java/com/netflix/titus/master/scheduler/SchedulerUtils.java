@@ -29,6 +29,7 @@ import com.netflix.fenzo.TaskRequest;
 import com.netflix.fenzo.TaskTracker;
 import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.fenzo.VirtualMachineLease;
+import com.netflix.fenzo.plugins.ExclusiveHostConstraint;
 import com.netflix.fenzo.queues.QueuableTask;
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
@@ -54,6 +55,10 @@ public class SchedulerUtils {
             tier = Tier.Critical;
         }
         return tier;
+    }
+
+    public static boolean hasExclusiveHostHardConstraint(TaskRequest task) {
+        return task.getHardConstraints().stream().anyMatch(constraint -> constraint instanceof ExclusiveHostConstraint);
     }
 
     public static boolean hasGpuRequest(QueuableTask task) {

@@ -79,16 +79,27 @@ public class TaskPlacementFailure {
          */
         OpportunisticResource,
 
+        /**
+         * Task not launched due to other tasks with the exclusiveHost hard constraint on the same agent. It has the lowest priority.
+         *
+         * @see TaskPlacementFailureClassifier for how {@link FailureKind failure kinds} are used and what are their priorities
+         */
+        ExclusiveHost,
+
         Unrecognized;
 
         /**
          * Failures that are expected to go away, and should not be acted upon
          */
-        public static final Set<FailureKind> TRANSIENT = Sets.immutableEnumSet(WaitingForInUseIpAllocation, LaunchGuard);
+        public static final Set<FailureKind> TRANSIENT = Sets.immutableEnumSet(
+                WaitingForInUseIpAllocation,
+                LaunchGuard,
+                KubeApiNotReady
+        );
 
         /**
-         * <tt>TRANSIENT</tt> and <tt>NoActiveAgent</tt> (all agents are non-schedulable for a task) must never modify
-         * opportunistic scheduling behavior.
+         * Super set of <tt>TRANSIENT</tt> failures that must never modify opportunistic scheduling behavior. It
+         * includes failures that are expected to disappear after more capacity is added by {@link ClusterAgentAutoScaler}
          *
          * @see DefaultSchedulingService
          */
@@ -96,6 +107,8 @@ public class TaskPlacementFailure {
                 .addAll(TRANSIENT)
                 .add(AgentContainerLimit)
                 .add(NoActiveAgents)
+                .add(JobHardConstraint)
+                .add(ExclusiveHost)
                 .build();
 
         /**
@@ -103,7 +116,11 @@ public class TaskPlacementFailure {
          *
          * @see ClusterAgentAutoScaler
          */
-        public static final Set<FailureKind> NEVER_TRIGGER_AUTOSCALING = Sets.immutableEnumSet(WaitingForInUseIpAllocation, OpportunisticResource);
+        public static final Set<FailureKind> NEVER_TRIGGER_AUTOSCALING = Sets.immutableEnumSet(
+                WaitingForInUseIpAllocation,
+                OpportunisticResource,
+                KubeApiNotReady
+        );
     }
 
     private final String taskId;
