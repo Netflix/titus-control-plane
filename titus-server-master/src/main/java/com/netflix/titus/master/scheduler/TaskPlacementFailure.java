@@ -81,6 +81,8 @@ public class TaskPlacementFailure {
 
         /**
          * Task not launched due to other tasks with the exclusiveHost hard constraint on the same agent. It has the lowest priority.
+         *
+         * @see TaskPlacementFailureClassifier for how {@link FailureKind failure kinds} are used and what are their priorities
          */
         ExclusiveHost,
 

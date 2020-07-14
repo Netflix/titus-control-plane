@@ -297,7 +297,6 @@ class TaskPlacementFailureClassifier<T extends TaskRequest> {
         return true;
     }
 
-
     private boolean processInUseIpAllocation(T taskRequest, List<TaskAssignmentResult> assignmentResults,
                                              Map<FailureKind, Map<T, List<TaskPlacementFailure>>> resultCollector) {
         int count = 0;
