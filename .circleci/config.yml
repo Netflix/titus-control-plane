@@ -8,7 +8,7 @@ executors:
     working_directory: "~/workspace/titus-control-plane"
     environment:
       DEBIAN_FRONTEND: noninteractive
-      _JAVA_OPTIONS: "-Xms2g -Xmx12g"
+      _JAVA_OPTIONS: "-Xmx2g -Xms1g -XX:MaxPermSize=512m -XX:+UnlockExperimentalVMOptions -XX:+UseCGroupMemoryLimitForHeap"
 
 commands:
   run_tests:
