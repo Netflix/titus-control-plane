@@ -34,7 +34,6 @@ import com.netflix.titus.master.mesos.kubeapiserver.client.KubeApiFacade;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 import com.netflix.titus.master.scheduler.SchedulerUtils;
 import io.kubernetes.client.openapi.models.V1Node;
-import io.kubernetes.client.openapi.models.V1NodeCondition;
 import io.kubernetes.client.openapi.models.V1Taint;
 
 /**
@@ -48,14 +47,12 @@ public class KubeConstraint implements SystemConstraint {
     public static final String NODE_NOT_FOUND_REASON = "Node not found in shared informer";
     public static final String NODE_NOT_READY_REASON = "Node ready condition is not true";
     public static final String TAINT_NOT_TOLERATED_IN_CONFIGURATION_REASON = "Node has a taint that is not configured to be tolerated";
-    public static final String READY = "Ready";
 
     private static final Result VALID = new Result(true, null);
 
     private enum Failure {
         INSTANCE_NOT_FOUND(INSTANCE_NOT_FOUND_REASON),
         NODE_NOT_FOUND(NODE_NOT_FOUND_REASON),
-        NODE_NOT_READY(NODE_NOT_READY_REASON),
         TAINT_NOT_TOLERATED_IN_CONFIGURATION(TAINT_NOT_TOLERATED_IN_CONFIGURATION_REASON);
 
         private final Result result;
@@ -118,23 +115,6 @@ public class KubeConstraint implements SystemConstraint {
         V1Node node = kubeApiFacade.getNodeInformer().getIndexer().getByKey(instanceId);
         if (node == null) {
             return Failure.NODE_NOT_FOUND.toResult();
-        }
-
-        V1NodeCondition readyCondition = null;
-        if (node.getStatus() != null) {
-            List<V1NodeCondition> conditions = node.getStatus().getConditions();
-            if (conditions != null && !conditions.isEmpty()) {
-                for (V1NodeCondition condition : node.getStatus().getConditions()) {
-                    if (condition.getType().equalsIgnoreCase(READY)) {
-                        readyCondition = condition;
-                        break;
-                    }
-                }
-            }
-        }
-
-        if (readyCondition == null || !Boolean.parseBoolean(readyCondition.getStatus())) {
-            return Failure.NODE_NOT_READY.toResult();
         }
 
         Set<String> toleratedTaints = mesosConfiguration.getFenzoTaintTolerations();
