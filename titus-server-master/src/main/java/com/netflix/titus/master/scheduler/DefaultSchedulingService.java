@@ -531,6 +531,9 @@ public class DefaultSchedulingService implements SchedulingService<V3QueueableTa
     }
 
     private void launchTasks(TaskAssignments taskAssignments) {
+        if (taskAssignments.getCount() <= 0) {
+            return; // noop
+        }
         long mesosStartTime = titusRuntime.getClock().wallTime();
         try {
             virtualMachineService.launchTasks(taskAssignments);
