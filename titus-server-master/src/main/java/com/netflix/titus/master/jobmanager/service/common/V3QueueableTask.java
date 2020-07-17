@@ -41,6 +41,7 @@ import com.netflix.titus.api.jobmanager.model.job.TwoLevelResource;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.model.job.TitusQueuableTask;
+import com.netflix.titus.master.scheduler.SchedulerUtils;
 import com.netflix.titus.master.scheduler.constraint.ConstraintEvaluatorTransformer;
 import com.netflix.titus.master.scheduler.constraint.SystemHardConstraint;
 import com.netflix.titus.master.scheduler.constraint.SystemSoftConstraint;
@@ -259,13 +260,15 @@ public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
      * Minimum requirements for opportunistic CPU scheduling:
      * <ul>
      *     <li>Opportunistic scheduling must be enabled system-wide.</li>
+     *     <li>Must not have the {@link com.netflix.titus.api.jobmanager.JobConstraints#EXCLUSIVE_HOST} hard constraint.</li>
      *     <li>Task must have a runtime prediction.</li>
      *     <li>Task must explicitly request an amount of opportunistic cpu.</li>
      * </ul>
      */
     @Override
     public boolean isCpuOpportunistic() {
-        return opportunisticCpuEnabled && runtimePrediction.isPresent() && getOpportunisticCpus() > 0;
+        return opportunisticCpuEnabled && !SchedulerUtils.hasExclusiveHostHardConstraint(this)
+                && runtimePrediction.isPresent() && getOpportunisticCpus() > 0;
     }
 
     @Override
