@@ -44,7 +44,7 @@ public class SpringCallMetadataInterceptor extends HandlerInterceptorAdapter {
     @Override
     public boolean preHandle(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse, Object handler) throws Exception {
         Authentication delegate = SecurityContextHolder.getContext().getAuthentication();
-        if (delegate == null) {
+        if (delegate == null || delegate instanceof CallMetadataAuthentication) {
             return super.preHandle(httpServletRequest, httpServletResponse, handler);
         }
 

@@ -79,19 +79,29 @@ public class SpringCallMetadataInterceptorTest {
     }
 
     @Test
-    public void testDebug() throws Exception {
+    public void testDebugViaHeaderFalse() throws Exception {
         // Not set
         expectDebug(false);
+    }
 
+    @Test
+    public void testDebugViaHeaderTrue() throws Exception {
         // Via header
         when(request.getHeader(CallMetadataHeaders.DEBUG_HEADER)).thenReturn("true");
         expectDebug(true);
 
+    }
+
+    @Test
+    public void testDebugViaQueryParam() throws Exception {
         // Via query parameter
         when(request.getHeader(CallMetadataHeaders.DEBUG_HEADER)).thenReturn(null);
         when(request.getParameter(DEBUG_QUERY_PARAM)).thenReturn("true");
         expectDebug(true);
+    }
 
+    @Test
+    public void testDebugViaHeaderAndQueryParamó() throws Exception {
         // Both, but query parameter has higher priority
         when(request.getHeader(CallMetadataHeaders.DEBUG_HEADER)).thenReturn("false");
         when(request.getParameter(DEBUG_QUERY_PARAM)).thenReturn("true");
