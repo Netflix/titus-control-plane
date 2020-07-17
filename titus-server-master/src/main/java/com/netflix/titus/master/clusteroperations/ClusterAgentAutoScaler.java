@@ -80,6 +80,10 @@ import rx.Completable;
 import rx.Scheduler;
 import rx.Subscription;
 
+import static com.netflix.titus.api.jobmanager.JobConstraints.MACHINE_GROUP;
+import static com.netflix.titus.api.jobmanager.JobConstraints.MACHINE_ID;
+import static com.netflix.titus.api.jobmanager.JobConstraints.MACHINE_TYPE;
+import static com.netflix.titus.api.jobmanager.JobConstraints.TOLERATION;
 import static com.netflix.titus.common.util.CollectionsExt.asSet;
 import static com.netflix.titus.master.MetricConstants.METRIC_CLUSTER_OPERATIONS;
 import static com.netflix.titus.master.clusteroperations.ClusterOperationFunctions.canFit;
@@ -108,7 +112,7 @@ public class ClusterAgentAutoScaler {
 
     private static final Comparator<AgentInstanceGroup> PREFER_ACTIVE_INSTANCE_GROUP_COMPARATOR = Comparator.comparing(ig -> ig.getLifecycleStatus().getState());
     private static final Comparator<AgentInstanceGroup> PREFER_PHASED_OUT_INSTANCE_GROUP_COMPARATOR = PREFER_ACTIVE_INSTANCE_GROUP_COMPARATOR.reversed();
-    private static final Set<String> IGNORED_HARD_CONSTRAINT_NAMES = asSet("machineid", "machinegroup", "machinetype", "toleration");
+    private static final Set<String> IGNORED_HARD_CONSTRAINT_NAMES = asSet(MACHINE_ID, MACHINE_GROUP, MACHINE_TYPE, TOLERATION);
     private static final Set<FailureKind> IGNORED_FAILURE_KINDS_WITH_LAUNCHGUARD = ImmutableSet.<FailureKind>builder()
             .addAll(FailureKind.NEVER_TRIGGER_AUTOSCALING)
             .add(FailureKind.LaunchGuard)

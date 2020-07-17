@@ -70,6 +70,11 @@ public class JobConstraints {
      */
     public static final String KUBE_BACKEND = "kubebackend";
 
+    /**
+     * Taints that are tolerated on Kubernetes Nodes.
+     */
+    public static final String TOLERATION = "toleration";
+
     public static final Set<String> CONSTRAINT_NAMES = asSet(
             UNIQUE_HOST,
             EXCLUSIVE_HOST,

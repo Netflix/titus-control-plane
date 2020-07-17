@@ -35,6 +35,16 @@ import com.netflix.titus.master.scheduler.resourcecache.TaskCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static com.netflix.titus.api.jobmanager.JobConstraints.ACTIVE_HOST;
+import static com.netflix.titus.api.jobmanager.JobConstraints.AVAILABILITY_ZONE;
+import static com.netflix.titus.api.jobmanager.JobConstraints.EXCLUSIVE_HOST;
+import static com.netflix.titus.api.jobmanager.JobConstraints.MACHINE_GROUP;
+import static com.netflix.titus.api.jobmanager.JobConstraints.MACHINE_ID;
+import static com.netflix.titus.api.jobmanager.JobConstraints.MACHINE_TYPE;
+import static com.netflix.titus.api.jobmanager.JobConstraints.TOLERATION;
+import static com.netflix.titus.api.jobmanager.JobConstraints.UNIQUE_HOST;
+import static com.netflix.titus.api.jobmanager.JobConstraints.ZONE_BALANCE;
+
 /**
  * Maps V3 API constraint definitions into Fenzo model.
  * Supported Constraints:
@@ -61,17 +71,6 @@ public class V3ConstraintEvaluatorTransformer implements ConstraintEvaluatorTran
     private static final int EXPECTED_NUM_ZONES = 3;
 
     private static final ExclusiveHostConstraint EXCLUSIVE_HOST_CONSTRAINT = new ExclusiveHostConstraint();
-    private static final String EXCLUSIVE_HOST = "exclusivehost";
-    private static final String UNIQUE_HOST = "uniquehost";
-    private static final String ZONE_BALANCE = "zonebalance";
-
-    // Advanced Constraints
-    private static final String ACTIVE_HOST = "activehost";
-    private static final String AVAILABILITY_ZONE = "availabilityzone";
-    private static final String MACHINE_ID = "machineid";
-    private static final String MACHINE_GROUP = "machinegroup";
-    private static final String MACHINE_TYPE = "machinetype";
-    private static final String TOLERATION = "toleration";
 
     private final MasterConfiguration config;
     private final SchedulerConfiguration schedulerConfiguration;
