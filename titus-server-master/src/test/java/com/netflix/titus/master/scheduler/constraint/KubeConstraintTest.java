@@ -30,9 +30,7 @@ import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 import io.kubernetes.client.informer.SharedIndexInformer;
 import io.kubernetes.client.informer.cache.Indexer;
 import io.kubernetes.client.openapi.models.V1Node;
-import io.kubernetes.client.openapi.models.V1NodeCondition;
 import io.kubernetes.client.openapi.models.V1NodeSpec;
-import io.kubernetes.client.openapi.models.V1NodeStatus;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1Taint;
 import org.junit.Before;
@@ -94,22 +92,6 @@ public class KubeConstraintTest {
     }
 
     @Test
-    public void nodeNotReady() {
-        AgentInstance agentInstance = createAgentInstance(INSTANCE_ID, INSTANCE_GROUP_ID);
-        when(agentManagementService.findAgentInstance(INSTANCE_ID)).thenReturn(Optional.of(agentInstance));
-
-        V1Node node = createNode(INSTANCE_ID, false, Collections.emptyList());
-        when(indexer.getByKey(INSTANCE_ID)).thenReturn(node);
-
-        ConstraintEvaluator.Result result = kubeConstraint.evaluate(
-                createTaskRequest(TASK_ID),
-                createVirtualMachineCurrentStateMock(INSTANCE_ID, Collections.emptyList(), Collections.emptyList()),
-                taskTrackerState);
-        assertThat(result.isSuccessful()).isFalse();
-        assertThat(result.getFailureReason()).isEqualToIgnoringCase(KubeConstraint.NODE_NOT_READY_REASON);
-    }
-
-    @Test
     public void taintNotToleratedInConfiguration() {
         AgentInstance agentInstance = createAgentInstance(INSTANCE_ID, INSTANCE_GROUP_ID);
         when(agentManagementService.findAgentInstance(INSTANCE_ID)).thenReturn(Optional.of(agentInstance));
@@ -157,10 +139,6 @@ public class KubeConstraintTest {
         return new V1Node()
                 .metadata(
                         new V1ObjectMeta().name(name)
-                )
-                .status(
-                        new V1NodeStatus()
-                                .addConditionsItem(new V1NodeCondition().type(KubeConstraint.READY).status(ready.toString()))
                 ).spec(
                         new V1NodeSpec().taints(taints)
                 );
