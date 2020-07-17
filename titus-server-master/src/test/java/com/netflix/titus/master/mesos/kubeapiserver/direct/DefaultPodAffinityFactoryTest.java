@@ -53,7 +53,7 @@ public class DefaultPodAffinityFactoryTest {
 
     @Test
     public void testInstanceTypeAffinity() {
-        V1Affinity affinity = factory.buildV1Affinity(newJobWithHardConstraint(JobConstraints.MACHINE_TYPE, "r5.metal"), JobGenerator.oneBatchTask());
+        V1Affinity affinity = factory.buildV1Affinity(newJobWithHardConstraint(JobConstraints.MACHINE_TYPE.toUpperCase(), "r5.metal"), JobGenerator.oneBatchTask());
         V1NodeSelector nodeSelector = affinity.getNodeAffinity().getRequiredDuringSchedulingIgnoredDuringExecution();
         assertThat(nodeSelector.getNodeSelectorTerms()).hasSize(1);
     }

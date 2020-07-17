@@ -96,4 +96,11 @@ public class CollectionsExtTest {
             );
         }
     }
+
+    @Test
+    public void mapLowerCaseKeys() {
+        Map<String, String> result = CollectionsExt.toLowerCaseKeys(CollectionsExt.asMap("a", "foo", "b", "bar", "mIxEd", "UntouChed"));
+        assertThat(result).containsOnlyKeys("a", "b", "mixed");
+        assertThat(result).containsValues("foo", "bar", "UntouChed");
+    }
 }

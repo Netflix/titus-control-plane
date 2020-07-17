@@ -595,6 +595,31 @@ public final class CollectionsExt {
         return -from - 1;
     }
 
+    /**
+     * Convert all keys to lower case, the behavior is undefined when values clash, and only one will be kept
+     */
+    public static <V> Map<String, V> toLowerCaseKeys(Map<String, V> entries) {
+        return entries.entrySet().stream()
+                .collect(Collectors.toMap(
+                        e -> e.getKey().toLowerCase(),
+                        Map.Entry::getValue,
+                        (o, n) -> n
+                ));
+    }
+
+    /**
+     * Convert all keys to lower case, the behavior is undefined when values clash, and only one will be kept
+     */
+    public static <V> Map<String, V> toLowerCaseKeys(Map<String, V> entries, Supplier<Map<String, V>> mapSupplier) {
+        return entries.entrySet().stream()
+                .collect(Collectors.toMap(
+                        e -> e.getKey().toLowerCase(),
+                        Map.Entry::getValue,
+                        (o, n) -> n,
+                        mapSupplier
+                ));
+    }
+
     public static class MapBuilder<K, V> {
 
         private final Map<K, V> out;

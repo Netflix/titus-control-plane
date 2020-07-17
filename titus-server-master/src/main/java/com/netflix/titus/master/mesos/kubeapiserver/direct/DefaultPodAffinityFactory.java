@@ -39,6 +39,8 @@ import io.kubernetes.client.openapi.models.V1PodAntiAffinity;
 import io.kubernetes.client.openapi.models.V1PreferredSchedulingTerm;
 import io.kubernetes.client.openapi.models.V1WeightedPodAffinityTerm;
 
+import static com.netflix.titus.common.util.CollectionsExt.toLowerCaseKeys;
+
 @Singleton
 public class DefaultPodAffinityFactory implements PodAffinityFactory {
 
@@ -55,22 +57,20 @@ public class DefaultPodAffinityFactory implements PodAffinityFactory {
 
     @Override
     public V1Affinity buildV1Affinity(Job<?> job, Task task) {
-        return new Processor(job, task).build();
+        return new Processor(job).build();
     }
 
     private class Processor {
 
         private final Job<?> job;
-        private final Task task;
         private final V1Affinity v1Affinity;
 
-        private Processor(Job<?> job, Task task) {
+        private Processor(Job<?> job) {
             this.job = job;
-            this.task = task;
             this.v1Affinity = new V1Affinity();
 
-            processJobConstraints(job.getJobDescriptor().getContainer().getHardConstraints(), true);
-            processJobConstraints(job.getJobDescriptor().getContainer().getSoftConstraints(), false);
+            processJobConstraints(toLowerCaseKeys(job.getJobDescriptor().getContainer().getHardConstraints()), true);
+            processJobConstraints(toLowerCaseKeys(job.getJobDescriptor().getContainer().getSoftConstraints()), false);
             processZoneConstraints();
         }
 
