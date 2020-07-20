@@ -17,13 +17,13 @@
 package com.netflix.titus.ext.aws.appscale;
 
 import javax.inject.Inject;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Response;
 
 import com.netflix.titus.runtime.endpoint.common.rest.Responses;
 import com.netflix.titus.runtime.endpoint.metadata.spring.CallMetadataAuthentication;
 import io.swagger.annotations.Api;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -33,7 +33,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @Api(tags = "Auto scaling")
 @RestController
-@RequestMapping(path = "/v1/scalableTargetDimensions", produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
+@RequestMapping(path = "/api/v1/scalableTargetDimensions")
 public class AppAutoScalingCallbackSpringResource {
 
     private final AppAutoScalingCallbackService awsGatewayCallbackService;
@@ -43,18 +43,18 @@ public class AppAutoScalingCallbackSpringResource {
         this.awsGatewayCallbackService = awsGatewayCallbackService;
     }
 
-    @GetMapping(path = "{scalableTargetDimensionId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping(path = "/{scalableTargetDimensionId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ScalableTargetResourceInfo getScalableTargetResourceInfo(@PathVariable("scalableTargetDimensionId") String jobId,
                                                                     CallMetadataAuthentication authentication) {
         return Responses.fromSingleValueObservable(awsGatewayCallbackService.getScalableTargetResourceInfo(jobId, authentication.getCallMetadata()));
     }
 
-    @PatchMapping(path = "{scalableTargetDimensionId}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ScalableTargetResourceInfo setScalableTargetResourceInfo(@PathVariable("scalableTargetDimensionId") String jobId,
-                                                                    @RequestBody ScalableTargetResourceInfo scalableTargetResourceInfo,
-                                                                    CallMetadataAuthentication authentication) {
+    @PatchMapping(path = "/{scalableTargetDimensionId}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<ScalableTargetResourceInfo> setScalableTargetResourceInfo(@PathVariable("scalableTargetDimensionId") String jobId,
+                                                                                    @RequestBody ScalableTargetResourceInfo scalableTargetResourceInfo,
+                                                                                    CallMetadataAuthentication authentication) {
         if (scalableTargetResourceInfo.getDesiredCapacity() < 0) {
-            throw new WebApplicationException(Response.Status.BAD_REQUEST);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
         return Responses.fromSingleValueObservable(awsGatewayCallbackService.setScalableTargetResourceInfo(jobId, scalableTargetResourceInfo, authentication.getCallMetadata()));
     }

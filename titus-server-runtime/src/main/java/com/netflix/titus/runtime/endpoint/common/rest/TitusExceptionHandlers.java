@@ -34,12 +34,12 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
 
 @ControllerAdvice
+@Order(Ordered.HIGHEST_PRECEDENCE)
 public class TitusExceptionHandlers {
 
     private static final int TOO_MANY_REQUESTS = 429;
 
     @ExceptionHandler(value = {RestException.class})
-    @Order(Ordered.HIGHEST_PRECEDENCE)
     public ResponseEntity<ErrorResponse> handleException(RestException e, WebRequest request) {
         ErrorResponse.ErrorResponseBuilder errorBuilder = ErrorResponse.newError(e.getStatusCode(), e.getMessage())
                 .clientRequest(request)
@@ -50,7 +50,6 @@ public class TitusExceptionHandlers {
     }
 
     @ExceptionHandler(value = {TitusServiceException.class})
-    @Order(Ordered.HIGHEST_PRECEDENCE)
     public ResponseEntity<ErrorResponse> handleException(TitusServiceException e, WebRequest request) {
         ErrorResponse.ErrorResponseBuilder errorBuilder = ErrorResponse.newError(HttpServletResponse.SC_BAD_REQUEST, e.getMessage())
                 .clientRequest(request)
@@ -87,7 +86,6 @@ public class TitusExceptionHandlers {
     }
 
     @ExceptionHandler(value = {JobManagerException.class})
-    @Order(Ordered.HIGHEST_PRECEDENCE)
     public ResponseEntity<ErrorResponse> handleException(JobManagerException e, WebRequest request) {
         ErrorResponse.ErrorResponseBuilder errorBuilder = ErrorResponse.newError(HttpServletResponse.SC_BAD_REQUEST, e.getMessage())
                 .clientRequest(request)
@@ -132,7 +130,6 @@ public class TitusExceptionHandlers {
     }
 
     @ExceptionHandler(value = {EvictionException.class})
-    @Order(Ordered.HIGHEST_PRECEDENCE)
     public ResponseEntity<ErrorResponse> handleException(EvictionException e, WebRequest request) {
         ErrorResponse.ErrorResponseBuilder errorBuilder = ErrorResponse.newError(HttpServletResponse.SC_BAD_REQUEST, e.getMessage())
                 .clientRequest(request)
@@ -160,7 +157,6 @@ public class TitusExceptionHandlers {
     }
 
     @ExceptionHandler(value = {SchedulerException.class})
-    @Order(Ordered.HIGHEST_PRECEDENCE)
     public ResponseEntity<ErrorResponse> handleException(SchedulerException e, WebRequest request) {
         ErrorResponse.ErrorResponseBuilder errorBuilder = ErrorResponse.newError(HttpServletResponse.SC_BAD_REQUEST, e.getMessage())
                 .clientRequest(request)

@@ -28,10 +28,10 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
 
 @ControllerAdvice
+@Order(Ordered.LOWEST_PRECEDENCE)
 public class CommonExceptionHandlers {
 
     @ExceptionHandler(value = {Exception.class})
-    @Order(Ordered.LOWEST_PRECEDENCE)
     public ResponseEntity<ErrorResponse> handleException(Exception e, WebRequest request) {
         int status = HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
 
