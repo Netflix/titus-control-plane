@@ -20,9 +20,11 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 
+import com.netflix.titus.api.jobmanager.JobConstraints;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
+import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.grpc.protogen.TaskStatus;
 import com.netflix.titus.master.integration.BaseIntegrationTest;
 import com.netflix.titus.master.integration.v3.scenario.InstanceGroupScenarioTemplates;
@@ -378,4 +380,33 @@ public class OpportunisticCpuSchedulingTest extends BaseIntegrationTest {
                         .template(startLaunchedTask())
                 ));
     }
+
+    @Test(timeout = TEST_TIMEOUT_MS)
+    public void exclusiveHostPreventsOpportunisticScheduling() throws Exception {
+        String allocationId = UUID.randomUUID().toString();
+        Instant expiresAt = Instant.now().plus(Duration.ofHours(6));
+        OpportunisticCpuAvailability availability = new OpportunisticCpuAvailability(allocationId, expiresAt, 10);
+        instanceGroupsScenarioBuilder.apply("flex1",
+                group -> group.all(instance -> instance.addOpportunisticCpus(availability))
+        );
+
+        JobDescriptor<BatchJobExt> jobDescriptor = BATCH_JOB_WITH_RUNTIME_PREDICTION.but(j -> j.getContainer()
+                .but(c -> c.toBuilder()
+                        .withContainerResources(c.getContainerResources().toBuilder().withCpu(4).build())
+                        .withHardConstraints(CollectionsExt.copyAndAdd(c.getHardConstraints(), JobConstraints.EXCLUSIVE_HOST, "true"))
+                        .build()
+                )
+        );
+        jobsScenarioBuilder.schedule(jobDescriptor, jobScenarioBuilder -> jobScenarioBuilder
+                .template(launchJob())
+                .allTasks(taskScenarioBuilder -> taskScenarioBuilder
+                        .expectTaskOnAgent()
+                        .assertTask(task -> !task.getTaskContext().containsKey(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION) &&
+                                        !task.getTaskContext().containsKey(TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT),
+                                "Not scheduled on opportunistic CPUs")
+                        .template(startLaunchedTask())
+                )
+        );
+    }
+
 }
