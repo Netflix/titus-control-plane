@@ -97,8 +97,9 @@ public class LoggingCodeInvariants extends CodeInvariants {
             logger.warn(message);
         } else {
             String exceptionMessage = e.getMessage() != null ? e.getMessage() : "";
-            String errorLocation = (e.getStackTrace() != null && e.getStackTrace().length > 0)
-                    ? e.getStackTrace()[0].toString()
+            StackTraceElement[] stackTrace = e.getStackTrace();
+            String errorLocation = (stackTrace != null && stackTrace.length > 0)
+                    ? stackTrace[0].toString()
                     : "no data";
             logger.warn("{}: error={}({}), at={}", message, e.getClass().getSimpleName(), exceptionMessage, errorLocation);
             logger.debug(message, e);

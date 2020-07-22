@@ -279,7 +279,7 @@ class TaskPlacementFailureClassifier<T extends TaskRequest> {
 
         int count = 0;
         for (TaskAssignmentResult assignmentResult : assignmentResults) {
-            if (EXCLUSIVE_HOST_CONSTRAINT_NAME.equals(assignmentResult.getConstraintFailure().getName())) {
+            if (isExclusiveHost(assignmentResult.getConstraintFailure())) {
                 count++;
             }
         }
@@ -426,6 +426,13 @@ class TaskPlacementFailureClassifier<T extends TaskRequest> {
         }
 
         return false;
+    }
+
+    private boolean isExclusiveHost(ConstraintFailure constraintFailure) {
+        if (constraintFailure == null || StringExt.isEmpty(constraintFailure.getName())) {
+            return false;
+        }
+        return EXCLUSIVE_HOST_CONSTRAINT_NAME.equals(constraintFailure.getName());
     }
 
     private boolean isInUseIpAllocation(TaskAssignmentResult assignmentResult) {
