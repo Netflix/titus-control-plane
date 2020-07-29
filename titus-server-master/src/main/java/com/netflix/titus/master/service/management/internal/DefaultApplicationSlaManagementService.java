@@ -78,7 +78,10 @@ public class DefaultApplicationSlaManagementService implements ApplicationSlaMan
     public ApplicationSLA getApplicationSLA(String applicationName) {
         return storage.findByName(applicationName)
                 .onErrorReturn(t -> {
-                    logger.info("Error retrieving ApplicationSLA for applicationName " + applicationName, t);
+                    logger.info("Error retrieving ApplicationSLA for applicationName {}: {}", applicationName, t.getMessage());
+                    if (logger.isDebugEnabled()) {
+                        logger.debug("Error retrieving ApplicationSLA for applicationName " + applicationName, t);
+                    }
                     return null;
                 })
                 .toBlocking()
