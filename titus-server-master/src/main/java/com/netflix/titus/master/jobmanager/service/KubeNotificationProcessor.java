@@ -41,6 +41,7 @@ import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
+import com.netflix.titus.master.mesos.kubeapiserver.ContainerResultCodeResolver;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeConstants;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeJobManagementReconciler;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
@@ -80,6 +81,7 @@ public class KubeNotificationProcessor {
     private final DirectKubeApiServerIntegrator kubeApiServerIntegrator;
     private final KubeJobManagementReconciler kubeJobManagementReconciler;
     private final V3JobOperations v3JobOperations;
+    private final ContainerResultCodeResolver containerResultCodeResolver;
 
     private Disposable subscription;
 
@@ -87,11 +89,13 @@ public class KubeNotificationProcessor {
     public KubeNotificationProcessor(JobManagerConfiguration configuration,
                                      DirectKubeApiServerIntegrator kubeApiServerIntegrator,
                                      KubeJobManagementReconciler kubeJobManagementReconciler,
-                                     V3JobOperations v3JobOperations) {
+                                     V3JobOperations v3JobOperations,
+                                     ContainerResultCodeResolver containerResultCodeResolver) {
         this.configuration = configuration;
         this.kubeApiServerIntegrator = kubeApiServerIntegrator;
         this.kubeJobManagementReconciler = kubeJobManagementReconciler;
         this.v3JobOperations = v3JobOperations;
+        this.containerResultCodeResolver = containerResultCodeResolver;
     }
 
     @Activator
@@ -235,7 +239,7 @@ public class KubeNotificationProcessor {
                                         Optional<V1Node> node) {
         return ReactorExt.toMono(v3JobOperations.updateTask(
                 task.getId(),
-                currentTask -> Optional.of(updateTaskStatus(pod, newTaskState, executorDetailsOpt, node, currentTask)),
+                currentTask -> Optional.of(updateTaskStatus(pod, newTaskState, executorDetailsOpt, node, currentTask, containerResultCodeResolver)),
                 V3JobOperations.Trigger.Kube,
                 "Kube pod notification",
                 KUBE_CALL_METADATA
@@ -247,7 +251,8 @@ public class KubeNotificationProcessor {
                                  TaskState newTaskState,
                                  Optional<TitusExecutorDetails> executorDetailsOpt,
                                  Optional<V1Node> node,
-                                 Task currentTask) {
+                                 Task currentTask,
+                                 ContainerResultCodeResolver containerResultCodeResolver) {
         TaskStatus newStatus;
 
         if (newTaskState != TaskState.Finished) {
@@ -270,6 +275,11 @@ public class KubeNotificationProcessor {
             }
 
             newStatus = newStatusBuilder.build();
+        }
+
+        Optional<String> resultCodeOpt = containerResultCodeResolver.resolve(newStatus.getState(), newStatus.getReasonMessage());
+        if (resultCodeOpt.isPresent()) {
+            newStatus = newStatus.toBuilder().withReasonCode(resultCodeOpt.get()).build();
         }
 
         List<TaskStatus> newHistory = CollectionsExt.copyAndAdd(currentTask.getStatusHistory(), currentTask.getStatus());
