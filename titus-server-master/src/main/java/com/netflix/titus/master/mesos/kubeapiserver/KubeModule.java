@@ -29,6 +29,7 @@ import com.netflix.archaius.api.Config;
 import com.netflix.titus.api.FeatureActivationConfiguration;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.limiter.tokenbucket.FixedIntervalTokenBucketConfiguration;
+import com.netflix.titus.master.kubernetes.controller.KubeControllerModule;
 import com.netflix.titus.master.mesos.MesosConfiguration;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.mesos.kubeapiserver.client.JobControllerKubeApiFacade;
@@ -57,7 +58,7 @@ import io.kubernetes.client.openapi.ApiClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.netflix.titus.master.mesos.kubeapiserver.KubeApiServerIntegrator.GC_UNKNOWN_PODS;
+import static com.netflix.titus.master.mesos.kubeapiserver.DefaultKubeJobManagementReconciler.GC_UNKNOWN_PODS;
 
 public class KubeModule extends AbstractModule {
 
@@ -74,6 +75,7 @@ public class KubeModule extends AbstractModule {
         bind(PodAffinityFactory.class).to(DefaultPodAffinityFactory.class);
         bind(TaintTolerationFactory.class).to(DefaultTaintTolerationFactory.class);
         bind(VirtualMachineMasterService.class).annotatedWith(Names.named(MESOS_KUBE_ADAPTER)).to(KubeApiServerIntegrator.class);
+        install(new KubeControllerModule());
     }
 
     @Provides

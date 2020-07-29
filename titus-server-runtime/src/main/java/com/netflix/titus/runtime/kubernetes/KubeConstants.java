@@ -72,6 +72,8 @@ public final class KubeConstants {
 
     public static final String NODE_LABEL_MACHINE_GROUP = TITUS_NODE_DOMAIN + "asg";
 
+    public static final String NODE_LABEL_ACCOUNT_ID = TITUS_NODE_DOMAIN + "accountId";
+
     public static final String NODE_LABEL_KUBE_BACKEND = TITUS_NODE_DOMAIN + "backend";
 
     public static final String NODE_LABEL_RESOURCE_POOL = TITUS_SCALER_DOMAIN + "resource-pool";
@@ -136,5 +138,17 @@ public final class KubeConstants {
      * Opportunistic resource CRD used when allocating opportunistic resources to a Pod during scheduling
      */
     public static final String OPPORTUNISTIC_ID = "opportunistic.scheduler.titus.netflix.com/id";
+
+    /*
+     * API Constants
+     */
+    public static final String DEFAULT_NAMESPACE = "default";
+    public static final String NOT_FOUND = "Not Found";
+    public static final String READY = "Ready";
+    public static final String PENDING = "Pending";
+    public static final String RUNNING = "Running";
+    public static final String SUCCEEDED = "Succeeded";
+    public static final String FAILED = "Failed";
+    public static final String BACKGROUND = "Background";
 
 }
