@@ -36,6 +36,7 @@ import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.mesos.ContainerEvent;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
+import com.netflix.titus.master.mesos.kubeapiserver.ContainerResultCodeResolver;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeConstants;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeJobManagementReconciler;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
@@ -91,6 +92,8 @@ public class KubeNotificationProcessorTest {
 
     @Mock
     private V3JobOperations jobOperations;
+    @Mock
+    private ContainerResultCodeResolver containerResultCodeResolver;
     @Captor
     private ArgumentCaptor<Function<Task, Optional<Task>>> changeFunctionCaptor;
 
@@ -100,11 +103,12 @@ public class KubeNotificationProcessorTest {
         podEvents = DirectProcessor.create();
         reconcilerPodEvents = DirectProcessor.create();
         reconcilerContainerEvents = DirectProcessor.create();
-        processor = new KubeNotificationProcessor(mock(JobManagerConfiguration.class), new FakeDirectKube(), new FakeReconciler(), jobOperations);
+        processor = new KubeNotificationProcessor(mock(JobManagerConfiguration.class), new FakeDirectKube(), new FakeReconciler(), jobOperations, containerResultCodeResolver);
         processor.enterActiveMode();
 
         when(jobOperations.findTaskById(eq(TASK.getId()))).thenReturn(Optional.of(Pair.of(JOB, TASK)));
         when(jobOperations.updateTask(eq(TASK.getId()), any(), any(), anyString(), any())).thenReturn(Completable.complete());
+        when(containerResultCodeResolver.resolve(any(), any())).thenReturn(Optional.empty());
     }
 
     @After
@@ -159,6 +163,7 @@ public class KubeNotificationProcessorTest {
 
     @Test
     public void testUpdateTaskStatus() {
+        when(containerResultCodeResolver.resolve(any(), any())).thenReturn(Optional.of("testUpdatedReasonCode"));
         V1Pod pod = new V1Pod()
                 .metadata(new V1ObjectMeta()
                         .name(TASK.getId())
@@ -194,11 +199,13 @@ public class KubeNotificationProcessorTest {
                         "resourceId123"
                 ))),
                 Optional.of(node),
-                TASK
+                TASK,
+                containerResultCodeResolver
         );
 
         Set<TaskState> pastStates = updatedTask.getStatusHistory().stream().map(ExecutableStatus::getState).collect(Collectors.toSet());
         assertThat(pastStates).contains(TaskState.Accepted, TaskState.Launched, TaskState.StartInitiated);
+        assertThat(updatedTask.getStatus().getReasonCode()).isEqualTo("testUpdatedReasonCode");
         assertThat(updatedTask.getTaskContext()).containsEntry(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST, "2.2.2.2");
         assertThat(updatedTask.getTaskContext()).containsEntry(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP, "1.2.3.4");
         assertThat(updatedTask.getTaskContext()).containsEntry(TaskAttributes.TASK_ATTRIBUTES_AGENT_AMI, "ami123");
