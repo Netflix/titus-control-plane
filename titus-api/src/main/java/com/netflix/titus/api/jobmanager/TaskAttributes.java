@@ -67,9 +67,25 @@ public final class TaskAttributes {
      * Log location attributes.
      */
 
-    public static final String TASK_ATTRIBUTE_S3_BUCKET_NAME = "task.log.s3BucketName";
+    public static final String TASK_ATTRIBUTE_LOG_PREFIX = "task.log.";
 
-    public static final String TASK_ATTRIBUTE_S3_PATH_PREFIX = "task.log.s3PathPrefix";
+    public static final String TASK_ATTRIBUTE_S3_BUCKET_NAME = TASK_ATTRIBUTE_LOG_PREFIX + "s3BucketName";
+
+    public static final String TASK_ATTRIBUTE_S3_PATH_PREFIX = TASK_ATTRIBUTE_LOG_PREFIX + "s3PathPrefix";
+
+    public static final String TASK_ATTRIBUTE_LOG_UI_LOCATION = TASK_ATTRIBUTE_LOG_PREFIX + "uiLogLocation";
+
+    public static final String TASK_ATTRIBUTE_LOG_S3_PREFIX = TASK_ATTRIBUTE_LOG_PREFIX + "s3.";
+
+    public static final String TASK_ATTRIBUTE_LOG_S3_ACCOUNT_NAME = TASK_ATTRIBUTE_LOG_S3_PREFIX + "accountName";
+
+    public static final String TASK_ATTRIBUTE_LOG_S3_ACCOUNT_ID = TASK_ATTRIBUTE_LOG_S3_PREFIX + "accountId";
+
+    public static final String TASK_ATTRIBUTE_LOG_S3_BUCKET_NAME = TASK_ATTRIBUTE_LOG_S3_PREFIX + "bucketName";
+
+    public static final String TASK_ATTRIBUTE_LOG_S3_KEY = TASK_ATTRIBUTE_LOG_S3_PREFIX + "key";
+
+    public static final String TASK_ATTRIBUTE_LOG_S3_REGION = TASK_ATTRIBUTE_LOG_S3_PREFIX + "region";
 
     /**
      * Id of the opportunistic allocation used for this task

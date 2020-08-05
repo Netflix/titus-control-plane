@@ -100,6 +100,12 @@ import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_SY
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_TASK_INDEX;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_TASK_ORIGINAL_ID;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_TASK_RESUBMIT_OF;
+import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTE_LOG_S3_ACCOUNT_ID;
+import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTE_LOG_S3_ACCOUNT_NAME;
+import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTE_LOG_S3_BUCKET_NAME;
+import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTE_LOG_S3_KEY;
+import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTE_LOG_S3_REGION;
+import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTE_LOG_UI_LOCATION;
 import static com.netflix.titus.common.util.CollectionsExt.isNullOrEmpty;
 import static com.netflix.titus.common.util.Evaluators.acceptNotNull;
 import static com.netflix.titus.common.util.Evaluators.applyNotNull;
@@ -501,7 +507,7 @@ public final class GrpcJobManagementModelConverters {
                 .withSystemResubmitNumber(systemResubmitNumber)
                 .withEvictionResubmitNumber(evictionResubmitNumber)
                 .withTaskContext(taskContext)
-                .withAttributes(grpcTask.getAttributesMap());
+                .withAttributes(buildAttributesMapForCoreTask(grpcTask));
 
         if (isBatchTask) { // Batch job
             ((BatchJobTask.Builder) builder).withIndex(Integer.parseInt(taskIndexStr));
@@ -510,6 +516,27 @@ public final class GrpcJobManagementModelConverters {
         }
 
         return builder.build();
+    }
+
+    static Map<String, String> buildAttributesMapForCoreTask(com.netflix.titus.grpc.protogen.Task grpcTask) {
+        Map<String, String> attributes = new HashMap<>(grpcTask.getAttributesMap());
+        if (grpcTask.hasLogLocation()) {
+            LogLocation logLocation = grpcTask.getLogLocation();
+            if (logLocation != null) {
+                if (logLocation.getUi() != null) {
+                    attributes.put(TASK_ATTRIBUTE_LOG_UI_LOCATION, logLocation.getUi().getUrl());
+                }
+                if (logLocation.getS3() != null) {
+                    LogLocation.S3 s3 = logLocation.getS3();
+                    attributes.put(TASK_ATTRIBUTE_LOG_S3_ACCOUNT_NAME, s3.getAccountName());
+                    attributes.put(TASK_ATTRIBUTE_LOG_S3_ACCOUNT_ID, s3.getAccountId());
+                    attributes.put(TASK_ATTRIBUTE_LOG_S3_BUCKET_NAME, s3.getBucket());
+                    attributes.put(TASK_ATTRIBUTE_LOG_S3_KEY, s3.getKey());
+                    attributes.put(TASK_ATTRIBUTE_LOG_S3_REGION, s3.getRegion());
+                }
+            }
+        }
+        return attributes;
     }
 
     public static Task toCoreTask(Job<?> job, com.netflix.titus.grpc.protogen.Task grpcTask) {
