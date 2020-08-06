@@ -86,6 +86,7 @@ public final class JobRuntimePredictionSelectors {
      */
     public static JobRuntimePredictionSelector aboveThreshold(double runtimeThresholdInSeconds,
                                                               double sigmaThreshold,
+                                                              double quantile,
                                                               Map<String, String> selectionMetadata) {
         Map<String, String> allMetadata = appendSelectorInfoIfMissing(
                 selectionMetadata,
@@ -102,21 +103,20 @@ public final class JobRuntimePredictionSelectors {
             }
 
             JobRuntimePrediction first = predictionsSet.first();
-            JobRuntimePrediction last = predictionsSet.last();
-            if (!JobRuntimePredictionUtil.expectedQuantiles(first, last)) {
+            if (!JobRuntimePredictionUtil.expectedLowest(first)) {
+                return Optional.empty();
+            }
+            JobRuntimePrediction requested = JobRuntimePredictionUtil.findRequested(predictionsSet, quantile).orElse(null);
+            if (requested == null || requested.getRuntimeInSeconds() > runtimeThresholdInSeconds) {
                 return Optional.empty();
             }
 
-            if (last.getRuntimeInSeconds() > runtimeThresholdInSeconds) {
-                return Optional.empty();
-            }
-
-            double sigma = (last.getRuntimeInSeconds() - first.getRuntimeInSeconds()) / JobRuntimePredictionUtil.NORM_SIGMA;
+            double sigma = (requested.getRuntimeInSeconds() - first.getRuntimeInSeconds()) / JobRuntimePredictionUtil.NORM_SIGMA;
             if (sigma > sigmaThreshold) {
                 return Optional.empty();
             }
             return Optional.of(JobRuntimePredictionSelection.newBuilder()
-                    .withPrediction(last)
+                    .withPrediction(requested)
                     .withMetadata(allMetadata)
                     .build()
             );
@@ -124,12 +124,13 @@ public final class JobRuntimePredictionSelectors {
     }
 
     /**
-     * See {@link #aboveThreshold(double, double, Map)}.
+     * See {@link #aboveThreshold(double, double, double, Map)}.
      */
     public static JobRuntimePredictionSelector aboveThreshold(Config config, Map<String, String> selectionMetadata) {
         double runtimeThresholdInSeconds = config.getDouble("runtimeThresholdInSeconds", Double.MAX_VALUE);
         double sigmaThreshold = config.getDouble("sigmaThreshold", Double.MAX_VALUE);
-        return aboveThreshold(runtimeThresholdInSeconds, sigmaThreshold, selectionMetadata);
+        double quantile = config.getDouble("quantile", JobRuntimePredictionUtil.HIGH_QUANTILE);
+        return aboveThreshold(runtimeThresholdInSeconds, sigmaThreshold, quantile, selectionMetadata);
     }
 
     /**
