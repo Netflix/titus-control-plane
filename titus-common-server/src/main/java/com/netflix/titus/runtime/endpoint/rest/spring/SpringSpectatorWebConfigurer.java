@@ -17,30 +17,19 @@
 package com.netflix.titus.runtime.endpoint.rest.spring;
 
 import com.netflix.titus.common.runtime.TitusRuntime;
-import org.springframework.context.annotation.Bean;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
-public class SpringSpectatorComponent {
+public class SpringSpectatorWebConfigurer implements WebMvcConfigurer {
 
-    @Bean
-    public SpringSpectatorWebConfigurer getSpringSpectatorWebConfigurer(TitusRuntime titusRuntime) {
-        return new SpringSpectatorWebConfigurer(titusRuntime);
-    }
+    @Autowired
+    private TitusRuntime titusRuntime;
 
-    static class SpringSpectatorWebConfigurer implements WebMvcConfigurer {
-
-        private final TitusRuntime titusRuntime;
-
-        public SpringSpectatorWebConfigurer(TitusRuntime titusRuntime) {
-            this.titusRuntime = titusRuntime;
-        }
-
-        @Override
-        public void addInterceptors(InterceptorRegistry registry) {
-            registry.addInterceptor(new SpringSpectatorInterceptor(titusRuntime));
-        }
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(new SpringSpectatorInterceptor(titusRuntime));
     }
 }
