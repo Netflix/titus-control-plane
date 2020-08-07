@@ -16,21 +16,31 @@
 
 package com.netflix.titus.runtime.endpoint.admission;
 
+import java.util.Optional;
+import java.util.SortedSet;
+
 import com.netflix.titus.runtime.connector.prediction.JobRuntimePrediction;
 import org.apache.commons.math3.distribution.NormalDistribution;
 
-final class JobRuntimePredictionUtil {
+public final class JobRuntimePredictionUtil {
 
     private static final double LOW_QUANTILE = 0.05;
-    private static final double HIGH_QUANTILE = 0.95;
+    public static final double HIGH_QUANTILE = 0.95;
 
     static final double NORM_SIGMA = computeNormSigma();
 
     private JobRuntimePredictionUtil() {
     }
 
-    static boolean expectedQuantiles(JobRuntimePrediction low, JobRuntimePrediction high) {
-        return low.getConfidence() == LOW_QUANTILE && high.getConfidence() == HIGH_QUANTILE;
+    static boolean expectedLowest(JobRuntimePrediction low) {
+        return low.getConfidence() == LOW_QUANTILE;
+    }
+
+    static Optional<JobRuntimePrediction> findRequested(SortedSet<JobRuntimePrediction> predictions, double quantile) {
+        if (predictions.isEmpty()) {
+            return Optional.empty();
+        }
+        return predictions.stream().filter(p -> p.getConfidence() == quantile).findFirst();
     }
 
     /**

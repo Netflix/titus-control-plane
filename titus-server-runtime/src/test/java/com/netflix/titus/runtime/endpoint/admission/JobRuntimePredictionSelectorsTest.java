@@ -40,6 +40,7 @@ import static com.jayway.awaitility.Awaitility.await;
 import static com.netflix.titus.runtime.endpoint.admission.JobRuntimePredictionSelectors.aboveThreshold;
 import static com.netflix.titus.runtime.endpoint.admission.JobRuntimePredictionSelectors.aboveThresholds;
 import static com.netflix.titus.runtime.endpoint.admission.JobRuntimePredictionSelectors.reloadedOnConfigurationUpdate;
+import static com.netflix.titus.runtime.endpoint.admission.JobRuntimePredictionUtil.HIGH_QUANTILE;
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class JobRuntimePredictionSelectorsTest {
@@ -64,20 +65,58 @@ public class JobRuntimePredictionSelectorsTest {
 
     @Test
     public void testAboveThreshold() {
-        JobRuntimePredictionSelector selector = aboveThreshold(60, 10, METADATA);
-        checkSelection(selector.apply(JOB_DESCRIPTOR, JOB_PREDICTIONS));
+        JobRuntimePredictionSelector selector = aboveThreshold(60, 10, HIGH_QUANTILE, METADATA);
+        checkSelection(selector.apply(JOB_DESCRIPTOR, JOB_PREDICTIONS), HIGH_QUANTILE);
+    }
+
+    @Test
+    public void testCustomQuantile() {
+        JobRuntimePredictionSelector selector = aboveThreshold(60, 10, 0.25, METADATA);
+        checkSelection(selector.apply(JOB_DESCRIPTOR, JOB_PREDICTIONS), 0.25);
+    }
+
+    @Test
+    public void testQuantileFromConfig() {
+        ImmutableMap<String, String> config = ImmutableMap.<String, String>builder()
+                .put("runtimeThresholdInSeconds", "60")
+                .put("sigmaThreshold", "10")
+                .build();
+        JobRuntimePredictionSelector selector = aboveThreshold(new MapConfig(config), METADATA);
+        checkSelection(selector.apply(JOB_DESCRIPTOR, JOB_PREDICTIONS), HIGH_QUANTILE);
+    }
+
+    @Test
+    public void testCustomQuantileFromConfig() {
+        ImmutableMap<String, String> config = ImmutableMap.<String, String>builder()
+                .put("runtimeThresholdInSeconds", "60")
+                .put("sigmaThreshold", "10")
+                .put("quantile", "0.25")
+                .build();
+        JobRuntimePredictionSelector selector = aboveThreshold(new MapConfig(config), METADATA);
+        checkSelection(selector.apply(JOB_DESCRIPTOR, JOB_PREDICTIONS), 0.25);
+    }
+
+    @Test
+    public void testBadQuantileFromConfig() {
+        ImmutableMap<String, String> config = ImmutableMap.<String, String>builder()
+                .put("runtimeThresholdInSeconds", "60")
+                .put("sigmaThreshold", "10")
+                .put("quantile", "0.123")
+                .build();
+        JobRuntimePredictionSelector selector = aboveThreshold(new MapConfig(config), METADATA);
+        assertThat(selector.apply(JOB_DESCRIPTOR, JOB_PREDICTIONS)).isEmpty();
     }
 
     @Test
     public void testAboveThresholdWithWrongConfidenceLevels() {
-        JobRuntimePredictionSelector selector = aboveThreshold(60, 10, METADATA);
+        JobRuntimePredictionSelector selector = aboveThreshold(60, 10, HIGH_QUANTILE, METADATA);
         Optional<JobRuntimePredictionSelection> selectionOpt = selector.apply(JOB_DESCRIPTOR, BAD_CONFIDENCE_LEVELS);
         assertThat(selectionOpt).isEmpty();
     }
 
     @Test
     public void testAboveThresholdWithLowRuntimeThreshold() {
-        JobRuntimePredictionSelector selector = aboveThreshold(10, 1, METADATA);
+        JobRuntimePredictionSelector selector = aboveThreshold(10, 1, HIGH_QUANTILE, METADATA);
         Optional<JobRuntimePredictionSelection> selectionOpt = selector.apply(JOB_DESCRIPTOR, JOB_PREDICTIONS);
         assertThat(selectionOpt).isEmpty();
     }
@@ -89,7 +128,7 @@ public class JobRuntimePredictionSelectorsTest {
                 .put("sigmaThreshold", "10")
                 .build();
         JobRuntimePredictionSelector selector = aboveThreshold(new MapConfig(config), METADATA);
-        checkSelection(selector.apply(JOB_DESCRIPTOR, JOB_PREDICTIONS));
+        checkSelection(selector.apply(JOB_DESCRIPTOR, JOB_PREDICTIONS), HIGH_QUANTILE);
     }
 
     @Test
@@ -101,7 +140,7 @@ public class JobRuntimePredictionSelectorsTest {
                 .put("root.cellB.sigmaThreshold", "1")
                 .build();
         Map<String, JobRuntimePredictionSelector> selectors = aboveThresholds(new MapConfig(config).getPrefixedView("root"), METADATA);
-        checkSelection(selectors.get("cellA").apply(JOB_DESCRIPTOR, JOB_PREDICTIONS));
+        checkSelection(selectors.get("cellA").apply(JOB_DESCRIPTOR, JOB_PREDICTIONS), HIGH_QUANTILE);
         assertThat(selectors.get("cellB").apply(JOB_DESCRIPTOR, JOB_PREDICTIONS)).isEmpty();
     }
 
@@ -133,7 +172,7 @@ public class JobRuntimePredictionSelectorsTest {
                 configUpdate -> aboveThreshold(configUpdate, METADATA)
         );
         JobRuntimePredictionSelector selector = selectorRef.get();
-        checkSelection(selector.apply(JOB_DESCRIPTOR, JOB_PREDICTIONS));
+        checkSelection(selector.apply(JOB_DESCRIPTOR, JOB_PREDICTIONS), HIGH_QUANTILE);
 
         // Now change it to fail
         config.setProperty("root.runtimeThresholdInSeconds", "6");
@@ -142,9 +181,9 @@ public class JobRuntimePredictionSelectorsTest {
         selectorRef.close();
     }
 
-    private void checkSelection(Optional<JobRuntimePredictionSelection> selectionOpt) {
+    private void checkSelection(Optional<JobRuntimePredictionSelection> selectionOpt, double expectedQuantile) {
         assertThat(selectionOpt).isNotEmpty();
-        assertThat(selectionOpt.get().getPrediction().getConfidence()).isEqualTo(0.95);
+        assertThat(selectionOpt.get().getPrediction().getConfidence()).isEqualTo(expectedQuantile);
         assertThat(selectionOpt.get().getMetadata()).containsAllEntriesOf(METADATA);
     }
 }
