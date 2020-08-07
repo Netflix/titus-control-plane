@@ -518,7 +518,7 @@ public final class GrpcJobManagementModelConverters {
         return builder.build();
     }
 
-    static Map<String, String> buildAttributesMapForCoreTask(com.netflix.titus.grpc.protogen.Task grpcTask) {
+    private static Map<String, String> buildAttributesMapForCoreTask(com.netflix.titus.grpc.protogen.Task grpcTask) {
         Map<String, String> attributes = new HashMap<>(grpcTask.getAttributesMap());
         if (grpcTask.hasLogLocation()) {
             LogLocation logLocation = grpcTask.getLogLocation();
