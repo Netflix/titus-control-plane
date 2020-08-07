@@ -153,7 +153,10 @@ public class ServiceMeshImageSanitizer implements AdmissionSanitizer<JobDescript
         int digestStart = imageName.lastIndexOf("@");
         if (digestStart < 0) {
             int tagStart = imageName.lastIndexOf(":");
-
+            if (tagStart < 0) {
+                throw new IllegalArgumentException("cannot parse " + imageName + " as docker image name");
+            }
+            
             String name = imageName.substring(0, tagStart);
             String tag = imageName.substring(tagStart + 1);
             return Image.newBuilder().withName(name).withTag(tag).build();

@@ -50,27 +50,23 @@ public class ServiceMeshImageSanitizerTest {
     private final RegistryClient registryClient = mock(RegistryClient.class);
     private ServiceMeshImageSanitizer sanitizer;
 
-    private final String imageNameDigest = String.format("%s@%s", repo, digest);
-    private final Map<String, String> digestAttrs = new HashMap<String, String>() {
-        {
-            put(JobAttributes.JOB_CONTAINER_ATTRIBUTE_SERVICEMESH_ENABLED, "true");
-            put(JobAttributes.JOB_CONTAINER_ATTRIBUTE_SERVICEMESH_CONTAINER, imageNameDigest);
-        }
-    };
-    private final JobDescriptor<?> jobDescriptorWithDigest = JobDescriptorGenerator.batchJobDescriptors()
+    private static final String imageNameDigest = String.format("%s@%s", repo, digest);
+    private static final Map<String, String> digestAttrs = CollectionsExt.asMap(
+            JobAttributes.JOB_CONTAINER_ATTRIBUTE_SERVICEMESH_ENABLED, "true",
+            JobAttributes.JOB_CONTAINER_ATTRIBUTE_SERVICEMESH_CONTAINER, imageNameDigest);
+
+    private static final JobDescriptor<?> jobDescriptorWithDigest = JobDescriptorGenerator.batchJobDescriptors()
             .map(jd -> jd.but(d -> d.toBuilder()
                     .withAttributes(CollectionsExt.copyAndAdd(d.getAttributes(), digestAttrs))
                     .build()))
             .getValue();
 
-    private final String imageNameTag = String.format("%s:%s", repo, tag);
-    private final Map<String, String> tagAttrs = new HashMap<String, String>() {
-        {
-            put(JobAttributes.JOB_CONTAINER_ATTRIBUTE_SERVICEMESH_ENABLED, "true");
-            put(JobAttributes.JOB_CONTAINER_ATTRIBUTE_SERVICEMESH_CONTAINER, imageNameTag);
-        }
-    };
-    private final JobDescriptor<?> jobDescriptorWithTag = JobDescriptorGenerator.batchJobDescriptors()
+    private static final String imageNameTag = String.format("%s:%s", repo, tag);
+    private static final Map<String, String> tagAttrs = CollectionsExt.asMap(
+            JobAttributes.JOB_CONTAINER_ATTRIBUTE_SERVICEMESH_ENABLED, "true",
+            JobAttributes.JOB_CONTAINER_ATTRIBUTE_SERVICEMESH_CONTAINER, imageNameTag);
+
+    private static final JobDescriptor<?> jobDescriptorWithTag = JobDescriptorGenerator.batchJobDescriptors()
             .map(jd -> jd.but(d -> d.toBuilder()
                     .withAttributes(CollectionsExt.copyAndAdd(d.getAttributes(), tagAttrs))
                     .build()))
