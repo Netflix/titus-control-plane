@@ -37,7 +37,7 @@ import java.time.Duration;
 import java.util.function.UnaryOperator;
 
 /**
- * This {@link AdmissionValidator} implementation validates and sanitizes Job image information.
+ * This {@link AdmissionSanitizer} implementation validates and sanitizes service mesh image attributes.
  */
 @Singleton
 public class ServiceMeshImageSanitizer implements AdmissionSanitizer<JobDescriptor> {
