@@ -180,6 +180,22 @@ public final class JobAttributes {
      */
     public static final String JOB_CONTAINER_ATTRIBUTE_ACCOUNT_ID = "titusParameter.agent.accountId";
 
+    /**
+     * Enable service mesh.
+     */
+    public static final String JOB_CONTAINER_ATTRIBUTE_SERVICEMESH_ENABLED = "titusParameter.agent.service.serviceMesh.enabled";
+
+    /**
+     * Container to use for service mesh.
+     */
+    public static final String JOB_CONTAINER_ATTRIBUTE_SERVICEMESH_CONTAINER = "titusParameter.agent.service.serviceMesh.container";
+
+    /**
+     * Set to true when sanitization for container images (digest) fails open
+     */
+    public static final String JOB_ATTRIBUTES_SANITIZATION_SKIPPED_SERVICEMESH_IMAGE = JOB_ATTRIBUTE_SANITIZATION_PREFIX + "skipped.serviceMesh";
+
+
     private JobAttributes() {
     }
 }
