@@ -19,8 +19,8 @@ package com.netflix.titus.runtime.endpoint.admission;
 import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
 
-@Configuration(prefix = "titus.validate.job.image")
-public interface JobImageValidatorConfiguration extends AdmissionValidatorConfiguration {
+@Configuration(prefix = "titus.validate.serviceMesh.image")
+public interface ServiceMeshImageSanitizerConfiguration extends AdmissionValidatorConfiguration {
     @DefaultValue("true")
     boolean isEnabled();
 
@@ -29,5 +29,5 @@ public interface JobImageValidatorConfiguration extends AdmissionValidatorConfig
      * This must be smaller than {@link TitusValidatorConfiguration#getTimeoutMs()}.
      */
     @DefaultValue("4500")
-    long getJobImageValidationTimeoutMs();
+    long getServiceMeshImageValidationTimeoutMs();
 }

@@ -24,7 +24,7 @@ import com.netflix.titus.common.model.sanitizer.ValidationError;
 import com.netflix.titus.runtime.connector.registry.RegistryClient;
 import com.netflix.titus.runtime.connector.registry.TitusRegistryException;
 import com.netflix.titus.runtime.endpoint.admission.JobImageSanitizer;
-import com.netflix.titus.runtime.endpoint.admission.JobImageValidatorConfiguration;
+import com.netflix.titus.runtime.endpoint.admission.JobImageSanitizerConfiguration;
 import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 import org.junit.Before;
 import org.junit.Test;
@@ -43,7 +43,7 @@ public class JobImageSanitizerTest {
     private static final String tag = "myTag";
     private static final String digest = "sha256:f9f5bb506406b80454a4255b33ed2e4383b9e4a32fb94d6f7e51922704e818fa";
 
-    private final JobImageValidatorConfiguration configuration = mock(JobImageValidatorConfiguration.class);
+    private final JobImageSanitizerConfiguration configuration = mock(JobImageSanitizerConfiguration.class);
     private final RegistryClient registryClient = mock(RegistryClient.class);
     private JobImageSanitizer sanitizer;
 

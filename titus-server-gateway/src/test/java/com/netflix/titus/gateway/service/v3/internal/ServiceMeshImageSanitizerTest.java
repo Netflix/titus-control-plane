@@ -18,16 +18,13 @@ package com.netflix.titus.gateway.service.v3.internal;
 
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.titus.api.jobmanager.JobAttributes;
-import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.common.model.sanitizer.ValidationError;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.runtime.connector.registry.RegistryClient;
 import com.netflix.titus.runtime.connector.registry.TitusRegistryException;
-import com.netflix.titus.runtime.endpoint.admission.JobImageSanitizer;
-import com.netflix.titus.runtime.endpoint.admission.JobImageValidatorConfiguration;
 import com.netflix.titus.runtime.endpoint.admission.ServiceMeshImageSanitizer;
-import com.netflix.titus.runtime.endpoint.admission.ServiceMeshImageValidatorConfiguration;
+import com.netflix.titus.runtime.endpoint.admission.ServiceMeshImageSanitizerConfiguration;
 import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 import org.junit.Before;
 import org.junit.Test;
@@ -49,7 +46,7 @@ public class ServiceMeshImageSanitizerTest {
     private static final String tag = "proxydTag";
     private static final String digest = "sha256:f9f5bb506406b80454a4255b33ed2e4383b9e4a32fb94d6f7e51922704e818fa";
 
-    private final ServiceMeshImageValidatorConfiguration configuration = mock(ServiceMeshImageValidatorConfiguration.class);
+    private final ServiceMeshImageSanitizerConfiguration configuration = mock(ServiceMeshImageSanitizerConfiguration.class);
     private final RegistryClient registryClient = mock(RegistryClient.class);
     private ServiceMeshImageSanitizer sanitizer;
 

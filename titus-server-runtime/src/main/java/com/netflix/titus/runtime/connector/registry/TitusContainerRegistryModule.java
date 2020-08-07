@@ -21,7 +21,8 @@ import javax.inject.Singleton;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
-import com.netflix.titus.runtime.endpoint.admission.JobImageValidatorConfiguration;
+import com.netflix.titus.runtime.endpoint.admission.JobImageSanitizerConfiguration;
+import com.netflix.titus.runtime.endpoint.admission.ServiceMeshImageSanitizerConfiguration;
 
 public class TitusContainerRegistryModule extends AbstractModule {
     @Override
@@ -37,7 +38,13 @@ public class TitusContainerRegistryModule extends AbstractModule {
 
     @Provides
     @Singleton
-    public JobImageValidatorConfiguration getJobImageValidatorConfiguration(ConfigProxyFactory factory) {
-        return factory.newProxy(JobImageValidatorConfiguration.class);
+    public JobImageSanitizerConfiguration getJobImageSanitizerConfiguration(ConfigProxyFactory factory) {
+        return factory.newProxy(JobImageSanitizerConfiguration.class);
+    }
+
+    @Provides
+    @Singleton
+    public ServiceMeshImageSanitizerConfiguration getServiceMeshImageSanitizerConfiguration(ConfigProxyFactory factory) {
+        return factory.newProxy(ServiceMeshImageSanitizerConfiguration.class);
     }
 }

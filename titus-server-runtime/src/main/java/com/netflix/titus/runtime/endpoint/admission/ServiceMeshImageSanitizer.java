@@ -22,7 +22,6 @@ import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.common.model.admission.AdmissionSanitizer;
-import com.netflix.titus.common.model.admission.AdmissionValidator;
 import com.netflix.titus.common.model.admission.ValidatorMetrics;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.runtime.connector.registry.RegistryClient;
@@ -43,12 +42,12 @@ import java.util.function.UnaryOperator;
 public class ServiceMeshImageSanitizer implements AdmissionSanitizer<JobDescriptor> {
     private static final Logger logger = LoggerFactory.getLogger(ServiceMeshImageSanitizer.class);
 
-    private final ServiceMeshImageValidatorConfiguration configuration;
+    private final ServiceMeshImageSanitizerConfiguration configuration;
     private final RegistryClient registryClient;
     private final ValidatorMetrics validatorMetrics;
 
     @Inject
-    public ServiceMeshImageSanitizer(ServiceMeshImageValidatorConfiguration configuration, RegistryClient registryClient, Registry spectatorRegistry) {
+    public ServiceMeshImageSanitizer(ServiceMeshImageSanitizerConfiguration configuration, RegistryClient registryClient, Registry spectatorRegistry) {
         this.configuration = configuration;
         this.registryClient = registryClient;
         this.validatorMetrics = new ValidatorMetrics(this.getClass().getSimpleName(), spectatorRegistry);
