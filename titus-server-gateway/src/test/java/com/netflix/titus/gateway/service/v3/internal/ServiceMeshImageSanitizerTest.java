@@ -32,10 +32,10 @@ import org.springframework.http.HttpStatus;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -69,6 +69,16 @@ public class ServiceMeshImageSanitizerTest {
     private static final JobDescriptor<?> jobDescriptorWithTag = JobDescriptorGenerator.batchJobDescriptors()
             .map(jd -> jd.but(d -> d.toBuilder()
                     .withAttributes(CollectionsExt.copyAndAdd(d.getAttributes(), tagAttrs))
+                    .build()))
+            .getValue();
+
+    private static final Map<String, String> badAttrs = CollectionsExt.asMap(
+            JobAttributes.JOB_CONTAINER_ATTRIBUTE_SERVICEMESH_ENABLED, "true",
+            JobAttributes.JOB_CONTAINER_ATTRIBUTE_SERVICEMESH_CONTAINER, repo);
+
+    private static final JobDescriptor<?> jobDescriptorBadImageName = JobDescriptorGenerator.batchJobDescriptors()
+            .map(jd -> jd.but(d -> d.toBuilder()
+                    .withAttributes(CollectionsExt.copyAndAdd(d.getAttributes(), badAttrs))
                     .build()))
             .getValue();
 
@@ -120,6 +130,22 @@ public class ServiceMeshImageSanitizerTest {
                             .containsEntry(JobAttributes.JOB_ATTRIBUTES_SANITIZATION_SKIPPED_SERVICEMESH_IMAGE, "true");
                 })
                 .verifyComplete();
+    }
+
+    @Test
+    public void testJobWithBadImageName() {
+        try {
+            when(registryClient.getImageDigest(anyString(), anyString()))
+                    .thenThrow(new IllegalStateException("should not call registryClient"));
+
+            StepVerifier.create(sanitizer.sanitize(jobDescriptorBadImageName))
+                    .expectErrorSatisfies(throwable -> {
+                        assertThat(throwable).isInstanceOf(IllegalArgumentException.class);
+                    })
+                    .verify();
+        } catch (Throwable t) {
+            fail(t.getMessage());
+        }
     }
 
     @Test

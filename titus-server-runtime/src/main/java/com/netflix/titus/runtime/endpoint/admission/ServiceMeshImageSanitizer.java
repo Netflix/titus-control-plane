@@ -72,12 +72,16 @@ public class ServiceMeshImageSanitizer implements AdmissionSanitizer<JobDescript
             return Mono.just(UnaryOperator.identity());
         }
 
-        Image image = getServiceMeshImage(jobDescriptor);
-        return sanitizeServiceMeshImage(image)
-                .map(ServiceMeshImageSanitizer::setMeshImageFunction)
-                .timeout(Duration.ofMillis(configuration.getServiceMeshImageValidationTimeoutMs()))
-                .doOnSuccess(j -> validatorMetrics.incrementValidationSuccess(image.getName()))
-                .onErrorReturn(throwable -> isAllowedException(throwable, image), ServiceMeshImageSanitizer::skipSanitization);
+        try {
+            Image image = getServiceMeshImage(jobDescriptor);
+            return sanitizeServiceMeshImage(image)
+                    .map(ServiceMeshImageSanitizer::setMeshImageFunction)
+                    .timeout(Duration.ofMillis(configuration.getServiceMeshImageValidationTimeoutMs()))
+                    .doOnSuccess(j -> validatorMetrics.incrementValidationSuccess(image.getName()))
+                    .onErrorReturn(throwable -> isAllowedException(throwable, image), ServiceMeshImageSanitizer::skipSanitization);
+        } catch (Throwable t) {
+            return Mono.error(t);
+        }
     }
 
     private static UnaryOperator<JobDescriptor> setMeshImageFunction(Image image) {
@@ -154,9 +158,9 @@ public class ServiceMeshImageSanitizer implements AdmissionSanitizer<JobDescript
         if (digestStart < 0) {
             int tagStart = imageName.lastIndexOf(":");
             if (tagStart < 0) {
-                throw new IllegalArgumentException("cannot parse " + imageName + " as docker image name");
+                throw new IllegalArgumentException("cannot parse " + imageName + " as versioned docker image name");
             }
-            
+
             String name = imageName.substring(0, tagStart);
             String tag = imageName.substring(tagStart + 1);
             return Image.newBuilder().withName(name).withTag(tag).build();
