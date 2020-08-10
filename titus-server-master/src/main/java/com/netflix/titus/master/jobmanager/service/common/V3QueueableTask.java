@@ -232,7 +232,7 @@ public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
     }
 
     /**
-     * Decrease the amount of requested opportunistic CPUs on a scheduling failure, up to no opportunistic CPUs.
+     * Exponentially decrease the amount of requested opportunistic CPUs on a scheduling failure, up to no opportunistic CPUs.
      * <p>
      * This allows scheduling with the maximum amount of opportunistic CPUs at a given moment, and falling back to less
      * opportunistic CPUs when not enough are available, eventually falling back to not using any opportunistic CPUs and
@@ -251,7 +251,7 @@ public class V3QueueableTask implements TitusQueuableTask<Job, Task> {
         if (!isStillEnabled) {
             return;
         }
-        int newCount = opportunisticCpuCount.updateAndGet(current -> current >= 1 ? current - 1 : 0);
+        int newCount = opportunisticCpuCount.updateAndGet(current -> current >= 1 ? current >> 1 : 0);
         logger.info("Task {} opportunistic scheduling failed, reduced requested opportunistic cpus to {}",
                 task.getId(), newCount);
     }
