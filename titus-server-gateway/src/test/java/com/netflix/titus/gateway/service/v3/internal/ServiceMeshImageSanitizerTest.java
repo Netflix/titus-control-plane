@@ -18,13 +18,13 @@ package com.netflix.titus.gateway.service.v3.internal;
 
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.titus.api.jobmanager.JobAttributes;
-import com.netflix.titus.api.jobmanager.model.job.Image;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.common.model.sanitizer.ValidationError;
+import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.runtime.connector.registry.RegistryClient;
 import com.netflix.titus.runtime.connector.registry.TitusRegistryException;
-import com.netflix.titus.runtime.endpoint.admission.JobImageSanitizer;
-import com.netflix.titus.runtime.endpoint.admission.JobImageSanitizerConfiguration;
+import com.netflix.titus.runtime.endpoint.admission.ServiceMeshImageSanitizer;
+import com.netflix.titus.runtime.endpoint.admission.ServiceMeshImageSanitizerConfiguration;
 import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
 import org.junit.Before;
 import org.junit.Test;
@@ -32,46 +32,63 @@ import org.springframework.http.HttpStatus;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.util.Map;
+
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class JobImageSanitizerTest {
+public class ServiceMeshImageSanitizerTest {
 
-    private static final String repo = "myRepo";
-    private static final String tag = "myTag";
+    private static final String repo = "proxydRepo/proxydImage";
+    private static final String tag = "proxydTag";
     private static final String digest = "sha256:f9f5bb506406b80454a4255b33ed2e4383b9e4a32fb94d6f7e51922704e818fa";
 
-    private final JobImageSanitizerConfiguration configuration = mock(JobImageSanitizerConfiguration.class);
+    private final ServiceMeshImageSanitizerConfiguration configuration = mock(ServiceMeshImageSanitizerConfiguration.class);
     private final RegistryClient registryClient = mock(RegistryClient.class);
-    private JobImageSanitizer sanitizer;
+    private ServiceMeshImageSanitizer sanitizer;
 
-    private final JobDescriptor<?> jobDescriptorWithDigest = JobDescriptorGenerator.batchJobDescriptors()
-            .map(jd -> jd.but(d -> d.getContainer().toBuilder()
-                    .withImage(Image.newBuilder()
-                            .withName(repo)
-                            .withDigest(digest)
-                            .build())
-            ))
+    private static final String imageNameDigest = String.format("%s@%s", repo, digest);
+    private static final Map<String, String> digestAttrs = CollectionsExt.asMap(
+            JobAttributes.JOB_CONTAINER_ATTRIBUTE_SERVICEMESH_ENABLED, "true",
+            JobAttributes.JOB_CONTAINER_ATTRIBUTE_SERVICEMESH_CONTAINER, imageNameDigest);
+
+    private static final JobDescriptor<?> jobDescriptorWithDigest = JobDescriptorGenerator.batchJobDescriptors()
+            .map(jd -> jd.but(d -> d.toBuilder()
+                    .withAttributes(CollectionsExt.copyAndAdd(d.getAttributes(), digestAttrs))
+                    .build()))
             .getValue();
 
-    private final JobDescriptor<?> jobDescriptorWithTag = JobDescriptorGenerator.batchJobDescriptors()
-            .map(jd -> jd.but(d -> d.getContainer().toBuilder()
-                    .withImage(Image.newBuilder()
-                            .withName(repo)
-                            .withTag(tag)
-                            .build())
-            ))
+    private static final String imageNameTag = String.format("%s:%s", repo, tag);
+    private static final Map<String, String> tagAttrs = CollectionsExt.asMap(
+            JobAttributes.JOB_CONTAINER_ATTRIBUTE_SERVICEMESH_ENABLED, "true",
+            JobAttributes.JOB_CONTAINER_ATTRIBUTE_SERVICEMESH_CONTAINER, imageNameTag);
+
+    private static final JobDescriptor<?> jobDescriptorWithTag = JobDescriptorGenerator.batchJobDescriptors()
+            .map(jd -> jd.but(d -> d.toBuilder()
+                    .withAttributes(CollectionsExt.copyAndAdd(d.getAttributes(), tagAttrs))
+                    .build()))
+            .getValue();
+
+    private static final Map<String, String> badAttrs = CollectionsExt.asMap(
+            JobAttributes.JOB_CONTAINER_ATTRIBUTE_SERVICEMESH_ENABLED, "true",
+            JobAttributes.JOB_CONTAINER_ATTRIBUTE_SERVICEMESH_CONTAINER, repo);
+
+    private static final JobDescriptor<?> jobDescriptorBadImageName = JobDescriptorGenerator.batchJobDescriptors()
+            .map(jd -> jd.but(d -> d.toBuilder()
+                    .withAttributes(CollectionsExt.copyAndAdd(d.getAttributes(), badAttrs))
+                    .build()))
             .getValue();
 
     @Before
     public void setUp() {
         when(configuration.isEnabled()).thenReturn(true);
-        when(configuration.getJobImageValidationTimeoutMs()).thenReturn(1000L);
+        when(configuration.getServiceMeshImageValidationTimeoutMs()).thenReturn(1000L);
         when(configuration.getErrorType()).thenReturn(ValidationError.Type.HARD.name());
         when(registryClient.getImageDigest(anyString(), anyString())).thenReturn(Mono.just(digest));
-        sanitizer = new JobImageSanitizer(configuration, registryClient, new DefaultRegistry());
+        sanitizer = new ServiceMeshImageSanitizer(configuration, registryClient, new DefaultRegistry());
     }
 
     @Test
@@ -79,8 +96,10 @@ public class JobImageSanitizerTest {
         when(registryClient.getImageDigest(anyString(), anyString())).thenReturn(Mono.just(digest));
 
         StepVerifier.create(sanitizer.sanitizeAndApply(jobDescriptorWithTag))
-                .assertNext(jobDescriptor -> assertThat(jobDescriptor.getContainer().getImage().getDigest())
-                        .isEqualTo(digest))
+                .assertNext(jobDescriptor -> assertThat(jobDescriptor
+                        .getAttributes()
+                        .get(JobAttributes.JOB_CONTAINER_ATTRIBUTE_SERVICEMESH_CONTAINER))
+                        .isEqualTo(imageNameDigest))
                 .verifyComplete();
     }
 
@@ -107,18 +126,31 @@ public class JobImageSanitizerTest {
 
         StepVerifier.create(sanitizer.sanitizeAndApply(jobDescriptorWithTag))
                 .assertNext(jd -> {
-                    assertThat(jd.getContainer().getImage().getDigest()).isNullOrEmpty();
-                    assertThat(jd.getContainer().getImage()).isEqualTo(jobDescriptorWithTag.getContainer().getImage());
                     assertThat(((JobDescriptor<?>) jd).getAttributes())
-                            .containsEntry(JobAttributes.JOB_ATTRIBUTES_SANITIZATION_SKIPPED_IMAGE, "true");
+                            .containsEntry(JobAttributes.JOB_ATTRIBUTES_SANITIZATION_SKIPPED_SERVICEMESH_IMAGE, "true");
                 })
                 .verifyComplete();
     }
 
     @Test
+    public void testJobWithBadImageName() {
+        try {
+            when(registryClient.getImageDigest(anyString(), anyString()))
+                    .thenThrow(new IllegalStateException("should not call registryClient"));
+
+            StepVerifier.create(sanitizer.sanitize(jobDescriptorBadImageName))
+                    .expectErrorSatisfies(throwable -> {
+                        assertThat(throwable).isInstanceOf(IllegalArgumentException.class);
+                    })
+                    .verify();
+        } catch (Throwable t) {
+            fail(t.getMessage());
+        }
+    }
+
+    @Test
     public void testJobWithDigestExists() {
-        Image image = jobDescriptorWithDigest.getContainer().getImage();
-        when(registryClient.getImageDigest(image.getName(), image.getDigest())).thenReturn(Mono.just(digest));
+        when(registryClient.getImageDigest(anyString(), anyString())).thenReturn(Mono.just(digest));
 
         StepVerifier.create(sanitizer.sanitize(jobDescriptorWithDigest))
                 .expectNextCount(0) // nothing to do when digest is valid

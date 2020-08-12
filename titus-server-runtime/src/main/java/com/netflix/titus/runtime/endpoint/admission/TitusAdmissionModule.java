@@ -57,7 +57,8 @@ public class TitusAdmissionModule extends AbstractModule {
     @Singleton
     public AdmissionSanitizer<JobDescriptor> getJobSanitizer(TitusValidatorConfiguration configuration,
                                                              JobImageSanitizer jobImageSanitizer,
-                                                             JobIamValidator jobIamSanitizer) {
-        return new AggregatingSanitizer(configuration, Arrays.asList(jobImageSanitizer, jobIamSanitizer));
+                                                             JobIamValidator jobIamSanitizer,
+                                                             ServiceMeshImageSanitizer serviceMeshImageSanitizer) {
+        return new AggregatingSanitizer(configuration, Arrays.asList(jobImageSanitizer, jobIamSanitizer, serviceMeshImageSanitizer));
     }
 }

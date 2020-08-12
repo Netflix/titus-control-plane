@@ -30,7 +30,7 @@ import com.netflix.titus.runtime.connector.registry.RegistryClient;
 import com.netflix.titus.runtime.connector.registry.TitusRegistryException;
 import com.netflix.titus.common.model.admission.AdmissionSanitizer;
 import com.netflix.titus.runtime.endpoint.admission.JobImageSanitizer;
-import com.netflix.titus.runtime.endpoint.admission.JobImageValidatorConfiguration;
+import com.netflix.titus.runtime.endpoint.admission.JobImageSanitizerConfiguration;
 import com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCell;
 import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMasters;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
@@ -68,7 +68,7 @@ public class JobSanitizeTest extends BaseIntegrationTest {
 
     private static final String missingImageErrorMsg = "does not exist in registry";
 
-    private final JobImageValidatorConfiguration configuration = mock(JobImageValidatorConfiguration.class);
+    private final JobImageSanitizerConfiguration configuration = mock(JobImageSanitizerConfiguration.class);
     private final RegistryClient registryClient = mock(RegistryClient.class);
 
     private final TitusStackResource titusStackResource = getTitusStackResource(

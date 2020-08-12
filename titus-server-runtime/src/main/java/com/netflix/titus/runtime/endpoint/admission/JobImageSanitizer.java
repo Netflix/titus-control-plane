@@ -43,12 +43,12 @@ import reactor.core.publisher.Mono;
 public class JobImageSanitizer implements AdmissionSanitizer<JobDescriptor> {
     private static final Logger logger = LoggerFactory.getLogger(JobImageSanitizer.class);
 
-    private final JobImageValidatorConfiguration configuration;
+    private final JobImageSanitizerConfiguration configuration;
     private final RegistryClient registryClient;
     private final ValidatorMetrics validatorMetrics;
 
     @Inject
-    public JobImageSanitizer(JobImageValidatorConfiguration configuration, RegistryClient registryClient, Registry spectatorRegistry) {
+    public JobImageSanitizer(JobImageSanitizerConfiguration configuration, RegistryClient registryClient, Registry spectatorRegistry) {
         this.configuration = configuration;
         this.registryClient = registryClient;
         this.validatorMetrics = new ValidatorMetrics(this.getClass().getSimpleName(), spectatorRegistry);
