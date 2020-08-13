@@ -62,7 +62,7 @@ subprojects {
         awsSdkVersion = '1.11.+'
         javaxElVersion = '3.+'
         springVersion = '5.2.8.RELEASE'
-        springSecurityVersion = '5.2.5.RELEASE'
+        springSecurityVersion = '5.3.3.RELEASE'
         springBootVersion = '2.3.2.RELEASE'
         springCloudVersion = '2.2.+'
         springReactor = '3.3.+'

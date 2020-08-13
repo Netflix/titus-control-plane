@@ -266,8 +266,8 @@ org.springframework.boot:spring-boot-starter:2.3.2.RELEASE
 org.springframework.boot:spring-boot-test-autoconfigure:2.3.2.RELEASE
 org.springframework.boot:spring-boot-test:2.3.2.RELEASE
 org.springframework.boot:spring-boot:2.3.2.RELEASE
-org.springframework.security:spring-security-core:5.2.5.RELEASE
-org.springframework.security:spring-security-web:5.2.5.RELEASE
+org.springframework.security:spring-security-core:5.3.3.RELEASE
+org.springframework.security:spring-security-web:5.3.3.RELEASE
 org.springframework:spring-aop:5.2.8.RELEASE
 org.springframework:spring-beans:5.2.8.RELEASE
 org.springframework:spring-context:5.2.8.RELEASE
