@@ -24,7 +24,7 @@ dependencies {
 
     // Spring
     compile "org.springframework.boot:spring-boot-autoconfigure:${springBootVersion}"
-    compile "org.springframework.security:spring-security-web:${springVersion}"
+    compile "org.springframework.security:spring-security-web:${springSecurityVersion}"
     compile "org.springframework:spring-webmvc:${springVersion}"
 
     // GRPC dependencies

@@ -7,7 +7,7 @@ buildscript {
     dependencies {
         // force a more recent spring since some nebula plugins were bringing an older version
         // before springboot plugins had any saying
-        classpath "org.springframework:spring-core:5.2.4.RELEASE"
+        classpath "org.springframework:spring-core:5.2.8.RELEASE"
     }
 }
 
@@ -43,7 +43,7 @@ subprojects {
             maven { url 'https://plugins.gradle.org/m2/' }
         }
         dependencies {
-            classpath "org.springframework:spring-core:5.2.4.RELEASE"
+            classpath "org.springframework:spring-core:5.2.6.RELEASE"
         }
     }
 
@@ -61,8 +61,9 @@ subprojects {
 
         awsSdkVersion = '1.11.+'
         javaxElVersion = '3.+'
-        springVersion = '5.2.+'
-        springBootVersion = '2.2.5.RELEASE'
+        springVersion = '5.2.8.RELEASE'
+        springSecurityVersion = '5.2.5.RELEASE'
+        springBootVersion = '2.3.2.RELEASE'
         springCloudVersion = '2.2.+'
         springReactor = '3.3.+'
         springReactorNetty = '0.9.+'
