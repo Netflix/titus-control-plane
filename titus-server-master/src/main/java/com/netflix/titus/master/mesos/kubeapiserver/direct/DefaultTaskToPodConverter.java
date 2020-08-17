@@ -83,6 +83,8 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
 
     private static final long POD_TERMINATION_GRACE_PERIOD_SECONDS = 600L;
     private static final String NEVER_RESTART_POLICY = "Never";
+    private static final String DEFAULT_DNS_POLICY = "Default";
+
 
     private static final String ARN_PREFIX = "arn:aws:iam::";
     private static final String ARN_SUFFIX = ":role/";
@@ -137,6 +139,7 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
                 .containers(Collections.singletonList(container))
                 .terminationGracePeriodSeconds(POD_TERMINATION_GRACE_PERIOD_SECONDS)
                 .restartPolicy(NEVER_RESTART_POLICY)
+                .dnsPolicy(DEFAULT_DNS_POLICY)
                 .affinity(podAffinityFactory.buildV1Affinity(job, task))
                 .tolerations(taintTolerationFactory.buildV1Toleration(job, task))
                 .topologySpreadConstraints(buildTopologySpreadConstraints(job));
