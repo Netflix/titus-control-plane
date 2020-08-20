@@ -34,7 +34,7 @@ import reactor.core.publisher.Mono;
 
 class KubeClusterMembershipStateReconciler implements Function<KubeClusterState, List<Mono<Function<KubeClusterState, KubeClusterState>>>> {
 
-    private final KubeConnectorConfiguration configuration;
+    private final KubeClusterMembershipConfiguration configuration;
 
     private final Clock clock;
     private final TitusRuntime titusRuntime;
@@ -45,7 +45,7 @@ class KubeClusterMembershipStateReconciler implements Function<KubeClusterState,
     private final Random random;
 
     KubeClusterMembershipStateReconciler(KubeContext context,
-                                         KubeConnectorConfiguration configuration) {
+                                         KubeClusterMembershipConfiguration configuration) {
         this.context = context;
         this.configuration = configuration;
         this.titusRuntime = context.getTitusRuntime();

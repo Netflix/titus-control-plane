@@ -14,17 +14,16 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.mesos.kubeapiserver.client;
+package com.netflix.titus.runtime.connector.kubernetes;
 
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.patterns.PolledMeter;
 import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.master.MetricConstants;
 import io.kubernetes.client.informer.SharedIndexInformer;
 
 class KubeInformerMetrics<ApiType> {
 
-    private static final String METRICS_ROOT = MetricConstants.METRIC_KUBERNETES + "kubeClient.";
+    private static final String METRICS_ROOT = "titus.kubeClient.";
 
     private static final String METRICS_INFORMER = METRICS_ROOT + "informer";
 

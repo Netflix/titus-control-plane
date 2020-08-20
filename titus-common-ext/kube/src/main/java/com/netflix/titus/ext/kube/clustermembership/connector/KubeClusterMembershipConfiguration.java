@@ -19,10 +19,10 @@ package com.netflix.titus.ext.kube.clustermembership.connector;
 import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
 
-import static com.netflix.titus.ext.kube.clustermembership.connector.KubeConnectorConfiguration.PREFIX;
+import static com.netflix.titus.ext.kube.clustermembership.connector.KubeClusterMembershipConfiguration.PREFIX;
 
 @Configuration(prefix = PREFIX)
-public interface KubeConnectorConfiguration {
+public interface KubeClusterMembershipConfiguration {
 
     String PREFIX = "titus.ext.kube";
 

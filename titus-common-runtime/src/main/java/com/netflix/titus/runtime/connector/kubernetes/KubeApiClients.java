@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.mesos.kubeapiserver.client;
+package com.netflix.titus.runtime.connector.kubernetes;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;

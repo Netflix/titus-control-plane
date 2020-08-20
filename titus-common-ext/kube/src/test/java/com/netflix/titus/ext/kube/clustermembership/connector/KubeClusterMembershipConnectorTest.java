@@ -53,7 +53,7 @@ public class KubeClusterMembershipConnectorTest {
 
     private final TitusRuntime titusRuntime = TitusRuntimes.internal();
 
-    private final KubeConnectorConfiguration configuration = Archaius2Ext.newConfiguration(KubeConnectorConfiguration.class,
+    private final KubeClusterMembershipConfiguration configuration = Archaius2Ext.newConfiguration(KubeClusterMembershipConfiguration.class,
             "titus.ext.kube.reRegistrationIntervalMs", "100"
     );
 

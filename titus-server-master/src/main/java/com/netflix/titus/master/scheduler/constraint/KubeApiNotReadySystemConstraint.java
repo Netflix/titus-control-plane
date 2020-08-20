@@ -23,7 +23,7 @@ import com.netflix.fenzo.TaskRequest;
 import com.netflix.fenzo.TaskTrackerState;
 import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.titus.master.mesos.MesosConfiguration;
-import com.netflix.titus.master.mesos.kubeapiserver.client.KubeApiFacade;
+import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
 
 @Singleton
 public class KubeApiNotReadySystemConstraint implements SystemConstraint {

@@ -18,9 +18,9 @@ package com.netflix.titus.ext.kube.clustermembership.connector;
 
 import java.time.Duration;
 
-import com.google.common.base.Preconditions;
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.util.ClientBuilder;
+import io.kubernetes.client.util.Config;
 import org.junit.rules.ExternalResource;
 
 public class KubeExternalResource extends ExternalResource {
@@ -31,14 +31,15 @@ public class KubeExternalResource extends ExternalResource {
 
     @Override
     protected void before() throws Throwable {
-        String kubeServer = Preconditions.checkNotNull(System.getenv("KUBE_API_SERVER"),
-                "'KUBE_API_SERVER' environment variable not set"
-        );
-
-        this.client = ClientBuilder
-                .standard()
-                .setBasePath(String.format("http://%s:7001", kubeServer))
-                .build();
+        String kubeServer = System.getenv("KUBE_API_SERVER");
+        if (kubeServer == null) {
+            this.client = Config.defaultClient();
+        } else {
+            this.client = ClientBuilder
+                    .standard()
+                    .setBasePath(String.format("http://%s:7001", kubeServer))
+                    .build();
+        }
         client.setReadTimeout(0); // infinite timeout
     }
 

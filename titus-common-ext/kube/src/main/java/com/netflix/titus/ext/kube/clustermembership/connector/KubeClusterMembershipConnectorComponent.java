@@ -16,18 +16,13 @@
 
 package com.netflix.titus.ext.kube.clustermembership.connector;
 
-import java.io.IOException;
 import java.time.Duration;
 
-import com.google.common.base.Preconditions;
 import com.netflix.titus.api.clustermembership.connector.ClusterMembershipConnector;
 import com.netflix.titus.api.clustermembership.model.ClusterMember;
 import com.netflix.titus.common.runtime.TitusRuntime;
-import com.netflix.titus.common.util.StringExt;
+import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import io.kubernetes.client.openapi.ApiClient;
-import io.kubernetes.client.util.Config;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -38,48 +33,20 @@ import org.springframework.core.env.Environment;
 @ConditionalOnProperty(name = "titus.ext.kube.enabled", havingValue = "true", matchIfMissing = true)
 public class KubeClusterMembershipConnectorComponent {
 
-    private static final Logger logger = LoggerFactory.getLogger(KubeClusterMembershipConnectorComponent.class);
-
     public static final String LOCAL_MEMBER_INITIAL = "localMemberInitial";
 
     @Bean
-    public KubeConnectorConfiguration getKubeConnectorConfiguration(Environment environment) {
-        return new KubeConnectorConfigurationBean(environment, KubeConnectorConfiguration.PREFIX);
+    public KubeClusterMembershipConfiguration getKubeClusterMembershipConfiguration(Environment environment) {
+        return Archaius2Ext.newConfiguration(KubeClusterMembershipConfiguration.class, KubeClusterMembershipConfiguration.PREFIX, environment);
     }
 
     @Bean
-    public ApiClient getApiClient(KubeConnectorConfiguration configuration) {
-        String kubeApiServerUri = StringExt.safeTrim(configuration.getKubeApiServerUri());
-        String kubeConfigPath = StringExt.safeTrim(configuration.getKubeConfigPath());
-
-        Preconditions.checkState(!kubeApiServerUri.isEmpty() || !kubeConfigPath.isEmpty(),
-                "Kubernetes address not set"
-        );
-
-        ApiClient client;
-        if (kubeApiServerUri.isEmpty()) {
-            try {
-                logger.info("Initializing Kube ApiClient from config file: {}", kubeConfigPath);
-                client = Config.fromConfig(kubeConfigPath);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        } else {
-            logger.info("Initializing Kube ApiClient with URI: {}", kubeApiServerUri);
-            client = Config.fromUrl(kubeApiServerUri);
-        }
-
-        client.setReadTimeout(0); // infinite timeout
-        return client;
-    }
-
-    @Bean
-    public KubeMembershipExecutor getKubeMembershipExecutor(KubeConnectorConfiguration configuration, ApiClient kubeApiClient) {
+    public KubeMembershipExecutor getKubeMembershipExecutor(KubeClusterMembershipConfiguration configuration, ApiClient kubeApiClient) {
         return new DefaultKubeMembershipExecutor(kubeApiClient, configuration.getNamespace());
     }
 
     @Bean
-    public KubeLeaderElectionExecutor getDefaultKubeLeaderElectionExecutor(KubeConnectorConfiguration configuration,
+    public KubeLeaderElectionExecutor getDefaultKubeLeaderElectionExecutor(KubeClusterMembershipConfiguration configuration,
                                                                            @Qualifier(LOCAL_MEMBER_INITIAL) ClusterMember initial,
                                                                            ApiClient kubeApiClient,
                                                                            TitusRuntime titusRuntime) {
@@ -95,7 +62,7 @@ public class KubeClusterMembershipConnectorComponent {
 
     @Bean
     public ClusterMembershipConnector getClusterMembershipConnector(
-            KubeConnectorConfiguration configuration,
+            KubeClusterMembershipConfiguration configuration,
             @Qualifier(LOCAL_MEMBER_INITIAL) ClusterMember initial,
             KubeMembershipExecutor membershipExecutor,
             KubeLeaderElectionExecutor leaderElectionExecutor,

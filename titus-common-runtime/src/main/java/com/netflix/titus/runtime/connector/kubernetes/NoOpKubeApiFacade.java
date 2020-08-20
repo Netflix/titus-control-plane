@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.mesos.kubeapiserver.client;
+package com.netflix.titus.runtime.connector.kubernetes;
 
-import com.netflix.titus.master.mesos.kubeapiserver.model.v1.V1OpportunisticResource;
+import com.netflix.titus.runtime.connector.kubernetes.v1.V1OpportunisticResource;
 import io.kubernetes.client.informer.SharedIndexInformer;
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.apis.CoreV1Api;

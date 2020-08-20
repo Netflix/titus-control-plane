@@ -20,9 +20,10 @@ import java.util.List;
 
 import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
+import com.netflix.titus.runtime.connector.kubernetes.KubeConnectorConfiguration;
 
 @Configuration(prefix = "titusMaster.directKube")
-public interface DirectKubeConfiguration {
+public interface DirectKubeConfiguration extends KubeConnectorConfiguration {
 
     /**
      * @return the registry URL that will be merged with the image name.
@@ -55,18 +56,6 @@ public interface DirectKubeConfiguration {
      */
     @DefaultValue("10")
     int getDefaultKillWaitSeconds();
-
-    /**
-     * @return how often to trigger a full reconciliation of nodes/pods
-     */
-    @DefaultValue("300000" /* 5 min */)
-    long getKubeApiServerIntegratorRefreshIntervalMs();
-
-    /**
-     * @return how often to trigger a full reconciliation of available opportunistic resources
-     */
-    @DefaultValue("600000" /* 10 min */)
-    long getKubeOpportunisticRefreshIntervalMs();
 
     /**
      * Thread pool size for handling Kube apiClient calls.
