@@ -19,16 +19,19 @@ com.google.guava:guava:25.1-jre
 com.google.inject.extensions:guice-assistedinject:4.1.0
 com.google.inject.extensions:guice-grapher:4.1.0
 com.google.inject.extensions:guice-multibindings:4.1.0
+com.google.inject.extensions:guice-servlet:4.1.0
 com.google.inject:guice:4.1.0
 com.google.j2objc:j2objc-annotations:1.1
-com.google.protobuf:protobuf-java-util:3.5.1
+com.google.protobuf:protobuf-java-util:3.7.1
 com.google.protobuf:protobuf-java:3.7.1
+com.google.re2j:re2j:1.2
 com.google.truth.extensions:truth-liteproto-extension:0.34
 com.google.truth.extensions:truth-proto-extension:0.34
 com.google.truth:truth:0.34
 com.jayway.awaitility:awaitility:1.7.0
 com.netflix.archaius:archaius2-api:2.3.16
 com.netflix.archaius:archaius2-core:2.3.16
+com.netflix.archaius:archaius2-guice:2.3.16
 com.netflix.governator:governator-api:1.15.11
 com.netflix.governator:governator-core:1.15.11
 com.netflix.numerus:numerus:1.1
@@ -42,6 +45,7 @@ io.grpc:grpc-core:1.20.0
 io.grpc:grpc-netty-shaded:1.20.0
 io.grpc:grpc-protobuf-lite:1.20.0
 io.grpc:grpc-protobuf:1.20.0
+io.grpc:grpc-services:1.20.0
 io.grpc:grpc-stub:1.20.0
 io.gsonfire:gson-fire:1.8.3
 io.kubernetes:client-java-api:8.0.0
@@ -106,6 +110,10 @@ org.objenesis:objenesis:2.6
 org.reactivestreams:reactive-streams:1.0.3
 org.slf4j:slf4j-api:1.7.25
 org.slf4j:slf4j-log4j12:1.7.0
+org.springframework.boot:spring-boot-autoconfigure:2.3.2.RELEASE
+org.springframework.boot:spring-boot:2.3.2.RELEASE
+org.springframework.security:spring-security-core:5.3.3.RELEASE
+org.springframework.security:spring-security-web:5.3.3.RELEASE
 org.springframework:spring-aop:5.2.8.RELEASE
 org.springframework:spring-beans:5.2.8.RELEASE
 org.springframework:spring-context:5.2.8.RELEASE
@@ -114,5 +122,6 @@ org.springframework:spring-expression:5.2.8.RELEASE
 org.springframework:spring-jcl:5.2.8.RELEASE
 org.springframework:spring-web:5.2.8.RELEASE
 org.springframework:spring-webflux:5.2.8.RELEASE
+org.springframework:spring-webmvc:5.2.8.RELEASE
 org.xerial.snappy:snappy-java:1.1.7.6
 org.yaml:snakeyaml:1.25
