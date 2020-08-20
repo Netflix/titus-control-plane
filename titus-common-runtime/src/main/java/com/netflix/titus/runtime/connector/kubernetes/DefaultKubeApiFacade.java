@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.mesos.kubeapiserver.client;
+package com.netflix.titus.runtime.connector.kubernetes;
 
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
@@ -24,9 +24,8 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.guice.annotation.Deactivator;
-import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeConfiguration;
-import com.netflix.titus.master.mesos.kubeapiserver.model.v1.V1OpportunisticResource;
-import com.netflix.titus.master.mesos.kubeapiserver.model.v1.V1OpportunisticResourceList;
+import com.netflix.titus.runtime.connector.kubernetes.v1.V1OpportunisticResource;
+import com.netflix.titus.runtime.connector.kubernetes.v1.V1OpportunisticResourceList;
 import io.kubernetes.client.informer.SharedIndexInformer;
 import io.kubernetes.client.informer.SharedInformerFactory;
 import io.kubernetes.client.openapi.ApiClient;
@@ -42,7 +41,7 @@ import okhttp3.Call;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static com.netflix.titus.master.mesos.kubeapiserver.client.KubeApiClients.createSharedInformerFactory;
+import static com.netflix.titus.runtime.connector.kubernetes.KubeApiClients.createSharedInformerFactory;
 
 @Singleton
 public class DefaultKubeApiFacade implements KubeApiFacade {
@@ -56,7 +55,7 @@ public class DefaultKubeApiFacade implements KubeApiFacade {
     private static final String OPPORTUNISTIC_RESOURCE_NAMESPACE = "default";
     private static final String OPPORTUNISTIC_RESOURCE_PLURAL = "opportunistic-resources";
 
-    private final DirectKubeConfiguration configuration;
+    private final KubeConnectorConfiguration configuration;
 
     private final ApiClient apiClient;
     private final CoreV1Api coreV1Api;
@@ -77,7 +76,7 @@ public class DefaultKubeApiFacade implements KubeApiFacade {
     private volatile boolean deactivated;
 
     @Inject
-    public DefaultKubeApiFacade(DirectKubeConfiguration configuration, ApiClient apiClient, TitusRuntime titusRuntime) {
+    public DefaultKubeApiFacade(KubeConnectorConfiguration configuration, ApiClient apiClient, TitusRuntime titusRuntime) {
         this.configuration = configuration;
         this.apiClient = apiClient;
         this.coreV1Api = new CoreV1Api(apiClient);
@@ -152,6 +151,10 @@ public class DefaultKubeApiFacade implements KubeApiFacade {
         return opportunisticResourceInformer;
     }
 
+    protected <T> SharedIndexInformer<T> customizeInformer(String name, SharedIndexInformer<T> informer) {
+        return informer;
+    }
+
     private void activate() {
         synchronized (activationLock) {
             if (deactivated) {
@@ -169,15 +172,9 @@ public class DefaultKubeApiFacade implements KubeApiFacade {
                         titusRuntime
                 );
 
-                if (titusRuntime.getFitFramework().isActive()) {
-                    this.nodeInformer = new FitSharedIndexInformer<>("nodeInformer", createNodeInformer(sharedInformerFactory), titusRuntime);
-                    this.podInformer = new FitSharedIndexInformer<>("podInformer", createPodInformer(sharedInformerFactory), titusRuntime);
-                    this.opportunisticResourceInformer = new FitSharedIndexInformer<>("opportunisticInformer", createOpportunisticResourceInformer(sharedInformerFactory), titusRuntime);
-                } else {
-                    this.nodeInformer = createNodeInformer(sharedInformerFactory);
-                    this.podInformer = createPodInformer(sharedInformerFactory);
-                    this.opportunisticResourceInformer = createOpportunisticResourceInformer(sharedInformerFactory);
-                }
+                this.nodeInformer = customizeInformer("nodeInformer", createNodeInformer(sharedInformerFactory));
+                this.podInformer = customizeInformer("podInformer", createPodInformer(sharedInformerFactory));
+                this.opportunisticResourceInformer = customizeInformer("opportunisticInformer", createOpportunisticResourceInformer(sharedInformerFactory));
 
                 this.nodeInformerMetrics = new KubeInformerMetrics<>("node", nodeInformer, titusRuntime);
                 this.podInformerMetrics = new KubeInformerMetrics<>("pod", podInformer, titusRuntime);

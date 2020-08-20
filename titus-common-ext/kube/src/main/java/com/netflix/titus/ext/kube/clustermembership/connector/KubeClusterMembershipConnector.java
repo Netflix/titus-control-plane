@@ -64,7 +64,7 @@ public class KubeClusterMembershipConnector implements ClusterMembershipConnecto
     public KubeClusterMembershipConnector(ClusterMember initial,
                                           KubeMembershipExecutor kubeMembershipExecutor,
                                           KubeLeaderElectionExecutor kubeLeaderElectionExecutor,
-                                          KubeConnectorConfiguration configuration,
+                                          KubeClusterMembershipConfiguration configuration,
                                           TitusRuntime titusRuntime) {
         this.scheduler = Schedulers.newSingle("ClusterMembershipReconciler");
 

@@ -47,11 +47,11 @@ public class KubeClusterState {
 
     private final List<ClusterMembershipEvent> events;
 
-    private final KubeConnectorConfiguration configuration;
+    private final KubeClusterMembershipConfiguration configuration;
     private final Clock clock;
 
     public KubeClusterState(ClusterMember initial,
-                            KubeConnectorConfiguration configuration,
+                            KubeClusterMembershipConfiguration configuration,
                             Clock clock) {
         this.configuration = configuration;
         this.clock = clock;
@@ -88,7 +88,7 @@ public class KubeClusterState {
                              Map<String, ClusterMembershipRevision<ClusterMember>> clusterMemberSiblings,
                              Optional<ClusterMembershipRevision<ClusterMemberLeadership>> currentLeaderOptional,
                              List<ClusterMembershipEvent> events,
-                             KubeConnectorConfiguration configuration,
+                             KubeClusterMembershipConfiguration configuration,
                              Clock clock) {
         this.localMemberId = localMemberLeadershipRevision.getCurrent().getMemberId();
         this.localMemberRevision = localMemberRevision;
@@ -288,7 +288,7 @@ public class KubeClusterState {
         private Optional<ClusterMembershipRevision<ClusterMemberLeadership>> currentLeaderOptional;
         private final List<ClusterMembershipEvent> events = new ArrayList<>();
 
-        private KubeConnectorConfiguration configuration;
+        private KubeClusterMembershipConfiguration configuration;
         private Clock clock;
 
         private Builder() {
@@ -329,7 +329,7 @@ public class KubeClusterState {
             return this;
         }
 
-        Builder withConfiguration(KubeConnectorConfiguration configuration) {
+        Builder withConfiguration(KubeClusterMembershipConfiguration configuration) {
             this.configuration = configuration;
             return this;
         }

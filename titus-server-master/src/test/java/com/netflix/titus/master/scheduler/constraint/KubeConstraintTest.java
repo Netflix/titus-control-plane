@@ -25,7 +25,7 @@ import com.netflix.fenzo.TaskTrackerState;
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.master.mesos.MesosConfiguration;
-import com.netflix.titus.master.mesos.kubeapiserver.client.KubeApiFacade;
+import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 import io.kubernetes.client.informer.SharedIndexInformer;
 import io.kubernetes.client.informer.cache.Indexer;

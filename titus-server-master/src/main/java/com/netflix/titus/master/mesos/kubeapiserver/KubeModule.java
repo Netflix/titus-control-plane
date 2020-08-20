@@ -29,10 +29,10 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.limiter.tokenbucket.FixedIntervalTokenBucketConfiguration;
 import com.netflix.titus.master.mesos.MesosConfiguration;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
-import com.netflix.titus.master.mesos.kubeapiserver.client.DefaultKubeApiFacade;
-import com.netflix.titus.master.mesos.kubeapiserver.client.KubeApiClients;
-import com.netflix.titus.master.mesos.kubeapiserver.client.KubeApiFacade;
-import com.netflix.titus.master.mesos.kubeapiserver.client.NoOpKubeApiFacade;
+import com.netflix.titus.master.mesos.kubeapiserver.client.JobControllerKubeApiFacade;
+import com.netflix.titus.runtime.connector.kubernetes.KubeApiClients;
+import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
+import com.netflix.titus.runtime.connector.kubernetes.NoOpKubeApiFacade;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DefaultDirectKubeApiServerIntegrator;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DefaultPodAffinityFactory;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DefaultTaskToPodConverter;
@@ -93,7 +93,7 @@ public class KubeModule extends AbstractModule {
     @Singleton
     public KubeApiFacade getKubeApiFacade(MesosConfiguration mesosConfiguration, Injector injector) {
         if(mesosConfiguration.isKubeApiServerIntegrationEnabled()) {
-            return injector.getInstance(DefaultKubeApiFacade.class);
+            return injector.getInstance(JobControllerKubeApiFacade.class);
         }
         return new NoOpKubeApiFacade();
     }

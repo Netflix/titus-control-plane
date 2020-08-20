@@ -30,7 +30,7 @@ import com.netflix.fenzo.VirtualMachineCurrentState;
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.service.AgentManagementService;
 import com.netflix.titus.master.mesos.MesosConfiguration;
-import com.netflix.titus.master.mesos.kubeapiserver.client.KubeApiFacade;
+import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 import com.netflix.titus.master.scheduler.SchedulerUtils;
 import io.kubernetes.client.openapi.models.V1Node;

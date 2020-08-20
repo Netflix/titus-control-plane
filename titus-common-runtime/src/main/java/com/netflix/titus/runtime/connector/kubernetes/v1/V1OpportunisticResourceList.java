@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.mesos.kubeapiserver.model.v1;
+package com.netflix.titus.runtime.connector.kubernetes.v1;
 
 import java.util.ArrayList;
 import java.util.List;

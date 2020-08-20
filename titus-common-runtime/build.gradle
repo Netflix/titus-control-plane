@@ -17,4 +17,8 @@
 dependencies {
     compile project(':titus-common-api')
     compile project(':titus-common-grpc-api')
+
+    compile "io.kubernetes:client-java:${kubernetesClientVersion}"
+
+    testCompile project(':titus-common-testkit')
 }
