@@ -279,9 +279,12 @@ public class KubeUtil {
      */
     public static boolean hasFenzoSchedulerTaint(V1Node node) {
         List<V1Taint> taints = node.getSpec().getTaints();
-        if (CollectionsExt.isNullOrEmpty(taints)) {
-            return true;
+
+        // Ignore nodes with no taints or an 'uninitialized' taint
+        if (CollectionsExt.isNullOrEmpty(taints) || hasUninitializedTaint(node)) {
+            return false;
         }
+
         Set<String> schedulerTaintValues = taints.stream()
                 .filter(t -> KubeConstants.TAINT_SCHEDULER.equals(t.getKey()))
                 .map(t -> StringExt.safeTrim(t.getValue()))
@@ -361,5 +364,13 @@ public class KubeUtil {
 
             sink.onCancel(call::cancel);
         });
+    }
+
+    public static boolean hasUninitializedTaint(V1Node node) {
+        if (node.getSpec() != null && node.getSpec().getTaints() != null) {
+            return node.getSpec().getTaints().stream()
+                    .anyMatch(t -> KubeConstants.TAINT_NODE_UNINITIALIZED.equals(t.getKey()));
+        }
+        return false;
     }
 }
