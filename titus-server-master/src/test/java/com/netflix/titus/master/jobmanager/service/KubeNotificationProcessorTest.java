@@ -37,7 +37,7 @@ import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.mesos.ContainerEvent;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.master.mesos.kubeapiserver.ContainerResultCodeResolver;
-import com.netflix.titus.master.mesos.kubeapiserver.KubeConstants;
+import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeJobManagementReconciler;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeApiServerIntegrator;
@@ -68,7 +68,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import rx.Completable;
 
-import static com.netflix.titus.master.mesos.kubeapiserver.KubeConstants.TITUS_NODE_DOMAIN;
+import static com.netflix.titus.runtime.kubernetes.KubeConstants.TITUS_NODE_DOMAIN;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;

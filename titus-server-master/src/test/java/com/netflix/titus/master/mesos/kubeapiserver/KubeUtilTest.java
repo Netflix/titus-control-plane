@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
+import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import io.kubernetes.client.openapi.models.V1ContainerState;
 import io.kubernetes.client.openapi.models.V1ContainerStateRunning;
 import io.kubernetes.client.openapi.models.V1ContainerStateTerminated;

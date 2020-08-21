@@ -16,8 +16,12 @@
 
 package com.netflix.titus.supplementary.relocation.connector;
 
+import java.util.Arrays;
+
 import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
 import com.netflix.titus.runtime.connector.agent.AgentDataReplicator;
+import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
+import com.netflix.titus.supplementary.relocation.RelocationConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
 
@@ -25,8 +29,27 @@ import org.springframework.stereotype.Component;
 public class NodeDataResolverComponent {
 
     @Bean
-    public NodeDataResolver getNodeDataResolver(ReadOnlyAgentOperations agentOperations,
-                                                AgentDataReplicator agentDataReplicator) {
-        return new AgentManagementNodeDataResolver(agentOperations, agentDataReplicator);
+    public AgentManagementNodeDataResolver getAgentManagementNodeDataResolver(ReadOnlyAgentOperations agentOperations,
+                                                                              AgentDataReplicator agentDataReplicator,
+                                                                              KubeApiFacade kubeApiFacade) {
+        return new AgentManagementNodeDataResolver(agentOperations,
+                agentDataReplicator,
+                NodePredicates.getFenzoNodePredicate(kubeApiFacade.getNodeInformer())
+        );
+    }
+
+    @Bean
+    public KubernetesNodeDataResolver getKubernetesNodeDataResolver(RelocationConfiguration configuration,
+                                                                    KubeApiFacade kubeApiFacade) {
+        return new KubernetesNodeDataResolver(configuration,
+                kubeApiFacade,
+                NodePredicates.getKubeSchedulerNodePredicate()
+        );
+    }
+
+    @Bean
+    public NodeDataResolver getNodeDataResolver(AgentManagementNodeDataResolver agentManagementNodeDataResolver,
+                                                KubernetesNodeDataResolver kubernetesNodeDataResolver) {
+        return new AggregatingNodeDataResolver(Arrays.asList(agentManagementNodeDataResolver, kubernetesNodeDataResolver));
     }
 }

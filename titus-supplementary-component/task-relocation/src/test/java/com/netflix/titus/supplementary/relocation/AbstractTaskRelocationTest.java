@@ -47,7 +47,7 @@ public abstract class AbstractTaskRelocationTest {
         this.clock = (TestClock) titusRuntime.getClock();
 
         this.agentOperations = relocationConnectorStubs.getAgentOperations();
-        this.nodeDataResolver = new AgentManagementNodeDataResolver(agentOperations, Mockito.mock(AgentDataReplicator.class));
+        this.nodeDataResolver = new AgentManagementNodeDataResolver(agentOperations, Mockito.mock(AgentDataReplicator.class), instance -> true);
         this.jobOperations = relocationConnectorStubs.getJobOperations();
         this.evictionOperations = relocationConnectorStubs.getEvictionOperations();
         this.evictionServiceClient = relocationConnectorStubs.getEvictionServiceClient();

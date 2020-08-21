@@ -44,4 +44,10 @@ public interface RelocationConfiguration {
 
     @DefaultValue("90000")
     long getRdsTimeoutMs();
+
+    @DefaultValue(".*")
+    String getNodeRelocationRequiredTaints();
+
+    @DefaultValue("NONE")
+    String getNodeRelocationRequiredImmediatelyTaints();
 }

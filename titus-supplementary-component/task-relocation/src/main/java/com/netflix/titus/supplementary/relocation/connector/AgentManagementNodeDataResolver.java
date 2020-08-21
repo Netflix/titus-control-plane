@@ -19,8 +19,7 @@ package com.netflix.titus.supplementary.relocation.connector;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import java.util.function.Predicate;
 
 import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
@@ -30,22 +29,25 @@ import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.runtime.connector.agent.AgentDataReplicator;
 import com.netflix.titus.supplementary.relocation.RelocationAttributes;
 
-@Singleton
 public class AgentManagementNodeDataResolver implements NodeDataResolver {
 
     private final ReadOnlyAgentOperations agentOperations;
     private final AgentDataReplicator agentDataReplicator;
+    private final Predicate<AgentInstance> fenzoNodeFilter;
 
-    @Inject
     public AgentManagementNodeDataResolver(ReadOnlyAgentOperations agentOperations,
-                                           AgentDataReplicator agentDataReplicator) {
+                                           AgentDataReplicator agentDataReplicator,
+                                           Predicate<AgentInstance> fenzoNodeFilter) {
         this.agentOperations = agentOperations;
         this.agentDataReplicator = agentDataReplicator;
+        this.fenzoNodeFilter = fenzoNodeFilter;
     }
 
     @Override
     public Map<String, Node> resolve() {
-        List<Pair<AgentInstanceGroup, List<AgentInstance>>> all = agentOperations.findAgentInstances(pair -> true);
+        List<Pair<AgentInstanceGroup, List<AgentInstance>>> all = agentOperations.findAgentInstances(pair ->
+                fenzoNodeFilter.test(pair.getRight())
+        );
         Map<String, Node> result = new HashMap<>();
         all.forEach(pair -> {
             AgentInstanceGroup serverGroup = pair.getLeft();

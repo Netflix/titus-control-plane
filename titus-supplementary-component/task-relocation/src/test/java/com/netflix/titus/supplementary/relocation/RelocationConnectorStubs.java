@@ -65,7 +65,7 @@ public class RelocationConnectorStubs {
         this.titusRuntime = titusRuntime;
         this.agentComponentStub = AgentComponentStub.newAgentComponent();
         this.agentOperations = agentComponentStub.getAgentManagementService();
-        this.nodeDataResolver = new AgentManagementNodeDataResolver(agentOperations, mock(AgentDataReplicator.class));
+        this.nodeDataResolver = new AgentManagementNodeDataResolver(agentOperations, mock(AgentDataReplicator.class), instance -> true);
 
         this.jobComponentStub = new JobComponentStub(titusRuntime);
         this.jobOperations = jobComponentStub.getJobOperations();

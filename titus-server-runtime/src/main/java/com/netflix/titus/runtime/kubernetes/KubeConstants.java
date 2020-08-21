@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.mesos.kubeapiserver;
+package com.netflix.titus.runtime.kubernetes;
 
 /**
  * Miscellaneous Kube constants.
@@ -23,6 +23,12 @@ public final class KubeConstants {
 
     private KubeConstants() {
     }
+
+    /**
+     * Taint effect constants.
+     */
+
+    public static String TAINT_EFFECT_NO_EXECUTE = "NoExecute";
 
     /*
      * Standard node labels.

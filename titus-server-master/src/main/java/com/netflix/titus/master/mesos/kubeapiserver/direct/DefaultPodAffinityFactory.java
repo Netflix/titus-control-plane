@@ -26,7 +26,7 @@ import com.netflix.titus.api.jobmanager.JobConstraints;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.common.util.StringExt;
-import com.netflix.titus.master.mesos.kubeapiserver.KubeConstants;
+import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import io.kubernetes.client.openapi.models.V1Affinity;
 import io.kubernetes.client.openapi.models.V1LabelSelector;
 import io.kubernetes.client.openapi.models.V1LabelSelectorRequirement;

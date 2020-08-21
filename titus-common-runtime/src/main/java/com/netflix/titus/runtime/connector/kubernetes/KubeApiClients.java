@@ -39,6 +39,12 @@ public class KubeApiClients {
      */
     public static final Pattern INSTANCE_ID_PATTERN = Pattern.compile("i-(\\p{Alnum}){17}+");
 
+    public static ApiClient createApiClient(String metricsNamePrefix,
+                                            TitusRuntime titusRuntime,
+                                            long readTimeoutMs) {
+        return createApiClient(null, null, metricsNamePrefix, titusRuntime, KubeApiClients::mapUri, readTimeoutMs);
+    }
+
     public static ApiClient createApiClient(String kubeApiServerUrl,
                                             String kubeConfigPath,
                                             String metricsNamePrefix,
@@ -59,7 +65,11 @@ public class KubeApiClients {
         ApiClient client;
         if (Strings.isNullOrEmpty(kubeApiServerUrl)) {
             try {
-                client = Config.fromConfig(kubeConfigPath);
+                if (Strings.isNullOrEmpty(kubeConfigPath)) {
+                    client = Config.defaultClient();
+                } else {
+                    client = Config.fromConfig(kubeConfigPath);
+                }
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }

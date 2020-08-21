@@ -82,7 +82,7 @@ public class DefaultDeschedulerServiceTest {
     private final DefaultDeschedulerService deschedulerService = new DefaultDeschedulerService(
             dataGenerator.getJobOperations(),
             dataGenerator.getEvictionOperations(),
-            new AgentManagementNodeDataResolver(dataGenerator.getAgentOperations(), agentDataReplicator),
+            new AgentManagementNodeDataResolver(dataGenerator.getAgentOperations(), agentDataReplicator, instance -> true),
             titusRuntime
     );
 
