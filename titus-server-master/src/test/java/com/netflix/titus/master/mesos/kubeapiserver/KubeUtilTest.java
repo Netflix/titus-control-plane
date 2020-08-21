@@ -49,6 +49,7 @@ public class KubeUtilTest {
 
     private static final V1Taint TAINT_SCHEDULER_FENZO = new V1Taint().key(KubeConstants.TAINT_SCHEDULER).value(KubeConstants.TAINT_SCHEDULER_VALUE_FENZO);
     private static final V1Taint TAINT_SCHEDULER_OTHER = new V1Taint().key(KubeConstants.TAINT_SCHEDULER).value(KubeConstants.TAINT_SCHEDULER_VALUE_KUBE);
+    private static final V1Taint TAINT_NODE_UNINITIALIZED = new V1Taint().key(KubeConstants.TAINT_NODE_UNINITIALIZED).value("someValue");
     private static final V1Taint TAINT_TOLERATED_TAINT_1 = new V1Taint().key("toleratedTaint1").value("someValue");
     private static final V1Taint TAINT_TOLERATED_TAINT_2 = new V1Taint().key("toleratedTaint2").value("someValue");
     private static final V1Taint TAINT_NOT_TOLERATED_TAINT = new V1Taint().key("notToleratedTaint").value("someValue");
@@ -71,6 +72,7 @@ public class KubeUtilTest {
 
         assertThat(KubeUtil.hasFenzoSchedulerTaint(newNodeWithoutZone(TAINT_SCHEDULER_OTHER))).isFalse();
         assertThat(KubeUtil.hasFenzoSchedulerTaint(newNodeWithoutZone(TAINT_SCHEDULER_OTHER, TAINT_SCHEDULER_FENZO))).isFalse();
+        assertThat(KubeUtil.hasFenzoSchedulerTaint(newNodeWithoutZone(TAINT_NODE_UNINITIALIZED))).isFalse();
     }
 
     @Test

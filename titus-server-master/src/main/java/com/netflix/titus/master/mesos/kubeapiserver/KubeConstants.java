@@ -66,6 +66,8 @@ public final class KubeConstants {
      * Titus taints.
      */
 
+    public static final String TAINT_NODE_UNINITIALIZED = TITUS_NODE_DOMAIN + "uninitialized";
+
     /**
      * Machines with this taint and value 'titus' can be used for pod placement.
      */
