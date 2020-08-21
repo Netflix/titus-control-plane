@@ -24,8 +24,6 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import com.google.common.base.Stopwatch;
-import com.netflix.titus.api.agent.model.AgentInstance;
-import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
@@ -36,6 +34,8 @@ import com.netflix.titus.api.relocation.model.TaskRelocationPlan.TaskRelocationR
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Triple;
+import com.netflix.titus.supplementary.relocation.connector.Node;
+import com.netflix.titus.supplementary.relocation.connector.NodeDataResolver;
 import com.netflix.titus.supplementary.relocation.util.RelocationUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -51,17 +51,17 @@ public class MustBeRelocatedSelfManagedTaskCollectorStep {
 
     private static final Logger logger = LoggerFactory.getLogger(MustBeRelocatedSelfManagedTaskCollectorStep.class);
 
-    private final ReadOnlyAgentOperations agentOperations;
+    private final NodeDataResolver nodeDataResolver;
     private final ReadOnlyJobOperations jobOperations;
     private final StepMetrics metrics;
     private final Clock clock;
 
     private Map<String, TaskRelocationPlan> lastResult = Collections.emptyMap();
 
-    public MustBeRelocatedSelfManagedTaskCollectorStep(ReadOnlyAgentOperations agentOperations,
+    public MustBeRelocatedSelfManagedTaskCollectorStep(NodeDataResolver nodeDataResolver,
                                                        ReadOnlyJobOperations jobOperations,
                                                        TitusRuntime titusRuntime) {
-        this.agentOperations = agentOperations;
+        this.nodeDataResolver = nodeDataResolver;
         this.jobOperations = jobOperations;
         this.clock = titusRuntime.getClock();
         this.metrics = new StepMetrics("mustBeRelocatedTaskCollectorStep", titusRuntime);
@@ -82,8 +82,10 @@ public class MustBeRelocatedSelfManagedTaskCollectorStep {
     }
 
     private Map<String, TaskRelocationPlan> buildRelocationPlans() {
+        Map<String, Node> nodes = nodeDataResolver.resolve();
+        List<Triple<Job<?>, Task, Node>> allItems = findAllJobTaskAgentTriples(nodes);
+
         Map<String, TaskRelocationPlan> result = new HashMap<>();
-        List<Triple<Job<?>, Task, AgentInstance>> allItems = findAllJobTaskAgentTriples();
 
         logger.debug("Number of triplets to check: {}", allItems.size());
 
@@ -91,12 +93,11 @@ public class MustBeRelocatedSelfManagedTaskCollectorStep {
 
             Job<?> job = triple.getFirst();
             Task task = triple.getSecond();
-            AgentInstance instance = triple.getThird();
+            Node instance = triple.getThird();
 
-            agentOperations.findInstanceGroup(instance.getInstanceGroupId()).ifPresent(instanceGroup ->
-                    checkIfNeedsRelocationPlan(job, task, instanceGroup, instance).ifPresent(reason ->
-                            result.put(task.getId(), buildSelfManagedRelocationPlan(job, task, reason))
-                    ));
+            checkIfNeedsRelocationPlan(job, task, instance).ifPresent(reason ->
+                    result.put(task.getId(), buildSelfManagedRelocationPlan(job, task, reason))
+            );
         });
 
         this.lastResult = result;
@@ -104,15 +105,15 @@ public class MustBeRelocatedSelfManagedTaskCollectorStep {
         return result;
     }
 
-    private List<Triple<Job<?>, Task, AgentInstance>> findAllJobTaskAgentTriples() {
-        Map<String, AgentInstance> taskToInstanceMap = RelocationUtil.buildTasksToInstanceMap(agentOperations, jobOperations);
+    private List<Triple<Job<?>, Task, Node>> findAllJobTaskAgentTriples(Map<String, Node> nodes) {
+        Map<String, Node> taskToInstanceMap = RelocationUtil.buildTasksToInstanceMap(nodes, jobOperations);
 
-        List<Triple<Job<?>, Task, AgentInstance>> result = new ArrayList<>();
+        List<Triple<Job<?>, Task, Node>> result = new ArrayList<>();
         jobOperations.getJobs().forEach(job -> {
             jobOperations.getTasks(job.getId()).forEach(task -> {
                 TaskState taskState = task.getStatus().getState();
                 if (taskState == TaskState.StartInitiated || taskState == TaskState.Started) {
-                    AgentInstance instance = taskToInstanceMap.get(task.getId());
+                    Node instance = taskToInstanceMap.get(task.getId());
                     if (instance != null) {
                         result.add(Triple.of(job, task, instance));
                     } else {

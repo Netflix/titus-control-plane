@@ -18,14 +18,11 @@ package com.netflix.titus.supplementary.relocation.util;
 
 import java.util.Collections;
 
-import com.netflix.titus.api.agent.model.AgentFunctions;
-import com.netflix.titus.api.agent.model.AgentInstance;
-import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.supplementary.relocation.RelocationAttributes;
-import com.netflix.titus.testkit.model.agent.AgentGenerator;
+import com.netflix.titus.supplementary.relocation.connector.Node;
 import com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import org.junit.Test;
@@ -47,17 +44,15 @@ public class RelocationPredicatesTest {
 
     private static final Task TASK = JobGenerator.oneBatchTask().toBuilder().withJobId(JOB.getId()).build();
 
-    private static final AgentInstanceGroup INSTANCE_GROUP = AgentGenerator.agentServerGroups().getValue();
-
-    private static final AgentInstance INSTANCE = AgentGenerator.agentInstances(INSTANCE_GROUP).getValue();
+    private static final Node ACTIVE_NODE = Node.newBuilder().withId("node1").withServerGroupId("serverGroup1").build();
 
     @Test
     public void testJobRelocationRequiredByPredicates() {
         Job<?> taggedJob = appendJobDescriptorAttribute(JOB,
                 RelocationAttributes.RELOCATION_REQUIRED_BY, TASK.getStatus().getTimestamp() + 1
         );
-        assertThat(checkIfNeedsRelocationPlan(taggedJob, TASK, INSTANCE_GROUP, INSTANCE)).isPresent();
-        assertThat(checkIfMustBeRelocatedImmediately(taggedJob, TASK, INSTANCE)).isEmpty();
+        assertThat(checkIfNeedsRelocationPlan(taggedJob, TASK, ACTIVE_NODE)).isPresent();
+        assertThat(checkIfMustBeRelocatedImmediately(taggedJob, TASK, ACTIVE_NODE)).isEmpty();
     }
 
     @Test
@@ -65,35 +60,35 @@ public class RelocationPredicatesTest {
         Job<?> taggedJob = appendJobDescriptorAttribute(JOB,
                 RelocationAttributes.RELOCATION_REQUIRED_BY_IMMEDIATELY, TASK.getStatus().getTimestamp() + 1
         );
-        assertThat(checkIfNeedsRelocationPlan(taggedJob, TASK, INSTANCE_GROUP, INSTANCE)).isEmpty();
-        assertThat(checkIfMustBeRelocatedImmediately(taggedJob, TASK, INSTANCE)).isPresent();
+        assertThat(checkIfNeedsRelocationPlan(taggedJob, TASK, ACTIVE_NODE)).isEmpty();
+        assertThat(checkIfMustBeRelocatedImmediately(taggedJob, TASK, ACTIVE_NODE)).isPresent();
     }
 
     @Test
     public void testTaskRelocationRequiredPredicates() {
         Task taggedTask = appendTaskAttribute(TASK, RelocationAttributes.RELOCATION_REQUIRED, "true");
-        assertThat(checkIfNeedsRelocationPlan(JOB, taggedTask, INSTANCE_GROUP, INSTANCE)).isPresent();
-        assertThat(checkIfMustBeRelocatedImmediately(JOB, taggedTask, INSTANCE)).isEmpty();
+        assertThat(checkIfNeedsRelocationPlan(JOB, taggedTask, ACTIVE_NODE)).isPresent();
+        assertThat(checkIfMustBeRelocatedImmediately(JOB, taggedTask, ACTIVE_NODE)).isEmpty();
     }
 
     @Test
     public void testTaskRelocationRequiredImmediatelyPredicates() {
         Task taggedTask = appendTaskAttribute(TASK, RelocationAttributes.RELOCATION_REQUIRED_IMMEDIATELY, "true");
-        assertThat(checkIfNeedsRelocationPlan(JOB, taggedTask, INSTANCE_GROUP, INSTANCE)).isEmpty();
-        assertThat(checkIfMustBeRelocatedImmediately(JOB, taggedTask, INSTANCE)).isPresent();
+        assertThat(checkIfNeedsRelocationPlan(JOB, taggedTask, ACTIVE_NODE)).isEmpty();
+        assertThat(checkIfMustBeRelocatedImmediately(JOB, taggedTask, ACTIVE_NODE)).isPresent();
     }
 
     @Test
     public void testInstanceRelocationRequiredPredicates() {
-        AgentInstance taggedInstance = AgentFunctions.appendInstanceAttribute(INSTANCE, RelocationAttributes.RELOCATION_REQUIRED, "true");
-        assertThat(checkIfNeedsRelocationPlan(JOB, TASK, INSTANCE_GROUP, taggedInstance)).isPresent();
-        assertThat(checkIfMustBeRelocatedImmediately(JOB, TASK, taggedInstance)).isEmpty();
+        Node decommissionedNode = ACTIVE_NODE.toBuilder().withRelocationRequired(true).build();
+        assertThat(checkIfNeedsRelocationPlan(JOB, TASK, decommissionedNode)).isPresent();
+        assertThat(checkIfMustBeRelocatedImmediately(JOB, TASK, decommissionedNode)).isEmpty();
     }
 
     @Test
     public void testInstanceRelocationRequiredImmediatelyPredicates() {
-        AgentInstance taggedInstance = AgentFunctions.appendInstanceAttribute(INSTANCE, RelocationAttributes.RELOCATION_REQUIRED_IMMEDIATELY, "true");
-        assertThat(checkIfNeedsRelocationPlan(JOB, TASK, INSTANCE_GROUP, taggedInstance)).isEmpty();
-        assertThat(checkIfMustBeRelocatedImmediately(JOB, TASK, taggedInstance)).isPresent();
+        Node decommissionedNode = ACTIVE_NODE.toBuilder().withRelocationRequiredImmediately(true).build();
+        assertThat(checkIfNeedsRelocationPlan(JOB, TASK, decommissionedNode)).isEmpty();
+        assertThat(checkIfMustBeRelocatedImmediately(JOB, TASK, decommissionedNode)).isPresent();
     }
 }

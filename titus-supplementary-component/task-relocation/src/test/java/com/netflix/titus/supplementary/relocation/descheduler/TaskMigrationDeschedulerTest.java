@@ -23,10 +23,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
-import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
@@ -41,6 +39,8 @@ import com.netflix.titus.common.util.time.TestClock;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.supplementary.relocation.RelocationAttributes;
 import com.netflix.titus.supplementary.relocation.RelocationConnectorStubs;
+import com.netflix.titus.supplementary.relocation.connector.Node;
+import com.netflix.titus.supplementary.relocation.connector.NodeDataResolver;
 import com.netflix.titus.supplementary.relocation.model.DeschedulingFailure;
 import com.netflix.titus.supplementary.relocation.model.DeschedulingResult;
 import com.netflix.titus.testkit.model.job.JobGenerator;
@@ -83,7 +83,8 @@ public class TaskMigrationDeschedulerTest {
             .addJob(jobGenerator.getValue().but(withJobId("jobToMigrate")));
 
     private final ReadOnlyJobOperations jobOperations = dataGenerator.getJobOperations();
-    private final ReadOnlyAgentOperations agentOperations = dataGenerator.getAgentOperations();
+
+    private final NodeDataResolver nodeDataResolver = dataGenerator.getNodeDataResolver();
 
     @Test
     public void testImmediateMigrations() {
@@ -108,7 +109,7 @@ public class TaskMigrationDeschedulerTest {
                 .withRelocationTime(Long.MAX_VALUE / 2)
                 .build();
 
-        Optional<Pair<AgentInstance, List<Task>>> results = newDescheduler(Collections.singletonMap(job1Task0.getId(), job1Task0Plan)).nextBestMatch();
+        Optional<Pair<Node, List<Task>>> results = newDescheduler(Collections.singletonMap(job1Task0.getId(), job1Task0Plan)).nextBestMatch();
         assertThat(results).isEmpty();
     }
 
@@ -124,13 +125,15 @@ public class TaskMigrationDeschedulerTest {
                 .withRelocationTime(clock.wallTime() - 1)
                 .build();
 
-        Optional<Pair<AgentInstance, List<Task>>> results = newDescheduler(Collections.singletonMap(job1Task0.getId(), job1Task0Plan)).nextBestMatch();
+        Optional<Pair<Node, List<Task>>> results = newDescheduler(Collections.singletonMap(job1Task0.getId(), job1Task0Plan)).nextBestMatch();
         assertThat(results).isNotEmpty();
     }
 
     @Test
     public void testFitness() {
-        List<AgentInstance> removableAgents = agentOperations.getAgentInstances("removable1");
+        List<Node> removableAgents = nodeDataResolver.resolve().values().stream()
+                .filter(n -> n.getServerGroupId().equals("removable1"))
+                .collect(Collectors.toList());;
         String agent1 = removableAgents.get(0).getId();
         String agent2 = removableAgents.get(1).getId();
         List<Task> tasksOfJob1 = jobOperations.getTasks("job1");
@@ -138,7 +141,7 @@ public class TaskMigrationDeschedulerTest {
         dataGenerator.placeOnAgent(agent2, tasksOfJob1.get(2));
         dataGenerator.setQuota("job1", 1);
 
-        Optional<Pair<AgentInstance, List<Task>>> results = newDescheduler(Collections.emptyMap()).nextBestMatch();
+        Optional<Pair<Node, List<Task>>> results = newDescheduler(Collections.emptyMap()).nextBestMatch();
         assertThat(results).isPresent();
         assertThat(results.get().getLeft().getId()).isEqualTo(agent2);
     }
@@ -186,7 +189,7 @@ public class TaskMigrationDeschedulerTest {
         job1Task0 = jobOperations.findTaskById(job1Task0.getId()).get().getRight();
 
         dataGenerator.addInstanceAttribute(job1Task0.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID), RelocationAttributes.RELOCATION_REQUIRED, "true");
-        Optional<Pair<AgentInstance, List<Task>>> results = newDescheduler(Collections.emptyMap()).nextBestMatch();
+        Optional<Pair<Node, List<Task>>> results = newDescheduler(Collections.emptyMap()).nextBestMatch();
         assertThat(results).isNotEmpty();
     }
 
@@ -194,7 +197,7 @@ public class TaskMigrationDeschedulerTest {
         Map<String, Task> tasksById = toTaskMap(jobOperations.getTasks());
         return new TaskMigrationDescheduler(
                 plannedAheadTaskRelocationPlans,
-                new EvacuatedAgentsAllocationTracker(dataGenerator.getAgentOperations(), tasksById),
+                new EvacuatedAgentsAllocationTracker(nodeDataResolver.resolve(), tasksById),
                 new EvictionQuotaTracker(dataGenerator.getEvictionOperations(), JobTestFunctions.toJobMap(jobOperations.getJobs())),
                 jobOperations.getJobs().stream().collect(Collectors.toMap(Job::getId, j -> j)),
                 tasksById,

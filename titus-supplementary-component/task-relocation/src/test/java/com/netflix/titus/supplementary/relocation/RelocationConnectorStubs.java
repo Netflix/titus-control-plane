@@ -32,6 +32,8 @@ import com.netflix.titus.runtime.connector.agent.AgentDataReplicator;
 import com.netflix.titus.runtime.connector.eviction.EvictionDataReplicator;
 import com.netflix.titus.runtime.connector.eviction.EvictionServiceClient;
 import com.netflix.titus.runtime.connector.jobmanager.JobDataReplicator;
+import com.netflix.titus.supplementary.relocation.connector.AgentManagementNodeDataResolver;
+import com.netflix.titus.supplementary.relocation.connector.NodeDataResolver;
 import com.netflix.titus.testkit.model.agent.AgentComponentStub;
 import com.netflix.titus.testkit.model.eviction.EvictionComponentStub;
 import com.netflix.titus.testkit.model.job.JobComponentStub;
@@ -48,6 +50,8 @@ public class RelocationConnectorStubs {
     private final AgentComponentStub agentComponentStub;
     private final ReadOnlyAgentOperations agentOperations;
 
+    private final NodeDataResolver nodeDataResolver;
+
     private final JobComponentStub jobComponentStub;
     private final ReadOnlyJobOperations jobOperations;
 
@@ -61,6 +65,7 @@ public class RelocationConnectorStubs {
         this.titusRuntime = titusRuntime;
         this.agentComponentStub = AgentComponentStub.newAgentComponent();
         this.agentOperations = agentComponentStub.getAgentManagementService();
+        this.nodeDataResolver = new AgentManagementNodeDataResolver(agentOperations, mock(AgentDataReplicator.class));
 
         this.jobComponentStub = new JobComponentStub(titusRuntime);
         this.jobOperations = jobComponentStub.getJobOperations();
@@ -74,6 +79,7 @@ public class RelocationConnectorStubs {
         context.getBeanFactory().registerSingleton("titusRuntime", titusRuntime);
 
         context.getBeanFactory().registerSingleton("readOnlyAgentOperations", agentOperations);
+        context.getBeanFactory().registerSingleton("nodeDataResolver", nodeDataResolver);
         context.getBeanFactory().registerSingleton("readOnlyJobOperations", jobOperations);
         context.getBeanFactory().registerSingleton("readOnlyEvictionOperations", evictionComponentStub.getEvictionOperations());
         context.getBeanFactory().registerSingleton("evictionServiceClient", evictionComponentStub.getEvictionServiceClient());
@@ -114,6 +120,10 @@ public class RelocationConnectorStubs {
 
     public ReadOnlyAgentOperations getAgentOperations() {
         return agentComponentStub.getAgentManagementService();
+    }
+
+    public NodeDataResolver getNodeDataResolver() {
+        return nodeDataResolver;
     }
 
     public RelocationConnectorStubs addInstanceGroup(AgentInstanceGroup instanceGroup) {

@@ -22,17 +22,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import com.netflix.titus.api.agent.model.AgentFunctions;
-import com.netflix.titus.api.agent.model.AgentInstance;
-import com.netflix.titus.api.agent.model.AgentInstanceGroup;
-import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
-import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.common.util.DateTimeExt;
+import com.netflix.titus.supplementary.relocation.connector.Node;
 
 public final class RelocationUtil {
 
@@ -42,14 +38,12 @@ public final class RelocationUtil {
         return result;
     }
 
-    public static Map<String, AgentInstance> buildTasksToInstanceMap(ReadOnlyAgentOperations agentManagementService,
-                                                                     Map<String, Task> taskByIdMap) {
-        Map<String, AgentInstance> instancesById = AgentFunctions.buildInstanceByIdMap(agentManagementService);
-        Map<String, AgentInstance> result = new HashMap<>();
+    public static Map<String, Node> buildTasksToInstanceMap(Map<String, Node> nodesById, Map<String, Task> taskByIdMap) {
+        Map<String, Node> result = new HashMap<>();
         taskByIdMap.values().forEach(task -> {
             String instanceId = task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID);
             if (instanceId != null) {
-                AgentInstance instance = instancesById.get(instanceId);
+                Node instance = nodesById.get(instanceId);
                 if (instance != null) {
                     result.put(task.getId(), instance);
                 }
@@ -58,16 +52,12 @@ public final class RelocationUtil {
         return result;
     }
 
-    public static Map<String, AgentInstance> buildTasksToInstanceMap(ReadOnlyAgentOperations agentManagementService,
-                                                                     ReadOnlyJobOperations jobOperations) {
-        return buildTasksToInstanceMap(agentManagementService, buildTaskByIdMap(jobOperations));
+    public static Map<String, Node> buildTasksToInstanceMap(Map<String, Node> nodesById,
+                                                            ReadOnlyJobOperations jobOperations) {
+        return buildTasksToInstanceMap(nodesById, buildTaskByIdMap(jobOperations));
     }
 
-    public static boolean isRemovable(AgentInstanceGroup instanceGroup) {
-        return instanceGroup.getLifecycleStatus().getState() == InstanceGroupLifecycleState.Removable;
-    }
-
-    public static List<Task> findTasksOnInstance(AgentInstance instance, Collection<Task> tasks) {
+    public static List<Task> findTasksOnInstance(Node instance, Collection<Task> tasks) {
         return tasks.stream()
                 .filter(task -> isAssignedToAgent(task) && isOnInstance(instance, task))
                 .collect(Collectors.toList());
@@ -78,7 +68,7 @@ public final class RelocationUtil {
         return state != TaskState.Accepted && state != TaskState.Finished;
     }
 
-    public static boolean isOnInstance(AgentInstance instance, Task task) {
+    public static boolean isOnInstance(Node instance, Task task) {
         String taskAgentId = task.getTaskContext().get(TaskAttributes.TASK_ATTRIBUTES_AGENT_INSTANCE_ID);
         return taskAgentId != null && taskAgentId.equals(instance.getId());
     }

@@ -37,6 +37,7 @@ import com.netflix.titus.runtime.connector.jobmanager.JobManagerConnectorCompone
 import com.netflix.titus.runtime.connector.titusmaster.ConfigurationLeaderResolverComponent;
 import com.netflix.titus.runtime.endpoint.metadata.CallMetadataResolveComponent;
 import com.netflix.titus.runtime.endpoint.rest.RestAddOnsComponent;
+import com.netflix.titus.supplementary.relocation.connector.NodeDataResolverComponent;
 import com.netflix.titus.supplementary.relocation.endpoint.grpc.TaskRelocationGrpcServerRunner;
 import io.grpc.Channel;
 import org.springframework.boot.SpringApplication;
@@ -65,6 +66,7 @@ import static com.netflix.titus.runtime.connector.titusmaster.ConfigurationLeade
         // Agent connector
         AgentManagerConnectorComponent.class,
         AgentManagementDataReplicationComponent.class,
+        NodeDataResolverComponent.class,
 
         // Job connector
         JobManagerConnectorComponent.class,

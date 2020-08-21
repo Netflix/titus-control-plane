@@ -19,20 +19,20 @@ package com.netflix.titus.supplementary.relocation.model;
 import java.util.Objects;
 import java.util.Optional;
 
-import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
+import com.netflix.titus.supplementary.relocation.connector.Node;
 
 public class DeschedulingResult {
 
     private final TaskRelocationPlan taskRelocationPlan;
     private final Task task;
-    private final AgentInstance agentInstance;
+    private final Node agentInstance;
     private final Optional<DeschedulingFailure> failure;
 
     public DeschedulingResult(TaskRelocationPlan taskRelocationPlan,
                               Task task,
-                              AgentInstance agentInstance,
+                              Node agentInstance,
                               Optional<DeschedulingFailure> failure) {
         this.taskRelocationPlan = taskRelocationPlan;
         this.task = task;
@@ -48,7 +48,7 @@ public class DeschedulingResult {
         return task;
     }
 
-    public AgentInstance getAgentInstance() {
+    public Node getAgentInstance() {
         return agentInstance;
     }
 
@@ -101,7 +101,7 @@ public class DeschedulingResult {
     public static final class Builder {
         private TaskRelocationPlan taskRelocationPlan;
         private Task task;
-        private AgentInstance agentInstance;
+        private Node agentInstance;
         private Optional<DeschedulingFailure> failure = Optional.empty();
 
         private Builder() {
@@ -117,7 +117,7 @@ public class DeschedulingResult {
             return this;
         }
 
-        public Builder withAgentInstance(AgentInstance agentInstance) {
+        public Builder withAgentInstance(Node agentInstance) {
             this.agentInstance = agentInstance;
             return this;
         }

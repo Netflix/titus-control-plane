@@ -21,7 +21,11 @@ import com.netflix.titus.api.eviction.service.ReadOnlyEvictionOperations;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.time.TestClock;
+import com.netflix.titus.runtime.connector.agent.AgentDataReplicator;
 import com.netflix.titus.runtime.connector.eviction.EvictionServiceClient;
+import com.netflix.titus.supplementary.relocation.connector.AgentManagementNodeDataResolver;
+import com.netflix.titus.supplementary.relocation.connector.NodeDataResolver;
+import org.mockito.Mockito;
 
 public abstract class AbstractTaskRelocationTest {
 
@@ -31,6 +35,7 @@ public abstract class AbstractTaskRelocationTest {
     protected final RelocationConnectorStubs relocationConnectorStubs;
 
     protected final ReadOnlyAgentOperations agentOperations;
+    protected final NodeDataResolver nodeDataResolver;
     protected final ReadOnlyJobOperations jobOperations;
 
     protected final ReadOnlyEvictionOperations evictionOperations;
@@ -42,6 +47,7 @@ public abstract class AbstractTaskRelocationTest {
         this.clock = (TestClock) titusRuntime.getClock();
 
         this.agentOperations = relocationConnectorStubs.getAgentOperations();
+        this.nodeDataResolver = new AgentManagementNodeDataResolver(agentOperations, Mockito.mock(AgentDataReplicator.class));
         this.jobOperations = relocationConnectorStubs.getJobOperations();
         this.evictionOperations = relocationConnectorStubs.getEvictionOperations();
         this.evictionServiceClient = relocationConnectorStubs.getEvictionServiceClient();

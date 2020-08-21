@@ -23,11 +23,9 @@ import java.util.Map;
 import java.util.Set;
 
 import com.google.common.base.Preconditions;
-import com.netflix.titus.api.agent.model.AgentInstance;
-import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.supplementary.relocation.util.RelocationPredicates;
+import com.netflix.titus.supplementary.relocation.connector.Node;
 import com.netflix.titus.supplementary.relocation.util.RelocationUtil;
 
 import static com.netflix.titus.common.util.CollectionsExt.copyAndRemove;
@@ -35,31 +33,28 @@ import static com.netflix.titus.common.util.CollectionsExt.transformValues;
 
 class EvacuatedAgentsAllocationTracker {
 
-    private final Map<String, AgentInstance> removableAgentsById;
-    private final Map<String, Pair<AgentInstance, List<Task>>> removableAgentsAndTasksByAgentId;
+    private final Map<String, Node> removableAgentsById;
+    private final Map<String, Pair<Node, List<Task>>> removableAgentsAndTasksByAgentId;
     private final Set<String> descheduledTasks = new HashSet<>();
-    private final Map<String, AgentInstance> agentsByTaskId;
-    private final Map<String, AgentInstance> removableAgentsByTaskId = new HashMap<>();
+    private final Map<String, Node> agentsByTaskId;
+    private final Map<String, Node> removableAgentsByTaskId = new HashMap<>();
 
-    EvacuatedAgentsAllocationTracker(ReadOnlyAgentOperations agentOperations, Map<String, Task> tasksById) {
-        this.agentsByTaskId = RelocationUtil.buildTasksToInstanceMap(agentOperations, tasksById);
+    EvacuatedAgentsAllocationTracker(Map<String, Node> nodesById, Map<String, Task> tasksById) {
+        this.agentsByTaskId = RelocationUtil.buildTasksToInstanceMap(nodesById, tasksById);
         this.removableAgentsById = new HashMap<>();
-        agentOperations.getInstanceGroups().forEach(instanceGroup ->
-                agentOperations.getAgentInstances(instanceGroup.getId()).forEach(instance -> {
-                    if ((RelocationUtil.isRemovable(instanceGroup) && !RelocationPredicates.isRelocationNotAllowed(instance))
-                            || RelocationPredicates.isRelocationRequired(instance)) {
-                        removableAgentsById.put(instance.getId(), instance);
-                    }
-                })
-        );
+        nodesById.forEach((nodeId, node) -> {
+            if ((node.isServerGroupRelocationRequired() && !node.isRelocationNotAllowed()) || node.isRelocationRequired()) {
+                removableAgentsById.put(nodeId, node);
+            }
+        });
         this.removableAgentsAndTasksByAgentId = transformValues(removableAgentsById, i -> Pair.of(i, RelocationUtil.findTasksOnInstance(i, tasksById.values())));
 
-        for (Pair<AgentInstance, List<Task>> agentTasksPair : removableAgentsAndTasksByAgentId.values()) {
+        for (Pair<Node, List<Task>> agentTasksPair : removableAgentsAndTasksByAgentId.values()) {
             agentTasksPair.getRight().forEach(task -> removableAgentsByTaskId.put(task.getId(), agentTasksPair.getLeft()));
         }
     }
 
-    Map<String, AgentInstance> getRemovableAgentsById() {
+    Map<String, Node> getRemovableAgentsById() {
         return removableAgentsById;
     }
 
@@ -68,7 +63,7 @@ class EvacuatedAgentsAllocationTracker {
     }
 
     List<Task> getTasksOnAgent(String instanceId) {
-        Pair<AgentInstance, List<Task>> pair = Preconditions.checkNotNull(
+        Pair<Node, List<Task>> pair = Preconditions.checkNotNull(
                 removableAgentsAndTasksByAgentId.get(instanceId),
                 "Agent instance not found: instanceId=%s", instanceId
         );
@@ -79,11 +74,11 @@ class EvacuatedAgentsAllocationTracker {
         return removableAgentsByTaskId.containsKey(task.getId());
     }
 
-    AgentInstance getRemovableAgent(Task task) {
+    Node getRemovableAgent(Task task) {
         return removableAgentsByTaskId.get(task.getId());
     }
 
-    AgentInstance getAgent(Task task) {
+    Node getAgent(Task task) {
         return agentsByTaskId.get(task.getId());
     }
 }
