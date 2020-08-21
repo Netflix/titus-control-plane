@@ -65,7 +65,7 @@ public class KubeUtilTest {
 
     @Test
     public void testHasFenzoSchedulerTaint() {
-        assertThat(KubeUtil.hasFenzoSchedulerTaint(newNodeWithoutZone())).isTrue();
+        assertThat(KubeUtil.hasFenzoSchedulerTaint(newNodeWithoutZone())).isFalse();
         assertThat(KubeUtil.hasFenzoSchedulerTaint(newNodeWithoutZone(TAINT_NOT_TOLERATED_TAINT))).isTrue();
         assertThat(KubeUtil.hasFenzoSchedulerTaint(newNodeWithoutZone(TAINT_SCHEDULER_FENZO))).isTrue();
         assertThat(KubeUtil.hasFenzoSchedulerTaint(newNodeWithoutZone(TAINT_NOT_TOLERATED_TAINT, TAINT_SCHEDULER_FENZO))).isTrue();
@@ -78,12 +78,9 @@ public class KubeUtilTest {
     @Test
     public void testIsNodeOwnedByFenzo() {
         assertThat(KubeUtil.isNodeOwnedByFenzo(FARZONES, newNodeInZone(FARZONE_A))).isFalse();
-        assertThat(KubeUtil.isNodeOwnedByFenzo(FARZONES, newNodeInZone(NOT_FARZONE))).isTrue();
-
-        assertThat(KubeUtil.isNodeOwnedByFenzo(FARZONES, newNodeWithoutZone())).isTrue();
-
+        assertThat(KubeUtil.isNodeOwnedByFenzo(FARZONES, newNodeInZoneWithTaints(NOT_FARZONE, TAINT_SCHEDULER_FENZO))).isTrue();
+        assertThat(KubeUtil.isNodeOwnedByFenzo(FARZONES, newNodeInZoneWithTaints(FARZONE_A, TAINT_SCHEDULER_FENZO))).isFalse();
         assertThat(KubeUtil.isNodeOwnedByFenzo(FARZONES, newNodeWithoutZone(TAINT_SCHEDULER_OTHER))).isFalse();
-
         assertThat(KubeUtil.isNodeOwnedByFenzo(FARZONES, newNodeWithoutZone(TAINT_SCHEDULER_FENZO))).isTrue();
     }
 
@@ -126,5 +123,15 @@ public class KubeUtilTest {
         return new V1Node()
                 .metadata(new V1ObjectMeta().labels(Collections.singletonMap(KubeConstants.NODE_LABEL_ZONE, zoneId)))
                 .spec(new V1NodeSpec().taints(new ArrayList<>()));
+    }
+
+    private V1Node newNodeInZoneWithTaints(String zoneId, V1Taint... taints) {
+        V1Node node = new V1Node()
+                .metadata(new V1ObjectMeta().labels(Collections.singletonMap(KubeConstants.NODE_LABEL_ZONE, zoneId)))
+                .spec(new V1NodeSpec().taints(new ArrayList<>()));
+        for (V1Taint taint : taints) {
+            node.getSpec().getTaints().add(taint);
+        }
+        return node;
     }
 }

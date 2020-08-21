@@ -279,11 +279,9 @@ public class KubeUtil {
      */
     public static boolean hasFenzoSchedulerTaint(V1Node node) {
         List<V1Taint> taints = node.getSpec().getTaints();
-        if (CollectionsExt.isNullOrEmpty(taints)) {
-            return true;
-        }
 
-        if (hasUninitializedTaint(node)) {
+        // Ignore nodes with no taints or an 'uninitialized' taint
+        if (CollectionsExt.isNullOrEmpty(taints) || hasUninitializedTaint(node)) {
             return false;
         }
 
