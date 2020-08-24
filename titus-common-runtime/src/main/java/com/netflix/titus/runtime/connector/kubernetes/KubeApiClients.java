@@ -25,8 +25,10 @@ import java.util.regex.Pattern;
 import com.google.common.base.Strings;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExecutorsExt;
+import com.netflix.titus.common.util.tuple.Either;
 import io.kubernetes.client.informer.SharedInformerFactory;
 import io.kubernetes.client.openapi.ApiClient;
+import io.kubernetes.client.openapi.apis.CoreV1Api;
 import io.kubernetes.client.util.Config;
 import okhttp3.Request;
 
@@ -84,6 +86,24 @@ public class KubeApiClients {
                         .build()
         );
         return client;
+    }
+
+    public static Either<Boolean, Throwable> checkKubeConnectivity(ApiClient apiClient) {
+        CoreV1Api coreV1Api = new CoreV1Api(apiClient);
+        try {
+            coreV1Api.getAPIResources();
+        } catch (Throwable e) {
+            return Either.ofError(e);
+        }
+        return Either.ofValue(true);
+    }
+
+    public static ApiClient mustHaveKubeConnectivity(ApiClient apiClient) {
+        Either<Boolean, Throwable> check = checkKubeConnectivity(apiClient);
+        if (check.getError() != null) {
+            throw new IllegalStateException("Kube client connectivity error", check.getError());
+        }
+        return apiClient;
     }
 
     public static SharedInformerFactory createSharedInformerFactory(String threadNamePrefix, ApiClient apiClient, TitusRuntime titusRuntime) {

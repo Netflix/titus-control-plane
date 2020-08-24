@@ -22,12 +22,15 @@ import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
 import com.netflix.titus.runtime.connector.agent.AgentDataReplicator;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
 import com.netflix.titus.supplementary.relocation.RelocationConfiguration;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Component;
 
 @Component
 public class NodeDataResolverComponent {
 
+    @Qualifier("fenzo")
     @Bean
     public AgentManagementNodeDataResolver getAgentManagementNodeDataResolver(ReadOnlyAgentOperations agentOperations,
                                                                               AgentDataReplicator agentDataReplicator,
@@ -38,6 +41,7 @@ public class NodeDataResolverComponent {
         );
     }
 
+    @Qualifier("kubeScheduler")
     @Bean
     public KubernetesNodeDataResolver getKubernetesNodeDataResolver(RelocationConfiguration configuration,
                                                                     KubeApiFacade kubeApiFacade) {
@@ -47,9 +51,10 @@ public class NodeDataResolverComponent {
         );
     }
 
+    @Primary
     @Bean
-    public NodeDataResolver getNodeDataResolver(AgentManagementNodeDataResolver agentManagementNodeDataResolver,
-                                                KubernetesNodeDataResolver kubernetesNodeDataResolver) {
+    public NodeDataResolver getNodeDataResolver(@Qualifier("fenzo") AgentManagementNodeDataResolver agentManagementNodeDataResolver,
+                                                @Qualifier("kubeScheduler") KubernetesNodeDataResolver kubernetesNodeDataResolver) {
         return new AggregatingNodeDataResolver(Arrays.asList(agentManagementNodeDataResolver, kubernetesNodeDataResolver));
     }
 }
