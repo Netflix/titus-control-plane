@@ -17,6 +17,7 @@
 package com.netflix.titus.runtime.connector.kubernetes;
 
 import java.io.IOException;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -27,6 +28,7 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExecutorsExt;
 import io.kubernetes.client.informer.SharedInformerFactory;
 import io.kubernetes.client.openapi.ApiClient;
+import io.kubernetes.client.openapi.apis.CoreV1Api;
 import io.kubernetes.client.util.Config;
 import okhttp3.Request;
 
@@ -38,6 +40,12 @@ public class KubeApiClients {
      * An AWS instance id, consists of 'i-' prefix and 17 alpha-numeric characters following it, for example: i-07d1b67286b43458e.
      */
     public static final Pattern INSTANCE_ID_PATTERN = Pattern.compile("i-(\\p{Alnum}){17}+");
+
+    public static ApiClient createApiClient(String metricsNamePrefix,
+                                            TitusRuntime titusRuntime,
+                                            long readTimeoutMs) {
+        return createApiClient(null, null, metricsNamePrefix, titusRuntime, KubeApiClients::mapUri, readTimeoutMs);
+    }
 
     public static ApiClient createApiClient(String kubeApiServerUrl,
                                             String kubeConfigPath,
@@ -59,7 +67,11 @@ public class KubeApiClients {
         ApiClient client;
         if (Strings.isNullOrEmpty(kubeApiServerUrl)) {
             try {
-                client = Config.fromConfig(kubeConfigPath);
+                if (Strings.isNullOrEmpty(kubeConfigPath)) {
+                    client = Config.defaultClient();
+                } else {
+                    client = Config.fromConfig(kubeConfigPath);
+                }
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -74,6 +86,23 @@ public class KubeApiClients {
                         .build()
         );
         return client;
+    }
+
+    public static Optional<Throwable> checkKubeConnectivity(ApiClient apiClient) {
+        CoreV1Api coreV1Api = new CoreV1Api(apiClient);
+        try {
+            coreV1Api.getAPIResources();
+        } catch (Throwable e) {
+            return Optional.of(e);
+        }
+        return Optional.empty();
+    }
+
+    public static ApiClient mustHaveKubeConnectivity(ApiClient apiClient) {
+        checkKubeConnectivity(apiClient).ifPresent(error -> {
+            throw new IllegalStateException("Kube client connectivity error", error);
+        });
+        return apiClient;
     }
 
     public static SharedInformerFactory createSharedInformerFactory(String threadNamePrefix, ApiClient apiClient, TitusRuntime titusRuntime) {

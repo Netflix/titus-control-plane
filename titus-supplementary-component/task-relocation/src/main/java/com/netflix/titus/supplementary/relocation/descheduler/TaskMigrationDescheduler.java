@@ -24,13 +24,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.supplementary.relocation.connector.Node;
 import com.netflix.titus.supplementary.relocation.model.DeschedulingFailure;
 import com.netflix.titus.supplementary.relocation.model.DeschedulingResult;
 import com.netflix.titus.supplementary.relocation.util.RelocationPredicates;
@@ -80,7 +80,7 @@ class TaskMigrationDescheduler {
         Map<String, DeschedulingResult> result = new HashMap<>();
         tasksById.values().forEach(task -> {
             Job<?> job = jobsById.get(task.getJobId());
-            AgentInstance instance = evacuatedAgentsAllocationTracker.getAgent(task);
+            Node instance = evacuatedAgentsAllocationTracker.getAgent(task);
             if (job != null && instance != null) {
                 RelocationPredicates.checkIfMustBeRelocatedImmediately(job, task, instance).ifPresent(reason -> {
                     evictionQuotaTracker.consumeQuotaNoError(job.getId());
@@ -97,7 +97,7 @@ class TaskMigrationDescheduler {
         Map<String, DeschedulingResult> result = new HashMap<>();
         tasksById.values().forEach(task -> {
             Job<?> job = jobsById.get(task.getJobId());
-            AgentInstance instance = evacuatedAgentsAllocationTracker.getAgent(task);
+            Node instance = evacuatedAgentsAllocationTracker.getAgent(task);
             if (job != null && instance != null) {
                 RelocationPredicates.checkIfRelocationRequired(job, task).ifPresent(reason -> {
                     if (evictionQuotaTracker.getSystemEvictionQuota() > 0 && canTerminate(task)) {
@@ -113,7 +113,7 @@ class TaskMigrationDescheduler {
         return result;
     }
 
-    Optional<Pair<AgentInstance, List<Task>>> nextBestMatch() {
+    Optional<Pair<Node, List<Task>>> nextBestMatch() {
         if (evictionQuotaTracker.getSystemEvictionQuota() <= 0) {
             return Optional.empty();
         }
@@ -123,7 +123,7 @@ class TaskMigrationDescheduler {
                 .filter(p -> p.getRight().getLeft() > 0)
                 .max(Comparator.comparingDouble(p -> p.getRight().getLeft()))
                 .map(p -> {
-                    AgentInstance agent = p.getLeft();
+                    Node agent = p.getLeft();
                     List<Task> tasks = p.getRight().getRight();
 
                     tasks.forEach(task -> {
@@ -142,7 +142,7 @@ class TaskMigrationDescheduler {
         if (job == null) {
             message = "No job record found";
         } else {
-            AgentInstance instance = evacuatedAgentsAllocationTracker.getAgent(task);
+            Node instance = evacuatedAgentsAllocationTracker.getAgent(task);
             Optional<String> blockedOpt = instance != null
                     ? RelocationPredicates.checkIfRelocationBlocked(job, task, instance)
                     : Optional.empty();
@@ -161,7 +161,7 @@ class TaskMigrationDescheduler {
         return DeschedulingFailure.newBuilder().withReasonMessage(message).build();
     }
 
-    private DeschedulingResult newDeschedulingResultForRequestedRelocation(long now, Task task, AgentInstance instance, String reason) {
+    private DeschedulingResult newDeschedulingResultForRequestedRelocation(long now, Task task, Node instance, String reason) {
         TaskRelocationPlan plan = TaskRelocationPlan.newBuilder()
                 .withTaskId(task.getId())
                 .withReason(TaskRelocationPlan.TaskRelocationReason.TaskMigration)
@@ -177,7 +177,7 @@ class TaskMigrationDescheduler {
                 .build();
     }
 
-    private Pair<Double, List<Task>> computeFitness(AgentInstance agent) {
+    private Pair<Double, List<Task>> computeFitness(Node agent) {
         List<Task> tasks = evacuatedAgentsAllocationTracker.getTasksOnAgent(agent.getId());
         if (tasks.isEmpty()) {
             return FITNESS_RESULT_NONE;

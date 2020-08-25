@@ -28,9 +28,6 @@ import com.netflix.spectator.api.BasicTag;
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.Registry;
 import com.netflix.spectator.api.Tag;
-import com.netflix.titus.api.agent.model.AgentInstance;
-import com.netflix.titus.api.agent.model.AgentInstanceGroup;
-import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
@@ -38,6 +35,8 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.supplementary.relocation.RelocationMetrics;
+import com.netflix.titus.supplementary.relocation.connector.Node;
+import com.netflix.titus.supplementary.relocation.connector.NodeDataResolver;
 import com.netflix.titus.supplementary.relocation.util.RelocationPredicates;
 import com.netflix.titus.supplementary.relocation.util.RelocationPredicates.RelocationTrigger;
 import com.netflix.titus.supplementary.relocation.util.RelocationUtil;
@@ -50,22 +49,23 @@ public class RelocationMetricsStep {
     private static final String JOB_REMAINING_RELOCATION_METRICS = RelocationMetrics.METRIC_ROOT + "jobs";
     private static final String TASK_REMAINING_RELOCATION_METRICS = RelocationMetrics.METRIC_ROOT + "tasks";
 
-    private final ReadOnlyAgentOperations agentOperations;
+    private final NodeDataResolver nodeDataResolver;
     private final ReadOnlyJobOperations jobOperations;
     private final Registry registry;
 
     private final Map<String, JobMetrics> metrics = new HashMap<>();
 
-    public RelocationMetricsStep(ReadOnlyAgentOperations agentOperations,
+    public RelocationMetricsStep(NodeDataResolver nodeDataResolver,
                                  ReadOnlyJobOperations jobOperations,
                                  TitusRuntime titusRuntime) {
-        this.agentOperations = agentOperations;
+        this.nodeDataResolver = nodeDataResolver;
         this.jobOperations = jobOperations;
         this.registry = titusRuntime.getRegistry();
     }
 
     public void updateMetrics() {
-        Map<String, AgentInstance> taskToInstanceMap = RelocationUtil.buildTasksToInstanceMap(agentOperations, jobOperations);
+        Map<String, Node> nodes = nodeDataResolver.resolve();
+        Map<String, Node> taskToInstanceMap = RelocationUtil.buildTasksToInstanceMap(nodes, jobOperations);
 
         Set<String> jobIds = new HashSet<>();
         jobOperations.getJobsAndTasks().forEach(jobAndTask -> {
@@ -109,14 +109,14 @@ public class RelocationMetricsStep {
             return job;
         }
 
-        void update(Job<?> latestJob, List<Task> latestTasks, Map<String, AgentInstance> taskToInstanceMap) {
+        void update(Job<?> latestJob, List<Task> latestTasks, Map<String, Node> taskToInstanceMap) {
             this.job = latestJob;
             this.tasks = latestTasks;
 
             updateJobWithDisruptionBudget(taskToInstanceMap);
         }
 
-        private void updateJobWithDisruptionBudget(Map<String, AgentInstance> taskToInstanceMap) {
+        private void updateJobWithDisruptionBudget(Map<String, Node> taskToInstanceMap) {
             if (tasks.isEmpty()) {
                 remove();
             } else {
@@ -124,7 +124,7 @@ public class RelocationMetricsStep {
             }
         }
 
-        private void updateTasks(Map<String, AgentInstance> taskToInstanceMap) {
+        private void updateTasks(Map<String, Node> taskToInstanceMap) {
             int noRelocation = 0;
             int evacuatedAgentMatches = 0;
             int jobRelocationRequestMatches = 0;
@@ -132,14 +132,13 @@ public class RelocationMetricsStep {
             int taskRelocationUnrecognized = 0;
 
             for (Task task : tasks) {
-                AgentInstance instance = taskToInstanceMap.get(task.getId());
-                AgentInstanceGroup instanceGroup = getInstanceGroupOf(instance);
-                if (instance == null || instanceGroup == null) {
+                Node instance = taskToInstanceMap.get(task.getId());
+                if (instance == null) {
                     noRelocation++;
                 } else {
                     RelocationTrigger trigger = Evaluators
                             .firstPresent(
-                                    () -> RelocationPredicates.isRelocationRequired(instanceGroup) ? Optional.of(RelocationTrigger.InstanceGroup) : Optional.empty(),
+                                    () -> instance.isServerGroupRelocationRequired() ? Optional.of(RelocationTrigger.InstanceGroup) : Optional.empty(),
                                     () -> RelocationPredicates.checkIfMustBeRelocatedImmediately(job, task, instance).map(Pair::getLeft),
                                     () -> RelocationPredicates.checkIfRelocationRequired(job, task, instance).map(Pair::getLeft)
                             )
@@ -216,10 +215,6 @@ public class RelocationMetricsStep {
 
         void remove() {
             update(0, 0, 0, 0, 0);
-        }
-
-        private AgentInstanceGroup getInstanceGroupOf(AgentInstance instance) {
-            return instance == null ? null : agentOperations.findInstanceGroup(instance.getInstanceGroupId()).orElse(null);
         }
     }
 }

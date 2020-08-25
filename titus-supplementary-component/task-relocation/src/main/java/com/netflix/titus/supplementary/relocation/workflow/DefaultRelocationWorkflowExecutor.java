@@ -29,7 +29,6 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.google.common.base.Stopwatch;
-import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.api.relocation.model.TaskRelocationStatus;
@@ -42,11 +41,11 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.IOExt;
 import com.netflix.titus.common.util.retry.Retryers;
 import com.netflix.titus.common.util.rx.ReactorExt;
-import com.netflix.titus.runtime.connector.agent.AgentDataReplicator;
 import com.netflix.titus.runtime.connector.eviction.EvictionDataReplicator;
 import com.netflix.titus.runtime.connector.eviction.EvictionServiceClient;
 import com.netflix.titus.runtime.connector.jobmanager.JobDataReplicator;
 import com.netflix.titus.supplementary.relocation.RelocationConfiguration;
+import com.netflix.titus.supplementary.relocation.connector.NodeDataResolver;
 import com.netflix.titus.supplementary.relocation.descheduler.DeschedulerService;
 import com.netflix.titus.supplementary.relocation.model.DeschedulingResult;
 import com.netflix.titus.supplementary.relocation.store.TaskRelocationResultStore;
@@ -78,7 +77,7 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
 
     private final RelocationConfiguration configuration;
 
-    private final AgentDataReplicator agentDataReplicator;
+    private final NodeDataResolver nodeDataResolver;
     private final JobDataReplicator jobDataReplicator;
 
     private final EvictionDataReplicator evictionDataReplicator;
@@ -104,8 +103,7 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
 
     @Inject
     public DefaultRelocationWorkflowExecutor(RelocationConfiguration configuration,
-                                             AgentDataReplicator agentDataReplicator,
-                                             ReadOnlyAgentOperations agentOperations,
+                                             NodeDataResolver nodeDataResolver,
                                              JobDataReplicator jobDataReplicator,
                                              ReadOnlyJobOperations jobOperations,
                                              EvictionDataReplicator evictionDataReplicator,
@@ -115,7 +113,7 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
                                              TaskRelocationResultStore archiveStore,
                                              TitusRuntime titusRuntime) {
         this.configuration = configuration;
-        this.agentDataReplicator = agentDataReplicator;
+        this.nodeDataResolver = nodeDataResolver;
         this.jobDataReplicator = jobDataReplicator;
         this.evictionDataReplicator = evictionDataReplicator;
         this.metrics = new WorkflowMetrics(titusRuntime);
@@ -126,8 +124,8 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
         ensureReplicatorsReady();
 
         RelocationTransactionLogger transactionLog = new RelocationTransactionLogger(jobOperations);
-        this.relocationMetricsStep = new RelocationMetricsStep(agentOperations, jobOperations, titusRuntime);
-        this.mustBeRelocatedSelfManagedTaskCollectorStep = new MustBeRelocatedSelfManagedTaskCollectorStep(agentOperations, jobOperations, titusRuntime);
+        this.relocationMetricsStep = new RelocationMetricsStep(nodeDataResolver, jobOperations, titusRuntime);
+        this.mustBeRelocatedSelfManagedTaskCollectorStep = new MustBeRelocatedSelfManagedTaskCollectorStep(nodeDataResolver, jobOperations, titusRuntime);
         this.mustBeRelocatedTaskStoreUpdateStep = new MustBeRelocatedTaskStoreUpdateStep(configuration, activeStore, transactionLog, titusRuntime);
         this.deschedulerStep = new DeschedulerStep(deschedulerService, transactionLog, titusRuntime);
         this.taskEvictionStep = new TaskEvictionStep(evictionServiceClient, titusRuntime, transactionLog, Schedulers.parallel());
@@ -164,7 +162,7 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
         boolean jobsReady = false;
         boolean evictionsReady = false;
         while (!(agentsReady && jobsReady && evictionsReady)) {
-            agentsReady = agentsReady || agentDataReplicator.getStalenessMs() < STALENESS_THRESHOLD_MS;
+            agentsReady = agentsReady || nodeDataResolver.getStalenessMs() < STALENESS_THRESHOLD_MS;
             jobsReady = jobsReady || jobDataReplicator.getStalenessMs() < STALENESS_THRESHOLD_MS;
             evictionsReady = evictionsReady || evictionDataReplicator.getStalenessMs() < STALENESS_THRESHOLD_MS;
 
@@ -279,6 +277,6 @@ public class DefaultRelocationWorkflowExecutor implements RelocationWorkflowExec
     }
 
     private long getDataStalenessMs() {
-        return Math.max(agentDataReplicator.getStalenessMs(), Math.max(jobDataReplicator.getStalenessMs(), evictionDataReplicator.getStalenessMs()));
+        return Math.max(nodeDataResolver.getStalenessMs(), Math.max(jobDataReplicator.getStalenessMs(), evictionDataReplicator.getStalenessMs()));
     }
 }

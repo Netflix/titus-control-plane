@@ -42,7 +42,7 @@ import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.master.mesos.kubeapiserver.ContainerResultCodeResolver;
-import com.netflix.titus.master.mesos.kubeapiserver.KubeConstants;
+import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeJobManagementReconciler;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeApiServerIntegrator;
@@ -65,7 +65,7 @@ import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_OP
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_NORMAL;
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TASK_KILLED;
 import static com.netflix.titus.common.util.Evaluators.acceptNotNull;
-import static com.netflix.titus.master.mesos.kubeapiserver.KubeConstants.TITUS_NODE_DOMAIN;
+import static com.netflix.titus.runtime.kubernetes.KubeConstants.TITUS_NODE_DOMAIN;
 
 /**
  * TODO Incorporate this into {@link DefaultV3JobOperations} once Fenzo is removed.

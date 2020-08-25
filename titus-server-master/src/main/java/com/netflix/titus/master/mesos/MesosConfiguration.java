@@ -20,7 +20,7 @@ import java.util.Set;
 
 import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
-import com.netflix.titus.master.mesos.kubeapiserver.KubeConstants;
+import com.netflix.titus.runtime.kubernetes.KubeConstants;
 
 @Configuration(prefix = "titus.mesos")
 public interface MesosConfiguration {

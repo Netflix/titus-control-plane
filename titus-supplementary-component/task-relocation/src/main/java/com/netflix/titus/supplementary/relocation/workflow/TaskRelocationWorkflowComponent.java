@@ -16,15 +16,14 @@
 
 package com.netflix.titus.supplementary.relocation.workflow;
 
-import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.archaius2.Archaius2Ext;
-import com.netflix.titus.runtime.connector.agent.AgentDataReplicator;
 import com.netflix.titus.runtime.connector.eviction.EvictionDataReplicator;
 import com.netflix.titus.runtime.connector.eviction.EvictionServiceClient;
 import com.netflix.titus.runtime.connector.jobmanager.JobDataReplicator;
 import com.netflix.titus.supplementary.relocation.RelocationConfiguration;
+import com.netflix.titus.supplementary.relocation.connector.NodeDataResolver;
 import com.netflix.titus.supplementary.relocation.descheduler.DeschedulerService;
 import com.netflix.titus.supplementary.relocation.store.TaskRelocationResultStore;
 import com.netflix.titus.supplementary.relocation.store.TaskRelocationStore;
@@ -42,8 +41,7 @@ public class TaskRelocationWorkflowComponent {
 
     @Bean
     public RelocationWorkflowExecutor getRelocationWorkflowExecutor(RelocationConfiguration configuration,
-                                                                    AgentDataReplicator agentDataReplicator,
-                                                                    ReadOnlyAgentOperations agentOperations,
+                                                                    NodeDataResolver nodeDataResolver,
                                                                     JobDataReplicator jobDataReplicator,
                                                                     ReadOnlyJobOperations jobOperations,
                                                                     EvictionDataReplicator evictionDataReplicator,
@@ -54,8 +52,7 @@ public class TaskRelocationWorkflowComponent {
                                                                     TitusRuntime titusRuntime) {
         return new DefaultRelocationWorkflowExecutor(
                 configuration,
-                agentDataReplicator,
-                agentOperations,
+                nodeDataResolver,
                 jobDataReplicator,
                 jobOperations,
                 evictionDataReplicator,

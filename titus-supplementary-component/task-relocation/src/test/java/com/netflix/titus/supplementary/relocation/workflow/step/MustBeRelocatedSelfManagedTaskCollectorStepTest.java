@@ -23,10 +23,10 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
+import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import com.netflix.titus.common.util.time.TestClock;
 import com.netflix.titus.supplementary.relocation.AbstractTaskRelocationTest;
 import com.netflix.titus.supplementary.relocation.TestDataFactory;
-import com.netflix.titus.api.relocation.model.TaskRelocationPlan;
 import org.junit.Test;
 
 import static com.netflix.titus.supplementary.relocation.TestDataFactory.newSelfManagedDisruptionBudget;
@@ -38,7 +38,7 @@ public class MustBeRelocatedSelfManagedTaskCollectorStepTest extends AbstractTas
 
     public MustBeRelocatedSelfManagedTaskCollectorStepTest() {
         super(TestDataFactory.activeRemovableSetup());
-        this.step = new MustBeRelocatedSelfManagedTaskCollectorStep(agentOperations, jobOperations, titusRuntime);
+        this.step = new MustBeRelocatedSelfManagedTaskCollectorStep(nodeDataResolver, jobOperations, titusRuntime);
     }
 
     @Test
@@ -72,7 +72,7 @@ public class MustBeRelocatedSelfManagedTaskCollectorStepTest extends AbstractTas
         assertThat(firstResult).hasSize(1);
         TaskRelocationPlan first = firstResult.get(task.getId());
 
-        ((TestClock)titusRuntime.getClock()).advanceTime(1, TimeUnit.SECONDS);
+        ((TestClock) titusRuntime.getClock()).advanceTime(1, TimeUnit.SECONDS);
 
         Map<String, TaskRelocationPlan> secondResult = step.collectTasksThatMustBeRelocated();
         assertThat(secondResult).hasSize(1);

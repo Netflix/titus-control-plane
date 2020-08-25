@@ -23,7 +23,6 @@ import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
-import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBudget;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.api.model.Tier;
@@ -33,16 +32,18 @@ import com.netflix.titus.common.data.generator.MutableDataGenerator;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.time.TestClock;
+import com.netflix.titus.runtime.connector.agent.AgentDataReplicator;
 import com.netflix.titus.supplementary.relocation.RelocationAttributes;
 import com.netflix.titus.supplementary.relocation.RelocationConnectorStubs;
+import com.netflix.titus.supplementary.relocation.connector.AgentManagementNodeDataResolver;
 import com.netflix.titus.supplementary.relocation.model.DeschedulingResult;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import static com.netflix.titus.api.agent.model.AgentFunctions.withId;
 import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.ofServiceSize;
 import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.withDisruptionBudget;
-import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.withJobDisruptionBudget;
 import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.withJobId;
 import static com.netflix.titus.testkit.model.agent.AgentGenerator.agentServerGroups;
 import static com.netflix.titus.testkit.model.agent.AgentTestFunctions.inState;
@@ -76,10 +77,12 @@ public class DefaultDeschedulerServiceTest {
 
     private final ReadOnlyJobOperations jobOperations = dataGenerator.getJobOperations();
 
+    private final AgentDataReplicator agentDataReplicator = Mockito.mock(AgentDataReplicator.class);
+
     private final DefaultDeschedulerService deschedulerService = new DefaultDeschedulerService(
             dataGenerator.getJobOperations(),
             dataGenerator.getEvictionOperations(),
-            dataGenerator.getAgentOperations(),
+            new AgentManagementNodeDataResolver(dataGenerator.getAgentOperations(), agentDataReplicator, instance -> true),
             titusRuntime
     );
 
@@ -104,9 +107,9 @@ public class DefaultDeschedulerServiceTest {
         for (DeschedulingResult result : results) {
             boolean isImmediateJobMigration = result.getTask().getId().equals(taskImmediate.getId());
             if (isImmediateJobMigration) {
-                assertThat(result.getAgentInstance().getInstanceGroupId()).isEqualTo("active1");
+                assertThat(result.getAgentInstance().getServerGroupId()).isEqualTo("active1");
             } else {
-                assertThat(result.getAgentInstance().getInstanceGroupId()).isEqualTo("removable1");
+                assertThat(result.getAgentInstance().getServerGroupId()).isEqualTo("removable1");
             }
             TaskRelocationPlan plan = result.getTaskRelocationPlan();
             assertThat(plan.getReason()).isEqualTo(TaskRelocationReason.TaskMigration);

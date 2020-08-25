@@ -25,8 +25,6 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.netflix.titus.api.agent.model.AgentInstance;
-import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
 import com.netflix.titus.api.eviction.service.ReadOnlyEvictionOperations;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
@@ -37,6 +35,8 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.supplementary.relocation.connector.Node;
+import com.netflix.titus.supplementary.relocation.connector.NodeDataResolver;
 import com.netflix.titus.supplementary.relocation.model.DeschedulingFailure;
 import com.netflix.titus.supplementary.relocation.model.DeschedulingResult;
 
@@ -48,7 +48,7 @@ public class DefaultDeschedulerService implements DeschedulerService {
 
     private final ReadOnlyJobOperations jobOperations;
     private final ReadOnlyEvictionOperations evictionOperations;
-    private final ReadOnlyAgentOperations agentOperations;
+    private final NodeDataResolver nodeDataResolver;
 
     private final TitusRuntime titusRuntime;
     private final Clock clock;
@@ -56,11 +56,11 @@ public class DefaultDeschedulerService implements DeschedulerService {
     @Inject
     public DefaultDeschedulerService(ReadOnlyJobOperations jobOperations,
                                      ReadOnlyEvictionOperations evictionOperations,
-                                     ReadOnlyAgentOperations agentOperations,
+                                     NodeDataResolver nodeDataResolver,
                                      TitusRuntime titusRuntime) {
         this.jobOperations = jobOperations;
         this.evictionOperations = evictionOperations;
-        this.agentOperations = agentOperations;
+        this.nodeDataResolver = nodeDataResolver;
         this.clock = titusRuntime.getClock();
         this.titusRuntime = titusRuntime;
     }
@@ -73,7 +73,7 @@ public class DefaultDeschedulerService implements DeschedulerService {
                 .flatMap(p -> p.getRight().stream())
                 .collect(Collectors.toMap(Task::getId, t -> t));
 
-        EvacuatedAgentsAllocationTracker evacuatedAgentsAllocationTracker = new EvacuatedAgentsAllocationTracker(agentOperations, tasksById);
+        EvacuatedAgentsAllocationTracker evacuatedAgentsAllocationTracker = new EvacuatedAgentsAllocationTracker(nodeDataResolver.resolve(), tasksById);
         EvictionQuotaTracker evictionQuotaTracker = new EvictionQuotaTracker(evictionOperations, jobs);
 
         TaskMigrationDescheduler taskMigrationDescheduler = new TaskMigrationDescheduler(
@@ -85,9 +85,9 @@ public class DefaultDeschedulerService implements DeschedulerService {
         Map<String, DeschedulingResult> allRequestedEvictions = CollectionsExt.merge(requestedImmediateEvictions, requestedEvictions);
 
         Map<String, DeschedulingResult> regularEvictions = new HashMap<>();
-        Optional<Pair<AgentInstance, List<Task>>> bestMatch;
+        Optional<Pair<Node, List<Task>>> bestMatch;
         while ((bestMatch = taskMigrationDescheduler.nextBestMatch()).isPresent()) {
-            AgentInstance agent = bestMatch.get().getLeft();
+            Node agent = bestMatch.get().getLeft();
             List<Task> tasks = bestMatch.get().getRight();
             tasks.forEach(task -> {
                 if (!allRequestedEvictions.containsKey(task.getId())) {
@@ -121,7 +121,7 @@ public class DefaultDeschedulerService implements DeschedulerService {
                     relocationPlan = newNotDelayedRelocationPlan(task, false);
                 }
 
-                AgentInstance agent = evacuatedAgentsAllocationTracker.getRemovableAgent(task);
+                Node agent = evacuatedAgentsAllocationTracker.getRemovableAgent(task);
                 regularEvictions.put(
                         task.getId(),
                         DeschedulingResult.newBuilder()

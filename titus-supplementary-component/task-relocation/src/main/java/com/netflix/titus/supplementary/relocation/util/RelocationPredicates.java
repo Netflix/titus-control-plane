@@ -19,9 +19,6 @@ package com.netflix.titus.supplementary.relocation.util;
 import java.util.Map;
 import java.util.Optional;
 
-import com.netflix.titus.api.agent.model.AgentInstance;
-import com.netflix.titus.api.agent.model.AgentInstanceGroup;
-import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
@@ -31,6 +28,7 @@ import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.SelfManagedDi
 import com.netflix.titus.common.util.DateTimeExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.supplementary.relocation.RelocationAttributes;
+import com.netflix.titus.supplementary.relocation.connector.Node;
 
 import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.hasDisruptionBudget;
 
@@ -43,21 +41,18 @@ public class RelocationPredicates {
         Task
     }
 
-    public static Optional<String> checkIfNeedsRelocationPlan(Job<?> job,
-                                                              Task task,
-                                                              AgentInstanceGroup instanceGroup,
-                                                              AgentInstance instance) {
+    public static Optional<String> checkIfNeedsRelocationPlan(Job<?> job, Task task, Node instance) {
         if (!hasDisruptionBudget(job) || !isSelfManaged(job)) {
             return Optional.empty();
         }
 
-        if (isRelocationNotAllowed(job) || isRelocationNotAllowed(task) || isRelocationNotAllowed(instance)) {
+        if (isRelocationNotAllowed(job) || isRelocationNotAllowed(task) || instance.isRelocationNotAllowed()) {
             return Optional.empty();
         }
 
         // As the relocation must be done immediately, there is no point in persisting the plan. The task will be
         // evicted in this iteration.
-        if (isRelocationRequiredImmediately(instance) || isRelocationRequiredImmediately(task) || isRelocationRequiredByImmediately(job, task)) {
+        if (instance.isRelocationRequiredImmediately() || isRelocationRequiredImmediately(task) || isRelocationRequiredByImmediately(job, task)) {
             return Optional.empty();
         }
 
@@ -73,19 +68,19 @@ public class RelocationPredicates {
             }
         }
 
-        if (isRelocationRequired(instance)) {
+        if (instance.isRelocationRequired()) {
             return Optional.of("Agent instance tagged for eviction");
         }
 
-        if (instanceGroup.getLifecycleStatus().getState() == InstanceGroupLifecycleState.Removable) {
+        if (instance.isServerGroupRelocationRequired()) {
             return Optional.of("Agent instance group tagged for eviction");
         }
 
         return Optional.empty();
     }
 
-    public static Optional<Pair<RelocationTrigger, String>> checkIfMustBeRelocatedImmediately(Job<?> job, Task task, AgentInstance instance) {
-        if (isRelocationRequiredImmediately(instance)) {
+    public static Optional<Pair<RelocationTrigger, String>> checkIfMustBeRelocatedImmediately(Job<?> job, Task task, Node instance) {
+        if (instance.isRelocationRequiredImmediately()) {
             return Optional.of(Pair.of(RelocationTrigger.Instance, "Agent instance tagged for immediate eviction"));
         }
 
@@ -113,41 +108,24 @@ public class RelocationPredicates {
         return Optional.empty();
     }
 
-    public static Optional<Pair<RelocationTrigger, String>> checkIfRelocationRequired(Job<?> job, Task task, AgentInstance instance) {
-        if (isRelocationRequired(instance)) {
+    public static Optional<Pair<RelocationTrigger, String>> checkIfRelocationRequired(Job<?> job, Task task, Node instance) {
+        if (instance.isRelocationRequired()) {
             return Optional.of(Pair.of(RelocationTrigger.Instance, "Agent tagged for eviction"));
         }
         return checkIfRelocationRequired(job, task);
     }
 
-    public static Optional<String> checkIfRelocationBlocked(Job<?> job, Task task, AgentInstance instance) {
+    public static Optional<String> checkIfRelocationBlocked(Job<?> job, Task task, Node instance) {
         if (isRelocationNotAllowed(task)) {
             return Optional.of("Task marked as not evictable");
         }
         if (isRelocationNotAllowed(job)) {
             return Optional.of("Job marked as not evictable");
         }
-        if (isRelocationNotAllowed(instance)) {
+        if (instance.isRelocationNotAllowed()) {
             return Optional.of("Agent marked as not evictable");
         }
         return Optional.empty();
-    }
-
-    public static boolean isRelocationRequired(AgentInstance agentInstance) {
-        return checkRelocationAttribute(agentInstance.getAttributes());
-    }
-
-    /**
-     * Please, note that {@link RelocationAttributes#RELOCATION_REQUIRED} is not supported at the instance group level.
-     */
-    public static boolean isRelocationRequired(AgentInstanceGroup instanceGroup) {
-        return instanceGroup.getLifecycleStatus().getState() == InstanceGroupLifecycleState.Removable;
-    }
-
-    private static boolean isRelocationRequiredImmediately(AgentInstance agentInstance) {
-        return agentInstance.getAttributes()
-                .getOrDefault(RelocationAttributes.RELOCATION_REQUIRED_IMMEDIATELY, "false")
-                .equalsIgnoreCase("true");
     }
 
     private static boolean isRelocationRequired(Task task) {
@@ -166,12 +144,6 @@ public class RelocationPredicates {
 
     private static boolean isRelocationRequiredBy(Job<?> job, Task task) {
         return getJobTimestamp(job, RelocationAttributes.RELOCATION_REQUIRED_BY) >= getTaskCreateTimestamp(task);
-    }
-
-    public static boolean isRelocationNotAllowed(AgentInstance agentInstance) {
-        return agentInstance.getAttributes()
-                .getOrDefault(RelocationAttributes.RELOCATION_NOT_ALLOWED, "false")
-                .equalsIgnoreCase("true");
     }
 
     private static boolean isRelocationNotAllowed(Job<?> job) {
