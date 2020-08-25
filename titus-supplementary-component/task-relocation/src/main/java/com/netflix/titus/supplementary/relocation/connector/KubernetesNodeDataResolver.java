@@ -68,39 +68,39 @@ public class KubernetesNodeDataResolver implements NodeDataResolver {
 
     @Override
     public Map<String, Node> resolve() {
-        List<V1Node> k8Nodes = nodeInformer.getIndexer().list().stream().filter(nodeFilter).collect(Collectors.toList());
+        List<V1Node> k8sNodes = nodeInformer.getIndexer().list().stream().filter(nodeFilter).collect(Collectors.toList());
         Map<String, Node> result = new HashMap<>();
-        k8Nodes.forEach(k8Node -> toReconcilerNode(k8Node).ifPresent(node -> result.put(node.getId(), node)));
+        k8sNodes.forEach(k8Node -> toReconcilerNode(k8Node).ifPresent(node -> result.put(node.getId(), node)));
         return result;
     }
 
-    private Optional<Node> toReconcilerNode(V1Node k8Node) {
-        if (k8Node.getMetadata() == null
-                || k8Node.getMetadata().getName() == null
-                || k8Node.getMetadata().getLabels() == null
-                || k8Node.getSpec() == null
-                || k8Node.getSpec().getTaints() == null) {
+    private Optional<Node> toReconcilerNode(V1Node k8sNode) {
+        if (k8sNode.getMetadata() == null
+                || k8sNode.getMetadata().getName() == null
+                || k8sNode.getMetadata().getLabels() == null
+                || k8sNode.getSpec() == null
+                || k8sNode.getSpec().getTaints() == null) {
             return Optional.empty();
         }
 
-        Map<String, String> k8Labels = k8Node.getMetadata().getLabels();
+        Map<String, String> k8sLabels = k8sNode.getMetadata().getLabels();
 
-        String serverGroupId = k8Labels.get(NODE_LABEL_MACHINE_GROUP);
+        String serverGroupId = k8sLabels.get(NODE_LABEL_MACHINE_GROUP);
         if (serverGroupId == null) {
             return Optional.empty();
         }
 
         Node node = Node.newBuilder()
-                .withId(k8Node.getMetadata().getName())
+                .withId(k8sNode.getMetadata().getName())
                 .withServerGroupId(serverGroupId)
-                .withRelocationRequired(anyNoExecuteMatch(k8Node, relocationRequiredTaintsMatcher))
-                .withRelocationRequiredImmediately(anyNoExecuteMatch(k8Node, relocationRequiredImmediatelyTaintsMatcher))
+                .withRelocationRequired(anyNoExecuteMatch(k8sNode, relocationRequiredTaintsMatcher))
+                .withRelocationRequiredImmediately(anyNoExecuteMatch(k8sNode, relocationRequiredImmediatelyTaintsMatcher))
                 .build();
         return Optional.of(node);
     }
 
-    private boolean anyNoExecuteMatch(V1Node k8Node, Function<String, Matcher> taintsMatcher) {
-        return k8Node.getSpec().getTaints().stream().anyMatch(taint ->
+    private boolean anyNoExecuteMatch(V1Node k8sNode, Function<String, Matcher> taintsMatcher) {
+        return k8sNode.getSpec().getTaints().stream().anyMatch(taint ->
                 TAINT_EFFECT_NO_EXECUTE.equals(taint.getEffect()) && taintsMatcher.apply(taint.getKey()).matches()
         );
     }

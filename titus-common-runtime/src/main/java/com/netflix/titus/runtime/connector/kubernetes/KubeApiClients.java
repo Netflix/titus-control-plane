@@ -17,6 +17,7 @@
 package com.netflix.titus.runtime.connector.kubernetes;
 
 import java.io.IOException;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -25,7 +26,6 @@ import java.util.regex.Pattern;
 import com.google.common.base.Strings;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.ExecutorsExt;
-import com.netflix.titus.common.util.tuple.Either;
 import io.kubernetes.client.informer.SharedInformerFactory;
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
@@ -88,21 +88,20 @@ public class KubeApiClients {
         return client;
     }
 
-    public static Either<Boolean, Throwable> checkKubeConnectivity(ApiClient apiClient) {
+    public static Optional<Throwable> checkKubeConnectivity(ApiClient apiClient) {
         CoreV1Api coreV1Api = new CoreV1Api(apiClient);
         try {
             coreV1Api.getAPIResources();
         } catch (Throwable e) {
-            return Either.ofError(e);
+            return Optional.of(e);
         }
-        return Either.ofValue(true);
+        return Optional.empty();
     }
 
     public static ApiClient mustHaveKubeConnectivity(ApiClient apiClient) {
-        Either<Boolean, Throwable> check = checkKubeConnectivity(apiClient);
-        if (check.getError() != null) {
-            throw new IllegalStateException("Kube client connectivity error", check.getError());
-        }
+        checkKubeConnectivity(apiClient).ifPresent(error -> {
+            throw new IllegalStateException("Kube client connectivity error", error);
+        });
         return apiClient;
     }
 

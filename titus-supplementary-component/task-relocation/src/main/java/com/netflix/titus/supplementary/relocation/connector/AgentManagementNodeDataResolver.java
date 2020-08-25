@@ -63,17 +63,15 @@ public class AgentManagementNodeDataResolver implements NodeDataResolver {
     }
 
     private Node toNode(AgentInstanceGroup serverGroup, AgentInstance instance) {
-        boolean relocationRequired = instance.getAttributes()
-                .getOrDefault(RelocationAttributes.RELOCATION_REQUIRED, "false")
-                .equalsIgnoreCase("true");
-
-        boolean relocationRequiredImmediately = instance.getAttributes()
-                .getOrDefault(RelocationAttributes.RELOCATION_REQUIRED_IMMEDIATELY, "false")
-                .equalsIgnoreCase("true");
-
-        boolean relocationNodeAllowed = instance.getAttributes()
-                .getOrDefault(RelocationAttributes.RELOCATION_NOT_ALLOWED, "false")
-                .equalsIgnoreCase("true");
+        boolean relocationRequired = Boolean.parseBoolean(
+                instance.getAttributes().get(RelocationAttributes.RELOCATION_REQUIRED)
+        );
+        boolean relocationRequiredImmediately = Boolean.parseBoolean(
+                instance.getAttributes().get(RelocationAttributes.RELOCATION_REQUIRED_IMMEDIATELY)
+        );
+        boolean relocationNotAllowed = Boolean.parseBoolean(
+                instance.getAttributes().get(RelocationAttributes.RELOCATION_NOT_ALLOWED)
+        );
 
         boolean serverGroupRelocationRequired = serverGroup.getLifecycleStatus().getState() == InstanceGroupLifecycleState.Removable;
 
@@ -82,7 +80,7 @@ public class AgentManagementNodeDataResolver implements NodeDataResolver {
                 .withServerGroupId(serverGroup.getId())
                 .withRelocationRequired(relocationRequired)
                 .withRelocationRequiredImmediately(relocationRequiredImmediately)
-                .withRelocationNotAllowed(relocationNodeAllowed)
+                .withRelocationNotAllowed(relocationNotAllowed)
                 .withServerGroupRelocationRequired(serverGroupRelocationRequired)
                 .build();
     }
