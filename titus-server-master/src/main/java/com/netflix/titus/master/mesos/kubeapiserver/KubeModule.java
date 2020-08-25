@@ -16,6 +16,7 @@
 
 package com.netflix.titus.master.mesos.kubeapiserver;
 
+import java.util.Arrays;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
@@ -24,15 +25,13 @@ import com.google.inject.Injector;
 import com.google.inject.Provides;
 import com.google.inject.name.Names;
 import com.netflix.archaius.ConfigProxyFactory;
+import com.netflix.archaius.api.Config;
 import com.netflix.titus.api.FeatureActivationConfiguration;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.limiter.tokenbucket.FixedIntervalTokenBucketConfiguration;
 import com.netflix.titus.master.mesos.MesosConfiguration;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.mesos.kubeapiserver.client.JobControllerKubeApiFacade;
-import com.netflix.titus.runtime.connector.kubernetes.KubeApiClients;
-import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
-import com.netflix.titus.runtime.connector.kubernetes.NoOpKubeApiFacade;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DefaultDirectKubeApiServerIntegrator;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DefaultPodAffinityFactory;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DefaultTaskToPodConverter;
@@ -41,8 +40,17 @@ import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeConfigurati
 import com.netflix.titus.master.mesos.kubeapiserver.direct.NoOpDirectKubeApiServerIntegrator;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.PodAffinityFactory;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.TaskToPodConverter;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.resourcepool.CapacityGroupPodResourcePoolResolver;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.resourcepool.ExplicitJobPodResourcePoolResolver;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.resourcepool.PodResourcePoolResolver;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.resourcepool.PodResourcePoolResolverChain;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.resourcepool.TierPodResourcePoolResolver;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.taint.DefaultTaintTolerationFactory;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.taint.TaintTolerationFactory;
+import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
+import com.netflix.titus.runtime.connector.kubernetes.KubeApiClients;
+import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
+import com.netflix.titus.runtime.connector.kubernetes.NoOpKubeApiFacade;
 import io.kubernetes.client.openapi.ApiClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,6 +62,8 @@ public class KubeModule extends AbstractModule {
     private static final Logger logger = LoggerFactory.getLogger(KubeModule.class);
 
     public static final String MESOS_KUBE_ADAPTER = "mesosKubeAdapter";
+
+    private static final String RESOURCE_POOL_PROPERTIES_PREFIX = "titus.resourcePools";
 
     @Override
     protected void configure() {
@@ -79,6 +89,24 @@ public class KubeModule extends AbstractModule {
 
     @Provides
     @Singleton
+    public PodResourcePoolResolver getPodResourcePoolResolver(DirectKubeConfiguration configuration,
+                                                              Config config,
+                                                              ApplicationSlaManagementService capacityGroupService,
+                                                              TitusRuntime titusRuntime) {
+        return new PodResourcePoolResolverChain(Arrays.asList(
+                new ExplicitJobPodResourcePoolResolver(),
+                new CapacityGroupPodResourcePoolResolver(
+                        configuration,
+                        config.getPrefixedView(RESOURCE_POOL_PROPERTIES_PREFIX),
+                        capacityGroupService,
+                        titusRuntime
+                ),
+                new TierPodResourcePoolResolver(capacityGroupService)
+        ));
+    }
+
+    @Provides
+    @Singleton
     public ApiClient getKubeApiClient(MesosConfiguration configuration, TitusRuntime titusRuntime) {
         return KubeApiClients.createApiClient(
                 configuration.getKubeApiServerUrl(),
@@ -92,7 +120,7 @@ public class KubeModule extends AbstractModule {
     @Provides
     @Singleton
     public KubeApiFacade getKubeApiFacade(MesosConfiguration mesosConfiguration, Injector injector) {
-        if(mesosConfiguration.isKubeApiServerIntegrationEnabled()) {
+        if (mesosConfiguration.isKubeApiServerIntegrationEnabled()) {
             return injector.getInstance(JobControllerKubeApiFacade.class);
         }
         return new NoOpKubeApiFacade();

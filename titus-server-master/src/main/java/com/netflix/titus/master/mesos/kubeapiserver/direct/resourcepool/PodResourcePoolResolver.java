@@ -14,20 +14,16 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.mesos.kubeapiserver.direct;
+package com.netflix.titus.master.mesos.kubeapiserver.direct.resourcepool;
 
-import java.util.Map;
+import java.util.List;
 
 import com.netflix.titus.api.jobmanager.model.job.Job;
-import com.netflix.titus.api.jobmanager.model.job.Task;
-import com.netflix.titus.common.util.tuple.Pair;
-import io.kubernetes.client.openapi.models.V1Affinity;
 
 /**
- * Builds pod affinity and ant-affinity rules for a job/task. This includes both the job level hard and soft
- * constraints, as well as Titus system level constraints.
+ * {@link PodResourcePoolResolver} is an abstraction for resolving a set of resource pools in which a pod can be placed.
  */
-public interface PodAffinityFactory {
+public interface PodResourcePoolResolver {
 
-    Pair<V1Affinity, Map<String, String>> buildV1Affinity(Job<?> job, Task task);
+    List<ResourcePoolAssignment> resolve(Job<?> job);
 }

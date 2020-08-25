@@ -124,6 +124,8 @@ public final class JobAttributes {
      */
     public static final String JOB_PARAMETER_ATTRIBUTES_TOLERATIONS = TITUS_PARAMETER_ATTRIBUTE_PREFIX + "tolerations";
 
+    public static final String JOB_PARAMETER_RESOURCE_POOLS = TITUS_PARAMETER_ATTRIBUTE_PREFIX + "resourcePools";
+
     // Container Attributes
 
     /**

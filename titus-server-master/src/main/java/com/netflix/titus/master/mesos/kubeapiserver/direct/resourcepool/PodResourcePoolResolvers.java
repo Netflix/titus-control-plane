@@ -14,20 +14,13 @@
  * limitations under the License.
  */
 
-package com.netflix.titus.master.mesos.kubeapiserver.direct;
+package com.netflix.titus.master.mesos.kubeapiserver.direct.resourcepool;
 
-import java.util.Map;
+public final class PodResourcePoolResolvers {
 
-import com.netflix.titus.api.jobmanager.model.job.Job;
-import com.netflix.titus.api.jobmanager.model.job.Task;
-import com.netflix.titus.common.util.tuple.Pair;
-import io.kubernetes.client.openapi.models.V1Affinity;
+    public static final String RESOURCE_POOL_ELASTIC = "elastic";
 
-/**
- * Builds pod affinity and ant-affinity rules for a job/task. This includes both the job level hard and soft
- * constraints, as well as Titus system level constraints.
- */
-public interface PodAffinityFactory {
+    public static final String RESOURCE_POOL_RESERVED = "reserved";
 
-    Pair<V1Affinity, Map<String, String>> buildV1Affinity(Job<?> job, Task task);
+    public static final String RESOURCE_POOL_GPU_PREFIX = "elasticGpu";
 }

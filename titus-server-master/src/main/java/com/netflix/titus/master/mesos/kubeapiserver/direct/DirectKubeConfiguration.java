@@ -20,6 +20,7 @@ import java.util.List;
 
 import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.resourcepool.CapacityGroupPodResourcePoolResolver;
 import com.netflix.titus.runtime.connector.kubernetes.KubeConnectorConfiguration;
 
 @Configuration(prefix = "titusMaster.directKube")
@@ -148,4 +149,10 @@ public interface DirectKubeConfiguration extends KubeConnectorConfiguration {
      */
     @DefaultValue("200")
     int getPodCreateConcurrencyLimit();
+
+    /**
+     * Frequency at which {@link CapacityGroupPodResourcePoolResolver} resolve configuration is re-read.
+     */
+    @DefaultValue("5000")
+    long getCapacityGroupPodResourcePoolResolverUpdateIntervalMs();
 }
