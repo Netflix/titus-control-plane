@@ -16,6 +16,8 @@
 
 package com.netflix.titus.supplementary.relocation.connector;
 
+import com.google.common.base.Preconditions;
+
 public class Node {
 
     private final String id;
@@ -112,6 +114,8 @@ public class Node {
         }
 
         public Node build() {
+            Preconditions.checkNotNull(id, "instance id is null");
+            Preconditions.checkNotNull(serverGroupId, "server group id is null");
             Node node = new Node(id, serverGroupId);
             node.relocationNotAllowed = this.relocationNotAllowed;
             node.relocationRequiredImmediately = this.relocationRequiredImmediately;

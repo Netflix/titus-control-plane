@@ -18,6 +18,8 @@ package com.netflix.titus.master.mesos.kubeapiserver.direct.resourcepool;
 
 import java.util.Objects;
 
+import com.google.common.base.Preconditions;
+
 public class ResourcePoolAssignment {
 
     private final String resourcePoolName;
@@ -84,6 +86,8 @@ public class ResourcePoolAssignment {
         }
 
         public ResourcePoolAssignment build() {
+            Preconditions.checkNotNull(resourcePoolName, "resource pool name is null");
+            Preconditions.checkNotNull(rule, "rule is null");
             return new ResourcePoolAssignment(resourcePoolName, rule);
         }
     }

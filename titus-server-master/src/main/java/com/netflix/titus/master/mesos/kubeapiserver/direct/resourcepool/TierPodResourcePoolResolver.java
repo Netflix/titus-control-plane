@@ -34,7 +34,7 @@ public class TierPodResourcePoolResolver implements PodResourcePoolResolver {
 
     private static final ResourcePoolAssignment ASSIGNMENT_RESERVED = ResourcePoolAssignment.newBuilder()
             .withResourcePoolName(PodResourcePoolResolvers.RESOURCE_POOL_RESERVED)
-            .withRule("Flex tier assigned to elastic resource pool")
+            .withRule("Critical tier assigned to reserved resource pool")
             .build();
 
     private final ApplicationSlaManagementService capacityGroupService;
