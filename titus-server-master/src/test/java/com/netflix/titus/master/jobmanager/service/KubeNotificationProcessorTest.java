@@ -162,7 +162,7 @@ public class KubeNotificationProcessorTest {
     }
 
     @Test
-    public void testUpdateTaskStatus() {
+    public void testUpdateTaskStatusVK() {
         when(containerResultCodeResolver.resolve(any(), any())).thenReturn(Optional.of("testUpdatedReasonCode"));
         V1Pod pod = new V1Pod()
                 .metadata(new V1ObjectMeta()
@@ -210,6 +210,48 @@ public class KubeNotificationProcessorTest {
         assertThat(updatedTask.getTaskContext()).containsEntry(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP, "1.2.3.4");
         assertThat(updatedTask.getTaskContext()).containsEntry(TaskAttributes.TASK_ATTRIBUTES_AGENT_AMI, "ami123");
     }
+
+    @Test
+    public void testUpdateTaskStatusKubelet() {
+        when(containerResultCodeResolver.resolve(any(), any())).thenReturn(Optional.of("testUpdatedReasonCode"));
+        V1Pod pod = new V1Pod()
+                .metadata(new V1ObjectMeta()
+                        .name(TASK.getId())
+                )
+                .status(new V1PodStatus()
+                        .addContainerStatusesItem(new V1ContainerStatus()
+                                .containerID(TASK.getId())
+                                .state(new V1ContainerState()
+                                        .running(new V1ContainerStateRunning().startedAt(DateTime.now()))
+                                )
+                        )
+                );
+        pod.getStatus().setPodIP("192.0.2.0");
+
+        V1Node node = new V1Node()
+                .metadata(new V1ObjectMeta()
+                        .annotations(Collections.singletonMap(
+                                TITUS_NODE_DOMAIN + "ami", "ami123"
+                        ))
+                )
+                .status(new V1NodeStatus()
+                        .addresses(Collections.singletonList(
+                                new V1NodeAddress().address("2.2.2.2").type(KubeUtil.TYPE_INTERNAL_IP)
+                        ))
+                );
+        Task updatedTask = KubeNotificationProcessor.updateTaskStatus(
+                new PodWrapper(pod),
+                TaskState.Started,
+                Optional.ofNullable(null),
+                Optional.of(node),
+                TASK,
+                containerResultCodeResolver
+        );
+
+        Set<TaskState> pastStates = updatedTask.getStatusHistory().stream().map(ExecutableStatus::getState).collect(Collectors.toSet());
+        assertThat(updatedTask.getTaskContext()).containsEntry(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP, "192.0.2.0");
+    }
+
 
     @Test
     public void testPodPhaseFailedNoContainerCreated() {

@@ -290,8 +290,13 @@ public class KubeNotificationProcessor {
                 .build();
 
         Task fixedTask = fillInMissingStates(podWrapper, updatedTask);
-        Task taskWithPlacementData = JobManagerUtil.attachPlacementData(fixedTask, executorDetailsOpt);
-        Task taskWithNodeMetadata = node.map(n -> attachNodeMetadata(taskWithPlacementData, n)).orElse(taskWithPlacementData);
+        Task taskWithExecutorData;
+        if (executorDetailsOpt.isPresent()) {
+            taskWithExecutorData = JobManagerUtil.attachTitusExecutorData(fixedTask, executorDetailsOpt);
+        } else {
+            taskWithExecutorData = JobManagerUtil.attachKubeletData(fixedTask, podWrapper);
+        }
+        Task taskWithNodeMetadata = node.map(n -> attachNodeMetadata(taskWithExecutorData, n)).orElse(taskWithExecutorData);
         Task taskWithAnnotations = addMissingAttributes(podWrapper, taskWithNodeMetadata);
 
         return taskWithAnnotations;

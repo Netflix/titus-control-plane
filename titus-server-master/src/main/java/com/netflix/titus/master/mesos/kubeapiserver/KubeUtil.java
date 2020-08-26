@@ -132,6 +132,9 @@ public class KubeUtil {
     }
 
     public static Optional<V1ContainerState> findContainerState(V1Pod pod) {
+        if (pod.getStatus() == null) {
+            return Optional.empty();
+        }
         List<V1ContainerStatus> containerStatuses = pod.getStatus().getContainerStatuses();
         if (containerStatuses != null) {
             for (V1ContainerStatus status : containerStatuses) {
