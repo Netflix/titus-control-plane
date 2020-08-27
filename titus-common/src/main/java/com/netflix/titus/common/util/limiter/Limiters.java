@@ -37,15 +37,20 @@ public class Limiters {
     }
 
     /**
+     * Useful for testing.
+     */
+    public static TokenBucket unlimited(String name) {
+        return new Unlimited(name);
+    }
+
+    /**
      * Create a {@link TokenBucket} with a fixed interval {@link RefillStrategy}.
      */
     public static TokenBucket createFixedIntervalTokenBucket(String name, long capacity, long initialNumberOfTokens,
                                                              long numberOfTokensPerInterval, long interval, TimeUnit unit) {
         RefillStrategy refillStrategy = new FixedIntervalRefillStrategy(Stopwatch.createStarted(),
                 numberOfTokensPerInterval, interval, unit);
-        TokenBucket tokenBucket = new DefaultTokenBucket(name, capacity, refillStrategy, initialNumberOfTokens);
-
-        return tokenBucket;
+        return new DefaultTokenBucket(name, capacity, refillStrategy, initialNumberOfTokens);
     }
 
     /**
@@ -74,5 +79,55 @@ public class Limiters {
                 ),
                 titusRuntime
         );
+    }
+
+    private static class Unlimited implements TokenBucket {
+        private final String name;
+
+        public Unlimited(String name) {
+            this.name = name;
+        }
+
+        @Override
+        public String getName() {
+            return name;
+        }
+
+        @Override
+        public long getCapacity() {
+            return Long.MAX_VALUE;
+        }
+
+        @Override
+        public long getNumberOfTokens() {
+            return Long.MAX_VALUE;
+        }
+
+        @Override
+        public boolean tryTake() {
+            return true;
+        }
+
+        @Override
+        public boolean tryTake(long numberOfTokens) {
+            return true;
+        }
+
+        @Override
+        public void take() {
+        }
+
+        @Override
+        public void take(long numberOfTokens) {
+        }
+
+        @Override
+        public void refill(long numberOfToken) {
+        }
+
+        @Override
+        public RefillStrategy getRefillStrategy() {
+            return null;
+        }
     }
 }

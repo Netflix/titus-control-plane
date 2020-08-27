@@ -26,6 +26,8 @@ import com.netflix.titus.api.jobmanager.model.job.JobState;
 @Configuration(prefix = "titusMaster.jobManager")
 public interface JobManagerConfiguration {
 
+    String STUCK_IN_STATE_TOKEN_BUCKET = "stuckInState";
+
     @DefaultValue("100")
     long getReconcilerIdleTimeoutMs();
 

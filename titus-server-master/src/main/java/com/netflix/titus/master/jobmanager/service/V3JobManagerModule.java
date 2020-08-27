@@ -17,6 +17,7 @@
 package com.netflix.titus.master.jobmanager.service;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.google.inject.AbstractModule;
@@ -30,6 +31,11 @@ import com.netflix.titus.api.FeatureActivationConfiguration;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine.DifferenceResolver;
+import com.netflix.titus.common.runtime.SystemLogEvent;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.limiter.Limiters;
+import com.netflix.titus.common.util.limiter.tokenbucket.FixedIntervalTokenBucketConfiguration;
+import com.netflix.titus.common.util.limiter.tokenbucket.TokenBucket;
 import com.netflix.titus.master.jobmanager.service.batch.BatchDifferenceResolver;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
 import com.netflix.titus.master.jobmanager.service.limiter.DefaultJobSubmitLimiter;
@@ -43,6 +49,8 @@ import org.slf4j.LoggerFactory;
 public class V3JobManagerModule extends AbstractModule {
 
     private static final Logger logger = LoggerFactory.getLogger(V3JobManagerModule.class);
+
+    private static final String STUCK_IN_STATE = "stuckInStateTokenBucketConfig";
 
     private static final TypeLiteral<DifferenceResolver<JobManagerReconcilerEvent>> JOB_DIFFERENCE_RESOLVER =
             new TypeLiteral<DifferenceResolver<JobManagerReconcilerEvent>>() {
@@ -67,6 +75,31 @@ public class V3JobManagerModule extends AbstractModule {
     @Singleton
     public JobManagerConfiguration getJobManagerConfiguration(ConfigProxyFactory factory) {
         return factory.newProxy(JobManagerConfiguration.class);
+    }
+
+    @Provides
+    @Singleton
+    @Named(JobManagerConfiguration.STUCK_IN_STATE_TOKEN_BUCKET)
+    public TokenBucket getStuckInStateRateLimiter(@Named(STUCK_IN_STATE) FixedIntervalTokenBucketConfiguration config, TitusRuntime runtime) {
+        return Limiters.createInstrumentedFixedIntervalTokenBucket(
+                JobManagerConfiguration.STUCK_IN_STATE_TOKEN_BUCKET,
+                config,
+                currentTokenBucket -> runtime.getSystemLogService().submit(
+                        SystemLogEvent.newBuilder()
+                                .withCategory(SystemLogEvent.Category.Other)
+                                .withComponent(V3JobManagerModule.class.getSimpleName())
+                                .withMessage(String.format("Detected %s token bucket configuration update: %s", JobManagerConfiguration.STUCK_IN_STATE_TOKEN_BUCKET, currentTokenBucket))
+                                .build()
+                ),
+                runtime
+        );
+    }
+
+    @Provides
+    @Singleton
+    @Named(STUCK_IN_STATE)
+    public FixedIntervalTokenBucketConfiguration getStuckInStateTokenBucketConfiguration(ConfigProxyFactory factory) {
+        return factory.newProxy(FixedIntervalTokenBucketConfiguration.class, "titusMaster.jobManager.stuckInStateTokenBucket");
     }
 
     @Singleton

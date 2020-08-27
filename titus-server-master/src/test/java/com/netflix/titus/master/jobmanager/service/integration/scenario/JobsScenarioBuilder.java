@@ -44,6 +44,8 @@ import com.netflix.titus.common.model.sanitizer.VerifierMode;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.archaius2.Archaius2Ext;
+import com.netflix.titus.common.util.limiter.Limiters;
+import com.netflix.titus.common.util.limiter.tokenbucket.TokenBucket;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.jobmanager.service.DefaultV3JobOperations;
 import com.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
@@ -157,6 +159,7 @@ public class JobsScenarioBuilder {
             }
         };
 
+        TokenBucket stuckInStateRateLimiter = Limiters.unlimited("stuckInState");
         BatchDifferenceResolver batchDifferenceResolver = new BatchDifferenceResolver(
                 kubeApiServerIntegrator,
                 configuration,
@@ -170,6 +173,7 @@ public class JobsScenarioBuilder {
                 constraintEvaluatorTransformer,
                 systemSoftConstraint,
                 systemHardConstraint,
+                stuckInStateRateLimiter,
                 titusRuntime,
                 testScheduler
         );
@@ -186,10 +190,10 @@ public class JobsScenarioBuilder {
                 constraintEvaluatorTransformer,
                 systemSoftConstraint,
                 systemHardConstraint,
+                stuckInStateRateLimiter,
                 titusRuntime,
                 testScheduler
         );
-
 
         JobSubmitLimiter jobSubmitLimiter = new JobSubmitLimiter() {
             @Override
