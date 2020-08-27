@@ -39,6 +39,7 @@ public class AggregatingNodeDataResolverTest {
     private NodeDataResolver newDelegate(String nodeId, long stalenessMs) {
         Node node = Node.newBuilder()
                 .withId(nodeId)
+                .withServerGroupId("myServerGroup")
                 .build();
 
         NodeDataResolver resolver = mock(NodeDataResolver.class);

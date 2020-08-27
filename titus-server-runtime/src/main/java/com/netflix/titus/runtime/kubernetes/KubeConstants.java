@@ -45,6 +45,8 @@ public final class KubeConstants {
      */
     public static final String TITUS_NODE_DOMAIN = "node.titus.netflix.com/";
 
+    public static final String TITUS_SCALER_DOMAIN = "scaler.titus.netflix.com/";
+
     /**
      * Common prefix for Titus V3 job API specific annotations/labels.
      */
@@ -67,6 +69,8 @@ public final class KubeConstants {
     public static final String NODE_LABEL_MACHINE_GROUP = TITUS_NODE_DOMAIN + "asg";
 
     public static final String NODE_LABEL_KUBE_BACKEND = TITUS_NODE_DOMAIN + "backend";
+
+    public static final String NODE_LABEL_RESOURCE_POOL = TITUS_SCALER_DOMAIN + "resource-pool";
 
     /*
      * Titus taints.

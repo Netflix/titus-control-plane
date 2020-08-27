@@ -24,9 +24,9 @@ import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
+import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeConfiguration;
-import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import io.kubernetes.client.openapi.models.V1Toleration;
 import org.junit.Test;
@@ -38,7 +38,7 @@ public class DefaultTaintTolerationFactoryTest {
 
     private final DirectKubeConfiguration configuration = mock(DirectKubeConfiguration.class);
 
-    private ApplicationSlaManagementService capacityManagement = mock(ApplicationSlaManagementService.class);
+    private final ApplicationSlaManagementService capacityManagement = mock(ApplicationSlaManagementService.class);
 
     private final DefaultTaintTolerationFactory factory = new DefaultTaintTolerationFactory(
             configuration,

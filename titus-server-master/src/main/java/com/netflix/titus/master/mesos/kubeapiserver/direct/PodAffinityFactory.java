@@ -16,8 +16,11 @@
 
 package com.netflix.titus.master.mesos.kubeapiserver.direct;
 
+import java.util.Map;
+
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.common.util.tuple.Pair;
 import io.kubernetes.client.openapi.models.V1Affinity;
 
 /**
@@ -26,5 +29,9 @@ import io.kubernetes.client.openapi.models.V1Affinity;
  */
 public interface PodAffinityFactory {
 
-    V1Affinity buildV1Affinity(Job<?> job, Task task);
+    /**
+     * Returns Kubernetes {@link V1Affinity} rules for a task, and a map of key/value pairs that are added to
+     * pod annotations.
+     */
+    Pair<V1Affinity, Map<String, String>> buildV1Affinity(Job<?> job, Task task);
 }

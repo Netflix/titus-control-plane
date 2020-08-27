@@ -17,8 +17,10 @@
 package com.netflix.titus.master.mesos.kubeapiserver.direct;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -26,6 +28,9 @@ import com.netflix.titus.api.jobmanager.JobConstraints;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.common.util.StringExt;
+import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.resourcepool.PodResourcePoolResolver;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.resourcepool.ResourcePoolAssignment;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import io.kubernetes.client.openapi.models.V1Affinity;
 import io.kubernetes.client.openapi.models.V1LabelSelector;
@@ -49,14 +54,17 @@ public class DefaultPodAffinityFactory implements PodAffinityFactory {
     private static final int NODE_AFFINITY_WEIGHT = 100;
 
     private final DirectKubeConfiguration configuration;
+    private final PodResourcePoolResolver podResourcePoolResolver;
 
     @Inject
-    public DefaultPodAffinityFactory(DirectKubeConfiguration configuration) {
+    public DefaultPodAffinityFactory(DirectKubeConfiguration configuration,
+                                     PodResourcePoolResolver podResourcePoolResolver) {
         this.configuration = configuration;
+        this.podResourcePoolResolver = podResourcePoolResolver;
     }
 
     @Override
-    public V1Affinity buildV1Affinity(Job<?> job, Task task) {
+    public Pair<V1Affinity, Map<String, String>> buildV1Affinity(Job<?> job, Task task) {
         return new Processor(job).build();
     }
 
@@ -64,6 +72,7 @@ public class DefaultPodAffinityFactory implements PodAffinityFactory {
 
         private final Job<?> job;
         private final V1Affinity v1Affinity;
+        private final Map<String, String> annotations = new HashMap<>();
 
         private Processor(Job<?> job) {
             this.job = job;
@@ -71,6 +80,7 @@ public class DefaultPodAffinityFactory implements PodAffinityFactory {
 
             processJobConstraints(toLowerCaseKeys(job.getJobDescriptor().getContainer().getHardConstraints()), true);
             processJobConstraints(toLowerCaseKeys(job.getJobDescriptor().getContainer().getSoftConstraints()), false);
+            processResourcePoolConstraints();
             processZoneConstraints();
         }
 
@@ -206,6 +216,23 @@ public class DefaultPodAffinityFactory implements PodAffinityFactory {
             term.addMatchExpressionsItem(requirement);
         }
 
+        private void processResourcePoolConstraints() {
+            List<ResourcePoolAssignment> resourcePools = podResourcePoolResolver.resolve(job);
+            if (resourcePools.isEmpty()) {
+                return;
+            }
+
+            List<String> names = resourcePools.stream().map(ResourcePoolAssignment::getResourcePoolName).collect(Collectors.toList());
+            String rule = resourcePools.isEmpty() ? "none" :
+                    (resourcePools.size() == 1
+                            ? resourcePools.get(0).getRule()
+                            : resourcePools.stream().map(ResourcePoolAssignment::getRule).collect(Collectors.joining(","))
+                    );
+
+            addNodeAffinitySelectorConstraint(KubeConstants.NODE_LABEL_RESOURCE_POOL, names, true);
+            annotations.put(KubeConstants.TITUS_SCALER_DOMAIN + "resourcePoolSelection", rule);
+        }
+
         private void processZoneConstraints() {
             // If we have a single zone hard constraint defined, there is no need to add anything on top of this.
             if (!StringExt.isEmpty(job.getJobDescriptor().getContainer().getHardConstraints().get(JobConstraints.AVAILABILITY_ZONE))) {
@@ -232,8 +259,8 @@ public class DefaultPodAffinityFactory implements PodAffinityFactory {
             return v1Affinity.getPodAntiAffinity();
         }
 
-        private V1Affinity build() {
-            return v1Affinity;
+        private Pair<V1Affinity, Map<String, String>> build() {
+            return Pair.of(v1Affinity, annotations);
         }
     }
 }

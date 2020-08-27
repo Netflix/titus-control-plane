@@ -47,11 +47,13 @@ import com.netflix.titus.api.model.EfsMount;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.StringExt;
+import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.taint.TaintTolerationFactory;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import io.kubernetes.client.custom.Quantity;
+import io.kubernetes.client.openapi.models.V1Affinity;
 import io.kubernetes.client.openapi.models.V1Container;
 import io.kubernetes.client.openapi.models.V1LabelSelector;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
@@ -121,6 +123,9 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
         Map<String, String> annotations = KubeUtil.createPodAnnotations(job, task, containerInfo.toByteArray(),
                 containerInfo.getPassthroughAttributesMap(), configuration.isJobDescriptorAnnotationEnabled());
 
+        Pair<V1Affinity, Map<String, String>> affinityWithMetadata = podAffinityFactory.buildV1Affinity(job, task);
+        annotations.putAll(affinityWithMetadata.getRight());
+
         V1ObjectMeta metadata = new V1ObjectMeta()
                 .name(taskId)
                 .annotations(annotations)
@@ -140,7 +145,7 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
                 .terminationGracePeriodSeconds(POD_TERMINATION_GRACE_PERIOD_SECONDS)
                 .restartPolicy(NEVER_RESTART_POLICY)
                 .dnsPolicy(DEFAULT_DNS_POLICY)
-                .affinity(podAffinityFactory.buildV1Affinity(job, task))
+                .affinity(affinityWithMetadata.getLeft())
                 .tolerations(taintTolerationFactory.buildV1Toleration(job, task))
                 .topologySpreadConstraints(buildTopologySpreadConstraints(job));
 

@@ -19,12 +19,15 @@ package com.netflix.titus.master.mesos.kubeapiserver.direct;
 import java.util.Collections;
 import java.util.Map;
 
+import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.JobConstraints;
 import com.netflix.titus.api.jobmanager.model.job.Container;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
+import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.resourcepool.ExplicitJobPodResourcePoolResolver;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import io.kubernetes.client.openapi.models.V1Affinity;
@@ -44,7 +47,7 @@ public class DefaultPodAffinityFactoryTest {
 
     private final DirectKubeConfiguration configuration = Mockito.mock(DirectKubeConfiguration.class);
 
-    private final DefaultPodAffinityFactory factory = new DefaultPodAffinityFactory(configuration);
+    private final DefaultPodAffinityFactory factory = new DefaultPodAffinityFactory(configuration, new ExplicitJobPodResourcePoolResolver());
 
     @Before
     public void setUp() throws Exception {
@@ -53,15 +56,19 @@ public class DefaultPodAffinityFactoryTest {
 
     @Test
     public void testInstanceTypeAffinity() {
-        V1Affinity affinity = factory.buildV1Affinity(newJobWithHardConstraint(JobConstraints.MACHINE_TYPE.toUpperCase(), "r5.metal"), JobGenerator.oneBatchTask());
-        V1NodeSelector nodeSelector = affinity.getNodeAffinity().getRequiredDuringSchedulingIgnoredDuringExecution();
+        Pair<V1Affinity, Map<String, String>> affinityWithAnnotations = factory.buildV1Affinity(
+                newJobWithHardConstraint(JobConstraints.MACHINE_TYPE.toUpperCase(), "r5.metal"), JobGenerator.oneBatchTask()
+        );
+        V1NodeSelector nodeSelector = affinityWithAnnotations.getLeft().getNodeAffinity().getRequiredDuringSchedulingIgnoredDuringExecution();
         assertThat(nodeSelector.getNodeSelectorTerms()).hasSize(1);
     }
 
     @Test
     public void testKubeBackendAffinity() {
-        V1Affinity affinity = factory.buildV1Affinity(newJobWithHardConstraint(JobConstraints.KUBE_BACKEND, "kublet"), JobGenerator.oneBatchTask());
-        V1NodeSelector nodeSelector = affinity.getNodeAffinity().getRequiredDuringSchedulingIgnoredDuringExecution();
+        Pair<V1Affinity, Map<String, String>> affinityWithAnnotations = factory.buildV1Affinity(
+                newJobWithHardConstraint(JobConstraints.KUBE_BACKEND, "kublet"), JobGenerator.oneBatchTask()
+        );
+        V1NodeSelector nodeSelector = affinityWithAnnotations.getLeft().getNodeAffinity().getRequiredDuringSchedulingIgnoredDuringExecution();
         assertThat(nodeSelector.getNodeSelectorTerms()).hasSize(1);
         V1NodeSelectorRequirement requirement = nodeSelector.getNodeSelectorTerms().get(0).getMatchExpressions().get(0);
         assertThat(requirement.getKey()).isEqualTo(KubeConstants.TAINT_KUBE_BACKEND);
@@ -70,28 +77,46 @@ public class DefaultPodAffinityFactoryTest {
 
     @Test
     public void testEmptyInstanceTypeIsIgnored() {
-        V1Affinity affinity = factory.buildV1Affinity(newJobWithHardConstraint(JobConstraints.MACHINE_TYPE, ""), JobGenerator.oneBatchTask());
-        assertThat(affinity.getNodeAffinity()).isNull();
+        Pair<V1Affinity, Map<String, String>> affinityWithAnnotations = factory.buildV1Affinity(
+                newJobWithHardConstraint(JobConstraints.MACHINE_TYPE, ""), JobGenerator.oneBatchTask()
+        );
+        assertThat(affinityWithAnnotations.getLeft().getNodeAffinity()).isNull();
     }
 
     @Test
     public void testDefaultGpuInstanceAssignment() {
-        V1Affinity affinity = factory.buildV1Affinity(newGpuJob(Collections.emptyMap()), JobGenerator.oneBatchTask());
+        Pair<V1Affinity, Map<String, String>> affinityWithAnnotations = factory.buildV1Affinity(
+                newGpuJob(Collections.emptyMap()), JobGenerator.oneBatchTask()
+        );
 
-        V1NodeSelector nodeSelector = affinity.getNodeAffinity().getRequiredDuringSchedulingIgnoredDuringExecution();
+        V1NodeSelector nodeSelector = affinityWithAnnotations.getLeft().getNodeAffinity().getRequiredDuringSchedulingIgnoredDuringExecution();
         assertThat(nodeSelector.getNodeSelectorTerms()).hasSize(1);
         assertThat(nodeSelector.getNodeSelectorTerms().get(0).getMatchExpressions().get(0).getValues().get(0)).isEqualTo(DEFAULT_GPU_INSTANCE_TYPE);
     }
 
     @Test
     public void testSpecificGpuInstanceAssignment() {
-        V1Affinity affinity = factory.buildV1Affinity(newGpuJob(Collections.singletonMap(
+        Pair<V1Affinity, Map<String, String>> affinityWithAnnotations = factory.buildV1Affinity(newGpuJob(Collections.singletonMap(
                 JobConstraints.MACHINE_TYPE, SPECIFIC_GPU_INSTANCE_TYPE
         )), JobGenerator.oneBatchTask());
 
-        V1NodeSelector nodeSelector = affinity.getNodeAffinity().getRequiredDuringSchedulingIgnoredDuringExecution();
+        V1NodeSelector nodeSelector = affinityWithAnnotations.getLeft().getNodeAffinity().getRequiredDuringSchedulingIgnoredDuringExecution();
         assertThat(nodeSelector.getNodeSelectorTerms()).hasSize(1);
         assertThat(nodeSelector.getNodeSelectorTerms().get(0).getMatchExpressions().get(0).getValues().get(0)).isEqualTo(SPECIFIC_GPU_INSTANCE_TYPE);
+    }
+
+    @Test
+    public void testResourcePoolAffinity() {
+        Job<BatchJobExt> job = JobGenerator.oneBatchJob();
+        job = job.toBuilder().withJobDescriptor(JobFunctions.appendJobDescriptorAttributes(job.getJobDescriptor(),
+                Collections.singletonMap(JobAttributes.JOB_PARAMETER_RESOURCE_POOLS, "elastic"))
+        ).build();
+        Pair<V1Affinity, Map<String, String>> affinityWithAnnotations = factory.buildV1Affinity(job, JobGenerator.oneBatchTask());
+
+        V1NodeSelector nodeSelector = affinityWithAnnotations.getLeft().getNodeAffinity().getRequiredDuringSchedulingIgnoredDuringExecution();
+        assertThat(nodeSelector.getNodeSelectorTerms()).hasSize(1);
+        assertThat(nodeSelector.getNodeSelectorTerms().get(0).getMatchExpressions().get(0).getKey()).isEqualTo(KubeConstants.NODE_LABEL_RESOURCE_POOL);
+        assertThat(nodeSelector.getNodeSelectorTerms().get(0).getMatchExpressions().get(0).getValues().get(0)).isEqualTo("elastic");
     }
 
     private Job<BatchJobExt> newJobWithHardConstraint(String name, String value) {

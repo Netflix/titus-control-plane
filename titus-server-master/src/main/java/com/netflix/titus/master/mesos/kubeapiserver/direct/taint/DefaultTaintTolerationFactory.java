@@ -29,10 +29,10 @@ import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.model.Tier;
+import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeConfiguration;
-import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import io.kubernetes.client.openapi.models.V1Toleration;
 
 @Singleton
