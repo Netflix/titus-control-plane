@@ -25,7 +25,11 @@ import javax.inject.Singleton;
 
 import com.netflix.titus.api.jobmanager.JobConstraints;
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.model.ApplicationSLA;
+import com.netflix.titus.api.model.Tier;
+import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeConfiguration;
@@ -35,10 +39,13 @@ import io.kubernetes.client.openapi.models.V1Toleration;
 public class DefaultTaintTolerationFactory implements TaintTolerationFactory {
 
     private final DirectKubeConfiguration configuration;
+    private final ApplicationSlaManagementService capacityManagement;
 
     @Inject
-    public DefaultTaintTolerationFactory(DirectKubeConfiguration configuration) {
+    public DefaultTaintTolerationFactory(DirectKubeConfiguration configuration,
+                                         ApplicationSlaManagementService capacityManagement) {
         this.configuration = configuration;
+        this.capacityManagement = capacityManagement;
     }
 
     @Override
@@ -49,11 +56,21 @@ public class DefaultTaintTolerationFactory implements TaintTolerationFactory {
         tolerations.add(Tolerations.TOLERATION_VIRTUAL_KUBLET);
         tolerations.add(Tolerations.TOLERATION_KUBE_SCHEDULER);
 
+        tolerations.add(resolveTierToleration(job));
         resolveAvailabilityZoneToleration(job).ifPresent(tolerations::add);
         resolveGpuInstanceTypeToleration(job).ifPresent(tolerations::add);
         resolveKubeBackendToleration(job).ifPresent(tolerations::add);
 
         return tolerations;
+    }
+
+    private V1Toleration resolveTierToleration(Job job) {
+        String capacityGroupName = JobFunctions.getEffectiveCapacityGroup(job);
+        ApplicationSLA capacityGroup = capacityManagement.findApplicationSLA(capacityGroupName).orElse(null);
+        if (capacityGroup == null) {
+            return Tolerations.TOLERATION_TIER_FLEX;
+        }
+        return capacityGroup.getTier() == Tier.Critical ? Tolerations.TOLERATION_TIER_CRITICAL : Tolerations.TOLERATION_TIER_FLEX;
     }
 
     private Optional<V1Toleration> resolveAvailabilityZoneToleration(Job job) {

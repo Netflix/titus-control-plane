@@ -39,7 +39,7 @@ public class PodResourcePoolResolverChainTest {
     public void testChainedExecution() {
         when(delegate1.resolve(any())).thenReturn(Collections.emptyList());
         when(delegate2.resolve(any())).thenReturn(Collections.singletonList(
-                ResourcePoolAssignment.newBuilder().withResourcePoolName("elastic").build())
+                ResourcePoolAssignment.newBuilder().withResourcePoolName("elastic").withRule("rule").build())
         );
         List<ResourcePoolAssignment> result = resolver.resolve(JobGenerator.oneBatchJob());
         assertThat(result).hasSize(1);

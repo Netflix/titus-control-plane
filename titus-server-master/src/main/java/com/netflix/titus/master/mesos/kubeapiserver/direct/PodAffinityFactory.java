@@ -29,5 +29,9 @@ import io.kubernetes.client.openapi.models.V1Affinity;
  */
 public interface PodAffinityFactory {
 
+    /**
+     * Returns Kubernetes {@link V1Affinity} rules for a task, and a map of key/value pairs that are added to
+     * pod annotations.
+     */
     Pair<V1Affinity, Map<String, String>> buildV1Affinity(Job<?> job, Task task);
 }
