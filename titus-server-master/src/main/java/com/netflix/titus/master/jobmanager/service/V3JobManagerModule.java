@@ -31,7 +31,6 @@ import com.netflix.titus.api.FeatureActivationConfiguration;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine.DifferenceResolver;
-import com.netflix.titus.common.runtime.SystemLogEvent;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.limiter.Limiters;
 import com.netflix.titus.common.util.limiter.tokenbucket.FixedIntervalTokenBucketConfiguration;
@@ -84,13 +83,7 @@ public class V3JobManagerModule extends AbstractModule {
         return Limiters.createInstrumentedFixedIntervalTokenBucket(
                 JobManagerConfiguration.STUCK_IN_STATE_TOKEN_BUCKET,
                 config,
-                currentTokenBucket -> runtime.getSystemLogService().submit(
-                        SystemLogEvent.newBuilder()
-                                .withCategory(SystemLogEvent.Category.Other)
-                                .withComponent(V3JobManagerModule.class.getSimpleName())
-                                .withMessage(String.format("Detected %s token bucket configuration update: %s", JobManagerConfiguration.STUCK_IN_STATE_TOKEN_BUCKET, currentTokenBucket))
-                                .build()
-                ),
+                currentTokenBucket -> logger.info("Detected {} token bucket configuration update: {}", JobManagerConfiguration.STUCK_IN_STATE_TOKEN_BUCKET, currentTokenBucket),
                 runtime
         );
     }
