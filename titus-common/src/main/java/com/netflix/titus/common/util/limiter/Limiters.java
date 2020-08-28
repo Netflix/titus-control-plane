@@ -83,6 +83,7 @@ public class Limiters {
 
     private static class Unlimited implements TokenBucket {
         private final String name;
+        private final UnlimitedRefillStrategy strategy = new UnlimitedRefillStrategy();
 
         public Unlimited(String name) {
             this.name = name;
@@ -127,7 +128,20 @@ public class Limiters {
 
         @Override
         public RefillStrategy getRefillStrategy() {
-            return null;
+            return strategy;
+        }
+
+    }
+
+    private static class UnlimitedRefillStrategy implements RefillStrategy {
+        @Override
+        public long refill() {
+            return 0;
+        }
+
+        @Override
+        public long getTimeUntilNextRefill(TimeUnit unit) {
+            return 0;
         }
     }
 }
