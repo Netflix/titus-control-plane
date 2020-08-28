@@ -44,6 +44,7 @@ import com.netflix.titus.common.framework.reconciler.ChangeAction;
 import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.limiter.tokenbucket.TokenBucket;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.master.jobmanager.service.JobManagerConfiguration;
 import com.netflix.titus.master.jobmanager.service.common.action.task.BasicTaskActions;
@@ -127,7 +128,8 @@ public class DifferenceResolverUtils {
     }
 
     /**
-     * Find all tasks that are stuck in a specific state
+     * Find all tasks that are stuck in a specific state. The number of {@link ChangeAction changes} will be limited
+     * by the {@link TokenBucket stuckInStateRateLimiter}
      */
     public static List<ChangeAction> findTaskStateTimeouts(ReconciliationEngine<JobManagerReconcilerEvent> engine,
                                                            JobView runningJobView,
@@ -135,6 +137,7 @@ public class DifferenceResolverUtils {
                                                            VirtualMachineMasterService vmService,
                                                            DirectKubeApiServerIntegrator kubeApiServerIntegrator,
                                                            JobStore jobStore,
+                                                           TokenBucket stuckInStateRateLimiter,
                                                            TitusRuntime titusRuntime) {
         Clock clock = titusRuntime.getClock();
 
@@ -184,6 +187,9 @@ public class DifferenceResolverUtils {
                     }
                     break;
                 case TimedOut:
+                    if (!stuckInStateRateLimiter.tryTake()) {
+                        break;
+                    }
                     if (task.getStatus().getState() == TaskState.KillInitiated) {
                         int attempts = TaskTimeoutChangeActions.getKillInitiatedAttempts(taskHolder) + 1;
                         if (attempts >= configuration.getTaskKillAttempts()) {

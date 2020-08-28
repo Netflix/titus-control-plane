@@ -50,6 +50,7 @@ import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.common.util.limiter.tokenbucket.TokenBucket;
 import com.netflix.titus.common.util.retry.Retryers;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
@@ -103,6 +104,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
 
     private final RetryActionInterceptor storeWriteRetryInterceptor;
 
+    private final TokenBucket stuckInStateRateLimiter;
     private final TitusRuntime titusRuntime;
     private final Clock clock;
 
@@ -120,10 +122,11 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
             ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
             SystemSoftConstraint systemSoftConstraint,
             SystemHardConstraint systemHardConstraint,
+            @Named(JobManagerConfiguration.STUCK_IN_STATE_TOKEN_BUCKET) TokenBucket stuckInStateRateLimiter,
             TitusRuntime titusRuntime) {
         this(kubeApiServerIntegrator, configuration, featureConfiguration, kubeConfiguration, kubeSchedulerPredicate, capacityGroupService,
                 schedulingService, vmService, jobStore, constraintEvaluatorTransformer, systemSoftConstraint,
-                systemHardConstraint, titusRuntime, Schedulers.computation()
+                systemHardConstraint, stuckInStateRateLimiter, titusRuntime, Schedulers.computation()
         );
     }
 
@@ -140,6 +143,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
             ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
             SystemSoftConstraint systemSoftConstraint,
             SystemHardConstraint systemHardConstraint,
+            @Named(JobManagerConfiguration.STUCK_IN_STATE_TOKEN_BUCKET) TokenBucket stuckInStateRateLimiter,
             TitusRuntime titusRuntime,
             Scheduler scheduler) {
         this.kubeApiServerIntegrator = kubeApiServerIntegrator;
@@ -154,6 +158,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
         this.constraintEvaluatorTransformer = constraintEvaluatorTransformer;
         this.systemSoftConstraint = systemSoftConstraint;
         this.systemHardConstraint = systemHardConstraint;
+        this.stuckInStateRateLimiter = stuckInStateRateLimiter;
         this.titusRuntime = titusRuntime;
         this.clock = titusRuntime.getClock();
 
@@ -195,7 +200,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
                     titusRuntime
             );
             if (killInitiatedActions.isEmpty()) {
-                return DifferenceResolverUtils.findTaskStateTimeouts(engine, runningJobView, configuration, vmService, kubeApiServerIntegrator, jobStore, titusRuntime);
+                return DifferenceResolverUtils.findTaskStateTimeouts(engine, runningJobView, configuration, vmService, kubeApiServerIntegrator, jobStore, stuckInStateRateLimiter, titusRuntime);
             }
             return killInitiatedActions;
         } else if (DifferenceResolverUtils.hasJobState(referenceModel, JobState.Finished)) {
@@ -207,7 +212,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
         if (numberOfTaskAdjustingActions.isEmpty()) {
             actions.addAll(findMissingRunningTasks(engine, refJobView, runningJobView));
         }
-        actions.addAll(DifferenceResolverUtils.findTaskStateTimeouts(engine, runningJobView, configuration, vmService, kubeApiServerIntegrator, jobStore, titusRuntime));
+        actions.addAll(DifferenceResolverUtils.findTaskStateTimeouts(engine, runningJobView, configuration, vmService, kubeApiServerIntegrator, jobStore, stuckInStateRateLimiter, titusRuntime));
 
         return actions;
     }

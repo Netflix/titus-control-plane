@@ -50,6 +50,7 @@ import com.netflix.titus.common.framework.reconciler.EntityHolder;
 import com.netflix.titus.common.framework.reconciler.ReconciliationEngine;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.common.util.limiter.tokenbucket.TokenBucket;
 import com.netflix.titus.common.util.retry.Retryers;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
@@ -104,6 +105,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
 
     private final RetryActionInterceptor storeWriteRetryInterceptor;
 
+    private final TokenBucket stuckInStateRateLimiter;
     private final TitusRuntime titusRuntime;
     private final Clock clock;
 
@@ -121,10 +123,11 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
             ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
             SystemSoftConstraint systemSoftConstraint,
             SystemHardConstraint systemHardConstraint,
+            @Named(JobManagerConfiguration.STUCK_IN_STATE_TOKEN_BUCKET) TokenBucket stuckInStateRateLimiter,
             TitusRuntime titusRuntime) {
         this(kubeApiServerIntegrator, configuration, featureConfiguration, kubeConfiguration, kubeSchedulerPredicate, capacityGroupService,
                 schedulingService, vmService, jobStore, constraintEvaluatorTransformer, systemSoftConstraint,
-                systemHardConstraint, titusRuntime, Schedulers.computation()
+                systemHardConstraint, stuckInStateRateLimiter, titusRuntime, Schedulers.computation()
         );
     }
 
@@ -141,6 +144,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
             ConstraintEvaluatorTransformer<Pair<String, String>> constraintEvaluatorTransformer,
             SystemSoftConstraint systemSoftConstraint,
             SystemHardConstraint systemHardConstraint,
+            @Named(JobManagerConfiguration.STUCK_IN_STATE_TOKEN_BUCKET) TokenBucket stuckInStateRateLimiter,
             TitusRuntime titusRuntime,
             Scheduler scheduler) {
         this.kubeApiServerIntegrator = kubeApiServerIntegrator;
@@ -155,6 +159,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
         this.constraintEvaluatorTransformer = constraintEvaluatorTransformer;
         this.systemSoftConstraint = systemSoftConstraint;
         this.systemHardConstraint = systemHardConstraint;
+        this.stuckInStateRateLimiter = stuckInStateRateLimiter;
         this.titusRuntime = titusRuntime;
         this.clock = titusRuntime.getClock();
 
@@ -200,7 +205,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
                     titusRuntime
             );
             if (killInitiatedActions.isEmpty()) {
-                return findTaskStateTimeouts(engine, runningJobView, configuration, vmService, kubeApiServerIntegrator, jobStore, titusRuntime);
+                return findTaskStateTimeouts(engine, runningJobView, configuration, vmService, kubeApiServerIntegrator, jobStore, stuckInStateRateLimiter, titusRuntime);
             }
             allowedTaskKills.set(allowedTaskKills.get() - killInitiatedActions.size());
             return killInitiatedActions;
@@ -214,7 +219,7 @@ public class ServiceDifferenceResolver implements ReconciliationEngine.Differenc
         if (numberOfTaskAdjustingActions.isEmpty()) {
             actions.addAll(findMissingRunningTasks(engine, refJobView, runningJobView));
         }
-        actions.addAll(findTaskStateTimeouts(engine, runningJobView, configuration, vmService, kubeApiServerIntegrator, jobStore, titusRuntime));
+        actions.addAll(findTaskStateTimeouts(engine, runningJobView, configuration, vmService, kubeApiServerIntegrator, jobStore, stuckInStateRateLimiter, titusRuntime));
 
         return actions;
     }
