@@ -52,6 +52,7 @@ import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEvent;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodWrapper;
 import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
 import org.apache.mesos.Protos;
 
@@ -124,12 +125,12 @@ public final class JobManagerUtil {
             }
 
             Task newTask = JobFunctions.changeTaskStatus(oldTask, newTaskStatus);
-            Task newTaskWithPlacementData = attachPlacementData(newTask, detailsOpt);
+            Task newTaskWithPlacementData = attachTitusExecutorData(newTask, detailsOpt);
             return Optional.of(newTaskWithPlacementData);
         };
     }
 
-    public static Task attachPlacementData(Task task, Optional<TitusExecutorDetails> detailsOpt) {
+    public static Task attachTitusExecutorData(Task task, Optional<TitusExecutorDetails> detailsOpt) {
         return detailsOpt.map(details -> {
             TitusExecutorDetails.NetworkConfiguration networkConfiguration = details.getNetworkConfiguration();
             if (networkConfiguration != null) {
@@ -146,6 +147,22 @@ public final class JobManagerUtil {
             }
             return task;
         }).orElse(task);
+    }
+
+    public static Task attachKubeletData(Task task, PodWrapper podWrapper) {
+        if (podWrapper.getV1Pod().getStatus() == null) {
+            return task;
+        }
+        String ipv4 = podWrapper.getV1Pod().getStatus().getPodIP();
+        if (ipv4 == null || ipv4.isEmpty()) {
+            return task;
+        }
+
+        Map<String, String> newContext = new HashMap<>(task.getTaskContext());
+        BiConsumer<String, String> contextSetter = (key, value) -> StringExt.applyIfNonEmpty(value, v -> newContext.put(key, v));
+        contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP, ipv4);
+        contextSetter.accept(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IPV4, ipv4);
+        return task.toBuilder().addAllToTaskContext(newContext).build();
     }
 
     public static Optional<String> parseEniResourceId(String resourceId) {
