@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+set -vxue
+NFLX_USERNAME=$(git config user.email | cut -f 1 -d @)
+if ! [[ -d ../nftitus ]]; then
+  echo "../nftitus doesn't exist. Please clone the repo there for this script to work"
+  exit 1
+fi
+
+# Publish to local maven
+./scripts/dev/publish-local-snapshot
+
+# Make debs
+cd ../nftitus
+rm ./nftitus-master/build/distributions/*.deb
+rm ./nftitus-federation/build/distributions/*.deb
+rm ./nftitus-gateway/build/distributions/*.deb
+./scripts/dev/deb-snapshot
+
+# Deploy and reload titusmaster
+scp ./nftitus-master/build/distributions/nftitus-master_*-LOCAL_all.deb %titusmaster,$NFLX_USERNAME:~
+ssh  %titusmaster,$NFLX_USERNAME -- "sudo dpkg -i nftitus-master_*-LOCAL_all.deb && sudo /etc/init.d/nflx-tomcat stop && sudo /etc/init.d/nflx-tomcat start"
+
+# Deploy and reload titusapi federation
+scp ./nftitus-federation/build/distributions/nftitus-federation*-LOCAL_all.deb %titusapi,federation,$NFLX_USERNAME:~
+ssh  %titusapi,federation,$NFLX_USERNAME -- "sudo dpkg -i nftitus-federation*-LOCAL_all.deb && sudo /etc/init.d/nflx-tomcat stop && sudo /etc/init.d/nflx-tomcat start"
+
+# Deploy and reload titusapi gateway
+scp ./nftitus-gateway/build/distributions/nftitus-gateway*-LOCAL_all.deb %titusapi,gateway,$NFLX_USERNAME:~
+ssh  %titusapi,gateway,$NFLX_USERNAME -- "sudo dpkg -i nftitus-gateway*-LOCAL_all.deb && sudo /etc/init.d/nflx-tomcat stop && sudo /etc/init.d/nflx-tomcat start"
