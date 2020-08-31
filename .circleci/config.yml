@@ -65,6 +65,7 @@ jobs:
           at: "~/workspace"
       - run:
           command: ./scripts/ci/circleci/publish-release
+          no_output_timeout: 40m
 
   unit:
     executor: java
