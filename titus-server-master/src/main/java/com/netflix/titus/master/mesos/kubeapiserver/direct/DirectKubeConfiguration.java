@@ -155,4 +155,10 @@ public interface DirectKubeConfiguration extends KubeConnectorConfiguration {
      */
     @DefaultValue("5000")
     long getCapacityGroupPodResourcePoolResolverUpdateIntervalMs();
+
+    /**
+     * Set to true to enable resource pool affinity placement constraints.
+     */
+    @DefaultValue("false")
+    boolean isResourcePoolAffinityEnabled();
 }
