@@ -23,7 +23,7 @@ import java.util.Map;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
-import com.netflix.titus.supplementary.relocation.RelocationAttributes;
+import com.netflix.titus.runtime.RelocationAttributes;
 import com.netflix.titus.supplementary.relocation.RelocationConfiguration;
 import io.kubernetes.client.informer.SharedIndexInformer;
 import io.kubernetes.client.informer.cache.Indexer;

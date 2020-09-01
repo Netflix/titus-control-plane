@@ -27,7 +27,7 @@ import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.DisruptionBud
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.SelfManagedDisruptionBudgetPolicy;
 import com.netflix.titus.common.util.DateTimeExt;
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.supplementary.relocation.RelocationAttributes;
+import com.netflix.titus.runtime.RelocationAttributes;
 import com.netflix.titus.supplementary.relocation.connector.Node;
 
 import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.hasDisruptionBudget;

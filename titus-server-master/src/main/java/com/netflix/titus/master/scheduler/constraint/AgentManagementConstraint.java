@@ -38,6 +38,7 @@ import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import com.netflix.titus.master.scheduler.SchedulerAttributes;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
 import com.netflix.titus.master.scheduler.SchedulerUtils;
+import com.netflix.titus.runtime.RelocationAttributes;
 
 import static com.netflix.titus.master.scheduler.SchedulerUtils.getTaints;
 import static com.netflix.titus.master.scheduler.SchedulerUtils.getTier;
@@ -49,12 +50,6 @@ import static com.netflix.titus.master.scheduler.SchedulerUtils.getTolerations;
  */
 @Singleton
 public class AgentManagementConstraint implements SystemConstraint {
-
-    /**
-     * See RelocationAttributes for full documentation.
-     */
-    public static final String RELOCATION_REQUIRED = "titus.relocation.required";
-    public static final String RELOCATION_REQUIRED_IMMEDIATELY = "titus.relocation.requiredImmediately";
 
     public static final String NAME = "AgentManagementConstraint";
 
@@ -225,12 +220,12 @@ public class AgentManagementConstraint implements SystemConstraint {
     }
 
     private Result evaluateRelocationAttributes(Map<String, String> attributes) {
-        boolean relocationRequired = Boolean.parseBoolean(attributes.get(RELOCATION_REQUIRED));
-        if(relocationRequired) {
+        boolean relocationRequired = Boolean.parseBoolean(attributes.get(RelocationAttributes.RELOCATION_REQUIRED));
+        if (relocationRequired) {
             return Failure.RELOCATION_REQUIRED.toResult();
         }
-        boolean relocationRequiredImmediately = Boolean.parseBoolean(attributes.get(RELOCATION_REQUIRED_IMMEDIATELY));
-        if(relocationRequiredImmediately) {
+        boolean relocationRequiredImmediately = Boolean.parseBoolean(attributes.get(RelocationAttributes.RELOCATION_REQUIRED_IMMEDIATELY));
+        if (relocationRequiredImmediately) {
             return Failure.RELOCATION_REQUIRED.toResult();
         }
         return VALID;

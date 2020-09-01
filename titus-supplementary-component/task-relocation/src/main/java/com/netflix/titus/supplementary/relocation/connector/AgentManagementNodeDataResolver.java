@@ -27,7 +27,7 @@ import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
 import com.netflix.titus.api.agent.service.ReadOnlyAgentOperations;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.runtime.connector.agent.AgentDataReplicator;
-import com.netflix.titus.supplementary.relocation.RelocationAttributes;
+import com.netflix.titus.runtime.RelocationAttributes;
 
 public class AgentManagementNodeDataResolver implements NodeDataResolver {
 

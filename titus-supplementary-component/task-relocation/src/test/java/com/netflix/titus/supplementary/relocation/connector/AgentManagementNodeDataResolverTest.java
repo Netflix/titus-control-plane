@@ -21,7 +21,7 @@ import java.util.Map;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.runtime.connector.agent.AgentDataReplicator;
 import com.netflix.titus.supplementary.relocation.AbstractTaskRelocationTest;
-import com.netflix.titus.supplementary.relocation.RelocationAttributes;
+import com.netflix.titus.runtime.RelocationAttributes;
 import com.netflix.titus.supplementary.relocation.TestDataFactory;
 import org.junit.Test;
 

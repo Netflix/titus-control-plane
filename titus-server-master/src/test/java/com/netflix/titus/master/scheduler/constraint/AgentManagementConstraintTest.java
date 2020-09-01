@@ -43,6 +43,7 @@ import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import com.netflix.titus.master.scheduler.SchedulerAttributes;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
+import com.netflix.titus.runtime.RelocationAttributes;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import org.apache.mesos.Protos;
 import org.junit.Before;
@@ -199,12 +200,12 @@ public class AgentManagementConstraintTest {
 
     @Test
     public void relocationRequiredPreventsPlacement() {
-        relocationPlacementConstraint(AgentManagementConstraint.RELOCATION_REQUIRED);
+        relocationPlacementConstraint(RelocationAttributes.RELOCATION_REQUIRED);
     }
 
     @Test
     public void relocationRequiredImmediatelyPreventsPlacement() {
-        relocationPlacementConstraint(AgentManagementConstraint.RELOCATION_REQUIRED_IMMEDIATELY);
+        relocationPlacementConstraint(RelocationAttributes.RELOCATION_REQUIRED_IMMEDIATELY);
     }
 
     private void relocationPlacementConstraint(String relocationAttribute) {
