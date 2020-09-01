@@ -198,6 +198,28 @@ public class AgentManagementConstraintTest {
     }
 
     @Test
+    public void relocationRequiredPreventsPlacement() {
+        relocationPlacementConstraint(AgentManagementConstraint.RELOCATION_REQUIRED);
+    }
+
+    @Test
+    public void relocationRequiredImmediatelyPreventsPlacement() {
+        relocationPlacementConstraint(AgentManagementConstraint.RELOCATION_REQUIRED_IMMEDIATELY);
+    }
+
+    private void relocationPlacementConstraint(String relocationAttribute) {
+        AgentInstance instance = createAgentInstance(INSTANCE_GROUP_ID, Collections.singletonMap(relocationAttribute, "true"));
+        when(agentManagementService.findAgentInstance(INSTANCE_ID)).thenReturn(Optional.of(instance));
+        AgentInstanceGroup agentInstanceGroup = createAgentInstanceGroup(InstanceGroupLifecycleState.Active, Tier.Flex);
+        when(agentManagementService.findInstanceGroup(INSTANCE_GROUP_ID)).thenReturn(Optional.of(agentInstanceGroup));
+        Job<BatchJobExt> job = JobGenerator.batchJobs(oneTaskBatchJobDescriptor()).getValue();
+        TaskRequest taskRequest = createTaskRequest(job);
+        Result result = agentManagementConstraint.evaluate(taskRequest,
+                createVirtualMachineCurrentStateMock(INSTANCE_ID), mock(TaskTrackerState.class));
+        assertThat(result.isSuccessful()).isFalse();
+    }
+
+    @Test
     public void taintsAndTolerationsDoNotMatch() {
         AgentInstance instance = createAgentInstance(INSTANCE_GROUP_ID, Collections.singletonMap(SchedulerAttributes.TAINTS, "b,d"));
         when(agentManagementService.findAgentInstance(INSTANCE_ID)).thenReturn(Optional.of(instance));

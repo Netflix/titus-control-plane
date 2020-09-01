@@ -50,6 +50,12 @@ import static com.netflix.titus.master.scheduler.SchedulerUtils.getTolerations;
 @Singleton
 public class AgentManagementConstraint implements SystemConstraint {
 
+    /**
+     * See RelocationAttributes for full documentation.
+     */
+    public static final String RELOCATION_REQUIRED = "titus.relocation.required";
+    public static final String RELOCATION_REQUIRED_IMMEDIATELY = "titus.relocation.requiredImmediately";
+
     public static final String NAME = "AgentManagementConstraint";
 
     private static final Result VALID = new Result(true, null);
@@ -67,7 +73,9 @@ public class AgentManagementConstraint implements SystemConstraint {
 
         SYSTEM_NO_PLACEMENT("Cannot place on instance group or agent instance due to systemNoPlacement attribute"),
         NO_PLACEMENT("Cannot place on instance group or agent instance due to noPlacement attribute"),
-        TOLERATION_DOES_NOT_MATCH_TAINT("Cannot place on instance group or agent instance due to toleration attribute not matching taint attribute");
+        TOLERATION_DOES_NOT_MATCH_TAINT("Cannot place on instance group or agent instance due to toleration attribute not matching taint attribute"),
+
+        RELOCATION_REQUIRED("Cannot place on agent instance marked for evacuation by TaskRelocation service");
 
         private Result result;
 
@@ -195,7 +203,11 @@ public class AgentManagementConstraint implements SystemConstraint {
     }
 
     private Result evaluateAgentInstanceAttributes(AgentInstance agentInstance) {
-        return evaluateSchedulingAttributes(agentInstance.getAttributes());
+        Result result = evaluateSchedulingAttributes(agentInstance.getAttributes());
+        if (result != VALID) {
+            return result;
+        }
+        return evaluateRelocationAttributes(agentInstance.getAttributes());
     }
 
     private Result evaluateSchedulingAttributes(Map<String, String> attributes) {
@@ -209,6 +221,18 @@ public class AgentManagementConstraint implements SystemConstraint {
             return Failure.NO_PLACEMENT.toResult();
         }
 
+        return VALID;
+    }
+
+    private Result evaluateRelocationAttributes(Map<String, String> attributes) {
+        boolean relocationRequired = Boolean.parseBoolean(attributes.get(RELOCATION_REQUIRED));
+        if(relocationRequired) {
+            return Failure.RELOCATION_REQUIRED.toResult();
+        }
+        boolean relocationRequiredImmediately = Boolean.parseBoolean(attributes.get(RELOCATION_REQUIRED_IMMEDIATELY));
+        if(relocationRequiredImmediately) {
+            return Failure.RELOCATION_REQUIRED.toResult();
+        }
         return VALID;
     }
 
