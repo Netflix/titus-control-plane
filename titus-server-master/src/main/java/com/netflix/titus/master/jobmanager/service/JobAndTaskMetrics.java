@@ -150,12 +150,14 @@ public class JobAndTaskMetrics {
     }
 
     private void updateTaskMetrics(TaskUpdateEvent event) {
-        Pair<Tier, String> assignment = JobManagerUtil.getTierAssignment(event.getCurrentJob(), applicationSlaManagementService);
+        Job<?> job = event.getCurrentJob();
         Task task = event.getCurrentTask();
+        Pair<Tier, String> assignment = JobManagerUtil.getTierAssignment(job, applicationSlaManagementService);
         registry.counter(
                 TASK_STATE_CHANGE_METRIC_NAME,
                 "tier", assignment.getLeft().name(),
                 "capacityGroup", assignment.getRight(),
+                "applicationName", job.getJobDescriptor().getApplicationName(),
                 "state", task.getStatus().getState().name(),
                 "kubeScheduler", "" + JobFunctions.isOwnedByKubeScheduler(task)
         ).increment();
