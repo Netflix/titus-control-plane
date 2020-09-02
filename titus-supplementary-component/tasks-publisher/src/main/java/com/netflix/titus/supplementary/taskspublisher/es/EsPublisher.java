@@ -34,12 +34,16 @@ import com.netflix.titus.supplementary.taskspublisher.config.EsPublisherConfigur
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
+import reactor.core.publisher.BufferOverflowStrategy;
 import reactor.core.publisher.ConnectableFlux;
 
 public class EsPublisher implements TasksPublisher, LeaderActivationListener {
     private static final Logger logger = LoggerFactory.getLogger(EsPublisher.class);
     private static final int MAX_CONCURRENCY = 20;
     private static final String ES_RECORD_TYPE = "default";
+
+    private static final int MAX_BATCH_SIZE = 100;
+    private static final int MAX_BACKPRESSURE_BUFFER = 1000;
 
     private final TaskEventsGenerator taskEventsGenerator;
     private final EsClient<TaskDocument> esClient;
@@ -67,7 +71,8 @@ public class EsPublisher implements TasksPublisher, LeaderActivationListener {
     @Override
     public void activate() {
         ConnectableFlux<TaskDocument> taskEvents = taskEventsGenerator.getTaskEvents();
-        subscription = taskEvents.bufferTimeout(100, Duration.ofSeconds(5))
+        subscription = taskEvents.bufferTimeout(MAX_BATCH_SIZE, Duration.ofSeconds(5))
+                .onBackpressureBuffer(MAX_BACKPRESSURE_BUFFER, BufferOverflowStrategy.ERROR)
                 .flatMap(taskDocuments ->
                                 esClient.bulkIndexDocuments(
                                         taskDocuments,
