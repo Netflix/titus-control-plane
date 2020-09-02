@@ -51,5 +51,4 @@ public class ExplicitJobPodResourcePoolResolverTest {
                 .build();
         return job;
     }
-
 }

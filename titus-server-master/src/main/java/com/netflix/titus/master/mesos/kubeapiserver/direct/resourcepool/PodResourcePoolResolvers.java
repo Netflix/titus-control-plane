@@ -20,6 +20,8 @@ public final class PodResourcePoolResolvers {
 
     public static final String RESOURCE_POOL_ELASTIC = "elastic";
 
+    public static final String RESOURCE_POOL_ELASTIC_FARZONE_PREFIX = "elastic_farzone_";
+
     public static final String RESOURCE_POOL_RESERVED = "reserved";
 
     public static final String RESOURCE_POOL_GPU_PREFIX = "elasticGpu";

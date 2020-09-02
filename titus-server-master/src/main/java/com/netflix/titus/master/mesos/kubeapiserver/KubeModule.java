@@ -42,6 +42,7 @@ import com.netflix.titus.master.mesos.kubeapiserver.direct.PodAffinityFactory;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.TaskToPodConverter;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.resourcepool.CapacityGroupPodResourcePoolResolver;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.resourcepool.ExplicitJobPodResourcePoolResolver;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.resourcepool.FarzonePodResourcePoolResolver;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.resourcepool.PodResourcePoolResolver;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.resourcepool.PodResourcePoolResolverChain;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.resourcepool.PodResourcePoolResolverFeatureGuard;
@@ -98,6 +99,7 @@ public class KubeModule extends AbstractModule {
                 configuration,
                 new PodResourcePoolResolverChain(Arrays.asList(
                         new ExplicitJobPodResourcePoolResolver(),
+                        new FarzonePodResourcePoolResolver(configuration),
                         new CapacityGroupPodResourcePoolResolver(
                                 configuration,
                                 config.getPrefixedView(RESOURCE_POOL_PROPERTIES_PREFIX),
