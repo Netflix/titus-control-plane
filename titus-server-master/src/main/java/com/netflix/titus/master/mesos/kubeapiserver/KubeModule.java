@@ -44,6 +44,7 @@ import com.netflix.titus.master.mesos.kubeapiserver.direct.resourcepool.Capacity
 import com.netflix.titus.master.mesos.kubeapiserver.direct.resourcepool.ExplicitJobPodResourcePoolResolver;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.resourcepool.PodResourcePoolResolver;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.resourcepool.PodResourcePoolResolverChain;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.resourcepool.PodResourcePoolResolverFeatureGuard;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.resourcepool.TierPodResourcePoolResolver;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.taint.DefaultTaintTolerationFactory;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.taint.TaintTolerationFactory;
@@ -93,16 +94,19 @@ public class KubeModule extends AbstractModule {
                                                               Config config,
                                                               ApplicationSlaManagementService capacityGroupService,
                                                               TitusRuntime titusRuntime) {
-        return new PodResourcePoolResolverChain(Arrays.asList(
-                new ExplicitJobPodResourcePoolResolver(),
-                new CapacityGroupPodResourcePoolResolver(
-                        configuration,
-                        config.getPrefixedView(RESOURCE_POOL_PROPERTIES_PREFIX),
-                        capacityGroupService,
-                        titusRuntime
-                ),
-                new TierPodResourcePoolResolver(capacityGroupService)
-        ));
+        return new PodResourcePoolResolverFeatureGuard(
+                configuration,
+                new PodResourcePoolResolverChain(Arrays.asList(
+                        new ExplicitJobPodResourcePoolResolver(),
+                        new CapacityGroupPodResourcePoolResolver(
+                                configuration,
+                                config.getPrefixedView(RESOURCE_POOL_PROPERTIES_PREFIX),
+                                capacityGroupService,
+                                titusRuntime
+                        ),
+                        new TierPodResourcePoolResolver(capacityGroupService)
+                ))
+        );
     }
 
     @Provides
