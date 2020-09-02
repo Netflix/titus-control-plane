@@ -48,7 +48,7 @@ public interface JobManagerConfiguration {
     @DefaultValue("300")
     int getConcurrentReconcilerStoreUpdateLimit();
 
-    @DefaultValue("60000")
+    @DefaultValue("300000")
     long getTaskInLaunchedStateTimeoutMs();
 
     @DefaultValue("720000")
