@@ -33,7 +33,7 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.time.TestClock;
 import com.netflix.titus.runtime.connector.agent.AgentDataReplicator;
-import com.netflix.titus.supplementary.relocation.RelocationAttributes;
+import com.netflix.titus.runtime.RelocationAttributes;
 import com.netflix.titus.supplementary.relocation.RelocationConnectorStubs;
 import com.netflix.titus.supplementary.relocation.connector.AgentManagementNodeDataResolver;
 import com.netflix.titus.supplementary.relocation.model.DeschedulingResult;

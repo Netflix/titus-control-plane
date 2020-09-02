@@ -21,7 +21,7 @@ import java.util.Collections;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
-import com.netflix.titus.supplementary.relocation.RelocationAttributes;
+import com.netflix.titus.runtime.RelocationAttributes;
 import com.netflix.titus.supplementary.relocation.connector.Node;
 import com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator;
 import com.netflix.titus.testkit.model.job.JobGenerator;

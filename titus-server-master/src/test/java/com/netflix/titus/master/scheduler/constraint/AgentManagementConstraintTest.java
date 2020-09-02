@@ -43,6 +43,7 @@ import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.master.jobmanager.service.common.V3QueueableTask;
 import com.netflix.titus.master.scheduler.SchedulerAttributes;
 import com.netflix.titus.master.scheduler.SchedulerConfiguration;
+import com.netflix.titus.runtime.RelocationAttributes;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import org.apache.mesos.Protos;
 import org.junit.Before;
@@ -195,6 +196,28 @@ public class AgentManagementConstraintTest {
         Result result = agentManagementConstraint.evaluate(taskRequest,
                 createVirtualMachineCurrentStateMock(INSTANCE_ID), mock(TaskTrackerState.class));
         assertThat(result.isSuccessful()).isTrue();
+    }
+
+    @Test
+    public void relocationRequiredPreventsPlacement() {
+        relocationPlacementConstraint(RelocationAttributes.RELOCATION_REQUIRED);
+    }
+
+    @Test
+    public void relocationRequiredImmediatelyPreventsPlacement() {
+        relocationPlacementConstraint(RelocationAttributes.RELOCATION_REQUIRED_IMMEDIATELY);
+    }
+
+    private void relocationPlacementConstraint(String relocationAttribute) {
+        AgentInstance instance = createAgentInstance(INSTANCE_GROUP_ID, Collections.singletonMap(relocationAttribute, "true"));
+        when(agentManagementService.findAgentInstance(INSTANCE_ID)).thenReturn(Optional.of(instance));
+        AgentInstanceGroup agentInstanceGroup = createAgentInstanceGroup(InstanceGroupLifecycleState.Active, Tier.Flex);
+        when(agentManagementService.findInstanceGroup(INSTANCE_GROUP_ID)).thenReturn(Optional.of(agentInstanceGroup));
+        Job<BatchJobExt> job = JobGenerator.batchJobs(oneTaskBatchJobDescriptor()).getValue();
+        TaskRequest taskRequest = createTaskRequest(job);
+        Result result = agentManagementConstraint.evaluate(taskRequest,
+                createVirtualMachineCurrentStateMock(INSTANCE_ID), mock(TaskTrackerState.class));
+        assertThat(result.isSuccessful()).isFalse();
     }
 
     @Test
