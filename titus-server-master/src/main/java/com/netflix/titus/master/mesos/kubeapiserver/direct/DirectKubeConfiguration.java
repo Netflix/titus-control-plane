@@ -161,4 +161,9 @@ public interface DirectKubeConfiguration extends KubeConnectorConfiguration {
      */
     @DefaultValue("false")
     boolean isResourcePoolAffinityEnabled();
+
+    /**
+     * Default IAM role that should be used to upload log files to S3 bucket.
+     */
+    String getDefaultS3WriterRole();
 }
