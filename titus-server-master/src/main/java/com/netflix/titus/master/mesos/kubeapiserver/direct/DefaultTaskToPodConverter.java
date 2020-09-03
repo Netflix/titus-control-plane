@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.primitives.Ints;
@@ -40,6 +41,7 @@ import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.JobGroupInfo;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
+import com.netflix.titus.api.jobmanager.model.job.LogStorageInfos;
 import com.netflix.titus.api.jobmanager.model.job.SecurityProfile;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.vpc.SignedIpAddressAllocation;
@@ -48,10 +50,10 @@ import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.taint.TaintTolerationFactory;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
+import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import io.kubernetes.client.custom.Quantity;
 import io.kubernetes.client.openapi.models.V1Affinity;
 import io.kubernetes.client.openapi.models.V1Container;
@@ -75,6 +77,13 @@ import static com.netflix.titus.common.util.Evaluators.applyNotNull;
 public class DefaultTaskToPodConverter implements TaskToPodConverter {
 
     private static final String PASSTHROUGH_ATTRIBUTES_PREFIX = "titusParameter.agent.";
+
+    /**
+     * If a user specifies a custom bucket location, the S3 writer role will include the container's IAM role.
+     * Otherwise default role will be used which has access to a default S3 bucket.
+     */
+    static final String S3_WRITER_ROLE = PASSTHROUGH_ATTRIBUTES_PREFIX + "log.s3WriterRole";
+
     private static final String TITUS_AGENT_ATTRIBUTE_PREFIX = "titus.agent.";
     private static final String OWNER_EMAIL_ATTRIBUTE = TITUS_AGENT_ATTRIBUTE_PREFIX + "ownerEmail";
     private static final String JOB_TYPE_ATTRIBUTE = TITUS_AGENT_ATTRIBUTE_PREFIX + "jobType";
@@ -228,6 +237,7 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
                 containerInfoBuilder.putPassthroughAttributes(k, v);
             }
         });
+        appendS3WriterRole(containerInfoBuilder, job);
 
         containerInfoBuilder.putPassthroughAttributes(OWNER_EMAIL_ATTRIBUTE, jobDescriptor.getOwner().getTeamEmail());
         containerInfoBuilder.putPassthroughAttributes(JOB_TYPE_ATTRIBUTE, getJobType(jobDescriptor).name());
@@ -294,6 +304,21 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
         setJobAcceptedTimestamp(containerInfoBuilder, job);
 
         return containerInfoBuilder.build();
+    }
+
+    @VisibleForTesting
+    void appendS3WriterRole(TitanProtos.ContainerInfo.Builder containerInfoBuilder, Job<?> job) {
+        if (LogStorageInfos.findCustomS3Bucket(job).isPresent()) {
+            containerInfoBuilder.putPassthroughAttributes(
+                    S3_WRITER_ROLE,
+                    job.getJobDescriptor().getContainer().getSecurityProfile().getIamRole()
+            );
+        } else {
+            containerInfoBuilder.putPassthroughAttributes(
+                    S3_WRITER_ROLE,
+                    configuration.getDefaultS3WriterRole()
+            );
+        }
     }
 
     private void setImage(TitanProtos.ContainerInfo.Builder containerInfoBuilder, Image image) {
