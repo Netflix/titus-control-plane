@@ -50,4 +50,7 @@ public interface RelocationConfiguration {
 
     @DefaultValue("NONE")
     String getNodeRelocationRequiredImmediatelyTaints();
+
+    @DefaultValue("UncorrectableMemoryFailure")
+    String getBadNodeConditionPattern();
 }

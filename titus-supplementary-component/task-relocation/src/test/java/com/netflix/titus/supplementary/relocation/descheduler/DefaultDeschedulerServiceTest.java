@@ -32,14 +32,15 @@ import com.netflix.titus.common.data.generator.MutableDataGenerator;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.time.TestClock;
-import com.netflix.titus.runtime.connector.agent.AgentDataReplicator;
 import com.netflix.titus.runtime.RelocationAttributes;
+import com.netflix.titus.runtime.connector.agent.AgentDataReplicator;
+import com.netflix.titus.supplementary.relocation.RelocationConfiguration;
 import com.netflix.titus.supplementary.relocation.RelocationConnectorStubs;
+import com.netflix.titus.supplementary.relocation.TestDataFactory;
 import com.netflix.titus.supplementary.relocation.connector.AgentManagementNodeDataResolver;
 import com.netflix.titus.supplementary.relocation.model.DeschedulingResult;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import static com.netflix.titus.api.agent.model.AgentFunctions.withId;
 import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.ofServiceSize;
@@ -52,6 +53,7 @@ import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator
 import static com.netflix.titus.testkit.model.eviction.DisruptionBudgetGenerator.unlimitedRate;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskServiceJobDescriptor;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 public class DefaultDeschedulerServiceTest {
 
@@ -77,12 +79,14 @@ public class DefaultDeschedulerServiceTest {
 
     private final ReadOnlyJobOperations jobOperations = dataGenerator.getJobOperations();
 
-    private final AgentDataReplicator agentDataReplicator = Mockito.mock(AgentDataReplicator.class);
+    private final AgentDataReplicator agentDataReplicator = mock(AgentDataReplicator.class);
 
     private final DefaultDeschedulerService deschedulerService = new DefaultDeschedulerService(
             dataGenerator.getJobOperations(),
             dataGenerator.getEvictionOperations(),
-            new AgentManagementNodeDataResolver(dataGenerator.getAgentOperations(), agentDataReplicator, instance -> true),
+            new AgentManagementNodeDataResolver(dataGenerator.getAgentOperations(), agentDataReplicator, instance -> true,
+                    mock(RelocationConfiguration.class),
+                    TestDataFactory.mockKubeApiFacade()),
             titusRuntime
     );
 

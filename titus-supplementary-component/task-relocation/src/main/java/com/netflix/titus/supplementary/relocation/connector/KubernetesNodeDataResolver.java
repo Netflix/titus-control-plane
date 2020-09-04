@@ -48,6 +48,7 @@ public class KubernetesNodeDataResolver implements NodeDataResolver {
 
     private final Function<String, Matcher> relocationRequiredTaintsMatcher;
     private final Function<String, Matcher> relocationRequiredImmediatelyTaintsMatcher;
+    private final Function<String, Matcher> badConditionMatcherFactory;
 
     public KubernetesNodeDataResolver(RelocationConfiguration configuration,
                                       KubeApiFacade kubeApiFacade,
@@ -64,6 +65,9 @@ public class KubernetesNodeDataResolver implements NodeDataResolver {
                 Pattern.DOTALL,
                 logger);
         this.nodeFilter = nodeFilter;
+        this.badConditionMatcherFactory = RegExpExt.dynamicMatcher(configuration::getBadNodeConditionPattern,
+                "titus.relocation.badNodeConditionPattern", Pattern.DOTALL, logger);
+
     }
 
     @Override
@@ -84,7 +88,6 @@ public class KubernetesNodeDataResolver implements NodeDataResolver {
         }
 
         Map<String, String> k8sLabels = k8sNode.getMetadata().getLabels();
-
         String serverGroupId = k8sLabels.get(NODE_LABEL_MACHINE_GROUP);
         if (serverGroupId == null) {
             return Optional.empty();
@@ -95,6 +98,7 @@ public class KubernetesNodeDataResolver implements NodeDataResolver {
                 .withServerGroupId(serverGroupId)
                 .withRelocationRequired(anyNoExecuteMatch(k8sNode, relocationRequiredTaintsMatcher))
                 .withRelocationRequiredImmediately(anyNoExecuteMatch(k8sNode, relocationRequiredImmediatelyTaintsMatcher))
+                .withBadCondition(NodePredicates.hasBadCondition(k8sNode, badConditionMatcherFactory))
                 .build();
         return Optional.of(node);
     }
