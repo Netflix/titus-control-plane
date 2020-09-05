@@ -20,8 +20,10 @@ import java.util.Collections;
 
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import io.kubernetes.client.openapi.models.V1Node;
+import io.kubernetes.client.openapi.models.V1NodeCondition;
 import io.kubernetes.client.openapi.models.V1NodeSpec;
 import io.kubernetes.client.openapi.models.V1Taint;
+import org.joda.time.DateTime;
 import org.junit.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -34,5 +36,18 @@ public class NodePredicatesTest {
         V1Node node = new V1Node().spec(new V1NodeSpec().taints(Collections.singletonList(taint)));
         assertThat(NodePredicates.isOwnedByScheduler("fenzo", node)).isTrue();
         assertThat(NodePredicates.isOwnedByScheduler("kubeScheduler", node)).isFalse();
+    }
+
+    @Test
+    public void nodeConditionTransitionThreshold() {
+        V1NodeCondition nodeCondition1 = new V1NodeCondition();
+        nodeCondition1.setLastTransitionTime(DateTime.now().minusMinutes(10));
+        boolean isTransitionRecent = NodePredicates.isNodeConditionTransitionedRecently(nodeCondition1, 300);
+        assertThat(isTransitionRecent).isFalse();
+
+        V1NodeCondition nodeCondition2 = new V1NodeCondition();
+        nodeCondition2.setLastTransitionTime(DateTime.now().minusSeconds(100));
+        boolean isTransitionRecent2 = NodePredicates.isNodeConditionTransitionedRecently(nodeCondition2, 300);
+        assertThat(isTransitionRecent2).isTrue();
     }
 }

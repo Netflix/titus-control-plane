@@ -26,7 +26,9 @@ import com.netflix.titus.api.agent.model.AgentInstance;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import io.kubernetes.client.informer.SharedIndexInformer;
 import io.kubernetes.client.openapi.models.V1Node;
+import io.kubernetes.client.openapi.models.V1NodeCondition;
 import io.kubernetes.client.openapi.models.V1Taint;
+import org.joda.time.DateTime;
 
 public class NodePredicates {
 
@@ -51,10 +53,21 @@ public class NodePredicates {
     }
 
     @VisibleForTesting
-    static boolean hasBadCondition(V1Node node, Function<String, Matcher> badConditionExpression) {
+    static boolean hasBadCondition(V1Node node, Function<String, Matcher> badConditionExpression,
+                                   int nodeConditionTransitionTimeThresholdSeconds) {
         if (node.getStatus() != null && node.getStatus().getConditions() != null) {
-            return node.getStatus().getConditions().stream().anyMatch(v1NodeCondition ->
-                    badConditionExpression.apply(v1NodeCondition.getType()).matches() && v1NodeCondition.getStatus().equals("True"));
+            return node.getStatus().getConditions().stream()
+                    .anyMatch(v1NodeCondition -> badConditionExpression.apply(v1NodeCondition.getType()).matches() &&
+                            v1NodeCondition.getStatus().equals("True") &&
+                            !isNodeConditionTransitionedRecently(v1NodeCondition, nodeConditionTransitionTimeThresholdSeconds));
+        }
+        return false;
+    }
+
+    static boolean isNodeConditionTransitionedRecently(V1NodeCondition nodeCondition, int thresholdSeconds) {
+        DateTime threshold = DateTime.now().minusSeconds(thresholdSeconds);
+        if (nodeCondition.getLastTransitionTime() != null) {
+            return nodeCondition.getLastTransitionTime().isAfter(threshold);
         }
         return false;
     }

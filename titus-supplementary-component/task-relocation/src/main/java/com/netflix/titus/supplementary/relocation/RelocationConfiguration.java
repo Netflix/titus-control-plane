@@ -66,4 +66,7 @@ public interface RelocationConfiguration {
     @DefaultValue("300000")
     long getNodeConditionControlLoopTimeoutMs();
 
+    @DefaultValue("300")
+    int getNodeConditionTransitionTimeThresholdSeconds();
+
 }

@@ -17,6 +17,7 @@
 package com.netflix.titus.testkit.model.job;
 
 import java.util.Collections;
+import java.util.Map;
 import java.util.UUID;
 
 import com.netflix.titus.api.jobmanager.TaskAttributes;
@@ -111,6 +112,14 @@ public class JobGenerator {
 
     public static DataGenerator<Job<BatchJobExt>> batchJobsOfSize(int size) {
         return batchJobs(JobFunctions.changeBatchJobSize(JobDescriptorGenerator.oneTaskBatchJobDescriptor(), size));
+    }
+
+
+    public static DataGenerator<Job<BatchJobExt>> batchJobsOfSizeAndAttributes(int size, Map<String, String> jobAttributes) {
+        JobDescriptor<BatchJobExt> jobDescriptor = JobFunctions.appendJobDescriptorAttributes(
+                JobFunctions.changeBatchJobSize(
+                        JobDescriptorGenerator.oneTaskBatchJobDescriptor(), size), jobAttributes);
+        return batchJobs(jobDescriptor);
     }
 
     /**

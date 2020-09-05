@@ -44,6 +44,7 @@ public class AgentManagementNodeDataResolver implements NodeDataResolver {
     private final ReadOnlyAgentOperations agentOperations;
     private final AgentDataReplicator agentDataReplicator;
     private final Predicate<AgentInstance> fenzoNodeFilter;
+    private final RelocationConfiguration relocationConfiguration;
     private final Indexer<V1Node> k8sNodeIndexer;
     private final Function<String, Matcher> badConditionMatcherFactory;
 
@@ -55,6 +56,7 @@ public class AgentManagementNodeDataResolver implements NodeDataResolver {
         this.agentOperations = agentOperations;
         this.agentDataReplicator = agentDataReplicator;
         this.fenzoNodeFilter = fenzoNodeFilter;
+        this.relocationConfiguration = relocationConfiguration;
         k8sNodeIndexer = kubeApiFacade.getNodeInformer().getIndexer();
         this.badConditionMatcherFactory = RegExpExt.dynamicMatcher(relocationConfiguration::getBadNodeConditionPattern,
                 "titus.relocation.badNodeConditionPattern", Pattern.DOTALL, logger);
@@ -94,7 +96,8 @@ public class AgentManagementNodeDataResolver implements NodeDataResolver {
         boolean isNodeConditionBad = false;
         V1Node k8sNode = k8sNodeIndexer.getByKey(instance.getId());
         if (k8sNode != null) {
-            isNodeConditionBad = NodePredicates.hasBadCondition(k8sNode, badConditionMatcherFactory);
+            isNodeConditionBad = NodePredicates.hasBadCondition(k8sNode, badConditionMatcherFactory,
+                    relocationConfiguration.getNodeConditionTransitionTimeThresholdSeconds());
         }
 
         return Node.newBuilder()

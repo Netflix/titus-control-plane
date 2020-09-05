@@ -43,6 +43,7 @@ public class KubernetesNodeDataResolver implements NodeDataResolver {
 
     private static final long NOT_SYNCED_STALENESS_MS = 10 * 3600_000;
 
+    private final RelocationConfiguration configuration;
     private final SharedIndexInformer<V1Node> nodeInformer;
     private final Predicate<V1Node> nodeFilter;
 
@@ -53,6 +54,7 @@ public class KubernetesNodeDataResolver implements NodeDataResolver {
     public KubernetesNodeDataResolver(RelocationConfiguration configuration,
                                       KubeApiFacade kubeApiFacade,
                                       Predicate<V1Node> nodeFilter) {
+        this.configuration = configuration;
         this.nodeInformer = kubeApiFacade.getNodeInformer();
         this.relocationRequiredTaintsMatcher = RegExpExt.dynamicMatcher(
                 configuration::getNodeRelocationRequiredTaints,
@@ -98,7 +100,8 @@ public class KubernetesNodeDataResolver implements NodeDataResolver {
                 .withServerGroupId(serverGroupId)
                 .withRelocationRequired(anyNoExecuteMatch(k8sNode, relocationRequiredTaintsMatcher))
                 .withRelocationRequiredImmediately(anyNoExecuteMatch(k8sNode, relocationRequiredImmediatelyTaintsMatcher))
-                .withBadCondition(NodePredicates.hasBadCondition(k8sNode, badConditionMatcherFactory))
+                .withBadCondition(NodePredicates.hasBadCondition(k8sNode, badConditionMatcherFactory,
+                        configuration.getNodeConditionTransitionTimeThresholdSeconds()))
                 .build();
         return Optional.of(node);
     }
