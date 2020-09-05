@@ -53,4 +53,17 @@ public interface RelocationConfiguration {
 
     @DefaultValue("UncorrectableMemoryFailure")
     String getBadNodeConditionPattern();
+
+    @DefaultValue("false")
+    boolean isTaskTerminationOnBadNodeConditionEnabled();
+
+    /**
+     * Interval at which the node condition controller is triggered.
+     */
+    @DefaultValue("60000")
+    long getNodeConditionControlLoopIntervalMs();
+
+    @DefaultValue("300000")
+    long getNodeConditionControlLoopTimeoutMs();
+
 }
