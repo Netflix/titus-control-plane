@@ -8,6 +8,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.netflix.titus.api.common.LeaderActivationListener;
 import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
@@ -88,9 +89,11 @@ public class NodeConditionCtrl implements LeaderActivationListener {
         }
     }
 
-    private Mono<Void> handleBadNodeConditions(ExecutionContext executionContext) {
+    @VisibleForTesting
+    Mono<Void> handleBadNodeConditions(ExecutionContext executionContext) {
         if (hasStaleData()) {
-            logger.info("Stale data. Skipping the node condition control loop iteration");
+            logger.info("Stale data. Skipping the node condition control loop iteration- {} ",
+                    executionContext.getExecutionId().getTotal());
             return Mono.empty();
         }
 

@@ -70,9 +70,14 @@ public class KubernetesNodeDataResolverTest {
         assertThat(resolver.resolve().get(node1Name).isRelocationRequiredImmediately()).isTrue();
         assertThat(resolver.resolve().get(node1Name).isRelocationNotAllowed()).isFalse();
 
-        // add bad memory condition
+        // bad memory condition = True
         addNodeCondition(node2, "CorrectableMemoryFailure", "True");
         assertThat(resolver.resolve().get(node2Name)).isNotNull();
         assertThat(resolver.resolve().get(node2Name).isInBadCondition()).isTrue();
+
+        // bad memory condition = False
+        addNodeCondition(node1, "CorrectableMemoryFailure", "False");
+        assertThat(resolver.resolve().get(node1Name)).isNotNull();
+        assertThat(resolver.resolve().get(node1Name).isInBadCondition()).isFalse();
     }
 }

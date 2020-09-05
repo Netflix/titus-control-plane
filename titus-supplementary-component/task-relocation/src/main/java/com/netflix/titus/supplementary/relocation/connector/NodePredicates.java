@@ -54,7 +54,7 @@ public class NodePredicates {
     static boolean hasBadCondition(V1Node node, Function<String, Matcher> badConditionExpression) {
         if (node.getStatus() != null && node.getStatus().getConditions() != null) {
             return node.getStatus().getConditions().stream().anyMatch(v1NodeCondition ->
-                    badConditionExpression.apply(v1NodeCondition.getType()).matches());
+                    badConditionExpression.apply(v1NodeCondition.getType()).matches() && v1NodeCondition.getStatus().equals("True"));
         }
         return false;
     }
