@@ -22,6 +22,7 @@ import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.runtime.connector.eviction.EvictionDataReplicator;
 import com.netflix.titus.runtime.connector.eviction.EvictionServiceClient;
 import com.netflix.titus.runtime.connector.jobmanager.JobDataReplicator;
+import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.supplementary.relocation.RelocationConfiguration;
 import com.netflix.titus.supplementary.relocation.connector.NodeDataResolver;
 import com.netflix.titus.supplementary.relocation.descheduler.DeschedulerService;
@@ -33,7 +34,6 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class TaskRelocationWorkflowComponent {
-
     @Bean
     public RelocationConfiguration getRelocationConfiguration(Environment environment) {
         return Archaius2Ext.newConfiguration(RelocationConfiguration.class, environment);
@@ -63,4 +63,16 @@ public class TaskRelocationWorkflowComponent {
                 titusRuntime
         );
     }
+
+    @Bean
+    public NodeConditionController getNodeConditionCtrl(RelocationConfiguration configuration,
+                                                               NodeDataResolver nodeDataResolver,
+                                                               JobDataReplicator jobDataReplicator,
+                                                               ReadOnlyJobOperations readOnlyJobOperations,
+                                                               JobManagementClient jobManagementClient,
+                                                               TitusRuntime titusRuntime) {
+        return new DefaultNodeConditionController(configuration, nodeDataResolver,
+                jobDataReplicator, readOnlyJobOperations, jobManagementClient, titusRuntime);
+    }
+
 }

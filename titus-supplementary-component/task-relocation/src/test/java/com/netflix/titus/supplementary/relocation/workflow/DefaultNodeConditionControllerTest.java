@@ -38,7 +38,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class NodeConditionCtrlTest {
+public class DefaultNodeConditionControllerTest {
 
     enum NodeIds {
         node1,
@@ -72,11 +72,11 @@ public class NodeConditionCtrlTest {
             return Mono.empty();
         });
 
-        NodeConditionCtrl nodeConditionCtrl = new NodeConditionCtrl(configuration, nodeDataResolver, jobDataReplicator,
+        DefaultNodeConditionController nodeConditionCtrl = new DefaultNodeConditionController(configuration, nodeDataResolver, jobDataReplicator,
                 readOnlyJobOperations, jobManagementClient, titusRuntime);
 
         ExecutionContext executionContext = ExecutionContext.newBuilder().withIteration(ExecutionId.initial()).build();
-        StepVerifier.create(nodeConditionCtrl.handleBadNodeConditions(executionContext))
+        StepVerifier.create(nodeConditionCtrl.handleNodesWithBadCondition(executionContext))
                 .verifyComplete();
 
         // No tasks terminated
@@ -117,11 +117,11 @@ public class NodeConditionCtrlTest {
             return Mono.empty();
         });
 
-        NodeConditionCtrl nodeConditionCtrl = new NodeConditionCtrl(configuration, nodeDataResolver, jobDataReplicator,
+        DefaultNodeConditionController nodeConditionCtrl = new DefaultNodeConditionController(configuration, nodeDataResolver, jobDataReplicator,
                 readOnlyJobOperations, jobManagementClient, titusRuntime);
 
         ExecutionContext executionContext = ExecutionContext.newBuilder().withIteration(ExecutionId.initial()).build();
-        StepVerifier.create(nodeConditionCtrl.handleBadNodeConditions(executionContext))
+        StepVerifier.create(nodeConditionCtrl.handleNodesWithBadCondition(executionContext))
                 .verifyComplete();
 
         assertThat(terminatedTaskIds).isNotEmpty();

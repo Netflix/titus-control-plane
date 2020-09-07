@@ -9,7 +9,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.netflix.titus.api.common.LeaderActivationListener;
 import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
@@ -33,8 +32,8 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
-public class NodeConditionCtrl implements LeaderActivationListener {
-    private static final Logger logger = LoggerFactory.getLogger(NodeConditionCtrl.class);
+public class DefaultNodeConditionController implements NodeConditionController {
+    private static final Logger logger = LoggerFactory.getLogger(DefaultNodeConditionController.class);
     private final RelocationConfiguration configuration;
     private final NodeDataResolver nodeDataResolver;
     private final JobDataReplicator jobDataReplicator;
@@ -53,12 +52,12 @@ public class NodeConditionCtrl implements LeaderActivationListener {
     private ScheduleReference scheduleReference;
 
 
-    public NodeConditionCtrl(RelocationConfiguration relocationConfiguration,
-                             NodeDataResolver nodeDataResolver,
-                             JobDataReplicator jobDataReplicator,
-                             ReadOnlyJobOperations jobOperations,
-                             JobManagementClient jobManagementClient,
-                             TitusRuntime titusRuntime) {
+    public DefaultNodeConditionController(RelocationConfiguration relocationConfiguration,
+                                          NodeDataResolver nodeDataResolver,
+                                          JobDataReplicator jobDataReplicator,
+                                          ReadOnlyJobOperations jobOperations,
+                                          JobManagementClient jobManagementClient,
+                                          TitusRuntime titusRuntime) {
         this.configuration = relocationConfiguration;
         this.nodeDataResolver = nodeDataResolver;
         this.jobDataReplicator = jobDataReplicator;
@@ -79,7 +78,7 @@ public class NodeConditionCtrl implements LeaderActivationListener {
                 .withRetryerSupplier(() -> Retryers.exponentialBackoff(1, 5, TimeUnit.MINUTES))
                 .build();
         this.scheduleReference = titusRuntime.getLocalScheduler().scheduleMono(nodeConditionControlLoopSchedulerDescriptor,
-                this::handleBadNodeConditions, Schedulers.parallel());
+                this::handleNodesWithBadCondition, Schedulers.parallel());
     }
 
     @Override
@@ -90,13 +89,28 @@ public class NodeConditionCtrl implements LeaderActivationListener {
     }
 
     @VisibleForTesting
-    Mono<Void> handleBadNodeConditions(ExecutionContext executionContext) {
+    Mono<Void> handleNodesWithBadCondition(ExecutionContext executionContext) {
         if (hasStaleData()) {
             logger.info("Stale data. Skipping the node condition control loop iteration- {} ",
                     executionContext.getExecutionId().getTotal());
             return Mono.empty();
         }
+        return handleNodesWithBadCondition();
+    }
 
+    private boolean hasStaleData() {
+        long dataStaleness = getDataStalenessMs();
+        boolean stale = dataStaleness > configuration.getDataStalenessThresholdMs();
+        metrics.setStaleness(stale, dataStaleness);
+        return stale;
+    }
+
+    private long getDataStalenessMs() {
+        return Math.max(nodeDataResolver.getStalenessMs(), jobDataReplicator.getStalenessMs());
+    }
+
+    @Override
+    public Mono<Void> handleNodesWithBadCondition() {
         // Identify bad nodes from node resolver
         Map<String, Node> badConditionNodesById = nodeDataResolver.resolve().entrySet().stream().filter(nodeEntry -> nodeEntry.getValue().isInBadCondition())
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
@@ -125,16 +139,5 @@ public class NodeConditionCtrl implements LeaderActivationListener {
             logger.info("Skipping {} task terminations on bad node conditions", eligibleTaskIds.size());
         }
         return Mono.empty();
-    }
-
-    private boolean hasStaleData() {
-        long dataStaleness = getDataStalenessMs();
-        boolean stale = dataStaleness > configuration.getDataStalenessThresholdMs();
-        metrics.setStaleness(stale, dataStaleness);
-        return stale;
-    }
-
-    private long getDataStalenessMs() {
-        return Math.max(nodeDataResolver.getStalenessMs(), jobDataReplicator.getStalenessMs());
     }
 }
