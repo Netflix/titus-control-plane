@@ -69,6 +69,7 @@ public class DefaultNodeConditionController implements NodeConditionController {
 
     @Override
     public void activate() {
+        logger.info("Activating DefaultNodeConditionController");
         ScheduleDescriptor nodeConditionControlLoopSchedulerDescriptor = ScheduleDescriptor.newBuilder()
                 .withName("nodeConditionCtrl")
                 .withDescription("Node Condition control loop")
@@ -90,9 +91,10 @@ public class DefaultNodeConditionController implements NodeConditionController {
 
     @VisibleForTesting
     Mono<Void> handleNodesWithBadCondition(ExecutionContext executionContext) {
+        int iterationCount = executionContext.getExecutionId().getTotal();
+        logger.debug("Starting node condition controller iteration {} ...", iterationCount);
         if (hasStaleData()) {
-            logger.info("Stale data. Skipping the node condition control loop iteration- {} ",
-                    executionContext.getExecutionId().getTotal());
+            logger.info("Stale data. Skipping the node condition control loop iteration- {} ", iterationCount);
             return Mono.empty();
         }
         return handleNodesWithBadCondition();
