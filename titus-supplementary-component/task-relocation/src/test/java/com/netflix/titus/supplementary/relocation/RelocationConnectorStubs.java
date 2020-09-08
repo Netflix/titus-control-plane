@@ -32,6 +32,7 @@ import com.netflix.titus.runtime.connector.agent.AgentDataReplicator;
 import com.netflix.titus.runtime.connector.eviction.EvictionDataReplicator;
 import com.netflix.titus.runtime.connector.eviction.EvictionServiceClient;
 import com.netflix.titus.runtime.connector.jobmanager.JobDataReplicator;
+import com.netflix.titus.runtime.connector.jobmanager.JobManagementClient;
 import com.netflix.titus.supplementary.relocation.connector.AgentManagementNodeDataResolver;
 import com.netflix.titus.supplementary.relocation.connector.NodeDataResolver;
 import com.netflix.titus.testkit.model.agent.AgentComponentStub;
@@ -87,6 +88,7 @@ public class RelocationConnectorStubs {
         context.getBeanFactory().registerSingleton("readOnlyJobOperations", jobOperations);
         context.getBeanFactory().registerSingleton("readOnlyEvictionOperations", evictionComponentStub.getEvictionOperations());
         context.getBeanFactory().registerSingleton("evictionServiceClient", evictionComponentStub.getEvictionServiceClient());
+        context.getBeanFactory().registerSingleton("jobManagementClient", mock(JobManagementClient.class));
 
         // We care only about data staleness here
         AgentDataReplicator agentDataReplicator = mock(AgentDataReplicator.class);
