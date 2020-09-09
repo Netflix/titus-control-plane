@@ -1027,7 +1027,7 @@ public final class GrpcJobManagementModelConverters {
         links.getLiveLink().ifPresent(link -> logLocationBuilder.setLiveStream(LogLocation.LiveStream.newBuilder().setUrl(link)));
 
         // S3
-        logStorageInfo.getS3LogLocation(task).ifPresent(s3LogLocation ->
+        logStorageInfo.getS3LogLocation(task, true).ifPresent(s3LogLocation ->
                 logLocationBuilder.setS3(
                         LogLocation.S3.newBuilder()
                                 .setAccountId(s3LogLocation.getAccountId())

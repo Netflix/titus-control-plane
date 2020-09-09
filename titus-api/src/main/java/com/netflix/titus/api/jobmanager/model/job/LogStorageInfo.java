@@ -133,5 +133,5 @@ public interface LogStorageInfo<TASK> {
     /**
      * Get S3 location containing files of a given task.
      */
-    Optional<S3LogLocation> getS3LogLocation(TASK task);
+    Optional<S3LogLocation> getS3LogLocation(TASK task, boolean onlyIfScheduled);
 }

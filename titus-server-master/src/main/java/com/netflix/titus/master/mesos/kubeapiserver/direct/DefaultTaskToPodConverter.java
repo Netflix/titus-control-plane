@@ -41,6 +41,7 @@ import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.JobGroupInfo;
 import com.netflix.titus.api.jobmanager.model.job.JobState;
+import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
 import com.netflix.titus.api.jobmanager.model.job.LogStorageInfos;
 import com.netflix.titus.api.jobmanager.model.job.SecurityProfile;
 import com.netflix.titus.api.jobmanager.model.job.Task;
@@ -83,6 +84,7 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
      * Otherwise default role will be used which has access to a default S3 bucket.
      */
     static final String S3_WRITER_ROLE = PASSTHROUGH_ATTRIBUTES_PREFIX + "log.s3WriterRole";
+    static final String S3_BUCKET_NAME = PASSTHROUGH_ATTRIBUTES_PREFIX + "log.s3BucketName";
 
     private static final String TITUS_AGENT_ATTRIBUTE_PREFIX = "titus.agent.";
     private static final String OWNER_EMAIL_ATTRIBUTE = TITUS_AGENT_ATTRIBUTE_PREFIX + "ownerEmail";
@@ -110,15 +112,18 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
     private final DirectKubeConfiguration configuration;
     private final PodAffinityFactory podAffinityFactory;
     private final TaintTolerationFactory taintTolerationFactory;
+    private final LogStorageInfo<Task> logStorageInfo;
     private final String iamArnPrefix;
 
     @Inject
     public DefaultTaskToPodConverter(DirectKubeConfiguration configuration,
                                      PodAffinityFactory podAffinityFactory,
-                                     TaintTolerationFactory taintTolerationFactory) {
+                                     TaintTolerationFactory taintTolerationFactory,
+                                     LogStorageInfo<Task> logStorageInfo) {
         this.configuration = configuration;
         this.podAffinityFactory = podAffinityFactory;
         this.taintTolerationFactory = taintTolerationFactory;
+        this.logStorageInfo = logStorageInfo;
 
         // Get the AWS account ID to use for building IAM ARNs.
         String accountId = Evaluators.getOrDefault(System.getenv("EC2_OWNER_ID"), "default");
@@ -237,7 +242,7 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
                 containerInfoBuilder.putPassthroughAttributes(k, v);
             }
         });
-        appendS3WriterRole(containerInfoBuilder, job);
+        appendS3WriterRole(containerInfoBuilder, job, task);
 
         containerInfoBuilder.putPassthroughAttributes(OWNER_EMAIL_ATTRIBUTE, jobDescriptor.getOwner().getTeamEmail());
         containerInfoBuilder.putPassthroughAttributes(JOB_TYPE_ATTRIBUTE, getJobType(jobDescriptor).name());
@@ -307,7 +312,7 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
     }
 
     @VisibleForTesting
-    void appendS3WriterRole(TitanProtos.ContainerInfo.Builder containerInfoBuilder, Job<?> job) {
+    void appendS3WriterRole(TitanProtos.ContainerInfo.Builder containerInfoBuilder, Job<?> job, Task task) {
         if (LogStorageInfos.findCustomS3Bucket(job).isPresent()) {
             containerInfoBuilder.putPassthroughAttributes(
                     S3_WRITER_ROLE,
@@ -319,6 +324,13 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
                     role -> containerInfoBuilder.putPassthroughAttributes(S3_WRITER_ROLE, role)
             );
         }
+
+        logStorageInfo.getS3LogLocation(task, false).ifPresent(s3LogLocation ->
+                Evaluators.applyNotNull(
+                        s3LogLocation.getBucket(),
+                        bucket -> containerInfoBuilder.putPassthroughAttributes(S3_BUCKET_NAME, bucket)
+                )
+        );
     }
 
     private void setImage(TitanProtos.ContainerInfo.Builder containerInfoBuilder, Image image) {
