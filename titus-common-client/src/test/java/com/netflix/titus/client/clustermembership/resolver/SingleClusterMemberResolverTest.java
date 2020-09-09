@@ -75,6 +75,15 @@ public class SingleClusterMemberResolverTest {
         serviceStub.addMember(MEMBER_2);
         serviceStub.addMember(MEMBER_3);
 
+        setupServerAndResolver(member -> ClusterMemberVerifierResult.valid());
+
+        // Starts with a healthy connection.
+        await().until(() -> resolver.getPrintableName().equals(MEMBER_1.getCurrent().getMemberId()));
+    }
+
+    private void setupServerAndResolver(ClusterMemberVerifier clusterMemberVerifier) throws IOException {
+        tearDown();
+
         String serviceName = "clusterMembershipService#" + System.currentTimeMillis();
         this.server = InProcessServerBuilder.forName(serviceName)
                 .directExecutor()
@@ -86,12 +95,10 @@ public class SingleClusterMemberResolverTest {
                 configuration,
                 address -> InProcessChannelBuilder.forName(serviceName).directExecutor().build(),
                 ADDRESS,
+                clusterMemberVerifier,
                 Schedulers.parallel(),
                 titusRuntime
         );
-
-        // Starts with a healthy connection.
-        await().until(() -> resolver.getPrintableName().equals(MEMBER_1.getCurrent().getMemberId()));
     }
 
     @After
@@ -183,6 +190,12 @@ public class SingleClusterMemberResolverTest {
         ClusterMembershipSnapshot newSnapshot = eventIt.next();
         assertThat(newSnapshot).isNotNull();
         assertThat(newSnapshot.getMemberRevisions()).hasSize(3);
+    }
+
+    @Test
+    public void testWrongMemberIsRejected() throws IOException {
+        setupServerAndResolver(member -> ClusterMemberVerifierResult.invalid("wrong member"));
+        await().until(() -> resolver.getRejectedMemberError().equals("wrong member"));
     }
 
     private Iterator<ClusterMembershipSnapshot> subscribeAndDiscardFirstSnapshot() {

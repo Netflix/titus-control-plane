@@ -21,6 +21,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.netflix.titus.api.clustermembership.model.ClusterMember;
 import com.netflix.titus.api.clustermembership.model.ClusterMemberAddress;
 import com.netflix.titus.api.clustermembership.model.ClusterMemberLeadership;
@@ -31,6 +32,7 @@ import com.netflix.titus.api.clustermembership.model.ClusterMembershipSnapshot;
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.client.clustermembership.grpc.ReactorClusterMembershipClient;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.grpc.reactor.client.ReactorToGrpcClientBuilder;
 import com.netflix.titus.common.util.rx.ReactorExt;
@@ -53,11 +55,10 @@ import reactor.core.publisher.SignalType;
 import reactor.core.scheduler.Scheduler;
 
 import static com.netflix.titus.api.clustermembership.model.ClusterMembershipFunctions.hasIpAddress;
+import static com.netflix.titus.client.clustermembership.grpc.ClusterMembershipGrpcConverters.toCoreClusterMember;
 import static com.netflix.titus.client.clustermembership.grpc.ClusterMembershipGrpcConverters.toCoreClusterMembershipRevision;
 
 /**
- * TODO Move to titus-common-client package once all the necessary dependencies are moved.
- * <p>
  * Resolves cluster member addresses by calling a cluster membership service directly at a specified location.
  */
 public class SingleClusterMemberResolver implements DirectClusterMemberResolver {
@@ -72,11 +73,14 @@ public class SingleClusterMemberResolver implements DirectClusterMemberResolver 
     private final String name;
     private final ClusterMembershipResolverConfiguration configuration;
     private final ClusterMemberAddress address;
+    private final ClusterMemberVerifier clusterMemberVerifier;
     private final Clock clock;
 
     private final ManagedChannel channel;
     private final ReactorClusterMembershipClient client;
     private final Disposable eventStreamDisposable;
+
+    private volatile String rejectedMemberError;
 
     private volatile Optional<String> connectedToMemberId = Optional.empty();
     private volatile ClusterMembershipSnapshot lastSnapshot = ClusterMembershipSnapshot.empty();
@@ -86,15 +90,16 @@ public class SingleClusterMemberResolver implements DirectClusterMemberResolver 
 
     private final AtomicReference<Long> disconnectTimeRef;
 
-
     public SingleClusterMemberResolver(ClusterMembershipResolverConfiguration configuration,
                                        Function<ClusterMemberAddress, ManagedChannel> channelProvider,
                                        ClusterMemberAddress address,
+                                       ClusterMemberVerifier clusterMemberVerifier,
                                        Scheduler scheduler,
                                        TitusRuntime titusRuntime) {
         this.name = "member@" + ClusterMembershipFunctions.toStringUri(address);
         this.configuration = configuration;
         this.address = address;
+        this.clusterMemberVerifier = clusterMemberVerifier;
         this.clock = titusRuntime.getClock();
 
         this.channel = channelProvider.apply(address);
@@ -131,7 +136,15 @@ public class SingleClusterMemberResolver implements DirectClusterMemberResolver 
                         return Mono.error(error);
                     }
                     if (signal.getType() == SignalType.ON_NEXT) {
-                        return Mono.just(signal.get());
+                        ClusterMembershipEvent event = signal.get();
+                        if (event.getEventCase() == ClusterMembershipEvent.EventCase.SNAPSHOT) {
+                            this.rejectedMemberError = checkSnapshot(event.getSnapshot()).orElse(null);
+                            if (rejectedMemberError != null) {
+                                logger.error(rejectedMemberError);
+                                return Mono.error(new IllegalStateException(rejectedMemberError));
+                            }
+                        }
+                        return Mono.just(event);
                     }
                     return Mono.empty();
                 })
@@ -155,6 +168,16 @@ public class SingleClusterMemberResolver implements DirectClusterMemberResolver 
                         e -> logger.warn("[{}] Event stream terminated with an error: address={}", name, address, e),
                         () -> logger.info("[{}] Event stream terminated: address={}", name, address)
                 );
+    }
+
+    private Optional<String> checkSnapshot(ClusterMembershipEvent.Snapshot snapshot) {
+        if (CollectionsExt.isNullOrEmpty(snapshot.getRevisionsList())) {
+            return Optional.of(String.format("[%s] Empty cluster membership list", name));
+        }
+
+        ClusterMember member = toCoreClusterMember(snapshot.getRevisionsList().get(0).getCurrent());
+        ClusterMemberVerifierResult result = clusterMemberVerifier.verify(member);
+        return result.isValid() ? Optional.empty() : Optional.of(result.getMessage());
     }
 
     @Override
@@ -187,6 +210,11 @@ public class SingleClusterMemberResolver implements DirectClusterMemberResolver 
     @Override
     public Flux<ClusterMembershipSnapshot> resolve() {
         return eventProcessor;
+    }
+
+    @VisibleForTesting
+    String getRejectedMemberError() {
+        return rejectedMemberError;
     }
 
     private void processEvent(ClusterMembershipEvent next) {

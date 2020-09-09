@@ -92,7 +92,7 @@ public class ClusterMembershipGrpcConverters {
                 .build();
     }
 
-    private static ClusterMember toCoreClusterMember(com.netflix.titus.grpc.protogen.ClusterMember grpcClusterMember) {
+    public static ClusterMember toCoreClusterMember(com.netflix.titus.grpc.protogen.ClusterMember grpcClusterMember) {
         return ClusterMember.newBuilder()
                 .withMemberId(grpcClusterMember.getMemberId())
                 .withEnabled(grpcClusterMember.getEnabled())
