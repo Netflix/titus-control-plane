@@ -21,7 +21,6 @@ import java.util.Collections;
 import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
-import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.taint.TaintTolerationFactory;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import io.titanframework.messages.TitanProtos.ContainerInfo;
@@ -30,12 +29,11 @@ import org.junit.Test;
 import static com.netflix.titus.master.mesos.kubeapiserver.direct.DefaultTaskToPodConverter.S3_WRITER_ROLE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class DefaultTaskToPodConverterTest {
 
-    private final DirectKubeConfiguration configuration = Archaius2Ext.newConfiguration(DirectKubeConfiguration.class,
-            "titusMaster.directKube.defaultS3WriterRole", "defaultWriter"
-    );
+    private final DirectKubeConfiguration configuration = mock(DirectKubeConfiguration.class);
 
     private final PodAffinityFactory podAffinityFactory = mock(PodAffinityFactory.class);
 
@@ -49,9 +47,17 @@ public class DefaultTaskToPodConverterTest {
 
     @Test
     public void testDefaultWriterRoleAssignment() {
+        when(configuration.getDefaultS3WriterRole()).thenReturn("defaultWriter");
         ContainerInfo.Builder containerInfoBuilder = ContainerInfo.newBuilder();
         converter.appendS3WriterRole(containerInfoBuilder, JobGenerator.oneBatchJob());
         assertThat(containerInfoBuilder.getPassthroughAttributesMap()).containsEntry(S3_WRITER_ROLE, "defaultWriter");
+    }
+
+    @Test
+    public void testNullDefaultWriterRoleAssignment() {
+        ContainerInfo.Builder containerInfoBuilder = ContainerInfo.newBuilder();
+        converter.appendS3WriterRole(containerInfoBuilder, JobGenerator.oneBatchJob());
+        assertThat(containerInfoBuilder.getPassthroughAttributesMap()).doesNotContainKey(S3_WRITER_ROLE);
     }
 
     @Test

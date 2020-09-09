@@ -314,9 +314,9 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
                     job.getJobDescriptor().getContainer().getSecurityProfile().getIamRole()
             );
         } else {
-            containerInfoBuilder.putPassthroughAttributes(
-                    S3_WRITER_ROLE,
-                    configuration.getDefaultS3WriterRole()
+            Evaluators.applyNotNull(
+                    configuration.getDefaultS3WriterRole(),
+                    role -> containerInfoBuilder.putPassthroughAttributes(S3_WRITER_ROLE, role)
             );
         }
     }
