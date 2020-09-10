@@ -320,7 +320,10 @@ public class KubeNotificationProcessor {
         acceptNotNull(annotations.get(TITUS_NODE_DOMAIN + "itype"), itype -> agentAttributes.put(TaskAttributes.TASK_ATTRIBUTES_AGENT_ITYPE, itype));
         acceptNotNull(annotations.get(TITUS_NODE_DOMAIN + "region"), region -> agentAttributes.put(TaskAttributes.TASK_ATTRIBUTES_AGENT_REGION, region));
         acceptNotNull(annotations.get(TITUS_NODE_DOMAIN + "res"), res -> agentAttributes.put(TaskAttributes.TASK_ATTRIBUTES_AGENT_RES, res));
-        acceptNotNull(annotations.get(TITUS_NODE_DOMAIN + "stack"), stack -> agentAttributes.put(TaskAttributes.TASK_ATTRIBUTES_STACK, stack));
+        acceptNotNull(annotations.get(TITUS_NODE_DOMAIN + "stack"), stack -> {
+            agentAttributes.put(TaskAttributes.TASK_ATTRIBUTES_STACK, stack);
+            agentAttributes.put(TaskAttributes.TASK_ATTRIBUTES_AGENT_STACK, stack);
+        });
         acceptNotNull(annotations.get(TITUS_NODE_DOMAIN + "zone"), zone -> agentAttributes.put(TaskAttributes.TASK_ATTRIBUTES_AGENT_ZONE, zone));
 
         acceptNotNull(node.getMetadata().getName(), nodeName -> agentAttributes.put(TaskAttributes.TASK_ATTRIBUTES_KUBE_NODE_NAME, nodeName));
