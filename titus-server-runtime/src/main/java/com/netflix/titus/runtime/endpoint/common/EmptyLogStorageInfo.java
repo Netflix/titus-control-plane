@@ -39,7 +39,7 @@ public class EmptyLogStorageInfo<TASK> implements LogStorageInfo<TASK> {
     }
 
     @Override
-    public Optional<S3LogLocation> getS3LogLocation(TASK task) {
+    public Optional<S3LogLocation> getS3LogLocation(TASK task, boolean onlyIfScheduled) {
         return Optional.empty();
     }
 
