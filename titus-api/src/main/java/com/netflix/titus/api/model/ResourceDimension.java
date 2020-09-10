@@ -128,7 +128,8 @@ public class ResourceDimension {
                 .withCpus(source.getCpu())
                 .withMemoryMB(source.getMemoryMB())
                 .withDiskMB(source.getDiskMB())
-                .withNetworkMbs(source.getNetworkMbs());
+                .withNetworkMbs(source.getNetworkMbs())
+                .withOpportunisticCpus(source.getOpportunisticCpu());
     }
 
     public static final class Builder {
