@@ -37,13 +37,13 @@ import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.mesos.ContainerEvent;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.master.mesos.kubeapiserver.ContainerResultCodeResolver;
-import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeJobManagementReconciler;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeApiServerIntegrator;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodEvent;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodPhase;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodWrapper;
+import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import com.netflix.titus.testkit.model.job.JobGenerator;
 import io.kubernetes.client.openapi.models.V1ContainerState;
 import io.kubernetes.client.openapi.models.V1ContainerStateRunning;
@@ -178,8 +178,9 @@ public class KubeNotificationProcessorTest {
                 );
         V1Node node = new V1Node()
                 .metadata(new V1ObjectMeta()
-                        .annotations(Collections.singletonMap(
-                                TITUS_NODE_DOMAIN + "ami", "ami123"
+                        .annotations(CollectionsExt.asMap(
+                                TITUS_NODE_DOMAIN + "ami", "ami123",
+                                TITUS_NODE_DOMAIN + "stack", "myStack"
                         ))
                 )
                 .status(new V1NodeStatus()
@@ -209,6 +210,7 @@ public class KubeNotificationProcessorTest {
         assertThat(updatedTask.getTaskContext()).containsEntry(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST, "2.2.2.2");
         assertThat(updatedTask.getTaskContext()).containsEntry(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP, "1.2.3.4");
         assertThat(updatedTask.getTaskContext()).containsEntry(TaskAttributes.TASK_ATTRIBUTES_AGENT_AMI, "ami123");
+        assertThat(updatedTask.getTaskContext()).containsEntry(TaskAttributes.TASK_ATTRIBUTES_AGENT_STACK, "myStack");
     }
 
     @Test
@@ -242,16 +244,14 @@ public class KubeNotificationProcessorTest {
         Task updatedTask = KubeNotificationProcessor.updateTaskStatus(
                 new PodWrapper(pod),
                 TaskState.Started,
-                Optional.ofNullable(null),
+                Optional.empty(),
                 Optional.of(node),
                 TASK,
                 containerResultCodeResolver
         );
 
-        Set<TaskState> pastStates = updatedTask.getStatusHistory().stream().map(ExecutableStatus::getState).collect(Collectors.toSet());
         assertThat(updatedTask.getTaskContext()).containsEntry(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP, "192.0.2.0");
     }
-
 
     @Test
     public void testPodPhaseFailedNoContainerCreated() {
