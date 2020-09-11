@@ -26,6 +26,7 @@ import com.netflix.titus.common.util.ExceptionExt;
 import com.netflix.titus.common.util.guice.annotation.Deactivator;
 import com.netflix.titus.runtime.connector.kubernetes.v1.V1OpportunisticResource;
 import com.netflix.titus.runtime.connector.kubernetes.v1.V1OpportunisticResourceList;
+import io.kubernetes.client.common.KubernetesObject;
 import io.kubernetes.client.informer.SharedIndexInformer;
 import io.kubernetes.client.informer.SharedInformerFactory;
 import io.kubernetes.client.openapi.ApiClient;
@@ -151,7 +152,7 @@ public class DefaultKubeApiFacade implements KubeApiFacade {
         return opportunisticResourceInformer;
     }
 
-    protected <T> SharedIndexInformer<T> customizeInformer(String name, SharedIndexInformer<T> informer) {
+    protected <T extends KubernetesObject> SharedIndexInformer<T> customizeInformer(String name, SharedIndexInformer<T> informer) {
         return informer;
     }
 

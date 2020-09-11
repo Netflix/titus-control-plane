@@ -22,6 +22,7 @@ import javax.inject.Singleton;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeConfiguration;
 import com.netflix.titus.runtime.connector.kubernetes.DefaultKubeApiFacade;
+import io.kubernetes.client.common.KubernetesObject;
 import io.kubernetes.client.informer.SharedIndexInformer;
 import io.kubernetes.client.openapi.ApiClient;
 
@@ -37,7 +38,7 @@ public class JobControllerKubeApiFacade extends DefaultKubeApiFacade {
     }
 
     @Override
-    protected <T> SharedIndexInformer<T> customizeInformer(String name, SharedIndexInformer<T> informer) {
+    protected <T extends KubernetesObject> SharedIndexInformer<T> customizeInformer(String name, SharedIndexInformer<T> informer) {
         return titusRuntime.getFitFramework().isActive() ? new FitSharedIndexInformer<>(name, informer, titusRuntime) : informer;
     }
 }

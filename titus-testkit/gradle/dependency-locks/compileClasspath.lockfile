@@ -45,7 +45,7 @@ com.google.inject.extensions:guice-servlet:4.1.0
 com.google.inject:guice:4.1.0
 com.google.j2objc:j2objc-annotations:1.1
 com.google.protobuf:protobuf-java-util:3.7.1
-com.google.protobuf:protobuf-java:3.12.2
+com.google.protobuf:protobuf-java:3.13.0
 com.google.re2j:re2j:1.2
 com.google.truth.extensions:truth-liteproto-extension:0.34
 com.google.truth.extensions:truth-proto-extension:0.34
@@ -74,7 +74,7 @@ com.netflix.runtime:health-core:1.1.4
 com.netflix.runtime:health-guice:1.1.4
 com.netflix.spectator:spectator-api:0.59.0
 com.ning:compress-lzf:0.8.4
-com.squareup.okhttp3:logging-interceptor:3.14.3
+com.squareup.okhttp3:logging-interceptor:3.14.9
 com.squareup.okhttp3:okhttp:3.14.9
 com.squareup.okio:okio:1.17.2
 com.sun.jersey.contribs:jersey-guice:1.19.4
@@ -99,7 +99,7 @@ com.twitter:util-logging_2.11:6.32.0
 com.twitter:util-registry_2.11:6.32.0
 com.twitter:util-stats_2.11:6.32.0
 commons-cli:commons-cli:1.3.1
-commons-codec:commons-codec:1.14
+commons-codec:commons-codec:1.15
 commons-collections:commons-collections:3.2.1
 commons-io:commons-io:1.3.2
 commons-lang:commons-lang:2.6
@@ -114,9 +114,9 @@ io.grpc:grpc-protobuf:1.20.0
 io.grpc:grpc-services:1.20.0
 io.grpc:grpc-stub:1.20.0
 io.gsonfire:gson-fire:1.8.4
-io.kubernetes:client-java-api:9.0.2
-io.kubernetes:client-java-proto:9.0.2
-io.kubernetes:client-java:9.0.2
+io.kubernetes:client-java-api:10.0.0
+io.kubernetes:client-java-proto:10.0.0
+io.kubernetes:client-java:10.0.0
 io.netty:netty-buffer:4.1.51.Final
 io.netty:netty-codec-http2:4.1.51.Final
 io.netty:netty-codec-http:4.1.51.Final
@@ -135,12 +135,15 @@ io.opencensus:opencensus-contrib-grpc-metrics:0.19.2
 io.projectreactor.addons:reactor-adapter:3.3.3.RELEASE
 io.projectreactor.netty:reactor-netty:0.9.11.RELEASE
 io.projectreactor:reactor-core:3.3.9.RELEASE
+io.prometheus:simpleclient:0.9.0
+io.prometheus:simpleclient_common:0.9.0
+io.prometheus:simpleclient_httpserver:0.9.0
 io.reactivex.rxjava2:rxjava:2.2.10
 io.reactivex:rxjava:1.3.8
-io.sundr:builder-annotations:0.21.0
-io.sundr:resourcecify-annotations:0.21.0
-io.sundr:sundr-codegen:0.21.0
-io.sundr:sundr-core:0.21.0
+io.sundr:builder-annotations:0.22.0
+io.sundr:resourcecify-annotations:0.22.0
+io.sundr:sundr-codegen:0.22.0
+io.sundr:sundr-core:0.22.0
 io.swagger:swagger-annotations:1.6.2
 io.swagger:swagger-core:1.5.12
 io.swagger:swagger-jaxrs:1.5.12
@@ -209,7 +212,7 @@ org.eclipse.jetty:jetty-webapp:9.2.12.v20150709
 org.eclipse.jetty:jetty-xml:9.2.12.v20150709
 org.fusesource:sigar:1.6.4
 org.glassfish:jakarta.el:3.0.3
-org.glassfish:javax.el:3.0.1-b11
+org.glassfish:javax.el:3.0.1-b12
 org.hamcrest:hamcrest-core:1.3
 org.hamcrest:hamcrest-library:1.3
 org.hamcrest:hamcrest:2.2
@@ -278,6 +281,6 @@ org.synchronoss.cloud:nio-stream-storage:1.1.3
 org.webjars:swagger-ui:2.1.4
 org.xerial.snappy:snappy-java:1.1.7.7
 org.xmlunit:xmlunit-core:2.7.0
-org.yaml:snakeyaml:1.26
+org.yaml:snakeyaml:1.27
 xerces:xerces:2.4.0
 xerces:xercesImpl:2.4.0
