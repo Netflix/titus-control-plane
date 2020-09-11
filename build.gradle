@@ -108,7 +108,7 @@ subprojects {
         commonsCliVersion = '1.3.+'
         caffeineVersion = '2.6.+'
         rxJavaInteropVersion = '0.13.+'
-        kubernetesClientVersion = '8.0.0'
+        kubernetesClientVersion = '9.0.+'
         commonsMath3Version = '3.6.1'
         friggaVersion = '0.+'
 
