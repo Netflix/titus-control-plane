@@ -36,6 +36,7 @@ import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.titus.api.connector.cloud.Instance;
 import com.netflix.titus.api.connector.cloud.InstanceGroup;
 import com.netflix.titus.api.connector.cloud.InstanceLaunchConfiguration;
+import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.SystemExt;
 import com.netflix.titus.common.util.archaius2.Archaius2Ext;
@@ -230,7 +231,7 @@ public class Main {
 
     private static AwsInstanceCloudConnector createConnector() {
         AWSCredentialsProvider baseCredentials = new ProfileCredentialsProvider("default");
-        AWSSecurityTokenServiceAsync stsClient = new AmazonStsAsyncProvider(CONFIGURATION, baseCredentials).get();
+        AWSSecurityTokenServiceAsync stsClient = new AmazonStsAsyncProvider(CONFIGURATION, baseCredentials, TitusRuntimes.internal()).get();
         AWSCredentialsProvider credentialsProvider = new DataPlaneControllerCredentialsProvider(CONFIGURATION, stsClient, baseCredentials).get();
 
         Region currentRegion = Regions.getCurrentRegion();
