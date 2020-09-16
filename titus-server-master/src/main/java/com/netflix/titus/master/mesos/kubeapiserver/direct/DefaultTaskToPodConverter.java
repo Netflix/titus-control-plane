@@ -313,6 +313,10 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
 
     @VisibleForTesting
     void appendS3WriterRole(TitanProtos.ContainerInfo.Builder containerInfoBuilder, Job<?> job, Task task) {
+        if (!configuration.isDefaultS3WriterRoleEnabled()) {
+            return;
+        }
+        
         if (LogStorageInfos.findCustomS3Bucket(job).isPresent()) {
             containerInfoBuilder.putPassthroughAttributes(
                     S3_WRITER_ROLE,
