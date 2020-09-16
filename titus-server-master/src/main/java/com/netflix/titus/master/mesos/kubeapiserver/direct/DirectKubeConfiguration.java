@@ -163,7 +163,7 @@ public interface DirectKubeConfiguration extends KubeConnectorConfiguration {
     boolean isResourcePoolAffinityEnabled();
 
     /**
-     * Set to true to enable resource pool affinity placement constraints.
+     * Set to true to enable S3 writer configuration.
      */
     @DefaultValue("false")
     boolean isDefaultS3WriterRoleEnabled();
