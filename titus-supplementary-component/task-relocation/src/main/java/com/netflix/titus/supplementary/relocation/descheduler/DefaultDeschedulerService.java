@@ -35,7 +35,6 @@ import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.tuple.Pair;
-import com.netflix.titus.runtime.connector.jobmanager.JobDataReplicator;
 import com.netflix.titus.supplementary.relocation.connector.Node;
 import com.netflix.titus.supplementary.relocation.connector.NodeDataResolver;
 import com.netflix.titus.supplementary.relocation.model.DeschedulingFailure;

@@ -6,5 +6,4 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 
 public interface NodeConditionController extends LeaderActivationListener {
-   Mono<Void> handleNodesWithBadCondition();
 }

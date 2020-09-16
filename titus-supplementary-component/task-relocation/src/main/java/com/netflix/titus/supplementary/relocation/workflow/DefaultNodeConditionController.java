@@ -11,6 +11,7 @@ import java.util.stream.Collectors;
 import com.google.common.annotations.VisibleForTesting;
 import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.service.ReadOnlyJobOperations;
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.model.callmetadata.Caller;
@@ -42,12 +43,9 @@ public class DefaultNodeConditionController implements NodeConditionController {
     private final NodeConditionCtrlMetrics metrics;
     private final TitusRuntime titusRuntime;
 
-    private static final CallMetadata callMetadata;
-
-    static {
-        Caller caller = Caller.newBuilder().withCallerType(CallerType.Application).withId("titusrelocation").build();
-        callMetadata = CallMetadata.newBuilder().withCallers(Collections.singletonList(caller)).withCallReason("Bad Node Condition").build();
-    }
+    private static final CallMetadata CALL_METADATA = buildCallMetadata();
+    private static final String CALLER_APP_ID = "titusrelocation";
+    private static final String CALL_REASON = "Bad Node Condition";
 
     private ScheduleReference scheduleReference;
 
@@ -111,15 +109,22 @@ public class DefaultNodeConditionController implements NodeConditionController {
         return Math.max(nodeDataResolver.getStalenessMs(), jobDataReplicator.getStalenessMs());
     }
 
-    @Override
     public Mono<Void> handleNodesWithBadCondition() {
         // Identify bad nodes from node resolver
         Map<String, Node> badConditionNodesById = nodeDataResolver.resolve().entrySet().stream().filter(nodeEntry -> nodeEntry.getValue().isInBadCondition())
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
         // Find jobs that are eligible for bad node condition treatment
-        Set<String> eligibleJobIds = jobOperations.getJobs().stream().filter(job ->
-                job.getJobDescriptor().getAttributes().containsKey(JobAttributes.JOB_PARAMETER_TERMINATE_ON_BAD_AGENT))
+        Set<String> eligibleJobIds = jobOperations.getJobs().stream()
+                .filter(job -> {
+                    JobDescriptor<?> jobDescriptor = job.getJobDescriptor();
+                    Map<String, String> jobAttributes = jobDescriptor.getAttributes();
+                    if (jobAttributes.containsKey(JobAttributes.JOB_PARAMETER_TERMINATE_ON_BAD_AGENT)) {
+                        String value = jobAttributes.get(JobAttributes.JOB_PARAMETER_TERMINATE_ON_BAD_AGENT);
+                        return Boolean.parseBoolean(value);
+                    }
+                    return false;
+                })
                 .map(Job::getId)
                 .collect(Collectors.toSet());
 
@@ -134,12 +139,17 @@ public class DefaultNodeConditionController implements NodeConditionController {
             // Terminate tasks directly using JobManagementClient
             return Flux.fromIterable(eligibleTaskIds)
                     .delayElements(Duration.ofSeconds(1))
-                    .flatMap(taskId -> jobManagementClient.killTask(taskId, false, callMetadata))
+                    .flatMap(taskId -> jobManagementClient.killTask(taskId, false, CALL_METADATA))
                     .doOnError(e -> logger.error("Exception terminating task ", e))
                     .then();
         } else {
             logger.info("Skipping {} task terminations on bad node conditions", eligibleTaskIds.size());
         }
         return Mono.empty();
+    }
+
+    private static CallMetadata buildCallMetadata() {
+        Caller caller = Caller.newBuilder().withCallerType(CallerType.Application).withId(CALLER_APP_ID).build();
+        return CallMetadata.newBuilder().withCallers(Collections.singletonList(caller)).withCallReason(CALL_REASON).build();
     }
 }

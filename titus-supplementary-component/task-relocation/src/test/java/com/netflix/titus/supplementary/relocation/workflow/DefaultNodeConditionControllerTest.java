@@ -41,9 +41,9 @@ import static org.mockito.Mockito.when;
 public class DefaultNodeConditionControllerTest {
 
     enum NodeIds {
-        node1,
-        node2,
-        node3
+        NODE_1,
+        NODE_2,
+        NODE_3
     }
 
     @Test
@@ -83,12 +83,11 @@ public class DefaultNodeConditionControllerTest {
         assertThat(terminatedTaskIds).isEmpty();
     }
 
-
     @Test
     public void checkTasksTerminatedDueToBadNodeConditions() {
         // Mock jobs, tasks & nodes
         Map<String, Node> nodeMap = buildNodes();
-        List<Job<BatchJobExt>> jobs = getJobs();
+        List<Job<BatchJobExt>> jobs = getJobs(true);
         Map<String, List<Task>> tasksByJobIdMap = buildTasksForJobAndNodeAssignment(new ArrayList<>(nodeMap.values()), jobs);
 
 
@@ -121,12 +120,51 @@ public class DefaultNodeConditionControllerTest {
                 readOnlyJobOperations, jobManagementClient, titusRuntime);
 
         ExecutionContext executionContext = ExecutionContext.newBuilder().withIteration(ExecutionId.initial()).build();
-        StepVerifier.create(nodeConditionCtrl.handleNodesWithBadCondition(executionContext))
-                .verifyComplete();
+        StepVerifier.create(nodeConditionCtrl.handleNodesWithBadCondition(executionContext)).verifyComplete();
 
         assertThat(terminatedTaskIds).isNotEmpty();
         assertThat(terminatedTaskIds.size()).isEqualTo(2);
         verifyTerminatedTasksOnBadNodes(terminatedTaskIds, tasksByJobIdMap, nodeMap);
+    }
+
+    @Test
+    public void badNodeConditionsIgnoredForJobsNotOptingIn() {
+        Map<String, Node> nodeMap = buildNodes();
+        List<Job<BatchJobExt>> jobs = getJobs(false);
+        Map<String, List<Task>> stringListMap = buildTasksForJobAndNodeAssignment(new ArrayList<>(nodeMap.values()), jobs);
+
+        TitusRuntime titusRuntime = mock(TitusRuntime.class);
+        when(titusRuntime.getRegistry()).thenReturn(new DefaultRegistry());
+
+        RelocationConfiguration configuration = mock(RelocationConfiguration.class);
+        when(configuration.getBadNodeConditionPattern()).thenReturn(".*Failure");
+        when(configuration.isTaskTerminationOnBadNodeConditionEnabled()).thenReturn(true);
+
+        NodeDataResolver nodeDataResolver = mock(NodeDataResolver.class);
+        when(nodeDataResolver.resolve()).thenReturn(nodeMap);
+
+        JobDataReplicator jobDataReplicator = mock(JobDataReplicator.class);
+        when(jobDataReplicator.getStalenessMs()).thenReturn(0L);
+
+        // Job attribute "terminateContainerOnBadAgent" = False
+        ReadOnlyJobOperations readOnlyJobOperations = mock(ReadOnlyJobOperations.class);
+        when(readOnlyJobOperations.getJobs()).thenReturn(new ArrayList<>(jobs));
+        stringListMap.forEach((key, value) -> when(readOnlyJobOperations.getTasks(key)).thenReturn(value));
+        JobManagementClient jobManagementClient = mock(JobManagementClient.class);
+        Set<String> terminatedTaskIds = new HashSet<>();
+        when(jobManagementClient.killTask(anyString(), anyBoolean(), any())).thenAnswer(invocation -> {
+            String taskIdToBeTerminated = invocation.getArgument(0);
+            terminatedTaskIds.add(taskIdToBeTerminated);
+            return Mono.empty();
+        });
+
+        DefaultNodeConditionController nodeConditionController = new DefaultNodeConditionController(configuration, nodeDataResolver, jobDataReplicator,
+                readOnlyJobOperations, jobManagementClient, titusRuntime);
+        ExecutionContext executionContext = ExecutionContext.newBuilder().withIteration(ExecutionId.initial()).build();
+        StepVerifier.create(nodeConditionController.handleNodesWithBadCondition(executionContext))
+                .verifyComplete();
+        // no tasks should be terminated for jobs
+        assertThat(terminatedTaskIds).isEmpty();
     }
 
     private void verifyTerminatedTasksOnBadNodes(Set<String> terminatedTaskIds,
@@ -141,10 +179,10 @@ public class DefaultNodeConditionControllerTest {
         assertThat(taskIdsOnBadNodes).containsAll(terminatedTaskIds);
     }
 
-    private List<Job<BatchJobExt>> getJobs() {
+    private List<Job<BatchJobExt>> getJobs(boolean terminateOnBadAgent) {
         Job<BatchJobExt> job1 = JobGenerator.batchJobsOfSize(2).getValue();
         Map<String, String> job2Attributes = new HashMap<>();
-        job2Attributes.put(JobAttributes.JOB_PARAMETER_TERMINATE_ON_BAD_AGENT, "true");
+        job2Attributes.put(JobAttributes.JOB_PARAMETER_TERMINATE_ON_BAD_AGENT, Boolean.toString(terminateOnBadAgent));
         Job<BatchJobExt> job2 = JobGenerator.batchJobsOfSizeAndAttributes(2, job2Attributes).getValue();
         return Arrays.asList(job1, job2);
     }
@@ -169,9 +207,9 @@ public class DefaultNodeConditionControllerTest {
 
     private Map<String, Node> buildNodes() {
         Map<String, Node> nodeMap = new HashMap<>(3);
-        nodeMap.put(NodeIds.node1.name(), buildNode(NodeIds.node1.name(), true));
-        nodeMap.put(NodeIds.node2.name(), buildNode(NodeIds.node2.name(), true));
-        nodeMap.put(NodeIds.node3.name(), buildNode(NodeIds.node3.name(), false));
+        nodeMap.put(NodeIds.NODE_1.name(), buildNode(NodeIds.NODE_1.name(), true));
+        nodeMap.put(NodeIds.NODE_2.name(), buildNode(NodeIds.NODE_2.name(), true));
+        nodeMap.put(NodeIds.NODE_3.name(), buildNode(NodeIds.NODE_3.name(), false));
         return nodeMap;
     }
 
