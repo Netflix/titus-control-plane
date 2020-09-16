@@ -22,6 +22,7 @@ import javax.inject.Singleton;
 
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.autoscaling.AmazonAutoScalingAsync;
+import com.netflix.titus.common.runtime.TitusRuntime;
 
 @Singleton
 public class DataPlaneAmazonAutoScalingAsyncProvider extends AmazonAutoScalingAsyncProvider {
@@ -31,9 +32,9 @@ public class DataPlaneAmazonAutoScalingAsyncProvider extends AmazonAutoScalingAs
     private final AmazonAutoScalingAsync amazonAutoScaling;
 
     @Inject
-    public DataPlaneAmazonAutoScalingAsyncProvider(AwsConfiguration configuration, AWSCredentialsProvider credentialProvider) {
+    public DataPlaneAmazonAutoScalingAsyncProvider(AwsConfiguration configuration, AWSCredentialsProvider credentialProvider, TitusRuntime runtime) {
         String region = AwsRegionConfigurationUtil.resolveDataPlaneRegion(configuration);
-        this.amazonAutoScaling = buildAmazonAutoScalingAsyncClient(region, credentialProvider);
+        this.amazonAutoScaling = buildAmazonAutoScalingAsyncClient(region, credentialProvider, runtime);
     }
 
     @Override

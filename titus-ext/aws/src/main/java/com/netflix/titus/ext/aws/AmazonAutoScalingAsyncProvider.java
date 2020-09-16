@@ -22,13 +22,16 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.autoscaling.AmazonAutoScalingAsync;
 import com.amazonaws.services.autoscaling.AmazonAutoScalingAsyncClientBuilder;
+import com.netflix.spectator.aws.SpectatorRequestMetricCollector;
+import com.netflix.titus.common.runtime.TitusRuntime;
 
 public abstract class AmazonAutoScalingAsyncProvider implements Provider<AmazonAutoScalingAsync> {
 
-    protected AmazonAutoScalingAsync buildAmazonAutoScalingAsyncClient(String region, AWSCredentialsProvider credentialProvider) {
+    protected AmazonAutoScalingAsync buildAmazonAutoScalingAsyncClient(String region, AWSCredentialsProvider credentialProvider, TitusRuntime runtime) {
         return AmazonAutoScalingAsyncClientBuilder.standard()
                 .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration("autoscaling." + region + ".amazonaws.com", region))
                 .withCredentials(credentialProvider)
+                .withMetricsCollector(new SpectatorRequestMetricCollector(runtime.getRegistry()))
                 .build();
     }
 

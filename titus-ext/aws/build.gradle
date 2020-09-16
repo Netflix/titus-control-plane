@@ -27,6 +27,7 @@ dependencies {
     compile "com.amazonaws:aws-java-sdk-applicationautoscaling:${awsSdkVersion}"
     compile "com.amazonaws:aws-java-sdk-iam:${awsSdkVersion}"
     compile "com.amazonaws:aws-java-sdk-sts:${awsSdkVersion}"
+    compile "com.netflix.spectator:spectator-ext-aws:${spectatorVersion}"
 
     testCompile project(':titus-testkit')
 }

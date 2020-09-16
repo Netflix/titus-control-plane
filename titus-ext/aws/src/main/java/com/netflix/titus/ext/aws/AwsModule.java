@@ -76,12 +76,13 @@ public class AwsModule extends AbstractModule {
     @Singleton
     public InstanceCloudConnector getInstanceCloudConnector(
             AwsConfiguration configuration,
-            @Named(DataPlaneControllerCredentialsProvider.NAME) AWSCredentialsProvider dataPlaneControllerCredentials) {
+            @Named(DataPlaneControllerCredentialsProvider.NAME) AWSCredentialsProvider dataPlaneControllerCredentials,
+            TitusRuntime runtime) {
 
         return new AwsInstanceCloudConnector(
                 configuration,
-                new AmazonEC2AsyncProvider(configuration, dataPlaneControllerCredentials).get(),
-                new DataPlaneAmazonAutoScalingAsyncProvider(configuration, dataPlaneControllerCredentials).get()
+                new AmazonEC2AsyncProvider(configuration, dataPlaneControllerCredentials, runtime).get(),
+                new DataPlaneAmazonAutoScalingAsyncProvider(configuration, dataPlaneControllerCredentials, runtime).get()
         );
     }
 
@@ -95,7 +96,7 @@ public class AwsModule extends AbstractModule {
         return new AwsIamConnector(
                 configuration,
                 iamClient,
-                new AmazonStsAsyncProvider(configuration, agentAssumedCredentials).get(),
+                new AmazonStsAsyncProvider(configuration, agentAssumedCredentials, titusRuntime).get(),
                 titusRuntime.getRegistry()
         );
     }

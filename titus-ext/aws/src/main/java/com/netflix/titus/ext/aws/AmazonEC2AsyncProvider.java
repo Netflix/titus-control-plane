@@ -25,6 +25,8 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.ec2.AmazonEC2Async;
 import com.amazonaws.services.ec2.AmazonEC2AsyncClientBuilder;
+import com.netflix.spectator.aws.SpectatorRequestMetricCollector;
+import com.netflix.titus.common.runtime.TitusRuntime;
 
 @Singleton
 public class AmazonEC2AsyncProvider implements Provider<AmazonEC2Async> {
@@ -32,12 +34,13 @@ public class AmazonEC2AsyncProvider implements Provider<AmazonEC2Async> {
     private final AmazonEC2Async amazonEC2Async;
 
     @Inject
-    public AmazonEC2AsyncProvider(AwsConfiguration configuration, AWSCredentialsProvider credentialProvider) {
+    public AmazonEC2AsyncProvider(AwsConfiguration configuration, AWSCredentialsProvider credentialProvider, TitusRuntime runtime) {
         String region = AwsRegionConfigurationUtil.resolveDataPlaneRegion(configuration);
 
         this.amazonEC2Async = AmazonEC2AsyncClientBuilder.standard()
                 .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration("ec2." + region + ".amazonaws.com", region))
                 .withCredentials(credentialProvider)
+                .withMetricsCollector(new SpectatorRequestMetricCollector(runtime.getRegistry()))
                 .build();
     }
 

@@ -24,6 +24,8 @@ import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceAsync;
 import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceAsyncClientBuilder;
+import com.netflix.spectator.aws.SpectatorRequestMetricCollector;
+import com.netflix.titus.common.runtime.TitusRuntime;
 
 @Singleton
 public class AmazonStsAsyncProvider implements Provider<AWSSecurityTokenServiceAsync> {
@@ -31,11 +33,12 @@ public class AmazonStsAsyncProvider implements Provider<AWSSecurityTokenServiceA
     private final AWSSecurityTokenServiceAsync amazonStsAsync;
 
     @Inject
-    public AmazonStsAsyncProvider(AwsConfiguration configuration, AWSCredentialsProvider credentialProvider) {
+    public AmazonStsAsyncProvider(AwsConfiguration configuration, AWSCredentialsProvider credentialProvider, TitusRuntime runtime) {
         String region = configuration.getRegion().trim().toLowerCase();
         this.amazonStsAsync = AWSSecurityTokenServiceAsyncClientBuilder.standard()
                 .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration("sts." + region + ".amazonaws.com", region))
                 .withCredentials(credentialProvider)
+                .withMetricsCollector(new SpectatorRequestMetricCollector(runtime.getRegistry()))
                 .build();
     }
 
