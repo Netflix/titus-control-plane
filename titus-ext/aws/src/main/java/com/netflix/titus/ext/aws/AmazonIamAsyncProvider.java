@@ -26,6 +26,8 @@ import javax.inject.Singleton;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagementAsync;
 import com.amazonaws.services.identitymanagement.AmazonIdentityManagementAsyncClientBuilder;
+import com.netflix.spectator.aws.SpectatorRequestMetricCollector;
+import com.netflix.titus.common.runtime.TitusRuntime;
 
 @Singleton
 public class AmazonIamAsyncProvider implements Provider<AmazonIdentityManagementAsync> {
@@ -33,11 +35,12 @@ public class AmazonIamAsyncProvider implements Provider<AmazonIdentityManagement
     private final AmazonIdentityManagementAsync amazonIdentityManagementAsync;
 
     @Inject
-    public AmazonIamAsyncProvider(AwsConfiguration configuration, AWSCredentialsProvider credentialProvider) {
+    public AmazonIamAsyncProvider(AwsConfiguration configuration, AWSCredentialsProvider credentialProvider, TitusRuntime runtime) {
         String region = configuration.getRegion().trim().toLowerCase();
         this.amazonIdentityManagementAsync = AmazonIdentityManagementAsyncClientBuilder.standard()
                 .withRegion(region)
                 .withCredentials(credentialProvider)
+                .withMetricsCollector(new SpectatorRequestMetricCollector(runtime.getRegistry()))
                 .build();
     }
 

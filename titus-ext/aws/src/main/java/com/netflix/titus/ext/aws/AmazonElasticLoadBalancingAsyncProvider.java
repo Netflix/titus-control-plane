@@ -24,6 +24,8 @@ import javax.inject.Singleton;
 import com.amazonaws.auth.AWSCredentialsProvider;
 import com.amazonaws.services.elasticloadbalancingv2.AmazonElasticLoadBalancingAsync;
 import com.amazonaws.services.elasticloadbalancingv2.AmazonElasticLoadBalancingAsyncClientBuilder;
+import com.netflix.spectator.aws.SpectatorRequestMetricCollector;
+import com.netflix.titus.common.runtime.TitusRuntime;
 
 @Singleton
 public class AmazonElasticLoadBalancingAsyncProvider implements Provider<AmazonElasticLoadBalancingAsync> {
@@ -31,11 +33,12 @@ public class AmazonElasticLoadBalancingAsyncProvider implements Provider<AmazonE
     private final AmazonElasticLoadBalancingAsync client;
 
     @Inject
-    public AmazonElasticLoadBalancingAsyncProvider(AwsConfiguration configuration, AWSCredentialsProvider credentialProvider) {
+    public AmazonElasticLoadBalancingAsyncProvider(AwsConfiguration configuration, AWSCredentialsProvider credentialProvider, TitusRuntime runtime) {
         final String region = configuration.getRegion().trim().toLowerCase();
         this.client = AmazonElasticLoadBalancingAsyncClientBuilder.standard()
                 .withCredentials(credentialProvider)
                 .withRegion(region)
+                .withMetricsCollector(new SpectatorRequestMetricCollector(runtime.getRegistry()))
                 .build();
     }
 

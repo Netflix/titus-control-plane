@@ -11,6 +11,9 @@ import com.amazonaws.auth.STSAssumeRoleSessionCredentialsProvider;
 import com.amazonaws.services.elasticloadbalancingv2.AmazonElasticLoadBalancingAsync;
 import com.amazonaws.services.elasticloadbalancingv2.AmazonElasticLoadBalancingAsyncClientBuilder;
 import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceAsync;
+import com.netflix.spectator.api.Registry;
+import com.netflix.spectator.aws.SpectatorRequestMetricCollector;
+import com.netflix.titus.common.runtime.TitusRuntime;
 
 @Singleton
 public class AmazonClientProvider {
@@ -20,12 +23,15 @@ public class AmazonClientProvider {
 
     private final Map<String, AWSCredentialsProvider> awsCredentialsByAccountId = new HashMap<>();
     private final Map<String, AmazonElasticLoadBalancingAsync> loadBalancerClients = new HashMap<>();
+    private final Registry registry;
 
     @Inject
     public AmazonClientProvider(AwsConfiguration configuration,
-                                AWSSecurityTokenServiceAsync stsClient) {
+                                AWSSecurityTokenServiceAsync stsClient,
+                                TitusRuntime runtime) {
         this.configuration = configuration;
         this.stsClient = stsClient;
+        this.registry = runtime.getRegistry();
     }
 
     public AmazonElasticLoadBalancingAsync getLoadBalancingClient(String accountId) {
@@ -39,6 +45,7 @@ public class AmazonClientProvider {
                     client = AmazonElasticLoadBalancingAsyncClientBuilder.standard()
                             .withCredentials(credentialsProvider)
                             .withRegion(region)
+                            .withMetricsCollector(new SpectatorRequestMetricCollector(registry))
                             .build();
                     loadBalancerClients.put(accountId, client);
                 }

@@ -192,7 +192,7 @@ org.springframework:spring-jcl:5.2.8.RELEASE
 org.springframework:spring-web:5.2.8.RELEASE
 org.springframework:spring-webflux:5.2.8.RELEASE
 org.springframework:spring-webmvc:5.2.8.RELEASE
-org.xerial.snappy:snappy-java:1.1.7.6
+org.xerial.snappy:snappy-java:1.1.7.7
 org.yaml:snakeyaml:1.26
 xerces:xerces:2.4.0
 xerces:xercesImpl:2.4.0

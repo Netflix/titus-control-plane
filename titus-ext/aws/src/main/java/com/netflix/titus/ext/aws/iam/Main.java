@@ -32,6 +32,7 @@ import com.amazonaws.services.securitytoken.AWSSecurityTokenServiceAsyncClientBu
 import com.google.common.base.Stopwatch;
 import com.google.common.collect.ImmutableMap;
 import com.netflix.spectator.api.DefaultRegistry;
+import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.SystemExt;
 import com.netflix.titus.common.util.archaius2.Archaius2Ext;
@@ -102,7 +103,7 @@ public class Main {
 
     private static AwsIamConnector createConnector() {
         AWSCredentialsProvider baseCredentials = new ProfileCredentialsProvider("default");
-        AWSSecurityTokenServiceAsync stsClient = new AmazonStsAsyncProvider(CONFIGURATION, baseCredentials).get();
+        AWSSecurityTokenServiceAsync stsClient = new AmazonStsAsyncProvider(CONFIGURATION, baseCredentials, TitusRuntimes.internal()).get();
         AWSCredentialsProvider credentialsProvider = new DataPlaneAgentCredentialsProvider(CONFIGURATION, stsClient, baseCredentials).get();
 
         Region currentRegion = Regions.getCurrentRegion();

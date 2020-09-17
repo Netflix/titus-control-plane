@@ -26,6 +26,8 @@ import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.autoscaling.AmazonAutoScaling;
 import com.amazonaws.services.autoscaling.AmazonAutoScalingAsyncClient;
 import com.amazonaws.services.autoscaling.AmazonAutoScalingAsyncClientBuilder;
+import com.netflix.spectator.aws.SpectatorRequestMetricCollector;
+import com.netflix.titus.common.runtime.TitusRuntime;
 
 @Singleton
 class AmazonAutoScalingProvider implements Provider<AmazonAutoScaling> {
@@ -34,13 +36,15 @@ class AmazonAutoScalingProvider implements Provider<AmazonAutoScaling> {
 
     @Inject
     public AmazonAutoScalingProvider(AwsConfiguration coreConfiguration,
-                                     AWSCredentialsProvider credentialProvider) {
+                                     AWSCredentialsProvider credentialProvider,
+                                     TitusRuntime runtime) {
         String region = coreConfiguration.getRegion().trim().toLowerCase();
 
         // TODO We need both sync and async versions. Remove casting once sync is no longer needed.
         AmazonAutoScalingAsyncClient amazonAutoScalingClient = (AmazonAutoScalingAsyncClient) AmazonAutoScalingAsyncClientBuilder.standard()
                 .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration("autoscaling." + region + ".amazonaws.com", region))
                 .withCredentials(credentialProvider)
+                .withMetricsCollector(new SpectatorRequestMetricCollector(runtime.getRegistry()))
                 .build();
         this.amazonAutoScaling = amazonAutoScalingClient;
     }
