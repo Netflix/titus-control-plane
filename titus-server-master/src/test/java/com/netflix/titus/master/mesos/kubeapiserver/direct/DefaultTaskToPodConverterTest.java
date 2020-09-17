@@ -63,6 +63,7 @@ public class DefaultTaskToPodConverterTest {
         BatchJobTask task = JobGenerator.oneBatchTask();
         when(logStorageInfo.getS3LogLocation(task, false)).thenReturn(Optional.of(DEFAULT_S3_LOG_LOCATION));
         when(configuration.getDefaultS3WriterRole()).thenReturn("defaultWriter");
+        when(configuration.isDefaultS3WriterRoleEnabled()).thenReturn(true);
 
         ContainerInfo.Builder containerInfoBuilder = ContainerInfo.newBuilder();
         converter.appendS3WriterRole(containerInfoBuilder, JobGenerator.oneBatchJob(), task);
@@ -80,6 +81,8 @@ public class DefaultTaskToPodConverterTest {
 
     @Test
     public void testCustomBucketWriterRoleAssignment() {
+        when(configuration.isDefaultS3WriterRoleEnabled()).thenReturn(true);
+
         ContainerInfo.Builder containerInfoBuilder = ContainerInfo.newBuilder();
         Job<BatchJobExt> job = JobGenerator.oneBatchJob();
         job = job.toBuilder()
