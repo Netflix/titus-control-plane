@@ -92,12 +92,12 @@ public class AutoScalingSpringResource {
     public ResponseEntity<Void> removePolicy(@PathVariable("policyId") String policyId, CallMetadataAuthentication authentication) {
         ScalingPolicyID scalingPolicyId = ScalingPolicyID.newBuilder().setId(policyId).build();
         DeletePolicyRequest deletePolicyRequest = DeletePolicyRequest.newBuilder().setId(scalingPolicyId).build();
-        return Responses.fromCompletable(autoScalingService.deleteAutoScalingPolicy(deletePolicyRequest, authentication.getCallMetadata()), HttpStatus.NO_CONTENT);
+        return Responses.fromCompletable(autoScalingService.deleteAutoScalingPolicy(deletePolicyRequest, authentication.getCallMetadata()), HttpStatus.OK);
     }
 
     @ApiOperation("Update scaling policy")
     @PutMapping("scalingPolicy")
     public ResponseEntity<Void> updateScalingPolicy(@RequestBody UpdatePolicyRequest updatePolicyRequest, CallMetadataAuthentication authentication) {
-        return Responses.fromCompletable(autoScalingService.updateAutoScalingPolicy(updatePolicyRequest, authentication.getCallMetadata()), HttpStatus.NO_CONTENT);
+        return Responses.fromCompletable(autoScalingService.updateAutoScalingPolicy(updatePolicyRequest, authentication.getCallMetadata()), HttpStatus.OK);
     }
 }

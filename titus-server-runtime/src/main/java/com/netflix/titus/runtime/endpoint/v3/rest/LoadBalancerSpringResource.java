@@ -113,7 +113,7 @@ public class LoadBalancerSpringResource {
                                 .build(),
                         authentication.getCallMetadata()
                 ),
-                HttpStatus.NO_CONTENT
+                HttpStatus.OK
         );
     }
 }

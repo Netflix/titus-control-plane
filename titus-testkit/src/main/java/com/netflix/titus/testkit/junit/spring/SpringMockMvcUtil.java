@@ -164,7 +164,7 @@ public final class SpringMockMvcUtil {
                 .content(JsonFormat.printer().print(body));
         mockMvc.perform(requestBuilder)
                 .andDo(print())
-                .andExpect(status().isNoContent())
+                .andExpect(status().isOk() )
                 .andReturn();
     }
 
@@ -178,7 +178,7 @@ public final class SpringMockMvcUtil {
         }
         mockMvc.perform(requestBuilder)
                 .andDo(print())
-                .andExpect(status().isNoContent())
+                .andExpect(status().isOk())
                 .andReturn();
     }
 
