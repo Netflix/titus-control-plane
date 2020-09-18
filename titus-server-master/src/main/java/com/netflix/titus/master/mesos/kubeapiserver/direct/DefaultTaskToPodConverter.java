@@ -27,7 +27,6 @@ import javax.inject.Singleton;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.primitives.Ints;
 import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.JobConstraints;
@@ -140,13 +139,17 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
         Pair<V1Affinity, Map<String, String>> affinityWithMetadata = podAffinityFactory.buildV1Affinity(job, task);
         annotations.putAll(affinityWithMetadata.getRight());
 
+        Map<String, String> labels = new HashMap<>();
+        labels.put(KubeConstants.POD_LABEL_JOB_ID, job.getId());
+        labels.put(KubeConstants.POD_LABEL_TASK_ID, taskId);
+        if (configuration.isBytePodResourceEnabled()) {
+            labels.put(KubeConstants.POD_LABEL_BYTE_UNITS, "true");
+        }
+
         V1ObjectMeta metadata = new V1ObjectMeta()
                 .name(taskId)
                 .annotations(annotations)
-                .labels(ImmutableMap.of(
-                        KubeConstants.POD_LABEL_JOB_ID, job.getId(),
-                        KubeConstants.POD_LABEL_TASK_ID, taskId
-                ));
+                .labels(labels);
 
         V1Container container = new V1Container()
                 .name(taskId)
@@ -166,7 +169,8 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
         return new V1Pod().metadata(metadata).spec(spec);
     }
 
-    private V1ResourceRequirements buildV1ResourceRequirements(ContainerResources containerResources) {
+    @VisibleForTesting
+    V1ResourceRequirements buildV1ResourceRequirements(ContainerResources containerResources) {
         Map<String, Quantity> requests = new HashMap<>();
         Map<String, Quantity> limits = new HashMap<>();
 
@@ -176,14 +180,27 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
         requests.put("nvidia.com/gpu", new Quantity(String.valueOf(containerResources.getGpu())));
         limits.put("nvidia.com/gpu", new Quantity(String.valueOf(containerResources.getGpu())));
 
-        requests.put("memory", new Quantity(String.valueOf(containerResources.getMemoryMB())));
-        limits.put("memory", new Quantity(String.valueOf(containerResources.getMemoryMB())));
+        Quantity memory;
+        Quantity disk;
+        Quantity network;
+        if (configuration.isBytePodResourceEnabled()) {
+            memory = new Quantity(containerResources.getMemoryMB() + "Mi");
+            disk = new Quantity(containerResources.getDiskMB() + "Mi");
+            network = new Quantity(containerResources.getNetworkMbps() + "M");
+        } else {
+            memory = new Quantity(String.valueOf(containerResources.getMemoryMB()));
+            disk = new Quantity(String.valueOf(containerResources.getDiskMB()));
+            network = new Quantity(String.valueOf(containerResources.getNetworkMbps()));
+        }
 
-        requests.put("ephemeral-storage", new Quantity(String.valueOf(containerResources.getDiskMB())));
-        limits.put("ephemeral-storage", new Quantity(String.valueOf(containerResources.getDiskMB())));
+        requests.put("memory", memory);
+        limits.put("memory", memory);
 
-        requests.put("titus/network", new Quantity(String.valueOf(containerResources.getNetworkMbps())));
-        limits.put("titus/network", new Quantity(String.valueOf(containerResources.getNetworkMbps())));
+        requests.put("ephemeral-storage", disk);
+        limits.put("ephemeral-storage", disk);
+
+        requests.put("titus/network", network);
+        limits.put("titus/network", network);
 
         return new V1ResourceRequirements().requests(requests).limits(limits);
     }
@@ -316,7 +333,7 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
         if (!configuration.isDefaultS3WriterRoleEnabled()) {
             return;
         }
-        
+
         if (LogStorageInfos.findCustomS3Bucket(job).isPresent()) {
             containerInfoBuilder.putPassthroughAttributes(
                     S3_WRITER_ROLE,
