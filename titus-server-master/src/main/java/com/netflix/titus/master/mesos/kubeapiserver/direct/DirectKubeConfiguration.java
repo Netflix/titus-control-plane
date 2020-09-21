@@ -172,4 +172,11 @@ public interface DirectKubeConfiguration extends KubeConnectorConfiguration {
      * Default IAM role that should be used to upload log files to S3 bucket.
      */
     String getDefaultS3WriterRole();
+
+    /**
+     * Set to true to enable setting pod resources in byte units as defined in
+     * https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/.
+     */
+    @DefaultValue("false")
+    boolean isBytePodResourceEnabled();
 }
