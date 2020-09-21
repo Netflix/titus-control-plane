@@ -130,6 +130,7 @@ public class DefaultNodeConditionController implements NodeConditionController {
 
         if (eligibleJobIds.isEmpty()) {
             logger.info("No jobs configured for task terminations on bad node conditions");
+            metrics.setTasksTerminated(0);
             return Mono.empty();
         }
 
@@ -139,11 +140,16 @@ public class DefaultNodeConditionController implements NodeConditionController {
             // Terminate tasks directly using JobManagementClient
             return Flux.fromIterable(eligibleTaskIds)
                     .delayElements(Duration.ofSeconds(1))
-                    .flatMap(taskId -> jobManagementClient.killTask(taskId, false, CALL_METADATA))
+                    .flatMap(taskId -> {
+                        return jobManagementClient.killTask(taskId, false, CALL_METADATA)
+                                .doOnSuccess(v -> logger.info("Task {} terminated", taskId));
+                    })
+                    .doOnComplete(() -> metrics.setTasksTerminated(eligibleTaskIds.size()))
                     .doOnError(e -> logger.error("Exception terminating task ", e))
                     .then();
         } else {
             logger.info("Skipping {} task terminations on bad node conditions", eligibleTaskIds.size());
+            metrics.setTasksTerminated(0);
         }
         return Mono.empty();
     }

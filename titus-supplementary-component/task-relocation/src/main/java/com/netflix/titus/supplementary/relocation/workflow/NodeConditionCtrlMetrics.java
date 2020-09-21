@@ -12,14 +12,20 @@ public class NodeConditionCtrlMetrics {
     public static String NODE_CONDITION_METRICS_PREFIX = RelocationMetrics.METRIC_ROOT + "nodeConditionCtrl.";
     private final Gauge stalenessStatusGauge;
     private final Gauge stalenessTimeGauge;
+    private final Gauge numTasksTerminated;
 
     public NodeConditionCtrlMetrics(Registry registry) {
         this.stalenessStatusGauge = registry.gauge(NODE_CONDITION_METRICS_PREFIX + "stalenessStatus");
         this.stalenessTimeGauge = registry.gauge(NODE_CONDITION_METRICS_PREFIX + "stalenessMs");
+        numTasksTerminated = registry.gauge(NODE_CONDITION_METRICS_PREFIX + "numTasksTerminated");
     }
 
     void setStaleness(boolean stalenessStatus, long stalenessMs) {
         stalenessStatusGauge.set(stalenessStatus ? 1 : 0);
         stalenessTimeGauge.set(stalenessMs);
+    }
+
+    void setTasksTerminated(int tasksTerminated) {
+        numTasksTerminated.set(tasksTerminated);
     }
 }
