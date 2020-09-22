@@ -16,6 +16,13 @@
 
 package com.netflix.titus.supplementary.relocation;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
+
 import com.netflix.titus.api.agent.model.AgentInstanceGroup;
 import com.netflix.titus.api.agent.model.InstanceGroupLifecycleState;
 import com.netflix.titus.api.jobmanager.model.job.Job;
@@ -28,13 +35,30 @@ import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.data.generator.MutableDataGenerator;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
+import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
 import com.netflix.titus.testkit.model.job.JobGenerator;
+import io.kubernetes.client.informer.SharedIndexInformer;
+import io.kubernetes.client.informer.cache.Indexer;
+import io.kubernetes.client.openapi.models.V1Node;
+import io.kubernetes.client.openapi.models.V1NodeCondition;
+import io.kubernetes.client.openapi.models.V1NodeSpec;
+import io.kubernetes.client.openapi.models.V1NodeStatus;
+import io.kubernetes.client.openapi.models.V1ObjectMeta;
+import io.kubernetes.client.openapi.models.V1Taint;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import static com.netflix.titus.api.agent.model.AgentFunctions.withId;
 import static com.netflix.titus.api.jobmanager.model.job.JobFunctions.ofBatchSize;
+import static com.netflix.titus.runtime.kubernetes.KubeConstants.NODE_LABEL_MACHINE_GROUP;
 import static com.netflix.titus.testkit.model.agent.AgentGenerator.agentServerGroups;
+import static com.netflix.titus.testkit.model.agent.AgentGenerator.tiers;
 import static com.netflix.titus.testkit.model.agent.AgentTestFunctions.inState;
 import static com.netflix.titus.testkit.model.job.JobDescriptorGenerator.oneTaskBatchJobDescriptor;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TestDataFactory {
 
@@ -78,4 +102,58 @@ public class TestDataFactory {
                 .addInstanceGroup(flexInstanceGroupGenerator.getValue().but(withId(ACTIVE_INSTANCE_GROUP), inState(InstanceGroupLifecycleState.Active)))
                 .addInstanceGroup(flexInstanceGroupGenerator.getValue().but(withId(REMOVABLE_INSTANCE_GROUP), inState(InstanceGroupLifecycleState.Removable)));
     }
+
+
+    public static KubeApiFacade mockKubeApiFacade(V1Node... nodes) {
+        KubeApiFacade kubeApiFacade = mock(KubeApiFacade.class);
+        SharedIndexInformer<V1Node> nodeInformer = mock(SharedIndexInformer.class);
+        Indexer<V1Node> nodeIndexer = mock(Indexer.class);
+        List<V1Node> nodeIndex = new ArrayList<>(Arrays.asList(nodes));
+
+        when(kubeApiFacade.getNodeInformer()).thenReturn(nodeInformer);
+        when(nodeInformer.getIndexer()).thenReturn(nodeIndexer);
+        when(nodeIndexer.list()).thenAnswer(invocation -> nodeIndex);
+        when(nodeIndexer.getByKey(anyString())).thenAnswer(invocation -> {
+            String key = invocation.getArgument(0);
+            Optional<V1Node> nodeOpt = nodeIndex.stream().filter(node -> node.getMetadata() != null &&
+                    node.getMetadata().getName() != null && node.getMetadata().getName().equals(key)).findFirst();
+            return nodeOpt.orElse(null);
+        });
+        return kubeApiFacade;
+    }
+
+    public static V1Node newNode(String id) {
+        return new V1Node()
+                .metadata(new V1ObjectMeta()
+                        .name(id)
+                        .labels(CollectionsExt.asMap(
+                                NODE_LABEL_MACHINE_GROUP, "serverGroup1"
+                        ))
+                )
+                .spec(new V1NodeSpec()
+                        .taints(new ArrayList<>())
+                );
+    }
+
+    public static void addNodeCondition(V1Node node, String conditionType, String conditionValue) {
+        V1NodeCondition v1NodeCondition = new V1NodeCondition().type(conditionType).status(conditionValue)
+                .message("Msg for " + conditionType).reason("Reason for " + conditionType);
+        if (node.getStatus() != null) {
+            node.getStatus().addConditionsItem(v1NodeCondition);
+        } else {
+            V1NodeStatus v1NodeStatus = new V1NodeStatus().addConditionsItem(v1NodeCondition);
+            node.setStatus(v1NodeStatus);
+        }
+    }
+
+    public static void addNodeTaint(V1Node node, String key, String value, String effect) {
+        V1Taint v1Taint = new V1Taint();
+        v1Taint.setKey(key);
+        v1Taint.setValue(value);
+        v1Taint.setEffect(effect);
+        if (node.getSpec().getTaints() != null) {
+            node.getSpec().getTaints().add(v1Taint);
+        }
+    }
+
 }

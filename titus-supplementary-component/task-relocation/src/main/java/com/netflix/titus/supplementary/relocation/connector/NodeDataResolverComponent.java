@@ -34,11 +34,12 @@ public class NodeDataResolverComponent {
     @Bean
     public AgentManagementNodeDataResolver getAgentManagementNodeDataResolver(ReadOnlyAgentOperations agentOperations,
                                                                               AgentDataReplicator agentDataReplicator,
+                                                                              RelocationConfiguration relocationConfiguration,
                                                                               KubeApiFacade kubeApiFacade) {
         return new AgentManagementNodeDataResolver(agentOperations,
                 agentDataReplicator,
-                NodePredicates.getFenzoNodePredicate(kubeApiFacade.getNodeInformer())
-        );
+                NodePredicates.getFenzoNodePredicate(kubeApiFacade.getNodeInformer()),
+                relocationConfiguration, kubeApiFacade);
     }
 
     @Qualifier("kubeScheduler")

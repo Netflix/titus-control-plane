@@ -50,4 +50,30 @@ public interface RelocationConfiguration {
 
     @DefaultValue("NONE")
     String getNodeRelocationRequiredImmediatelyTaints();
+
+    @DefaultValue("UncorrectableMemoryFailure")
+    String getBadNodeConditionPattern();
+
+    @DefaultValue("false")
+    boolean isTaskTerminationOnBadNodeConditionEnabled();
+
+    /**
+     * Interval at which the node condition controller is triggered.
+     */
+    @DefaultValue("60000")
+    long getNodeConditionControlLoopIntervalMs();
+
+    /**
+     * Node condition control loop timeout in Millis.
+     */
+    @DefaultValue("300000")
+    long getNodeConditionControlLoopTimeoutMs();
+
+    /**
+     * It represents the last N seconds threshold for which the latest node condition is sustained
+     * It helps us avoid picking up node conditions that are reached for a very short duration
+     */
+    @DefaultValue("300")
+    int getNodeConditionTransitionTimeThresholdSeconds();
+
 }
