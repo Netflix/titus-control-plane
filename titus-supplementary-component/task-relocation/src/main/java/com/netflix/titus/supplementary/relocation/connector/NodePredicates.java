@@ -58,7 +58,7 @@ public class NodePredicates {
         if (node.getStatus() != null && node.getStatus().getConditions() != null) {
             return node.getStatus().getConditions().stream()
                     .anyMatch(v1NodeCondition -> badConditionExpression.apply(v1NodeCondition.getType()).matches() &&
-                            v1NodeCondition.getStatus().equals("True") &&
+                            Boolean.parseBoolean(v1NodeCondition.getStatus()) &&
                             !isNodeConditionTransitionedRecently(v1NodeCondition, nodeConditionTransitionTimeThresholdSeconds));
         }
         return false;

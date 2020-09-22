@@ -45,7 +45,7 @@ public class DefaultNodeConditionController implements NodeConditionController {
 
     private static final CallMetadata CALL_METADATA = buildCallMetadata();
     private static final String CALLER_APP_ID = "titusrelocation";
-    private static final String CALL_REASON = "Bad Node Condition";
+    private static final String CALL_REASON = "This task was automatically terminated because the underlying host had issues.";
 
     private ScheduleReference scheduleReference;
 
