@@ -21,11 +21,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
+import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
+import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.model.Tier;
@@ -42,7 +44,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import static com.netflix.titus.master.service.management.ResourceConsumptions.findConsumption;
-import static com.netflix.titus.master.service.management.internal.ResourceConsumptionEvaluator.toResourceDimension;
+import static com.netflix.titus.master.service.management.internal.ResourceConsumptionEvaluator.opportunisticCpus;
+import static com.netflix.titus.master.service.management.internal.ResourceConsumptionEvaluator.perTaskResourceDimension;
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -77,15 +80,14 @@ public class ResourceConsumptionEvaluatorTest {
         when(applicationSlaManagementService.getApplicationSLAs()).thenReturn(asList(ConsumptionModelGenerator.DEFAULT_SLA, ConsumptionModelGenerator.CRITICAL_SLA_1, ConsumptionModelGenerator.NOT_USED_SLA));
 
         // Job with defined capacity group SLA
-        Pair<Job, List<Task>> goodCapacity = newJob(
+        Pair<Job, List<Task>> goodCapacity = newServiceJob(
                 "goodCapacityJob",
                 jd -> jd.toBuilder().withCapacityGroup(ConsumptionModelGenerator.CRITICAL_SLA_1.getAppName()).build()
         );
         Job goodCapacityJob = goodCapacity.getLeft();
-        List<Task> goodCapacityTasks = goodCapacity.getRight();
 
         // Job without appName defined
-        Pair<Job, List<Task>> noAppName = newJob(
+        Pair<Job, List<Task>> noAppName = newServiceJob(
                 "badCapacityJob",
                 jd -> jd.toBuilder()
                         .withApplicationName("")
@@ -93,15 +95,13 @@ public class ResourceConsumptionEvaluatorTest {
                         .build()
         );
         Job noAppNameJob = noAppName.getLeft();
-        List<Task> noAppNameTasks = noAppName.getRight();
 
         // Job with capacity group for which SLA is not defined
-        Pair<Job, List<Task>> badCapacity = newJob(
+        Pair<Job, List<Task>> badCapacity = newServiceJob(
                 "goodCapacityJob",
                 jd -> jd.toBuilder().withCapacityGroup("missingCapacityGroup").build()
         );
         Job badCapacityJob = badCapacity.getLeft();
-        List<Task> badCapacityTasks = badCapacity.getRight();
 
         // Evaluate
         ResourceConsumptionEvaluator evaluator = new ResourceConsumptionEvaluator(applicationSlaManagementService, v3JobOperations);
@@ -117,7 +117,7 @@ public class ResourceConsumptionEvaluatorTest {
         CompositeResourceConsumption criticalConsumption = (CompositeResourceConsumption) findConsumption(
                 systemConsumption, Tier.Critical.name(), ConsumptionModelGenerator.CRITICAL_SLA_1.getAppName()
         ).get();
-        assertThat(criticalConsumption.getCurrentConsumption()).isEqualTo(toResourceDimension(goodCapacityJob, goodCapacityTasks)); // We have single worker in Started state
+        assertThat(criticalConsumption.getCurrentConsumption()).isEqualTo(perTaskResourceDimension(goodCapacityJob)); // We have single worker in Started state
 
         assertThat(criticalConsumption.getAllowedConsumption()).isEqualTo(ConsumptionModelGenerator.capacityGroupLimit(ConsumptionModelGenerator.CRITICAL_SLA_1));
         assertThat(criticalConsumption.isAboveLimit()).isTrue();
@@ -127,8 +127,8 @@ public class ResourceConsumptionEvaluatorTest {
                 systemConsumption, Tier.Flex.name(), ConsumptionModelGenerator.DEFAULT_SLA.getAppName()
         ).get();
         assertThat(defaultConsumption.getCurrentConsumption()).isEqualTo(ResourceDimensions.add(
-                toResourceDimension(noAppNameJob, noAppNameTasks),
-                toResourceDimension(badCapacityJob, badCapacityTasks)
+                perTaskResourceDimension(noAppNameJob),
+                perTaskResourceDimension(badCapacityJob)
         ));
 
         assertThat(defaultConsumption.getAllowedConsumption()).isEqualTo(ConsumptionModelGenerator.capacityGroupLimit(ConsumptionModelGenerator.DEFAULT_SLA));
@@ -143,7 +143,96 @@ public class ResourceConsumptionEvaluatorTest {
         assertThat(notUsedConsumption.isAboveLimit()).isFalse();
     }
 
-    private Pair<Job, List<Task>> newJob(String name, Function<JobDescriptor, JobDescriptor> transformer) {
+    @SuppressWarnings("unchecked")
+    @Test
+    public void batchJobWithMultipleTasks() {
+        when(applicationSlaManagementService.getApplicationSLAs()).thenReturn(asList(ConsumptionModelGenerator.DEFAULT_SLA, ConsumptionModelGenerator.CRITICAL_SLA_1, ConsumptionModelGenerator.NOT_USED_SLA));
+
+        // Job with defined capacity group SLA
+        Job<BatchJobExt> goodCapacityJob = newOpportunisticBatchJob(
+                "goodCapacityJob",
+                jd -> jd.toBuilder()
+                        .withExtensions(jd.getExtensions().toBuilder().withSize(2).build())
+                        .withCapacityGroup(ConsumptionModelGenerator.CRITICAL_SLA_1.getAppName())
+                        .build()
+        ).getLeft();
+        List<Task> goodCapacityTasks = jobComponentStub.getJobOperations().getTasks(goodCapacityJob.getId());
+        assertThat(goodCapacityTasks).allSatisfy(
+                task -> assertThat(task.getTaskContext()).containsKey(TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT)
+        );
+
+        // Job without appName defined
+        Job<BatchJobExt> noAppNameJob = newOpportunisticBatchJob(
+                "badCapacityJob",
+                jd -> jd.toBuilder()
+                        .withApplicationName("")
+                        .withExtensions(jd.getExtensions().toBuilder().withSize(2).build())
+                        .withCapacityGroup(ConsumptionModelGenerator.DEFAULT_SLA.getAppName())
+                        .build()
+        ).getLeft();
+        List<Task> noAppNameTasks = jobComponentStub.getJobOperations().getTasks(noAppNameJob.getId());
+        assertThat(noAppNameTasks).allSatisfy(
+                task -> assertThat(task.getTaskContext()).containsKey(TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT)
+        );
+
+
+        // Job with capacity group for which SLA is not defined
+        Job<BatchJobExt> badCapacityJob = newOpportunisticBatchJob(
+                "badCapacityJob",
+                jd -> jd.toBuilder()
+                        .withExtensions(jd.getExtensions().toBuilder().withSize(2).build())
+                        .withCapacityGroup("missingCapacityGroup")
+                        .build()
+        ).getLeft();
+        List<Task> badCapacityTasks = jobComponentStub.getJobOperations().getTasks(badCapacityJob.getId());
+        assertThat(badCapacityTasks).allSatisfy(
+                task -> assertThat(task.getTaskContext()).containsKey(TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT)
+        );
+
+        // Evaluate
+        ResourceConsumptionEvaluator evaluator = new ResourceConsumptionEvaluator(applicationSlaManagementService, v3JobOperations);
+
+        Set<String> undefined = evaluator.getUndefinedCapacityGroups();
+        assertThat(undefined).contains("missingCapacityGroup");
+
+        CompositeResourceConsumption systemConsumption = evaluator.getSystemConsumption();
+        Map<String, ResourceConsumption> tierConsumptions = systemConsumption.getContributors();
+        assertThat(tierConsumptions).containsKeys(Tier.Critical.name(), Tier.Flex.name());
+
+        // Critical capacity group
+        CompositeResourceConsumption criticalConsumption = (CompositeResourceConsumption) findConsumption(
+                systemConsumption, Tier.Critical.name(), ConsumptionModelGenerator.CRITICAL_SLA_1.getAppName()
+        ).get();
+        assertThat(criticalConsumption.getCurrentConsumption()).isEqualTo(expectedCurrentConsumptionForBatchJob(goodCapacityJob, goodCapacityTasks));
+        assertThat(criticalConsumption.getMaxConsumption()).isEqualTo(expectedMaxConsumptionForBatchJob(goodCapacityJob));
+        assertThat(criticalConsumption.getAllowedConsumption()).isEqualTo(ConsumptionModelGenerator.capacityGroupLimit(ConsumptionModelGenerator.CRITICAL_SLA_1));
+        assertThat(criticalConsumption.isAboveLimit()).isTrue();
+
+        // Default capacity group
+        CompositeResourceConsumption defaultConsumption = (CompositeResourceConsumption) findConsumption(
+                systemConsumption, Tier.Flex.name(), ConsumptionModelGenerator.DEFAULT_SLA.getAppName()
+        ).get();
+        assertThat(defaultConsumption.getCurrentConsumption()).isEqualTo(ResourceDimensions.add(
+                expectedCurrentConsumptionForBatchJob(noAppNameJob, noAppNameTasks),
+                expectedCurrentConsumptionForBatchJob(badCapacityJob, badCapacityTasks)
+        ));
+        assertThat(defaultConsumption.getMaxConsumption()).isEqualTo(ResourceDimensions.add(
+                expectedMaxConsumptionForBatchJob(noAppNameJob),
+                expectedMaxConsumptionForBatchJob(badCapacityJob)
+        ));
+        assertThat(defaultConsumption.getAllowedConsumption()).isEqualTo(ConsumptionModelGenerator.capacityGroupLimit(ConsumptionModelGenerator.DEFAULT_SLA));
+        assertThat(defaultConsumption.isAboveLimit()).isFalse();
+
+        // Not used capacity group
+        CompositeResourceConsumption notUsedConsumption = (CompositeResourceConsumption) findConsumption(
+                systemConsumption, Tier.Critical.name(), ConsumptionModelGenerator.NOT_USED_SLA.getAppName()
+        ).get();
+        assertThat(notUsedConsumption.getCurrentConsumption()).isEqualTo(ResourceDimension.empty());
+        assertThat(notUsedConsumption.getAllowedConsumption()).isEqualTo(ConsumptionModelGenerator.capacityGroupLimit(ConsumptionModelGenerator.NOT_USED_SLA));
+        assertThat(notUsedConsumption.isAboveLimit()).isFalse();
+    }
+
+    private Pair<Job, List<Task>> newServiceJob(String name, Function<JobDescriptor, JobDescriptor> transformer) {
         jobComponentStub.addJobTemplate(name, JobDescriptorGenerator.serviceJobDescriptors()
                 .map(jd -> jd.but(self -> self.getContainer().but(c -> CONTAINER_RESOURCES)))
                 .map(transformer::apply)
@@ -152,5 +241,31 @@ public class ResourceConsumptionEvaluatorTest {
                 name,
                 (job, tasks) -> jobComponentStub.moveTaskToState(tasks.get(0), TaskState.Started)
         );
+    }
+
+    private Pair<Job, List<Task>> newOpportunisticBatchJob(String name, Function<JobDescriptor<BatchJobExt>, JobDescriptor<BatchJobExt>> transformer) {
+        jobComponentStub.addJobTemplate(name, JobDescriptorGenerator.batchJobDescriptors()
+                .map(jd -> jd.but(self -> self.getContainer().but(c -> CONTAINER_RESOURCES)))
+                .map(transformer::apply)
+        );
+        return jobComponentStub.createJobAndTasks(
+                name,
+                (job, tasks) -> tasks.forEach(task -> {
+                    int cpuCount = (int) job.getJobDescriptor().getContainer().getContainerResources().getCpu();
+                    jobComponentStub.makeOpportunistic(task, cpuCount);
+                    jobComponentStub.moveTaskToState(task, TaskState.Started);
+                })
+        );
+    }
+
+    private static ResourceDimension expectedCurrentConsumptionForBatchJob(Job<BatchJobExt> job, List<Task> tasks) {
+        return ResourceDimensions.multiply(perTaskResourceDimension(job), job.getJobDescriptor().getExtensions().getSize()).toBuilder()
+                .withOpportunisticCpus(opportunisticCpus(tasks))
+                .build();
+    }
+
+    private static ResourceDimension expectedMaxConsumptionForBatchJob(Job<BatchJobExt> job) {
+        // no max for opportunistic cpus
+        return ResourceDimensions.multiply(perTaskResourceDimension(job), job.getJobDescriptor().getExtensions().getSize());
     }
 }

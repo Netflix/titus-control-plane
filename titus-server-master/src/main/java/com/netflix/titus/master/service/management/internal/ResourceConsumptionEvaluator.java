@@ -140,10 +140,15 @@ class ResourceConsumptionEvaluator {
         v3JobOperations.getJobsAndTasks().forEach(jobsAndTasks -> {
             Job job = jobsAndTasks.getLeft();
             List<Task> tasks = jobsAndTasks.getRight();
+            List<Task> runningTasks = getRunningWorkers(tasks);
 
-            ResourceDimension taskResources = toResourceDimension(job, tasks);
+            // taskResources won't include opportunistic CPU allocations since that will vary per task
+            ResourceDimension taskResources = perTaskResourceDimension(job);
             String appName = Evaluators.getOrDefault(job.getJobDescriptor().getApplicationName(), DEFAULT_APPLICATION);
-            ResourceDimension currentConsumption = ResourceDimensions.multiply(taskResources, getRunningWorkers(tasks).size());
+            ResourceDimension currentConsumption = ResourceDimensions.multiply(taskResources, runningTasks.size()).toBuilder()
+                    .withOpportunisticCpus(opportunisticCpus(runningTasks))
+                    .build();
+            // no max for opportunistic cpus
             ResourceDimension maxConsumption = ResourceDimensions.multiply(taskResources, getMaxJobSize(job));
 
             Map<String, List<Task>> tasksByInstanceType = tasks.stream().collect(
@@ -153,9 +158,11 @@ class ResourceConsumptionEvaluator {
             Map<String, ResourceConsumption> consumptionByInstanceType = CollectionsExt.mapValuesWithKeys(
                     tasksByInstanceType,
                     (instanceType, instanceTypeTasks) -> {
+                        List<Task> runningInstanceTypeTasks = getRunningWorkers(instanceTypeTasks);
                         ResourceDimension instanceTypeConsumption = ResourceDimensions.multiply(
-                                taskResources, getRunningWorkers(instanceTypeTasks).size()
-                        );
+                                taskResources,
+                                runningInstanceTypeTasks.size()
+                        ).toBuilder().withOpportunisticCpus(opportunisticCpus(runningInstanceTypeTasks)).build();
                         return new ResourceConsumption(
                                 instanceType,
                                 ConsumptionLevel.InstanceType,
@@ -256,14 +263,12 @@ class ResourceConsumptionEvaluator {
         };
     }
 
+    /**
+     * @return resource dimensions per task as defined in the job descriptor. Opportunistic allocations won't be present since they vary per task
+     */
     @VisibleForTesting
-    static ResourceDimension toResourceDimension(Job<?> job, List<Task> tasks) {
+    static ResourceDimension perTaskResourceDimension(Job<?> job) {
         ContainerResources containerResources = job.getJobDescriptor().getContainer().getContainerResources();
-        long opportunisticCpus = tasks.stream()
-                .map(JobFunctions::getOpportunisticCpuCount)
-                .filter(Optional::isPresent)
-                .mapToLong(Optional::get)
-                .sum();
 
         return new ResourceDimension(
                 containerResources.getCpu(),
@@ -271,7 +276,16 @@ class ResourceConsumptionEvaluator {
                 containerResources.getMemoryMB(),
                 containerResources.getDiskMB(),
                 containerResources.getNetworkMbps(),
-                opportunisticCpus);
+                0);
+    }
+
+    @VisibleForTesting
+    static long opportunisticCpus(List<Task> tasks) {
+        return tasks.stream()
+                .map(JobFunctions::getOpportunisticCpuCount)
+                .filter(Optional::isPresent)
+                .mapToLong(Optional::get)
+                .sum();
     }
 
     private List<Task> getRunningWorkers(List<Task> tasks) {
