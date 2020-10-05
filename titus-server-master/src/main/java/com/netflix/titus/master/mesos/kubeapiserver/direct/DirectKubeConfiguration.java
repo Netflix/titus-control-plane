@@ -121,12 +121,6 @@ public interface DirectKubeConfiguration extends KubeConnectorConfiguration {
     long getPodTerminationGracePeriodSeconds();
 
     /**
-     * Amount of time to wait before GC'ing a pod with deletion timestamp.
-     */
-    @DefaultValue("1800000")
-    long getPodTerminationGcTimeoutMs();
-
-    /**
      * Amount of grace period to set when deleting a namespace pod.
      */
     @DefaultValue("300")
@@ -137,12 +131,6 @@ public interface DirectKubeConfiguration extends KubeConnectorConfiguration {
      */
     @DefaultValue("300000")
     long getNodeGcTtlMs();
-
-    /**
-     * Amount of time to wait after the pod creation timestamp for unknown pods before deleting the pod.
-     */
-    @DefaultValue("300000")
-    long getUnknownPodGcTimeoutMs();
 
     /**
      * Maximum number of concurrent pod create requests.
