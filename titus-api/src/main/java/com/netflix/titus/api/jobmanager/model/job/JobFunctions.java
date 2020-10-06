@@ -202,6 +202,26 @@ public final class JobFunctions {
                 .build();
     }
 
+    public static <E extends JobDescriptorExt> JobDescriptor<E> appendContainerAttribute(JobDescriptor<E> jobDescriptor,
+                                                                                         String attributeName,
+                                                                                         Object attributeValue) {
+        return jobDescriptor.toBuilder()
+                .withContainer(jobDescriptor.getContainer().toBuilder()
+                        .withAttributes(CollectionsExt.copyAndAdd(
+                                jobDescriptor.getContainer().getAttributes(), attributeName, "" + attributeValue))
+                        .build()
+                )
+                .build();
+    }
+
+    public static <E extends JobDescriptorExt> Job<E> appendContainerAttribute(Job<E> job,
+                                                                               String attributeName,
+                                                                               Object attributeValue) {
+        return job.toBuilder()
+                .withJobDescriptor(appendContainerAttribute(job.getJobDescriptor(), attributeName, attributeValue))
+                .build();
+    }
+
     public static <E extends JobDescriptorExt> JobDescriptor<E> appendHardConstraint(JobDescriptor<E> jobDescriptor,
                                                                                      String name,
                                                                                      String value) {
