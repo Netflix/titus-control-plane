@@ -55,10 +55,14 @@ public final class KubeConstants {
     public static final String TITUS_V3_JOB_DOMAIN = "v3.job.titus.netflix.com/";
 
     /*
-     * Titus pod labels.
+     * Titus pod labels and annotations.
      */
 
     public static final String POD_LABEL_BYTE_UNITS = TITUS_POD_DOMAIN + "byteUnits";
+
+    public static final String POD_LABEL_ACCOUNT_ID = TITUS_POD_DOMAIN + "accountId";
+
+    public static final String POD_LABEL_SUBNETS = TITUS_POD_DOMAIN + "subnets";
 
     public static final String POD_LABEL_JOB_ID = TITUS_V3_JOB_DOMAIN + "job-id";
 

@@ -255,6 +255,22 @@ public class KubeUtil {
             }
         }
 
+        annotations.putAll(createPodAnnotationsFromJobParameters(job));
+
+        return annotations;
+    }
+
+    public static Map<String, String> createPodAnnotationsFromJobParameters(Job<?> job) {
+        Map<String, String> annotations = new HashMap<>();
+        Map<String, String> containerAttributes = job.getJobDescriptor().getContainer().getAttributes();
+        Evaluators.acceptNotNull(
+                containerAttributes.get(JobAttributes.JOB_CONTAINER_ATTRIBUTE_ACCOUNT_ID),
+                accountId -> annotations.put(KubeConstants.POD_LABEL_ACCOUNT_ID, accountId)
+        );
+        Evaluators.acceptNotNull(
+                containerAttributes.get(JobAttributes.JOB_CONTAINER_ATTRIBUTE_SUBNETS),
+                accountId -> annotations.put(KubeConstants.POD_LABEL_SUBNETS, accountId)
+        );
         return annotations;
     }
 
