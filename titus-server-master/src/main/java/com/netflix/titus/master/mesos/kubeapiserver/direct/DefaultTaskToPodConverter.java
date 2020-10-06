@@ -51,6 +51,8 @@ import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.env.ContainerEnvFactory;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.env.ContainerEnvs;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.taint.TaintTolerationFactory;
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
@@ -111,6 +113,7 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
     private final DirectKubeConfiguration configuration;
     private final PodAffinityFactory podAffinityFactory;
     private final TaintTolerationFactory taintTolerationFactory;
+    private final ContainerEnvFactory containerEnvFactory;
     private final LogStorageInfo<Task> logStorageInfo;
     private final String iamArnPrefix;
 
@@ -118,10 +121,12 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
     public DefaultTaskToPodConverter(DirectKubeConfiguration configuration,
                                      PodAffinityFactory podAffinityFactory,
                                      TaintTolerationFactory taintTolerationFactory,
+                                     ContainerEnvFactory ContainerEnvFactory,
                                      LogStorageInfo<Task> logStorageInfo) {
         this.configuration = configuration;
         this.podAffinityFactory = podAffinityFactory;
         this.taintTolerationFactory = taintTolerationFactory;
+        containerEnvFactory = ContainerEnvFactory;
         this.logStorageInfo = logStorageInfo;
 
         // Get the AWS account ID to use for building IAM ARNs.
@@ -154,6 +159,7 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
         V1Container container = new V1Container()
                 .name(taskId)
                 .image("imageIsInContainerInfo")
+                .env(ContainerEnvs.toV1EnvVar(containerEnvFactory.buildContainerEnv(job, task)))
                 .resources(buildV1ResourceRequirements(job.getJobDescriptor().getContainer().getContainerResources()));
 
         V1PodSpec spec = new V1PodSpec()

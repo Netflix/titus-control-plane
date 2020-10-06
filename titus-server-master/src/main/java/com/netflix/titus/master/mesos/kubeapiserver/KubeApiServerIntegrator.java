@@ -61,6 +61,8 @@ import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.master.mesos.V3ContainerEvent;
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeConfiguration;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.env.ContainerEnvFactory;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.env.ContainerEnvs;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
 import io.kubernetes.client.custom.Quantity;
 import io.kubernetes.client.informer.ResourceEventHandler;
@@ -139,6 +141,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     private final DirectKubeConfiguration directKubeConfiguration;
     private final Injector injector;
     private final KubeApiFacade kubeApiFacade;
+    private final ContainerEnvFactory containerEnvFactory;
     private final ContainerResultCodeResolver containerResultCodeResolver;
 
     private final Counter launchTaskCounter;
@@ -165,12 +168,14 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                                    DirectKubeConfiguration directKubeConfiguration,
                                    Injector injector,
                                    KubeApiFacade kubeApiFacade,
+                                   ContainerEnvFactory containerEnvFactory,
                                    ContainerResultCodeResolver containerResultCodeResolver) {
         this.titusRuntime = titusRuntime;
         this.mesosConfiguration = mesosConfiguration;
         this.directKubeConfiguration = directKubeConfiguration;
         this.injector = injector;
         this.kubeApiFacade = kubeApiFacade;
+        this.containerEnvFactory = containerEnvFactory;
         this.containerResultCodeResolver = containerResultCodeResolver;
 
         this.vmTaskStatusObserver = PublishSubject.create();
@@ -514,6 +519,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         V1Container container = new V1Container()
                 .name(taskId)
                 .image("imageIsInContainerInfo")
+                .env(ContainerEnvs.toV1EnvVar(containerEnvFactory.buildContainerEnv(taskInfoRequest.getJob(), taskInfoRequest.getTask())))
                 .resources(taskInfoToResources(taskInfo));
 
         V1PodSpec spec = new V1PodSpec()

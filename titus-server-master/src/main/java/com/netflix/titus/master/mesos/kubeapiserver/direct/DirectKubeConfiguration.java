@@ -150,6 +150,9 @@ public interface DirectKubeConfiguration extends KubeConnectorConfiguration {
     @DefaultValue("false")
     boolean isResourcePoolAffinityEnabled();
 
+    @DefaultValue("")
+    String getGpuResourcePoolNames();
+
     /**
      * Set to true to enable S3 writer configuration.
      */
