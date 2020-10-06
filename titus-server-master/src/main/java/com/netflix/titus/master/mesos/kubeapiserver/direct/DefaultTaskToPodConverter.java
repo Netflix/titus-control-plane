@@ -414,9 +414,10 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
         ).collect(Collectors.toList());
     }
 
-    private List<V1TopologySpreadConstraint> buildTopologySpreadConstraints(Job<?> job) {
-        boolean hard = Boolean.parseBoolean(job.getJobDescriptor().getContainer().getHardConstraints().get(JobConstraints.ZONE_BALANCE));
-        boolean soft = Boolean.parseBoolean(job.getJobDescriptor().getContainer().getSoftConstraints().get(JobConstraints.ZONE_BALANCE));
+    @VisibleForTesting
+    List<V1TopologySpreadConstraint> buildTopologySpreadConstraints(Job<?> job) {
+        boolean hard = Boolean.parseBoolean(JobFunctions.findHardConstraint(job, JobConstraints.ZONE_BALANCE).orElse("false"));
+        boolean soft = Boolean.parseBoolean(JobFunctions.findSoftConstraint(job, JobConstraints.ZONE_BALANCE).orElse("false"));
         if (!hard && !soft) {
             return Collections.emptyList();
         }

@@ -213,8 +213,23 @@ public final class JobFunctions {
                 .build();
     }
 
+    public static <E extends JobDescriptorExt> JobDescriptor<E> appendSoftConstraint(JobDescriptor<E> jobDescriptor,
+                                                                                     String name,
+                                                                                     String value) {
+        return jobDescriptor.toBuilder()
+                .withContainer(jobDescriptor.getContainer().toBuilder()
+                        .withSoftConstraints(CollectionsExt.copyAndAdd(jobDescriptor.getContainer().getSoftConstraints(), name, value))
+                        .build()
+                )
+                .build();
+    }
+
     public static <E extends JobDescriptorExt> Job<E> appendHardConstraint(Job<E> job, String name, String value) {
         return job.toBuilder().withJobDescriptor(appendHardConstraint(job.getJobDescriptor(), name, value)).build();
+    }
+
+    public static <E extends JobDescriptorExt> Job<E> appendSoftConstraint(Job<E> job, String name, String value) {
+        return job.toBuilder().withJobDescriptor(appendSoftConstraint(job.getJobDescriptor(), name, value)).build();
     }
 
     public static <E extends JobDescriptorExt> Job<E> appendJobDescriptorAttribute(Job<E> job,
@@ -223,6 +238,32 @@ public final class JobFunctions {
         return job.toBuilder()
                 .withJobDescriptor(appendJobDescriptorAttribute(job.getJobDescriptor(), attributeName, attributeValue))
                 .build();
+    }
+
+    /**
+     * Constraint names are case insensitive.
+     */
+    public static <E extends JobDescriptorExt> Optional<String> findHardConstraint(Job<E> job, String name) {
+        return findConstraint(job.getJobDescriptor().getContainer().getHardConstraints(), name);
+    }
+
+    /**
+     * Constraint names are case insensitive.
+     */
+    public static <E extends JobDescriptorExt> Optional<String> findSoftConstraint(Job<E> job, String name) {
+        return findConstraint(job.getJobDescriptor().getContainer().getSoftConstraints(), name);
+    }
+
+    private static Optional<String> findConstraint(Map<String, String> constraints, String name) {
+        if (CollectionsExt.isNullOrEmpty(constraints)) {
+            return Optional.empty();
+        }
+        for (String key : constraints.keySet()) {
+            if (key.equalsIgnoreCase(name)) {
+                return Optional.ofNullable(constraints.get(key));
+            }
+        }
+        return Optional.empty();
     }
 
     public static Task appendTaskAttribute(Task task, String attributeName, Object attributeValue) {
