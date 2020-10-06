@@ -16,6 +16,7 @@
 
 package com.netflix.titus.api.jobmanager.model.job;
 
+import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.common.util.time.Clocks;
 import com.netflix.titus.testkit.model.job.JobDescriptorGenerator;
@@ -82,5 +83,19 @@ public class JobFunctionsTest {
                 )
                 .build();
         assertThat(JobFunctions.containsExactlyTaskStates(task, TaskState.Accepted, TaskState.Launched, TaskState.StartInitiated, TaskState.KillInitiated)).isTrue();
+    }
+
+    @Test
+    public void testFindHardConstraint() {
+        Job<BatchJobExt> job = JobFunctions.appendHardConstraint(JobGenerator.oneBatchJob(), "MyConstraint", "good");
+        assertThat(JobFunctions.findHardConstraint(job, "myConstraint")).contains("good");
+        assertThat(JobFunctions.findSoftConstraint(job, "myConstraint")).isEmpty();
+    }
+
+    @Test
+    public void testFindSoftConstraint() {
+        Job<BatchJobExt> job = JobFunctions.appendSoftConstraint(JobGenerator.oneBatchJob(), "MyConstraint", "good");
+        assertThat(JobFunctions.findHardConstraint(job, "myConstraint")).isEmpty();
+        assertThat(JobFunctions.findSoftConstraint(job, "myConstraint")).contains("good");
     }
 }
