@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
+import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.netflix.spectator.api.Gauge;
@@ -43,17 +44,20 @@ import com.netflix.titus.common.framework.scheduler.model.ScheduleDescriptor;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.ExecutorsExt;
+import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.guice.annotation.Deactivator;
+import com.netflix.titus.common.util.limiter.tokenbucket.FixedIntervalTokenBucketConfiguration;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.time.Clock;
 import com.netflix.titus.master.MetricConstants;
 import com.netflix.titus.master.mesos.ContainerEvent;
 import com.netflix.titus.master.mesos.MesosConfiguration;
 import com.netflix.titus.master.mesos.V3ContainerEvent;
-import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
+import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeConfiguration;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodEvent;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodNotFoundEvent;
+import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1Pod;
 import org.slf4j.Logger;
@@ -66,6 +70,8 @@ import reactor.core.publisher.FluxSink;
 public class DefaultKubeJobManagementReconciler implements KubeJobManagementReconciler {
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultKubeJobManagementReconciler.class);
+
+    static final String GC_UNKNOWN_PODS = "gcUnknownPods";
 
     private enum OrphanedKind {
         /**
@@ -83,6 +89,8 @@ public class DefaultKubeJobManagementReconciler implements KubeJobManagementReco
     }
 
     private final MesosConfiguration mesosConfiguration;
+    private final DirectKubeConfiguration directKubeConfiguration;
+    private final FixedIntervalTokenBucketConfiguration gcUnknownPodsTokenBucketConfiguration;
     private final KubeApiFacade kubeApiFacade;
     private final V3JobOperations v3JobOperations;
 
@@ -96,15 +104,20 @@ public class DefaultKubeJobManagementReconciler implements KubeJobManagementReco
     private final FluxSink<PodEvent> podEventSink = podEventProcessor.sink(FluxSink.OverflowStrategy.IGNORE);
 
     private final Map<OrphanedKind, Gauge> orphanedTaskGauges;
+    private final Gauge terminalPodsToGcGauge;
 
     private ScheduleReference schedulerRef;
 
     @Inject
     public DefaultKubeJobManagementReconciler(MesosConfiguration mesosConfiguration,
+                                              DirectKubeConfiguration directKubeConfiguration,
+                                              @Named(GC_UNKNOWN_PODS) FixedIntervalTokenBucketConfiguration gcUnknownPodsTokenBucketConfiguration,
                                               KubeApiFacade kubeApiFacade,
                                               V3JobOperations v3JobOperations,
                                               TitusRuntime titusRuntime) {
         this.mesosConfiguration = mesosConfiguration;
+        this.directKubeConfiguration = directKubeConfiguration;
+        this.gcUnknownPodsTokenBucketConfiguration = gcUnknownPodsTokenBucketConfiguration;
         this.kubeApiFacade = kubeApiFacade;
         this.v3JobOperations = v3JobOperations;
         this.clock = titusRuntime.getClock();
@@ -116,6 +129,7 @@ public class DefaultKubeJobManagementReconciler implements KubeJobManagementReco
                 Function.identity(),
                 kind -> registry.gauge(MetricConstants.METRIC_KUBERNETES + "orphanedTasks", "kind", kind.name())
         ));
+        this.terminalPodsToGcGauge = registry.gauge(MetricConstants.METRIC_KUBERNETES + "terminalPodsToGc");
     }
 
     @Activator
@@ -127,6 +141,7 @@ public class DefaultKubeJobManagementReconciler implements KubeJobManagementReco
                 .withInterval(Duration.ofMillis(mesosConfiguration.getReconcilerIntervalMs()))
                 .withTimeout(Duration.ofMinutes(5))
                 .build();
+
         this.schedulerRef = titusRuntime.getLocalScheduler().schedule(
                 scheduleDescriptor,
                 e -> reconcile(),
@@ -162,16 +177,22 @@ public class DefaultKubeJobManagementReconciler implements KubeJobManagementReco
             return;
         }
 
-        List<V1Node> nodes = kubeApiFacade.getNodeInformer().getIndexer().list();
-        List<V1Pod> pods = kubeApiFacade.getPodInformer().getIndexer().list();
+        List<V1Node> nodes = kubeApiFacade.getNodeInformer().getIndexer().list()
+                .stream()
+                .filter(n -> StringExt.isNotEmpty(KubeUtil.getMetadataName(n.getMetadata())))
+                .collect(Collectors.toList());
+        List<V1Pod> pods = kubeApiFacade.getPodInformer().getIndexer().list()
+                .stream()
+                .filter(p -> StringExt.isNotEmpty(KubeUtil.getMetadataName(p.getMetadata())))
+                .collect(Collectors.toList());
         List<Task> tasks = v3JobOperations.getTasks();
 
         Map<String, V1Node> nodesById = nodes.stream().collect(Collectors.toMap(
-                node -> node.getMetadata().getName(),
+                node -> KubeUtil.getMetadataName(node.getMetadata()),
                 Function.identity()
         ));
         Map<String, Task> currentTasks = tasks.stream().collect(Collectors.toMap(Task::getId, Function.identity()));
-        Set<String> currentPodNames = pods.stream().map(p -> p.getMetadata().getName()).collect(Collectors.toSet());
+        Set<String> currentPodNames = pods.stream().map(p -> KubeUtil.getMetadataName(p.getMetadata())).collect(Collectors.toSet());
 
         transitionOrphanedTasks(currentTasks, currentPodNames, nodesById);
     }

@@ -17,17 +17,23 @@
 package com.netflix.titus.master.mesos.kubeapiserver.direct;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
+import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
 import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo.S3LogLocation;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.taint.TaintTolerationFactory;
+import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import com.netflix.titus.testkit.model.job.JobGenerator;
+import io.kubernetes.client.openapi.models.V1ResourceRequirements;
+import io.kubernetes.client.openapi.models.V1TopologySpreadConstraint;
 import io.titanframework.messages.TitanProtos.ContainerInfo;
 import org.junit.Test;
 
@@ -100,5 +106,44 @@ public class DefaultTaskToPodConverterTest {
                 S3_WRITER_ROLE,
                 job.getJobDescriptor().getContainer().getSecurityProfile().getIamRole()
         );
+    }
+
+    @Test
+    public void testByteResourceUnits() {
+        ContainerResources containerResources = ContainerResources.newBuilder()
+                .withMemoryMB(2)
+                .withDiskMB(4)
+                .withNetworkMbps(128)
+                .build();
+
+        // Legacy
+        when(configuration.isBytePodResourceEnabled()).thenReturn(false);
+        V1ResourceRequirements podResources = converter.buildV1ResourceRequirements(containerResources);
+        assertThat(podResources.getLimits().get("memory").toSuffixedString()).isEqualTo("2");
+        assertThat(podResources.getLimits().get("ephemeral-storage").toSuffixedString()).isEqualTo("4");
+        assertThat(podResources.getLimits().get("titus/network").toSuffixedString()).isEqualTo("128");
+
+        // Bytes
+        when(configuration.isBytePodResourceEnabled()).thenReturn(true);
+        podResources = converter.buildV1ResourceRequirements(containerResources);
+        assertThat(podResources.getLimits().get("memory").toSuffixedString()).isEqualTo("2Mi");
+        assertThat(podResources.getLimits().get("ephemeral-storage").toSuffixedString()).isEqualTo("4Mi");
+        assertThat(podResources.getLimits().get("titus/network").toSuffixedString()).isEqualTo("128M");
+    }
+
+    @Test
+    public void testHardConstraintNameIsCaseInsensitive() {
+        testConstraintNameIsCaseInsensitive(JobFunctions.appendHardConstraint(JobGenerator.oneBatchJob(), "ZoneBalance", "true"));
+    }
+
+    @Test
+    public void testSoftConstraintNameIsCaseInsensitive() {
+        testConstraintNameIsCaseInsensitive(JobFunctions.appendSoftConstraint(JobGenerator.oneBatchJob(), "ZoneBalance", "true"));
+    }
+
+    private void testConstraintNameIsCaseInsensitive(Job<BatchJobExt> job) {
+        List<V1TopologySpreadConstraint> constraints = converter.buildTopologySpreadConstraints(job);
+        assertThat(constraints).hasSize(1);
+        assertThat(constraints.get(0).getTopologyKey()).isEqualTo(KubeConstants.NODE_LABEL_ZONE);
     }
 }

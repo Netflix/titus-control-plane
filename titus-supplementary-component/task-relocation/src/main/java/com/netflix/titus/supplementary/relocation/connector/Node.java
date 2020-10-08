@@ -27,6 +27,7 @@ public class Node {
     private boolean relocationRequired;
     private boolean relocationRequiredImmediately;
     private boolean serverGroupRelocationRequired;
+    private boolean inBadCondition;
 
     public Node(String id,
                 String serverGroupId) {
@@ -58,6 +59,10 @@ public class Node {
         return serverGroupRelocationRequired;
     }
 
+    public boolean isInBadCondition() {
+        return inBadCondition;
+    }
+
     public Builder toBuilder() {
         return newBuilder()
                 .withId(id)
@@ -79,6 +84,7 @@ public class Node {
         private boolean relocationNotAllowed;
         private boolean relocationRequiredImmediately;
         private boolean serverGroupRelocationRequired;
+        private boolean inBadCondition;
 
         private Builder() {
         }
@@ -113,6 +119,11 @@ public class Node {
             return this;
         }
 
+        public Builder withBadCondition(boolean inBadCondition) {
+            this.inBadCondition = inBadCondition;
+            return this;
+        }
+
         public Node build() {
             Preconditions.checkNotNull(id, "instance id is null");
             Preconditions.checkNotNull(serverGroupId, "server group id is null");
@@ -121,6 +132,7 @@ public class Node {
             node.relocationRequiredImmediately = this.relocationRequiredImmediately;
             node.relocationRequired = this.relocationRequired;
             node.serverGroupRelocationRequired = this.serverGroupRelocationRequired;
+            node.inBadCondition = this.inBadCondition;
             return node;
         }
     }

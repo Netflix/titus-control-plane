@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.function.BiConsumer;
 
 import com.netflix.titus.api.agent.model.AgentInstance;
@@ -200,6 +201,14 @@ public class JobComponentStub {
 
     public void forget(Task task) {
         stubbedJobData.removeTask(task, false);
+    }
+
+    public Task makeOpportunistic(Task task, int opportunisticCpuCount) {
+        return stubbedJobData.changeTask(task.getId(), t -> t.toBuilder()
+                .addToTaskContext(TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION, UUID.randomUUID().toString())
+                .addToTaskContext(TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT, opportunisticCpuCount + "")
+                .build()
+        );
     }
 
     public Observable<JobManagerEvent<?>> observeJobs(boolean snapshot) {

@@ -45,6 +45,8 @@ public final class KubeConstants {
      */
     public static final String TITUS_NODE_DOMAIN = "node.titus.netflix.com/";
 
+    private static final String TITUS_POD_DOMAIN = "pod.titus.netflix.com/";
+
     public static final String TITUS_SCALER_DOMAIN = "scaler.titus.netflix.com/";
 
     /**
@@ -53,8 +55,14 @@ public final class KubeConstants {
     public static final String TITUS_V3_JOB_DOMAIN = "v3.job.titus.netflix.com/";
 
     /*
-     * Titus pod labels.
+     * Titus pod labels and annotations.
      */
+
+    public static final String POD_LABEL_BYTE_UNITS = TITUS_POD_DOMAIN + "byteUnits";
+
+    public static final String POD_LABEL_ACCOUNT_ID = TITUS_POD_DOMAIN + "accountId";
+
+    public static final String POD_LABEL_SUBNETS = TITUS_POD_DOMAIN + "subnets";
 
     public static final String POD_LABEL_JOB_ID = TITUS_V3_JOB_DOMAIN + "job-id";
 
@@ -67,6 +75,8 @@ public final class KubeConstants {
     public static final String NODE_LABEL_MACHINE_ID = TITUS_NODE_DOMAIN + "id";
 
     public static final String NODE_LABEL_MACHINE_GROUP = TITUS_NODE_DOMAIN + "asg";
+
+    public static final String NODE_LABEL_ACCOUNT_ID = TITUS_NODE_DOMAIN + "accountId";
 
     public static final String NODE_LABEL_KUBE_BACKEND = TITUS_NODE_DOMAIN + "backend";
 
@@ -132,5 +142,17 @@ public final class KubeConstants {
      * Opportunistic resource CRD used when allocating opportunistic resources to a Pod during scheduling
      */
     public static final String OPPORTUNISTIC_ID = "opportunistic.scheduler.titus.netflix.com/id";
+
+    /*
+     * API Constants
+     */
+    public static final String DEFAULT_NAMESPACE = "default";
+    public static final String NOT_FOUND = "Not Found";
+    public static final String READY = "Ready";
+    public static final String PENDING = "Pending";
+    public static final String RUNNING = "Running";
+    public static final String SUCCEEDED = "Succeeded";
+    public static final String FAILED = "Failed";
+    public static final String BACKGROUND = "Background";
 
 }

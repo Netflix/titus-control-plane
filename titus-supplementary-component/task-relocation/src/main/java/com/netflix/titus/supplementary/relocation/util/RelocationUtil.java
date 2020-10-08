@@ -20,6 +20,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import com.netflix.titus.api.jobmanager.TaskAttributes;
@@ -55,6 +56,19 @@ public final class RelocationUtil {
     public static Map<String, Node> buildTasksToInstanceMap(Map<String, Node> nodesById,
                                                             ReadOnlyJobOperations jobOperations) {
         return buildTasksToInstanceMap(nodesById, buildTaskByIdMap(jobOperations));
+    }
+
+    public static List<String> buildTasksFromNodesAndJobsFilter(Map<String, Node> nodesById, Set<String> jobIds,
+                                                                ReadOnlyJobOperations jobOperations) {
+        Map<String, Task> tasksById = buildTaskByIdMap(jobOperations);
+        Set<String> taskIdsOnNodes = buildTasksToInstanceMap(nodesById, tasksById).keySet();
+        return taskIdsOnNodes.stream().filter(taskId -> {
+            if (tasksById.containsKey(taskId)) {
+                Task task = tasksById.get(taskId);
+                return jobIds.contains(task.getJobId());
+            }
+            return false;
+        }).collect(Collectors.toList());
     }
 
     public static List<Task> findTasksOnInstance(Node instance, Collection<Task> tasks) {

@@ -56,6 +56,9 @@ import io.kubernetes.client.openapi.models.V1ContainerStateWaiting;
 import io.kubernetes.client.openapi.models.V1ContainerStatus;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1NodeAddress;
+import io.kubernetes.client.openapi.models.V1NodeCondition;
+import io.kubernetes.client.openapi.models.V1NodeStatus;
+import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1Taint;
 import io.kubernetes.client.openapi.models.V1Toleration;
@@ -252,6 +255,22 @@ public class KubeUtil {
             }
         }
 
+        annotations.putAll(createPodAnnotationsFromJobParameters(job));
+
+        return annotations;
+    }
+
+    public static Map<String, String> createPodAnnotationsFromJobParameters(Job<?> job) {
+        Map<String, String> annotations = new HashMap<>();
+        Map<String, String> containerAttributes = job.getJobDescriptor().getContainer().getAttributes();
+        Evaluators.acceptNotNull(
+                containerAttributes.get(JobAttributes.JOB_CONTAINER_ATTRIBUTE_ACCOUNT_ID),
+                accountId -> annotations.put(KubeConstants.POD_LABEL_ACCOUNT_ID, accountId)
+        );
+        Evaluators.acceptNotNull(
+                containerAttributes.get(JobAttributes.JOB_CONTAINER_ATTRIBUTE_SUBNETS),
+                accountId -> annotations.put(KubeConstants.POD_LABEL_SUBNETS, accountId)
+        );
         return annotations;
     }
 
@@ -368,6 +387,33 @@ public class KubeUtil {
 
             sink.onCancel(call::cancel);
         });
+    }
+
+    /**
+     * Get pod name
+     */
+    public static String getMetadataName(V1ObjectMeta metadata) {
+        if (metadata == null) {
+            return "";
+        }
+
+        return metadata.getName();
+    }
+
+    public static Optional<V1NodeCondition> findNodeCondition(V1Node node, String type) {
+        V1NodeStatus status = node.getStatus();
+        if (status == null) {
+            return Optional.empty();
+        }
+        List<V1NodeCondition> conditions = status.getConditions();
+        if (conditions != null) {
+            for (V1NodeCondition condition : conditions) {
+                if (condition.getType().equals(type)) {
+                    return Optional.of(condition);
+                }
+            }
+        }
+        return Optional.empty();
     }
 
     public static boolean hasUninitializedTaint(V1Node node) {
