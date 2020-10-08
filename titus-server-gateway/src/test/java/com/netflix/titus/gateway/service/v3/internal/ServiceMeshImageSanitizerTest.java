@@ -16,6 +16,8 @@
 
 package com.netflix.titus.gateway.service.v3.internal;
 
+import java.util.Map;
+
 import com.netflix.spectator.api.DefaultRegistry;
 import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
@@ -31,8 +33,6 @@ import org.junit.Test;
 import org.springframework.http.HttpStatus;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
-
-import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
@@ -57,7 +57,9 @@ public class ServiceMeshImageSanitizerTest {
 
     private static final JobDescriptor<?> jobDescriptorWithDigest = JobDescriptorGenerator.batchJobDescriptors()
             .map(jd -> jd.but(d -> d.toBuilder()
-                    .withAttributes(CollectionsExt.copyAndAdd(d.getAttributes(), digestAttrs))
+                    .withContainer(jd.getContainer().toBuilder()
+                            .withAttributes(CollectionsExt.copyAndAdd(d.getAttributes(), digestAttrs))
+                            .build())
                     .build()))
             .getValue();
 
@@ -68,7 +70,9 @@ public class ServiceMeshImageSanitizerTest {
 
     private static final JobDescriptor<?> jobDescriptorWithTag = JobDescriptorGenerator.batchJobDescriptors()
             .map(jd -> jd.but(d -> d.toBuilder()
-                    .withAttributes(CollectionsExt.copyAndAdd(d.getAttributes(), tagAttrs))
+                    .withContainer(jd.getContainer().toBuilder()
+                            .withAttributes(CollectionsExt.copyAndAdd(d.getAttributes(), tagAttrs))
+                            .build())
                     .build()))
             .getValue();
 
@@ -78,7 +82,9 @@ public class ServiceMeshImageSanitizerTest {
 
     private static final JobDescriptor<?> jobDescriptorBadImageName = JobDescriptorGenerator.batchJobDescriptors()
             .map(jd -> jd.but(d -> d.toBuilder()
-                    .withAttributes(CollectionsExt.copyAndAdd(d.getAttributes(), badAttrs))
+                    .withContainer(jd.getContainer().toBuilder()
+                            .withAttributes(CollectionsExt.copyAndAdd(d.getAttributes(), badAttrs))
+                            .build())
                     .build()))
             .getValue();
 
@@ -97,6 +103,7 @@ public class ServiceMeshImageSanitizerTest {
 
         StepVerifier.create(sanitizer.sanitizeAndApply(jobDescriptorWithTag))
                 .assertNext(jobDescriptor -> assertThat(jobDescriptor
+                        .getContainer()
                         .getAttributes()
                         .get(JobAttributes.JOB_CONTAINER_ATTRIBUTE_SERVICEMESH_CONTAINER))
                         .isEqualTo(imageNameDigest))
@@ -126,7 +133,7 @@ public class ServiceMeshImageSanitizerTest {
 
         StepVerifier.create(sanitizer.sanitizeAndApply(jobDescriptorWithTag))
                 .assertNext(jd -> {
-                    assertThat(((JobDescriptor<?>) jd).getAttributes())
+                    assertThat(((JobDescriptor<?>) jd).getContainer().getAttributes())
                             .containsEntry(JobAttributes.JOB_ATTRIBUTES_SANITIZATION_SKIPPED_SERVICEMESH_IMAGE, "true");
                 })
                 .verifyComplete();
