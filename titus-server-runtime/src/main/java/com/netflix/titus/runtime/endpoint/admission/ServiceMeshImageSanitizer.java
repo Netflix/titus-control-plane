@@ -54,7 +54,7 @@ public class ServiceMeshImageSanitizer implements AdmissionSanitizer<JobDescript
     }
 
     /**
-     * @return a {@link UnaryOperator} that adds a sanitized Image or job attributes when sanitization was skipped
+     * @return a {@link UnaryOperator} that adds a sanitized Image or container attributes when sanitization was skipped
      */
     @Override
     public Mono<UnaryOperator<JobDescriptor>> sanitize(JobDescriptor jobDescriptor) {
@@ -86,7 +86,7 @@ public class ServiceMeshImageSanitizer implements AdmissionSanitizer<JobDescript
 
     private static UnaryOperator<JobDescriptor> setMeshImageFunction(Image image) {
         String imageName = toImageName(image);
-        return jobDescriptor -> JobFunctions.appendJobDescriptorAttribute(jobDescriptor,
+        return jobDescriptor -> JobFunctions.appendContainerAttribute(jobDescriptor,
                 JobAttributes.JOB_CONTAINER_ATTRIBUTE_SERVICEMESH_CONTAINER, imageName);
     }
 
@@ -109,6 +109,7 @@ public class ServiceMeshImageSanitizer implements AdmissionSanitizer<JobDescript
 
     private boolean serviceMeshIsEnabled(JobDescriptor<?> jobDescriptor) {
         String enabled = jobDescriptor
+                .getContainer()
                 .getAttributes()
                 .get(JobAttributes.JOB_CONTAINER_ATTRIBUTE_SERVICEMESH_ENABLED);
 
@@ -121,12 +122,14 @@ public class ServiceMeshImageSanitizer implements AdmissionSanitizer<JobDescript
 
     private boolean serviceMeshIsPinned(JobDescriptor<?> jobDescriptor) {
         return jobDescriptor
+                .getContainer()
                 .getAttributes()
                 .containsKey(JobAttributes.JOB_CONTAINER_ATTRIBUTE_SERVICEMESH_CONTAINER);
     }
 
     private Image getServiceMeshImage(JobDescriptor<?> jobDescriptor) {
         String image = jobDescriptor
+                .getContainer()
                 .getAttributes()
                 .get(JobAttributes.JOB_CONTAINER_ATTRIBUTE_SERVICEMESH_CONTAINER);
 
@@ -205,7 +208,7 @@ public class ServiceMeshImageSanitizer implements AdmissionSanitizer<JobDescript
 
     @SuppressWarnings("unchecked")
     private static JobDescriptor<?> skipSanitization(JobDescriptor<?> jobDescriptor) {
-        return JobFunctions.appendJobDescriptorAttribute(jobDescriptor,
+        return JobFunctions.appendContainerAttribute(jobDescriptor,
                 JobAttributes.JOB_ATTRIBUTES_SANITIZATION_SKIPPED_SERVICEMESH_IMAGE, true
         );
     }
