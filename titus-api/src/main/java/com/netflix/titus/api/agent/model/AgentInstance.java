@@ -138,7 +138,6 @@ public class AgentInstance {
         private String hostname;
         private InstanceLifecycleStatus instanceLifecycleStatus;
         private Map<String, String> attributes;
-        private long timestamp;
 
         private Builder() {
         }
