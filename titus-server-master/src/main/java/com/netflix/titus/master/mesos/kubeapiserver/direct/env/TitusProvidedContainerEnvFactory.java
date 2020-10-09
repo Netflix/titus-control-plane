@@ -22,6 +22,7 @@ import java.util.Map;
 import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.runtime.kubernetes.KubeConstants;
 
 public class TitusProvidedContainerEnvFactory implements ContainerEnvFactory {
 
@@ -30,15 +31,15 @@ public class TitusProvidedContainerEnvFactory implements ContainerEnvFactory {
     @Override
     public Map<String, String> buildContainerEnv(Job<?> job, Task task) {
         Map<String, String> env = new HashMap<>();
-        env.put("TITUS_JOB_ID", task.getJobId());
-        env.put("TITUS_TASK_ID", task.getId());
-        env.put("NETFLIX_EXECUTOR", "titus");
-        env.put("NETFLIX_INSTANCE_ID", task.getId());
-        env.put("TITUS_TASK_INSTANCE_ID", task.getId());
-        env.put("TITUS_TASK_ORIGINAL_ID", task.getOriginalId());
+        env.put(KubeConstants.POD_ENV_TITUS_JOB_ID, task.getJobId());
+        env.put(KubeConstants.POD_ENV_TITUS_TASK_ID, task.getId());
+        env.put(KubeConstants.POD_ENV_NETFLIX_EXECUTOR, "titus");
+        env.put(KubeConstants.POD_ENV_NETFLIX_INSTANCE_ID, task.getId());
+        env.put(KubeConstants.POD_ENV_TITUS_TASK_INSTANCE_ID, task.getId());
+        env.put(KubeConstants.POD_ENV_TITUS_TASK_ORIGINAL_ID, task.getOriginalId());
         if (task instanceof BatchJobTask) {
             BatchJobTask batchJobTask = (BatchJobTask) task;
-            env.put("TITUS_TASK_INDEX", "" + batchJobTask.getIndex());
+            env.put(KubeConstants.POD_ENV_TITUS_TASK_INDEX, "" + batchJobTask.getIndex());
         }
         return env;
     }

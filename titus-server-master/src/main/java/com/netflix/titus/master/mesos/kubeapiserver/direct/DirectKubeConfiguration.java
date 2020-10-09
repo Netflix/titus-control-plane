@@ -150,6 +150,9 @@ public interface DirectKubeConfiguration extends KubeConnectorConfiguration {
     @DefaultValue("false")
     boolean isResourcePoolAffinityEnabled();
 
+    /**
+     * Comma separated list of GPU resource pool names. Set to empty string if no GPU resource pools are available.
+     */
     @DefaultValue("")
     String getGpuResourcePoolNames();
 
