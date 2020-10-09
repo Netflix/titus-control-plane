@@ -144,6 +144,18 @@ public final class KubeConstants {
     public static final String OPPORTUNISTIC_ID = "opportunistic.scheduler.titus.netflix.com/id";
 
     /*
+     * Pod environment variable name constants.
+     */
+
+    public static final String POD_ENV_TITUS_JOB_ID = "TITUS_JOB_ID";
+    public static final String POD_ENV_TITUS_TASK_ID = "TITUS_TASK_ID";
+    public static final String POD_ENV_NETFLIX_EXECUTOR = "NETFLIX_EXECUTOR";
+    public static final String POD_ENV_NETFLIX_INSTANCE_ID = "NETFLIX_INSTANCE_ID";
+    public static final String POD_ENV_TITUS_TASK_INSTANCE_ID = "TITUS_TASK_INSTANCE_ID";
+    public static final String POD_ENV_TITUS_TASK_ORIGINAL_ID = "TITUS_TASK_ORIGINAL_ID";
+    public static final String POD_ENV_TITUS_TASK_INDEX = "TITUS_TASK_INDEX";
+
+    /*
      * API Constants
      */
     public static final String DEFAULT_NAMESPACE = "default";

@@ -151,6 +151,12 @@ public interface DirectKubeConfiguration extends KubeConnectorConfiguration {
     boolean isResourcePoolAffinityEnabled();
 
     /**
+     * Comma separated list of GPU resource pool names. Set to empty string if no GPU resource pools are available.
+     */
+    @DefaultValue("")
+    String getGpuResourcePoolNames();
+
+    /**
      * Set to true to enable S3 writer configuration.
      */
     @DefaultValue("false")
