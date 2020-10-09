@@ -47,6 +47,7 @@ public class AgentManagementNodeDataResolver implements NodeDataResolver {
     private final RelocationConfiguration relocationConfiguration;
     private final Indexer<V1Node> k8sNodeIndexer;
     private final Function<String, Matcher> badConditionMatcherFactory;
+    private final Function<String, Matcher> badTaintMatcherFactory;
 
     public AgentManagementNodeDataResolver(ReadOnlyAgentOperations agentOperations,
                                            AgentDataReplicator agentDataReplicator,
@@ -60,6 +61,9 @@ public class AgentManagementNodeDataResolver implements NodeDataResolver {
         k8sNodeIndexer = kubeApiFacade.getNodeInformer().getIndexer();
         this.badConditionMatcherFactory = RegExpExt.dynamicMatcher(relocationConfiguration::getBadNodeConditionPattern,
                 "titus.relocation.badNodeConditionPattern", Pattern.DOTALL, logger);
+        this.badTaintMatcherFactory = RegExpExt.dynamicMatcher(relocationConfiguration::getBadTaintsPattern,
+                "titus.relocation.badTaintsPattern", Pattern.DOTALL, logger);
+
     }
 
     @Override
@@ -95,9 +99,15 @@ public class AgentManagementNodeDataResolver implements NodeDataResolver {
         boolean serverGroupRelocationRequired = serverGroup.getLifecycleStatus().getState() == InstanceGroupLifecycleState.Removable;
         boolean isNodeConditionBad = false;
         V1Node k8sNode = k8sNodeIndexer.getByKey(instance.getId());
+
         if (k8sNode != null) {
-            isNodeConditionBad = NodePredicates.hasBadCondition(k8sNode, badConditionMatcherFactory,
+            boolean hasBadNodeCondition = NodePredicates.hasBadCondition(k8sNode, badConditionMatcherFactory,
                     relocationConfiguration.getNodeConditionTransitionTimeThresholdSeconds());
+
+            boolean hasBadTaint = NodePredicates.hasBadTaint(k8sNode, badTaintMatcherFactory,
+                    relocationConfiguration.getNodeTaintTransitionTimeThresholdSeconds());
+
+            isNodeConditionBad = hasBadNodeCondition || hasBadTaint;
         }
 
         return Node.newBuilder()

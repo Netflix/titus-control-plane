@@ -16,12 +16,15 @@
 
 package com.netflix.titus.supplementary.relocation.connector;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.regex.Pattern;
 
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1NodeCondition;
 import io.kubernetes.client.openapi.models.V1NodeSpec;
+import io.kubernetes.client.openapi.models.V1NodeStatus;
 import io.kubernetes.client.openapi.models.V1Taint;
 import org.joda.time.DateTime;
 import org.junit.Test;
@@ -49,5 +52,64 @@ public class NodePredicatesTest {
         nodeCondition2.setLastTransitionTime(DateTime.now().minusSeconds(100));
         boolean isTransitionRecent2 = NodePredicates.isNodeConditionTransitionedRecently(nodeCondition2, 300);
         assertThat(isTransitionRecent2).isTrue();
+    }
+
+    @Test
+    public void checkBadNodeCondition() {
+        V1Node v1Node = new V1Node();
+
+        V1NodeCondition condition1 = new V1NodeCondition();
+        condition1.setLastTransitionTime(DateTime.now().minusMinutes(10));
+        condition1.setType("CorruptedMemoryFailure");
+        condition1.setMessage("There isn't that much corrupt memory");
+        condition1.setReason("CorruptedMemoryIsUnderThreshold");
+        condition1.setStatus("true");
+
+        V1NodeCondition condition2 = new V1NodeCondition();
+        condition2.setLastTransitionTime(DateTime.now().minusMinutes(10));
+        condition2.setType("EniCarrierProblem");
+        condition2.setMessage("Enis are working");
+        condition2.setReason("EnisAreWorking");
+        condition2.setStatus("False");
+
+        V1NodeStatus v1NodeStatus = new V1NodeStatus();
+        v1NodeStatus.setConditions(Arrays.asList(condition1, condition2));
+        v1Node.setStatus(v1NodeStatus);
+
+        Pattern pattern = Pattern.compile(".*MemoryFailure");
+        boolean isBadCondition = NodePredicates.hasBadCondition(v1Node, pattern::matcher, 300);
+        assertThat(isBadCondition).isTrue();
+
+        condition1.setStatus("False");
+        isBadCondition = NodePredicates.hasBadCondition(v1Node, pattern::matcher, 300);
+        assertThat(isBadCondition).isFalse();
+    }
+
+    @Test
+    public void checkBadTaint() {
+        V1Node v1Node = new V1Node();
+        V1NodeSpec v1NodeSpec = new V1NodeSpec();
+
+        V1Taint taint1 = new V1Taint();
+        taint1.setEffect("NoSchedule");
+        taint1.setKey("node.titus.netflix.com/tier");
+        taint1.setValue("Critical");
+        taint1.setTimeAdded(DateTime.now().minusMinutes(20));
+
+        V1Taint taint2 = new V1Taint();
+        taint2.setEffect("NoSchedule");
+        taint2.setKey("node.kubernetes.io/unreachable");
+        taint2.setTimeAdded(DateTime.now().minusMinutes(10));
+
+        v1NodeSpec.setTaints(Arrays.asList(taint1, taint2));
+        v1Node.setSpec(v1NodeSpec);
+
+        Pattern pattern = Pattern.compile(".*unreachable");
+        boolean isBadTaint = NodePredicates.hasBadTaint(v1Node, pattern::matcher, 300);
+        assertThat(isBadTaint).isTrue();
+
+        v1NodeSpec.setTaints(Collections.singletonList(taint1));
+        isBadTaint = NodePredicates.hasBadTaint(v1Node, pattern::matcher, 300);
+        assertThat(isBadTaint).isFalse();
     }
 }

@@ -55,6 +55,7 @@ public class NodePredicates {
     @VisibleForTesting
     static boolean hasBadCondition(V1Node node, Function<String, Matcher> badConditionExpression,
                                    int nodeConditionTransitionTimeThresholdSeconds) {
+
         if (node.getStatus() != null && node.getStatus().getConditions() != null) {
             return node.getStatus().getConditions().stream()
                     .anyMatch(v1NodeCondition -> badConditionExpression.apply(v1NodeCondition.getType()).matches() &&
@@ -64,10 +65,38 @@ public class NodePredicates {
         return false;
     }
 
+    @VisibleForTesting
+    static boolean hasBadTaint(V1Node node, Function<String, Matcher> badTaintExpression,
+                                   int nodeTaintTransitionTimeThresholdSeconds) {
+        if (node.getSpec() != null && node.getSpec().getTaints() != null) {
+            return node.getSpec().getTaints().stream()
+                    .anyMatch(v1Taint -> badTaintExpression.apply(v1Taint.getKey()).matches() &&
+                            matchesTaintValueIfAvailable(v1Taint, Boolean.toString(true)) &&
+                            !isTransitionedRecently(v1Taint.getTimeAdded(), nodeTaintTransitionTimeThresholdSeconds));
+        }
+        return false;
+    }
+
+    static boolean matchesTaintValueIfAvailable(V1Taint taint, String value) {
+        if (taint.getValue() != null) {
+            return taint.getValue().equalsIgnoreCase(value);
+        }
+        return true;
+    }
+
+
     static boolean isNodeConditionTransitionedRecently(V1NodeCondition nodeCondition, int thresholdSeconds) {
         DateTime threshold = DateTime.now().minusSeconds(thresholdSeconds);
         if (nodeCondition.getLastTransitionTime() != null) {
             return nodeCondition.getLastTransitionTime().isAfter(threshold);
+        }
+        return false;
+    }
+
+    static boolean isTransitionedRecently(DateTime nodeTransitionTime, int thresholdSeconds) {
+        DateTime threshold = DateTime.now().minusSeconds(thresholdSeconds);
+        if (nodeTransitionTime != null) {
+            return nodeTransitionTime.isAfter(threshold);
         }
         return false;
     }
