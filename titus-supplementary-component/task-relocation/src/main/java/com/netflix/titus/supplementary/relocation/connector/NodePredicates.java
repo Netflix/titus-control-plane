@@ -67,11 +67,11 @@ public class NodePredicates {
 
     @VisibleForTesting
     static boolean hasBadTaint(V1Node node, Function<String, Matcher> badTaintExpression,
-                                   int nodeTaintTransitionTimeThresholdSeconds) {
+                               int nodeTaintTransitionTimeThresholdSeconds) {
         if (node.getSpec() != null && node.getSpec().getTaints() != null) {
             return node.getSpec().getTaints().stream()
                     .anyMatch(v1Taint -> badTaintExpression.apply(v1Taint.getKey()).matches() &&
-                            matchesTaintValueIfAvailable(v1Taint, Boolean.toString(true)) &&
+                            matchesTaintValueIfAvailable(v1Taint, Boolean.TRUE.toString()) &&
                             !isTransitionedRecently(v1Taint.getTimeAdded(), nodeTaintTransitionTimeThresholdSeconds));
         }
         return false;

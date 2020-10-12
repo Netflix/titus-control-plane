@@ -97,7 +97,7 @@ public class AgentManagementNodeDataResolver implements NodeDataResolver {
         );
 
         boolean serverGroupRelocationRequired = serverGroup.getLifecycleStatus().getState() == InstanceGroupLifecycleState.Removable;
-        boolean isNodeConditionBad = false;
+        boolean isNodeBad = false;
         V1Node k8sNode = k8sNodeIndexer.getByKey(instance.getId());
 
         if (k8sNode != null) {
@@ -107,7 +107,7 @@ public class AgentManagementNodeDataResolver implements NodeDataResolver {
             boolean hasBadTaint = NodePredicates.hasBadTaint(k8sNode, badTaintMatcherFactory,
                     relocationConfiguration.getNodeTaintTransitionTimeThresholdSeconds());
 
-            isNodeConditionBad = hasBadNodeCondition || hasBadTaint;
+            isNodeBad = hasBadNodeCondition || hasBadTaint;
         }
 
         return Node.newBuilder()
@@ -117,7 +117,7 @@ public class AgentManagementNodeDataResolver implements NodeDataResolver {
                 .withRelocationRequiredImmediately(relocationRequiredImmediately)
                 .withRelocationNotAllowed(relocationNotAllowed)
                 .withServerGroupRelocationRequired(serverGroupRelocationRequired)
-                .withBadCondition(isNodeConditionBad)
+                .withBadCondition(isNodeBad)
                 .build();
     }
 }
