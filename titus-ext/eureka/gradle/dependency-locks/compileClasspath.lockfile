@@ -42,7 +42,7 @@ com.netflix.archaius:archaius-core:0.7.6
 com.netflix.archaius:archaius2-api:2.3.16
 com.netflix.archaius:archaius2-core:2.3.16
 com.netflix.archaius:archaius2-guice:2.3.16
-com.netflix.eureka:eureka-client:1.9.26
+com.netflix.eureka:eureka-client:1.10.4
 com.netflix.fenzo:fenzo-core:1.1.0-rc.9
 com.netflix.frigga:frigga:0.24.0
 com.netflix.governator:governator-api:1.15.11
@@ -67,7 +67,7 @@ com.sun.jersey:jersey-client:1.19.1
 com.sun.jersey:jersey-core:1.19.4
 com.sun.jersey:jersey-server:1.19.4
 com.sun.jersey:jersey-servlet:1.19.4
-com.thoughtworks.xstream:xstream:1.4.11.1
+com.thoughtworks.xstream:xstream:1.4.13
 com.twitter:finagle-core_2.11:6.33.0
 com.twitter:finagle-http_2.11:6.33.0
 com.twitter:finagle-native_2.11:6.33.0
@@ -183,12 +183,12 @@ org.scala-lang:scala-library:2.11.7
 org.skyscreamer:jsonassert:1.2.3
 org.slf4j:slf4j-api:1.7.25
 org.slf4j:slf4j-log4j12:1.7.0
-org.springframework.boot:spring-boot-autoconfigure:2.3.2.RELEASE
-org.springframework.boot:spring-boot:2.3.2.RELEASE
-org.springframework.cloud:spring-cloud-commons:2.2.5.RELEASE
-org.springframework.security:spring-security-core:5.3.3.RELEASE
+org.springframework.boot:spring-boot-autoconfigure:2.3.3.RELEASE
+org.springframework.boot:spring-boot:2.3.3.RELEASE
+org.springframework.cloud:spring-cloud-commons:2.2.4.RELEASE
+org.springframework.security:spring-security-core:5.3.4.RELEASE
 org.springframework.security:spring-security-crypto:5.3.3.RELEASE
-org.springframework.security:spring-security-web:5.3.3.RELEASE
+org.springframework.security:spring-security-web:5.3.4.RELEASE
 org.springframework:spring-aop:5.2.8.RELEASE
 org.springframework:spring-beans:5.2.8.RELEASE
 org.springframework:spring-context:5.2.8.RELEASE
