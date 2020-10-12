@@ -50,6 +50,7 @@ public class KubernetesNodeDataResolver implements NodeDataResolver {
     private final Function<String, Matcher> relocationRequiredTaintsMatcher;
     private final Function<String, Matcher> relocationRequiredImmediatelyTaintsMatcher;
     private final Function<String, Matcher> badConditionMatcherFactory;
+    private final Function<String, Matcher> badTaintMatcherFactory;
 
     public KubernetesNodeDataResolver(RelocationConfiguration configuration,
                                       KubeApiFacade kubeApiFacade,
@@ -69,6 +70,8 @@ public class KubernetesNodeDataResolver implements NodeDataResolver {
         this.nodeFilter = nodeFilter;
         this.badConditionMatcherFactory = RegExpExt.dynamicMatcher(configuration::getBadNodeConditionPattern,
                 "titus.relocation.badNodeConditionPattern", Pattern.DOTALL, logger);
+        this.badTaintMatcherFactory = RegExpExt.dynamicMatcher(configuration::getBadTaintsPattern,
+                "titus.relocation.badTaintsPattern", Pattern.DOTALL, logger);
 
     }
 
@@ -95,13 +98,18 @@ public class KubernetesNodeDataResolver implements NodeDataResolver {
             return Optional.empty();
         }
 
+        boolean hasBadNodeCondition = NodePredicates.hasBadCondition(k8sNode, badConditionMatcherFactory,
+                configuration.getNodeConditionTransitionTimeThresholdSeconds());
+
+        boolean hasBadTaint = NodePredicates.hasBadTaint(k8sNode, badTaintMatcherFactory,
+                configuration.getNodeTaintTransitionTimeThresholdSeconds());
+
         Node node = Node.newBuilder()
                 .withId(k8sNode.getMetadata().getName())
                 .withServerGroupId(serverGroupId)
                 .withRelocationRequired(anyNoExecuteMatch(k8sNode, relocationRequiredTaintsMatcher))
                 .withRelocationRequiredImmediately(anyNoExecuteMatch(k8sNode, relocationRequiredImmediatelyTaintsMatcher))
-                .withBadCondition(NodePredicates.hasBadCondition(k8sNode, badConditionMatcherFactory,
-                        configuration.getNodeConditionTransitionTimeThresholdSeconds()))
+                .withBadCondition(hasBadNodeCondition || hasBadTaint)
                 .build();
         return Optional.of(node);
     }

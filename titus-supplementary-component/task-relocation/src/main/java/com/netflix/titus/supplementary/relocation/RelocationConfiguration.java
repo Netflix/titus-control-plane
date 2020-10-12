@@ -51,8 +51,17 @@ public interface RelocationConfiguration {
     @DefaultValue("NONE")
     String getNodeRelocationRequiredImmediatelyTaints();
 
+    /**
+     * Pattern identifying bad node conditions
+     */
     @DefaultValue("UncorrectableMemoryFailure")
     String getBadNodeConditionPattern();
+
+    /**
+     * Pattern identifying bad node taints
+     */
+    @DefaultValue(".*unreachable")
+    String getBadTaintsPattern();
 
     @DefaultValue("false")
     boolean isTaskTerminationOnBadNodeConditionEnabled();
@@ -75,5 +84,12 @@ public interface RelocationConfiguration {
      */
     @DefaultValue("300")
     int getNodeConditionTransitionTimeThresholdSeconds();
+
+    /**
+     * It represents the last N seconds threshold for which the latest taint is sustained
+     * It helps us avoid picking up taint state that is sustained for a very short duration
+     */
+    @DefaultValue("300")
+    int getNodeTaintTransitionTimeThresholdSeconds();
 
 }
