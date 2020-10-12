@@ -73,8 +73,8 @@ org.jboss.logging:jboss-logging:3.3.0.Final
 org.reactivestreams:reactive-streams:1.0.3
 org.slf4j:slf4j-api:1.7.25
 org.slf4j:slf4j-log4j12:1.7.0
-org.springframework.boot:spring-boot-autoconfigure:2.3.2.RELEASE
-org.springframework.boot:spring-boot:2.3.2.RELEASE
+org.springframework.boot:spring-boot-autoconfigure:2.3.3.RELEASE
+org.springframework.boot:spring-boot:2.3.3.RELEASE
 org.springframework:spring-aop:5.2.8.RELEASE
 org.springframework:spring-beans:5.2.8.RELEASE
 org.springframework:spring-context:5.2.8.RELEASE

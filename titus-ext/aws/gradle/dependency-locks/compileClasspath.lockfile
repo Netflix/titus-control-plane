@@ -2,15 +2,15 @@
 # Manual edits can break the build and are not advised.
 # This file is expected to be part of source control.
 aopalliance:aopalliance:1.0
-com.amazonaws:aws-java-sdk-applicationautoscaling:1.11.866
-com.amazonaws:aws-java-sdk-autoscaling:1.11.867
-com.amazonaws:aws-java-sdk-cloudwatch:1.11.866
-com.amazonaws:aws-java-sdk-core:1.11.867
-com.amazonaws:aws-java-sdk-ec2:1.11.867
-com.amazonaws:aws-java-sdk-elasticloadbalancingv2:1.11.866
-com.amazonaws:aws-java-sdk-iam:1.11.866
-com.amazonaws:aws-java-sdk-sts:1.11.867
-com.amazonaws:jmespath-java:1.11.867
+com.amazonaws:aws-java-sdk-applicationautoscaling:1.11.880
+com.amazonaws:aws-java-sdk-autoscaling:1.11.880
+com.amazonaws:aws-java-sdk-cloudwatch:1.11.880
+com.amazonaws:aws-java-sdk-core:1.11.880
+com.amazonaws:aws-java-sdk-ec2:1.11.880
+com.amazonaws:aws-java-sdk-elasticloadbalancingv2:1.11.880
+com.amazonaws:aws-java-sdk-iam:1.11.880
+com.amazonaws:aws-java-sdk-sts:1.11.880
+com.amazonaws:jmespath-java:1.11.880
 com.fasterxml.jackson.core:jackson-annotations:2.10.5
 com.fasterxml.jackson.core:jackson-core:2.10.5
 com.fasterxml.jackson.core:jackson-databind:2.10.5
@@ -179,10 +179,10 @@ org.scala-lang:scala-library:2.11.7
 org.skyscreamer:jsonassert:1.2.3
 org.slf4j:slf4j-api:1.7.25
 org.slf4j:slf4j-log4j12:1.7.0
-org.springframework.boot:spring-boot-autoconfigure:2.3.2.RELEASE
-org.springframework.boot:spring-boot:2.3.2.RELEASE
-org.springframework.security:spring-security-core:5.3.3.RELEASE
-org.springframework.security:spring-security-web:5.3.3.RELEASE
+org.springframework.boot:spring-boot-autoconfigure:2.3.3.RELEASE
+org.springframework.boot:spring-boot:2.3.3.RELEASE
+org.springframework.security:spring-security-core:5.3.4.RELEASE
+org.springframework.security:spring-security-web:5.3.4.RELEASE
 org.springframework:spring-aop:5.2.8.RELEASE
 org.springframework:spring-beans:5.2.8.RELEASE
 org.springframework:spring-context:5.2.8.RELEASE

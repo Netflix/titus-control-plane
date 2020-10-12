@@ -43,7 +43,7 @@ subprojects {
             maven { url 'https://plugins.gradle.org/m2/' }
         }
         dependencies {
-            classpath "org.springframework:spring-core:5.2.6.RELEASE"
+            classpath "org.springframework:spring-core:5.2.8.RELEASE"
         }
     }
 
@@ -59,15 +59,16 @@ subprojects {
     ext {
         titusApiDefinitionsVersion = '0.0.1-rc73'
 
-        awsSdkVersion = '1.11.+'
-        javaxElVersion = '3.+'
         springVersion = '5.2.8.RELEASE'
-        springSecurityVersion = '5.3.3.RELEASE'
-        springBootVersion = '2.3.2.RELEASE'
-        springCloudVersion = '2.2.+'
+        springSecurityVersion = '5.3.4.RELEASE'
+        springBootVersion = '2.3.3.RELEASE'
+        springCloudVersion = '2.2.4.RELEASE'
         springReactor = '3.3.9.RELEASE'
         springReactorAdapter = '3.3.3.RELEASE'
         springReactorNetty = '0.9.11.RELEASE'
+
+        awsSdkVersion = '1.11.+'
+        javaxElVersion = '3.+'
         javaxInjectVersion = '1'
         guavaVersion = '25.1-jre'
         servletVersion = '3.1.0'
