@@ -70,7 +70,7 @@ public interface JobConfiguration {
      * An upper bound on memory (megabytes) a single container may allocate. The actual limit may be lower, as it also depends
      * on instance types available in a tier.
      */
-    @DefaultValue("760000")
+    @DefaultValue("750000")
     int getMemoryMegabytesMax();
 
     @DefaultValue("10000")
