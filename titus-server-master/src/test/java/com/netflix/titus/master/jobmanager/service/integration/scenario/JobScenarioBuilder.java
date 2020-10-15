@@ -262,17 +262,21 @@ public class JobScenarioBuilder<E extends JobDescriptor.JobDescriptorExt> {
         return this;
     }
 
-    public JobScenarioBuilder<E> killTask(Task task) {
+    public JobScenarioBuilder<E> killTask(Task task, Trigger trigger) {
         TitusRxSubscriber<Void> subscriber = new TitusRxSubscriber<>();
-        jobOperations.killTask(task.getId(), false, false, Trigger.API, callMetadata).subscribe(subscriber);
+        jobOperations.killTask(task.getId(), false, false, trigger, callMetadata).subscribe(subscriber);
 
         autoAdvanceUntilSuccessful(() -> checkOperationSubscriberAndThrowExceptionIfError(subscriber));
 
         return this;
     }
 
+    public JobScenarioBuilder<E> killTask(int taskIdx, int resubmit, Trigger trigger) {
+        return killTask(findTaskInActiveState(taskIdx, resubmit), trigger);
+    }
+
     public JobScenarioBuilder<E> killTask(int taskIdx, int resubmit) {
-        return killTask(findTaskInActiveState(taskIdx, resubmit));
+        return killTask(taskIdx, resubmit, Trigger.API);
     }
 
     public JobScenarioBuilder<E> killTaskAndShrink(Task task) {
