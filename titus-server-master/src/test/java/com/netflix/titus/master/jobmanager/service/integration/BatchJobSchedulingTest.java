@@ -27,6 +27,7 @@ import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.service.JobManagerException;
 import com.netflix.titus.api.jobmanager.service.JobManagerException.ErrorCode;
+import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.master.jobmanager.service.integration.scenario.JobsScenarioBuilder;
 import com.netflix.titus.master.jobmanager.service.integration.scenario.ScenarioTemplates;
 import org.junit.Test;
@@ -162,6 +163,24 @@ public class BatchJobSchedulingTest {
                 .template(ScenarioTemplates.startTask(0, 0, taskState))
                 .template(ScenarioTemplates.killBatchTask(0, 0))
                 .template(ScenarioTemplates.acceptTask(0, 1))
+        );
+    }
+
+    @Test
+    public void testKillingTaskInFenzoCallback() {
+        jobsScenarioBuilder.scheduleJob(oneTaskBatchJobDescriptor(), jobScenario -> jobScenario
+                .template(ScenarioTemplates.acceptJobWithOneTask(0, 0))
+                .expectTaskInActiveState(0, 0, TaskState.Accepted)
+                .killTask(0, 0, V3JobOperations.Trigger.Scheduler)
+                .expectTaskStateChangeEvent(0, 0, TaskState.KillInitiated, TaskStatus.REASON_TRANSIENT_SYSTEM_ERROR)
+                .triggerMesosFinishedEvent(0, 0, -1, TaskStatus.REASON_TASK_LOST)
+                .expectTaskStateChangeEvent(0, 0, TaskState.Finished, TaskStatus.REASON_TASK_LOST)
+                .advance()
+                .template(ScenarioTemplates.acceptTask(0, 1))
+                .inTask(0, 1, task -> {
+                    assertThat(task.getResubmitNumber()).isEqualTo(1);
+                    assertThat(task.getSystemResubmitNumber()).isEqualTo(1);
+                })
         );
     }
 
