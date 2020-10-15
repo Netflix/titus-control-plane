@@ -53,7 +53,7 @@ public interface JobConfiguration {
      * An upper bound on CPUs a single container may allocate. The actual limit may be lower, as it also depends
      * on instance types available in a tier.
      */
-    @DefaultValue("64")
+    @DefaultValue("96")
     int getCpuMax();
 
     /**
@@ -70,7 +70,7 @@ public interface JobConfiguration {
      * An upper bound on memory (megabytes) a single container may allocate. The actual limit may be lower, as it also depends
      * on instance types available in a tier.
      */
-    @DefaultValue("472000")
+    @DefaultValue("750000")
     int getMemoryMegabytesMax();
 
     @DefaultValue("10000")
@@ -80,7 +80,7 @@ public interface JobConfiguration {
      * An upper bound on disk (megabytes) a single container may allocate. The actual limit may be lower, as it also depends
      * on instance types available in a tier.
      */
-    @DefaultValue("999000")
+    @DefaultValue("1550000")
     int getDiskMegabytesMax();
 
     @DefaultValue("128")
