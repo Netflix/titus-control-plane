@@ -56,6 +56,7 @@ public class AppAutoScalingCallbackSpringResource {
         if (scalableTargetResourceInfo.getDesiredCapacity() < 0) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
-        return Responses.fromSingleValueObservable(awsGatewayCallbackService.setScalableTargetResourceInfo(jobId, scalableTargetResourceInfo, authentication.getCallMetadata()));
+        ScalableTargetResourceInfo updatedScalableTargetResourceInfo = Responses.fromSingleValueObservable(awsGatewayCallbackService.setScalableTargetResourceInfo(jobId, scalableTargetResourceInfo, authentication.getCallMetadata()));
+        return ResponseEntity.status(HttpStatus.OK.value()).body(updatedScalableTargetResourceInfo);
     }
 }
