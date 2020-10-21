@@ -25,11 +25,12 @@ import com.netflix.titus.common.framework.fit.FitInjection;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeApiServerIntegrator;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.KubeFitAction;
+import io.kubernetes.client.common.KubernetesObject;
 import io.kubernetes.client.informer.ResourceEventHandler;
 import io.kubernetes.client.informer.SharedIndexInformer;
 import io.kubernetes.client.informer.cache.Indexer;
 
-public class FitSharedIndexInformer<T> implements SharedIndexInformer<T> {
+public class FitSharedIndexInformer<T extends KubernetesObject> implements SharedIndexInformer<T> {
 
     private final SharedIndexInformer<T> source;
 

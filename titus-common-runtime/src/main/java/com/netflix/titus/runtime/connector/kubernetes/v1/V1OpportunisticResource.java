@@ -22,13 +22,14 @@ import java.util.Map;
 import java.util.Objects;
 
 import com.google.gson.annotations.SerializedName;
+import io.kubernetes.client.common.KubernetesObject;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
 
 /**
  * GSON-compatible POJO, with a default constructor following JavaBeans conventions.
  */
 // TODO(fabio): autogenerate from the CRD swagger definition
-public class V1OpportunisticResource {
+public class V1OpportunisticResource implements KubernetesObject {
     private static final String LABEL_INSTANCE_ID = "node_name";
     private static final String UNKNOWN_INSTANCE_ID = "unknown";
 
@@ -44,6 +45,7 @@ public class V1OpportunisticResource {
     @SerializedName("spec")
     private V1OpportunisticResourceSpec spec;
 
+    @Override
     public String getApiVersion() {
         return apiVersion;
     }
@@ -52,6 +54,7 @@ public class V1OpportunisticResource {
         this.apiVersion = apiVersion;
     }
 
+    @Override
     public String getKind() {
         return kind;
     }
@@ -60,6 +63,7 @@ public class V1OpportunisticResource {
         this.kind = kind;
     }
 
+    @Override
     public V1ObjectMeta getMetadata() {
         return metadata;
     }

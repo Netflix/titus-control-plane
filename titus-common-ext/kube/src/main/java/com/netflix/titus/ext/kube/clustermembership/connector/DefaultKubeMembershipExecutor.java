@@ -78,6 +78,8 @@ class DefaultKubeMembershipExecutor implements KubeMembershipExecutor {
                         KubeClusterMembershipModelConverters.CRD_PLURAL_MEMBERS,
                         KubeClusterMembershipModelConverters.toKubeClusterMembershipRevisionResource(namespace, noVersionRevision),
                         "",
+                        null,
+                        null,
                         callbackHandler
                 )
         ).map(kubeStatus -> applyNewRevisionNumber(localMemberRevision, kubeStatus.getMetadata()));
@@ -93,6 +95,8 @@ class DefaultKubeMembershipExecutor implements KubeMembershipExecutor {
                         KubeClusterMembershipModelConverters.CRD_PLURAL_MEMBERS,
                         localMemberRevision.getCurrent().getMemberId(),
                         KubeClusterMembershipModelConverters.toKubeClusterMembershipRevisionResource(namespace, localMemberRevision),
+                        null,
+                        null,
                         callbackHandler
                 )
         ).map(kubeStatus -> applyNewRevisionNumber(localMemberRevision, kubeStatus.getMetadata()));
@@ -109,6 +113,7 @@ class DefaultKubeMembershipExecutor implements KubeMembershipExecutor {
                         memberId,
                         0,
                         false,
+                        null,
                         null,
                         new V1DeleteOptionsBuilder().build(),
                         callbackHandler

@@ -19,9 +19,10 @@ package com.netflix.titus.runtime.connector.kubernetes;
 import com.netflix.spectator.api.Id;
 import com.netflix.spectator.api.patterns.PolledMeter;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import io.kubernetes.client.common.KubernetesObject;
 import io.kubernetes.client.informer.SharedIndexInformer;
 
-class KubeInformerMetrics<ApiType> {
+class KubeInformerMetrics<ApiType extends KubernetesObject> {
 
     private static final String METRICS_ROOT = "titus.kubeClient.";
 

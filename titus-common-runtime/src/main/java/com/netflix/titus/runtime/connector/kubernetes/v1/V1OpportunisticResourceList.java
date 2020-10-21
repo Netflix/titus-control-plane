@@ -21,13 +21,14 @@ import java.util.List;
 import java.util.Objects;
 
 import com.google.gson.annotations.SerializedName;
+import io.kubernetes.client.common.KubernetesListObject;
 import io.kubernetes.client.openapi.models.V1ListMeta;
 
 /**
  * GSON-compatible POJO, with a default constructor following JavaBeans conventions.
  */
 // TODO(fabio): autogenerate from the CRD swagger definition
-public class V1OpportunisticResourceList {
+public class V1OpportunisticResourceList implements KubernetesListObject {
     @SerializedName("apiVersion")
     private String apiVersion = null;
 
@@ -40,6 +41,7 @@ public class V1OpportunisticResourceList {
     @SerializedName("metadata")
     private V1ListMeta metadata = null;
 
+    @Override
     public String getApiVersion() {
         return apiVersion;
     }
@@ -48,6 +50,7 @@ public class V1OpportunisticResourceList {
         this.apiVersion = apiVersion;
     }
 
+    @Override
     public List<V1OpportunisticResource> getItems() {
         return items;
     }
@@ -56,6 +59,7 @@ public class V1OpportunisticResourceList {
         this.items = items;
     }
 
+    @Override
     public String getKind() {
         return kind;
     }
@@ -64,6 +68,7 @@ public class V1OpportunisticResourceList {
         this.kind = kind;
     }
 
+    @Override
     public V1ListMeta getMetadata() {
         return metadata;
     }
