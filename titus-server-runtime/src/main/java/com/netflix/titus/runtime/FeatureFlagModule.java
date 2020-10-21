@@ -173,11 +173,17 @@ public class FeatureFlagModule extends AbstractModule {
         );
 
         return p -> {
-            JobDescriptor jobDescriptor = p.getLeft();
+            JobDescriptor<?> jobDescriptor = p.getLeft();
             // Jobs with static IP addresses are not allowed.
             if (!CollectionsExt.isNullOrEmpty(jobDescriptor.getContainer().getContainerResources().getSignedIpAddressAllocations())) {
                 return false;
             }
+
+            // Job should not be scheduled by KubeScheduler
+            if (FeatureFlagUtil.isNoKubeSchedulerMigration(jobDescriptor)) {
+                return false;
+            }
+
             return routingPredicate.test(p);
         };
     }
