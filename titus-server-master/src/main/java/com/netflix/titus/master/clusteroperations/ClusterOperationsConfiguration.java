@@ -117,7 +117,7 @@ public interface ClusterOperationsConfiguration {
     /**
      * @return the grace period in milliseconds before agents will be removed once in the removable state.
      */
-    @DefaultValue("120000")
+    @DefaultValue("360000")
     long getAgentInstanceRemovableGracePeriodMs();
 
     /**
