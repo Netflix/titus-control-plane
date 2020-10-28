@@ -94,6 +94,7 @@ import static com.netflix.titus.api.jobmanager.model.job.TaskState.Launched;
 import static com.netflix.titus.api.jobmanager.model.job.TaskState.StartInitiated;
 import static com.netflix.titus.api.jobmanager.model.job.TaskState.Started;
 import static com.netflix.titus.api.jobmanager.model.job.TaskState.isTerminalState;
+import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_CRASHED;
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_FAILED;
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_NORMAL;
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TASK_KILLED;
@@ -228,7 +229,9 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                 kubeApiFacade.getCoreV1Api().createNamespacedPod(KUBERNETES_NAMESPACE, v1Pod, null, null, null);
                 podSizeMetrics.record(KubeUtil.estimatePodSize(v1Pod));
             } catch (Exception e) {
-                logger.error("Unable to create pod with error: {}", KubeUtil.toErrorDetails(e), e);
+                String errorMessage = KubeUtil.toErrorDetails(e);
+                logger.error("Unable to create pod with error: {}", errorMessage, e);
+                publishOnPodCreateErrorEvent(request.getTask(), errorMessage);
             }
         }
     }
@@ -250,7 +253,9 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                     .ignoreElement()
                     .cast(Void.class)
                     .onErrorResume(error -> {
-                        logger.error("Unable to create pod with error: {}", KubeUtil.toErrorDetails(error), error);
+                        String errorMessage = KubeUtil.toErrorDetails(error);
+                        logger.error("Unable to create pod with error: {}", errorMessage, error);
+                        publishOnPodCreateErrorEvent(request.getTask(), errorMessage);
                         return Mono.empty();
                     });
             podAddActions.add(podAddAction);
@@ -264,6 +269,20 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
         } catch (Exception e) {
             logger.error("Async pod create error: {}", KubeUtil.toErrorDetails(e), e);
         }
+    }
+
+    /**
+     * Publish the Finished event for tasks (pods) that could not be created due to an error so they will get
+     * replaced with a new task.
+     */
+    private void publishOnPodCreateErrorEvent(Task task, String errorMessage) {
+        publishContainerEvent(
+                task.getId(),
+                Finished,
+                REASON_CRASHED,
+                "Failed to create pod: " + errorMessage,
+                Optional.empty()
+        );
     }
 
     @Override
@@ -412,8 +431,9 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
             V1ObjectMeta metadata = node.getMetadata();
             V1NodeStatus status = node.getStatus();
 
-            if (metadata == null || status == null || status.getConditions() == null) {
-                logger.debug("Ignoring node with metadata: {} as it is missing metadata, status, or conditions", metadata);
+            if (metadata == null || status == null || status.getConditions() == null ||
+                    CollectionsExt.isNullOrEmpty(status.getAllocatable()) || CollectionsExt.isNullOrEmpty(status.getCapacity())) {
+                logger.debug("Ignoring node as it is missing fields: {}", node);
                 return null;
             }
 
