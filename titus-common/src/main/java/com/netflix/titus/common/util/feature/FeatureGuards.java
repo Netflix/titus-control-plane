@@ -16,6 +16,7 @@
 
 package com.netflix.titus.common.util.feature;
 
+import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
@@ -67,6 +68,13 @@ public class FeatureGuards {
 
     public static <T> FeatureGuard<T> fromField(Function<T, String> accessor, FeatureGuard<String> delegate) {
         return new FeatureGuardForField<>(accessor, delegate);
+    }
+
+    /**
+     * A matcher that evaluates all key/value pairs from a map against a provided delegate.
+     */
+    public static <T> FeatureGuard<T> fromMap(Function<T, Map<String, String>> accessor, FeatureGuard<String> delegate) {
+        return new FeatureGuardForMap<>(accessor, delegate);
     }
 
     public static <T> FeatureGuard<T> alwaysApproved() {

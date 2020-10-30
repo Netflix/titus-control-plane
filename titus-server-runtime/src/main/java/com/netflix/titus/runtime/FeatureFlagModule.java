@@ -165,12 +165,14 @@ public class FeatureFlagModule extends AbstractModule {
         FeatureGuardWhiteListConfiguration capacityGroupConfiguration = factory.newProxy(FeatureGuardWhiteListConfiguration.class, "titus.features.jobManager." + KUBE_SCHEDULER_FEATURE + "ByCapacityGroup");
         FeatureGuardWhiteListConfiguration tierConfiguration = factory.newProxy(FeatureGuardWhiteListConfiguration.class, "titus.features.jobManager." + KUBE_SCHEDULER_FEATURE + "ByTier");
         FeatureGuardWhiteListConfiguration jobTypeConfiguration = factory.newProxy(FeatureGuardWhiteListConfiguration.class, "titus.features.jobManager." + KUBE_SCHEDULER_FEATURE + "ByJobType");
+        FeatureGuardWhiteListConfiguration jobAttributeConfiguration = factory.newProxy(FeatureGuardWhiteListConfiguration.class, "titus.features.jobManager." + KUBE_SCHEDULER_FEATURE + "ByJobAttribute");
 
         Predicate<Pair<JobDescriptor, ApplicationSLA>> routingPredicate = FeatureGuards.toPredicate(
                 FeatureGuards.fromField(p -> p.getLeft().getApplicationName(), FeatureGuards.newWhiteListFromConfiguration(applicationConfiguration).build()),
                 FeatureGuards.fromField(p -> p.getRight().getAppName(), FeatureGuards.newWhiteListFromConfiguration(capacityGroupConfiguration).build()),
                 FeatureGuards.fromField(p -> p.getRight().getTier().name(), FeatureGuards.newWhiteListFromConfiguration(tierConfiguration).build()),
-                FeatureGuards.fromField(p -> JobFunctions.isServiceJob(p.getLeft()) ? "service" : "batch", FeatureGuards.newWhiteListFromConfiguration(jobTypeConfiguration).build())
+                FeatureGuards.fromField(p -> JobFunctions.isServiceJob(p.getLeft()) ? "service" : "batch", FeatureGuards.newWhiteListFromConfiguration(jobTypeConfiguration).build()),
+                FeatureGuards.fromMap(p -> p.getLeft().getAttributes(), FeatureGuards.newWhiteListFromConfiguration(jobAttributeConfiguration).build())
         );
 
         return p -> {
