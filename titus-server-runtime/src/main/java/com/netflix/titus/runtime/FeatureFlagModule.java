@@ -159,6 +159,7 @@ public class FeatureFlagModule extends AbstractModule {
     @Singleton
     @Named(KUBE_SCHEDULER_FEATURE)
     public Predicate<Pair<JobDescriptor, ApplicationSLA>> getKubeSchedulerFeaturePredicate(ConfigProxyFactory factory) {
+        KubeSchedulerFeatureConfiguration configuration = factory.newProxy(KubeSchedulerFeatureConfiguration.class);
 
         FeatureGuardWhiteListConfiguration applicationConfiguration = factory.newProxy(FeatureGuardWhiteListConfiguration.class, "titus.features.jobManager." + KUBE_SCHEDULER_FEATURE + "ByApplication");
         FeatureGuardWhiteListConfiguration capacityGroupConfiguration = factory.newProxy(FeatureGuardWhiteListConfiguration.class, "titus.features.jobManager." + KUBE_SCHEDULER_FEATURE + "ByCapacityGroup");
@@ -181,6 +182,11 @@ public class FeatureFlagModule extends AbstractModule {
 
             // Job should not be scheduled by KubeScheduler
             if (FeatureFlagUtil.isNoKubeSchedulerMigration(jobDescriptor)) {
+                return false;
+            }
+
+            // Check GPU jobs
+            if (!configuration.isGpuEnabled() && jobDescriptor.getContainer().getContainerResources().getGpu() > 0) {
                 return false;
             }
 
