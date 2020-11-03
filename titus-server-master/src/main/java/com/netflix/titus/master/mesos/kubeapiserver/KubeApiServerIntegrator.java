@@ -650,6 +650,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
 
     private void podDeleted(V1Pod pod) {
         try {
+            Optional<Long> eventTimestamp = Optional.of(titusRuntime.getClock().wallTime());
             V1ObjectMeta metadata = pod.getMetadata();
             V1PodStatus status = pod.getStatus();
             String podName = KubeUtil.getMetadataName(metadata);
@@ -674,25 +675,24 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
             Task task = taskOpt.get();
             String phase = StringExt.nonNull(status.getPhase());
             String reasonMessage = StringExt.nonNull(status.getMessage());
-            boolean hasDeletionTimestamp = metadata.getDeletionTimestamp() != null;
+            String reasonCode = REASON_NORMAL;
 
             Optional<TaskStatus> killInitiatedOpt = JobFunctions.findTaskStatus(task, KillInitiated);
             if (!killInitiatedOpt.isPresent()) {
-                logger.debug("Publishing missing task status: KillInitiated for task: {}", podName);
-                Optional<Long> timestampOpt = hasDeletionTimestamp ? Optional.of(metadata.getDeletionTimestamp().getMillis()) : Optional.empty();
-                publishContainerEvent(podName, KillInitiated, REASON_TASK_KILLED, "Container was terminated without going through Titus", executorDetails, timestampOpt);
-            }
-
-            String reasonCode = REASON_NORMAL;
-            if (hasDeletionTimestamp) {
                 reasonCode = REASON_TASK_KILLED;
+                logger.debug("Publishing missing task status: KillInitiated for task: {}", podName);
+                if ("NodeLost".equals(status.getReason())) {
+                    publishContainerEvent(podName, KillInitiated, reasonCode, "The host running the container was unexpectedly terminated", executorDetails, eventTimestamp);
+                } else {
+                    publishContainerEvent(podName, KillInitiated, reasonCode, "Container was terminated without going through Titus", executorDetails, eventTimestamp);
+                }
             } else if (phase.equalsIgnoreCase(SUCCEEDED)) {
                 reasonCode = REASON_NORMAL;
             } else if (phase.equalsIgnoreCase(FAILED)) {
                 reasonCode = REASON_FAILED;
             }
 
-            publishContainerEvent(podName, Finished, reasonCode, reasonMessage, executorDetails);
+            publishContainerEvent(podName, Finished, reasonCode, reasonMessage, executorDetails, eventTimestamp);
         } catch (Exception e) {
             logger.error("Unable to handle pod delete: {} with error:", pod, e);
         }
