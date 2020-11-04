@@ -170,5 +170,5 @@ public final class KubeConstants {
     /**
      * Reconciler Event Constants
      */
-    public static final String NODE_LOST = "NodeList";
+    public static final String NODE_LOST = "NodeLost";
 }
