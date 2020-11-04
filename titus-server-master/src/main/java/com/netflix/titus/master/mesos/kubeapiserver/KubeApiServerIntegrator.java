@@ -104,6 +104,7 @@ import static com.netflix.titus.runtime.kubernetes.KubeConstants.NOT_FOUND;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.PENDING;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.RUNNING;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.SUCCEEDED;
+import static com.netflix.titus.runtime.kubernetes.KubeConstants.NODE_LOST;
 
 /**
  * Responsible for integrating Kubernetes API Server concepts into Titus's Mesos based approaches.
@@ -681,10 +682,10 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
             if (!killInitiatedOpt.isPresent()) {
                 reasonCode = REASON_TASK_KILLED;
                 logger.debug("Publishing missing task status: KillInitiated for task: {}", podName);
-                if ("NodeLost".equals(status.getReason())) {
+                if (NODE_LOST.equals(status.getReason())) {
                     publishContainerEvent(podName, KillInitiated, reasonCode, "The host running the container was unexpectedly terminated", executorDetails, eventTimestamp);
                 } else {
-                    publishContainerEvent(podName, KillInitiated, reasonCode, "Container was terminated without going through Titus", executorDetails, eventTimestamp);
+                    publishContainerEvent(podName, KillInitiated, reasonCode, "Container was terminated without going through the Titus API", executorDetails, eventTimestamp);
                 }
             } else if (phase.equalsIgnoreCase(SUCCEEDED)) {
                 reasonCode = REASON_NORMAL;
