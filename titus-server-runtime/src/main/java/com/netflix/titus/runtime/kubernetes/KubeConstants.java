@@ -167,4 +167,8 @@ public final class KubeConstants {
     public static final String FAILED = "Failed";
     public static final String BACKGROUND = "Background";
 
+    /**
+     * Reconciler Event Constants
+     */
+    public static final String NODE_LOST = "NodeLost";
 }
