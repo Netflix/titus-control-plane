@@ -17,7 +17,6 @@
 package com.netflix.titus.runtime.connector.kubernetes;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
@@ -32,6 +31,7 @@ import io.kubernetes.client.informer.SharedInformerFactory;
 import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
 import io.kubernetes.client.util.Config;
+import okhttp3.OkHttpClient;
 import okhttp3.Protocol;
 import okhttp3.Request;
 
@@ -47,15 +47,16 @@ public class KubeApiClients {
     public static ApiClient createApiClient(String metricsNamePrefix,
                                             TitusRuntime titusRuntime,
                                             long readTimeoutMs) {
-        return createApiClient(null, null, metricsNamePrefix, titusRuntime, KubeApiClients::mapUri, readTimeoutMs);
+        return createApiClient(null, null, metricsNamePrefix, titusRuntime, KubeApiClients::mapUri, readTimeoutMs, true);
     }
 
     public static ApiClient createApiClient(String kubeApiServerUrl,
                                             String kubeConfigPath,
                                             String metricsNamePrefix,
                                             TitusRuntime titusRuntime,
-                                            long readTimeoutMs) {
-        return createApiClient(kubeApiServerUrl, kubeConfigPath, metricsNamePrefix, titusRuntime, KubeApiClients::mapUri, readTimeoutMs);
+                                            long readTimeoutMs,
+                                            boolean enableCompressionForKubeApiClient) {
+        return createApiClient(kubeApiServerUrl, kubeConfigPath, metricsNamePrefix, titusRuntime, KubeApiClients::mapUri, readTimeoutMs, enableCompressionForKubeApiClient);
     }
 
     public static ApiClient createApiClient(String kubeApiServerUrl,
@@ -63,7 +64,8 @@ public class KubeApiClients {
                                             String metricsNamePrefix,
                                             TitusRuntime titusRuntime,
                                             Function<Request, String> uriMapper,
-                                            long readTimeoutMs) {
+                                            long readTimeoutMs,
+                                            boolean enableCompressionForKubeApiClient) {
         OkHttpMetricsInterceptor metricsInterceptor = new OkHttpMetricsInterceptor(metricsNamePrefix, titusRuntime.getRegistry(),
                 titusRuntime.getClock(), uriMapper);
 
@@ -82,14 +84,18 @@ public class KubeApiClients {
             client = Config.fromUrl(kubeApiServerUrl);
         }
 
-        client.setHttpClient(
-                client.getHttpClient().newBuilder()
-                        // See: https://github.com/kubernetes-client/java/pull/960
-                        .protocols(Collections.singletonList(Protocol.HTTP_1_1))
-                        .addInterceptor(metricsInterceptor)
-                        .readTimeout(readTimeoutMs, TimeUnit.SECONDS)
-                        .build()
-        );
+        OkHttpClient.Builder newBuilder = client.getHttpClient().newBuilder();
+
+        // See: https://github.com/kubernetes-client/java/pull/960
+        newBuilder.protocols(Collections.singletonList(Protocol.HTTP_1_1))
+                .addInterceptor(metricsInterceptor)
+                .readTimeout(readTimeoutMs, TimeUnit.SECONDS);
+
+        // By default compression is enabled in OkHttpClient
+        if(!enableCompressionForKubeApiClient) {
+            newBuilder.addInterceptor(new DisableCompressionInterceptor());
+        }
+        client.setHttpClient(newBuilder.build());
         return client;
     }
 

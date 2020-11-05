@@ -124,6 +124,12 @@ public interface MesosConfiguration {
     String getKubeConfigPath();
 
     /**
+     * @return whether to enable or disable compression when LISTing pods using kubernetes java client
+     */
+    @DefaultValue("false")
+    boolean isCompressionEnabledForKubeApiClient();
+
+    /**
      * @return whether or not to GC unknown pods
      */
     @DefaultValue("true")

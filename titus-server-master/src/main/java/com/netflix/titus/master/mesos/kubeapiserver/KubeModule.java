@@ -124,7 +124,8 @@ public class KubeModule extends AbstractModule {
                 configuration.getKubeConfigPath(),
                 KubeApiServerIntegrator.CLIENT_METRICS_PREFIX,
                 titusRuntime,
-                0L
+                0L,
+                configuration.isCompressionEnabledForKubeApiClient()
         );
     }
 
