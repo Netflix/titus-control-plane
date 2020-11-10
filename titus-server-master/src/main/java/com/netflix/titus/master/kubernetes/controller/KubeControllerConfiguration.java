@@ -29,6 +29,12 @@ public interface KubeControllerConfiguration {
     String getAccountId();
 
     /**
+     * @return whether or not the logic to verify that a node's accountId matches the control plane's accountId is enabled.
+     */
+    @DefaultValue("true")
+    boolean isVerifyNodeAccountIdEnabled();
+
+    /**
      * @return the grace period of how old the Ready condition's timestamp can be before attempting to GC a node.
      */
     @DefaultValue("300000")
