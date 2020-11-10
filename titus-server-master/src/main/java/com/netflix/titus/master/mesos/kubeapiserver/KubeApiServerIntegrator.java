@@ -99,12 +99,14 @@ import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_FAILE
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_NORMAL;
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TASK_KILLED;
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_UNKNOWN;
+import static com.netflix.titus.runtime.kubernetes.KubeConstants.DEFAULT_NAMESPACE;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.FAILED;
+import static com.netflix.titus.runtime.kubernetes.KubeConstants.NODE_LOST;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.NOT_FOUND;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.PENDING;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.RUNNING;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.SUCCEEDED;
-import static com.netflix.titus.runtime.kubernetes.KubeConstants.NODE_LOST;
+import static com.netflix.titus.runtime.kubernetes.KubeConstants.TITUS_NODE_DOMAIN;
 
 /**
  * Responsible for integrating Kubernetes API Server concepts into Titus's Mesos based approaches.
@@ -112,9 +114,6 @@ import static com.netflix.titus.runtime.kubernetes.KubeConstants.NODE_LOST;
 @Singleton
 public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     private static final Logger logger = LoggerFactory.getLogger(KubeApiServerIntegrator.class);
-
-    private static final String ATTRIBUTE_PREFIX = "com.netflix.titus.agent.attribute/";
-    private static final String KUBERNETES_NAMESPACE = "default";
 
     public static final String CLIENT_METRICS_PREFIX = "titusMaster.mesos.kubeApiServerIntegration";
 
@@ -227,7 +226,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                 launchTaskCounter.increment();
                 V1Pod v1Pod = taskInfoToPod(request);
                 logger.info("creating pod: {}", v1Pod);
-                kubeApiFacade.getCoreV1Api().createNamespacedPod(KUBERNETES_NAMESPACE, v1Pod, null, null, null);
+                kubeApiFacade.getCoreV1Api().createNamespacedPod(DEFAULT_NAMESPACE, v1Pod, null, null, null);
                 podSizeMetrics.record(KubeUtil.estimatePodSize(v1Pod));
             } catch (Exception e) {
                 String errorMessage = KubeUtil.toErrorDetails(e);
@@ -243,7 +242,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
             V1Pod v1Pod = taskInfoToPod(request);
             Mono<Void> podAddAction = KubeUtil
                     .<V1Pod>toReact(handler -> kubeApiFacade.getCoreV1Api().createNamespacedPodAsync(
-                            KUBERNETES_NAMESPACE, v1Pod, null, null, null, handler
+                            DEFAULT_NAMESPACE, v1Pod, null, null, null, handler
                     ))
                     .doOnSubscribe(subscription -> {
                         launchTaskCounter.increment();
@@ -298,7 +297,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
             logger.info("Terminating pod: {} by setting deletionTimestamp", taskId);
             kubeApiFacade.getCoreV1Api().deleteNamespacedPod(
                     taskId,
-                    KUBERNETES_NAMESPACE,
+                    DEFAULT_NAMESPACE,
                     null,
                     null,
                     directKubeConfiguration.getDeleteGracePeriodSeconds(),
@@ -498,6 +497,13 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
             return Collections.emptyList();
         }
 
+        // Validate the res value is correct otherwise reject the node until it is correct.
+        // TODO This code is temporary and will be changed as the node contract is changing.
+        String resValue = annotations.get(TITUS_NODE_DOMAIN + NODE_ATTRIBUTE_RES);
+        if (StringExt.isEmpty(resValue) || !resValue.startsWith("ResourceSet-ENIs-")) {
+            return Collections.emptyList();
+        }
+
         List<Protos.Attribute> attributes = new ArrayList<>();
         KubeUtil.getNodeIpV4Address(node).ifPresent(nodeIp -> attributes.add(createAttribute(NODE_ATTRIBUTE_HOST_IP, nodeIp)));
 
@@ -515,8 +521,8 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
     }
 
     private Protos.Attribute createAttribute(String name, String value) {
-        if (name.startsWith(ATTRIBUTE_PREFIX)) {
-            name = name.replace(ATTRIBUTE_PREFIX, "");
+        if (name.startsWith(TITUS_NODE_DOMAIN)) {
+            name = name.replace(TITUS_NODE_DOMAIN, "");
         }
         return Protos.Attribute.newBuilder()
                 .setType(Protos.Value.Type.TEXT)

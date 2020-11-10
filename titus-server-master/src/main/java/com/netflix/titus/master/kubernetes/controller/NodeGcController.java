@@ -105,6 +105,10 @@ public class NodeGcController extends BaseGcController<V1Node> {
 
     @VisibleForTesting
     boolean isNodeInConfiguredAccount(V1Node node) {
+        if (!kubeControllerConfiguration.isVerifyNodeAccountIdEnabled()) {
+            return true;
+        }
+
         V1ObjectMeta metadata = node.getMetadata();
         if (metadata == null) {
             return false;
