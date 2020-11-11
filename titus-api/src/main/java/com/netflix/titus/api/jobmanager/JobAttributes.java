@@ -55,6 +55,11 @@ public final class JobAttributes {
     public static final String JOB_ATTRIBUTES_SANITIZATION_SKIPPED_IMAGE = JOB_ATTRIBUTE_SANITIZATION_PREFIX + "skipped.image";
 
     /**
+     * Set to true when sanitization for container EBS volumes fails open
+     */
+    public static final String JOB_ATTRIBUTES_SANITIZATION_SKIPPED_EBS = JOB_ATTRIBUTE_SANITIZATION_PREFIX + "skipped.ebs";
+
+    /**
      * Set to true when job runtime prediction fails open
      */
     public static final String JOB_ATTRIBUTES_SANITIZATION_SKIPPED_RUNTIME_PREDICTION = JOB_ATTRIBUTE_SANITIZATION_PREFIX + "skipped.runtimePrediction";
@@ -207,6 +212,20 @@ public final class JobAttributes {
      */
     public static final String JOB_ATTRIBUTES_SANITIZATION_SKIPPED_SERVICEMESH_IMAGE = JOB_ATTRIBUTE_SANITIZATION_PREFIX + "skipped.serviceMesh";
 
+    /*
+     * EBS volume job attributes (set in {@link JobDescriptor#getAttributes()}.
+     * EBS volume IDs are attributes as we do not expect to expose them directly as first-class Titus API
+     * constructs but rather wait until the Kubernetes API to expose them directly.
+     * We expect the value to be a comma separated list of valid/existing EBS volume IDs.
+     */
+
+    public static final String JOB_ATTRIBUTES_EBS_VOLUME_IDS = TITUS_PARAMETER_ATTRIBUTE_PREFIX + "ebs.volumeIds";
+
+    public static final String JOB_ATTRIBUTES_EBS_MOUNT_POINT = TITUS_PARAMETER_ATTRIBUTE_PREFIX + "ebs.mountPoint";
+
+    public static final String JOB_ATTRIBUTES_EBS_MOUNT_PERM = TITUS_PARAMETER_ATTRIBUTE_PREFIX + "ebs.mountPerm";
+
+    public static final String JOB_ATTRIBUTES_EBS_FS_TYPE = TITUS_PARAMETER_ATTRIBUTE_PREFIX + "ebs.fsType";
 
     private JobAttributes() {
     }

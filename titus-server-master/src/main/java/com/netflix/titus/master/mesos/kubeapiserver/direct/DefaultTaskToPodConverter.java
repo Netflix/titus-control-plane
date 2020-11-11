@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
@@ -44,6 +45,8 @@ import com.netflix.titus.api.jobmanager.model.job.LogStorageInfo;
 import com.netflix.titus.api.jobmanager.model.job.LogStorageInfos;
 import com.netflix.titus.api.jobmanager.model.job.SecurityProfile;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolume;
+import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolumeUtils;
 import com.netflix.titus.api.jobmanager.model.job.vpc.SignedIpAddressAllocation;
 import com.netflix.titus.api.model.EfsMount;
 import com.netflix.titus.common.util.CollectionsExt;
@@ -57,6 +60,7 @@ import com.netflix.titus.master.mesos.kubeapiserver.direct.taint.TaintToleration
 import com.netflix.titus.runtime.endpoint.v3.grpc.GrpcJobManagementModelConverters;
 import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import io.kubernetes.client.custom.Quantity;
+import io.kubernetes.client.openapi.models.V1AWSElasticBlockStoreVolumeSource;
 import io.kubernetes.client.openapi.models.V1Affinity;
 import io.kubernetes.client.openapi.models.V1Container;
 import io.kubernetes.client.openapi.models.V1LabelSelector;
@@ -65,6 +69,8 @@ import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodSpec;
 import io.kubernetes.client.openapi.models.V1ResourceRequirements;
 import io.kubernetes.client.openapi.models.V1TopologySpreadConstraint;
+import io.kubernetes.client.openapi.models.V1Volume;
+import io.kubernetes.client.openapi.models.V1VolumeMount;
 import io.titanframework.messages.TitanProtos;
 
 import static com.netflix.titus.api.jobmanager.JobAttributes.JOB_PARAMETER_ATTRIBUTES_ALLOW_CPU_BURSTING;
@@ -171,6 +177,12 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
                 .affinity(affinityWithMetadata.getLeft())
                 .tolerations(taintTolerationFactory.buildV1Toleration(job, task))
                 .topologySpreadConstraints(buildTopologySpreadConstraints(job));
+
+        Optional<Pair<V1Volume, V1VolumeMount>> optionalEbsVolumeInfo = buildV1VolumeInfo(job, task);
+        if (optionalEbsVolumeInfo.isPresent()) {
+            spec.addVolumesItem(optionalEbsVolumeInfo.get().getLeft());
+            container.addVolumeMountsItem(optionalEbsVolumeInfo.get().getRight());
+        }
 
         return new V1Pod().metadata(metadata).spec(spec);
     }
@@ -439,5 +451,29 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
         }
 
         return Collections.singletonList(constraint);
+    }
+
+    /**
+     * Builds the various objects needed to
+     */
+    @VisibleForTesting
+    Optional<Pair<V1Volume, V1VolumeMount>> buildV1VolumeInfo(Job<?> job, Task task) {
+        return EbsVolumeUtils.getEbsVolumeForTask(job, task)
+                .map(ebsVolume -> {
+                    boolean readOnly = ebsVolume.getMountPermissions().equals(EbsVolume.MountPerm.RO);
+                    V1Volume v1Volume = new V1Volume()
+                            // The resource name matches the volume ID so that the resource is independent of the job.
+                            .name(ebsVolume.getVolumeId())
+                            .awsElasticBlockStore(new V1AWSElasticBlockStoreVolumeSource()
+                                    .volumeID(ebsVolume.getVolumeId())
+                                    .fsType(ebsVolume.getFsType()));
+                    V1VolumeMount v1VolumeMount = new V1VolumeMount()
+                            // The mount refers to the V1Volume being mounted
+                            .name(ebsVolume.getVolumeId())
+                            .mountPath(ebsVolume.getMountPath())
+                            .readOnly(readOnly);
+
+                    return Pair.of(v1Volume, v1VolumeMount);
+                });
     }
 }

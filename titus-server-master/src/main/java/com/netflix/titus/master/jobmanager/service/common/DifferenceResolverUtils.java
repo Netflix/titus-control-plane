@@ -17,7 +17,7 @@
 package com.netflix.titus.master.jobmanager.service.common;
 
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +35,7 @@ import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
+import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolume;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.jobmanager.service.JobManagerConstants;
@@ -54,6 +55,7 @@ import com.netflix.titus.master.jobmanager.service.event.JobManagerReconcilerEve
 import com.netflix.titus.master.mesos.VirtualMachineMasterService;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeApiServerIntegrator;
 
+import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_EBS_VOLUME_ID;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_IP_ALLOCATION_ID;
 
 /**
@@ -246,12 +248,12 @@ public class DifferenceResolverUtils {
     /**
      * Determines unassigned IP allocations based on the current reference view
      */
-    public static Set<String> getUnassignedIpAllocations(JobView refJobView) {
-        // Get all IP allocations from the job
-        Set<String> unassignedIpAddressIds = refJobView.getJob().getJobDescriptor().getContainer().getContainerResources().getSignedIpAddressAllocations()
-                .stream()
+    public static List<String> getUnassignedIpAllocations(JobView refJobView) {
+        // Get a sorted list of all IP allocations from the job
+        List<String> unassignedIpAddressIds = refJobView.getJob().getJobDescriptor().getContainer().getContainerResources().getSignedIpAddressAllocations().stream()
                 .map(signedIpAddressAllocation -> signedIpAddressAllocation.getIpAddressAllocation().getAllocationId())
-                .collect(Collectors.toCollection(HashSet::new));
+                .sorted()
+                .collect(Collectors.toList());
 
         // Filter out those that are assigned
         for (Task task : (List<Task>) refJobView.getTasks()) {
@@ -263,36 +265,73 @@ public class DifferenceResolverUtils {
         return unassignedIpAddressIds;
     }
 
+    public static List<String> getUnassignedEbsVolumes(JobView refJobView) {
+        // Get a sorted list of all ebs values from the job
+        List<String> unassignedEbsVolumeIds = refJobView.getJob().getJobDescriptor().getContainer().getContainerResources().getEbsVolumes().stream()
+                .map(EbsVolume::getVolumeId)
+                .sorted()
+                .collect(Collectors.toList());
+
+        // Filter out those that are assigned
+        for (Task task : (List<Task>) refJobView.getTasks()) {
+            if (!TaskState.isTerminalState(task.getStatus().getState())) {
+                unassignedEbsVolumeIds.remove(task.getTaskContext().getOrDefault(TASK_ATTRIBUTES_EBS_VOLUME_ID, ""));
+            }
+        }
+
+        return unassignedEbsVolumeIds;
+    }
+
     /**
      * Copies specific task context entries, multiple if needed, from a previous task to a replacement task
      */
     private static Map<String, String> getTaskContextFromPreviousTask(Task previousTask) {
+        Map<String, String> taskContext = new HashMap<>();
+
         // Copy the IP allocation task context to the replacement task
         String ipAllocationId = previousTask.getTaskContext().get(TASK_ATTRIBUTES_IP_ALLOCATION_ID);
-        return ipAllocationId != null ? Collections.singletonMap(TASK_ATTRIBUTES_IP_ALLOCATION_ID, ipAllocationId) : Collections.emptyMap();
+        if (null != ipAllocationId) {
+            taskContext.put(TASK_ATTRIBUTES_IP_ALLOCATION_ID, ipAllocationId);
+        }
+
+        // Copy the EBS volume ID task context to the replacement task
+        String ebsVolumeId = previousTask.getTaskContext().get(TASK_ATTRIBUTES_EBS_VOLUME_ID);
+        if (null != ebsVolumeId) {
+            taskContext.put(TASK_ATTRIBUTES_EBS_VOLUME_ID, ebsVolumeId);
+        }
+
+        return taskContext;
     }
 
     /**
      * Sets the task context fields, multiple if needed, for an initial task.
      */
-    private static Map<String, String> getInitialTaskContext(Set<String> unassignedIpAllocations) {
+    private static Map<String, String> getInitialTaskContext(List<String> unassignedIpAllocations, List<String> unassignedEbsVolumeIds) {
+        Map<String, String> taskContext = new HashMap<>();
+
         if (!unassignedIpAllocations.isEmpty()) {
-            String ipAllocationId = unassignedIpAllocations.iterator().next();
-            unassignedIpAllocations.remove(ipAllocationId);
-            return Collections.singletonMap(TASK_ATTRIBUTES_IP_ALLOCATION_ID, ipAllocationId);
+            String ipAllocationId = unassignedIpAllocations.remove(0);
+            taskContext.put(TASK_ATTRIBUTES_IP_ALLOCATION_ID, ipAllocationId);
         }
-        return Collections.emptyMap();
+
+        if (!unassignedEbsVolumeIds.isEmpty()) {
+            String ebsVolumeId = unassignedEbsVolumeIds.remove(0);
+            taskContext.put(TASK_ATTRIBUTES_EBS_VOLUME_ID, ebsVolumeId);
+        }
+
+        return taskContext;
     }
 
     /**
      * Get task context for a new or replacement task
      */
     public static Map<String, String> getTaskContext(Optional<EntityHolder> optionalPreviousTaskEntityHolder,
-                                                     Set<String> unassignedIpAllocations) {
+                                                     List<String> unassignedIpAllocations,
+                                                     List<String> unassignedEbsVolumeIds) {
         return optionalPreviousTaskEntityHolder
                 .map(entityHolder -> (Task) entityHolder.getEntity())
                 .map(DifferenceResolverUtils::getTaskContextFromPreviousTask)
-                .orElseGet(() -> getInitialTaskContext(unassignedIpAllocations));
+                .orElseGet(() -> getInitialTaskContext(unassignedIpAllocations, unassignedEbsVolumeIds));
     }
 
     public static class JobView<EXT extends JobDescriptor.JobDescriptorExt, TASK extends Task> {

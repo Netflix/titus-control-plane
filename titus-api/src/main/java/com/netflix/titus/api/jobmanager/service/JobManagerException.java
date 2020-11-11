@@ -25,6 +25,7 @@ import com.netflix.titus.api.jobmanager.model.job.JobState;
 import com.netflix.titus.api.jobmanager.model.job.ServiceJobProcesses;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.jobmanager.model.job.TaskState;
+import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolume;
 import com.netflix.titus.api.jobmanager.model.job.ext.ServiceJobExt;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.model.Tier;
@@ -175,6 +176,13 @@ public class JobManagerException extends RuntimeException {
         return new JobManagerException(
                 ErrorCode.InvalidContainerResources,
                 format("Job too large to run in the %s tier: requested=%s, limits=%s", tier, requestedResources, tierResourceLimits)
+        );
+    }
+
+    public static JobManagerException invalidContainerResources(EbsVolume ebsVolume, String message) {
+        return new JobManagerException(
+                ErrorCode.InvalidContainerResources,
+                format("Job has invalid EBS volume: volume id=%s, reason=%s", ebsVolume.getVolumeId(), message)
         );
     }
 
