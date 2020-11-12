@@ -50,6 +50,7 @@ import com.netflix.titus.api.audit.service.AuditLogService;
 import com.netflix.titus.api.connector.cloud.InstanceCloudConnector;
 import com.netflix.titus.api.connector.cloud.LoadBalancerConnector;
 import com.netflix.titus.api.connector.cloud.noop.NoOpLoadBalancerConnector;
+import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.store.JobStore;
 import com.netflix.titus.api.json.ObjectMappers;
 import com.netflix.titus.api.loadbalancer.model.sanitizer.LoadBalancerJobValidator;
@@ -58,6 +59,8 @@ import com.netflix.titus.api.loadbalancer.store.LoadBalancerStore;
 import com.netflix.titus.api.supervisor.service.LeaderActivator;
 import com.netflix.titus.api.supervisor.service.MasterDescription;
 import com.netflix.titus.api.supervisor.service.MasterMonitor;
+import com.netflix.titus.common.model.admission.AdmissionSanitizer;
+import com.netflix.titus.common.model.admission.AdmissionValidator;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.archaius2.Archaius2ConfigurationLogger;
@@ -91,6 +94,7 @@ import com.netflix.titus.master.scheduler.SchedulingService;
 import com.netflix.titus.master.scheduler.opportunistic.OpportunisticCpuAvailability;
 import com.netflix.titus.master.scheduler.opportunistic.OpportunisticCpuAvailabilityProvider;
 import com.netflix.titus.master.supervisor.service.leader.LocalMasterMonitor;
+import com.netflix.titus.runtime.endpoint.admission.PassJobValidator;
 import com.netflix.titus.runtime.endpoint.common.rest.EmbeddedJettyModule;
 import com.netflix.titus.runtime.store.v3.memory.InMemoryJobStore;
 import com.netflix.titus.runtime.store.v3.memory.InMemoryLoadBalancerStore;
@@ -227,6 +231,18 @@ public class EmbeddedTitusMaster {
                                       bind(LoadBalancerConnector.class).to(NoOpLoadBalancerConnector.class);
                                       bind(LoadBalancerJobValidator.class).to(NoOpLoadBalancerJobValidator.class);
                                       bind(OpportunisticCpuAvailabilityProvider.class).toInstance(() -> new HashMap<>(opportunisticCpuAvailability));
+                                  }
+
+                                  @Provides
+                                  @Singleton
+                                  public AdmissionSanitizer<JobDescriptor> getJobSanitizer() {
+                                      return new PassJobValidator();
+                                  }
+
+                                  @Provides
+                                  @Singleton
+                                  public AdmissionValidator<JobDescriptor> getJobValidator() {
+                                      return new PassJobValidator();
                                   }
 
                                   @Provides
