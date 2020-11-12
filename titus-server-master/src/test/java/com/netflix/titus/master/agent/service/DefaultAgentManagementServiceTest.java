@@ -33,6 +33,7 @@ import com.netflix.titus.api.agent.model.event.AgentInstanceGroupRemovedEvent;
 import com.netflix.titus.api.agent.model.event.AgentInstanceGroupUpdateEvent;
 import com.netflix.titus.api.agent.model.event.AgentInstanceRemovedEvent;
 import com.netflix.titus.api.agent.model.event.AgentInstanceUpdateEvent;
+import com.netflix.titus.api.connector.cloud.Instance;
 import com.netflix.titus.api.connector.cloud.InstanceCloudConnector;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.model.Tier;
@@ -332,5 +333,22 @@ public class DefaultAgentManagementServiceTest {
         agentCacheEventSubject.onNext(new CacheUpdateEvent(CacheUpdateType.Instance, id));
         AgentEvent event = eventSubscriber.takeNext();
         assertThat(event).isInstanceOf(AgentInstanceRemovedEvent.class);
+    }
+
+    @Test
+    public void getAgentInstanceAsync() {
+        String cloudInstanceId = "ci-1";
+        Instance cloudInstance = Instance.newBuilder()
+                .withId(cloudInstanceId)
+                .withInstanceGroupId("cg-1")
+                .withIpAddress("ip-1")
+                .withAttributes(
+                        Collections.emptyMap())
+                .withInstanceState(Instance.InstanceState.Terminated).build();
+        when(connector.getInstances(Collections.singletonList(cloudInstanceId)))
+                .thenReturn(Observable.just(Collections.singletonList(cloudInstance)));
+        ExtTestSubscriber<AgentInstance> testSubscriber = new ExtTestSubscriber<>();
+        service.getAgentInstanceAsync(cloudInstanceId).subscribe(testSubscriber);
+        assertThat(testSubscriber.isError()).isFalse();
     }
 }

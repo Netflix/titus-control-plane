@@ -69,8 +69,7 @@ public class NodeGcController extends BaseGcController<V1Node> {
             @Named(NODE_GC_CONTROLLER) ControllerConfiguration controllerConfiguration,
             AgentManagementService agentManagementService,
             KubeApiFacade kubeApiFacade,
-            KubeControllerConfiguration kubeControllerConfiguration
-    ) {
+            KubeControllerConfiguration kubeControllerConfiguration) {
         super(
                 NODE_GC_CONTROLLER,
                 NODE_GC_CONTROLLER_DESCRIPTION,
@@ -148,9 +147,15 @@ public class NodeGcController extends BaseGcController<V1Node> {
 
         Optional<AgentInstance> agentInstanceOpt = agentManagementService.findAgentInstance(nodeName);
         if (!agentInstanceOpt.isPresent()) {
-            return true;
+            // re-check with agent service to find an instance
+            AgentInstance agentInstance = agentManagementService.getAgentInstanceAsync(nodeName)
+                    .toBlocking()
+                    .firstOrDefault(null);
+            if (agentInstance != null) {
+                return agentInstance.getLifecycleStatus().getState() == InstanceLifecycleState.Stopped;
+            }
+            return false;
         }
-
         AgentInstance agentInstance = agentInstanceOpt.get();
         return agentInstance.getLifecycleStatus().getState() == InstanceLifecycleState.Stopped;
     }

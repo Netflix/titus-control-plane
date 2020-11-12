@@ -164,6 +164,11 @@ class StubbedAgentManagementService implements AgentManagementService {
     }
 
     @Override
+    public Observable<AgentInstance> getAgentInstanceAsync(String instanceId) {
+        return Observable.just(stubbedAgentData.getInstance(instanceId));
+    }
+
+    @Override
     public List<AgentInstanceGroup> getInstanceGroups() {
         return stubbedAgentData.getInstanceGroups();
     }

@@ -40,6 +40,7 @@ import org.assertj.core.api.Assertions;
 import org.joda.time.DateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import rx.Observable;
 
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.NODE_LABEL_ACCOUNT_ID;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.READY;
@@ -128,6 +129,11 @@ public class NodeGcControllerTest {
                 .metadata(new V1ObjectMeta().name(NODE_NAME).annotations(Collections.singletonMap(NODE_LABEL_ACCOUNT_ID, CORRECT_ACCOUNT)))
                 .spec(new V1NodeSpec())
                 .status(new V1NodeStatus().addConditionsItem(readyCondition));
+        AgentInstance agentInstance = AgentInstance.newBuilder()
+                .withId(NODE_NAME)
+                .withDeploymentStatus(InstanceLifecycleStatus.newBuilder().withState(InstanceLifecycleState.Stopped).build())
+                .build();
+        when(agentManagementService.findAgentInstance(NODE_NAME)).thenReturn(Optional.of(agentInstance));
         Assertions.assertThat(nodeGcController.isNodeEligibleForGc(node)).isTrue();
     }
 
@@ -144,7 +150,40 @@ public class NodeGcControllerTest {
                 .spec(new V1NodeSpec())
                 .status(new V1NodeStatus().addConditionsItem(readyCondition));
         when(agentManagementService.findAgentInstance(NODE_NAME)).thenReturn(Optional.empty());
+        when(agentManagementService.getAgentInstanceAsync(NODE_NAME)).thenReturn(Observable.empty());
+        Assertions.assertThat(nodeGcController.isNodeEligibleForGc(node)).isFalse();
+    }
+
+    /**
+     * The agent instance for the node object does not exist in agent management cache and should make a separate
+     * call out to AWS in order to fetch the instance status
+     */
+    @Test
+    void agentInstanceNotInAgentManagementCache() {
+        long now = clock.wallTime();
+        clock.advanceTime(Duration.ofMillis(NODE_GC_GRACE_PERIOD + 1));
+        V1NodeCondition readyCondition = new V1NodeCondition().type(READY).lastHeartbeatTime(new DateTime(now));
+        V1Node node = new V1Node()
+                .metadata(new V1ObjectMeta().name(NODE_NAME).annotations(Collections.singletonMap(NODE_LABEL_ACCOUNT_ID, CORRECT_ACCOUNT)))
+                .spec(new V1NodeSpec())
+                .status(new V1NodeStatus().addConditionsItem(readyCondition));
+        when(agentManagementService.findAgentInstance(NODE_NAME)).thenReturn(Optional.empty());
+
+        // instance state = stopped
+        AgentInstance agentInstance = AgentInstance.newBuilder()
+                .withId(NODE_NAME)
+                .withDeploymentStatus(InstanceLifecycleStatus.newBuilder().withState(InstanceLifecycleState.Stopped).build())
+                .build();
+        when(agentManagementService.getAgentInstanceAsync(NODE_NAME)).thenReturn(Observable.just(agentInstance));
         Assertions.assertThat(nodeGcController.isNodeEligibleForGc(node)).isTrue();
+
+        // instance state != stopped
+        AgentInstance agentInstance2 = AgentInstance.newBuilder()
+                .withId(NODE_NAME)
+                .withDeploymentStatus(InstanceLifecycleStatus.newBuilder().withState(InstanceLifecycleState.Launching).build())
+                .build();
+        when(agentManagementService.getAgentInstanceAsync(NODE_NAME)).thenReturn(Observable.just(agentInstance2));
+        Assertions.assertThat(nodeGcController.isNodeEligibleForGc(node)).isFalse();
     }
 
     /**

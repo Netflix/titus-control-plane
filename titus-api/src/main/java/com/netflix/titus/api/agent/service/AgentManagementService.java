@@ -32,7 +32,6 @@ import rx.Completable;
 import rx.Observable;
 
 public interface AgentManagementService extends ReadOnlyAgentOperations {
-
     /**
      * Returns true if the agent instance group is owned by Fenzo. Only Fenzo owned instance groups are scaled
      * by the capacity management and cluster operations components.
@@ -134,4 +133,13 @@ public interface AgentManagementService extends ReadOnlyAgentOperations {
      * event for each instance group or agent instance change (add/update/remove).
      */
     Observable<AgentEvent> events(boolean includeSnapshot);
+
+    /**
+     * Looks up agent instance by its ID, asynchronously
+     *
+     * @param instanceId of the agent
+     * @return Observable of AgentInstance
+     */
+    Observable<AgentInstance> getAgentInstanceAsync(String instanceId);
+
 }

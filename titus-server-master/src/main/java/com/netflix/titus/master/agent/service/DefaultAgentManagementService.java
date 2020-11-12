@@ -17,6 +17,7 @@
 package com.netflix.titus.master.agent.service;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -49,6 +50,7 @@ import com.netflix.titus.common.util.tuple.Either;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.agent.ServerInfo;
 import com.netflix.titus.master.agent.service.cache.AgentCache;
+import com.netflix.titus.master.agent.service.cache.DataConverters;
 import com.netflix.titus.master.agent.service.server.ServerInfoResolver;
 import rx.Completable;
 import rx.Observable;
@@ -123,6 +125,13 @@ public class DefaultAgentManagementService implements AgentManagementService {
     @Override
     public AgentInstance getAgentInstance(String instanceId) {
         return agentCache.getAgentInstance(instanceId);
+    }
+
+    @Override
+    public Observable<AgentInstance> getAgentInstanceAsync(String instanceId) {
+        return instanceCloudConnector.getInstances(Collections.singletonList(instanceId))
+                .filter(instances -> !instances.isEmpty())
+                .map(instances -> DataConverters.toAgentInstance(instances.get(0)));
     }
 
     @Override
