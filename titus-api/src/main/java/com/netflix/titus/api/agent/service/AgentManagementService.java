@@ -28,6 +28,7 @@ import com.netflix.titus.api.agent.model.event.AgentEvent;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.util.tuple.Either;
+import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
 
@@ -140,6 +141,6 @@ public interface AgentManagementService extends ReadOnlyAgentOperations {
      * @param instanceId of the agent
      * @return Observable of AgentInstance
      */
-    Observable<AgentInstance> getAgentInstanceAsync(String instanceId);
+    Mono<AgentInstance> getAgentInstanceAsync(String instanceId);
 
 }

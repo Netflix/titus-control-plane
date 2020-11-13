@@ -40,6 +40,7 @@ import org.assertj.core.api.Assertions;
 import org.joda.time.DateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Mono;
 import rx.Observable;
 
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.NODE_LABEL_ACCOUNT_ID;
@@ -150,8 +151,8 @@ public class NodeGcControllerTest {
                 .spec(new V1NodeSpec())
                 .status(new V1NodeStatus().addConditionsItem(readyCondition));
         when(agentManagementService.findAgentInstance(NODE_NAME)).thenReturn(Optional.empty());
-        when(agentManagementService.getAgentInstanceAsync(NODE_NAME)).thenReturn(Observable.empty());
-        Assertions.assertThat(nodeGcController.isNodeEligibleForGc(node)).isFalse();
+        when(agentManagementService.getAgentInstanceAsync(NODE_NAME)).thenReturn(Mono.empty());
+        Assertions.assertThat(nodeGcController.isNodeEligibleForGc(node)).isTrue();
     }
 
     /**
@@ -174,7 +175,7 @@ public class NodeGcControllerTest {
                 .withId(NODE_NAME)
                 .withDeploymentStatus(InstanceLifecycleStatus.newBuilder().withState(InstanceLifecycleState.Stopped).build())
                 .build();
-        when(agentManagementService.getAgentInstanceAsync(NODE_NAME)).thenReturn(Observable.just(agentInstance));
+        when(agentManagementService.getAgentInstanceAsync(NODE_NAME)).thenReturn(Mono.just(agentInstance));
         Assertions.assertThat(nodeGcController.isNodeEligibleForGc(node)).isTrue();
 
         // instance state != stopped
@@ -182,7 +183,7 @@ public class NodeGcControllerTest {
                 .withId(NODE_NAME)
                 .withDeploymentStatus(InstanceLifecycleStatus.newBuilder().withState(InstanceLifecycleState.Launching).build())
                 .build();
-        when(agentManagementService.getAgentInstanceAsync(NODE_NAME)).thenReturn(Observable.just(agentInstance2));
+        when(agentManagementService.getAgentInstanceAsync(NODE_NAME)).thenReturn(Mono.just(agentInstance2));
         Assertions.assertThat(nodeGcController.isNodeEligibleForGc(node)).isFalse();
     }
 

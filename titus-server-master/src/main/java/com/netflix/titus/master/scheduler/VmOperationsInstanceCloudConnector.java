@@ -35,6 +35,7 @@ import com.netflix.titus.api.connector.cloud.InstanceGroup;
 import com.netflix.titus.api.connector.cloud.InstanceLaunchConfiguration;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.common.util.tuple.Either;
+import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
 
@@ -85,6 +86,12 @@ public class VmOperationsInstanceCloudConnector implements InstanceCloudConnecto
         return Observable.fromCallable(() -> internalGetInstances().stream()
                 .filter(instance -> instanceIds.contains(instance.getId()))
                 .collect(Collectors.toList()));
+    }
+
+    @Override
+    public Mono<Instance> getInstance(String instanceId) {
+        Optional<Instance> instOpt = internalGetInstances().stream().filter(instance -> instance.getId().equals(instanceId)).findAny();
+        return instOpt.map(Mono::just).orElseGet(Mono::empty);
     }
 
     @Override

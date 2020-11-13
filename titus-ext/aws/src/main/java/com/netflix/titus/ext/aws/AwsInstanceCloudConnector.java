@@ -51,6 +51,7 @@ import com.amazonaws.services.autoscaling.model.TagDescription;
 import com.amazonaws.services.autoscaling.model.UpdateAutoScalingGroupRequest;
 import com.amazonaws.services.autoscaling.model.UpdateAutoScalingGroupResult;
 import com.amazonaws.services.ec2.AmazonEC2Async;
+import com.amazonaws.services.ec2.model.AmazonEC2Exception;
 import com.amazonaws.services.ec2.model.CreateTagsRequest;
 import com.amazonaws.services.ec2.model.CreateTagsResult;
 import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
@@ -79,6 +80,7 @@ import com.netflix.titus.common.util.tuple.Either;
 import com.netflix.titus.common.util.tuple.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Emitter;
 import rx.Observable;
@@ -113,6 +115,8 @@ public class AwsInstanceCloudConnector implements InstanceCloudConnector {
     private static final int TERMINATED = 48;
     private static final int STOPPING = 64;
     private static final int STOPPED = 80;
+
+    public static final String ERROR_INSTANCE_NOT_FOUND = "InvalidInstanceID.NotFound";
 
     private final AwsConfiguration configuration;
     private final AmazonEC2Async ec2Client;
@@ -220,6 +224,37 @@ public class AwsInstanceCloudConnector implements InstanceCloudConnector {
                 .reduce(new ArrayList<>(), (acc, result) -> {
                     acc.addAll(result);
                     return acc;
+                });
+    }
+
+    @Override
+    public Mono<Instance> getInstance(String instanceId) {
+        DescribeInstancesRequest req = new DescribeInstancesRequest()
+                .withInstanceIds(instanceId)
+                .withSdkRequestTimeout((int) configuration.getAwsRequestTimeoutMs());
+
+        Mono<DescribeInstancesResult> instancesResult = AwsReactorExt.toMono(req, ec2Client::describeInstancesAsync);
+        return instancesResult
+                .filter(isr -> isr.getReservations() != null &&
+                        !isr.getReservations().isEmpty() &&
+                        !isr.getReservations().get(0).getInstances().isEmpty())
+                .map(isr -> {
+                    Reservation reservation = isr.getReservations().get(0);
+                    return toInstance(reservation.getInstances().get(0));
+                })
+                .onErrorResume(e -> {
+                    if (e instanceof AmazonEC2Exception) {
+                        AmazonEC2Exception ec2Exception = (AmazonEC2Exception) e;
+                        logger.warn("Exception fetching AWS instance {}", instanceId, ec2Exception);
+                        String errorCode = ec2Exception.getErrorCode();
+                        int statusCode = ec2Exception.getStatusCode();
+                        // Instance id provided is unknown / invalid
+                        if (errorCode != null && errorCode.contains(ERROR_INSTANCE_NOT_FOUND) && statusCode == 400) {
+                            return Mono.empty();
+                        }
+                    }
+                    // Any other exception should bubble up
+                    return Mono.error(e);
                 });
     }
 

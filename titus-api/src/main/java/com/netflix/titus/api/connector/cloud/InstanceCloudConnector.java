@@ -21,6 +21,7 @@ import java.util.Optional;
 
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.common.util.tuple.Either;
+import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
 
@@ -56,6 +57,12 @@ public interface InstanceCloudConnector {
      * Get detailed information about instances with the given ids.
      */
     Observable<List<Instance>> getInstances(List<String> instanceIds);
+
+
+    /**
+     * Get detailed information about a given instance ID
+     */
+    Mono<Instance> getInstance(String instanceId);
 
     /**
      * Get detailed information about instances with the given instance group id.
