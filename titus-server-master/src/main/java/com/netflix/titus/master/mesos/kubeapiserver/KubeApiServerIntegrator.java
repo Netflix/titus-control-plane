@@ -97,7 +97,9 @@ import static com.netflix.titus.api.jobmanager.model.job.TaskState.isTerminalSta
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_CRASHED;
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_FAILED;
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_NORMAL;
+import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_STUCK_IN_STATE;
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TASK_KILLED;
+import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TRANSIENT_SYSTEM_ERROR;
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_UNKNOWN;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.DEFAULT_NAMESPACE;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.FAILED;
@@ -639,7 +641,15 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                 newState = Started;
             } else if (phase.equalsIgnoreCase(SUCCEEDED)) {
                 newState = Finished;
-                reasonCode = hasDeletionTimestamp ? REASON_TASK_KILLED : REASON_NORMAL;
+                if (task.getStatus().getState() == KillInitiated && task.getStatus().getReasonCode().equals(REASON_STUCK_IN_STATE)) {
+                    reasonCode = REASON_TRANSIENT_SYSTEM_ERROR;
+                } else {
+                    if (hasDeletionTimestamp || task.getStatus().getState() == KillInitiated) {
+                        reasonCode = REASON_TASK_KILLED;
+                    } else {
+                        reasonCode = REASON_NORMAL;
+                    }
+                }
             } else if (phase.equalsIgnoreCase(FAILED)) {
                 newState = Finished;
                 reasonCode = hasDeletionTimestamp ? REASON_TASK_KILLED : REASON_FAILED;
