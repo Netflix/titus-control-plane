@@ -22,14 +22,34 @@ import java.util.function.Function;
 import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import reactor.core.publisher.Flux;
+import reactor.util.retry.Retry;
 
 public class ReactorRetriers {
 
-    public static <T> Function<Flux<T>, Publisher<T>> instrumentedRetryer(String name, Duration retryInterval, Logger logger) {
-        return source -> source.retryWhen(errors ->
-                errors.flatMap(error -> {
-                    logger.warn("Retrying subscription for {} after {}ms due to an error: error={}", name, retryInterval.toMillis(), error.getMessage());
+    public static Retry instrumentedReactorRetryer(String name, Duration retryInterval, Logger logger) {
+        return new Retry() {
+            @Override
+            public Publisher<?> generateCompanion(Flux<RetrySignal> retrySignals) {
+                return retrySignals.flatMap(rs -> {
+                    logger.warn("Retrying subscription for {} after {}ms due to an error: error={}", name, retryInterval.toMillis(), rs.failure().getMessage());
                     return Flux.interval(retryInterval).take(1);
-                }));
+                });
+            }
+        };
+    }
+
+    public static <T> Function<Flux<T>, Publisher<T>> instrumentedRetryer(String name, Duration retryInterval, Logger logger) {
+        return source -> source.retryWhen(instrumentedReactorRetryer(name, retryInterval, logger));
+    }
+
+    public static Retry reactorRetryer(Function<? super Throwable, ? extends Publisher<?>> fn) {
+        return new Retry() {
+            @Override
+            public Publisher<?> generateCompanion(Flux<RetrySignal> retrySignals) {
+                return retrySignals
+                        .map(RetrySignal::failure)
+                        .flatMap(fn);
+            }
+        };
     }
 }

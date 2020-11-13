@@ -23,11 +23,11 @@ import java.util.function.Function;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.rx.RetryHandlerBuilder;
-import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Scheduler;
+import reactor.util.retry.Retry;
 
 public class RetryableReplicatorEventStream<SNAPSHOT, TRIGGER> implements ReplicatorEventStream<SNAPSHOT, TRIGGER> {
 
@@ -59,12 +59,12 @@ public class RetryableReplicatorEventStream<SNAPSHOT, TRIGGER> implements Replic
     }
 
     private Flux<ReplicatorEvent<SNAPSHOT, TRIGGER>> newRetryableConnection() {
-        Function<Flux<Throwable>, Publisher<?>> retryer = RetryHandlerBuilder.retryHandler()
+        Retry retryer = RetryHandlerBuilder.retryHandler()
                 .withTitle("RetryableReplicatorEventStream of " + delegate.getClass().getSimpleName())
                 .withUnlimitedRetries()
                 .withDelay(INITIAL_RETRY_DELAY_MS, MAX_RETRY_DELAY_MS, TimeUnit.MILLISECONDS)
                 .withReactorScheduler(scheduler)
-                .buildReactorExponentialBackoff();
+                .buildRetryExponentialBackoff();
 
         return delegate.connect()
                 .doOnTerminate(metrics::disconnected)

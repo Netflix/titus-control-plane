@@ -16,19 +16,17 @@
 package com.netflix.titus.supplementary.taskspublisher;
 
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 
 import com.netflix.titus.common.util.rx.RetryHandlerBuilder;
-import org.reactivestreams.Publisher;
-import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
+import reactor.util.retry.Retry;
 
 public class TaskPublisherRetryUtil {
     public static final long INITIAL_RETRY_DELAY_MS = 500;
     public static final long MAX_RETRY_DELAY_MS = 2_000;
 
-    public static Function<Flux<Throwable>, Publisher<?>> buildRetryHandler(long initialRetryDelayMillis,
-                                                                            long maxRetryDelayMillis, int maxRetries) {
+    public static Retry buildRetryHandler(long initialRetryDelayMillis,
+                                          long maxRetryDelayMillis, int maxRetries) {
         RetryHandlerBuilder retryHandlerBuilder = RetryHandlerBuilder.retryHandler();
         if (maxRetries < 0) {
             retryHandlerBuilder.withUnlimitedRetries();
@@ -39,7 +37,7 @@ public class TaskPublisherRetryUtil {
         return retryHandlerBuilder
                 .withDelay(initialRetryDelayMillis, maxRetryDelayMillis, TimeUnit.MILLISECONDS)
                 .withReactorScheduler(Schedulers.elastic())
-                .buildReactorExponentialBackoff();
+                .buildRetryExponentialBackoff();
     }
 
 }
