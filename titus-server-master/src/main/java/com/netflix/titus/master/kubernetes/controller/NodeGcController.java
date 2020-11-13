@@ -99,6 +99,9 @@ public class NodeGcController extends BaseGcController<V1Node> {
 
     @Override
     public boolean gcItem(V1Node item) {
+        if (item.getMetadata() != null) {
+            logger.info("Deleting node {}", item.getMetadata().getName());
+        }
         return GcControllerUtil.deleteNode(kubeApiFacade, logger, item);
     }
 
@@ -151,7 +154,8 @@ public class NodeGcController extends BaseGcController<V1Node> {
             AgentInstance agentInstance = agentManagementService.getAgentInstanceAsync(nodeName)
                     .toBlocking()
                     .firstOrDefault(null);
-            if (agentInstance != null) {
+            if (agentInstance != null && agentInstance.getLifecycleStatus() != null) {
+                logger.info("Rechecked node {} to get status {}", nodeName, agentInstance.getLifecycleStatus().getState());
                 return agentInstance.getLifecycleStatus().getState() == InstanceLifecycleState.Stopped;
             }
             return false;
