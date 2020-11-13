@@ -57,7 +57,7 @@ subprojects {
     targetCompatibility = 1.8
 
     ext {
-        titusApiDefinitionsVersion = '0.0.1-rc73'
+        titusApiDefinitionsVersion = '0.0.1-rc75'
 
         springVersion = '5.2.8.RELEASE'
         springSecurityVersion = '5.3.4.RELEASE'
