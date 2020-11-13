@@ -20,15 +20,14 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
 import javax.naming.ServiceUnavailableException;
 
 import com.netflix.titus.testkit.rx.ExtTestSubscriber;
 import io.reactivex.subscribers.TestSubscriber;
 import org.junit.Test;
-import org.reactivestreams.Publisher;
 import reactor.core.publisher.Flux;
 import reactor.test.scheduler.VirtualTimeScheduler;
+import reactor.util.retry.Retry;
 import rx.Observable;
 import rx.functions.Func1;
 import rx.schedulers.Schedulers;
@@ -159,10 +158,10 @@ public class RetryHandlerBuilderTest {
         TestSubscriber<String> testSubscriber = TestSubscriber.create();
         final VirtualTimeScheduler virtualTimeScheduler = VirtualTimeScheduler.create();
 
-        final Function<Flux<Throwable>, Publisher<?>> retryFun = builder.withUnlimitedRetries()
+        final Retry retryFun = builder.withUnlimitedRetries()
                 .withReactorScheduler(virtualTimeScheduler)
                 .withDelay(RETRY_DELAY_SEC, RETRY_DELAY_SEC * 4, TimeUnit.SECONDS)
-                .buildReactorExponentialBackoff();
+                .buildRetryExponentialBackoff();
 
         Flux.range(1, 100)
                 .map(i -> new RuntimeException("Error " + i))

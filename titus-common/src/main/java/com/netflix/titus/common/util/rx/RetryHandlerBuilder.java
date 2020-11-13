@@ -31,6 +31,7 @@ import org.reactivestreams.Publisher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
+import reactor.util.retry.Retry;
 import rx.Observable;
 import rx.Scheduler;
 import rx.functions.Action1;
@@ -219,6 +220,15 @@ public final class RetryHandlerBuilder {
                     }
                     return Flux.interval(Duration.ofMillis(expDelay), reactorScheduler).take(1);
                 });
+    }
+
+    public Retry buildRetryExponentialBackoff() {
+        return new Retry() {
+            @Override
+            public Publisher<?> generateCompanion(Flux<RetrySignal> retrySignals) {
+                return buildReactorExponentialBackoff().apply(retrySignals.map(RetrySignal::failure));
+            }
+        };
     }
 
     private long buildDelay(int retry) {

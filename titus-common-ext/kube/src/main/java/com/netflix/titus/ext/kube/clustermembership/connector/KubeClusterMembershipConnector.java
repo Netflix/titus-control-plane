@@ -34,6 +34,7 @@ import com.netflix.titus.api.clustermembership.model.event.LeaderElectionChangeE
 import com.netflix.titus.common.framework.simplereconciler.OneOffReconciler;
 import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.rx.ReactorExt;
+import com.netflix.titus.common.util.rx.ReactorRetriers;
 import com.netflix.titus.ext.kube.clustermembership.connector.action.KubeLeaderElectionActions;
 import com.netflix.titus.ext.kube.clustermembership.connector.action.KubeRegistrationActions;
 import org.slf4j.Logger;
@@ -92,7 +93,7 @@ public class KubeClusterMembershipConnector implements ClusterMembershipConnecto
                     }
                     return Mono.empty();
                 })
-                .retryWhen(errors -> errors.flatMap(e -> {
+                .retryWhen(ReactorRetriers.reactorRetryer(e -> {
                     logger.info("Reconnecting membership event stream from Kubernetes terminated with an error: {}", e.getMessage());
                     logger.debug("Stack trace", e);
                     return Flux.interval(reconnectInterval).take(1);
@@ -123,7 +124,7 @@ public class KubeClusterMembershipConnector implements ClusterMembershipConnecto
                     }
                     return Mono.empty();
                 })
-                .retryWhen(errors -> errors.flatMap(e -> {
+                .retryWhen(ReactorRetriers.reactorRetryer(e -> {
                     logger.info("Reconnecting leadership event stream from Kubernetes terminated with an error: {}", e.getMessage());
                     logger.debug("Stack trace", e);
                     return Flux.interval(reconnectInterval).take(1);

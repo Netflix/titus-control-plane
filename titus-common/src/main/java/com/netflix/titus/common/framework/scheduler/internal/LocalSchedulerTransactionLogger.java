@@ -32,7 +32,7 @@ import com.netflix.titus.common.framework.scheduler.model.event.ScheduleUpdateEv
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.Disposable;
-import reactor.core.publisher.Flux;
+import reactor.util.retry.Retry;
 
 import static com.netflix.titus.common.util.CollectionsExt.last;
 
@@ -44,7 +44,7 @@ class LocalSchedulerTransactionLogger {
 
     static Disposable logEvents(LocalScheduler localScheduler) {
         return localScheduler.events()
-                .retryWhen(error -> Flux.just(1).delayElements(RETRY_DELAY))
+                .retryWhen(Retry.fixedDelay(1, RETRY_DELAY))
                 .subscribe(
                         event -> {
                             boolean failure = event.getSchedule().getCurrentAction().getStatus().getError().isPresent();

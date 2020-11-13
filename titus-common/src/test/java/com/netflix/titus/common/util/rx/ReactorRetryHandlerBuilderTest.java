@@ -38,7 +38,7 @@ public class ReactorRetryHandlerBuilderTest {
         StepVerifier
                 .withVirtualTime(() ->
                         streamOf("A", new IOException("Error1"), "B", new IOException("Error2"), "C")
-                                .retryWhen(newRetryHandlerBuilder().buildReactorExponentialBackoff())
+                                .retryWhen(newRetryHandlerBuilder().buildRetryExponentialBackoff())
                 )
                 // Expect first item
                 .expectNext("A")
@@ -59,7 +59,7 @@ public class ReactorRetryHandlerBuilderTest {
         StepVerifier
                 .withVirtualTime(() ->
                         streamOf("A", new ServiceUnavailableException("Retry me"), "B", new IllegalArgumentException("Do not retry me."), "C")
-                                .retryWhen(newRetryHandlerBuilder().withRetryOnThrowable(ex -> ex instanceof ServiceUnavailableException).buildReactorExponentialBackoff())
+                                .retryWhen(newRetryHandlerBuilder().withRetryOnThrowable(ex -> ex instanceof ServiceUnavailableException).buildRetryExponentialBackoff())
                 )
                 .expectNext("A")
                 .expectNoEvent(Duration.ofSeconds(RETRY_DELAY_SEC))
@@ -77,7 +77,7 @@ public class ReactorRetryHandlerBuilderTest {
                         streamOf(new IOException("Error1"), new IOException("Error2"), new IOException("Error3"), "A")
                                 .retryWhen(newRetryHandlerBuilder()
                                         .withMaxDelay(RETRY_DELAY_SEC * 2, TimeUnit.SECONDS)
-                                        .buildReactorExponentialBackoff()
+                                        .buildRetryExponentialBackoff()
                                 )
                 )
                 .expectSubscription()
@@ -96,7 +96,7 @@ public class ReactorRetryHandlerBuilderTest {
                         streamOf(new IOException("Error1"), new IOException("Error2"), "A")
                                 .retryWhen(newRetryHandlerBuilder()
                                         .withRetryCount(1)
-                                        .buildReactorExponentialBackoff()
+                                        .buildRetryExponentialBackoff()
                                 )
                 )
                 .expectSubscription()

@@ -24,7 +24,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
-import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -99,7 +98,7 @@ public class EurekaContainerHealthService implements ContainerHealthService {
     @Activator
     public void activate() {
         this.eventLoggerDisposable = healthStatuses
-                .retryWhen(ReactorRetriers.instrumentedRetryer("EurekaContainerHealthServiceEventLogger", RETRY_INTERVAL, logger))
+                .retryWhen(ReactorRetriers.instrumentedReactorRetryer("EurekaContainerHealthServiceEventLogger", RETRY_INTERVAL, logger))
                 .subscribeOn(Schedulers.parallel())
                 .subscribe(
                         event -> logger.info("Eureka health status update: {}", event),
