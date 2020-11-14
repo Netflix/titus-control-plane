@@ -51,6 +51,7 @@ import com.netflix.titus.master.model.ResourceDimensions;
 import com.netflix.titus.testkit.rx.ExtTestSubscriber;
 import org.junit.Before;
 import org.junit.Test;
+import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import rx.Completable;
 import rx.Observable;
@@ -346,8 +347,8 @@ public class DefaultAgentManagementServiceTest {
                 .withAttributes(
                         Collections.emptyMap())
                 .withInstanceState(Instance.InstanceState.Terminated).build();
-        when(connector.getInstances(Collections.singletonList(cloudInstanceId)))
-                .thenReturn(Observable.just(Collections.singletonList(cloudInstance)));
+        when(connector.getInstance(cloudInstanceId))
+                .thenReturn(Mono.just(cloudInstance));
         StepVerifier.create(service.getAgentInstanceAsync(cloudInstanceId))
                 .assertNext(agentInstance -> assertThat(agentInstance.getId()).isEqualTo(cloudInstanceId))
                 .verifyComplete();

@@ -35,6 +35,7 @@ import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.tuple.Either;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.common.util.tuple.Triple;
+import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
 
@@ -88,6 +89,16 @@ public class TestableInstanceCloudConnector implements InstanceCloudConnector {
                 .map(id -> instancesById.get(id).getLeft())
                 .collect(Collectors.toList())
         );
+    }
+
+    @Override
+    public Mono<Instance> getInstance(String instanceId) {
+        return Mono.fromCallable(() -> {
+            if (instancesById.containsKey(instanceId)) {
+                return instancesById.get(instanceId).getLeft();
+            }
+            return null;
+        });
     }
 
     @Override

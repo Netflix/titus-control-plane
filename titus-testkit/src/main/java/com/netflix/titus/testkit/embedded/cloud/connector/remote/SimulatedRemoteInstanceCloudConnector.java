@@ -35,6 +35,7 @@ import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.common.aws.AwsInstanceType;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.rx.ObservableExt;
+import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.common.util.tuple.Either;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.model.ResourceDimensions;
@@ -45,8 +46,10 @@ import com.netflix.titus.simulator.TitusCloudSimulator;
 import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedInstance;
 import com.netflix.titus.simulator.TitusCloudSimulator.SimulatedInstanceGroup;
 import io.grpc.Channel;
+import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
+import rx.Single;
 
 @Singleton
 public class SimulatedRemoteInstanceCloudConnector implements InstanceCloudConnector {
@@ -92,6 +95,13 @@ public class SimulatedRemoteInstanceCloudConnector implements InstanceCloudConne
                 .addAllIds(instanceIds)
                 .build();
         return GrpcUtil.toObservable(ids, client::getInstances).map(this::toInstance).toList();
+    }
+
+    @Override
+    public Mono<Instance> getInstance(String instanceId) {
+        TitusCloudSimulator.Ids ids = TitusCloudSimulator.Ids.newBuilder().addIds(instanceId).build();
+        Single<Instance> instance = GrpcUtil.toObservable(ids, client::getInstances).map(this::toInstance).toSingle();
+        return ReactorExt.toMono(instance);
     }
 
     @Override
