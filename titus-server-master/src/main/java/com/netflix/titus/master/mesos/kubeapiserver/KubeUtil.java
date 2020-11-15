@@ -36,6 +36,7 @@ import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.JobConstraints;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.Evaluators;
@@ -178,14 +179,13 @@ public class KubeUtil {
     /**
      * If a job has an availability zone hard constraint with a farzone id, return this farzone id.
      */
-    public static Optional<String> findFarzoneId(DirectKubeConfiguration configuration, Job job) {
+    public static Optional<String> findFarzoneId(DirectKubeConfiguration configuration, Job<?> job) {
         List<String> farzones = configuration.getFarzones();
         if (CollectionsExt.isNullOrEmpty(farzones)) {
             return Optional.empty();
         }
 
-        Map<String, String> hardConstraints = job.getJobDescriptor().getContainer().getHardConstraints();
-        String zone = hardConstraints.get(JobConstraints.AVAILABILITY_ZONE);
+        String zone = JobFunctions.findHardConstraint(job, JobConstraints.AVAILABILITY_ZONE).orElse("");
         if (StringExt.isEmpty(zone)) {
             return Optional.empty();
         }

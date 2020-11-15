@@ -26,6 +26,7 @@ import javax.inject.Singleton;
 
 import com.netflix.titus.api.jobmanager.JobConstraints;
 import com.netflix.titus.api.jobmanager.model.job.Job;
+import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
@@ -236,7 +237,8 @@ public class DefaultPodAffinityFactory implements PodAffinityFactory {
 
         private void processZoneConstraints() {
             // If we have a single zone hard constraint defined, there is no need to add anything on top of this.
-            if (!StringExt.isEmpty(job.getJobDescriptor().getContainer().getHardConstraints().get(JobConstraints.AVAILABILITY_ZONE))) {
+            String zone = JobFunctions.findHardConstraint(job, JobConstraints.AVAILABILITY_ZONE).orElse("");
+            if (!StringExt.isEmpty(zone)) {
                 return;
             }
 
