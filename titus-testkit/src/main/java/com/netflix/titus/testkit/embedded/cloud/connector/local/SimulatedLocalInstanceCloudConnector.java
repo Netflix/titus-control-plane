@@ -37,6 +37,7 @@ import com.netflix.titus.master.model.ResourceDimensions;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;
 import com.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgent;
 import com.netflix.titus.testkit.embedded.cloud.agent.SimulatedTitusAgentCluster;
+import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
 
@@ -96,6 +97,11 @@ public class SimulatedLocalInstanceCloudConnector implements InstanceCloudConnec
     @Override
     public Observable<List<Instance>> getInstances(List<String> instanceIds) {
         return Observable.fromCallable(() -> instanceIds.stream().map(id -> toInstance(cloud.getAgentInstance(id))).collect(Collectors.toList()));
+    }
+
+    @Override
+    public Mono<Instance> getInstance(String instanceId) {
+        return Mono.fromCallable(() -> toInstance(cloud.getAgentInstance(instanceId)));
     }
 
     @Override

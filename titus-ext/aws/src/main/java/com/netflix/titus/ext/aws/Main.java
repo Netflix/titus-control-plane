@@ -16,6 +16,7 @@
 
 package com.netflix.titus.ext.aws;
 
+import java.time.Duration;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -42,6 +43,7 @@ import com.netflix.titus.common.util.SystemExt;
 import com.netflix.titus.common.util.archaius2.Archaius2Ext;
 import com.netflix.titus.common.util.tuple.Either;
 
+import static com.netflix.titus.api.connector.cloud.Instance.InstanceState;
 import static com.netflix.titus.common.util.CollectionsExt.asSet;
 
 /**
@@ -52,7 +54,7 @@ public class Main {
     private static final String REGION = "us-east-1";
 
     private static final Set<String> ALL_COMMANDS = asSet("all", "sg", "instancesByInstanceGroupId", "instance",
-            "terminate", "shrink", "tag", "tagged", "reaper", "scaleUp", "scaleDown");
+            "terminate", "shrink", "tag", "tagged", "reaper", "scaleUp", "scaleDown", "instanceState");
 
     private static final AwsConfiguration CONFIGURATION = Archaius2Ext.newConfiguration(AwsConfiguration.class,
             ImmutableMap.<String, String>builder()
@@ -93,6 +95,19 @@ public class Main {
     private void fetchInstance(List<String> ids) {
         List<Instance> instances = connector.getInstances(ids).toBlocking().first();
         System.out.println("Loaded instances: " + instances);
+    }
+
+    private void fetchInstanceState(String instanceId) {
+        try {
+            Instance instance = connector.getInstance(instanceId).block();
+            if (instance != null) {
+                System.out.printf("Instance %s => %s%n", instanceId, instance.getInstanceState());
+            } else {
+                System.err.printf("Instance %s NOT FOUND%n", instanceId);
+            }
+        } catch (Exception ex) {
+            System.err.println(ex.getMessage());
+        }
     }
 
     private void fetchTaggedInstances(List<String> tags) {
@@ -200,6 +215,8 @@ public class Main {
                 main.fetchInstancesByInstanceGroupId(params);
             } else if (cmd.equals("instance")) {
                 main.fetchInstance(params);
+            } else if (cmd.equals("instanceState")) {
+                main.fetchInstanceState(params.get(0));
             } else if (cmd.equals("terminate")) {
                 main.terminateInstances(params, false);
             } else if (cmd.equals("shrink")) {

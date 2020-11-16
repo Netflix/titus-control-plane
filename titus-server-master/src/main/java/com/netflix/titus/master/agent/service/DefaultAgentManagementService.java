@@ -49,7 +49,9 @@ import com.netflix.titus.common.util.tuple.Either;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.agent.ServerInfo;
 import com.netflix.titus.master.agent.service.cache.AgentCache;
+import com.netflix.titus.master.agent.service.cache.DataConverters;
 import com.netflix.titus.master.agent.service.server.ServerInfoResolver;
+import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
 
@@ -123,6 +125,11 @@ public class DefaultAgentManagementService implements AgentManagementService {
     @Override
     public AgentInstance getAgentInstance(String instanceId) {
         return agentCache.getAgentInstance(instanceId);
+    }
+
+    @Override
+    public Mono<AgentInstance> getAgentInstanceAsync(String instanceId) {
+        return instanceCloudConnector.getInstance(instanceId).map(DataConverters::toAgentInstance);
     }
 
     @Override

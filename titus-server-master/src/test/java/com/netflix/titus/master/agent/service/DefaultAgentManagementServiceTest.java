@@ -33,6 +33,7 @@ import com.netflix.titus.api.agent.model.event.AgentInstanceGroupRemovedEvent;
 import com.netflix.titus.api.agent.model.event.AgentInstanceGroupUpdateEvent;
 import com.netflix.titus.api.agent.model.event.AgentInstanceRemovedEvent;
 import com.netflix.titus.api.agent.model.event.AgentInstanceUpdateEvent;
+import com.netflix.titus.api.connector.cloud.Instance;
 import com.netflix.titus.api.connector.cloud.InstanceCloudConnector;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.model.Tier;
@@ -50,6 +51,8 @@ import com.netflix.titus.master.model.ResourceDimensions;
 import com.netflix.titus.testkit.rx.ExtTestSubscriber;
 import org.junit.Before;
 import org.junit.Test;
+import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 import rx.Completable;
 import rx.Observable;
 import rx.Single;
@@ -332,5 +335,22 @@ public class DefaultAgentManagementServiceTest {
         agentCacheEventSubject.onNext(new CacheUpdateEvent(CacheUpdateType.Instance, id));
         AgentEvent event = eventSubscriber.takeNext();
         assertThat(event).isInstanceOf(AgentInstanceRemovedEvent.class);
+    }
+
+    @Test
+    public void getAgentInstanceAsync() {
+        String cloudInstanceId = "ci-1";
+        Instance cloudInstance = Instance.newBuilder()
+                .withId(cloudInstanceId)
+                .withInstanceGroupId("cg-1")
+                .withIpAddress("ip-1")
+                .withAttributes(
+                        Collections.emptyMap())
+                .withInstanceState(Instance.InstanceState.Terminated).build();
+        when(connector.getInstance(cloudInstanceId))
+                .thenReturn(Mono.just(cloudInstance));
+        StepVerifier.create(service.getAgentInstanceAsync(cloudInstanceId))
+                .assertNext(agentInstance -> assertThat(agentInstance.getId()).isEqualTo(cloudInstanceId))
+                .verifyComplete();
     }
 }

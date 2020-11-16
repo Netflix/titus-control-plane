@@ -32,7 +32,7 @@ import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.Evaluators;
 
-class DataConverters {
+public class DataConverters {
 
     static AgentInstanceGroup toAgentInstanceGroup(InstanceGroup instanceGroup,
                                                    ResourceDimension instanceResourceDimension) {
@@ -75,7 +75,7 @@ class DataConverters {
                 .build();
     }
 
-    static AgentInstance toAgentInstance(Instance instance) {
+    public static AgentInstance toAgentInstance(Instance instance) {
         AgentInstance.Builder builder = AgentInstance.newBuilder();
         return updateInstanceAttributes(builder, instance, Collections.emptyMap())
                 .withId(instance.getId())

@@ -36,6 +36,7 @@ import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.tuple.Either;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.model.ResourceDimensions;
+import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
 
@@ -161,6 +162,11 @@ class StubbedAgentManagementService implements AgentManagementService {
     @Override
     public Observable<AgentEvent> events(boolean includeSnapshot) {
         return stubbedAgentData.observeAgents(includeSnapshot);
+    }
+
+    @Override
+    public Mono<AgentInstance> getAgentInstanceAsync(String instanceId) {
+        return Mono.just(stubbedAgentData.getInstance(instanceId));
     }
 
     @Override

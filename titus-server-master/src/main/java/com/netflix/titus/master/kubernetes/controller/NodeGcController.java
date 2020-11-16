@@ -69,8 +69,7 @@ public class NodeGcController extends BaseGcController<V1Node> {
             @Named(NODE_GC_CONTROLLER) ControllerConfiguration controllerConfiguration,
             AgentManagementService agentManagementService,
             KubeApiFacade kubeApiFacade,
-            KubeControllerConfiguration kubeControllerConfiguration
-    ) {
+            KubeControllerConfiguration kubeControllerConfiguration) {
         super(
                 NODE_GC_CONTROLLER,
                 NODE_GC_CONTROLLER_DESCRIPTION,
@@ -100,6 +99,9 @@ public class NodeGcController extends BaseGcController<V1Node> {
 
     @Override
     public boolean gcItem(V1Node item) {
+        if (item.getMetadata() != null) {
+            logger.info("Deleting node {}", item.getMetadata().getName());
+        }
         return GcControllerUtil.deleteNode(kubeApiFacade, logger, item);
     }
 
@@ -148,9 +150,24 @@ public class NodeGcController extends BaseGcController<V1Node> {
 
         Optional<AgentInstance> agentInstanceOpt = agentManagementService.findAgentInstance(nodeName);
         if (!agentInstanceOpt.isPresent()) {
-            return true;
+            // recheck with agent service to find an instance.
+            // It is a blocking call that is bound by the timeout defined in
+            // {@link com.netflix.titus.ext.aws.AwsConfiguration#getAwsRequestTimeoutMs()}
+            try {
+                AgentInstance agent = agentManagementService.getAgentInstanceAsync(nodeName).block();
+                if (agent == null) {
+                    // Assuming the instance is gone from AWS
+                    return true;
+                }
+                if (agent.getLifecycleStatus() != null) {
+                    logger.info("Rechecked node {} to get status {}", nodeName, agent.getLifecycleStatus().getState());
+                    return agent.getLifecycleStatus().getState() == InstanceLifecycleState.Stopped;
+                }
+            } catch (Exception e) {
+                logger.warn("Exception getting instance status for {}", nodeName, e);
+            }
+            return false;
         }
-
         AgentInstance agentInstance = agentInstanceOpt.get();
         return agentInstance.getLifecycleStatus().getState() == InstanceLifecycleState.Stopped;
     }

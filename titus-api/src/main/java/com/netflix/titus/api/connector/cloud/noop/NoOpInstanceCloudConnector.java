@@ -27,6 +27,7 @@ import com.netflix.titus.api.connector.cloud.InstanceGroup;
 import com.netflix.titus.api.connector.cloud.InstanceLaunchConfiguration;
 import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.common.util.tuple.Either;
+import reactor.core.publisher.Mono;
 import rx.Completable;
 import rx.Observable;
 
@@ -55,6 +56,11 @@ public class NoOpInstanceCloudConnector implements InstanceCloudConnector {
     @Override
     public Observable<List<Instance>> getInstances(List<String> instanceIds) {
         return Observable.empty();
+    }
+
+    @Override
+    public Mono<Instance> getInstance(String instanceId) {
+        return Mono.empty();
     }
 
     @Override
