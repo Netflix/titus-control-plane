@@ -37,6 +37,7 @@ import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.common.framework.fit.FitFramework;
 import com.netflix.titus.common.framework.fit.FitInjection;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.ExecutorsExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.rx.ReactorExt;
@@ -143,9 +144,14 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
     @Override
     public Mono<V1Pod> launchTask(Job job, Task task) {
         return Mono.fromCallable(() -> {
-            V1Pod v1Pod = taskToPodConverter.apply(job, task);
-            logger.info("creating pod: {}", v1Pod);
-            return v1Pod;
+            try {
+                V1Pod v1Pod = taskToPodConverter.apply(job, task);
+                logger.info("creating pod: {}", v1Pod);
+                return v1Pod;
+            } catch (Exception e) {
+                logger.error("Unable to convert job {} and task {} to pod: {}", job, task, KubeUtil.toErrorDetails(e), e);
+                throw new IllegalStateException("Unable to convert task to pod " + task.getId(), e);
+            }
         })
                 .flatMap(v1Pod -> launchPersistentVolume(job, task, v1Pod, kubeApiFacade.getCoreV1Api())
                         .then(Mono.just(v1Pod)))
@@ -208,9 +214,12 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
         return podCreateErrorToReasonCodeResolver.resolveReasonCode(cause);
     }
 
-    private static Mono<V1PersistentVolume> launchPersistentVolume(Job<?> job, Task task, V1Pod v1Pod, CoreV1Api coreV1Api) {
+    private Mono<V1PersistentVolume> launchPersistentVolume(Job<?> job, Task task, V1Pod v1Pod, CoreV1Api coreV1Api) {
         return Mono.defer(() -> {
-            Optional<V1Volume> optionalV1Volume = v1Pod.getSpec().getVolumes().stream()
+            Stopwatch timer = Stopwatch.createStarted();
+
+            Optional<V1Volume> optionalV1Volume = CollectionsExt.nonNull(v1Pod.getSpec().getVolumes())
+                    .stream()
                     .filter(v1Volume -> null != v1Volume.getAwsElasticBlockStore())
                     .findFirst();
             if (!optionalV1Volume.isPresent()) {
@@ -222,14 +231,15 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
             logger.info("Creating persistent volume {} for task {}", v1PersistentVolume, task.getId());
 
             try {
-                Stopwatch timer = Stopwatch.createStarted();
                 coreV1Api.createPersistentVolume(v1PersistentVolume, null, null, null);
                 logger.info("Created persistent volume {} in {}", v1PersistentVolume, timer.elapsed(TimeUnit.MILLISECONDS));
+                metrics.persistentVolumeCreateSuccess(timer.elapsed(TimeUnit.MILLISECONDS));
             } catch (ApiException apiException) {
                 if (isEbsVolumeConflictException(apiException)) {
                     logger.info("Persistent volume already exists {}", v1PersistentVolume);
                 } else {
                     logger.error("Unable to create persistent volume {}, error: {}", v1PersistentVolume, apiException);
+                    metrics.persistentVolumeCreateError(apiException, timer.elapsed(TimeUnit.MILLISECONDS));
                     return Mono.error(new IllegalStateException("Unable to create a persistent volume " + v1PersistentVolume, apiException));
                 }
             }

@@ -112,7 +112,7 @@ public class JobEbsVolumeSanitizer implements AdmissionSanitizer<JobDescriptor> 
             if (!failures.isEmpty()) {
                 return Mono.error(JobManagerException.invalidContainerResources(ebsVolume, failures.get(0).getErrorMessage()));
             }
-            return Mono.error(JobManagerException.invalidContainerResources(ebsVolume, "No failures reported"));
+            return Mono.error(JobManagerException.invalidContainerResources(ebsVolume, "Failure reason unknown"));
         }
 
         return Mono.just(ebsVolume.toBuilder()

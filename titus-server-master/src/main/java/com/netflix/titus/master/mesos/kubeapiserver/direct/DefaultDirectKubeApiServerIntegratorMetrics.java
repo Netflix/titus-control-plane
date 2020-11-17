@@ -36,6 +36,7 @@ import io.kubernetes.client.openapi.models.V1Pod;
 class DefaultDirectKubeApiServerIntegratorMetrics {
 
     private static final String ROOT = MetricConstants.METRIC_KUBERNETES + "directKubeApiServerIntegrator.";
+    private static final String PV_ROOT = ROOT + "persistentVolume.";
 
     private final Registry registry;
 
@@ -43,6 +44,7 @@ class DefaultDirectKubeApiServerIntegratorMetrics {
     private final Id launchCounterId;
     private final Id terminateCounterId;
     private final Id eventCounterId;
+    private final Id persistentVolumeCreateCounterId;
 
     private final BucketCounter podSizeMetrics;
 
@@ -52,6 +54,7 @@ class DefaultDirectKubeApiServerIntegratorMetrics {
         this.launchCounterId = registry.createId(ROOT + "launches");
         this.terminateCounterId = registry.createId(ROOT + "terminates");
         this.eventCounterId = registry.createId(ROOT + "events");
+        this.persistentVolumeCreateCounterId = registry.createId(PV_ROOT + "create");
 
         this.podSizeMetrics = BucketCounter.get(
                 registry,
@@ -66,6 +69,17 @@ class DefaultDirectKubeApiServerIntegratorMetrics {
 
     void observePodsCollection(ConcurrentMap<String, V1Pod> pods) {
         PolledMeter.using(registry).withId(podGaugeId).monitorSize(pods);
+    }
+
+    void persistentVolumeCreateSuccess(long elapsedMs) {
+        registry.timer(persistentVolumeCreateCounterId.withTag("status", "success")).record(elapsedMs, TimeUnit.MILLISECONDS);
+    }
+
+    void persistentVolumeCreateError(Throwable error, long elapsedMs) {
+        registry.timer(persistentVolumeCreateCounterId.withTags(
+                "status", "success",
+                "error", error.getClass().getSimpleName()
+        )).record(elapsedMs, TimeUnit.MILLISECONDS);
     }
 
     void launchSuccess(Task task, V1Pod v1Pod, long elapsedMs) {

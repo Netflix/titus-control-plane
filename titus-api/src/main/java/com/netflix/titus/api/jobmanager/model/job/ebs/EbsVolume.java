@@ -17,13 +17,14 @@
 package com.netflix.titus.api.jobmanager.model.job.ebs;
 
 import java.util.Objects;
-import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
 import com.google.common.base.Preconditions;
 
 public class EbsVolume {
+
+    public enum MountPerm {RO, RW}
 
     public EbsVolume(String volumeId, String volumeAvailabilityZone, int volumeCapacityGB, String mountPath, MountPerm mountPerm, String fsType) {
         this.volumeId = volumeId;
@@ -41,8 +42,6 @@ public class EbsVolume {
     public Builder toBuilder() {
         return new Builder(this);
     }
-
-    public enum MountPerm {RO, RW}
 
     @NotNull
     @Size(min = 1, max = 512, message = "EBS volume ID cannot be empty or greater than 512 bytes")
@@ -177,6 +176,7 @@ public class EbsVolume {
             Preconditions.checkNotNull(mountPath, "Mount path is null");
             Preconditions.checkNotNull(mountPermissions, "Mount permission is null");
             Preconditions.checkNotNull(fsType, "File system type is null");
+
             // Volume AZ and capacity may be set after object creation during object sanitization
             return new EbsVolume(volumeId, volumeAvailabilityZone, volumeCapacityGB, mountPath, mountPermissions, fsType);
         }

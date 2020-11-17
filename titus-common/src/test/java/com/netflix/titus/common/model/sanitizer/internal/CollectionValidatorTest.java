@@ -55,6 +55,13 @@ public class CollectionValidatorTest {
     }
 
     @Test
+    public void testCollectionWithDuplicateValues() {
+        Set<ConstraintViolation<ListWrapperWithUniqueValues>> violations = validator.validate(new ListWrapperWithUniqueValues(asList("A", "A", "C")));
+        assertThat(violations).hasSize(1);
+        assertThat(first(violations).getMessage()).isEqualTo("duplicate values not allowed");
+    }
+
+    @Test
     public void testValidMap() {
         assertThat(validator.validate(new MapWrapper(ImmutableMap.of(
                 "k1", "v1",
@@ -125,5 +132,14 @@ public class CollectionValidatorTest {
             this.values = values;
         }
 
+    }
+
+    static class ListWrapperWithUniqueValues {
+        @CollectionInvariants(allowDuplicateValues = false)
+        List<String> values;
+
+        ListWrapperWithUniqueValues(List<String> values) {
+            this.values = values;
+        }
     }
 }

@@ -16,7 +16,6 @@
 
 package com.netflix.titus.api.jobmanager.model.job.ebs;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -61,7 +60,7 @@ public class EbsVolumeUtils {
 
     public static <E extends JobDescriptor.JobDescriptorExt> List<String> getVolumeIds(JobDescriptor<E> jobDescriptor) {
         String volumeIdsStr = StringExt.nonNull(jobDescriptor.getAttributes().get(JobAttributes.JOB_ATTRIBUTES_EBS_VOLUME_IDS));
-        return Arrays.asList(volumeIdsStr.split(","));
+        return StringExt.splitByComma(volumeIdsStr);
     }
 
     public static <E extends JobDescriptor.JobDescriptorExt> Optional<String> getMountPoint(JobDescriptor<E> jobDescriptor) {

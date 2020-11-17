@@ -26,6 +26,7 @@ import com.netflix.titus.api.jobmanager.model.job.sanitizer.EfsMountsSanitizer;
 import com.netflix.titus.api.jobmanager.model.job.vpc.SignedIpAddressAllocation;
 import com.netflix.titus.api.model.EfsMount;
 import com.netflix.titus.common.model.sanitizer.ClassInvariant;
+import com.netflix.titus.common.model.sanitizer.CollectionInvariants;
 import com.netflix.titus.common.model.sanitizer.FieldInvariant;
 import com.netflix.titus.common.model.sanitizer.FieldSanitizer;
 import com.netflix.titus.common.util.CollectionsExt;
@@ -71,6 +72,7 @@ public class ContainerResources {
     private final List<SignedIpAddressAllocation> ipSignedAddressAllocations;
 
     @Valid
+    @CollectionInvariants(allowDuplicateValues = false)
     private final List<EbsVolume> ebsVolumes;
 
     public ContainerResources(double cpu,
@@ -92,7 +94,7 @@ public class ContainerResources {
         this.allocateIP = allocateIP;
         this.shmMB = shmMB;
         this.ipSignedAddressAllocations = CollectionsExt.nonNullImmutableCopyOf(ipSignedAddressAllocations);
-        this.ebsVolumes = ebsVolumes;
+        this.ebsVolumes = CollectionsExt.nonNullImmutableCopyOf(ebsVolumes);
     }
     public double getCpu() {
         return cpu;
