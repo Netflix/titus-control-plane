@@ -454,7 +454,7 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
     }
 
     /**
-     * Builds the various objects needed to
+     * Builds the various objects needed to for PersistentVolume and Pod objects to use an volume.
      */
     @VisibleForTesting
     Optional<Pair<V1Volume, V1VolumeMount>> buildV1VolumeInfo(Job<?> job, Task task) {
