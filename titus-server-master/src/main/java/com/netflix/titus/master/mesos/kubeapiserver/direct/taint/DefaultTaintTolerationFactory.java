@@ -18,7 +18,6 @@ package com.netflix.titus.master.mesos.kubeapiserver.direct.taint;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -29,10 +28,11 @@ import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.jobmanager.model.job.Task;
 import com.netflix.titus.api.model.ApplicationSLA;
 import com.netflix.titus.api.model.Tier;
-import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
-import com.netflix.titus.runtime.kubernetes.KubeConstants;
+import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeConfiguration;
+import com.netflix.titus.master.service.management.ApplicationSlaManagementService;
+import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import io.kubernetes.client.openapi.models.V1Toleration;
 
 @Singleton
@@ -83,10 +83,9 @@ public class DefaultTaintTolerationFactory implements TaintTolerationFactory {
                 : Optional.of(Tolerations.TOLERATION_GPU_INSTANCE);
     }
 
-    private Optional<V1Toleration> resolveKubeBackendToleration(Job job) {
-        Map<String, String> constraints = job.getJobDescriptor().getContainer().getHardConstraints();
-        String backend = constraints.get(JobConstraints.KUBE_BACKEND);
-        if (backend == null) {
+    private Optional<V1Toleration> resolveKubeBackendToleration(Job<?> job) {
+        String backend = JobFunctions.findHardConstraint(job, JobConstraints.KUBE_BACKEND).orElse("");
+        if (StringExt.isEmpty(backend)) {
             return Optional.empty();
         }
         return Optional.of(new V1Toleration()

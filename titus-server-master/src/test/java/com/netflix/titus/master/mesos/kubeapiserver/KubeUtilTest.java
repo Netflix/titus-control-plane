@@ -19,7 +19,6 @@ package com.netflix.titus.master.mesos.kubeapiserver;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 
 import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.model.job.Job;
@@ -40,7 +39,6 @@ import io.kubernetes.client.openapi.models.V1Taint;
 import org.joda.time.DateTime;
 import org.junit.Test;
 
-import static com.netflix.titus.common.util.CollectionsExt.asSet;
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -56,11 +54,7 @@ public class KubeUtilTest {
     private static final V1Taint TAINT_SCHEDULER_FENZO = new V1Taint().key(KubeConstants.TAINT_SCHEDULER).value(KubeConstants.TAINT_SCHEDULER_VALUE_FENZO);
     private static final V1Taint TAINT_SCHEDULER_OTHER = new V1Taint().key(KubeConstants.TAINT_SCHEDULER).value(KubeConstants.TAINT_SCHEDULER_VALUE_KUBE);
     private static final V1Taint TAINT_NODE_UNINITIALIZED = new V1Taint().key(KubeConstants.TAINT_NODE_UNINITIALIZED).value("someValue");
-    private static final V1Taint TAINT_TOLERATED_TAINT_1 = new V1Taint().key("toleratedTaint1").value("someValue");
-    private static final V1Taint TAINT_TOLERATED_TAINT_2 = new V1Taint().key("toleratedTaint2").value("someValue");
     private static final V1Taint TAINT_NOT_TOLERATED_TAINT = new V1Taint().key("notToleratedTaint").value("someValue");
-
-    private static final Set<String> TOLERATED_TAINTS = asSet(TAINT_TOLERATED_TAINT_1.getKey(), TAINT_TOLERATED_TAINT_2.getKey());
 
     @Test
     public void testIsFarzone() {
