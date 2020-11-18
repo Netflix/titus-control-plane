@@ -22,6 +22,7 @@ import io.kubernetes.client.openapi.ApiClient;
 import io.kubernetes.client.openapi.apis.CoreV1Api;
 import io.kubernetes.client.openapi.apis.CustomObjectsApi;
 import io.kubernetes.client.openapi.models.V1Node;
+import io.kubernetes.client.openapi.models.V1PersistentVolume;
 import io.kubernetes.client.openapi.models.V1Pod;
 
 public interface KubeApiFacade {
@@ -35,6 +36,8 @@ public interface KubeApiFacade {
     SharedIndexInformer<V1Node> getNodeInformer();
 
     SharedIndexInformer<V1Pod> getPodInformer();
+
+    SharedIndexInformer<V1PersistentVolume> getPersistentVolumeInformer();
 
     /**
      * Provide information about how up to date the pod informer data is. If the pod informer is connected, and synced

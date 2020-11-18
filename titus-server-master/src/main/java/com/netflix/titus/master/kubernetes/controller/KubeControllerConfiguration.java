@@ -57,4 +57,11 @@ public interface KubeControllerConfiguration {
      */
     @DefaultValue("300000")
     long getPodTerminalGracePeriodMs();
+
+    /**
+     * Amount of time to wait for a persistent volume that has not been associated with any active job
+     * before deleting the persistent volume.
+     */
+    @DefaultValue("300000")
+    long getPersistentVolumeUnassociatedGracePeriodMs();
 }
