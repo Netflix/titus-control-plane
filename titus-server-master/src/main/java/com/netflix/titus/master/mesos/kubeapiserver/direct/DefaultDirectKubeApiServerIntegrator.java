@@ -37,16 +37,20 @@ import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.common.framework.fit.FitFramework;
 import com.netflix.titus.common.framework.fit.FitInjection;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.ExecutorsExt;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.rx.ReactorExt;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
-import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodEvent;
+import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
 import io.kubernetes.client.informer.ResourceEventHandler;
 import io.kubernetes.client.openapi.ApiException;
+import io.kubernetes.client.openapi.apis.CoreV1Api;
 import io.kubernetes.client.openapi.models.V1Node;
+import io.kubernetes.client.openapi.models.V1PersistentVolume;
 import io.kubernetes.client.openapi.models.V1Pod;
+import io.kubernetes.client.openapi.models.V1Volume;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.DirectProcessor;
@@ -140,27 +144,19 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
     @Override
     public Mono<V1Pod> launchTask(Job job, Task task) {
         return Mono.fromCallable(() -> {
-            Stopwatch timer = Stopwatch.createStarted();
             try {
                 V1Pod v1Pod = taskToPodConverter.apply(job, task);
                 logger.info("creating pod: {}", v1Pod);
-
-                fitKubeInjection.ifPresent(i -> i.beforeImmediate(KubeFitAction.ErrorKind.POD_CREATE_ERROR.name()));
-
-                kubeApiFacade.getCoreV1Api().createNamespacedPod(KUBERNETES_NAMESPACE, v1Pod, null, null, null);
-                pods.putIfAbsent(task.getId(), v1Pod);
-
-                metrics.launchSuccess(task, v1Pod, timer.elapsed(TimeUnit.MILLISECONDS));
-
                 return v1Pod;
             } catch (Exception e) {
-                logger.error("Unable to create pod with error: {}", KubeUtil.toErrorDetails(e), e);
-
-                metrics.launchError(task, e, timer.elapsed(TimeUnit.MILLISECONDS));
-
-                throw new IllegalStateException("Unable to launch a task " + task.getId(), e);
+                logger.error("Unable to convert job {} and task {} to pod: {}", job, task, KubeUtil.toErrorDetails(e), e);
+                throw new IllegalStateException("Unable to convert task to pod " + task.getId(), e);
             }
-        }).subscribeOn(apiClientScheduler).timeout(Duration.ofMillis(configuration.getKubeApiClientTimeoutMs()));
+        })
+                .flatMap(v1Pod -> launchPersistentVolume(job, task, v1Pod, kubeApiFacade.getCoreV1Api())
+                        .then(Mono.just(v1Pod)))
+                .flatMap(v1Pod -> launchPod(task, v1Pod))
+                .subscribeOn(apiClientScheduler).timeout(Duration.ofMillis(configuration.getKubeApiClientTimeoutMs()));
     }
 
     @Override
@@ -216,6 +212,62 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
     @Override
     public String resolveReasonCode(Throwable cause) {
         return podCreateErrorToReasonCodeResolver.resolveReasonCode(cause);
+    }
+
+    private Mono<V1PersistentVolume> launchPersistentVolume(Job<?> job, Task task, V1Pod v1Pod, CoreV1Api coreV1Api) {
+        return Mono.defer(() -> {
+            Stopwatch timer = Stopwatch.createStarted();
+
+            Optional<V1Volume> optionalV1Volume = CollectionsExt.nonNull(v1Pod.getSpec().getVolumes())
+                    .stream()
+                    .filter(v1Volume -> null != v1Volume.getAwsElasticBlockStore())
+                    .findFirst();
+            if (!optionalV1Volume.isPresent()) {
+                return Mono.empty();
+            }
+            V1Volume v1Volume = optionalV1Volume.get();
+            V1PersistentVolume v1PersistentVolume = KubeModelConverters.toV1PersistentVolume(job, task, v1Volume);
+
+            logger.info("Creating persistent volume {} for task {}", v1PersistentVolume, task.getId());
+
+            try {
+                coreV1Api.createPersistentVolume(v1PersistentVolume, null, null, null);
+                logger.info("Created persistent volume {} in {}", v1PersistentVolume, timer.elapsed(TimeUnit.MILLISECONDS));
+                metrics.persistentVolumeCreateSuccess(timer.elapsed(TimeUnit.MILLISECONDS));
+            } catch (ApiException apiException) {
+                if (isEbsVolumeConflictException(apiException)) {
+                    logger.info("Persistent volume already exists {}", v1PersistentVolume);
+                } else {
+                    logger.error("Unable to create persistent volume {}, error: {}", v1PersistentVolume, apiException);
+                    metrics.persistentVolumeCreateError(apiException, timer.elapsed(TimeUnit.MILLISECONDS));
+                    return Mono.error(new IllegalStateException("Unable to create a persistent volume " + v1PersistentVolume, apiException));
+                }
+            }
+
+            return Mono.just(v1PersistentVolume);
+        });
+    }
+
+    private Mono<V1Pod> launchPod(Task task, V1Pod v1Pod) {
+        return Mono.fromCallable(() -> {
+            Stopwatch timer = Stopwatch.createStarted();
+            try {
+                fitKubeInjection.ifPresent(i -> i.beforeImmediate(KubeFitAction.ErrorKind.POD_CREATE_ERROR.name()));
+
+                kubeApiFacade.getCoreV1Api().createNamespacedPod(KUBERNETES_NAMESPACE, v1Pod, null, null, null);
+                pods.putIfAbsent(task.getId(), v1Pod);
+
+                metrics.launchSuccess(task, v1Pod, timer.elapsed(TimeUnit.MILLISECONDS));
+
+                return v1Pod;
+            } catch (Exception e) {
+                logger.error("Unable to create pod with error: {}", KubeUtil.toErrorDetails(e), e);
+
+                metrics.launchError(task, e, timer.elapsed(TimeUnit.MILLISECONDS));
+
+                throw new IllegalStateException("Unable to launch a task " + task.getId(), e);
+            }
+        });
     }
 
     private Flux<PodEvent> kubeInformerEvents() {
@@ -285,5 +337,10 @@ public class DefaultDirectKubeApiServerIntegrator implements DirectKubeApiServer
             return Optional.empty();
         }
         return Optional.ofNullable(kubeApiFacade.getNodeInformer().getIndexer().getByKey(nodeName));
+    }
+
+    private static boolean isEbsVolumeConflictException(ApiException apiException) {
+        return apiException.getCode() == 409 &&
+                apiException.getResponseBody().contains("AlreadyExists");
     }
 }

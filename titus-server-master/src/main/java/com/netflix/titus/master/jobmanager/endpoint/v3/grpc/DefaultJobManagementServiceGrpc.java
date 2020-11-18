@@ -52,6 +52,8 @@ import com.netflix.titus.api.model.ResourceDimension;
 import com.netflix.titus.api.model.Tier;
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
 import com.netflix.titus.api.service.TitusServiceException;
+import com.netflix.titus.common.model.admission.AdmissionSanitizer;
+import com.netflix.titus.common.model.admission.AdmissionValidator;
 import com.netflix.titus.common.model.sanitizer.EntitySanitizer;
 import com.netflix.titus.common.model.sanitizer.ValidationError;
 import com.netflix.titus.common.runtime.TitusRuntime;
@@ -141,6 +143,8 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
     private final V3JobOperations jobOperations;
     private final LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo;
     private final EntitySanitizer entitySanitizer;
+    private final AdmissionValidator<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> admissionValidator;
+    private final AdmissionSanitizer<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> admissionSanitizer;
     private final ObjectConfigurationResolver<com.netflix.titus.api.jobmanager.model.job.JobDescriptor, CustomJobConfiguration> customJobConfigurationResolver;
     private final CallMetadataResolver callMetadataResolver;
     private final CellDecorator cellDecorator;
@@ -156,6 +160,8 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
                                            V3JobOperations jobOperations,
                                            LogStorageInfo<com.netflix.titus.api.jobmanager.model.job.Task> logStorageInfo,
                                            @Named(JOB_STRICT_SANITIZER) EntitySanitizer entitySanitizer,
+                                           AdmissionValidator<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> admissionValidator,
+                                           AdmissionSanitizer<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> admissionSanitizer,
                                            ObjectConfigurationResolver<com.netflix.titus.api.jobmanager.model.job.JobDescriptor, CustomJobConfiguration> customJobConfigurationResolver,
                                            CallMetadataResolver callMetadataResolver,
                                            CellInfoResolver cellInfoResolver,
@@ -168,6 +174,8 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
         this.jobOperations = jobOperations;
         this.logStorageInfo = logStorageInfo;
         this.entitySanitizer = entitySanitizer;
+        this.admissionValidator = admissionValidator;
+        this.admissionSanitizer = admissionSanitizer;
         this.customJobConfigurationResolver = customJobConfigurationResolver;
         this.callMetadataResolver = callMetadataResolver;
         this.cellDecorator = new CellDecorator(cellInfoResolver::getCellName);
@@ -180,53 +188,51 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
 
     @Override
     public void createJob(JobDescriptor jobDescriptor, StreamObserver<JobId> responseObserver) {
-        execute(callMetadataResolver, responseObserver, callMetadata ->
-                validateAndConvertJobDescriptorToCoreModel(jobDescriptor, responseObserver).ifPresent(sanitized ->
-                        authorizeJobCreate(callMetadata, sanitized)
-                                .concatWith(jobOperations.createJobReactor(sanitized, callMetadata))
-                                .subscribe(
-                                        jobId -> responseObserver.onNext(JobId.newBuilder().setId(jobId).build()),
-                                        e -> safeOnError(logger, e, responseObserver),
-                                        responseObserver::onCompleted
-                                )));
+        execute(callMetadataResolver, responseObserver, callMetadata -> validateAndConvertJobDescriptorToCoreModel(jobDescriptor)
+                .flatMap(sanitizedCoreJobDescriptor -> authorizeJobCreate(callMetadata, sanitizedCoreJobDescriptor)
+                        .then(Mono.just(sanitizedCoreJobDescriptor)))
+                .flatMap(sanitizedCoreJobDescriptor -> jobOperations.createJobReactor(sanitizedCoreJobDescriptor, callMetadata))
+                .subscribe(
+                        jobId -> responseObserver.onNext(JobId.newBuilder().setId(jobId).build()),
+                        e -> safeOnError(logger, e, responseObserver),
+                        responseObserver::onCompleted
+                ));
     }
 
-    private Optional<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> validateAndConvertJobDescriptorToCoreModel(JobDescriptor jobDescriptor, StreamObserver<JobId> responseObserver) {
-        if (configuration.isJobSizeValidationEnabled()) {
-            com.netflix.titus.api.jobmanager.model.job.JobDescriptor coreJobDescriptor = GrpcJobManagementModelConverters.toCoreJobDescriptor(jobDescriptor);
+    private Mono<com.netflix.titus.api.jobmanager.model.job.JobDescriptor> validateAndConvertJobDescriptorToCoreModel(JobDescriptor jobDescriptor) {
+        return Mono.defer(() -> {
+            if (configuration.isJobSizeValidationEnabled()) {
+                com.netflix.titus.api.jobmanager.model.job.JobDescriptor coreJobDescriptor = GrpcJobManagementModelConverters.toCoreJobDescriptor(jobDescriptor);
 
-            Tier tier = findTier(coreJobDescriptor);
-            ResourceDimension requestedResources = toResourceDimension(coreJobDescriptor.getContainer().getContainerResources());
-            List<ResourceDimension> tierResourceLimits = getTierResourceLimits(tier);
-            if (isTooLarge(requestedResources, tierResourceLimits)) {
-                safeOnError(logger,
-                        JobManagerException.invalidContainerResources(tier, requestedResources, tierResourceLimits),
-                        responseObserver
-                );
-                return Optional.empty();
+                Tier tier = findTier(coreJobDescriptor);
+                ResourceDimension requestedResources = toResourceDimension(coreJobDescriptor.getContainer().getContainerResources());
+                List<ResourceDimension> tierResourceLimits = getTierResourceLimits(tier);
+                if (isTooLarge(requestedResources, tierResourceLimits)) {
+                    return Mono.error(JobManagerException.invalidContainerResources(tier, requestedResources, tierResourceLimits));
+                }
             }
-        }
 
-        com.netflix.titus.api.jobmanager.model.job.JobDescriptor coreJobDescriptor;
-        try {
-            coreJobDescriptor = GrpcJobManagementModelConverters.toCoreJobDescriptor(cellDecorator.ensureCellInfo(jobDescriptor));
-        } catch (Exception e) {
-            safeOnError(logger, TitusServiceException.invalidArgument(e), responseObserver);
-            return Optional.empty();
-        }
+            com.netflix.titus.api.jobmanager.model.job.JobDescriptor coreJobDescriptor;
+            try {
+                coreJobDescriptor = GrpcJobManagementModelConverters.toCoreJobDescriptor(cellDecorator.ensureCellInfo(jobDescriptor));
+            } catch (Exception e) {
+                return Mono.error(TitusServiceException.invalidArgument(e));
+            }
 
-        com.netflix.titus.api.jobmanager.model.job.JobDescriptor sanitizedCoreJobDescriptor = entitySanitizer.sanitize(coreJobDescriptor).orElse(coreJobDescriptor);
-
-        Set<ValidationError> violations = CollectionsExt.merge(
-                entitySanitizer.validate(sanitizedCoreJobDescriptor),
-                validateCustomJobLimits(sanitizedCoreJobDescriptor)
-        );
-        if (!violations.isEmpty()) {
-            safeOnError(logger, TitusServiceException.invalidArgument(violations), responseObserver);
-            return Optional.empty();
-        }
-
-        return Optional.of(sanitizedCoreJobDescriptor);
+            return Mono.fromCallable(() -> entitySanitizer.sanitize(coreJobDescriptor).orElse(coreJobDescriptor))
+                    .flatMap(admissionSanitizer::sanitizeAndApply)
+                    .flatMap(sanitizedCoreJobDescriptor -> admissionValidator.validate(sanitizedCoreJobDescriptor)
+                            .map(violations -> CollectionsExt.merge(
+                                    violations,
+                                    entitySanitizer.validate(sanitizedCoreJobDescriptor),
+                                    validateCustomJobLimits(sanitizedCoreJobDescriptor)))
+                            .flatMap(violations -> {
+                                if (!violations.isEmpty()) {
+                                    return Mono.error(TitusServiceException.invalidArgument(violations));
+                                }
+                                return Mono.just(sanitizedCoreJobDescriptor);
+                            }));
+        });
     }
 
     @Override
@@ -663,7 +669,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
         serverObserver.setOnCancelHandler(subscription::unsubscribe);
     }
 
-    private Mono<String> authorizeJobCreate(CallMetadata callMetadata, com.netflix.titus.api.jobmanager.model.job.JobDescriptor<?> jobDescriptor) {
+    private Mono<Void> authorizeJobCreate(CallMetadata callMetadata, com.netflix.titus.api.jobmanager.model.job.JobDescriptor<?> jobDescriptor) {
         return authorizationService.authorize(callMetadata, jobDescriptor).flatMap(this::processAuthorizationReply);
     }
 
@@ -691,7 +697,7 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
         });
     }
 
-    private <T> Mono<T> processAuthorizationReply(AuthorizationStatus authorizationResult) {
+    private Mono<Void> processAuthorizationReply(AuthorizationStatus authorizationResult) {
         if (!authorizationResult.isAuthorized()) {
             Status status = Status.PERMISSION_DENIED
                     .withDescription("Request not authorized: " + authorizationResult.getReason());
@@ -815,6 +821,12 @@ public class DefaultJobManagementServiceGrpc extends JobManagementServiceGrpc.Jo
                                 j.getId(),
                                 capacityAttributes.getMax().orElse(0),
                                 j.getJobDescriptor().getContainer().getContainerResources().getSignedIpAddressAllocations().size());
+                    } else if (j.getJobDescriptor().getContainer().getContainerResources().getEbsVolumes().size() > 0 &&
+                            capacityAttributes.getMax().orElse(0) > j.getJobDescriptor().getContainer().getContainerResources().getEbsVolumes().size()) {
+                        throw JobManagerException.invalidMaxCapacity(
+                                j.getId(),
+                                capacityAttributes.getMax().orElse(0),
+                                j.getJobDescriptor().getContainer().getContainerResources().getEbsVolumes().size());
                     }
                     return (com.netflix.titus.api.jobmanager.model.job.Job<ServiceJobExt>) j;
                 })

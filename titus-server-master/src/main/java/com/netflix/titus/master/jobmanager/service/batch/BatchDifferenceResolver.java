@@ -81,6 +81,7 @@ import rx.schedulers.Schedulers;
 import static com.netflix.titus.api.jobmanager.service.JobManagerConstants.RECONCILER_CALLMETADATA;
 import static com.netflix.titus.master.jobmanager.service.batch.action.CreateOrReplaceBatchTaskActions.createOrReplaceTaskAction;
 import static com.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils.getTaskContext;
+import static com.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils.getUnassignedEbsVolumes;
 import static com.netflix.titus.master.jobmanager.service.common.DifferenceResolverUtils.getUnassignedIpAllocations;
 
 @Singleton
@@ -222,14 +223,15 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
      */
     private List<ChangeAction> findJobSizeInconsistencies(BatchJobView refJobView, EntityHolder storeModel, AtomicInteger allowedNewTasks) {
         boolean canUpdateStore = storeWriteRetryInterceptor.executionLimits(storeModel);
-        Set<String> unassignedIpAllocations = getUnassignedIpAllocations(refJobView);
+        List<String> unassignedIpAllocations = getUnassignedIpAllocations(refJobView);
+        List<String> unassignedEbsVolumeIds = getUnassignedEbsVolumes(refJobView);
         if (canUpdateStore && refJobView.getTasks().size() < refJobView.getRequiredSize()) {
             List<ChangeAction> missingTasks = new ArrayList<>();
             for (int i = 0; i < refJobView.getRequiredSize() && allowedNewTasks.get() > 0; i++) {
                 if (!refJobView.getIndexes().contains(i)) {
                     allowedNewTasks.decrementAndGet();
                     logger.info("Adding missing task: jobId={}, index={}, requiredSize={}, currentSize={}", refJobView.getJob().getId(), i, refJobView.getRequiredSize(), refJobView.getTasks().size());
-                    createNewTaskAction(refJobView, i, Optional.empty(), unassignedIpAllocations).ifPresent(missingTasks::add);
+                    createNewTaskAction(refJobView, i, Optional.empty(), unassignedIpAllocations, unassignedEbsVolumeIds).ifPresent(missingTasks::add);
                 }
             }
             return missingTasks;
@@ -237,7 +239,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
         return Collections.emptyList();
     }
 
-    private Optional<TitusChangeAction> createNewTaskAction(BatchJobView refJobView, int taskIndex, Optional<EntityHolder> previousTask, Set<String> unassignedIpAllocations) {
+    private Optional<TitusChangeAction> createNewTaskAction(BatchJobView refJobView, int taskIndex, Optional<EntityHolder> previousTask, List<String> unassignedIpAllocations, List<String> ebsVolumeIds) {
         // Safety check
         long numberOfNotFinishedTasks = refJobView.getJobHolder().getChildren().stream()
                 .filter(holder -> TaskState.isRunning(((Task) holder.getEntity()).getStatus().getState()))
@@ -250,7 +252,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
             return Optional.empty();
         }
 
-        Map<String, String> taskContext = getTaskContext(previousTask, unassignedIpAllocations);
+        Map<String, String> taskContext = getTaskContext(previousTask, unassignedIpAllocations, ebsVolumeIds);
 
         JobDescriptor jobDescriptor = refJobView.getJob().getJobDescriptor();
         ApplicationSLA capacityGroupDescriptor = JobManagerUtil.getCapacityGroupDescriptor(jobDescriptor, capacityGroupService);
@@ -331,7 +333,7 @@ public class BatchDifferenceResolver implements ReconciliationEngine.DifferenceR
                 BatchJobTask storeTask = storeHolder.get().getEntity();
                 if (shouldRetry && TaskRetryers.shouldRetryNow(referenceTask, clock)) {
                     logger.info("Retrying task: oldTaskId={}, index={}", referenceTask.getId(), storeTask.getIndex());
-                    createNewTaskAction(refJobView, storeTask.getIndex(), Optional.of(referenceTask), Collections.emptySet()).ifPresent(actions::add);
+                    createNewTaskAction(refJobView, storeTask.getIndex(), Optional.of(referenceTask), Collections.emptyList(), Collections.emptyList()).ifPresent(actions::add);
                 }
             } else {
                 Task task = referenceTask.getEntity();

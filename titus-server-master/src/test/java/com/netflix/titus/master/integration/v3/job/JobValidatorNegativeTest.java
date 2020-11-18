@@ -29,7 +29,7 @@ import com.netflix.titus.common.model.admission.AdmissionValidator;
 import com.netflix.titus.runtime.endpoint.admission.AggregatingValidator;
 import com.netflix.titus.runtime.endpoint.admission.FailJobValidator;
 import com.netflix.titus.runtime.endpoint.admission.PassJobValidator;
-import com.netflix.titus.runtime.endpoint.admission.TitusValidatorConfiguration;
+import com.netflix.titus.common.model.admission.TitusValidatorConfiguration;
 import com.netflix.titus.testkit.embedded.cell.EmbeddedTitusCell;
 import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMasters;
 import com.netflix.titus.testkit.embedded.cloud.SimulatedCloud;

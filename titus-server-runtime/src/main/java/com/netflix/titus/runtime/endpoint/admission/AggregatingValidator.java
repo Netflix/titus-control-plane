@@ -28,6 +28,7 @@ import javax.inject.Singleton;
 import com.netflix.spectator.api.Registry;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.common.model.admission.AdmissionValidator;
+import com.netflix.titus.common.model.admission.TitusValidatorConfiguration;
 import com.netflix.titus.common.model.admission.ValidatorMetrics;
 import com.netflix.titus.common.model.sanitizer.ValidationError;
 import reactor.core.publisher.Mono;

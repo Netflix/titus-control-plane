@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -27,6 +28,8 @@ import javax.inject.Singleton;
 import com.netflix.titus.api.jobmanager.JobConstraints;
 import com.netflix.titus.api.jobmanager.model.job.Job;
 import com.netflix.titus.api.jobmanager.model.job.Task;
+import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolume;
+import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolumeUtils;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.resourcepool.PodResourcePoolResolver;
@@ -65,17 +68,19 @@ public class DefaultPodAffinityFactory implements PodAffinityFactory {
 
     @Override
     public Pair<V1Affinity, Map<String, String>> buildV1Affinity(Job<?> job, Task task) {
-        return new Processor(job).build();
+        return new Processor(job, task).build();
     }
 
     private class Processor {
 
         private final Job<?> job;
+        private final Task task;
         private final V1Affinity v1Affinity;
         private final Map<String, String> annotations = new HashMap<>();
 
-        private Processor(Job<?> job) {
+        private Processor(Job<?> job, Task task) {
             this.job = job;
+            this.task = task;
             this.v1Affinity = new V1Affinity();
 
             processJobConstraints(toLowerCaseKeys(job.getJobDescriptor().getContainer().getHardConstraints()), true);
@@ -237,6 +242,13 @@ public class DefaultPodAffinityFactory implements PodAffinityFactory {
         private void processZoneConstraints() {
             // If we have a single zone hard constraint defined, there is no need to add anything on top of this.
             if (!StringExt.isEmpty(job.getJobDescriptor().getContainer().getHardConstraints().get(JobConstraints.AVAILABILITY_ZONE))) {
+                return;
+            }
+
+            // If there is an EBS volume, it defaults to placement in the volume's zone
+            Optional<EbsVolume> optionalEbsVolume = EbsVolumeUtils.getEbsVolumeForTask(job, task);
+            if (optionalEbsVolume.isPresent()) {
+                addNodeAffinitySelectorConstraint(KubeConstants.NODE_LABEL_ZONE, optionalEbsVolume.get().getVolumeAvailabilityZone(), true);
                 return;
             }
 

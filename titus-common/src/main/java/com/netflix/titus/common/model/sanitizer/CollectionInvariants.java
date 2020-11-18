@@ -46,6 +46,8 @@ public @interface CollectionInvariants {
 
     boolean allowNullValues() default false;
 
+    boolean allowDuplicateValues() default true;
+
     String message() default "{CollectionInvariants.message}";
 
     Class<?>[] groups() default {};

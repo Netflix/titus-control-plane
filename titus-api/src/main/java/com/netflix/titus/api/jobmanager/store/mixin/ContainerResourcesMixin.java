@@ -21,6 +21,7 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolume;
 import com.netflix.titus.api.jobmanager.model.job.vpc.SignedIpAddressAllocation;
 import com.netflix.titus.api.model.EfsMount;
 
@@ -35,6 +36,7 @@ public abstract class ContainerResourcesMixin {
                                    @JsonProperty("efsMounts") List<EfsMount> efsMounts,
                                    @JsonProperty("allocateIP") boolean allocateIP,
                                    @JsonProperty("shmMB") int shmMB,
-                                   @JsonProperty("signedIpAddressAllocations") List<SignedIpAddressAllocation> signedIpAddressAllocations) {
+                                   @JsonProperty("signedIpAddressAllocations") List<SignedIpAddressAllocation> signedIpAddressAllocations,
+                                   @JsonProperty("ebsVolumes") List<EbsVolume> ebsVolumes) {
     }
 }

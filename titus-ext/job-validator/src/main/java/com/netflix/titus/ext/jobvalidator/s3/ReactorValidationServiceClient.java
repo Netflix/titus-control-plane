@@ -16,6 +16,8 @@
 
 package com.netflix.titus.ext.jobvalidator.s3;
 
+import com.netflix.compute.validator.protogen.ComputeValidator.EbsVolumeValidationRequest;
+import com.netflix.compute.validator.protogen.ComputeValidator.EbsVolumeValidationResponse;
 import com.netflix.compute.validator.protogen.ComputeValidator.IamRoleValidationRequest;
 import com.netflix.compute.validator.protogen.ComputeValidator.IamRoleValidationResponse;
 import com.netflix.compute.validator.protogen.ComputeValidator.ImageValidationRequest;
@@ -39,4 +41,7 @@ public interface ReactorValidationServiceClient {
 
     // Validates image.
     Mono<ImageValidationResponse> validateImage(ImageValidationRequest request);
+
+    // Validate EBS volume IDs.
+    Mono<EbsVolumeValidationResponse> validateEbsVolume(EbsVolumeValidationRequest request);
 }

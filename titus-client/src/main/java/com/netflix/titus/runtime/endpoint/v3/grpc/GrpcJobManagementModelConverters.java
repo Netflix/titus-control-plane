@@ -59,6 +59,8 @@ import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.SelfManagedDi
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.TimeWindow;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.UnhealthyTasksLimitDisruptionBudgetPolicy;
 import com.netflix.titus.api.jobmanager.model.job.disruptionbudget.UnlimitedDisruptionBudgetRate;
+import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolume;
+import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolumeUtils;
 import com.netflix.titus.api.jobmanager.model.job.event.JobManagerEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.JobUpdateEvent;
 import com.netflix.titus.api.jobmanager.model.job.event.TaskUpdateEvent;
@@ -154,7 +156,8 @@ public final class GrpcJobManagementModelConverters {
     }
 
     public static JobDescriptor toCoreJobDescriptor(com.netflix.titus.grpc.protogen.JobDescriptor grpcJobDescriptor) {
-        return JobDescriptor.newBuilder()
+
+        JobDescriptor coreJobDescriptor = JobDescriptor.newBuilder()
                 .withOwner(toCoreOwner(grpcJobDescriptor.getOwner()))
                 .withApplicationName(grpcJobDescriptor.getApplicationName())
                 .withJobGroupInfo(toCoreJobGroupInfo(grpcJobDescriptor.getJobGroupInfo()))
@@ -163,6 +166,25 @@ public final class GrpcJobManagementModelConverters {
                 .withAttributes(grpcJobDescriptor.getAttributesMap())
                 .withDisruptionBudget(toCoreDisruptionBudget(grpcJobDescriptor.getDisruptionBudget()))
                 .withExtensions(toCoreJobExtensions(grpcJobDescriptor))
+                .build();
+
+        return mapAttributesToCoreJobDescriptor(coreJobDescriptor);
+    }
+
+    /*
+     * Maps configurations that exist in job attributes to core model types.
+     */
+    public static <E extends JobDescriptor.JobDescriptorExt> JobDescriptor<E> mapAttributesToCoreJobDescriptor(JobDescriptor<E> coreJobDescriptor) {
+
+        // Extract/map EBS volume attributes
+        List<EbsVolume> ebsVolumes = EbsVolumeUtils.getEbsVolumes(coreJobDescriptor);
+
+        return coreJobDescriptor.toBuilder()
+                .withContainer(coreJobDescriptor.getContainer().toBuilder()
+                        .withContainerResources(coreJobDescriptor.getContainer().getContainerResources().toBuilder()
+                                .withEbsVolumes(ebsVolumes)
+                                .build())
+                        .build())
                 .build();
     }
 
@@ -231,6 +253,7 @@ public final class GrpcJobManagementModelConverters {
                 ? Collections.emptyList()
                 : grpcResources.getSignedAddressAllocationsList().stream().map(GrpcJobManagementModelConverters::toCoreSignedIpAddressAllocation)
                 .collect(Collectors.toList());
+
         return JobModel.newContainerResources()
                 .withCpu(grpcResources.getCpu())
                 .withGpu(grpcResources.getGpu())

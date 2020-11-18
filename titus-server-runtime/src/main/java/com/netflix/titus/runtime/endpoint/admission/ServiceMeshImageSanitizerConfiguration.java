@@ -18,6 +18,8 @@ package com.netflix.titus.runtime.endpoint.admission;
 
 import com.netflix.archaius.api.annotations.Configuration;
 import com.netflix.archaius.api.annotations.DefaultValue;
+import com.netflix.titus.common.model.admission.AdmissionValidatorConfiguration;
+import com.netflix.titus.common.model.admission.TitusValidatorConfiguration;
 
 @Configuration(prefix = "titus.validate.serviceMesh.image")
 public interface ServiceMeshImageSanitizerConfiguration extends AdmissionValidatorConfiguration {

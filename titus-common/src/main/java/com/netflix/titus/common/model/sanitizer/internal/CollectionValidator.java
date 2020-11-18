@@ -23,7 +23,6 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
 import javax.validation.ConstraintValidatorContext;
 
 import com.netflix.titus.common.model.sanitizer.CollectionInvariants;
@@ -60,6 +59,13 @@ public class CollectionValidator extends AbstractConstraintValidator<CollectionI
         if (!constraintAnnotation.allowNullValues()) {
             if (value.stream().anyMatch(Objects::isNull)) {
                 attachMessage(constraintViolationBuilderFunction, "null values not allowed");
+                return false;
+            }
+        }
+
+        if (!constraintAnnotation.allowDuplicateValues()) {
+            if (value.stream().distinct().count() != value.size()) {
+                attachMessage(constraintViolationBuilderFunction, "duplicate values not allowed");
                 return false;
             }
         }

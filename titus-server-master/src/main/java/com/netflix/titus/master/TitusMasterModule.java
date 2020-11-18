@@ -34,6 +34,7 @@ import com.netflix.titus.master.config.CellInfoResolver;
 import com.netflix.titus.master.config.ConfigurableCellInfoResolver;
 import com.netflix.titus.master.config.MasterConfiguration;
 import com.netflix.titus.master.endpoint.MasterEndpointModule;
+import com.netflix.titus.master.endpoint.admission.JobCoordinatorAdmissionModule;
 import com.netflix.titus.master.endpoint.common.ContextResolver;
 import com.netflix.titus.master.endpoint.common.EmptyContextResolver;
 import com.netflix.titus.master.endpoint.v2.rest.JerseyModule;
@@ -120,6 +121,7 @@ public class TitusMasterModule extends AbstractModule {
             install(new JerseyModule());
         }
 
+        install(new JobCoordinatorAdmissionModule());
         install(new MasterEndpointModule());
         install(new HealthModule());
         install(new V3EndpointModule());

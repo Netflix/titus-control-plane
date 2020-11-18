@@ -49,7 +49,7 @@ import com.netflix.titus.common.model.admission.AdmissionSanitizer;
 import com.netflix.titus.common.model.admission.AdmissionValidator;
 import com.netflix.titus.runtime.endpoint.admission.AggregatingSanitizer;
 import com.netflix.titus.runtime.endpoint.admission.PassJobValidator;
-import com.netflix.titus.runtime.endpoint.admission.TitusValidatorConfiguration;
+import com.netflix.titus.common.model.admission.TitusValidatorConfiguration;
 import com.netflix.titus.runtime.endpoint.common.rest.EmbeddedJettyModule;
 import com.netflix.titus.runtime.endpoint.metadata.V3HeaderInterceptor;
 import com.netflix.titus.testkit.embedded.cell.master.EmbeddedTitusMaster;
