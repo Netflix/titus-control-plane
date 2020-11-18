@@ -35,8 +35,8 @@ import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_EB
 public class EbsVolumeUtils {
 
     public static <E extends JobDescriptor.JobDescriptorExt> List<EbsVolume> getEbsVolumes(JobDescriptor<E> jobDescriptor) {
-        List<String> volumeIds = getVolumeIds(jobDescriptor);
-        Optional<String> mountPointOptional = getMountPoint(jobDescriptor);
+        List<String> volumeIds = getEbsVolumeIds(jobDescriptor);
+        Optional<String> mountPointOptional = getEbsMountPoint(jobDescriptor);
         Optional<EbsVolume.MountPerm> mountPermOptional = getEbsMountPerm(jobDescriptor);
         Optional<String> fsTypeOptional = getEbsFsType(jobDescriptor);
 
@@ -58,12 +58,12 @@ public class EbsVolumeUtils {
                 .collect(Collectors.toList());
     }
 
-    public static <E extends JobDescriptor.JobDescriptorExt> List<String> getVolumeIds(JobDescriptor<E> jobDescriptor) {
+    public static <E extends JobDescriptor.JobDescriptorExt> List<String> getEbsVolumeIds(JobDescriptor<E> jobDescriptor) {
         String volumeIdsStr = StringExt.nonNull(jobDescriptor.getAttributes().get(JobAttributes.JOB_ATTRIBUTES_EBS_VOLUME_IDS));
         return StringExt.splitByComma(volumeIdsStr);
     }
 
-    public static <E extends JobDescriptor.JobDescriptorExt> Optional<String> getMountPoint(JobDescriptor<E> jobDescriptor) {
+    public static <E extends JobDescriptor.JobDescriptorExt> Optional<String> getEbsMountPoint(JobDescriptor<E> jobDescriptor) {
         return Optional.ofNullable(jobDescriptor.getAttributes().get(JobAttributes.JOB_ATTRIBUTES_EBS_MOUNT_POINT));
     }
 
