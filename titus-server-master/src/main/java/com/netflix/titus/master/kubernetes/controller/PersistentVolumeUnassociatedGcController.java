@@ -30,6 +30,7 @@ import com.netflix.titus.api.jobmanager.model.job.ebs.EbsVolume;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.common.framework.scheduler.LocalScheduler;
 import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.limiter.tokenbucket.FixedIntervalTokenBucketConfiguration;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 import com.netflix.titus.runtime.connector.kubernetes.KubeApiFacade;
@@ -53,6 +54,7 @@ public class PersistentVolumeUnassociatedGcController extends BaseGcController<V
     private final KubeControllerConfiguration kubeControllerConfiguration;
     private final V3JobOperations v3JobOperations;
 
+    // Contains the persistent volumes marked for GC with the timestamp of when it was marked.
     private final Map<String, Long> markedPersistentVolumes = new ConcurrentHashMap<>();
 
     @Inject
@@ -126,13 +128,13 @@ public class PersistentVolumeUnassociatedGcController extends BaseGcController<V
         V1ObjectMeta metadata = pv.getMetadata();
         V1PersistentVolumeStatus status = pv.getStatus();
 
-        if (metadata == null || status == null) {
+        if (metadata == null || metadata.getName() == null || status == null) {
             // this persistent volume is missing data so GC it
             return true;
         }
 
-        String volumeName = metadata.getName();
-        if (KubeUtil.isPersistentVolumeBound(status.getPhase())) {
+        String volumeName = StringExt.nonNull(metadata.getName());
+        if (KubeUtil.isPersistentVolumeBound(StringExt.nonNull(status.getPhase()))) {
             // this persistent volume is bound to a pod, so don't GC it
             return false;
         }
