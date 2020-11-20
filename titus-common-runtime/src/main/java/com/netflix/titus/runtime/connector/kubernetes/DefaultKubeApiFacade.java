@@ -35,6 +35,8 @@ import io.kubernetes.client.openapi.apis.CoreV1Api;
 import io.kubernetes.client.openapi.apis.CustomObjectsApi;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1NodeList;
+import io.kubernetes.client.openapi.models.V1PersistentVolume;
+import io.kubernetes.client.openapi.models.V1PersistentVolumeList;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodList;
 import io.kubernetes.client.util.CallGeneratorParams;
@@ -68,10 +70,12 @@ public class DefaultKubeApiFacade implements KubeApiFacade {
     private volatile SharedInformerFactory sharedInformerFactory;
     private volatile SharedIndexInformer<V1Node> nodeInformer;
     private volatile SharedIndexInformer<V1Pod> podInformer;
+    private volatile SharedIndexInformer<V1PersistentVolume> persistentVolumeInformer;
     private volatile SharedIndexInformer<V1OpportunisticResource> opportunisticResourceInformer;
 
     private KubeInformerMetrics<V1Node> nodeInformerMetrics;
     private KubeInformerMetrics<V1Pod> podInformerMetrics;
+    private KubeInformerMetrics<V1PersistentVolume> persistentVolumeInformerMetrics;
     private KubeInformerMetrics<V1OpportunisticResource> opportunisticResourceInformerMetrics;
 
     private volatile boolean deactivated;
@@ -92,6 +96,7 @@ public class DefaultKubeApiFacade implements KubeApiFacade {
         }
         Evaluators.acceptNotNull(nodeInformerMetrics, KubeInformerMetrics::shutdown);
         Evaluators.acceptNotNull(podInformerMetrics, KubeInformerMetrics::shutdown);
+        Evaluators.acceptNotNull(persistentVolumeInformerMetrics, KubeInformerMetrics::shutdown);
         Evaluators.acceptNotNull(opportunisticResourceInformerMetrics, KubeInformerMetrics::shutdown);
     }
 
@@ -136,6 +141,12 @@ public class DefaultKubeApiFacade implements KubeApiFacade {
     }
 
     @Override
+    public SharedIndexInformer<V1PersistentVolume> getPersistentVolumeInformer() {
+        activate();
+        return persistentVolumeInformer;
+    }
+
+    @Override
     public long getPodInformerStaleness() {
         // TODO synced is set to true on first successful execution. We need to change this logic, once we have better insight into the informer loop.
         return podInformer != null && podInformer.hasSynced() ? 0 : -1;
@@ -175,10 +186,12 @@ public class DefaultKubeApiFacade implements KubeApiFacade {
 
                 this.nodeInformer = customizeInformer("nodeInformer", createNodeInformer(sharedInformerFactory));
                 this.podInformer = customizeInformer("podInformer", createPodInformer(sharedInformerFactory));
+                this.persistentVolumeInformer = customizeInformer("persistentVolumeInformer", createPersistentVolumeInformer(sharedInformerFactory));
                 this.opportunisticResourceInformer = customizeInformer("opportunisticInformer", createOpportunisticResourceInformer(sharedInformerFactory));
 
                 this.nodeInformerMetrics = new KubeInformerMetrics<>("node", nodeInformer, titusRuntime);
                 this.podInformerMetrics = new KubeInformerMetrics<>("pod", podInformer, titusRuntime);
+                this.persistentVolumeInformerMetrics = new KubeInformerMetrics<>("persistentvolume", persistentVolumeInformer, titusRuntime);
                 this.opportunisticResourceInformerMetrics = new KubeInformerMetrics<>("opportunistic", opportunisticResourceInformer, titusRuntime);
 
                 sharedInformerFactory.startAllRegisteredInformers();
@@ -234,6 +247,26 @@ public class DefaultKubeApiFacade implements KubeApiFacade {
                 ),
                 V1Pod.class,
                 V1PodList.class,
+                configuration.getKubeApiServerIntegratorRefreshIntervalMs()
+        );
+    }
+
+    private SharedIndexInformer<V1PersistentVolume> createPersistentVolumeInformer(SharedInformerFactory sharedInformerFactory) {
+        return sharedInformerFactory.sharedIndexInformerFor(
+                (CallGeneratorParams params) -> coreV1Api.listPersistentVolumeCall(
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        params.resourceVersion,
+                        params.timeoutSeconds,
+                        params.watch,
+                        null
+                ),
+                V1PersistentVolume.class,
+                V1PersistentVolumeList.class,
                 configuration.getKubeApiServerIntegratorRefreshIntervalMs()
         );
     }

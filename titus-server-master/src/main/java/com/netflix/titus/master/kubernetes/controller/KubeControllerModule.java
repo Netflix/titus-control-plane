@@ -25,6 +25,7 @@ import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.titus.common.util.limiter.tokenbucket.FixedIntervalTokenBucketConfiguration;
 
 import static com.netflix.titus.master.kubernetes.controller.NodeGcController.NODE_GC_CONTROLLER;
+import static com.netflix.titus.master.kubernetes.controller.PersistentVolumeUnassociatedGcController.PERSISTENT_VOLUME_UNASSOCIATED_GC_CONTROLLER;
 import static com.netflix.titus.master.kubernetes.controller.PodDeletionGcController.POD_DELETION_GC_CONTROLLER;
 import static com.netflix.titus.master.kubernetes.controller.PodOnUnknownNodeGcController.POD_ON_UNKNOWN_NODE_GC_CONTROLLER;
 import static com.netflix.titus.master.kubernetes.controller.PodTerminalGcController.POD_TERMINAL_GC_CONTROLLER;
@@ -39,6 +40,7 @@ public class KubeControllerModule extends AbstractModule {
         bind(PodDeletionGcController.class).asEagerSingleton();
         bind(PodTerminalGcController.class).asEagerSingleton();
         bind(PodUnknownGcController.class).asEagerSingleton();
+        bind(PersistentVolumeUnassociatedGcController.class).asEagerSingleton();
     }
 
     @Provides
@@ -115,5 +117,19 @@ public class KubeControllerModule extends AbstractModule {
     @Named(POD_UNKNOWN_GC_CONTROLLER)
     public ControllerConfiguration getPodUnknownGcControllerConfiguration(ConfigProxyFactory factory) {
         return factory.newProxy(ControllerConfiguration.class, "titus.kubernetes.controller." + POD_UNKNOWN_GC_CONTROLLER);
+    }
+
+    @Provides
+    @Singleton
+    @Named(PERSISTENT_VOLUME_UNASSOCIATED_GC_CONTROLLER)
+    public FixedIntervalTokenBucketConfiguration getPersistentVolumeUnassociatedGcControllerTokenBucketConfiguration(ConfigProxyFactory factory) {
+        return factory.newProxy(FixedIntervalTokenBucketConfiguration.class, "titus.kubernetes.controller." + PERSISTENT_VOLUME_UNASSOCIATED_GC_CONTROLLER);
+    }
+
+    @Provides
+    @Singleton
+    @Named(PERSISTENT_VOLUME_UNASSOCIATED_GC_CONTROLLER)
+    public ControllerConfiguration getPersistentVolumeUnassociatedGcControllerConfiguration(ConfigProxyFactory factory) {
+        return factory.newProxy(ControllerConfiguration.class, "titus.kubernetes.controller." + PERSISTENT_VOLUME_UNASSOCIATED_GC_CONTROLLER);
     }
 }

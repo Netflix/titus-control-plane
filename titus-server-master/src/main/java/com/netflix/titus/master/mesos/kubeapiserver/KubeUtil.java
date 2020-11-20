@@ -83,6 +83,8 @@ public class KubeUtil {
 
     private static final String FAILED = "Failed";
 
+    private static final String BOUND = "Bound";
+
     public static final String TYPE_INTERNAL_IP = "InternalIP";
 
     private static final JsonFormat.Printer grpcJsonPrinter = JsonFormat.printer().includingDefaultValueFields();
@@ -104,6 +106,10 @@ public class KubeUtil {
 
     public static boolean isPodPhaseTerminal(String phase) {
         return SUCCEEDED.equals(phase) || FAILED.equals(phase);
+    }
+
+    public static boolean isPersistentVolumeBound(String phase) {
+        return BOUND.equals(phase);
     }
 
     public static Optional<Long> findFinishedTimestamp(V1Pod pod) {
