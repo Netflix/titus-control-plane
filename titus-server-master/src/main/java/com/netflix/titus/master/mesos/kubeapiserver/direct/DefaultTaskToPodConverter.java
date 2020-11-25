@@ -32,7 +32,6 @@ import com.google.common.primitives.Ints;
 import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.JobConstraints;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
-import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Container;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.Image;
@@ -53,6 +52,8 @@ import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.Evaluators;
 import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.common.util.tuple.Pair;
+import com.netflix.titus.master.config.MasterConfiguration;
+import com.netflix.titus.master.mesos.ContainerInfoUtil;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.env.ContainerEnvFactory;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.env.ContainerEnvs;
@@ -117,6 +118,7 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
     private static final int SOFT_MAX_SKEW = 100_000;
 
     private final DirectKubeConfiguration configuration;
+    private final MasterConfiguration jobCoordinatorConfiguration;
     private final PodAffinityFactory podAffinityFactory;
     private final TaintTolerationFactory taintTolerationFactory;
     private final ContainerEnvFactory containerEnvFactory;
@@ -125,11 +127,13 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
 
     @Inject
     public DefaultTaskToPodConverter(DirectKubeConfiguration configuration,
+                                     MasterConfiguration jobCoordinatorConfiguration,
                                      PodAffinityFactory podAffinityFactory,
                                      TaintTolerationFactory taintTolerationFactory,
                                      ContainerEnvFactory ContainerEnvFactory,
                                      LogStorageInfo<Task> logStorageInfo) {
         this.configuration = configuration;
+        this.jobCoordinatorConfiguration = jobCoordinatorConfiguration;
         this.podAffinityFactory = podAffinityFactory;
         this.taintTolerationFactory = taintTolerationFactory;
         containerEnvFactory = ContainerEnvFactory;
@@ -290,22 +294,8 @@ public class DefaultTaskToPodConverter implements TaskToPodConverter {
                 v -> containerInfoBuilder.putPassthroughAttributes(RUNTIME_PREDICTIONS_AVAILABLE_ATTRIBUTE, v)
         );
 
-        // Configure Environment Variables
-        container.getEnv().forEach((k, v) -> {
-            if (v != null) {
-                containerInfoBuilder.putUserProvidedEnv(k, v);
-            }
-        });
-
-        containerInfoBuilder.putTitusProvidedEnv("TITUS_JOB_ID", task.getJobId());
-        containerInfoBuilder.putTitusProvidedEnv("TITUS_TASK_ID", task.getId());
-        containerInfoBuilder.putTitusProvidedEnv("NETFLIX_EXECUTOR", "titus");
-        containerInfoBuilder.putTitusProvidedEnv("NETFLIX_INSTANCE_ID", task.getId());
-        containerInfoBuilder.putTitusProvidedEnv("TITUS_TASK_INSTANCE_ID", task.getId());
-        containerInfoBuilder.putTitusProvidedEnv("TITUS_TASK_ORIGINAL_ID", task.getOriginalId());
-        if (task instanceof BatchJobTask) {
-            BatchJobTask batchJobTask = (BatchJobTask) task;
-            containerInfoBuilder.putTitusProvidedEnv("TITUS_TASK_INDEX", "" + batchJobTask.getIndex());
+        if (jobCoordinatorConfiguration.isContainerInfoEnvEnabled()) {
+            ContainerInfoUtil.setContainerInfoEnvVariables(containerInfoBuilder, container, task);
         }
 
         // Always set this to true until it is removed from the executor
