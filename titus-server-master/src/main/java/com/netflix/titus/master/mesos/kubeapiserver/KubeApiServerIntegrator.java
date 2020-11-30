@@ -93,6 +93,7 @@ import static com.netflix.titus.api.jobmanager.model.job.TaskState.KillInitiated
 import static com.netflix.titus.api.jobmanager.model.job.TaskState.Launched;
 import static com.netflix.titus.api.jobmanager.model.job.TaskState.StartInitiated;
 import static com.netflix.titus.api.jobmanager.model.job.TaskState.Started;
+import static com.netflix.titus.api.jobmanager.model.job.TaskState.isBefore;
 import static com.netflix.titus.api.jobmanager.model.job.TaskState.isTerminalState;
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_CRASHED;
 import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_FAILED;
@@ -630,6 +631,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
             TaskState newState;
             String reasonCode = REASON_NORMAL;
 
+            TaskState taskState = task.getStatus().getState();
             if (phase.equalsIgnoreCase(PENDING)) {
                 // inspect pod status reason to differentiate between Launched and StartInitiated (this is not standard Kubernetes)
                 if (reason.equalsIgnoreCase(TASK_STARTING)) {
@@ -637,14 +639,24 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                 } else {
                     newState = Launched;
                 }
+                // Check for races. Do not allow setting back task state.
+                if (isBefore(newState, taskState)) {
+                    titusRuntime.getCodeInvariants().inconsistent("Pod: %s in state not consistent with the task state: pod=%s, task=%s", podName, newState, taskState);
+                    return;
+                }
             } else if (phase.equalsIgnoreCase(RUNNING)) {
                 newState = Started;
+                // Check for races. Do not allow setting back task state.
+                if (isBefore(newState, taskState)) {
+                    titusRuntime.getCodeInvariants().inconsistent("Pod: %s in state not consistent with the task state: pod=%s, task=%s", podName, newState, taskState);
+                    return;
+                }
             } else if (phase.equalsIgnoreCase(SUCCEEDED)) {
                 newState = Finished;
-                if (task.getStatus().getState() == KillInitiated && task.getStatus().getReasonCode().equals(REASON_STUCK_IN_STATE)) {
+                if (taskState == KillInitiated && task.getStatus().getReasonCode().equals(REASON_STUCK_IN_STATE)) {
                     reasonCode = REASON_TRANSIENT_SYSTEM_ERROR;
                 } else {
-                    if (hasDeletionTimestamp || task.getStatus().getState() == KillInitiated) {
+                    if (hasDeletionTimestamp || taskState == KillInitiated) {
                         reasonCode = REASON_TASK_KILLED;
                     } else {
                         reasonCode = REASON_NORMAL;
@@ -692,7 +704,7 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
             Task task = taskOpt.get();
             String phase = StringExt.nonNull(status.getPhase());
             String reasonMessage = StringExt.nonNull(status.getMessage());
-            String reasonCode = REASON_NORMAL;
+            String reasonCode;
 
             Optional<TaskStatus> killInitiatedOpt = JobFunctions.findTaskStatus(task, KillInitiated);
             if (!killInitiatedOpt.isPresent()) {
@@ -703,10 +715,31 @@ public class KubeApiServerIntegrator implements VirtualMachineMasterService {
                 } else {
                     publishContainerEvent(podName, KillInitiated, reasonCode, "Container was terminated without going through the Titus API", executorDetails, eventTimestamp);
                 }
+            } else if (phase.equalsIgnoreCase(PENDING)) {
+                // Pod in pending phase which is being deleted must have been killed, as it was never run.
+                TaskState taskState = task.getStatus().getState();
+                if (taskState == KillInitiated && task.getStatus().getReasonCode().equals(REASON_STUCK_IN_STATE)) {
+                    reasonCode = REASON_TRANSIENT_SYSTEM_ERROR;
+                } else {
+                    reasonCode = REASON_TASK_KILLED;
+                }
             } else if (phase.equalsIgnoreCase(SUCCEEDED)) {
-                reasonCode = REASON_NORMAL;
+                TaskState taskState = task.getStatus().getState();
+                if (taskState == KillInitiated && task.getStatus().getReasonCode().equals(REASON_STUCK_IN_STATE)) {
+                    reasonCode = REASON_TRANSIENT_SYSTEM_ERROR;
+                } else {
+                    boolean hasDeletionTimestamp = metadata != null && metadata.getDeletionTimestamp() != null;
+                    if (hasDeletionTimestamp || taskState == KillInitiated) {
+                        reasonCode = REASON_TASK_KILLED;
+                    } else {
+                        reasonCode = REASON_NORMAL;
+                    }
+                }
             } else if (phase.equalsIgnoreCase(FAILED)) {
                 reasonCode = REASON_FAILED;
+            } else {
+                titusRuntime.getCodeInvariants().inconsistent("Pod: %s has unknown phase mapping: %s", podName, phase);
+                reasonCode = REASON_UNKNOWN;
             }
 
             publishContainerEvent(podName, Finished, reasonCode, reasonMessage, executorDetails, eventTimestamp);
