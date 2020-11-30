@@ -31,7 +31,6 @@ import com.netflix.fenzo.PreferentialNamedConsumableResourceSet;
 import com.netflix.fenzo.TaskRequest;
 import com.netflix.titus.api.jobmanager.JobAttributes;
 import com.netflix.titus.api.jobmanager.TaskAttributes;
-import com.netflix.titus.api.jobmanager.model.job.BatchJobTask;
 import com.netflix.titus.api.jobmanager.model.job.Container;
 import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.Image;
@@ -84,14 +83,14 @@ public class DefaultV3TaskInfoRequestFactory implements TaskInfoRequestFactory {
     private static final String ARN_SUFFIX = ":role/";
     private static final Pattern IAM_PROFILE_RE = Pattern.compile(ARN_PREFIX + "(\\d+)" + ARN_SUFFIX + "\\S+");
 
-    private final MasterConfiguration masterConfiguration;
+    private final MasterConfiguration jobCoordinatorConfiguration;
     private final MesosConfiguration mesosConfiguration;
     private final String iamArnPrefix;
 
     @Inject
-    public DefaultV3TaskInfoRequestFactory(MasterConfiguration masterConfiguration,
+    public DefaultV3TaskInfoRequestFactory(MasterConfiguration jobCoordinatorConfiguration,
                                            MesosConfiguration mesosConfiguration) {
-        this.masterConfiguration = masterConfiguration;
+        this.jobCoordinatorConfiguration = jobCoordinatorConfiguration;
         this.mesosConfiguration = mesosConfiguration;
         // Get the AWS account ID to use for building IAM ARNs.
         String accountId = Evaluators.getOrDefault(System.getenv("EC2_OWNER_ID"), "default");
@@ -186,21 +185,8 @@ public class DefaultV3TaskInfoRequestFactory implements TaskInfoRequestFactory {
         );
 
         // Configure Environment Variables
-        container.getEnv().forEach((k, v) -> {
-            if (v != null) {
-                containerInfoBuilder.putUserProvidedEnv(k, v);
-            }
-        });
-
-        containerInfoBuilder.putTitusProvidedEnv("TITUS_JOB_ID", task.getJobId());
-        containerInfoBuilder.putTitusProvidedEnv("TITUS_TASK_ID", task.getId());
-        containerInfoBuilder.putTitusProvidedEnv("NETFLIX_EXECUTOR", "titus");
-        containerInfoBuilder.putTitusProvidedEnv("NETFLIX_INSTANCE_ID", task.getId());
-        containerInfoBuilder.putTitusProvidedEnv("TITUS_TASK_INSTANCE_ID", task.getId());
-        containerInfoBuilder.putTitusProvidedEnv("TITUS_TASK_ORIGINAL_ID", task.getOriginalId());
-        if (task instanceof BatchJobTask) {
-            BatchJobTask batchJobTask = (BatchJobTask) task;
-            containerInfoBuilder.putTitusProvidedEnv("TITUS_TASK_INDEX", "" + batchJobTask.getIndex());
+        if (jobCoordinatorConfiguration.isContainerInfoEnvEnabled()) {
+            ContainerInfoUtil.setContainerInfoEnvVariables(containerInfoBuilder, container, task);
         }
 
         // Always set this to true until it is removed from the executor
@@ -380,7 +366,7 @@ public class DefaultV3TaskInfoRequestFactory implements TaskInfoRequestFactory {
             uriBuilder.setCache(true);
             commandInfoBuilder.addUris(uriBuilder.build());
         } else {
-            commandInfoBuilder.setValue(masterConfiguration.pathToTitusExecutor());
+            commandInfoBuilder.setValue(jobCoordinatorConfiguration.pathToTitusExecutor());
         }
 
         return commandInfoBuilder.build();
