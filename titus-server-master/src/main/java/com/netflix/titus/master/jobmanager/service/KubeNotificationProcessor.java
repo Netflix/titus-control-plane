@@ -36,22 +36,24 @@ import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
 import com.netflix.titus.api.model.callmetadata.CallMetadata;
+import com.netflix.titus.common.runtime.TitusRuntime;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.guice.annotation.Activator;
 import com.netflix.titus.common.util.rx.ReactorExt;
+import com.netflix.titus.common.util.tuple.Either;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.mesos.TitusExecutorDetails;
 import com.netflix.titus.master.mesos.kubeapiserver.ContainerResultCodeResolver;
-import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeJobManagementReconciler;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
+import com.netflix.titus.master.mesos.kubeapiserver.PodToTaskMapper;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.DirectKubeApiServerIntegrator;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodDeletedEvent;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodEvent;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodNotFoundEvent;
-import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodPhase;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodUpdatedEvent;
 import com.netflix.titus.master.mesos.kubeapiserver.direct.model.PodWrapper;
+import com.netflix.titus.runtime.kubernetes.KubeConstants;
 import io.kubernetes.client.openapi.models.V1ContainerState;
 import io.kubernetes.client.openapi.models.V1Node;
 import io.kubernetes.client.openapi.models.V1PodStatus;
@@ -62,14 +64,11 @@ import reactor.core.publisher.Mono;
 
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_ALLOCATION;
 import static com.netflix.titus.api.jobmanager.TaskAttributes.TASK_ATTRIBUTES_OPPORTUNISTIC_CPU_COUNT;
-import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_NORMAL;
-import static com.netflix.titus.api.jobmanager.model.job.TaskStatus.REASON_TASK_KILLED;
 import static com.netflix.titus.common.util.Evaluators.acceptNotNull;
 import static com.netflix.titus.runtime.kubernetes.KubeConstants.TITUS_NODE_DOMAIN;
 
 /**
  * TODO Incorporate this into {@link DefaultV3JobOperations} once Fenzo is removed.
- * TODO Add junit tests
  */
 @Singleton
 public class KubeNotificationProcessor {
@@ -82,6 +81,7 @@ public class KubeNotificationProcessor {
     private final KubeJobManagementReconciler kubeJobManagementReconciler;
     private final V3JobOperations v3JobOperations;
     private final ContainerResultCodeResolver containerResultCodeResolver;
+    private final TitusRuntime titusRuntime;
 
     private Disposable subscription;
 
@@ -90,12 +90,14 @@ public class KubeNotificationProcessor {
                                      DirectKubeApiServerIntegrator kubeApiServerIntegrator,
                                      KubeJobManagementReconciler kubeJobManagementReconciler,
                                      V3JobOperations v3JobOperations,
-                                     ContainerResultCodeResolver containerResultCodeResolver) {
+                                     ContainerResultCodeResolver containerResultCodeResolver,
+                                     TitusRuntime titusRuntime) {
         this.configuration = configuration;
         this.kubeApiServerIntegrator = kubeApiServerIntegrator;
         this.kubeJobManagementReconciler = kubeJobManagementReconciler;
         this.v3JobOperations = v3JobOperations;
         this.containerResultCodeResolver = containerResultCodeResolver;
+        this.titusRuntime = titusRuntime;
     }
 
     @Activator
@@ -146,20 +148,6 @@ public class KubeNotificationProcessor {
         }
 
         PodWrapper podWrapper = new PodWrapper(event.getPod());
-
-        if (!podWrapper.hasContainers()) {
-            if (podWrapper.isTerminated()) {
-                return handleTerminalPodPhaseWithoutContainer(podWrapper, job, task);
-            }
-
-            logger.info("Pod notification, but no container info yet: {}", task.getId());
-            return Mono.empty();
-        }
-
-        V1ContainerState containerState = event.getPod().getStatus().getContainerStatuses().get(0).getState();
-        TaskState taskState = task.getStatus().getState();
-        Optional<TitusExecutorDetails> executorDetailsOpt = KubeUtil.getTitusExecutorDetails(event.getPod());
-
         Optional<V1Node> node;
         if (event instanceof PodUpdatedEvent) {
             node = ((PodUpdatedEvent) event).getNode();
@@ -169,20 +157,33 @@ public class KubeNotificationProcessor {
             node = Optional.empty();
         }
 
-        logger.info("Pod state change event: taskId={}, details={}", task.getId(), KubeUtil.formatV1ContainerState(containerState));
-        if (containerState.getWaiting() != null) {
-            // TODO: check for updated annotations and update tasks without having to wait for a containerState transition
-            logger.debug("Ignoring 'waiting' state update, as task must stay in the 'Accepted' state here");
-        } else if (containerState.getRunning() != null) {
-            if (TaskState.isBefore(taskState, TaskState.Started)) {
-                return updateTaskStatus(podWrapper, task, TaskState.Started, executorDetailsOpt, node);
-            }
-        } else if (containerState.getTerminated() != null) {
-            if (taskState != TaskState.Finished) {
-                return updateTaskStatus(podWrapper, task, TaskState.Finished, executorDetailsOpt, node);
-            }
+        Either<TaskStatus, String> newTaskStatusOrError = new PodToTaskMapper(podWrapper, node, task,
+                event instanceof PodDeletedEvent,
+                containerResultCodeResolver,
+                titusRuntime
+        ).getNewTaskStatus();
+        if (newTaskStatusOrError.hasError()) {
+            logger.info(newTaskStatusOrError.getError());
+            return Mono.empty();
         }
-        return Mono.empty();
+
+        TaskStatus newTaskStatus = newTaskStatusOrError.getValue();
+        if (TaskStatus.areEquivalent(task.getStatus(), newTaskStatus)) {
+            logger.info("Pod change notification does not change task status: taskId={}, status={}", task.getId(), newTaskStatus);
+        } else {
+            logger.info("Pod notification changes task status: taskId={}, fromStatus={}, toStatus={}", task.getId(),
+                    task.getStatus(), newTaskStatus);
+        }
+
+        Optional<TitusExecutorDetails> executorDetailsOpt = KubeUtil.getTitusExecutorDetails(event.getPod());
+
+        return ReactorExt.toMono(v3JobOperations.updateTask(
+                task.getId(),
+                current -> Optional.of(updateTaskStatus(podWrapper, newTaskStatus, executorDetailsOpt, node, current)),
+                V3JobOperations.Trigger.Kube,
+                "Kube pod notification",
+                KUBE_CALL_METADATA
+        ));
     }
 
     private Mono<Void> handlePodNotFoundEvent(PodNotFoundEvent event) {
@@ -208,86 +209,23 @@ public class KubeNotificationProcessor {
         ));
     }
 
-    /**
-     * This is a special case, where a pod is in a terminal state, but no container was created for it.
-     */
-    private Mono<Void> handleTerminalPodPhaseWithoutContainer(PodWrapper podWrapper, Job job, Task task) {
-        TaskStatus.Builder taskStateBuilder = TaskStatus.newBuilder().withState(TaskState.Finished);
-        if (podWrapper.hasDeletionTimestamp()) {
-            taskStateBuilder
-                    .withReasonCode(TaskStatus.REASON_TASK_KILLED)
-                    .withReasonMessage("Kube pod notification");
-        } else {
-            taskStateBuilder
-                    .withReasonCode(TaskStatus.REASON_UNKNOWN)
-                    .withReasonMessage(podWrapper.getMessage());
-        }
-        Task updatedTask = JobFunctions.changeTaskStatus(task, taskStateBuilder.build());
-        return ReactorExt.toMono(v3JobOperations.updateTask(
-                task.getId(),
-                currentTask -> Optional.of(updatedTask),
-                V3JobOperations.Trigger.Kube,
-                "Kube pod notification",
-                KUBE_CALL_METADATA
-        ));
-    }
-
-    private Mono<Void> updateTaskStatus(PodWrapper pod,
-                                        Task task,
-                                        TaskState newTaskState,
-                                        Optional<TitusExecutorDetails> executorDetailsOpt,
-                                        Optional<V1Node> node) {
-        return ReactorExt.toMono(v3JobOperations.updateTask(
-                task.getId(),
-                currentTask -> Optional.of(updateTaskStatus(pod, newTaskState, executorDetailsOpt, node, currentTask, containerResultCodeResolver)),
-                V3JobOperations.Trigger.Kube,
-                "Kube pod notification",
-                KUBE_CALL_METADATA
-        ));
-    }
-
     @VisibleForTesting
     static Task updateTaskStatus(PodWrapper podWrapper,
-                                 TaskState newTaskState,
+                                 TaskStatus newTaskStatus,
                                  Optional<TitusExecutorDetails> executorDetailsOpt,
                                  Optional<V1Node> node,
-                                 Task currentTask,
-                                 ContainerResultCodeResolver containerResultCodeResolver) {
-        TaskStatus newStatus;
+                                 Task currentTask) {
 
-        if (newTaskState != TaskState.Finished) {
-            newStatus = TaskStatus.newBuilder()
-                    .withState(newTaskState)
-                    .withReasonCode(TaskStatus.REASON_NORMAL)
-                    .withReasonMessage("Kube pod notification")
-                    .build();
+        Task updatedTask;
+        if (TaskStatus.areEquivalent(currentTask.getStatus(), newTaskStatus)) {
+            updatedTask = currentTask;
         } else {
-            TaskStatus.Builder newStatusBuilder = TaskStatus.newBuilder().withState(TaskState.Finished);
-
-            if (podWrapper.getPodPhase() == PodPhase.FAILED) {
-                newStatusBuilder
-                        .withReasonCode(podWrapper.hasDeletionTimestamp() ? REASON_TASK_KILLED : TaskStatus.REASON_FAILED)
-                        .withReasonMessage(podWrapper.getMessage());
-            } else {
-                newStatusBuilder
-                        .withReasonCode(podWrapper.hasDeletionTimestamp() ? REASON_TASK_KILLED : REASON_NORMAL)
-                        .withReasonMessage("Kube pod notification");
-            }
-
-            newStatus = newStatusBuilder.build();
+            List<TaskStatus> newHistory = CollectionsExt.copyAndAdd(currentTask.getStatusHistory(), currentTask.getStatus());
+            updatedTask = currentTask.toBuilder()
+                    .withStatus(newTaskStatus)
+                    .withStatusHistory(newHistory)
+                    .build();
         }
-
-        Optional<String> resultCodeOpt = containerResultCodeResolver.resolve(newStatus.getState(), newStatus.getReasonMessage());
-        if (resultCodeOpt.isPresent()) {
-            newStatus = newStatus.toBuilder().withReasonCode(resultCodeOpt.get()).build();
-        }
-
-        List<TaskStatus> newHistory = CollectionsExt.copyAndAdd(currentTask.getStatusHistory(), currentTask.getStatus());
-
-        Task updatedTask = currentTask.toBuilder()
-                .withStatus(newStatus)
-                .withStatusHistory(newHistory)
-                .build();
 
         Task fixedTask = fillInMissingStates(podWrapper, updatedTask);
         Task taskWithExecutorData;

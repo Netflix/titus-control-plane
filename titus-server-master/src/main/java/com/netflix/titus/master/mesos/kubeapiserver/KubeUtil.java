@@ -123,6 +123,9 @@ public class KubeUtil {
     }
 
     public static Optional<TitusExecutorDetails> getTitusExecutorDetails(V1Pod pod) {
+        if (pod.getMetadata() == null || pod.getMetadata().getAnnotations() == null) {
+            return Optional.empty();
+        }
         Map<String, String> annotations = pod.getMetadata().getAnnotations();
         if (!Strings.isNullOrEmpty(annotations.get("IpAddress"))) {
             TitusExecutorDetails titusExecutorDetails = new TitusExecutorDetails(
