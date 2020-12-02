@@ -32,6 +32,8 @@ import com.netflix.titus.api.jobmanager.model.job.TaskState;
 import com.netflix.titus.api.jobmanager.model.job.TaskStatus;
 import com.netflix.titus.api.jobmanager.model.job.ext.BatchJobExt;
 import com.netflix.titus.api.jobmanager.service.V3JobOperations;
+import com.netflix.titus.common.runtime.TitusRuntime;
+import com.netflix.titus.common.runtime.TitusRuntimes;
 import com.netflix.titus.common.util.CollectionsExt;
 import com.netflix.titus.common.util.tuple.Pair;
 import com.netflix.titus.master.mesos.ContainerEvent;
@@ -54,6 +56,7 @@ import io.kubernetes.client.openapi.models.V1NodeAddress;
 import io.kubernetes.client.openapi.models.V1NodeStatus;
 import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1Pod;
+import io.kubernetes.client.openapi.models.V1PodSpec;
 import io.kubernetes.client.openapi.models.V1PodStatus;
 import org.joda.time.DateTime;
 import org.junit.After;
@@ -85,6 +88,8 @@ public class KubeNotificationProcessorTest {
             .withTaskContext(CollectionsExt.asMap(TaskAttributes.TASK_ATTRIBUTES_OWNED_BY_KUBE_SCHEDULER, "true"))
             .build();
 
+    private final TitusRuntime titusRuntime = TitusRuntimes.test();
+
     private DirectProcessor<PodEvent> podEvents;
     private DirectProcessor<PodEvent> reconcilerPodEvents;
     private DirectProcessor<ContainerEvent> reconcilerContainerEvents;
@@ -103,7 +108,13 @@ public class KubeNotificationProcessorTest {
         podEvents = DirectProcessor.create();
         reconcilerPodEvents = DirectProcessor.create();
         reconcilerContainerEvents = DirectProcessor.create();
-        processor = new KubeNotificationProcessor(mock(JobManagerConfiguration.class), new FakeDirectKube(), new FakeReconciler(), jobOperations, containerResultCodeResolver);
+        processor = new KubeNotificationProcessor(mock(JobManagerConfiguration.class),
+                new FakeDirectKube(),
+                new FakeReconciler(),
+                jobOperations,
+                containerResultCodeResolver,
+                titusRuntime
+        );
         processor.enterActiveMode();
 
         when(jobOperations.findTaskById(eq(TASK.getId()))).thenReturn(Optional.of(Pair.of(JOB, TASK)));
@@ -136,6 +147,7 @@ public class KubeNotificationProcessorTest {
                         .putAnnotationsItem(KubeConstants.OPPORTUNISTIC_CPU_COUNT, "5")
                         .putAnnotationsItem(KubeConstants.OPPORTUNISTIC_ID, "opportunistic-resource-1234")
                 )
+                .spec(new V1PodSpec().nodeName("host1"))
                 .status(new V1PodStatus()
                         .phase(PodPhase.PENDING.getPhaseName())
                         .addContainerStatusesItem(new V1ContainerStatus()
@@ -163,7 +175,6 @@ public class KubeNotificationProcessorTest {
 
     @Test
     public void testUpdateTaskStatusVK() {
-        when(containerResultCodeResolver.resolve(any(), any())).thenReturn(Optional.of("testUpdatedReasonCode"));
         V1Pod pod = new V1Pod()
                 .metadata(new V1ObjectMeta()
                         .name(TASK.getId())
@@ -190,7 +201,7 @@ public class KubeNotificationProcessorTest {
                 );
         Task updatedTask = KubeNotificationProcessor.updateTaskStatus(
                 new PodWrapper(pod),
-                TaskState.Started,
+                TaskStatus.newBuilder().withState(TaskState.Started).build(),
                 Optional.of(new TitusExecutorDetails(Collections.emptyMap(), new TitusExecutorDetails.NetworkConfiguration(
                         true,
                         "1.2.3.4",
@@ -200,13 +211,11 @@ public class KubeNotificationProcessorTest {
                         "resourceId123"
                 ))),
                 Optional.of(node),
-                TASK,
-                containerResultCodeResolver
+                TASK
         );
 
         Set<TaskState> pastStates = updatedTask.getStatusHistory().stream().map(ExecutableStatus::getState).collect(Collectors.toSet());
         assertThat(pastStates).contains(TaskState.Accepted, TaskState.Launched, TaskState.StartInitiated);
-        assertThat(updatedTask.getStatus().getReasonCode()).isEqualTo("testUpdatedReasonCode");
         assertThat(updatedTask.getTaskContext()).containsEntry(TaskAttributes.TASK_ATTRIBUTES_AGENT_HOST, "2.2.2.2");
         assertThat(updatedTask.getTaskContext()).containsEntry(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP, "1.2.3.4");
         assertThat(updatedTask.getTaskContext()).containsEntry(TaskAttributes.TASK_ATTRIBUTES_AGENT_AMI, "ami123");
@@ -243,11 +252,10 @@ public class KubeNotificationProcessorTest {
                 );
         Task updatedTask = KubeNotificationProcessor.updateTaskStatus(
                 new PodWrapper(pod),
-                TaskState.Started,
+                TaskStatus.newBuilder().withState(TaskState.Started).build(),
                 Optional.empty(),
                 Optional.of(node),
-                TASK,
-                containerResultCodeResolver
+                TASK
         );
 
         assertThat(updatedTask.getTaskContext()).containsEntry(TaskAttributes.TASK_ATTRIBUTES_CONTAINER_IP, "192.0.2.0");

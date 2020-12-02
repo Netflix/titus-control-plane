@@ -19,8 +19,10 @@ package com.netflix.titus.master.mesos.kubeapiserver.direct.model;
 import java.util.Optional;
 
 import com.netflix.titus.common.util.CollectionsExt;
+import com.netflix.titus.common.util.StringExt;
 import com.netflix.titus.master.mesos.kubeapiserver.KubeUtil;
 import io.kubernetes.client.openapi.models.V1ContainerState;
+import io.kubernetes.client.openapi.models.V1ContainerStatus;
 import io.kubernetes.client.openapi.models.V1Pod;
 
 /**
@@ -41,6 +43,10 @@ public class PodWrapper {
         return v1Pod;
     }
 
+    public String getName() {
+        return v1Pod.getMetadata() == null ? "" : StringExt.nonNull(v1Pod.getMetadata().getName());
+    }
+
     public PodPhase getPodPhase() {
         if (podPhase == null) {
             podPhase = v1Pod.getStatus() != null && v1Pod.getStatus().getPhase() != null
@@ -48,6 +54,10 @@ public class PodWrapper {
                     : PodPhase.UNKNOWN;
         }
         return podPhase;
+    }
+
+    public String getReason() {
+        return v1Pod.getStatus() != null && v1Pod.getStatus().getReason() != null ? v1Pod.getStatus().getReason() : "";
     }
 
     public String getMessage() {
@@ -75,13 +85,25 @@ public class PodWrapper {
         return Optional.ofNullable(v1Pod.getMetadata().getAnnotations().get(key));
     }
 
-    public boolean hasContainers() {
-        return v1Pod.getStatus() != null && !CollectionsExt.isNullOrEmpty(v1Pod.getStatus().getContainerStatuses());
-    }
-
     public boolean hasDeletionTimestamp() {
         return v1Pod.getMetadata() != null && v1Pod.getMetadata().getDeletionTimestamp() != null;
 
+    }
+
+    public boolean isScheduled() {
+        return v1Pod.getSpec() != null && StringExt.isNotEmpty(v1Pod.getSpec().getNodeName());
+    }
+
+    public boolean hasContainerStateWaiting() {
+        if (v1Pod.getStatus() == null || CollectionsExt.isNullOrEmpty(v1Pod.getStatus().getContainerStatuses())) {
+            return false;
+        }
+        for (V1ContainerStatus status : v1Pod.getStatus().getContainerStatuses()) {
+            if (status.getState() != null && status.getState().getWaiting() != null) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public boolean isTerminated() {

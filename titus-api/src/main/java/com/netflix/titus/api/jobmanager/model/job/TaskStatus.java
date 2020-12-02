@@ -42,6 +42,11 @@ public class TaskStatus extends ExecutableStatus<TaskState> {
     public static final String REASON_POD_CREATED = "podCreated";
 
     /**
+     * Pod scheduled by KubeScheduler.
+     */
+    public static final String REASON_POD_SCHEDULED = "podScheduled";
+
+    /**
      * Job was explicitly terminated by a user.
      */
     public static final String REASON_JOB_KILLED = "killed";
