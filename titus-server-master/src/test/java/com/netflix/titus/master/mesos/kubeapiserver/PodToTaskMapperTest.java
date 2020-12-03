@@ -39,6 +39,7 @@ import io.kubernetes.client.openapi.models.V1ObjectMeta;
 import io.kubernetes.client.openapi.models.V1Pod;
 import io.kubernetes.client.openapi.models.V1PodSpec;
 import io.kubernetes.client.openapi.models.V1PodStatus;
+import org.joda.time.DateTime;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -151,6 +152,14 @@ public class PodToTaskMapperTest {
     }
 
     @Test
+    public void testPodFailedWithKillReason() {
+        Task task = newTask(TaskState.Started);
+        V1Pod pod = andDeletionTimestamp(andReason(andTerminated(andScheduled(newPod("Failed"))), REASON_TASK_KILLED));
+        Either<TaskStatus, String> result = updateMapper(task, pod).getNewTaskStatus();
+        assertValue(result, TaskState.Finished, REASON_TASK_KILLED);
+    }
+
+    @Test
     public void testPodStuckInStateClassifiedAsTransientSystemError() {
         Task task = JobFunctions.changeTaskStatus(
                 newTask(TaskState.KillInitiated),
@@ -247,6 +256,14 @@ public class PodToTaskMapperTest {
         pod.getStatus().containerStatuses(Collections.singletonList(
                 new V1ContainerStatus().state(new V1ContainerState().running(new V1ContainerStateRunning()))
         ));
+        return pod;
+    }
+
+    private V1Pod andDeletionTimestamp(V1Pod pod) {
+        if (pod.getMetadata() == null) {
+            pod.metadata(new V1ObjectMeta());
+        }
+        pod.getMetadata().deletionTimestamp(DateTime.now());
         return pod;
     }
 

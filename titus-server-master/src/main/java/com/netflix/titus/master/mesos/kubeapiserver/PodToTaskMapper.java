@@ -135,17 +135,9 @@ public class PodToTaskMapper {
                 reasonCode = REASON_TASK_KILLED;
             }
         } else if (podWrapper.getPodPhase() == PodPhase.SUCCEEDED) {
-            if (taskState == KillInitiated && task.getStatus().getReasonCode().equals(REASON_STUCK_IN_STATE)) {
-                reasonCode = REASON_TRANSIENT_SYSTEM_ERROR;
-            } else {
-                if (podWrapper.hasDeletionTimestamp() || taskState == KillInitiated) {
-                    reasonCode = REASON_TASK_KILLED;
-                } else {
-                    reasonCode = REASON_NORMAL;
-                }
-            }
+            reasonCode = resolveFinalTaskState(REASON_NORMAL);
         } else if (podWrapper.getPodPhase() == PodPhase.FAILED) {
-            reasonCode = REASON_FAILED;
+            reasonCode = resolveFinalTaskState(REASON_FAILED);
         } else {
             titusRuntime.getCodeInvariants().inconsistent("Pod: %s has unknown phase mapping: %s", podWrapper.getName(), podWrapper.getPodPhase());
             reasonCode = REASON_UNKNOWN;
@@ -158,6 +150,16 @@ public class PodToTaskMapper {
                 .withTimestamp(now)
                 .build()
         );
+    }
+
+    private String resolveFinalTaskState(String currentReasonCode) {
+        TaskState taskState = task.getStatus().getState();
+        if (taskState == KillInitiated && task.getStatus().getReasonCode().equals(REASON_STUCK_IN_STATE)) {
+            return REASON_TRANSIENT_SYSTEM_ERROR;
+        } else if (podWrapper.hasDeletionTimestamp() || taskState == KillInitiated) {
+            return REASON_TASK_KILLED;
+        }
+        return currentReasonCode;
     }
 
     /**
@@ -262,17 +264,9 @@ public class PodToTaskMapper {
         TaskState taskState = task.getStatus().getState();
         String reasonCode;
         if (podWrapper.getPodPhase() == PodPhase.SUCCEEDED) {
-            if (taskState == KillInitiated && task.getStatus().getReasonCode().equals(REASON_STUCK_IN_STATE)) {
-                reasonCode = REASON_TRANSIENT_SYSTEM_ERROR;
-            } else {
-                if (podWrapper.hasDeletionTimestamp() || taskState == KillInitiated) {
-                    reasonCode = REASON_TASK_KILLED;
-                } else {
-                    reasonCode = REASON_NORMAL;
-                }
-            }
+            reasonCode = resolveFinalTaskState(REASON_NORMAL);
         } else { // PodPhase.FAILED
-            reasonCode = REASON_FAILED;
+            reasonCode = resolveFinalTaskState(REASON_FAILED);
         }
         return Either.ofValue(TaskStatus.newBuilder()
                 .withState(Finished)
