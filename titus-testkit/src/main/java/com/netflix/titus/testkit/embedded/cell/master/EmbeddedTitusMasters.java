@@ -55,6 +55,7 @@ public final class EmbeddedTitusMasters {
                 .withProperty("titus.master.loadBalancer.engineEnabled", "true")
                 .withProperty("titusMaster.eviction.eventStreamQuotaUpdateIntervalMs", "100")
                 .withProperty("titus.features.jobManager.disruptionBudget.whiteList", ".*")
+                .withProperty("titus.features.jobManager.kubeSchedulerFeature.containerSizeLimitEnabled", "false")
                 .build();
     }
 }
