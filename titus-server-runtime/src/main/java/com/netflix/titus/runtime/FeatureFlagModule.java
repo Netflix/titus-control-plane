@@ -24,6 +24,7 @@ import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.netflix.archaius.ConfigProxyFactory;
 import com.netflix.titus.api.FeatureActivationConfiguration;
+import com.netflix.titus.api.jobmanager.model.job.ContainerResources;
 import com.netflix.titus.api.jobmanager.model.job.JobDescriptor;
 import com.netflix.titus.api.jobmanager.model.job.JobFunctions;
 import com.netflix.titus.api.model.ApplicationSLA;
@@ -177,8 +178,10 @@ public class FeatureFlagModule extends AbstractModule {
 
         return p -> {
             JobDescriptor<?> jobDescriptor = p.getLeft();
+            ContainerResources resources = jobDescriptor.getContainer().getContainerResources();
+
             // Jobs with static IP addresses are not allowed.
-            if (!CollectionsExt.isNullOrEmpty(jobDescriptor.getContainer().getContainerResources().getSignedIpAddressAllocations())) {
+            if (!CollectionsExt.isNullOrEmpty(resources.getSignedIpAddressAllocations())) {
                 return false;
             }
 
@@ -188,8 +191,27 @@ public class FeatureFlagModule extends AbstractModule {
             }
 
             // Check GPU jobs
-            if (!configuration.isGpuEnabled() && jobDescriptor.getContainer().getContainerResources().getGpu() > 0) {
+            if (!configuration.isGpuEnabled() && resources.getGpu() > 0) {
                 return false;
+            }
+
+            // Container is too large
+            if(configuration.isContainerSizeLimitEnabled()) {
+                if(resources.getCpu() > configuration.getCpuLimit()) {
+                    return false;
+                }
+                if(resources.getGpu() > configuration.getGpuLimit()) {
+                    return false;
+                }
+                if(resources.getMemoryMB() > configuration.getMemoryMBLimit()) {
+                    return false;
+                }
+                if(resources.getDiskMB() > configuration.getDiskMBLimit()) {
+                    return false;
+                }
+                if(resources.getNetworkMbps() > configuration.getNetworkMbpsLimit()) {
+                    return false;
+                }
             }
 
             return routingPredicate.test(p);
