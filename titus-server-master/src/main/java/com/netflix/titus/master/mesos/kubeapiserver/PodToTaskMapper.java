@@ -146,7 +146,7 @@ public class PodToTaskMapper {
         return Either.ofValue(TaskStatus.newBuilder()
                 .withState(Finished)
                 .withReasonCode(effectiveFinalReasonCode(reasonCode))
-                .withReasonMessage("Container was terminated without going through the Titus API")
+                .withReasonMessage(podWrapper.getMessage())
                 .withTimestamp(now)
                 .build()
         );
